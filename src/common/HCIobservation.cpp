@@ -6,7 +6,7 @@
  *
  */
 
-#include "improc/HCIobservation.hpp"
+#include "HCIobservation.hpp"
 
 namespace mx
 {

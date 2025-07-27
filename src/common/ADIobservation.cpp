@@ -6,8 +6,8 @@
  *
  */
 
-#include "improc/ADIDerotator.hpp"
-#include "improc/ADIobservation.hpp"
+#include "ADIDerotator.hpp"
+#include "ADIobservation.hpp"
 
 namespace mx
 {

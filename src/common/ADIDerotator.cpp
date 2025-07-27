@@ -5,7 +5,7 @@
  *
  */
 
-#include "improc/ADIDerotator.hpp"
+#include "ADIDerotator.hpp"
 
 namespace mx
 {

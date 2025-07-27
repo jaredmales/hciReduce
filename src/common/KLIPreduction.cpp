@@ -6,8 +6,8 @@
  *
  */
 
-#include "improc/ADIDerotator.hpp"
-#include "improc/KLIPreduction.hpp"
+#include "ADIDerotator.hpp"
+#include "KLIPreduction.hpp"
 
 namespace mx
 {

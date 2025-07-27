@@ -1,4 +1,4 @@
-target_sources(klipReduce INTERFACE HCIobservation.hpp
+target_sources(klipReduce PRIVATE HCIobservation.hpp
                                  HCIobservation.cpp
                                  ADIobservation.hpp
                                  ADIobservation.cpp
