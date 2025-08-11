@@ -18,6 +18,8 @@
 
 #include <mx/mxlib.hpp>
 
+#include <mx/app/appConfigurator.hpp>
+
 #include <mx/mxException.hpp>
 
 #include <mx/math/templateBLAS.hpp>
@@ -46,6 +48,29 @@ namespace improc
 namespace HCI
 {
 
+/// Possible coadding methods
+/** \ingroup hc_imaging_enums
+ */
+enum class coaddMethod
+{
+    none,   ///< Do not combine the images.
+    median, ///< Combine with the median.
+    mean,   ///< Combine with the mean.
+    invalid ///< An invalid method
+};
+
+/// Get the string name of the coaddMethod
+/**
+ * \returns a string with the name of the coaddMethod
+ */
+std::string coaddMethodStr( coaddMethod method /**< [in] one of the coaddMethod enum members */ );
+
+/// Get the coaddMethod from the corresponding string name
+/**
+ * \returns the coaddMethod enum member corresponding to the string name.
+ */
+coaddMethod coaddMethodStr( const std::string &method /**< [in] the string name of the coaddMethod */ );
+
 /// Mean subtraction methods
 /** These control how the data in each search region is centered to meet the PCA
  * requirement. \ingroup hc_imaging_enums
@@ -55,54 +80,51 @@ enum class meanSubMethod
     none,        ///< No mean subtraction
     meanImage,   ///< The mean image of the data is subtracted from each image
     medianImage, ///< The median image of the data is subtracted from each image
-    imageMean,   ///< The mean of each image (within the search region) is
-                 ///< subtracted from itself
-    imageMedian, ///< The median of each image (within the search region) is
-                 ///< subtracted from itself
-    imageMode,   ///< The mode of each image (within the search region) is
-                 ///< subtracted from itself
-    unknown = -1 ///< unknown value, an error
+    imageMean,   /**< The mean of each image (within the search region) is
+                      subtracted from itself*/
+    imageMedian, /**< The median of each image (within the search region) is
+                      subtracted from itself*/
+    imageMode    /**< The mode of each image (within the search region) is
+                      subtracted from itself*/
 };
 
 std::string meanSubMethodStr( meanSubMethod method );
 
-meanSubMethod meanSubMethodFmStr( const std::string &method );
+meanSubMethod meanSubMethodStr( const std::string &method );
 
 enum class pixelTSNormMethod
 {
-    none,            ///< no pixel time series norm
-    rms,             ///< the rms of the pixel time series
-    rmsSigmaClipped, ///< the sigma clipped rms of the pixel time series
-    unknown = -1     ///< unknown value, an error
+    none,           ///< no pixel time series norm
+    rms,            ///< the rms of the pixel time series
+    rmsSigmaClipped ///< the sigma clipped rms of the pixel time series
 };
 
 std::string pixelTSNormMethodStr( pixelTSNormMethod method );
 
-pixelTSNormMethod pixelTSNormMethodFmStr( const std::string &method );
+pixelTSNormMethod pixelTSNormMethodStr( const std::string &method );
 
 /// Possible combination methods
 /** \ingroup hc_imaging_enums
  */
-enum combineMethods
+enum class combineMethod
 {
-    noCombine,        ///< Do not combine the images.
-    medianCombine,    ///< Combine with the median.
-    meanCombine,      ///< Combine with the mean.
-    sigmaMeanCombine, ///< Combine with the sigma clipped mean.
-    debug
+    none,     ///< Do not combine the images.
+    median,   ///< Combine with the median.
+    mean,     ///< Combine with the mean.
+    sigmaMean ///< Combine with the sigma clipped mean.
 };
 
-/// Get the string name of the combineMethod integer
+/// Get the string name of the combineMethod
 /**
  * \returns a string with the name of the combineMethod
  */
-std::string combineMethodStr( int method /**< [in] one of the combineMethods enum members */ );
+std::string combineMethodStr( combineMethod method /**< [in] one of the combineMethod enum members */ );
 
 /// Get the combineMethod from the corresponding string name
 /**
  * \returns the combineMethods enum member corresponding to the string name.
  */
-int combineMethodFmStr( const std::string &method /**< [in] the string name of the combineMethod */ );
+combineMethod combineMethodFmStr( const std::string &method /**< [in] the string name of the combineMethod */ );
 
 } // namespace HCI
 
@@ -111,112 +133,112 @@ int combineMethodFmStr( const std::string &method /**< [in] the string name of t
  * and final image combination.
  *
  * \tparam _realT is the floating point type in which to do all arithmetic.
+ * \tparam verboseT sets the verbosity of error reporting
  *
  * \ingroup hc_imaging
  */
-template <typename _realT>
+template <typename _realT, class verboseT = mx::verbose::vvv>
 struct HCIobservation
 {
 
+  public:
     /// The arithmetic type used for calculations.  Does not have to match the type in images on disk.
     typedef _realT realT;
 
     /// The Eigen image array type basted on realT
     typedef Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic> eigenImageT;
 
-    ///\name Construction and Initialization
-    /** @{
+  protected:
+    /** \name Input Target Images Configuration
+     * Options to control which files are read, how they are read, what meta data is extracted
+     * from FITS headers, and image size.
+     * @{
      */
-    /// Default c'tor
-    HCIobservation();
 
-    /// Construct and load the target file list.
-    /** Populates the \ref m_fileList vector by searching on disk for files which match
-     * "dir/prefix*.ext".  See \ref load_fileList
+    /// Directory to search for input files
+    std::string m_directory;
+
+    /// Prefix of the input files. Can be empty if all files in the directory are to be used.
+    std::string m_prefix;
+
+    /// Extension of the input files.  Default is .fits.
+    std::string m_extension{ ".fits" };
+
+    /// Path to a file containing a list of input files to read.
+    /** If directory is also specified as \ref m_directory this must contain paths relative to that directory.
+     *  This can be set on construction, configuration, or by calling \ref load_fileList
+     */
+    std::string m_fileListFile;
+
+    /// The number of files to delete from the front of the list.  Default is 0.
+    int m_deleteFront{ 0 };
+
+    /// The number of files to delete from the back of the list.  Default is 0.
+    int m_deleteBack{ 0 };
+
+    /// The path to the file containing a list of image quality in 'filename quality' pairs, one entry per image.
+    /** If this is not empty and \ref m_qualityThreshold is > 0, then only images where
+     * qualityValue >= qualityThreshold are read and processed.
+     *
+     * The only restriction on m_qualityThreshold is that it is > 0 and is in the same units as the m_qualityThreshold.
+     */
+    std::string m_qualityFile;
+
+    /// Threshold to apply to quality values read from \ref m_qualityFile.
+    /** If <= 0, then thresholding is not performed.
+     */
+    realT m_qualityThreshold{ 0 };
+
+    /// Perform thresholding only, and print the list of files which pass.
+    /** Prints the names and qualities of the files which pass threshold, and then stops.
      *
      */
-    HCIobservation( const std::string &dir,    ///< [in] the directory to search.
-                    const std::string &prefix, ///< [in] the initial part of the file name.  Can be empty "".
-                    const std::string &ext     ///< [in] the extension to append to the file name, must include the '.'.
-    );
+    bool m_thresholdOnly{ false };
 
-    /// Construct using a file containing the target file list
-    /** Populates the \ref m_fileList vector by reading the file, which should be a single
-     * column of new-line delimited file names.
-     */
-    explicit HCIobservation( const std::string &fileListFile /**< [in] a file name path to read.*/ );
-
-    /// Construct and load the target file list and the RDI file list
-    /** Populates the \ref m_fileList vector by searching on disk for files which match
-     * "dir/prefix*.ext".  See \ref load_fileList
+    /// The FITS keyword to use for the image date.
+    /** Specifies the keyword corresponding to the date.  This is
+     *  the "DATE" keyword for file write time, and usually
+     *  "DATE-OBS" for actual observation time.
      *
-     *  Populates the \ref m_RDIfileList vector by searching on disk for files which match
-     * "RDIdir/RDIprefix*.RDIext".  See \ref load_RDIfileList
-     */
-    HCIobservation( const std::string &dir,        /**< [in] the directory to search. */
-                    const std::string &prefix,     /**< [in] the initial part of the file name.  Can be empty "".*/
-                    const std::string &ext,        /**< [in] the extension to append to the file name, must include
-                                                             the '.'.*/
-                    const std::string &RDIdir,     /**< [in] the directory to search for the reference files.*/
-                    const std::string &RDIprefix,  /**< [in] the initial part of the file name for the reference files.
-                                                             Can be empty "".*/
-                    const std::string &RDIext = "" /**< [in] [optional] the extension to append to the RDI file name,
-                                                                        must include the '.'.  If empty "" then same
-                                                                        extension as target files is used.*/
-    );
-
-    /// Construct using a file containing the target file list and a file containing the RDI target file list
-    /** Populates the \ref m_fileList vector by reading the file, which should be a single
-     * column of new-line delimited file names.
+     * Default is "DATE-OBS".
      *
-     * Populates the \ref m_RDIfileList vector by reading the file, which should be a single
-     * column of new-line delimited file names.
+     * If empty "", then image date is not read.
      */
-    HCIobservation( const std::string &fileListFile,   ///< [in] a file name path to read for the target file names.
-                    const std::string &RDIfileListFile ///< [in] a file name path to read for the reference file names.
-    );
+    std::string m_dateKeyword{ "DATE-OBS" };
 
-    /// Load the file list
-    /** Populates the \ref m_fileList vector by searching on disk for files which match the given parameters.
-     * Uses \ref mx::getFileNames to search for all files which match "dir/prefix*.ext".
-     *
+    /// Whether or not the date is in ISO 8601 format
+    /**
+     * Default is true.
      */
-    void load_fileList( const std::string &dir,    ///< [in] the directory to search.
-                        const std::string &prefix, ///< [in] the initial part of the file name.  Can be empty "".
-                        const std::string &ext ///< [in] the extension to append to the file name, which must include
-                                               ///< the '.'. Can be empty "".
-    );
+    bool m_dateIsISO8601{ true };
 
-    /// Load the file list from a file
-    /** Populates the \ref m_fileList vector by reading the file, which should be a single
-     * column of new-line delimited file names.
-     *
+    /// If the date is not ISO 8601, this specifies the conversion to Julian Days (e.g. seconds to days)
+    /**
+     * Default is 1.0.
      */
-    void load_fileList( const std::string &fileListFile /**< [in] a file name path to read.*/ );
+    realT m_dateUnit{ 1.0 };
 
-    /// Load the RDI basis file list
-    /** Populates the \ref m_RDIfileList vector by searching on disk for files which match the given parameters.
-     * Uses \ref mx::getFileNames to search for all files which match "dir/prefix*.ext".
-     *
-     */
-    void load_RDIfileList( const std::string &dir,    ///< [in] the directory to search.
-                           const std::string &prefix, ///< [in] the initial part of the file name.  Can be empty "".
-                           const std::string &ext ///< [in] the extension to append to the file name, which must include
-                                                  ///< the '.'. Can be empty "".
-    );
+    /// Vector of FITS header keywords to read from the files in m_fileList.
+    std::vector<std::string> m_keywords;
 
-    /// Load the RDI basis file list from a file
-    /** Populates the \ref m_fileList vector by reading the file, which should be a single
-     * column of new-line delimited file names.
+    /// The max size to read in from the images.
+    /** Set to 0 to use images uncut.
      *
+     * Image sizes are not increased if this is larger than their size on disk.
      */
-    void load_RDIfileList( const std::string &fileListFile /**< [in] a file name path to read.*/ );
+    int m_imSize{ 0 };
 
     ///@}
 
-    ///\name The Input Target Images
+    ///\name The Input Target Images Data
     /** @{
      */
+
+    /// The list of input files to read.
+    /** Constructed by either reading m_fileListFile or searching m_directory for the
+     * files specified by m_prefix and m_extension.
+     */
+    std::vector<std::string> m_fileList;
 
     /// The target image cube
     eigenCube<realT> m_tgtIms;
@@ -238,17 +260,87 @@ struct HCIobservation
     /// Whether or not the specified files have been deleted from m_fileList
     bool m_filesDeleted{ false };
 
-    /// Vector to hold the image weights read from the m_weightFile.
-    /** After readWeights is executed by readFiles, this will contain the normalized weights.
-     * \todo check how comboWeights are handled in coadding
+    ///@}
+
+    /** \name RDI Input Reference Images Configuration
+     * Options for Reference Differential Imaging (RDI) input files to control which files are read for
+     * the references, how they are read, and what meta data is extracted from FITS headers.
+     * @{
      */
-    std::vector<realT> m_comboWeights;
+
+    /// Directory to search for input reference files
+    std::string m_RDIdirectory;
+
+    /// Prefix of the input reference files. Can be empty if all files in the directory are to be used.
+    std::string m_RDIprefix;
+
+    /// Extension of the input reference files.  Default is to match the target input files.
+    std::string m_RDIextension{ ".fits" };
+
+    /// Path to a file containing a list of input reference files to read.
+    /** If directory is also specified as \ref m_RDIdirectory this must contain paths relative to that directory.
+     *  This can be set on construction, configuration, or by calling \ref load_RDIfileList
+     */
+    std::string m_RDIfileListFile;
+
+    /// The number of reference files to delete from the front of the list.  Default is 0.
+    int m_RDIdeleteFront{ 0 };
+
+    /// The number of reference files to delete from the back of the list.  Default is 0.
+    int m_RDIdeleteBack{ 0 };
+
+    /// The path to the file containing a list of reference image quality in 'filename quality' pairs, one entry per
+    /// image.
+    /** If this is not empty and \ref m_RDIqualityThreshold is > 0, then only reference images where
+     * RDIqualityValue >= RDIqualityThreshold are read and processed.
+     *
+     * The only restriction on m_RDIqualityThreshold is that it is > 0 and is in the same units as
+     * m_RDIqualityThreshold.
+     */
+    std::string m_RDIqualityFile;
+
+    /// Threshold to apply to qualityValues read from \ref m_RDIqualityFile.
+    /** If <= 0, then thresholding is not performed on reference data.
+     */
+    realT m_RDIqualityThreshold{ 0 };
+
+    /// The FITS keyword to use for the reference image date.
+    /** Specifies the keyword corresponding to the date.  This is
+     *  the "DATE" keyword for file write time, and usually
+     *  "DATE-OBS" for actual observation time.
+     *
+     * Default is to follow the main input \ref m_dateKeyword.
+     *
+     * If empty "", then image date is not read.
+     */
+    std::string m_RDIdateKeyword{ "DATE-OBS" };
+
+    /// Whether or not the date in reference images is in ISO 8601 format
+    /**
+     * Default is to follow the main input \ref m_dateIsISO8601
+     */
+    bool m_RDIdateIsISO8601{ true };
+
+    /// If the reference image date is not ISO 8601, this specifies the conversion to Julian Days (e.g. seconds to days)
+    /**
+     * The default is follow hte main image \ref m_dateUnit;
+     */
+    realT m_RDIdateUnit{ 1.0 };
+
+    /// Vector of FITS header keywords to read from the files in m_RDIfileList.
+    std::vector<std::string> m_RDIkeywords;
 
     ///@}
 
-    ///\name The Input Reference Images
+    ///\name RDI Input Reference Images Data
     /** @{
      */
+
+    /// The list of input reference files to read.
+    /** Constructed by either reading m_RDIfileListFile or searching m_directory for the
+     * files specified by m_RDIprefix and m_RDIextension.
+     */
+    std::vector<std::string> m_RDIfileList;
 
     /// The optional reference image cube
     eigenCube<realT> m_refIms;
@@ -267,6 +359,192 @@ struct HCIobservation
 
     ///@}
 
+    /** \name Mask Configuration
+     * A 1/0 mask can be supplied, which is used in pre-processing and in image combination.
+     * @{
+     */
+
+    /// Specify a mask file to apply to the input images
+    /**No mask is applied if this is empty.
+     */
+    std::string m_maskFile;
+
+    /// Specify a mask file to apply to the reference images
+    /**No mask is applied if this is empty, unless m_RDImaskUseInput is true.
+     */
+    std::string m_RDImaskFile;
+
+    /// Specify that the input mask file should be used for the reference images
+    /** This will override m_RDImaskFile.
+     */
+    bool m_RDImaskUseInput{ false };
+
+    ///@}
+
+    /** \name Mask Data
+     *
+     * @{
+     */
+
+    eigenImageT m_mask;             ///< The mask
+
+    eigenCube<realT> m_maskCube;    /**< A cube of masks, one for each input image, which may be modified
+                                         versions (e.g. rotated) of mask. */
+
+    eigenImageT m_RDImask;          ///< The mask for RDI images
+
+    eigenCube<realT> m_RDImaskCube; /**< A cube of masks, one for each reference image, which may be modified
+                                      versions (e.g. rotated) of mask. */
+
+    ///@}
+
+    /** \name Coadding Configuration
+     * These parameters control whether and how the images are coadded after being read.  Coadding can
+     * be done up to a given number of images, and/or a given elapsed time.
+     *
+     * Averages the values of given Keywords as well.
+     * @{
+     */
+
+    /// The method to use for coadding the input images.
+    /** Possibilities are
+     * - HCI::coaddMethod::none -- [default] do not combine.  This turns off coadding.
+     * - HCI::coaddMethod::median --  coadded image is the median
+     * - HCI::coaddMethod::mean -- coadded image is the simple mean
+     *
+     * No other types of combination are currently supported for coadding.
+     */
+    HCI::coaddMethod m_coaddMethod{ HCI::coaddMethod::none };
+
+    /// Maximum number of images to coadd at a time.
+    int m_coaddMaxImno{ 0 };
+
+    /// Maximum elapsed time over which to coadd the images, in seconds.
+    realT m_coaddMaxTime{ 0 };
+
+    /// Specify FITS keywords from the input images whose values will be averaged and replaced.
+    std::vector<std::string> m_coaddKeywords;
+
+    ///@}
+    //-- Coadding Configuration
+
+    /** \name Pre-Processing Configuraton
+     * These options control the pre-processing masking and filtering.
+     * They are performed in the following order:
+     * -# mask applied (enabled by m_preProcess_mask)
+     * -# radial profile subtraction (enabled by m_preProcess_subradprof)
+     * -# mask applied (enabled by m_preProcess_mask)
+     * -# symmetric median unsharp mask (m_preProcess_gaussUSM_fwhm)
+     * -# symmetric Gaussian unsharp mask (m_preProcess_gaussUSM_fwhm)
+     * -# mask applied (enabled by m_preProcess_mask)
+     * -# azimuthal unsharp mask (m_preProcess_azUSM_azW, and m_preProcess_azUSM_radW)
+     * -# mask applied (enabled by m_preProcess_mask)
+     * -# mean subtraction (enabled by m_preProcess_meanSubMethod)
+     * -# mask applied (enabled by m_preProcess_mask)
+     * -# pixel time-series normalization (enabled by m_preProcess_pixelTSNormMethod)
+     * @{
+     */
+
+    bool m_skipPreProcess{ false };         ///< Don't do any of the pre-processing steps (including coadding).
+
+    bool m_preProcess_beforeCoadd{ false }; ///< controls whether pre-processing takes place before or after coadding
+
+    bool m_preProcess_mask{ true };         ///< If true, the mask is applied during each pre-processing step.
+
+    bool m_preProcess_subradprof{ false };  ///< If true, a radial profile is subtracted from each image.
+
+    /// Azimuthal boxcar width for azimuthal unsharp mask [pixels]
+    /** If this is 0 then azimuthal-USM is not performed.
+     */
+    realT m_preProcess_azUSM_azW{ 0 };
+
+    /// Maximum azimuthal boxcar width for azimuthal unsharp mask [degrees]
+    /** Limits width close to center, preventing wrap-around.  Default is 45 degrees.  Set to 0 for no maximum.
+     */
+    realT m_preProcess_azUSM_maxAz{ 45 };
+
+    /// Radial boxcar width for azimuthal unsharp mask [pixels]
+    /** If this is 0 then azimuthal-USM is not performed.
+     */
+    realT m_preProcess_azUSM_radW{ 0 };
+
+    /// Kernel full-width for symmetric box median unsharp mask (USM)
+    /** USM is not performed if this is 0.
+     */
+    int m_preProcess_medianUSM_fwhm{ 0 };
+
+    /// Kernel FWHM for symmetric Gaussian unsharp mask (USM)
+    /** USM is not performed if this is 0.
+     */
+    realT m_preProcess_gaussUSM_fwhm{ 0 };
+
+    /// The mean subtraction method during pre-processing
+    /** Can only be none, meanImage, or medianImage
+     */
+    HCI::meanSubMethod m_preProcess_meanSubMethod{ HCI::meanSubMethod::none };
+
+    /// Specify if each pixel time-series is normalized
+    /** This normalizaton is applied after centering. Can have the following values:
+     * - <b>HCI::pixelTSNormMethod::none</b>: no normalization (the default)
+     * - <b>HCI::pixelTSNormMethod::rms</b>: divide by the time-series rms
+     * - <b>HCI::pixelTSNormMethod::rmsSigmaClipped</b>: divide by the sigma-slipped time-series rms.
+     *                                                   The sigma is provided by m_preProcess_pixelTSSigma.
+     */
+    HCI::pixelTSNormMethod m_preProcess_pixelTSNormMethod{ HCI::pixelTSNormMethod::none };
+
+    realT m_pixelTSSigma{ 3 }; ///< Sigma-clipping parameter for pixel time-series normalization
+
+    /// Set path and file prefix to output the pre-processed images.
+    /** If empty, then pre-processed images are not output.
+     */
+    std::string m_preProcess_outputPrefix;
+
+    /// If true, then we stop after pre-processing.
+    bool m_preProcess_only{ false };
+
+    ///@}
+    //--pre-processing configuration
+
+  public:
+    ///\name Construction and Initialization
+    /** @{
+     */
+    /// Default c'tor
+    HCIobservation();
+
+    int setupConfig( mx::app::appConfigurator &config );
+
+    int loadConfig( mx::app::appConfigurator &config );
+
+  protected:
+    /// Load the file list (internal worker)
+    /** Populates the fileList vector by either reading fileListFile (if it is not "") or by
+     * searching on disk for files which match the given parameters "directory/prefix*.extension".
+     *
+     */
+    mx::error_t load_fileList( std::vector<std::string> &fileList,
+                               const std::string &fileListFile,
+                               const std::string &directory,
+                               const std::string &prefix,
+                               const std::string &extension );
+
+  public:
+    /// Load the file list
+    /** Populates the \ref m_fileList vector by either reading m_fileListFile (if it is not "") or by
+     * searching on disk for files which match the given parameters "m_directory/m_prefix*.m_extension".
+     *
+     */
+    mx::error_t load_fileList();
+
+    /// Load the RDI reference file list
+    /** Populates the \ref m_RDIfileList vector by either reading m_RDIfileListFile (if it is not "") or by
+     * searching on disk for files which match the given parameters "m_RDIdirectory/m_RDIprefix*.m_RDIextension".
+     *
+     */
+    mx::error_t load_RDIfileList();
+
+    ///@}
+
     ///\name The Reduced Data
     /** @{
      */
@@ -281,68 +559,8 @@ struct HCIobservation
 
     ///@}
 
-    /** \name Target File Reading
-     * Options to control which files are read, how they are read, what meta data is extracted
-     * from FITS headers, sizing and masking, etc.
-     * @{
-     */
-
-    /// The list of files to read in.
-    /** This can be set on construction or by calling \ref load_fileList
-     */
-    std::vector<std::string> m_fileList;
-
-    /// Specify how many files from m_fileList to delete from the front of the list
-    int m_deleteFront{ 0 };
-
-    /// Specify how many files from m_fileList to delete from the back of the list
-    int m_deleteBack{ 0 };
-
-    /// File containing 2 space-delimited columns of fileVame qualityValue pairs.
-    /** If this is not empty and \ref qualityThreshold is > 0, then only images where
-     * qualityValue >= qualityThreshold are read and processed.
-     *
-     * The only restriction on qualityThreshold is that it is > 0.  It is intendend to be
-     * something like Strehl ratio.
-     */
-    std::string m_qualityFile;
-
-    /// Threshold to apply to qualityValues read from \ref qualityFile.
-    /** If <= 0, then thresholding is not performed.
-     */
-    realT m_qualityThreshold{ 0 };
-
-    /// Just prints the names and qualities of the files which pass threshold, and stop.
-    /** Useful mainly for debugging.
-     */
-    bool m_thresholdOnly{ false };
-
-    /// Name of the keyword to use for the image date.
-    /** Specifies the keyword corresponding to the date.  This is
-     * the "DATE" keyword for file write time, and usually "DATE-OBS" for actual observation time.
-     *
-     * Default is "DATE-OBS".
-     *
-     * If empty "", then image date is not read.
-     */
-    std::string m_MJDKeyword{ "DATE-OBS" };
-
-    /// Whether or not the date is in ISO 8601 format
-    bool m_MJDisISO8601{ true };
-
-    /// If the date is not ISO 8601, this specifies the conversion to Julian Days (i.e. seconds to days)
-    realT m_MJDUnits{ 1.0 };
-
-    /// Vector of FITS header keywords to read from the files in m_fileList.
-    std::vector<std::string> m_keywords;
-
-    /// Set the image size.  Images are cut down to this size after reading.
-    /** Set to \<= 0 to use images uncut.
-     *
-     * Image sizes are not increased if this is larger than their size on disk.
-     */
-    int m_imSize{ 0 };
-
+    /// Input
+    /** @{ */
     /// Read the list of files, cut to size, and preprocess.
     /**
      * \returns 0 on success, -1 on  error.
@@ -360,40 +578,6 @@ struct HCIobservation
     virtual int postCoadd();
 
     ///@}
-
-    /** \name Reference File Reading
-     * For RDI, Options to control which files are read, how they are read, what meta data is extracted
-     * from FITS headers, sizing and masking, etc.
-     * @{
-     */
-
-    /// The list of files to read in for the RDI basis.
-    /** This is set by calling \ref load_RDIfileList
-     */
-    std::vector<std::string> m_RDIfileList;
-
-    /// Specify how many files from m_RDIfileList to delete from the front of the list
-    int m_RDIdeleteFront{ 0 };
-
-    /// Specify how many files from m_RDIfileList to delete from the back of the list
-    int m_RDIdeleteBack{ 0 };
-
-    /// File containing 2 space-delimited columns of fileMame qualityValue pairs for the reference images.
-    /** If this is not empty and \ref m_RDIqualityThreshold is > 0, then only images where
-     * qualityValue >= qualityThreshold are read and processed.
-     *
-     * The only restriction on m_RDIqualityThreshold is that it is > 0.  It is intendend to be
-     * something like Strehl ratio.
-     */
-    std::string m_RDIqualityFile;
-
-    /// Threshold to apply to qualityValues read from \ref qualityFile.
-    /** If <= 0, then thresholding is not performed.
-     */
-    realT m_RDIqualityThreshold{ 0 };
-
-    /// Vector of FITS header keywords to read from the files in m_fileList.
-    std::vector<std::string> m_RDIkeywords;
 
     /// Read the list of reference files, cut to size, and preprocess.
     /** The target files must be read with \ref readFiles() before calling this method.
@@ -433,35 +617,31 @@ struct HCIobservation
 
     ///@}
 
-    /** \name Coadding
-     * These parameters control whether and how the images are coadded after being read.  Coadding can
-     * be done up to a given number of images, and/or a given elapsed time.
-     *
-     * Averages the values of given Keywords as well.
+    /** \name Masking
+     * A 1/0 mask can be supplied, which is used in pre-processing and in image combination.
      * @{
      */
 
-    /// Determine how to coadd the raw images.
-    /** Possibilities are
-     * - HCI::noCombine -- [default] do not combine.  This turns off coadding.
-     * - HCI::medianCombine --  coadded image is the median
-     * - HCI::meanCombine -- coadded image is the simple mean
+    /// Read the mask file, resizing to imSize if needed.
+    void readMask();
+
+    /// Populate the mask cube which is used for post-processing.
+    /** Derived classes can do this as appropriate, e.g. by rotating the mask.
+     * \throws mx::err::invalidconfig if mask is not the same size as the images
      *
-     * No other types of combination are currently supported for coadding.
+     * \todo this should probably be makePostMaskCube
      */
-    int m_coaddCombineMethod{ HCI::noCombine };
+    virtual void makeMaskCube();
 
-    /// Maximum number of images to coadd
-    int m_coaddMaxImno{ 0 };
+    ///@}
 
-    /// Maximum elapsed time over which to coadd the images.
-    realT m_coaddMaxTime{ 0 };
-
-    /// The values of these keywords will be averaged and replaced.
-    std::vector<std::string> m_coaddKeywords;
+    /** \name Coadding
+     *
+     * @{
+     */
 
     /// Coadd the images
-    void coaddImages( int coaddCombineMethod,
+    void coaddImages( HCI::coaddMethod coaddMethod,
                       int coaddMaxImno,
                       int coaddMaxTime,
                       std::vector<std::string> &coaddKeywords,
@@ -471,107 +651,10 @@ struct HCIobservation
 
     ///@} -- coadding
 
-    /** \name Masking
-     * A 1/0 mask can be supplied, which is used in pre-processing and in image combination.
-     * @{
-     */
-
-    /// Specify a mask file to apply
-    /**No mask is applied if this is empty.
-     */
-    std::string m_maskFile;
-
-    eigenImageT m_mask;          ///< The mask
-
-    eigenCube<realT> m_maskCube; /**< A cube of masks, one for each input image, which may be modified
-                                      versions (e.g. rotated) of mask. */
-
-    /// Read the mask file, resizing to imSize if needed.
-    void readMask();
-
-    /// Populate the mask cube which is used for post-processing.
-    /** Derived classes can do this as appropriate, e.g. by rotating the mask.
-     * \throws mx::err::invalidconfig if mask is not the same size as the images
-     */
-    virtual void makeMaskCube();
-
-    ///@}
-
   public:
     /** \name Pre-Processing
-     * These options control the pre-processing masking and filtering.
-     * They are performed in the following order:
-     * -# mask applied (enabled by m_preProcess_mask
-     * -# radial profile subtraction (enabled by m_preProcess_subradprof)
-     * -# mask applied (enabled by m_preProcess_mask
-     * -# symmetric median unsharp mask (m_preProcess_gaussUSM_fwhm)
-     * -# symmetric Gaussian unsharp mask (m_preProcess_gaussUSM_fwhm)
-     * -# mask applied (enabled by m_preProcess_mask
-     * -# azimuthal unsharp mask (m_preProcess_azUSM_azW, and m_preProcess_azUSM_radW)
-     * -# mask applied (enabled by m_preProcess_mask)
-     * -# mean subtraction (enabled by m_preProcess_meanSubMethod)
-     * -# mask applied (enabled by m_preProcess_mask)
-     * -# pixel time-series normalization (enabled by m_preProcess_pixelTSNormMethod)
      * @{
      */
-
-    bool m_skipPreProcess{ false };         ///< Don't do any of the pre-processing steps (including coadding).
-
-    bool m_preProcess_beforeCoadd{ false }; ///< controls whether pre-processing takes place before or after coadding
-
-    bool m_preProcess_mask{ true };         ///< If true, the mask is applied during each pre-processing step.
-
-    bool m_preProcess_subradprof{ false };  ///< If true, a radial profile is subtracted from each image.
-
-    /// Azimuthal boxcar width for azimuthal unsharp mask [pixels]
-    /** If this is 0 then azimuthal-USM is not performed.
-     */
-    realT m_preProcess_azUSM_azW{ 0 };
-
-    /// Mazimum azimuthal boxcar width for azimuthal unsharp mask [degrees]
-    /** Limits width close to center, preventing wrap-around.  Default is 45 degrees.  Set to 0 for no maximum.
-     */
-    realT m_preProcess_azUSM_maxAz{ 45 };
-
-    /// Radial boxcar width for azimuthal unsharp mask [pixels]
-    /** If this is 0 then azimuthal-USM is not performed.
-     */
-    realT m_preProcess_azUSM_radW{ 0 };
-
-    /// Kernel FWHM for symmetric box median unsharp mask (USM)
-    /** USM is not performed if this is 0.
-     */
-    int m_preProcess_medianUSM_fwhm{ 0 };
-
-    /// Kernel FWHM for symmetric Gaussian unsharp mask (USM)
-    /** USM is not performed if this is 0.
-     */
-    realT m_preProcess_gaussUSM_fwhm{ 0 };
-
-    /// The mean subtraction method during pre-processing
-    /** Can only be none, meanImage, or meadianImage
-     */
-    HCI::meanSubMethod m_preProcess_meanSubMethod{ HCI::meanSubMethod::none };
-
-    /// Specify if each pixel time-series is normalized
-    /** This normalizaton is applied after centering. Can have the following values:
-     * - <b>HCI::pixelTSNormMethod::none</b>: no normalization (the default)
-     * - <b>HCI::pixelTSNormMethod::rms</b>: divide by the time-series rms
-     * - <b>HCI::pixelTSNormMethod::rmsSigmaClipped</b>: divide by the sigma-slipped time-series rms.
-     *                                                   The sigma is provided by m_preProcess_pixelTSSigma.
-     */
-    HCI::pixelTSNormMethod m_preProcess_pixelTSNormMethod{ HCI::pixelTSNormMethod::none };
-
-    realT m_pixelTSSigma{ 3 }; ///< Sigma-clipping parameter for pixel time-series normalization
-
-    /// Set path and file prefix to output the pre-processed images.
-    /** If empty, then pre-processed images are not output.
-     */
-    std::string m_preProcess_outputPrefix;
-
-    /// If true, then we stop after pre-processing.
-    bool m_preProcess_only{ false };
-
     /// Do the pre-processing
     void preProcess( eigenCube<realT> &ims /**< [in] the image cube, should be either m_tgtIms or m_refIms */ );
 
@@ -592,13 +675,13 @@ struct HCIobservation
     /// Determine how to combine the PSF subtracted images
     /** Possibilities are
      * - HCI::noCombine -- do not combine
-     * - HCI::medianCombine -- [default] final image is the median
-     * - HCI::meanCombine -- final image is the simple mean
+     * - HCI::combineMethod::median -- [default] final image is the median
+     * - HCI::combineMethod::mean -- final image is the simple mean
      * - HCI::weightedMeanCombine -- final image is the weighted mean.  m_weightFile must be provided.
-     * - HCI::sigmaMeanCombine -- final image is sigma clipped mean.  If m_sigmaThreshold \<= 0, then it reverts to
-     * meanCombine.
+     * - HCI::combineMethod::sigmaMean -- final image is sigma clipped mean.  If m_sigmaThreshold \<= 0, then it reverts
+     * to meanCombine.
      */
-    int m_combineMethod{ HCI::meanCombine };
+    HCI::combineMethod m_combineMethod{ HCI::combineMethod::mean };
 
     /// Specifies a file containing the image weights, for combining with weighted mean.
     /** This 2-column space-delimited ASCII file containing  filenames and weights. It must be specified before
@@ -607,7 +690,13 @@ struct HCIobservation
      */
     std::string m_weightFile;
 
-    /// The standard deviation threshold used if combineMethod == HCI::sigmaMeanCombine.
+    /// Vector to hold the image weights read from the m_weightFile.
+    /** After readWeights is executed by readFiles, this will contain the normalized weights.
+     * \todo check how comboWeights are handled in coadding
+     */
+    std::vector<realT> m_comboWeights;
+
+    /// The standard deviation threshold used if combineMethod == HCI::combineMethod::sigmaMean.
     realT m_sigmaThreshold{ 0 };
 
     /// The minimum fraction of good (un-masked) pixels to include in the final combination (0.0 to 1.0). If not met,
@@ -634,7 +723,7 @@ struct HCIobservation
      */
 
     /// Location for temporary auxilliary output files (e.g. masks)
-    std::string m_auxDataDir{ "/tmp/klipReduceAux/" };
+    std::string m_auxDataDir{ "/tmp/hciReduceAux/" };
 
     /// Whether or not to move the temp. aux files.
     bool m_moveAuxDataDir{ true };
@@ -696,7 +785,7 @@ struct HCIobservation
     /** Used to take up final processing after applying some non-klipReduce processing steps to
      * PSF-subtracted images.
      */
-    int readPSFSub( const std::string &dir, const std::string &prefix, const std::string &ext, size_t nReductions );
+    // int readPSFSub( const std::string &dir, const std::string &prefix, const std::string &ext, size_t nReductions );
 
     double t_begin{ 0 };
     double t_end{ 0 };
@@ -722,91 +811,675 @@ struct HCIobservation
 
 // -- construction and initialization
 
-template <typename _realT>
-HCIobservation<_realT>::HCIobservation()
+template <typename _realT, class verboseT>
+HCIobservation<_realT,verboseT>::HCIobservation()
 {
 }
 
-template <typename _realT>
-HCIobservation<_realT>::HCIobservation( const std::string &dir, const std::string &prefix, const std::string &ext )
+template <typename _realT, class verboseT>
+int HCIobservation<_realT,verboseT>::setupConfig( mx::app::appConfigurator &config )
 {
-    load_fileList( dir, prefix, ext );
+    config.add( "input.directory",
+                "D",
+                "input.directory",
+                mx::app::argType::Required,
+                "input",
+                "directory",
+                false,
+                "string",
+                "Directory to search for input files" );
+
+    config.add( "input.prefix",
+                "P",
+                "input.prefix",
+                mx::app::argType::Required,
+                "input",
+                "prefix",
+                false,
+                "string",
+                "Prefix of the input files. Can be empty if all files in the directory are to be used." );
+
+    config.add( "input.extension",
+                "E",
+                "input.extension",
+                mx::app::argType::Required,
+                "input",
+                "extension",
+                false,
+                "string",
+                "Extension of the input files. Default is `.fits`" );
+
+    config.add( "input.fileList",
+                "F",
+                "input.fileList",
+                mx::app::argType::Required,
+                "input",
+                "fileList",
+                false,
+                "string",
+                "Path to a list of input files to read. If directory is also specified this must contain paths "
+                "relative to that directory" );
+
+    config.add( "input.deleteFront",
+                "",
+                "input.deleteFront",
+                mx::app::argType::Required,
+                "input",
+                "deleteFront",
+                false,
+                "int",
+                "The number of files to delete from the front of the list.  Default is 0." );
+
+    config.add( "input.deleteBack",
+                "",
+                "input.deleteBack",
+                mx::app::argType::Required,
+                "input",
+                "deleteBack",
+                false,
+                "int",
+                "The number of files to delete from the back of the list.  Default is 0." );
+
+    config.add( "input.qualityFile",
+                "",
+                "input.qualityFile",
+                mx::app::argType::Required,
+                "input",
+                "qualityFile",
+                false,
+                "string",
+                "The path to the file containing a list of image quality in 'filename number' pairs, one entry per "
+                "each image." );
+
+    config.add( "input.qualityThreshold",
+                "",
+                "input.qualityThreshold",
+                mx::app::argType::Required,
+                "input",
+                "qualityThreshold",
+                false,
+                "",
+                "Threshold to apply to quality values read from the qualityFile. If <= 0, then thresholding is not "
+                "performed." );
+
+    config.add( "input.thresholdOnly",
+                "",
+                "input.thresholdOnly",
+                mx::app::argType::True,
+                "input",
+                "thresholdOnly",
+                false,
+                "bool",
+                "Perform thresholding only, and print the list of files which pass." );
+
+    config.add( "input.dateKeyword",
+                "",
+                "input.dateKeyword",
+                mx::app::argType::Required,
+                "input",
+                "dateKeyword",
+                false,
+                "string",
+                "Name of the FITS keyword to use for the image date.  Default is `DATE-OBS`" );
+
+    config.add( "input.dateIsISO8601",
+                "",
+                "input.dateIsISO8601",
+                mx::app::argType::True,
+                "input",
+                "dateIsISO8601",
+                false,
+                "bool",
+                "Whether or not the date is in ISO 8601 format." );
+
+    config.add( "input.dateUnit",
+                "",
+                "input.dateUnit",
+                mx::app::argType::True,
+                "input",
+                "dateUnit",
+                false,
+                "bool",
+                "If the date is not ISO 8601, this specifies the conversion to Julian Days (e.g. seconds to days)" );
+
+    config.add( "input.imSize",
+                "S",
+                "input.imSize",
+                mx::app::argType::Required,
+                "input",
+                "imSize",
+                false,
+                "int",
+                "The max size to read in from the images.  Set to 0 to use images uncut." );
+
+    config.add( "input.maskFile",
+                "",
+                "input.maskFile",
+                mx::app::argType::Required,
+                "input",
+                "maskFile",
+                false,
+                "string",
+                "Path to a file containing a 1/0 mask.  0 pixels are excluded from analysis." );
+
+    config.add( "rdi.directory",
+                "",
+                "rdi.directory",
+                mx::app::argType::Required,
+                "rdi",
+                "directory",
+                false,
+                "string",
+                "Directory to search for RDI reference files" );
+
+    config.add( "rdi.prefix",
+                "",
+                "rdi.prefix",
+                mx::app::argType::Required,
+                "rdi",
+                "prefix",
+                false,
+                "string",
+                "Prefix of the RDI reference files.  Can be empty if all files in the RDI directory are to be used." );
+
+    config.add( "rdi.extension",
+                "",
+                "rdi.extension",
+                mx::app::argType::Required,
+                "rdi",
+                "extension",
+                false,
+                "string",
+                "Extension of the input reference files.  Default is to match the main input.extension." );
+
+    config.add( "rdi.fileList",
+                "",
+                "rdi.fileList",
+                mx::app::argType::Required,
+                "rdi",
+                "fileList",
+                false,
+                "string",
+                "Path to a list of input reference files to read. If RDI directory is also specified this must contain "
+                "paths relative to that directory" );
+
+    config.add( "rdi.deleteFront",
+                "",
+                "rdi.deleteFront",
+                mx::app::argType::Required,
+                "rdi",
+                "deleteFront",
+                false,
+                "int",
+                "The number of files to delete from the front of the RDI file list.  Default is 0." );
+
+    config.add( "rdi.deleteBack",
+                "",
+                "rdi.deleteBack",
+                mx::app::argType::Required,
+                "rdi",
+                "deleteBack",
+                false,
+                "int",
+                "The number of files to delete from the back of the RDI file list.  Default is 0." );
+
+    config.add( "rdi.qualityFile",
+                "",
+                "rdi.qualityFile",
+                mx::app::argType::Required,
+                "rdi",
+                "qualityFile",
+                false,
+                "string",
+                "The path to the file containing a list of image quality for the RDI images in 'filename number' "
+                "pairs, one entry per each image." );
+
+    config.add( "rdi.qualityThreshold",
+                "",
+                "rdi.qualityThreshold",
+                mx::app::argType::Required,
+                "rdi",
+                "qualityThreshold",
+                false,
+                "",
+                "Threshold to apply to quality values read from the RDIqualityFile. If <= 0, then thresholding is not "
+                "performed." );
+
+    config.add( "rdi.dateKeyword",
+                "",
+                "rdi.dateKeyword",
+                mx::app::argType::Required,
+                "rdi",
+                "dateKeyword",
+                false,
+                "string",
+                "Name of the FITS keyword to use for the reference image date.  Default is to follow the main "
+                "input.dateKeyword." );
+
+    config.add( "rdi.dateIsISO8601",
+                "",
+                "rdi.dateIsISO8601",
+                mx::app::argType::True,
+                "rdi",
+                "dateIsISO8601",
+                false,
+                "bool",
+                "Whether or not the reference image date is in ISO 8601 format. Default is to follow the main "
+                "input.dateIsISO8601." );
+
+    config.add( "rdi.dateUnit",
+                "",
+                "rdi.dateUnit",
+                mx::app::argType::True,
+                "rdi",
+                "dateUnit",
+                false,
+                "bool",
+                "If the reference image date is not ISO 8601, this specifies the conversion to Julian Days (e.g. "
+                "seconds to days).  Default is to follow the main input.dateUnits." );
+
+    config.add( "rdi.maskFile",
+                "",
+                "rdi.maskFile",
+                mx::app::argType::Required,
+                "rdi",
+                "maskFile",
+                false,
+                "string",
+                "Path to a file containing a 1/0 mask for the reference images. "
+                "0 pixels are excluded from analysis.  Defaults to using input.maskFile.  To mask the "
+                "main input images but not the references you must set this to empty " );
+
+    config.add( "rdi.useInputMask",
+                "",
+                "rdi.useInputMask",
+                mx::app::argType::Required,
+                "rdi",
+                "useInputMask",
+                false,
+                "bool",
+                "If true then the main input.maskFile is used for masking "
+                "the reference images. This overrides rdi.maskFile" );
+
+    config.add( "coadd.method",
+                "",
+                "coadd.method",
+                mx::app::argType::Required,
+                "coadd",
+                "method",
+                false,
+                "string",
+                "The method to use for coadding the input images.  Options are none (default), median, and mean.  If "
+                "none no coadding is performed." );
+
+    config.add( "coadd.maxImno",
+                "",
+                "coadd.maxImno",
+                mx::app::argType::Required,
+                "coadd",
+                "maxImno",
+                false,
+                "int",
+                "Maximum number of images to coadd at a time." );
+
+    config.add( "coadd.maxTime",
+                "",
+                "coadd.maxTime",
+                mx::app::argType::Required,
+                "coadd",
+                "maxTime",
+                false,
+                "float",
+                "Maximum elapsed time over which to coadd the images, in seconds." );
+
+    config.add( "coadd.keywords",
+                "",
+                "coadd.keywords",
+                mx::app::argType::Required,
+                "coadd",
+                "keywords",
+                false,
+                "vector<string>",
+                "Specify FITS keywords from the input images whose values will be averaged and replaced." );
+
+    config.add( "preProcess.skip",
+                "",
+                "preProcess.skip",
+                mx::app::argType::True,
+                "preProcess",
+                "skip",
+                false,
+                "bool",
+                "If true, then pre-processing is skipped.  Default is false." );
+
+    config.add( "preProcess.beforeCoadd",
+                "",
+                "preProcess.beforeCoadd",
+                mx::app::argType::True,
+                "preProcess",
+                "beforeCoadd",
+                false,
+                "bool",
+                "Controls whether pre-processing takes place before (true) or after (false, default) coadding." );
+
+    config.add( "preProcess.mask",
+                "",
+                "preProcess.mask",
+                mx::app::argType::True,
+                "preProcess",
+                "mask",
+                false,
+                "string",
+                "Determines if mask is applied for pre-processing." );
+
+    config.add( "preProcess.subradprof",
+                "",
+                "preProcess.subradprof",
+                mx::app::argType::True,
+                "preProcess",
+                "subradprof",
+                false,
+                "bool",
+                "If true, the radial profile is subtracted from each image." );
+
+    config.add( "preProcess.azUSM_azW",
+                "",
+                "preProcess.azUSM_azW",
+                mx::app::argType::Required,
+                "preProcess",
+                "azUSM_azW",
+                false,
+                "float",
+                "The azimuth USM boxcar azimuthal width in pixels.  Enabled if both azW and radW are non-zero." );
+
+    config.add( "preProcess.azUSM_azW",
+                "",
+                "preProcess.azUSM_azW",
+                mx::app::argType::Required,
+                "preProcess",
+                "azUSM_azW",
+                false,
+                "float",
+                "The azimuth USM boxcar azimuthal width in pixels.  Enabled if both azW and radW are non-zero." );
+
+    config.add( "preProcess.azUSM_maxAz",
+                "",
+                "preProcess.azUSM_maxAz",
+                mx::app::argType::Required,
+                "preProcess",
+                "azUSM_maxAz",
+                false,
+                "float",
+                "Maximum azimuthal boxcar width for azimuthal unsharp mask in degrees. Limits width close to center, "
+                "preventing wrap-around.  Default is 45 degrees.  Set to 0 for no maximum." );
+
+    config.add( "preProcess.azUSM_radW",
+                "",
+                "preProcess.azUSM_radW",
+                mx::app::argType::Required,
+                "preProcess",
+                "azUSM_radW",
+                false,
+                "float",
+                "The azimuth USM boxcar radial width in pixels.  Enabled if both azW and radW are non-zero." );
+
+    config.add( "preProcess.medianUSM_fwhm",
+                "",
+                "preProcess.medianUSM_fwhm",
+                mx::app::argType::Required,
+                "preProcess",
+                "medianUSM_fwhm",
+                false,
+                "float",
+                "The median USM kernel full-width at half max.  Enabled if non-zero." );
+
+    config.add( "preProcess.gaussUSM_fwhm",
+                "",
+                "preProcess.gaussUSM_fwhm",
+                mx::app::argType::Required,
+                "preProcess",
+                "gaussUSM_fwhm",
+                false,
+                "float",
+                "The gaussian USM kernel full-width at half max.  Enabled if non-zero." );
+
+    config.add( "preProcess.meanSubMethod",
+                "",
+                "preProcess.meanSubMethod",
+                mx::app::argType::Required,
+                "preProcess",
+                "meanSubMethod",
+                false,
+                "string",
+                "The mean subtraction method during pre-processing. Options are none, meanImage, and medianImage." );
+
+    config.add( "preProcess.pixelTSNormMethod",
+                "",
+                "preProcess.pixelTSNormMethod",
+                mx::app::argType::Required,
+                "preProcess",
+                "pixelTSNormMethod",
+                false,
+                "string",
+                "The pixel time-series normalization method during pre-processing. "
+                "Options are none, rms, rsmSigmaClipped." );
+
+    config.add( "preProcess.outputPrefix",
+                "",
+                "preProcess.outputPrefix",
+                mx::app::argType::Required,
+                "preProcess",
+                "outputPrefix",
+                false,
+                "string",
+                "If not empty, then this prefix (which should be a full path) is added to file names and the "
+                "pre-processed images are output" );
+
+    config.add( "preProcess.only",
+                "",
+                "preProcess.only",
+                mx::app::argType::True,
+                "preProcess",
+                "only",
+                false,
+                "bool",
+                "If true, stop after pre-processing.  Default is false." );
+
+    return 0;
 }
 
-template <typename _realT>
-HCIobservation<_realT>::HCIobservation( const std::string &fileListFile )
+template <typename _realT, class verboseT>
+int HCIobservation<_realT,verboseT>::loadConfig( mx::app::appConfigurator &config )
 {
-    load_fileList( fileListFile );
+    config( m_directory, "input.directory" );
+    config( m_prefix, "input.prefix" );
+    config( m_extension, "input.extension" );
+
+    config( m_fileListFile, "input.fileList" );
+
+    config( m_deleteFront, "input.deleteFront" );
+    config( m_deleteBack, "input.deleteBack" );
+
+    config( m_qualityFile, "input.qualityFile" );
+    config( m_qualityThreshold, "input.qualityThreshold" );
+    config( m_thresholdOnly, "input.thresholdOnly" );
+
+    config( m_dateKeyword, "input.dateKeyword" );
+    config( m_dateIsISO8601, "input.dateIsISO8601" );
+    config( m_dateUnit, "input.dateUnit" );
+
+    config( m_imSize, "input.imSize" );
+
+    config( m_maskFile, "input.maskFile" );
+
+    config( m_RDIdirectory, "rdi.directory" );
+    config( m_RDIprefix, "rdi.prefix" );
+    config( m_RDIextension, "rdi.extension" );
+
+    config( m_RDIfileListFile, "rdi.fileList" );
+
+    config( m_RDIdeleteFront, "rdi.deleteFront" );
+    config( m_RDIdeleteBack, "rdi.deleteBack" );
+
+    config( m_RDIqualityFile, "rdi.qualityFile" );
+    config( m_RDIqualityThreshold, "rdi.qualityThreshold" );
+
+    config( m_RDIdateKeyword, "rdi.dateKeyword" );
+    config( m_RDIdateIsISO8601, "rdi.dateIsISO8601" );
+    config( m_RDIdateUnit, "rdi.dateUnit" );
+
+    config( m_RDImaskFile, "rdi.maskFile" );
+
+    config( m_RDImaskUseInput, "rdi.useInputMask" );
+
+    std::string coaddMethodStr = HCI::coaddMethodStr( m_coaddMethod ); // get default
+    config( coaddMethodStr, "coadd.method" );
+    try
+    {
+        m_coaddMethod = HCI::coaddMethodStr( coaddMethodStr );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::err::invalidconfig( "HCIobservation::loadConfig", __FILE__, __LINE__, "invalid coadd method" ) );
+    }
+
+    config( m_coaddMaxImno, "coadd.maxImno" );
+    config( m_coaddMaxTime, "coadd.maxTime" );
+    config( m_coaddKeywords, "coadd.keywords" );
+
+    config( m_preProcess_beforeCoadd, "preProcess.beforeCoadd" );
+    config( m_preProcess_mask, "preProcess.mask" );
+    config( m_preProcess_subradprof, "preProcess.subradprof" );
+    config( m_preProcess_azUSM_azW, "preProcess.azUSM_azW" );
+    config( m_preProcess_azUSM_maxAz, "preProcess.azUSM_maxAz" );
+    config( m_preProcess_azUSM_radW, "preProcess.azUSM_radW" );
+    config( m_preProcess_medianUSM_fwhm, "preProcess.medianUSM_fwhm" );
+    config( m_preProcess_gaussUSM_fwhm, "preProcess.gaussUSM_fwhm" );
+
+    std::string ppmsm = HCI::meanSubMethodStr( m_preProcess_meanSubMethod );
+    config( ppmsm, "preProcess.meanSubMethod" );
+    try
+    {
+        m_preProcess_meanSubMethod = HCI::meanSubMethodStr( ppmsm );
+
+        if( m_preProcess_meanSubMethod != HCI::meanSubMethod::none &&
+            m_preProcess_meanSubMethod != HCI::meanSubMethod::meanImage &&
+            m_preProcess_meanSubMethod != HCI::meanSubMethod::medianImage )
+        {
+            std::string msg = "Mean subtraction by " + HCI::meanSubMethodStr( m_preProcess_meanSubMethod );
+            msg += " can't be done in pre-processing. Only meanImage or medianImage can be used in pre.";
+            mxThrowException( mx::err::invalidconfig, "HCIobservation::loadConfig", msg );
+        }
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::err::invalidconfig( "HCIobservation::loadConfig",
+                                                        __FILE__,
+                                                        __LINE__,
+                                                        "invalid pre-processing mean subtraction method" ) );
+    }
+
+    std::string ptsnm = HCI::pixelTSNormMethodStr( m_preProcess_pixelTSNormMethod );
+    config( ptsnm, "preProcess.pixelTSNormMethod" );
+    try
+    {
+        m_preProcess_pixelTSNormMethod = HCI::pixelTSNormMethodStr( ptsnm );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::err::invalidconfig( "HCIobservation::loadConfig",
+                                                        __FILE__,
+                                                        __LINE__,
+                                                        "invalid pixel time-series normalization method" ) );
+    }
+
+    config( m_preProcess_outputPrefix, "preProcess.outputPrefix" );
+
+    config( m_preProcess_only, "preProcess.only" );
+    config( m_skipPreProcess, "preProcess.skip" );
+
+    return 0;
 }
 
-template <typename _realT>
-HCIobservation<_realT>::HCIobservation( const std::string &dir,
-                                        const std::string &prefix,
-                                        const std::string &ext,
-                                        const std::string &RDIdir,
-                                        const std::string &RDIprefix,
-                                        const std::string &RDIext )
+template <typename _realT, class verboseT>
+mx::error_t HCIobservation<_realT,verboseT>::load_fileList( std::vector<std::string> &fileList,
+                                                   const std::string &fileListFile,
+                                                   const std::string &directory,
+                                                   const std::string &prefix,
+                                                   const std::string &extension )
 {
-    std::cerr << "HCI 6\n";
+    if( fileListFile != "" )
+    {
+        fileList.clear(); // otherwise readColumns appends
 
-    load_fileList( dir, prefix, ext );
+        mx::error_t errc = ioutils::readColumns( fileListFile, fileList );
+        if( errc != mx::error_t::noerror )
+        {
+            return mx::error_report<verboseT>( errc, "error reading " + fileListFile );
+        }
 
-    std::string re;
-    if( RDIext == "" )
-        re = ext;
+        if( directory != "" )
+        {
+            std::string dir = directory;
+            if( dir.back() != '/' )
+            {
+                dir += '/';
+            }
+
+            for( auto &&fpath : m_fileList )
+            {
+                fpath = dir + fpath;
+            }
+        }
+    }
     else
-        re = RDIext;
+    {
+        mx::error_t errc = ioutils::getFileNames( fileList, directory, prefix, "", extension );
+        if( errc != mx::error_t::noerror )
+        {
+            return mx::error_report<verboseT>(errc, std::format("error getting file names for {}/{}*.{}", directory, prefix, extension));
+        }
+    }
 
-    load_RDIfileList( RDIdir, RDIprefix, re );
+    return mx::error_t::noerror;
 }
 
-template <typename _realT>
-HCIobservation<_realT>::HCIobservation( const std::string &fileListFile, const std::string &RDIfileListFile )
+template <typename _realT, class verboseT>
+mx::error_t HCIobservation<_realT,verboseT>::load_fileList()
 {
-    load_fileList( fileListFile );
-    load_RDIfileList( RDIfileListFile );
-}
-
-template <typename _realT>
-void HCIobservation<_realT>::load_fileList( const std::string &dir, const std::string &prefix, const std::string &ext )
-{
-    m_fileList = ioutils::getFileNames( dir, prefix, "", ext );
-
+    mx::error_t errc = load_fileList( m_fileList, m_fileListFile, m_directory, m_prefix, m_extension );
     m_filesDeleted = false;
+
+    if( errc != mx::error_t::noerror )
+    {
+        return mx::error_report<verboseT>( errc, "error loading file list" );
+    }
+    return mx::error_t::noerror;
 }
 
-template <typename _realT>
-void HCIobservation<_realT>::load_fileList( const std::string &fileListFile )
+template <typename _realT, class verboseT>
+mx::error_t HCIobservation<_realT,verboseT>::load_RDIfileList()
 {
-    ioutils::readColumns( fileListFile, m_fileList );
-    m_filesDeleted = false;
-}
-
-template <typename _realT>
-void HCIobservation<_realT>::load_RDIfileList( const std::string &dir,
-                                               const std::string &prefix,
-                                               const std::string &ext )
-{
-    m_RDIfileList = ioutils::getFileNames( dir, prefix, "", ext );
+    mx::error_t errc = load_fileList( m_RDIfileList, m_RDIfileListFile, m_RDIdirectory, m_RDIprefix, m_RDIextension );
     m_RDIfilesDeleted = false;
-}
 
-template <typename _realT>
-void HCIobservation<_realT>::load_RDIfileList( const std::string &fileListFile )
-{
-    ioutils::readColumns( fileListFile, m_RDIfileList );
-    m_RDIfilesDeleted = false;
+    if( errc != mx::error_t::noerror )
+    {
+        return mx::error_report<verboseT>( errc, "error loading file list" );
+    }
+    return mx::error_t::noerror;
 }
 
 // --< construction and initialization
 
-template <typename realT>
-int HCIobservation<realT>::readFiles()
+template <typename realT, class verboseT>
+int HCIobservation<realT, verboseT>::readFiles()
 {
     if( m_fileList.size() == 0 )
     {
         mxThrowException( err::invalidconfig,
-                          "HCIobservation<realT>::readFiles",
+                          "HCIobservation<realT, verboseT>::readFiles",
                           "The target fileList has 0 length, there are no files to be read." );
     }
 
@@ -828,7 +1501,7 @@ int HCIobservation<realT>::readFiles()
     if( m_fileList.size() == 0 )
     {
         mxThrowException( err::invalidconfig,
-                          "HCIobservation<realT>::readFiles",
+                          "HCIobservation<realT, verboseT>::readFiles",
                           "The target fileList has 0 length, there are no files to be read after deletions." );
     }
 
@@ -843,7 +1516,7 @@ int HCIobservation<realT>::readFiles()
         if( m_fileList.size() == 0 )
         {
             mxThrowException( err::invalidconfig,
-                              "HCIobservation<realT>::readFiles",
+                              "HCIobservation<realT, verboseT>::readFiles",
                               "The fileList has 0 length, there are no files to be read after thresholding." );
         }
 
@@ -871,8 +1544,8 @@ int HCIobservation<realT>::readFiles()
 
     fits::fitsHeader head;
 
-    if( m_MJDKeyword != "" )
-        head.append( m_MJDKeyword );
+    if( m_dateKeyword != "" )
+        head.append( m_dateKeyword );
 
     for( size_t i = 0; i < m_keywords.size(); ++i )
     {
@@ -937,22 +1610,22 @@ int HCIobservation<realT>::readFiles()
     f.setReadSize();
 
     /* read in the image timestamps, depending on how MJD is stored in the header */
-    if( m_MJDKeyword != "" )
+    if( m_dateKeyword != "" )
     {
         m_imageMJD.resize( m_heads.size() );
 
-        if( m_MJDisISO8601 )
+        if( m_dateIsISO8601 )
         {
             for( size_t i = 0; i < m_imageMJD.size(); ++i )
             {
-                m_imageMJD[i] = sys::ISO8601date2mjd( m_heads[i][m_MJDKeyword].String() );
+                m_imageMJD[i] = sys::ISO8601date2mjd( m_heads[i][m_dateKeyword].String() );
             }
         }
         else
         {
             for( size_t i = 0; i < m_imageMJD.size(); ++i )
             {
-                m_imageMJD[i] = m_heads[i][m_MJDKeyword].template value<realT>() * m_MJDUnits;
+                m_imageMJD[i] = m_heads[i][m_dateKeyword].template value<realT>() * m_dateUnit;
             }
         }
     }
@@ -988,18 +1661,16 @@ int HCIobservation<realT>::readFiles()
             preProcess( m_tgtIms );
         }
 
-        if( m_coaddCombineMethod != HCI::noCombine )
+        if( m_coaddMethod != HCI::coaddMethod::none )
         {
             std::cerr << "Coadding target images...\n";
-            coaddImages( m_coaddCombineMethod,
+            coaddImages( m_coaddMethod,
                          m_coaddMaxImno,
                          m_coaddMaxTime,
                          m_coaddKeywords,
                          m_imageMJD,
                          m_heads,
                          m_tgtIms );
-
-
 
             m_Nims = m_tgtIms.planes();
             m_Nrows = m_tgtIms.rows();
@@ -1036,21 +1707,21 @@ int HCIobservation<realT>::readFiles()
     return 0;
 } // readFiles()
 
-template <typename _realT>
-int HCIobservation<_realT>::postReadFiles()
+template <typename _realT, class verboseT>
+int HCIobservation<_realT,verboseT>::postReadFiles()
 {
     return 0;
 }
 
-template <typename _realT>
-int HCIobservation<_realT>::postCoadd()
+template <typename _realT, class verboseT>
+int HCIobservation<_realT,verboseT>::postCoadd()
 {
     return 0;
 }
 
 //------------------- readRDIFiles
-template <typename _realT>
-int HCIobservation<_realT>::readRDIFiles()
+template <typename _realT, class verboseT>
+int HCIobservation<_realT,verboseT>::readRDIFiles()
 {
 
     /* First check if the target files have been read */
@@ -1112,8 +1783,8 @@ int HCIobservation<_realT>::readRDIFiles()
 
     fits::fitsHeader head;
 
-    if( m_MJDKeyword != "" )
-        head.append( m_MJDKeyword ); // Currently assuming the MJD keyword will be the same
+    if( m_dateKeyword != "" )
+        head.append( m_dateKeyword ); // Currently assuming the MJD keyword will be the same
 
     for( size_t i = 0; i < m_RDIkeywords.size(); ++i )
     {
@@ -1151,22 +1822,22 @@ int HCIobservation<_realT>::readRDIFiles()
 
     f.setReadSize();
 
-    if( m_MJDKeyword != "" )
+    if( m_dateKeyword != "" )
     {
         m_RDIimageMJD.resize( m_RDIheads.size() );
 
-        if( m_MJDisISO8601 )
+        if( m_dateIsISO8601 )
         {
             for( size_t i = 0; i < m_RDIimageMJD.size(); ++i )
             {
-                m_RDIimageMJD[i] = sys::ISO8601date2mjd( m_RDIheads[i][m_MJDKeyword].String() );
+                m_RDIimageMJD[i] = sys::ISO8601date2mjd( m_RDIheads[i][m_dateKeyword].String() );
             }
         }
         else
         {
             for( size_t i = 0; i < m_RDIimageMJD.size(); ++i )
             {
-                m_RDIimageMJD[i] = m_RDIheads[i][m_MJDKeyword].template value<realT>() * m_MJDUnits;
+                m_RDIimageMJD[i] = m_RDIheads[i][m_dateKeyword].template value<realT>() * m_dateUnit;
             }
         }
     }
@@ -1192,10 +1863,10 @@ int HCIobservation<_realT>::readRDIFiles()
             preProcess( m_refIms );
         }
 
-        if( m_coaddCombineMethod != HCI::noCombine )
+        if( m_coaddMethod != HCI::coaddMethod::none )
         {
             std::cerr << "Coadding reference images...\n";
-            coaddImages( m_coaddCombineMethod,
+            coaddImages( m_coaddMethod,
                          m_coaddMaxImno,
                          m_coaddMaxTime,
                          m_coaddKeywords,
@@ -1227,20 +1898,20 @@ int HCIobservation<_realT>::readRDIFiles()
     return 0;
 } // readRDIFiles()
 
-template <typename _realT>
-int HCIobservation<_realT>::postRDIReadFiles()
+template <typename _realT, class verboseT>
+int HCIobservation<_realT,verboseT>::postRDIReadFiles()
 {
     return 0;
 }
 
-template <typename _realT>
-int HCIobservation<_realT>::postRDICoadd()
+template <typename _realT, class verboseT>
+int HCIobservation<_realT,verboseT>::postRDICoadd()
 {
     return 0;
 }
 
-template <typename _realT>
-int HCIobservation<_realT>::threshold( std::vector<std::string> &fileList,
+template <typename _realT, class verboseT>
+int HCIobservation<_realT,verboseT>::threshold( std::vector<std::string> &fileList,
                                        const std::string &qualityFile,
                                        realT qualityThreshold )
 {
@@ -1285,8 +1956,8 @@ int HCIobservation<_realT>::threshold( std::vector<std::string> &fileList,
     return 0;
 }
 
-template <typename _realT>
-void HCIobservation<_realT>::coaddImages( int coaddCombineMethod,
+template <typename _realT, class verboseT>
+void HCIobservation<_realT,verboseT>::coaddImages( HCI::coaddMethod coaddMethod,
                                           int coaddMaxImno,
                                           int coaddMaxTime,
                                           std::vector<std::string> &coaddKeywords,
@@ -1304,8 +1975,10 @@ void HCIobservation<_realT>::coaddImages( int coaddCombineMethod,
         return;
 
     // Validate combine method
-    if( coaddCombineMethod == HCI::noCombine )
+    if( coaddMethod == HCI::coaddMethod::none )
+    {
         return;
+    }
 
     int Nims = ims.planes();
     int Nrows = ims.rows();
@@ -1324,10 +1997,6 @@ void HCIobservation<_realT>::coaddImages( int coaddCombineMethod,
     std::vector<std::vector<double>> avgVals;
     std::vector<std::vector<double>> startVals;
     std::vector<std::vector<double>> endVals;
-
-    int combineMethod = HCI::medianCombine;
-    if( coaddCombineMethod == HCI::meanCombine )
-        combineMethod = HCI::meanCombine;
 
     // Index range of images for next coadd
     int im0, imF;
@@ -1432,11 +2101,11 @@ void HCIobservation<_realT>::coaddImages( int coaddCombineMethod,
         }
 
         // Here do the combine and insert into the vector
-        if( combineMethod == HCI::medianCombine )
+        if( coaddMethod == HCI::coaddMethod::median )
         {
             imsToCoadd.median( coadd );
         }
-        if( combineMethod == HCI::meanCombine )
+        if( coaddMethod == HCI::coaddMethod::mean )
         {
             imsToCoadd.mean( coadd );
         }
@@ -1469,12 +2138,12 @@ void HCIobservation<_realT>::coaddImages( int coaddCombineMethod,
     for( int i = 0; i < Nims; ++i )
     {
         imageMJD[i] = avgMJD[i];
-        heads[i][m_MJDKeyword].value( mx::sys::ISO8601DateTimeStrMJD( imageMJD[i], 1 ) );
-        heads[i]["START " + m_MJDKeyword].value( mx::sys::ISO8601DateTimeStrMJD( startMJD[i], 1 ) );
-        heads[i]["END " + m_MJDKeyword].value( mx::sys::ISO8601DateTimeStrMJD( endMJD[i], 1 ) );
-        heads[i].append( "DELTA " + m_MJDKeyword,
+        heads[i][m_dateKeyword].value( mx::sys::ISO8601DateTimeStrMJD( imageMJD[i], 1 ) );
+        heads[i]["START " + m_dateKeyword].value( mx::sys::ISO8601DateTimeStrMJD( startMJD[i], 1 ) );
+        heads[i]["END " + m_dateKeyword].value( mx::sys::ISO8601DateTimeStrMJD( endMJD[i], 1 ) );
+        heads[i].append( "DELTA " + m_dateKeyword,
                          ( endMJD[i] - startMJD[i] ) * 86400,
-                         "change in " + m_MJDKeyword + " in seconds." );
+                         "change in " + m_dateKeyword + " in seconds." );
 
         for( size_t j = 0; j < coaddKeywords.size(); ++j )
         {
@@ -1495,10 +2164,10 @@ void HCIobservation<_realT>::coaddImages( int coaddCombineMethod,
 
     t_coadd_end = sys::get_curr_time();
 
-} // void HCIobservation<_realT>::coaddImages()
+} // void HCIobservation<_realT,verboseT>::coaddImages()
 
-template <typename _realT>
-void HCIobservation<_realT>::readMask()
+template <typename _realT, class verboseT>
+void HCIobservation<_realT,verboseT>::readMask()
 {
     /*** Load the mask ***/
     if( m_maskFile != "" )
@@ -1521,8 +2190,8 @@ void HCIobservation<_realT>::readMask()
     }
 }
 
-template <typename realT>
-void HCIobservation<realT>::makeMaskCube()
+template <typename realT, class verboseT>
+void HCIobservation<realT, verboseT>::makeMaskCube()
 {
     if( m_mask.rows() != m_Nrows || m_mask.cols() != m_Ncols )
     {
@@ -1534,7 +2203,7 @@ void HCIobservation<realT>::makeMaskCube()
                    message += "            cols=" + std::to_string(m_Ncols) + "\n";
         // clang-format on
 
-        mxThrowException( err::invalidconfig, "HCIobservation<realT>::makeMaskCube", message );
+        mxThrowException( err::invalidconfig, "HCIobservation<realT, verboseT>::makeMaskCube", message );
     }
 
     m_maskCube.resize( m_Nrows, m_Ncols, m_Nims );
@@ -1545,8 +2214,8 @@ void HCIobservation<realT>::makeMaskCube()
     }
 }
 
-template <typename _realT>
-void HCIobservation<_realT>::preProcess( eigenCube<realT> &ims )
+template <typename _realT, class verboseT>
+void HCIobservation<_realT,verboseT>::preProcess( eigenCube<realT> &ims )
 {
     t_preproc_begin = sys::get_curr_time();
 
@@ -1708,10 +2377,10 @@ void HCIobservation<_realT>::preProcess( eigenCube<realT> &ims )
 
     t_preproc_end = sys::get_curr_time();
 
-} // void HCIobservation<_realT>::preProcess()
+} // void HCIobservation<_realT,verboseT>::preProcess()
 
-template <typename _realT>
-void HCIobservation<_realT>::preProcess_meanSub( eigenCube<realT> &ims )
+template <typename _realT, class verboseT>
+void HCIobservation<_realT,verboseT>::preProcess_meanSub( eigenCube<realT> &ims )
 {
     if( m_preProcess_meanSubMethod == HCI::meanSubMethod::none )
     {
@@ -1748,22 +2417,17 @@ void HCIobservation<_realT>::preProcess_meanSub( eigenCube<realT> &ims )
     }
 }
 
-template <typename _realT>
-void HCIobservation<_realT>::preProcess_pixelTSNorm( eigenCube<realT> &ims )
+template <typename _realT, class verboseT>
+void HCIobservation<_realT,verboseT>::preProcess_pixelTSNorm( eigenCube<realT> &ims )
 {
     if( m_preProcess_pixelTSNormMethod == HCI::pixelTSNormMethod::none )
     {
         return;
     }
 
-    if( m_preProcess_pixelTSNormMethod == HCI::pixelTSNormMethod::unknown )
-    {
-        mxThrowException( err::invalidconfig, "KlipReduction::preProcess_pixelTSNorm", "pixelTSNormMethod is unknown" );
-    }
-
     if( m_preProcess_pixelTSNormMethod == HCI::pixelTSNormMethod::rmsSigmaClipped )
     {
-        mxThrowException( err::invalidconfig,
+        mxThrowException( err::notimpl,
                           "KlipReduction::preProcess_pixelTSNorm",
                           "pixelTSNormMethod is rmsSigmaClipped, which is not implemented" );
     }
@@ -1807,8 +2471,8 @@ void HCIobservation<_realT>::preProcess_pixelTSNorm( eigenCube<realT> &ims )
     }
 }
 
-template <typename _realT>
-int HCIobservation<_realT>::readWeights()
+template <typename _realT, class verboseT>
+int HCIobservation<_realT,verboseT>::readWeights()
 {
     std::ifstream fin;
     std::string str;
@@ -1823,8 +2487,10 @@ int HCIobservation<_realT>::readWeights()
     std::vector<std::string> wfileNames;
     std::vector<realT> imW;
 
-    if( ioutils::readColumns( m_weightFile, wfileNames, imW ) < 0 )
+    if( ioutils::readColumns( m_weightFile, wfileNames, imW ) != mx::error_t::noerror )
+    {
         return -1;
+    }
 
     if( imW.size() < m_fileList.size() )
     {
@@ -1862,44 +2528,17 @@ int HCIobservation<_realT>::readWeights()
     }
 
     return 0;
-} // int HCIobservation<_realT>::readWeights()
+} // int HCIobservation<_realT,verboseT>::readWeights()
 
-template <typename _realT>
-void HCIobservation<_realT>::combineFinim()
+template <typename _realT, class verboseT>
+void HCIobservation<_realT,verboseT>::combineFinim()
 {
-    if( m_combineMethod == HCI::noCombine )
+    if( m_combineMethod == HCI::combineMethod::none )
     {
         return;
     }
 
     t_combo_begin = sys::get_curr_time();
-
-    // Validate the combineMethod setting
-    int method = HCI::medianCombine;
-
-    if( m_combineMethod == HCI::medianCombine )
-    {
-        method = HCI::medianCombine;
-    }
-    else if( m_combineMethod == HCI::meanCombine )
-    {
-        method = HCI::meanCombine;
-    }
-    else if( m_combineMethod == HCI::sigmaMeanCombine )
-    {
-        if( m_sigmaThreshold > 0 )
-        {
-            method = HCI::sigmaMeanCombine;
-        }
-        else
-        {
-            method = HCI::meanCombine;
-        }
-    }
-    else if( m_combineMethod == HCI::debug )
-    {
-        method = HCI::debug;
-    }
 
     // Create and size temporary image for averaging
     eigenImageT tfinim;
@@ -1909,12 +2548,12 @@ void HCIobservation<_realT>::combineFinim()
     // Now cycle through each set of psf subtractions
     for( size_t n = 0; n < m_psfsub.size(); ++n )
     {
-        if( method == HCI::medianCombine )
+        if( m_combineMethod == HCI::combineMethod::median )
         {
             m_psfsub[n].median( tfinim );
             m_finim.image( n ) = tfinim;
         }
-        else if( method == HCI::meanCombine )
+        else if( m_combineMethod == HCI::combineMethod::mean )
         {
             if( m_comboWeights.size() == (size_t)m_Nims )
             {
@@ -1940,7 +2579,7 @@ void HCIobservation<_realT>::combineFinim()
             }
             m_finim.image( n ) = tfinim;
         }
-        else if( method == HCI::sigmaMeanCombine )
+        else if( m_combineMethod == HCI::combineMethod::sigmaMean )
         {
             if( m_comboWeights.size() == (size_t)m_Nims )
             {
@@ -1966,17 +2605,13 @@ void HCIobservation<_realT>::combineFinim()
             }
             m_finim.image( n ) = tfinim;
         }
-        else if( method == HCI::debug )
-        {
-            m_finim.image( n ) = m_psfsub[n].image( 0 );
-        }
     }
 
     t_combo_end = sys::get_curr_time();
-} // void HCIobservation<_realT>::combineFinim()
+} // void HCIobservation<_realT,verboseT>::combineFinim()
 
-template <typename _realT>
-void HCIobservation<_realT>::outputPreProcessed()
+template <typename _realT, class verboseT>
+void HCIobservation<_realT,verboseT>::outputPreProcessed()
 {
     if( m_preProcess_outputPrefix == "" )
     {
@@ -2001,10 +2636,10 @@ void HCIobservation<_realT>::outputPreProcessed()
         stdFitsHeader( fh );
         ff.write( fname, m_tgtIms.image( i ).data(), m_Ncols, m_Nrows, 1, fh );
     }
-} // void HCIobservation<_realT>::outputPreProcessed()
+} // void HCIobservation<_realT,verboseT>::outputPreProcessed()
 
-template <typename _realT>
-void HCIobservation<_realT>::stdFitsHeader( fits::fitsHeader &head )
+template <typename _realT, class verboseT>
+void HCIobservation<_realT,verboseT>::stdFitsHeader( fits::fitsHeader &head )
 {
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
     head.append( "", fits::fitsCommentType(), "mx::HCIobservation parameters:" );
@@ -2019,8 +2654,8 @@ void HCIobservation<_realT>::stdFitsHeader( fits::fitsHeader &head )
 
     head.append<int>( "IMSIZE", m_imSize, "image size after reading" );
 
-    head.append<std::string>( "COADMTHD", HCI::combineMethodStr( m_coaddCombineMethod ), "coadd combination method" );
-    if( m_coaddCombineMethod != HCI::noCombine )
+    head.append<std::string>( "COADMTHD", HCI::coaddMethodStr( m_coaddMethod ), "coadd combination method" );
+    if( m_coaddMethod != HCI::coaddMethod::none )
     {
         head.append<int>( "COADIMNO", m_coaddMaxImno, "max number of images in each coadd" );
         head.append<realT>( "COADTIME", m_coaddMaxTime, "max time in each coadd" );
@@ -2055,8 +2690,8 @@ void HCIobservation<_realT>::stdFitsHeader( fits::fitsHeader &head )
                               "pre-process pixel time-series norm method" );
 }
 
-template <typename _realT>
-void HCIobservation<_realT>::writeFinim( fits::fitsHeader *addHead )
+template <typename _realT, class verboseT>
+void HCIobservation<_realT,verboseT>::writeFinim( fits::fitsHeader *addHead )
 {
     std::string fname = m_finimName;
 
@@ -2083,7 +2718,7 @@ void HCIobservation<_realT>::writeFinim( fits::fitsHeader *addHead )
     if( m_weightFile != "" )
         head.append( "WEIGHT FILE", m_weightFile, "file containing weights for combination" );
 
-    if( m_combineMethod == HCI::sigmaMeanCombine )
+    if( m_combineMethod == HCI::combineMethod::sigmaMean )
         head.append<realT>( "SIGMA THRESHOLD", m_sigmaThreshold, "threshold for sigma clipping" );
 
     head.append<realT>( "MIN FOOD FRACTION", m_minGoodFract, "minimum good fraction for inclusion" );
@@ -2099,10 +2734,10 @@ void HCIobservation<_realT>::writeFinim( fits::fitsHeader *addHead )
     f.write( fname, m_finim, head );
 
     std::cerr << "Final image written to: " << fname << "\n";
-} // void HCIobservation<_realT>::writeFinim(fits::fitsHeader * addHead)
+} // void HCIobservation<_realT,verboseT>::writeFinim(fits::fitsHeader * addHead)
 
-template <typename _realT>
-void HCIobservation<_realT>::outputPSFSub( fits::fitsHeader *addHead )
+template <typename _realT, class verboseT>
+void HCIobservation<_realT,verboseT>::outputPSFSub( fits::fitsHeader *addHead )
 {
 
     std::string fname;
@@ -2166,10 +2801,11 @@ void HCIobservation<_realT>::outputPSFSub( fits::fitsHeader *addHead )
     {
         wout.close();
     }
-} // void HCIobservation<_realT>::outputPSFSub(fits::fitsHeader * addHead)
+} // void HCIobservation<_realT,verboseT>::outputPSFSub(fits::fitsHeader * addHead)
 
-template <typename _realT>
-int HCIobservation<_realT>::readPSFSub( const std::string &dir,
+/*
+template <typename _realT, class verboseT>
+int HCIobservation<_realT,verboseT>::readPSFSub( const std::string &dir,
                                         const std::string &prefix,
                                         const std::string &ext,
                                         size_t nReductions )
@@ -2222,8 +2858,8 @@ int HCIobservation<_realT>::readPSFSub( const std::string &dir,
         mxError( "KLIPReduction", MXE_PARAMNOTSET, "COADMTHD not found in FITS header." );
         return -1;
     }
-    m_coaddCombineMethod = HCI::combineMethodFmStr( fh["COADMTHD"].String() );
-    std::cerr << "coaddCombineMethod: " << m_coaddCombineMethod << "\n";
+    m_coaddMethod = HCI::combineMethodFmStr( fh["COADMTHD"].String() );
+    std::cerr << "coaddMethod: " << m_coaddMethod << "\n";
 
     if( fh.count( "COADIMNO" ) != 0 )
     {
@@ -2300,8 +2936,8 @@ int HCIobservation<_realT>::readPSFSub( const std::string &dir,
 
     fits::fitsHeader head;
 
-    if( m_MJDKeyword != "" )
-        head.append( m_MJDKeyword );
+    if( m_dateKeyword != "" )
+        head.append( m_dateKeyword );
 
     for( size_t i = 0; i < m_keywords.size(); ++i )
     {
@@ -2405,22 +3041,22 @@ int HCIobservation<_realT>::readPSFSub( const std::string &dir,
 
         f.setReadSize();
 
-        if( m_MJDKeyword != "" )
+        if( m_dateKeyword != "" )
         {
             m_imageMJD.resize( m_heads.size() );
 
-            if( m_MJDisISO8601 )
+            if( m_dateIsISO8601 )
             {
                 for( size_t i = 0; i < m_imageMJD.size(); ++i )
                 {
-                    m_imageMJD[i] = sys::ISO8601date2mjd( m_heads[i][m_MJDKeyword].String() );
+                    m_imageMJD[i] = sys::ISO8601date2mjd( m_heads[i][m_dateKeyword].String() );
                 }
             }
             else
             {
                 for( size_t i = 0; i < m_imageMJD.size(); ++i )
                 {
-                    m_imageMJD[i] = m_heads[i][m_MJDKeyword].template value<realT>() * m_MJDUnits;
+                    m_imageMJD[i] = m_heads[i][m_dateKeyword].template value<realT>() * m_dateUnit;
                 }
             }
         }
@@ -2441,7 +3077,7 @@ int HCIobservation<_realT>::readPSFSub( const std::string &dir,
         std::cerr << "read: " << m_weightFile << " (" << m_comboWeights.size() << ")\n";
     }
 
-    /*** Now do the post-read actions ***/
+    /*** Now do the post-read actions ***
     if( postReadFiles() < 0 )
     {
         return -1;
@@ -2453,7 +3089,7 @@ int HCIobservation<_realT>::readPSFSub( const std::string &dir,
 
     return 0;
 }
-
+*/
 ///@}
 
 extern template class HCIobservation<float>;

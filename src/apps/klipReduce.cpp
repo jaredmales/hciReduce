@@ -1,7 +1,6 @@
 
 #include <iostream>
 
-
 #include <mx/app/application.hpp>
 using namespace mx::app;
 
@@ -23,33 +22,6 @@ class klipReduce : public application
     typedef _evCalcT evCalcT;
 
   protected:
-    // Basic Setup [HCIobservation]:
-    std::string directory;
-    std::string prefix;
-    std::string extension;
-    std::string fileList;
-
-    // File Reading [HCIobservation]:
-    int deleteFront;
-    int deleteBack;
-    std::string qualityFile;
-    realT qualityThreshold;
-    bool thresholdOnly;
-
-    std::string MJDKeyword;
-    bool MJDisISO8601;
-    int m_imSize{ 0 };
-
-    // RDI setup
-    std::string m_RDIdirectory;
-    std::string m_RDIprefix;
-    std::string m_RDIextension;
-    std::string m_RDIfileList;
-
-    int m_RDIdeleteFront{ 0 };
-    int m_RDIdeleteBack{ 0 };
-    std::string m_RDIqualityFile;
-    realT m_RDIqualityThreshold{ 0 };
 
     // Rotation setup [ADIobservation]
     std::string angleKeyword;
@@ -58,8 +30,8 @@ class klipReduce : public application
 
     // Fake Planet Injection [ADIobservation]
     std::string fakeMethod{ "single" };
-    std::string fakeFileName;      ///< FITS file containing the fake planet PSF to inject
-    std::string fakeScaleFileName; ///< One-column text file containing a scale factor for each point in time.
+    std::string fakeFileName;        ///< FITS file containing the fake planet PSF to inject
+    std::string fakeScaleFileName;   ///< One-column text file containing a scale factor for each point in time.
 
     std::vector<realT> fakeSep;      ///< Separation(s) of the fake planet(s)
     std::vector<realT> fakePA;       ///< Position angles(s) of the fake planet(s)
@@ -67,37 +39,15 @@ class klipReduce : public application
     realT m_fakeRDIFluxScale{ 1 };
     realT m_fakeRDISepScale{ 1 };
 
-    // Co-adding
-    std::string coaddMethod;
-    int coaddMaxImno;
-    realT coaddMaxTime;
-    std::vector<std::string> coaddKeywords;
-
-    // Masking
-    std::string m_maskFile;
-
-    // Pre-processing
-    std::string m_meanSubMethod;
-    std::string m_pixelTSNormMethod;
-
-    bool preProcess_beforeCoadd {false};
-    bool preProcess_mask {false};
-    bool preProcess_subradprof {false};
-    realT preProcess_azUSM_azW {0};
-    realT preProcess_azUSM_radW {0};
-    int preProcess_medianUSM_fwhm {0};
-    realT preProcess_gaussUSM_fwhm {0};
-    std::string preProcess_meanSubMethod {"none"};
-    std::string preProcess_pixelTSNormMethod {"none"};
-
-    std::string preProcess_outputPrefix;
-    bool preProcess_only {false};
-    bool skipPreProcess {false};
 
     // ADI
     bool m_postMedSub{ false };
 
     // KLIP parameters
+
+    std::string m_meanSubMethod;
+    std::string m_pixelTSNormMethod {"none"};
+
     realT minDPx{ 0 };
     realT maxDPx{ 0 };
     std::string excludeMethod;
@@ -108,8 +58,7 @@ class klipReduce : public application
     std::vector<realT> maxRadius;
     std::vector<realT> minAngle;
     std::vector<realT> maxAngle;
-    int nWedges {0};
-
+    int nWedges{ 0 };
 
     bool m_rightReason{ false };
     realT m_rightReasonRadius{ 2.5 };
@@ -146,7 +95,7 @@ class klipReduce : public application
 
     int doGrid();
 
-    KLIPreduction<realT, ADIDerotator<realT>, evCalcT> *obs;
+    KLIPreduction<realT, ADIDerotator<realT>, evCalcT> m_obs;
 
   public:
     klipReduce()
@@ -155,22 +104,8 @@ class klipReduce : public application
         m_configPathLocal = "klipReduce.conf";
         m_requireConfigPathLocal = false;
 
-        obs = 0;
-
-        deleteFront = 0;
-        deleteBack = 0;
-        qualityThreshold = 0;
-        thresholdOnly = false;
-
-        MJDisISO8601 = true;
-
         angleScale = 1;
         angleConstant = 0;
-
-        coaddMaxImno = 0;
-        coaddMaxTime = 0;
-
-
 
         includeRefNum = 0;
 
@@ -197,90 +132,12 @@ class klipReduce : public application
 
     ~klipReduce()
     {
-        if( obs )
-            delete obs;
     }
 
     // This sets up the configuration
     void setupConfig()
     {
-        /*>>>> input */
-        config.add( "input.directory",
-                    "D",
-                    "input.directory",
-                    argType::Required,
-                    "input",
-                    "directory",
-                    false,
-                    "string",
-                    "Directory to search for files" );
-        config.add( "input.prefix",
-                    "P",
-                    "input.prefix",
-                    argType::Required,
-                    "input",
-                    "prefix",
-                    false,
-                    "string",
-                    "Prefix of the files" );
-        config.add( "input.extension",
-                    "E",
-                    "input.extension",
-                    argType::Required,
-                    "input",
-                    "extension",
-                    false,
-                    "string",
-                    "Extension of the files, default is .fits" );
-        config.add(
-            "input.fileList", "F", "input.fileList", argType::Required, "input", "fileList", false, "string", "" );
-
-        config.add( "input.deleteFront",
-                    "",
-                    "input.deleteFront",
-                    argType::Required,
-                    "input",
-                    "deleteFront",
-                    false,
-                    "int",
-                    "The number of files to delete from the front of the list.  Default is 0." );
-        config.add( "input.deleteBack",
-                    "",
-                    "input.deleteBack",
-                    argType::Required,
-                    "input",
-                    "deleteBack",
-                    false,
-                    "int",
-                    "The number of files to delete from the back of the list.  Default is 0." );
-
-        config.add( "input.qualityFile",
-                    "",
-                    "input.qualityFile",
-                    argType::Required,
-                    "input",
-                    "qualityFile",
-                    false,
-                    "string",
-                    "The path to the file containing image quality, a list of numbers with an entry for each image." );
-        config.add( "input.qualityThreshold",
-                    "",
-                    "input.qualityThreshold",
-                    argType::Required,
-                    "input",
-                    "qualityThreshold",
-                    false,
-                    "",
-                    "The quality threshold to apply." );
-        config.add( "input.thresholdOnly",
-                    "",
-                    "input.thresholdOnly",
-                    argType::True,
-                    "input",
-                    "thresholdOnly",
-                    false,
-                    "bool",
-                    "Perform thresholding only, and report the results." );
+        m_obs.setupConfig( config );
 
         config.add( "input.angleKeyword",
                     "",
@@ -310,259 +167,9 @@ class klipReduce : public application
                     "float",
                     "The offset to apply to each angle (e.g. the North angle), default is 0." );
 
-        config.add( "input.MJDKeyword",
-                    "",
-                    "input.MJDKeyword",
-                    argType::Required,
-                    "input",
-                    "MJDKeyword",
-                    false,
-                    "string",
-                    "The header keyword specifying the MJD." );
-        config.add( "input.MJDisISO8601",
-                    "",
-                    "input.MJDisISO8601",
-                    argType::True,
-                    "input",
-                    "MJDisISO8601",
-                    false,
-                    "bool",
-                    "Whether or not the MJD is in ISO 8601 format." );
-
-        config.add( "input.imSize",
-                    "S",
-                    "input.imSize",
-                    argType::Required,
-                    "input",
-                    "imSize",
-                    false,
-                    "int",
-                    "The max size to read in from the images.  Default is 0, which means read the whole image." );
-
-        config.add( "input.maskFile",
-                    "",
-                    "input.maskFile",
-                    argType::Required,
-                    "input",
-                    "maskFile",
-                    false,
-                    "string",
-                    "Path to a file containing a 1/0 mask.  0 pixels are excluded from the search regions." );
-
-        /*<<<< input */
-
-        /*>>>> rdi */
-        // RDI setup
-        config.add( "rdi.directory",
-                    "",
-                    "rdi.directory",
-                    argType::Required,
-                    "rdi",
-                    "directory",
-                    false,
-                    "string",
-                    "Directory to search for RDI files" );
-        config.add( "rdi.prefix",
-                    "",
-                    "rdi.prefix",
-                    argType::Required,
-                    "rdi",
-                    "prefix",
-                    false,
-                    "string",
-                    "Prefix of the RDI files" );
-        config.add( "rdi.extension",
-                    "",
-                    "rdi.extension",
-                    argType::Required,
-                    "rdi",
-                    "extension",
-                    false,
-                    "string",
-                    "Extension of the files, default is .fits" );
-        config.add( "rdi.fileList",
-                    "",
-                    "rdi.fileList",
-                    argType::Required,
-                    "rdi",
-                    "fileList",
-                    false,
-                    "string",
-                    "Path to file containing a list of RDI files" );
-
-        config.add( "rdi.deleteFront",
-                    "",
-                    "rdi.deleteFront",
-                    argType::Required,
-                    "rdi",
-                    "deleteFront",
-                    false,
-                    "int",
-                    "The number of files to delete from the front of the RDI file list.  Default is 0." );
-        config.add( "rdi.deleteBack",
-                    "",
-                    "rdi.deleteBack",
-                    argType::Required,
-                    "rdi",
-                    "deleteBack",
-                    false,
-                    "int",
-                    "The number of files to delete from the back of the RDI file list.  Default is 0." );
-
-        config.add( "rdi.qualityFile",
-                    "",
-                    "rdi.qualityFile",
-                    argType::Required,
-                    "rdi",
-                    "qualityFile",
-                    false,
-                    "string",
-                    "The path to the file containing image quality for the RDI images, a list of numbers with an entry "
-                    "for each image." );
-        config.add( "rdi.qualityThreshold",
-                    "",
-                    "rdi.qualityThreshold",
-                    argType::Required,
-                    "rdi",
-                    "qualityThreshold",
-                    false,
-                    "",
-                    "The quality threshold to apply to the RDI images." );
-
-        /*<<<< rdi */
-
-        /*>>>> coadd */
-
-        config.add( "coadd.method", "", "coadd.method", argType::Required, "coadd", "method", false, "string", "" );
-        config.add( "coadd.maxImno", "", "coadd.maxImno", argType::Required, "coadd", "maxImno", false, "int", "" );
-        config.add( "coadd.maxTime", "", "coadd.maxTime", argType::Required, "coadd", "maxTime", false, "float", "" );
-        config.add( "coadd.keywords",
-                    "",
-                    "coadd.keywords",
-                    argType::Required,
-                    "coadd",
-                    "keywords",
-                    false,
-                    "vector<string>",
-                    "" );
-
-        /*<<<< coadd */
 
         /*>>>> preProcess */
 
-        config.add( "preProcess.beforeCoadd",
-                    "",
-                    "preProcess.beforeCoadd",
-                    argType::True,
-                    "preProcess",
-                    "beforeCoadd",
-                    false,
-                    "bool",
-                    "Controls whether pre-processing takes place before (true) or after (false, default) coadding." );
-        config.add( "preProcess.mask",
-                    "",
-                    "preProcess.mask",
-                    argType::True,
-                    "preProcess",
-                    "mask",
-                    false,
-                    "string",
-                    "Determines if mask is applied for pre-processing." );
-        config.add( "preProcess.subradprof",
-                    "",
-                    "preProcess.subradprof",
-                    argType::True,
-                    "preProcess",
-                    "subradprof",
-                    false,
-                    "bool",
-                    "If true, the radial profile is subtracted from each image." );
-        config.add( "preProcess.azUSM_azW",
-                    "",
-                    "preProcess.azUSM_azW",
-                    argType::Required,
-                    "preProcess",
-                    "azUSM_azW",
-                    false,
-                    "float",
-                    "The azimuth USM boxcar azimuthal width in pixels.  Enabled if both azW and radW are non-zero." );
-        config.add( "preProcess.azUSM_radW",
-                    "",
-                    "preProcess.azUSM_radW",
-                    argType::Required,
-                    "preProcess",
-                    "azUSM_radW",
-                    false,
-                    "float",
-                    "The azimuth USM boxcar radial width in pixels.  Enabled if both azW and radW are non-zero." );
-        config.add( "preProcess.gaussUSM_fwhm",
-                    "",
-                    "preProcess.gaussUSM_fwhm",
-                    argType::Required,
-                    "preProcess",
-                    "gaussUSM_fwhm",
-                    false,
-                    "float",
-                    "The gaussian USM kernel full-width at half max.  Enabled if non-zero." );
-        config.add( "preProcess.medianUSM_fwhm",
-                    "",
-                    "preProcess.medianUSM_fwhm",
-                    argType::Required,
-                    "preProcess",
-                    "medianUSM_fwhm",
-                    false,
-                    "float",
-                    "The median USM kernel full-width at half max.  Enabled if non-zero." );
-
-        config.add( "preProcess.meanSubMethod",
-                        "",
-                        "preProcess.meanSubMethod",
-                        argType::Required,
-                        "preProcess",
-                        "meanSubMethod",
-                        false,
-                        "string",
-                        "The mean subtraction method during pre-processing." );
-
-                        config.add( "preProcess.pixelTSNormMethod",
-                            "",
-                            "preProcess.pixelTSNormMethod",
-                            argType::Required,
-                            "preProcess",
-                            "pixelTSNormMethod",
-                            false,
-                            "string",
-                            "The pixel time-series normalization method during pre-processing." );
-
-        config.add( "preProcess.outputPrefix",
-                    "",
-                    "preProcess.outputPrefix",
-                    argType::Required,
-                    "preProcess",
-                    "outputPrefix",
-                    false,
-                    "string",
-                    "If not empty, then this prefix (which should be a full path) is added to file names and the pre-processed images are output" );
-
-        config.add( "preProcess.only",
-                    "",
-                    "preProcess.only",
-                    argType::True,
-                    "preProcess",
-                    "only",
-                    false,
-                    "bool",
-                    "If true, stop after pre-processing.  Default is false." );
-
-        config.add( "preProcess.skip",
-                    "",
-                    "preProcess.skip",
-                    argType::True,
-                    "preProcess",
-                    "skip",
-                    false,
-                    "bool",
-                    "If true, then pre-processing is skipped.  Default is false." );
 
         /*<<<< preProcess */
 
@@ -600,7 +207,85 @@ class klipReduce : public application
                     "adi.excludeMethodMax",
                     argType::Required,
                     "adi",
-                    "excludeMethodMax",
+                    "excludeMethodMax"
+    /** \name Pre-Processing
+     * @{
+
+    /// Do the pre-processing
+    void preProcess( eigenCube<realT> &ims /**< [in] the image cube, should be either m_tgtIms or m_refIms  );
+
+    /// Do mean subtraction as part of pre-processing
+    void preProcess_meanSub( eigenCube<realT> &ims /**< [in] the image cube, should be either m_tgtIms or m_refIms  );
+
+    /// Do pixel time-series normalization as part of pre-processing
+    void
+    preProcess_pixelTSNorm( eigenCube<realT> &ims /**< [in] the image cube, should be either m_tgtIms or m_refIms  );
+
+    ///@}
+
+    /** \name Image Combination
+     * These options control how the final image combination is performed.
+     * @{
+
+
+    /// Determine how to combine the PSF subtracted images
+    /** Possibilities are
+     * - HCI::noCombine -- do not combine
+     * - HCI::combineMethod::median -- [default] final image is the median
+     * - HCI::combineMethod::mean -- final image is the simple mean
+     * - HCI::weightedMeanCombine -- final image is the weighted mean.  m_weightFile must be provided.
+     * - HCI::combineMethod::sigmaMean -- final image is sigma clipped mean.  If m_sigmaThreshold \<= 0, then it reverts
+     * to meanCombine.
+
+    HCI::combineMethod m_combineMethod{ HCI::combineMethod::mean };
+
+    /// Specifies a file containing the image weights, for combining with weighted mean.
+    /** This 2-column space-delimited ASCII file containing  filenames and weights. It must be specified before
+     * readFiles() is executed.  In readFiles this is loaded after the m_fileList is cutdown and matched to the
+     * remaining files.
+
+    std::string m_weightFile;
+
+    /// Vector to hold the image weights read from the m_weightFile.
+    /** After readWeights is executed by readFiles, this will contain the normalized weights.
+     * \todo check how comboWeights are handled in coadding
+
+    std::vector<realT> m_comboWeights;
+
+    /// The standard deviation threshold used if combineMethod == HCI::combineMethod::sigmaMean.
+    realT m_sigmaThreshold{ 0 };
+
+    /// The minimum fraction of good (un-masked) pixels to include in the final combination (0.0 to 1.0). If not met,
+    /// then the pixel will be NaN-ed.
+    realT m_minGoodFract{ 0.0 };
+
+    /// Read the image weights from m_weightFile
+    /** This is called by readFiles().
+     *
+     * \returns 0 on success, -1 on  error.
+
+    int readWeights();
+
+    /// Combine the images into a single final image.
+    /** Images are combined by the method specified in \ref combineMethod
+
+    void combineFinim();
+
+    ///@}*/
+
+    /** \name Output
+     * These options control the ouput of the final combined images and the individual PSF subtracted images.
+     * @{
+
+
+    /// Location for temporary auxilliary output files (e.g. masks)
+    std::string m_auxDataDir{ "/tmp/hciReduceAux/" };
+
+    /// Whether or not to move the temp. aux files.
+
+
+
+    ///@}*/,
                     false,
                     "string",
                     "Method for maximum exclusion.  Values are none (default), pixel, angle, imno." );
@@ -653,15 +338,16 @@ class klipReduce : public application
                     false,
                     "vector<realT>",
                     "The maximum angle of the search regions" );
-        config.add( "geom.nWedges",
-                    "",
-                    "geom.nWedges",
-                    argType::Required,
-                    "geom",
-                    "nWedges",
-                    false,
-                    "",
-                    "The number of angular wedges.  Overrides minAngle and maxAngle, and expands minRadius and maxRadius" );
+        config.add(
+            "geom.nWedges",
+            "",
+            "geom.nWedges",
+            argType::Required,
+            "geom",
+            "nWedges",
+            false,
+            "",
+            "The number of angular wedges.  Overrides minAngle and maxAngle, and expands minRadius and maxRadius" );
 
         /*<<<< geom */
 
@@ -981,74 +667,12 @@ class klipReduce : public application
 
     void loadConfig()
     {
-        /*>>>> input */
-        config( directory, "input.directory" );
-        config( prefix, "input.prefix" );
-        config( extension, "input.extension" );
-
-        config( fileList, "input.fileList" );
-
-        config( deleteFront, "input.deleteFront" );
-        config( deleteBack, "input.deleteBack" );
-
-        config( qualityFile, "input.qualityFile" );
-        config( qualityThreshold, "input.qualityThreshold" );
-        config( thresholdOnly, "input.thresholdOnly" );
+        m_obs.loadConfig( config );
 
         config( angleKeyword, "input.angleKeyword" );
         config( angleScale, "input.angleScale" );
         config( angleConstant, "input.angleConstant" );
 
-        config( MJDKeyword, "input.MJDKeyword" );
-        config( MJDisISO8601, "input.MJDisISO8601" );
-
-        config( m_imSize, "input.imSize" );
-
-        config( m_maskFile, "input.maskFile" );
-
-        /*<<<< input */
-
-        /*>>>> RDI */
-        config( m_RDIdirectory, "rdi.directory" );
-        config( m_RDIprefix, "rdi.prefix" );
-        config( m_RDIextension, "rdi.extension" );
-
-        std::cerr << "RDI: " << m_RDIdirectory << " " << m_RDIprefix << "\n";
-        config( m_RDIfileList, "rdi.fileList" );
-
-        config( m_RDIdeleteFront, "rdi.deleteFront" );
-        config( m_RDIdeleteBack, "rdi.deleteBack" );
-
-        config( m_RDIqualityFile, "rdi.qualityFile" );
-        config( m_RDIqualityThreshold, "rdi.qualityThreshold" );
-        /*<<<< RDI */
-
-        /*>>>> coadd */
-        config( coaddMethod, "coadd.method" );
-        config( coaddMaxImno, "coadd.maxImno" );
-        config( coaddMaxTime, "coadd.maxTime" );
-        config( coaddKeywords, "coadd.keywords" );
-        /*<<<< coadd */
-
-        /*>>>> preProcess */
-        config( preProcess_beforeCoadd, "preProcess.beforeCoadd" );
-        config( preProcess_mask, "preProcess.mask" );
-        config( preProcess_subradprof, "preProcess.subradprof" );
-        config( preProcess_azUSM_azW, "preProcess.azUSM_azW" );
-        config( preProcess_azUSM_radW, "preProcess.azUSM_radW" );
-        config( preProcess_medianUSM_fwhm, "preProcess.medianUSM_fwhm" );
-        config( preProcess_gaussUSM_fwhm, "preProcess.gaussUSM_fwhm" );
-        config( preProcess_meanSubMethod, "preProcess.meanSubMethod" );
-        config( preProcess_pixelTSNormMethod, "preProcess.pixelTSNormMethod" );
-
-        config( preProcess_outputPrefix, "preProcess.outputPrefix" );
-
-        config( preProcess_only, "preProcess.only" );
-        config( skipPreProcess, "preProcess.skip" );
-
-
-
-        /*<<<< preProcess */
 
         /*>>>> adi */
         config( minDPx, "adi.minDPx" );
@@ -1062,9 +686,9 @@ class klipReduce : public application
         /*>>>> geom */
         config( minRadius, "geom.minRadius" );
         config( maxRadius, "geom.maxRadius" );
-        config( minAngle,  "geom.minAngle" );
-        config( maxAngle,  "geom.maxAngle" );
-        config( nWedges,   "geom.nWedges" );
+        config( minAngle, "geom.minAngle" );
+        config( maxAngle, "geom.maxAngle" );
+        config( nWedges, "geom.nWedges" );
         /*<<<< geom */
 
         /*>>>> klip */
@@ -1131,18 +755,15 @@ class klipReduce : public application
                 if( !unusedPrinted )
                 {
                     std::cerr << "****************************************************\n";
-                    std::cerr << "WARNING: unrecognized config options:\n";
+                    std::cerr << "WARNING: unused config options (this is a programmer error):\n";
                     unusedPrinted = true;
                 }
 
-                std::cerr << "   " << it->second.name;
-                if( config.m_sources )
-                    std::cerr << " [" << it->second.sources[0] << "]\n";
-                else
-                    std::cerr << "\n";
+                std::cerr << "   " << it->second.name << '\n';
             }
         }
 
+        unusedPrinted = false;
         if( config.m_unusedConfigs.size() > 0 )
         {
             if( !unusedPrinted )
@@ -1177,9 +798,7 @@ class klipReduce : public application
         fprintf( stderr,
                  "   usage: %s -D directory -P prefix [-E extension] -n \"x,y,z\" -r X -R x \n\n",
                  invokedName.c_str() );
-        fprintf(
-            stderr,
-            "   For usage and full documentation see http://makana.as.arizona.edu/acic/group__klipreduce.html  \n\n" );
+        fprintf( stderr, "   For usage and full documentation see somewhere \n\n" );
     }
 
     bool m_configError{ false };
@@ -1193,146 +812,53 @@ class klipReduce : public application
             return;
         }
 
-        if( directory == "" && prefix == "" && fileList == "" )
-        {
-            std::cerr << invokedName << ": must specify either directory+prefix or fileList\n\n";
-            m_configError = true;
-            return;
-        }
-        else
-        {
+        m_obs.m_derotF.angleKeyword( angleKeyword );
+        m_obs.m_derotF.m_angleScale = angleScale;
+        m_obs.m_derotF.m_angleConstant = angleConstant;
 
-            if( fileList != "" )
-            {
-                if( m_RDIfileList != "" )
-                {
-                    obs = new KLIPreduction<realT, ADIDerotator<realT>, evCalcT>(
-                        fileList, m_RDIfileList );
-                }
-                else
-                {
-                    obs = new KLIPreduction<realT, ADIDerotator<realT>, evCalcT>( fileList );
-                }
-            }
-            else
-            {
-                if( m_RDIdirectory != "" && m_RDIprefix != "" )
-                {
-                    obs = new KLIPreduction<realT, ADIDerotator<realT>, evCalcT>(
-                        directory, prefix, extension, m_RDIdirectory, m_RDIprefix, m_RDIextension );
-                }
-                else
-                {
-                    obs = new KLIPreduction<realT, ADIDerotator<realT>, evCalcT>(
-                        directory, prefix, extension );
-                }
-            }
-        }
-
-        obs->m_deleteFront = deleteFront;
-        obs->m_deleteBack = deleteBack;
-        if( qualityFile != "" )
-            obs->m_qualityFile = qualityFile;
-        obs->m_qualityThreshold = qualityThreshold;
-        obs->m_thresholdOnly = thresholdOnly;
-
-        obs->m_derotF.angleKeyword( angleKeyword );
-        obs->m_derotF.m_angleScale = angleScale;
-        obs->m_derotF.m_angleConstant = angleConstant;
-
-        obs->m_RDIderotF.angleKeyword( angleKeyword );
-        obs->m_RDIderotF.m_angleScale = angleScale;
-        obs->m_RDIderotF.m_angleConstant = angleConstant;
-
-        if( MJDKeyword != "" )
-            obs->m_MJDKeyword = MJDKeyword;
-        obs->m_MJDisISO8601 = MJDisISO8601;
-        obs->m_imSize = m_imSize;
-
-        obs->m_RDIdeleteFront = m_RDIdeleteFront;
-        obs->m_RDIdeleteBack = m_RDIdeleteBack;
-        obs->m_RDIqualityFile = m_RDIqualityFile;
-        obs->m_RDIqualityThreshold = m_RDIqualityThreshold;
+        m_obs.m_RDIderotF.angleKeyword( angleKeyword );
+        m_obs.m_RDIderotF.m_angleScale = angleScale;
+        m_obs.m_RDIderotF.m_angleConstant = angleConstant;
 
         if( fakeMethod == "list" )
         {
-            obs->m_fakeMethod = HCI::list;
+            m_obs.m_fakeMethod = HCI::list;
         }
         else
         {
-            obs->m_fakeMethod = HCI::single;
+            m_obs.m_fakeMethod = HCI::single;
         }
 
-        obs->m_fakeFileName = fakeFileName;
-        obs->m_fakeScaleFileName = fakeScaleFileName;
-        obs->m_fakeSep = fakeSep;
-        obs->m_fakePA = fakePA;
-        obs->m_fakeContrast = fakeContrast;
-        obs->m_RDIFluxScale = m_fakeRDIFluxScale;
-        obs->m_RDISepScale = m_fakeRDISepScale;
-
-        if( coaddMethod != "" )
-        {
-            if( coaddMethod == "none" )
-            {
-                obs->m_coaddCombineMethod = HCI::noCombine;
-            }
-            else if( coaddMethod == "median" )
-            {
-                obs->m_coaddCombineMethod = HCI::medianCombine;
-            }
-            else if( coaddMethod == "mean" )
-            {
-                obs->m_coaddCombineMethod = HCI::meanCombine;
-            }
-            else
-            {
-                std::cerr << invokedName << ": invalid coadd method.\n";
-                m_configError = true;
-            }
-        }
-
-        obs->m_coaddMaxImno = coaddMaxImno;
-        obs->m_coaddMaxTime = coaddMaxTime;
-        obs->m_coaddKeywords = coaddKeywords;
-
-        obs->m_maskFile = m_maskFile;
-
-        obs->m_preProcess_beforeCoadd = preProcess_beforeCoadd;
-        obs->m_preProcess_mask = preProcess_mask;
-        obs->m_preProcess_subradprof = preProcess_subradprof;
-        obs->m_preProcess_azUSM_azW = preProcess_azUSM_azW;
-        obs->m_preProcess_azUSM_radW = preProcess_azUSM_radW;
-        obs->m_preProcess_medianUSM_fwhm = preProcess_medianUSM_fwhm;
-        obs->m_preProcess_gaussUSM_fwhm = preProcess_gaussUSM_fwhm;
-        obs->m_preProcess_meanSubMethod = HCI::meanSubMethodFmStr(preProcess_meanSubMethod);
-        obs->m_preProcess_pixelTSNormMethod = HCI::pixelTSNormMethodFmStr(preProcess_pixelTSNormMethod);
+        m_obs.m_fakeFileName = fakeFileName;
+        m_obs.m_fakeScaleFileName = fakeScaleFileName;
+        m_obs.m_fakeSep = fakeSep;
+        m_obs.m_fakePA = fakePA;
+        m_obs.m_fakeContrast = fakeContrast;
+        m_obs.m_RDIFluxScale = m_fakeRDIFluxScale;
+        m_obs.m_RDISepScale = m_fakeRDISepScale;
 
 
-        obs->m_preProcess_outputPrefix = preProcess_outputPrefix;
-        obs->m_preProcess_only = preProcess_only;
-        obs->m_skipPreProcess = skipPreProcess;
 
-        obs->m_minDPx = minDPx;
-        obs->m_maxDPx = maxDPx;
+        m_obs.m_minDPx = minDPx;
+        m_obs.m_maxDPx = maxDPx;
 
         if( excludeMethod != "" )
         {
             if( excludeMethod == "none" )
             {
-                obs->m_excludeMethod = HCI::excludeNone;
+                m_obs.m_excludeMethod = HCI::excludeNone;
             }
             else if( excludeMethod == "pixel" )
             {
-                obs->m_excludeMethod = HCI::excludePixel;
+                m_obs.m_excludeMethod = HCI::excludePixel;
             }
             else if( excludeMethod == "angle" )
             {
-                obs->m_excludeMethod = HCI::excludeAngle;
+                m_obs.m_excludeMethod = HCI::excludeAngle;
             }
             else if( excludeMethod == "imno" )
             {
-                obs->m_excludeMethod = HCI::excludeImno;
+                m_obs.m_excludeMethod = HCI::excludeImno;
             }
             else
             {
@@ -1345,19 +871,19 @@ class klipReduce : public application
         {
             if( excludeMethodMax == "none" )
             {
-                obs->m_excludeMethodMax = HCI::excludeNone;
+                m_obs.m_excludeMethodMax = HCI::excludeNone;
             }
             else if( excludeMethodMax == "pixel" )
             {
-                obs->m_excludeMethodMax = HCI::excludePixel;
+                m_obs.m_excludeMethodMax = HCI::excludePixel;
             }
             else if( excludeMethodMax == "angle" )
             {
-                obs->m_excludeMethodMax = HCI::excludeAngle;
+                m_obs.m_excludeMethodMax = HCI::excludeAngle;
             }
             else if( excludeMethodMax == "imno" )
             {
-                obs->m_excludeMethodMax = HCI::excludeImno;
+                m_obs.m_excludeMethodMax = HCI::excludeImno;
             }
             else
             {
@@ -1366,14 +892,15 @@ class klipReduce : public application
             }
         }
 
-        obs->m_postMedSub = m_postMedSub;
+        m_obs.m_postMedSub = m_postMedSub;
 
-        obs->m_meanSubMethod = HCI::meanSubMethodFmStr(m_meanSubMethod);
+        //KLIP:
+        m_obs.m_meanSubMethod = HCI::meanSubMethodStr( m_meanSubMethod );
 
+        //KLIP:
+        m_obs.m_pixelTSNormMethod == HCI::pixelTSNormMethodStr( m_pixelTSNormMethod );
 
-        obs->m_pixelTSNormMethod == HCI::pixelTSNormMethodFmStr (m_pixelTSNormMethod);
-
-        obs->m_includeRefNum = includeRefNum;
+        m_obs.m_includeRefNum = includeRefNum;
 
         if( Nmodes.size() == 0 && mode != "postprocess" )
         {
@@ -1381,10 +908,10 @@ class klipReduce : public application
             m_configError = true;
         }
         else
-            obs->m_Nmodes = Nmodes;
+            m_obs.m_Nmodes = Nmodes;
 
-        obs->m_rightReason = m_rightReason;
-        obs->m_rightReasonRadius = m_rightReasonRadius;
+        m_obs.m_rightReason = m_rightReason;
+        m_obs.m_rightReasonRadius = m_rightReasonRadius;
 
         if( minRadius.size() == 0 && mode != "postprocess" )
         {
@@ -1404,31 +931,31 @@ class klipReduce : public application
             m_configError = true;
         }
 
-        if( minAngle.size() != maxAngle.size() && mode != "postprocess")
+        if( minAngle.size() != maxAngle.size() && mode != "postprocess" )
         {
             std::cerr << invokedName << ": number of minimum and maximum angles must be equal\n";
             m_configError = true;
         }
 
-        obs->m_doDerotate = !noDerotate;
+        m_obs.m_doDerotate = !noDerotate;
 
         if( combineMethod != "" )
         {
             if( combineMethod == "none" )
             {
-                obs->m_combineMethod = HCI::noCombine;
+                m_obs.m_combineMethod = HCI::combineMethod::none;
             }
             else if( combineMethod == "median" )
             {
-                obs->m_combineMethod = HCI::medianCombine;
+                m_obs.m_combineMethod = HCI::combineMethod::median;
             }
             else if( combineMethod == "mean" )
             {
-                obs->m_combineMethod = HCI::meanCombine;
+                m_obs.m_combineMethod = HCI::combineMethod::mean;
             }
             else if( combineMethod == "sigma" )
             {
-                obs->m_combineMethod = HCI::sigmaMeanCombine;
+                m_obs.m_combineMethod = HCI::combineMethod::sigmaMean;
             }
             else
             {
@@ -1437,23 +964,23 @@ class klipReduce : public application
             }
         }
 
-        obs->m_weightFile = weightFile;
-        obs->m_sigmaThreshold = sigmaThreshold;
-        obs->m_minGoodFract = minGoodFract;
+        m_obs.m_weightFile = weightFile;
+        m_obs.m_sigmaThreshold = sigmaThreshold;
+        m_obs.m_minGoodFract = minGoodFract;
 
         if( outputFile != "" )
         {
-            obs->m_finimName = outputFile;
+            m_obs.m_finimName = outputFile;
         }
 
-        obs->m_exactFinimName = exactFName;
+        m_obs.m_exactFinimName = exactFName;
 
-        obs->m_outputDir = outputDir;
+        m_obs.m_outputDir = outputDir;
 
-        obs->m_doOutputPSFSub = outputPSFSub;
+        m_obs.m_doOutputPSFSub = outputPSFSub;
         if( psfSubPrefix != "" )
         {
-            obs->m_PSFSubPrefix = psfSubPrefix;
+            m_obs.m_PSFSubPrefix = psfSubPrefix;
         }
 
         return;
@@ -1471,28 +998,28 @@ class klipReduce : public application
         {
             return doGrid();
         }
-        else if( mode == "postprocess" )
+        /*else if( mode == "postprocess" )
         {
-            return obs->processPSFSub( directory, prefix, extension );
-        }
+            return m_obs.processPSFSub( directory, prefix, extension );
+        }*/
         else
         {
-            if(nWedges > 0)
+            if( nWedges > 0 )
             {
-                if(minRadius.size() > 1 || maxRadius.size() > 1)
+                if( minRadius.size() > 1 || maxRadius.size() > 1 )
                 {
                     std::cerr << "Error: nWedges set but min/maxRadius have more than one entry" << "\n";
                     return -1;
                 }
 
-                if(minAngle.size() > 0 || maxAngle.size() > 0)
+                if( minAngle.size() > 0 || maxAngle.size() > 0 )
                 {
                     std::cerr << "Warning: nWedges set but min/maxAngle have more than one entry" << "\n";
                     minAngle.clear();
                     maxAngle.clear();
                 }
 
-                if( (360 % nWedges) != 0 )
+                if( ( 360 % nWedges ) != 0 )
                 {
                     std::cerr << "Error: nWedges must be a divisor of 360\n";
                     return -1;
@@ -1501,29 +1028,30 @@ class klipReduce : public application
                 realT mnr = minRadius[0];
                 realT mxr = maxRadius[0];
 
-                minRadius.resize(nWedges, mnr);
-                maxRadius.resize(nWedges, mxr);
+                minRadius.resize( nWedges, mnr );
+                maxRadius.resize( nWedges, mxr );
 
-                int dang = 360/nWedges;
-                minAngle.resize(nWedges);
-                maxAngle.resize(nWedges);
+                int dang = 360 / nWedges;
+                minAngle.resize( nWedges );
+                maxAngle.resize( nWedges );
 
-                for(size_t n =0; n < minAngle.size(); ++n)
+                for( size_t n = 0; n < minAngle.size(); ++n )
                 {
-                    minAngle[n] = n*dang;
-                    maxAngle[n] = n*dang + dang;
+                    minAngle[n] = n * dang;
+                    maxAngle[n] = n * dang + dang;
                 }
             }
             else
             {
-                if(minAngle.size() == 0 || maxAngle.size() == 0)
+                if( minAngle.size() == 0 || maxAngle.size() == 0 )
                 {
-                    minAngle.resize(minRadius.size(), 0);
-                    maxAngle.resize(maxRadius.size(), 360);
+                    minAngle.resize( minRadius.size(), 0 );
+                    maxAngle.resize( maxRadius.size(), 360 );
                 }
             }
 
-            return obs->regions( minRadius, maxRadius, minAngle, maxAngle );
+            m_obs.load_fileList();
+            return m_obs.regions( minRadius, maxRadius, minAngle, maxAngle );
         }
     }
 };
@@ -1618,15 +1146,17 @@ int klipReduce<realT, evCalcT>::doGrid()
 
             for( size_t k = 0; k < gridContrasts.size(); ++k )
             {
-                obs->m_filesRead = false;
+                // m_obs.m_filesRead = false;
+                std::cerr << "THIS WON'T WORK UNTIL YOU FIX FILESREAD IS PROTECTED\n";
+                exit( 0 );
 
-                obs->m_fakeSep = { sep( i, j ) };
-                obs->m_fakePA = { pa( i, j ) };
-                obs->m_fakeContrast = { gridContrasts[k] };
+                m_obs.m_fakeSep = { sep( i, j ) };
+                m_obs.m_fakePA = { pa( i, j ) };
+                m_obs.m_fakeContrast = { gridContrasts[k] };
 
                 // std::cerr << sep(i,j) << " " << pa(i,j) << " " << gridContrasts[k] << "\n";
                 std::vector<realT> minMaxQ( minRadius.size(), 0 );
-                obs->regions( minRadius, maxRadius, minMaxQ, minMaxQ );
+                m_obs.regions( minRadius, maxRadius, minMaxQ, minMaxQ );
             }
         }
     }
@@ -1635,18 +1165,18 @@ int klipReduce<realT, evCalcT>::doGrid()
 
     std::string fn;
     fn = "gridSep.fits";
-    if( obs->m_outputDir != "" )
+    if( m_obs.m_outputDir != "" )
         fn = outputDir + "/" + fn;
 
     ff.write( fn, sep );
 
     fn = "gridPA.fits";
-    if( obs->m_outputDir != "" )
+    if( m_obs.m_outputDir != "" )
         fn = outputDir + "/" + fn;
     ff.write( fn, pa );
 
     fn = "gridContrasts.dat";
-    if( obs->m_outputDir != "" )
+    if( m_obs.m_outputDir != "" )
         fn = outputDir + "/" + fn;
     std::ofstream fout;
     fout.open( fn );

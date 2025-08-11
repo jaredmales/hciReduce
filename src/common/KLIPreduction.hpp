@@ -91,55 +91,6 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj>
     /// Default c'tor
     KLIPreduction();
 
-    /// Construct and load the target file list.
-    /** Populates the \ref m_fileList vector by searching on disk for files
-     * which match "dir/prefix*.ext".  See \ref load_fileList
-     *
-     */
-    KLIPreduction( const std::string &dir,    ///< [in] the directory to search for files.
-                   const std::string &prefix, ///< [in] the prefix of the files
-                   const std::string &ext     ///< [in] the extension of the files
-    );
-
-    /// Construct using a file containing the target file list
-    /** Populates the \ref m_fileList vector by reading the file, which should
-     * be a single column of new-line delimited file names.
-     */
-    explicit KLIPreduction( const std::string &fileListFile /**< [in] the full path to a file
-                                                                      containing a list of files */ );
-
-    // Construct and load the target file list and the RDI file list
-    /** Populates the \ref m_fileList vector by searching on disk for files
-     * which match "dir/prefix*.ext".  See \ref load_fileList
-     *
-     *  Populates the \ref m_RDIfileList vector by searching on disk for files
-     * which match "RDIdir/RDIprefix*.RDIext".  See \ref load_RDIfileList
-     */
-    KLIPreduction( const std::string &dir,        ///< [in] the directory to search for files.
-                   const std::string &prefix,     ///< [in] the prefix of the files
-                   const std::string &ext,        ///< [in] the extension of the files, default is .fits
-                   const std::string &RDIdir,     ///< [in] the directory to search for the reference files.
-                   const std::string &RDIprefix,  /**< [in] the initial part of the file name for the
-                                                            reference files.  Can be empty "". */
-                   const std::string &RDIext = "" /**< [in] [optional] the extension to append to the RDI file
-                                                            name, must include the '.'.  If empty "" then same
-                                                     extension as target files is used. */
-    );
-
-    /// Construct using a file containing the target file list and a file
-    /// containing the RDI target file list
-    /** Populates the \ref m_fileList vector by reading the file, which should
-     * be a single column of new-line delimited file names.
-     *
-     * Populates the \ref m_RDIfileList vector by reading the file, which should
-     * be a single column of new-line delimited file names.
-     */
-    explicit KLIPreduction( const std::string &fileListFile,   ///< [in] a file name path to read for
-                                                               ///< the target file names.
-                            const std::string &RDIfileListFile ///< [in] a file name path to read
-                                                               ///< for the reference file names.
-    );
-
     virtual ~KLIPreduction();
 
     /// Specify how the data are centered for PCA within each search region
@@ -309,7 +260,7 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj>
 
     int finalProcess();
 
-    int processPSFSub( const std::string &dir, const std::string &prefix, const std::string &ext );
+    //int processPSFSub( const std::string &dir, const std::string &prefix, const std::string &ext );
 
     double t_worker_begin{ 0 };
     double t_worker_end{ 0 };
@@ -343,37 +294,7 @@ KLIPreduction<_realT, _derotFunctObj, _evCalcT>::KLIPreduction()
 {
 }
 
-template <typename _realT, class _derotFunctObj, typename _evCalcT>
-KLIPreduction<_realT, _derotFunctObj, _evCalcT>::KLIPreduction( const std::string &dir,
-                                                                const std::string &prefix,
-                                                                const std::string &ext )
-    : ADIobservation<_realT, _derotFunctObj>( dir, prefix, ext )
-{
-}
 
-template <typename _realT, class _derotFunctObj, typename _evCalcT>
-KLIPreduction<_realT, _derotFunctObj, _evCalcT>::KLIPreduction( const std::string &fileListFile )
-    : ADIobservation<_realT, _derotFunctObj>( fileListFile )
-{
-}
-
-template <typename _realT, class _derotFunctObj, typename _evCalcT>
-KLIPreduction<_realT, _derotFunctObj, _evCalcT>::KLIPreduction( const std::string &dir,
-                                                                const std::string &prefix,
-                                                                const std::string &ext,
-                                                                const std::string &RDIdir,
-                                                                const std::string &RDIprefix,
-                                                                const std::string &RDIext )
-    : ADIobservation<_realT, _derotFunctObj>( dir, prefix, ext, RDIdir, RDIprefix, RDIext )
-{
-}
-
-template <typename _realT, class _derotFunctObj, typename _evCalcT>
-KLIPreduction<_realT, _derotFunctObj, _evCalcT>::KLIPreduction( const std::string &fileListFile,
-                                                                const std::string &RDIfileListFile )
-    : ADIobservation<_realT, _derotFunctObj>( fileListFile, RDIfileListFile )
-{
-}
 
 template <typename _realT, class _derotFunctObj, typename _evCalcT>
 KLIPreduction<_realT, _derotFunctObj, _evCalcT>::~KLIPreduction()
@@ -493,13 +414,9 @@ void KLIPreduction<realT, derotFunctObj, evCalcT>::meanSubtract( eigenCube<realT
         }
     }
 
-    if(m_pixelTSNormMethod == HCI::pixelTSNormMethod::unknown)
-    {
-        mxThrowException(err::invalidconfig, "KlipReduction::meanSubtract", "pixelTSNormMethod is unknown");
-    }
     if(m_pixelTSNormMethod == HCI::pixelTSNormMethod::rmsSigmaClipped)
     {
-        mxThrowException(err::invalidconfig, "KlipReduction::meanSubtract", "pixelTSNormMethod is rmsSigmaClipped, which is not implemented");
+        mxThrowException(err::notimpl, "KlipReduction::meanSubtract", "pixelTSNormMethod is rmsSigmaClipped, which is not implemented");
     }
 
     if( m_pixelTSNormMethod != HCI::pixelTSNormMethod::none )
@@ -1160,7 +1077,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
         this->derotate();
     }
 
-    if( this->m_combineMethod > 0 )
+    if( this->m_combineMethod != HCI::combineMethod::none )
     {
         std::cerr << "combining\n";
         this->combineFinim();
@@ -1242,7 +1159,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
         head.append<std::string>( "INMTHDMX", HCI::includeMethodStr( m_includeMethod ), "inclusion method" );
         head.append<int>( "INCLREFN", m_includeRefNum, "number of images included by INMTHDMX" );
 
-        if( this->m_doWriteFinim == true && this->m_combineMethod > 0 )
+        if( this->m_doWriteFinim == true && this->m_combineMethod != HCI::combineMethod::none )
         {
             this->writeFinim( &head );
         }
@@ -1256,6 +1173,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
     return 0;
 }
 
+/*
 template <typename _realT, class _derotFunctObj, typename _evCalcT>
 int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::processPSFSub( const std::string &dir,
                                                                     const std::string &prefix,
@@ -1294,7 +1212,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::processPSFSub( const std::s
     }
     std::cerr << "nModes: " << fh["NMODES"].String() << "\n";
 
-    /* -- REGMINR -- */
+    /* -- REGMINR --
     if( fh.count( "REGMINR" ) == 0 )
     {
         mxError( "KLIPReduction", MXE_PARAMNOTSET, "REGMINR not found in FITS header." );
@@ -1308,7 +1226,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::processPSFSub( const std::s
     }
     std::cerr << "minr: " << fh["REGMINR"].String() << "\n";
 
-    /* -- REGMAXR -- */
+    /* -- REGMAXR --
     if( fh.count( "REGMAXR" ) == 0 )
     {
         mxError( "KLIPReduction", MXE_PARAMNOTSET, "REGMAXR not found in FITS header." );
@@ -1322,7 +1240,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::processPSFSub( const std::s
     }
     std::cerr << "minr: " << fh["REGMAXR"].String() << "\n";
 
-    /* -- REGMINQ -- */
+    /* -- REGMINQ --
     if( fh.count( "REGMINQ" ) == 0 )
     {
         mxError( "KLIPReduction", MXE_PARAMNOTSET, "REGMINQ not found in FITS header." );
@@ -1336,7 +1254,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::processPSFSub( const std::s
     }
     std::cerr << "minq: " << fh["REGMINQ"].String() << "\n";
 
-    /* -- REGMAXR -- */
+    /* -- REGMAXR --
     if( fh.count( "REGMAXR" ) == 0 )
     {
         mxError( "KLIPReduction", MXE_PARAMNOTSET, "REGMAXR not found in FITS header." );
@@ -1402,12 +1320,12 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::processPSFSub( const std::s
 
     this->m_keywords.clear();
 
-    this->readPSFSub( dir, prefix, ext, m_Nmodes.size() );
+    //this->readPSFSub( dir, prefix, ext, m_Nmodes.size() );
 
     finalProcess();
 
     return 0;
-}
+}*/
 
 ///@}
 

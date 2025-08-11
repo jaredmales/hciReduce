@@ -17,6 +17,47 @@ namespace improc
 namespace HCI
 {
 
+std::string coaddMethodStr( coaddMethod method )
+{
+    if( method == coaddMethod::none )
+    {
+        return "none";
+    }
+    else if( method == coaddMethod::median )
+    {
+        return "median";
+    }
+    else if( method == coaddMethod::mean )
+    {
+        return "mean";
+    }
+    else
+    {
+        mxThrowException(mx::err::invalidarg,"coaddMethodStr", "got an invalid coadd method (bug)");
+    }
+
+}
+
+coaddMethod coaddMethodStr( const std::string &method )
+{
+    if( method == "none" )
+    {
+        return coaddMethod::none;
+    }
+    else if( method == "median" )
+    {
+        return coaddMethod::median;
+    }
+    else if( method == "mean" )
+    {
+        return coaddMethod::mean;
+    }
+    else
+    {
+        mxThrowException(mx::err::invalidarg,"coaddMethodStr", method + " is not a valid coadd method");
+    }
+}
+
 std::string meanSubMethodStr( meanSubMethod method )
 {
     if( method == meanSubMethod::none )
@@ -45,11 +86,11 @@ std::string meanSubMethodStr( meanSubMethod method )
     }
     else
     {
-        return "UNKNOWN";
+        mxThrowException(mx::err::invalidarg, "meanSubMethodStr", "got an invalid mean sub method (bug)");
     }
 }
 
-meanSubMethod meanSubMethodFmStr( const std::string &method )
+meanSubMethod meanSubMethodStr( const std::string &method )
 {
     if( method == "none" )
     {
@@ -77,7 +118,7 @@ meanSubMethod meanSubMethodFmStr( const std::string &method )
     }
     else
     {
-        return meanSubMethod::unknown;
+        mxThrowException(mx::err::invalidarg, "meanSubMethodStr", method + " is not a valid mean sub method");
     }
 }
 
@@ -97,11 +138,11 @@ std::string pixelTSNormMethodStr( pixelTSNormMethod method )
     }
     else
     {
-        return "UNKNOWN";
+        mxThrowException(mx::err::invalidarg,"pixelTSNormMethodStr", "got an invalid pixelTSNorm method (bug)");
     }
 }
 
-pixelTSNormMethod pixelTSNormMethodFmStr( const std::string &method )
+pixelTSNormMethod pixelTSNormMethodStr( const std::string &method )
 {
     if( method == "none" )
     {
@@ -117,37 +158,59 @@ pixelTSNormMethod pixelTSNormMethodFmStr( const std::string &method )
     }
     else
     {
-        return pixelTSNormMethod::unknown;
+        mxThrowException(mx::err::invalidarg,"pixelTSNormMethodStr", method + " is not a valid pixelTSNorm method");
     }
 }
 
-std::string combineMethodStr( int method )
+std::string combineMethodStr( combineMethod method )
 {
-    if( method == noCombine )
-        return "noCombine";
-    else if( method == medianCombine )
-        return "medianCombine";
-    else if( method == meanCombine )
-        return "meanCombine";
-    else if( method == sigmaMeanCombine )
-        return "sigmaMeanCombine";
+    if( method == combineMethod::none )
+    {
+        return "none";
+    }
+    else if( method == combineMethod::median )
+    {
+        return "median";
+    }
+    else if( method == combineMethod::mean )
+    {
+        return "mean";
+    }
+    else if( method == combineMethod::sigmaMean )
+    {
+        return "sigmaMean";
+    }
     else
-        return "UNKNOWN";
+    {
+        mxThrowException(mx::err::invalidarg, "combineMethodStr", "got an invalid combine method (bug)");
+    }
+
 }
 
-int combineMethodFmStr( const std::string &method )
+combineMethod combineMethodFmStr( const std::string &method )
 {
-    if( method == "noCombine" )
-        return noCombine;
-    else if( method == "medianCombine" )
-        return medianCombine;
-    else if( method == "meanCombine" )
-        return meanCombine;
-    else if( method == "sigmaMeanCombine" )
-        return sigmaMeanCombine;
+    if( method == "none" )
+    {
+        return combineMethod::none;
+    }
+    else if( method == "median" )
+    {
+        return combineMethod::median;
+    }
+    else if( method == "mean" )
+    {
+        return combineMethod::mean;
+    }
+    else if( method == "sigmaMean" )
+    {
+        return combineMethod::sigmaMean;
+    }
     else
-        return -1;
+    {
+        mxThrowException(mx::err::invalidarg, "combineMethodFmStr", method + " is not a valid combine method");
+    }
 }
+
 } // namespace HCI
 
 template class HCIobservation<float>;

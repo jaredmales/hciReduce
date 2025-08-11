@@ -91,7 +91,7 @@ int fakeMethodFmStr( const std::string &method /**< [in] the fake injection meth
  * \ingroup hc_imaging
  */
 template <typename _realT, class _derotFunctObj>
-struct ADIobservation : public HCIobservation<_realT>
+struct ADIobservation : public HCIobservation<_realT,mx::verbose::vvv> /// \todo propagate the verbosity tparam
 {
     typedef _realT realT;
     typedef _derotFunctObj derotFunctObj;
@@ -106,28 +106,6 @@ struct ADIobservation : public HCIobservation<_realT>
     bool m_postMedSub{ false };
 
     ADIobservation();
-
-    ADIobservation( const std::string &dir,    ///< [in] the directory to search.
-                    const std::string &prefix, ///< [in] the initial part of the file name.  Can be empty "".
-                    const std::string &ext     ///< [in] the extension to append to the file name, must include the '.'.
-    );
-
-    explicit ADIobservation( const std::string &fileListFile /**< [in] a file name path to read.*/ );
-
-    ADIobservation(
-        const std::string &dir,    ///< [in] the directory to search.
-        const std::string &prefix, ///< [in] the initial part of the file name.  Can be empty "".
-        const std::string &ext,    ///< [in] the extension to append to the file name, must include the '.'.
-        const std::string &RDIdir, ///< [in] the directory to search for the reference files.
-        const std::string
-            &RDIprefix, ///< [in] the initial part of the file name for the reference files.  Can be empty "".
-        const std::string &RDIext = "" ///< [in] [optional] the extension to append to the RDI file name, must include
-                                       ///< the '.'.  If empty "" then same extension as target files is used.
-    );
-
-    ADIobservation( const std::string &fileListFile,   ///< [in] a file name path to read for the target file names.
-                    const std::string &RDIfileListFile ///< [in] a file name path to read for the reference file names.
-    );
 
     /// Read in the target files
     /** First sets up the keywords, then calls HCIobservation readFiles
@@ -165,7 +143,7 @@ struct ADIobservation : public HCIobservation<_realT>
     /** Used to take up final processing after applying some non-klipReduce processing steps to
      * PSF-subtracted images.
      */
-    int readPSFSub( const std::string &dir, const std::string &prefix, const std::string &ext, size_t nReductions );
+    //int readPSFSub( const std::string &dir, const std::string &prefix, const std::string &ext, size_t nReductions );
 
     /** \name Fake Planets
      * @{
@@ -236,37 +214,6 @@ ADIobservation<_realT, _derotFunctObj>::ADIobservation()
 {
 }
 
-template <typename _realT, class _derotFunctObj>
-ADIobservation<_realT, _derotFunctObj>::ADIobservation( const std::string &dir,
-                                                        const std::string &prefix,
-                                                        const std::string &ext )
-    : HCIobservation<realT>( dir, prefix, ext )
-{
-}
-
-template <typename _realT, class _derotFunctObj>
-ADIobservation<_realT, _derotFunctObj>::ADIobservation( const std::string &fileListFile )
-    : HCIobservation<realT>( fileListFile )
-{
-}
-
-template <typename _realT, class _derotFunctObj>
-ADIobservation<_realT, _derotFunctObj>::ADIobservation( const std::string &dir,
-                                                        const std::string &prefix,
-                                                        const std::string &ext,
-                                                        const std::string &RDIdir,
-                                                        const std::string &RDIprefix,
-                                                        const std::string &RDIext )
-    : HCIobservation<realT>( dir, prefix, ext, RDIdir, RDIprefix, RDIext )
-{
-}
-
-template <typename _realT, class _derotFunctObj>
-ADIobservation<_realT, _derotFunctObj>::ADIobservation( const std::string &fileListFile,
-                                                        const std::string &RDIfileListFile )
-    : HCIobservation<realT>( fileListFile, RDIfileListFile )
-{
-}
 
 template <typename _realT, class _derotFunctObj>
 int ADIobservation<_realT, _derotFunctObj>::readFiles()
@@ -374,6 +321,7 @@ int ADIobservation<_realT, _derotFunctObj>::postRDICoadd()
     return 0;
 }
 
+/*
 template <typename _realT, class _derotFunctObj>
 int ADIobservation<_realT, _derotFunctObj>::readPSFSub( const std::string &dir,
                                                         const std::string &prefix,
@@ -449,7 +397,7 @@ int ADIobservation<_realT, _derotFunctObj>::readPSFSub( const std::string &dir,
         std::cerr << "fakeContrast: " << fh["FAKECONT"].String() << "\n";
     }
 
-    /*----- Append the ADI keywords to propagate them if needed -----*/
+    /*----- Append the ADI keywords to propagate them if needed -----
 
     for( size_t i = 0; i < m_derotF.m_keywords.size(); ++i )
     {
@@ -462,7 +410,7 @@ int ADIobservation<_realT, _derotFunctObj>::readPSFSub( const std::string &dir,
     m_derotF.extractKeywords( this->m_heads );
 
     return 0;
-}
+}*/
 
 template <typename _realT, class _derotFunctObj>
 int ADIobservation<_realT, _derotFunctObj>::injectFake( eigenCube<realT> &ims,
@@ -488,7 +436,7 @@ int ADIobservation<_realT, _derotFunctObj>::injectFake( eigenCube<realT> &ims,
         std::vector<realT> imS;
 
         // Read the scale file and load it into a map
-        if( ioutils::readColumns( m_fakeScaleFileName, sfileNames, imS ) < 0 )
+        if( ioutils::readColumns( m_fakeScaleFileName, sfileNames, imS ) != mx::error_t::noerror )
             return -1;
 
         if( sfileNames.size() != imS.size() )
@@ -523,7 +471,7 @@ int ADIobservation<_realT, _derotFunctObj>::injectFake( eigenCube<realT> &ims,
 
     if( m_fakeMethod == HCI::list )
     {
-        if( ioutils::readColumns( m_fakeFileName, fakeFiles ) < 0 )
+        if( ioutils::readColumns( m_fakeFileName, fakeFiles ) != mx::error_t::noerror )
             return -1;
     }
 
