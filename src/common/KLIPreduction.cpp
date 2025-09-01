@@ -78,12 +78,12 @@ int includeMethodFmStr( const std::string &method )
 }
 } // namespace HCI
 
-template <typename realT>
-class ADIDerotator;
+///template <typename realT>
+///class ADIDerotator;
 
-template struct KLIPreduction<float, ADIDerotator<float>, float>;
-template struct KLIPreduction<float, ADIDerotator<float>, double>;
-template struct KLIPreduction<double, ADIDerotator<double>, double>;
+template struct KLIPreduction<float, ADIDerotator<float, verbose::vvv>, float, verbose::vvv>;
+template struct KLIPreduction<float, ADIDerotator<float, verbose::vvv>, double, verbose::vvv>;
+template struct KLIPreduction<double, ADIDerotator<double, verbose::vvv>, double, verbose::vvv>;
 
 } // namespace improc
 } // namespace mx

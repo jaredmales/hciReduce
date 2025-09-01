@@ -12,8 +12,15 @@ namespace mx
 namespace improc
 {
 
-template struct ADIDerotator<float>;
-template struct ADIDerotator<double>;
+template struct ADIDerotator<float, mx::verbose::o>;
+template struct ADIDerotator<float, mx::verbose::v>;
+template struct ADIDerotator<float, mx::verbose::vv>;
+template struct ADIDerotator<float, mx::verbose::vvv>;
+
+template struct ADIDerotator<double, mx::verbose::o>;
+template struct ADIDerotator<double, mx::verbose::v>;
+template struct ADIDerotator<double, mx::verbose::vv>;
+template struct ADIDerotator<double, mx::verbose::vvv>;
 
 } // namespace improc
 } // namespace mx

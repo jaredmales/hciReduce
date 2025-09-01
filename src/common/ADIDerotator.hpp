@@ -24,10 +24,13 @@ namespace improc
  * \ingroup hc_imaging
  *
  */
-template <typename _realT>
+template <typename _realT, class verboseT=mx::verbose::vvv>
 struct ADIDerotator
 {
     typedef _realT realT;
+
+    typedef mx::fits::fitsHeader<verboseT> fitsHeaderT;
+    typedef mx::fits::fitsHeaderCard<verboseT> fitsHeaderCardT;
 
     /// Vector of keywords to extract from the fits headers
     std::vector<std::string> m_keywords;
@@ -66,14 +69,16 @@ struct ADIDerotator
 
     /// Method called by ADIobservation to get keyword-values
     /**
-      * \returns an optional which, if true, contains a vector of the indices of \p heads for which
-      *          the extraction of a value for \ref m_angleKeyword failed
+      * \returns mx::error_t::noerror on success, and \p bad will be empty.
+      * \returns mx::error_t::error if any header fails conversion for \ref m_angleKeyword. \p bad will
+      *          then contain the indices of \p heads for which conversion failed.
       */
-    std::optional<std::vector<size_t>>
-    extractKeywords( std::vector<fits::fitsHeader> &heads /**< [in] The headers from the images being reduced.*/ )
+    mx::error_t
+    extractKeywords( std::vector<fitsHeaderT> &heads, /**< [in] The headers from the images being reduced.*/
+                     std::vector<size_t> &bad /**< [in] indices of any headers which fail to convert */ )
     {
         m_angles.clear();
-        return fits::headersToValues<realT>( m_angles, heads, m_angleKeyword );
+        return fits::headersToValues<realT>( m_angles, bad, heads, m_angleKeyword );
     }
 
     /// Calculate the derotation angle for a given image number
@@ -90,8 +95,15 @@ struct ADIDerotator
 
 ///@}
 
-extern template struct ADIDerotator<float>;
-extern template struct ADIDerotator<double>;
+extern template struct ADIDerotator<float, mx::verbose::o>;
+extern template struct ADIDerotator<float, mx::verbose::v>;
+extern template struct ADIDerotator<float, mx::verbose::vv>;
+extern template struct ADIDerotator<float, mx::verbose::vvv>;
+
+extern template struct ADIDerotator<double, mx::verbose::o>;
+extern template struct ADIDerotator<double, mx::verbose::v>;
+extern template struct ADIDerotator<double, mx::verbose::vv>;
+extern template struct ADIDerotator<double, mx::verbose::vvv>;
 
 } // namespace improc
 } // namespace mx

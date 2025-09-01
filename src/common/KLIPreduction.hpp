@@ -79,14 +79,13 @@ int includeMethodFmStr( const std::string &method );
  * \tparam _evCalcT the real type in which to do eigen-decomposition.  Should
  * generally be double for stable results. \ingroup hc_imaging
  */
-template <typename _realT, class _derotFunctObj, typename _evCalcT = double>
-struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj>
+template <typename _realT, class _derotFunctObj, typename _evCalcT = double, class verboseT=mx::verbose::vvv>
+struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 {
     typedef _realT realT;
-
-    typedef Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic> eigenImageT;
-
     typedef _evCalcT evCalcT;
+
+    typedef Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic> imageT;
 
     /// Default c'tor
     KLIPreduction();
@@ -206,15 +205,15 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj>
                        eigenCube<realT> &tims, ///< [in.out] The target images, which can be the same
                                                ///< cube as rims (tested by pointer comparison), in which
                                                ///< case they will be ignored.  Mean subtractedon output.
-                       eigenImageT &cmask,     ///< [in] the cutout mask.  Ignored if empty.
+                       imageT &cmask,     ///< [in] the cutout mask.  Ignored if empty.
                        std::vector<realT> &sds ///< [out] The standard deviation of the mean
                                                ///< subtracted reference images.
     );
 
-    std::vector<_realT> m_minr;
-    std::vector<_realT> m_maxr;
-    std::vector<_realT> m_minq;
-    std::vector<_realT> m_maxq;
+    std::vector<realT> m_minr;
+    std::vector<realT> m_maxr;
+    std::vector<realT> m_minq;
+    std::vector<realT> m_maxq;
 
     /// Run KLIP in a set of geometric search regions.
     /** The arguments are 4 vectors, where each entry defines one component of
@@ -253,7 +252,7 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj>
 
     void worker( eigenCube<realT> &rims,
                  eigenCube<realT> &tims,
-                 eigenImageT &cmask,
+                 imageT &cmask,
                  std::vector<size_t> &idx,
                  realT dang,
                  realT dangMax );
@@ -289,22 +288,22 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj>
     }
 };
 
-template <typename _realT, class _derotFunctObj, typename _evCalcT>
-KLIPreduction<_realT, _derotFunctObj, _evCalcT>::KLIPreduction()
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::KLIPreduction()
 {
 }
 
 
 
-template <typename _realT, class _derotFunctObj, typename _evCalcT>
-KLIPreduction<_realT, _derotFunctObj, _evCalcT>::~KLIPreduction()
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::~KLIPreduction()
 {
 }
 
-template <typename realT, class derotFunctObj, typename evCalcT>
-void KLIPreduction<realT, derotFunctObj, evCalcT>::meanSubtract( eigenCube<realT> & rims,
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigenCube<realT> & rims,
                                                                     eigenCube<realT> &tims,
-                                                                    eigenImageT &cmask,
+                                                                    imageT &cmask,
                                                                     std::vector<realT> &norms )
 {
 
@@ -318,7 +317,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT>::meanSubtract( eigenCube<realT
 
     if( m_meanSubMethod == HCI::meanSubMethod::meanImage || m_meanSubMethod == HCI::meanSubMethod::medianImage )
     {
-        eigenImageT mean;
+        imageT mean;
 
         if( m_meanSubMethod == HCI::meanSubMethod::meanImage )
         {
@@ -453,11 +452,11 @@ void KLIPreduction<realT, derotFunctObj, evCalcT>::meanSubtract( eigenCube<realT
     }
 }
 
-template <typename _realT, class _derotFunctObj, typename _evCalcT>
-int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::regions( const std::vector<_realT> & minr,
-                                                              const std::vector<_realT> & maxr,
-                                                              const std::vector<_realT> & minq,
-                                                              const std::vector<_realT> & maxq )
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::vector<realT> & minr,
+                                                              const std::vector<realT> & maxr,
+                                                              const std::vector<realT> & minq,
+                                                              const std::vector<realT> & maxq )
 {
     this->t_begin = sys::get_curr_time();
 
@@ -512,8 +511,8 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::regions( const std::vector<
     }
 
     // Make radius and angle images
-    eigenImageT rIm( this->m_Nrows, this->m_Ncols );
-    eigenImageT qIm( this->m_Nrows, this->m_Ncols );
+    imageT rIm( this->m_Nrows, this->m_Ncols );
+    imageT qIm( this->m_Nrows, this->m_Ncols );
 
     radAngImage<math::degreesT<realT>>( rIm, qIm, .5 * ( this->m_Nrows - 1 ), .5 * ( this->m_Ncols - 1 ) );
 
@@ -537,7 +536,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::regions( const std::vector<
         std::cerr << "  region " << regno+1 << ": " << m_minr[regno] << "-" << m_maxr[regno] << " pixels, ";
         std::cerr << m_minq[regno] << "-" << m_maxq[regno] << " degrees.          \n";
 
-        eigenImageT *maskPtr = nullptr;
+        imageT *maskPtr = nullptr;
 
         if( this->m_mask.rows() == this->m_Nrows && this->m_mask.cols() == this->m_Ncols )
         {
@@ -561,7 +560,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::regions( const std::vector<
         eigenCube<realT> rims;
 
         //------Get the mask cutout too
-        eigenImageT cmask;
+        imageT cmask;
 
         if( this->m_refIms.planes() > 0 )
         {
@@ -860,10 +859,10 @@ void collapseCovar( eigenT &cutCV,
     extractCols( rimsCut, rims, keepidx );
 }
 
-template <typename _realT, class _derotFunctObj, typename _evCalcT>
-void KLIPreduction<_realT, _derotFunctObj, _evCalcT>::worker( eigenCube<_realT> &rims,
-                                                              eigenCube<_realT> &tims,
-                                                              eigenImageT &cmask,
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker( eigenCube<realT> &rims,
+                                                              eigenCube<realT> &tims,
+                                                              imageT &cmask,
                                                               std::vector<size_t> &idx,
                                                               realT dang,
                                                               realT dangMax )
@@ -873,13 +872,13 @@ void KLIPreduction<_realT, _derotFunctObj, _evCalcT>::worker( eigenCube<_realT> 
 
     std::vector<realT> sds;
 
-    eigenImageT meanim;
+    imageT meanim;
 
     //*** First mean subtract ***//
     meanSubtract( rims, tims, cmask, sds );
 
     //*** Form lower-triangle covariance matrix
-    eigenImageT cv;
+    imageT cv;
 
     math::eigenSYRK( cv, rims.cube() );
 
@@ -888,8 +887,8 @@ void KLIPreduction<_realT, _derotFunctObj, _evCalcT>::worker( eigenCube<_realT> 
     ipc::ompLoopWatcher<> status( this->m_Nims, std::cerr );
 
     // Pre-calculate KL images once if we are exclude none OR IF RDI
-    eigenImageT master_klims;
-    eigenImageT master_projMat;
+    imageT master_klims;
+    imageT master_projMat;
 
     eigenImage<realT> rrMask;
     if( m_rightReason )
@@ -897,7 +896,7 @@ void KLIPreduction<_realT, _derotFunctObj, _evCalcT>::worker( eigenCube<_realT> 
         rrMask.resize( tims.rows(), tims.rows() );
         rrMask.setConstant( 1 );
 
-        eigenImageT rrmim;
+        imageT rrmim;
         rrmim.resize( this->m_Nrows, this->m_Ncols );
         for( int rr = 0; rr < rrMask.rows(); ++rr )
         {
@@ -944,12 +943,12 @@ void KLIPreduction<_realT, _derotFunctObj, _evCalcT>::worker( eigenCube<_realT> 
     {
         // We need local copies for each thread.  Only way this works, for
         // whatever reason.
-        eigenImageT cfs; // The coefficients
-        eigenImageT psf;
-        eigenImageT rims_cut;
-        eigenImageT cv_cut;
-        eigenImageT klims;
-        eigenImageT projMat;
+        imageT cfs; // The coefficients
+        imageT psf;
+        imageT rims_cut;
+        imageT cv_cut;
+        imageT klims;
+        imageT projMat;
 
         math::syevrMem<evCalcT> mem;
 
@@ -1043,8 +1042,8 @@ void KLIPreduction<_realT, _derotFunctObj, _evCalcT>::worker( eigenCube<_realT> 
     t_worker_end = sys::get_curr_time();
 }
 
-template <typename _realT, class _derotFunctObj, typename _evCalcT>
-int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalProcess()
 {
     if( this->m_postMedSub )
     {
@@ -1087,9 +1086,9 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
     {
         std::cerr << "writing\n";
 
-        fits::fitsHeader head;
+        fits::fitsHeader<verboseT> head;
 
-        this->ADIobservation<_realT, _derotFunctObj>::stdFitsHeader( &head );
+        this->ADIobservation<realT, derotFunctObj,verboseT>::stdFitsHeader( &head );
 
         head.append( "", fits::fitsCommentType(), "----------------------------------------" );
         head.append( "", fits::fitsCommentType(), "mx::KLIPreduction parameters:" );
@@ -1105,13 +1104,13 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
             for( size_t nm = 0; nm < m_Nmodes.size() - 1; ++nm )
                 str << m_Nmodes[nm] << ",";
             str << m_Nmodes[m_Nmodes.size() - 1];
-            head.append<char *>( "NMODES", (char *)str.str().c_str(), "number of modes" );
+            head.template append<char *>( "NMODES", (char *)str.str().c_str(), "number of modes" );
         }
 
-        head.append<bool>( "RIGHT REASON", m_rightReason, "whether or not the right reason mask is used");
+        head.template append<bool>( "RIGHT REASON", m_rightReason, "whether or not the right reason mask is used");
         if( m_rightReason)
         {
-            head.append<realT>( "RIGHT REASON RADIUS", m_rightReasonRadius, "radius of the right reason mask");
+            head.template append<realT>( "RIGHT REASON RADIUS", m_rightReasonRadius, "radius of the right reason mask");
         }
 
         if( m_minr.size() > 0 )
@@ -1120,7 +1119,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
             for( size_t nm = 0; nm < m_minr.size() - 1; ++nm )
                 str << m_minr[nm] << ",";
             str << m_minr[m_minr.size() - 1];
-            head.append<char *>( "REGMINR", (char *)str.str().c_str(), "region inner edge(s)" );
+            head.template append<char *>( "REGMINR", (char *)str.str().c_str(), "region inner edge(s)" );
         }
 
         if( m_maxr.size() > 0 )
@@ -1129,7 +1128,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
             for( size_t nm = 0; nm < m_maxr.size() - 1; ++nm )
                 str << m_maxr[nm] << ",";
             str << m_maxr[m_maxr.size() - 1];
-            head.append<char *>( "REGMAXR", (char *)str.str().c_str(), "region outer edge(s)" );
+            head.template append<char *>( "REGMAXR", (char *)str.str().c_str(), "region outer edge(s)" );
         }
 
         if( m_minq.size() > 0 )
@@ -1138,7 +1137,7 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
             for( size_t nm = 0; nm < m_minq.size() - 1; ++nm )
                 str << m_minq[nm] << ",";
             str << m_minq[m_minq.size() - 1];
-            head.append<char *>( "REGMINQ", (char *)str.str().c_str(), "region minimum angle(s)" );
+            head.template append<char *>( "REGMINQ", (char *)str.str().c_str(), "region minimum angle(s)" );
         }
 
         if( m_maxq.size() > 0 )
@@ -1147,17 +1146,17 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
             for( size_t nm = 0; nm < m_maxq.size() - 1; ++nm )
                 str << m_maxq[nm] << ",";
             str << m_maxq[m_maxq.size() - 1];
-            head.append<char *>( "REGMAXQ", (char *)str.str().c_str(), "region maximum angle(s)" );
+            head.template append<char *>( "REGMAXQ", (char *)str.str().c_str(), "region maximum angle(s)" );
         }
 
-        head.append<std::string>( "EXMTHDMN", HCI::excludeMethodStr( m_excludeMethod ), "exclusion method (min)" );
-        head.append<realT>( "MINDPX", m_minDPx, "minimum delta (units based on EXMTHDMN)" );
+        head.template append<std::string>( "EXMTHDMN", HCI::excludeMethodStr( m_excludeMethod ), "exclusion method (min)" );
+        head.template append<realT>( "MINDPX", m_minDPx, "minimum delta (units based on EXMTHDMN)" );
 
-        head.append<std::string>( "EXMTHDMX", HCI::excludeMethodStr( m_excludeMethodMax ), "exclusion method (max)" );
-        head.append<realT>( "MAXDPX", m_maxDPx, "maximum delta (units based on EXMTHDMX)" );
+        head.template append<std::string>( "EXMTHDMX", HCI::excludeMethodStr( m_excludeMethodMax ), "exclusion method (max)" );
+        head.template append<realT>( "MAXDPX", m_maxDPx, "maximum delta (units based on EXMTHDMX)" );
 
-        head.append<std::string>( "INMTHDMX", HCI::includeMethodStr( m_includeMethod ), "inclusion method" );
-        head.append<int>( "INCLREFN", m_includeRefNum, "number of images included by INMTHDMX" );
+        head.template append<std::string>( "INMTHDMX", HCI::includeMethodStr( m_includeMethod ), "inclusion method" );
+        head.template append<int>( "INCLREFN", m_includeRefNum, "number of images included by INMTHDMX" );
 
         if( this->m_doWriteFinim == true && this->m_combineMethod != HCI::combineMethod::none )
         {
@@ -1174,8 +1173,8 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::finalProcess()
 }
 
 /*
-template <typename _realT, class _derotFunctObj, typename _evCalcT>
-int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::processPSFSub( const std::string &dir,
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::processPSFSub( const std::string &dir,
                                                                     const std::string &prefix,
                                                                     const std::string &ext )
 
@@ -1329,12 +1328,12 @@ int KLIPreduction<_realT, _derotFunctObj, _evCalcT>::processPSFSub( const std::s
 
 ///@}
 
-template <typename realT>
+template <typename realT, class verboseT>
 class ADIDerotator;
 
-extern template struct KLIPreduction<float, ADIDerotator<float>, float>;
-extern template struct KLIPreduction<float, ADIDerotator<float>, double>;
-extern template struct KLIPreduction<double, ADIDerotator<double>, double>;
+extern template struct KLIPreduction<float, ADIDerotator<float, verbose::vvv>, float, verbose::vvv>;
+extern template struct KLIPreduction<float, ADIDerotator<float, verbose::vvv>, double, verbose::vvv>;
+extern template struct KLIPreduction<double, ADIDerotator<double, verbose::vvv>, double, verbose::vvv>;
 
 } // namespace improc
 } // namespace mx

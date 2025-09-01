@@ -48,8 +48,15 @@ int fakeMethodFmStr( const std::string &method )
 }
 } // namespace HCI
 
-template class ADIobservation<float, ADIDerotator<float>>;
-template class ADIobservation<double, ADIDerotator<double>>;
+template class ADIobservation<float, ADIDerotator<float, verbose::o>, verbose::o>;
+template class ADIobservation<float, ADIDerotator<float, verbose::v>, verbose::v>;
+template class ADIobservation<float, ADIDerotator<float, verbose::vv>, verbose::vv>;
+template class ADIobservation<float, ADIDerotator<float, verbose::vvv>, verbose::vvv>;
+
+template class ADIobservation<double, ADIDerotator<double, verbose::o>, verbose::o>;
+template class ADIobservation<double, ADIDerotator<double, verbose::v>, verbose::v>;
+template class ADIobservation<double, ADIDerotator<double, verbose::vv>, verbose::vv>;
+template class ADIobservation<double, ADIDerotator<double, verbose::vvv>, verbose::vvv>;
 
 } // namespace improc
 } // namespace mx
