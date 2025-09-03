@@ -390,12 +390,12 @@ struct HCIobservation
      * @{
      */
 
-    imageT m_mask;             ///< The mask
+    imageT m_mask;                  ///< The mask
 
     eigenCube<realT> m_maskCube;    /**< A cube of masks, one for each input image, which may be modified
                                          versions (e.g. rotated) of mask. */
 
-    imageT m_RDImask;          ///< The mask for RDI images
+    imageT m_RDImask;               ///< The mask for RDI images
 
     eigenCube<realT> m_RDImaskCube; /**< A cube of masks, one for each reference image, which may be modified
                                       versions (e.g. rotated) of mask. */
@@ -816,12 +816,12 @@ struct HCIobservation
 // -- construction and initialization
 
 template <typename _realT, class verboseT>
-HCIobservation<_realT,verboseT>::HCIobservation()
+HCIobservation<_realT, verboseT>::HCIobservation()
 {
 }
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT,verboseT>::setupConfig( mx::app::appConfigurator &config )
+int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &config )
 {
     config.add( "input.directory",
                 "D",
@@ -1293,7 +1293,7 @@ int HCIobservation<_realT,verboseT>::setupConfig( mx::app::appConfigurator &conf
 }
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT,verboseT>::loadConfig( mx::app::appConfigurator &config )
+int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &config )
 {
     config( m_directory, "input.directory" );
     config( m_prefix, "input.prefix" );
@@ -1407,11 +1407,11 @@ int HCIobservation<_realT,verboseT>::loadConfig( mx::app::appConfigurator &confi
 }
 
 template <typename _realT, class verboseT>
-mx::error_t HCIobservation<_realT,verboseT>::load_fileList( std::vector<std::string> &fileList,
-                                                   const std::string &fileListFile,
-                                                   const std::string &directory,
-                                                   const std::string &prefix,
-                                                   const std::string &extension )
+mx::error_t HCIobservation<_realT, verboseT>::load_fileList( std::vector<std::string> &fileList,
+                                                             const std::string &fileListFile,
+                                                             const std::string &directory,
+                                                             const std::string &prefix,
+                                                             const std::string &extension )
 {
     if( fileListFile != "" )
     {
@@ -1442,7 +1442,9 @@ mx::error_t HCIobservation<_realT,verboseT>::load_fileList( std::vector<std::str
         mx::error_t errc = ioutils::getFileNames( fileList, directory, prefix, "", extension );
         if( errc != mx::error_t::noerror )
         {
-            return mx::error_report<verboseT>(errc, std::format("error getting file names for {}/{}*.{}", directory, prefix, extension));
+            return mx::error_report<verboseT>(
+                errc,
+                std::format( "error getting file names for {}/{}*.{}", directory, prefix, extension ) );
         }
     }
 
@@ -1450,7 +1452,7 @@ mx::error_t HCIobservation<_realT,verboseT>::load_fileList( std::vector<std::str
 }
 
 template <typename _realT, class verboseT>
-mx::error_t HCIobservation<_realT,verboseT>::load_fileList()
+mx::error_t HCIobservation<_realT, verboseT>::load_fileList()
 {
     mx::error_t errc = load_fileList( m_fileList, m_fileListFile, m_directory, m_prefix, m_extension );
     m_filesDeleted = false;
@@ -1463,7 +1465,7 @@ mx::error_t HCIobservation<_realT,verboseT>::load_fileList()
 }
 
 template <typename _realT, class verboseT>
-mx::error_t HCIobservation<_realT,verboseT>::load_RDIfileList()
+mx::error_t HCIobservation<_realT, verboseT>::load_RDIfileList()
 {
     mx::error_t errc = load_fileList( m_RDIfileList, m_RDIfileListFile, m_RDIdirectory, m_RDIprefix, m_RDIextension );
     m_RDIfilesDeleted = false;
@@ -1712,20 +1714,20 @@ int HCIobservation<realT, verboseT>::readFiles()
 } // readFiles()
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT,verboseT>::postReadFiles()
+int HCIobservation<_realT, verboseT>::postReadFiles()
 {
     return 0;
 }
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT,verboseT>::postCoadd()
+int HCIobservation<_realT, verboseT>::postCoadd()
 {
     return 0;
 }
 
 //------------------- readRDIFiles
 template <typename _realT, class verboseT>
-int HCIobservation<_realT,verboseT>::readRDIFiles()
+int HCIobservation<_realT, verboseT>::readRDIFiles()
 {
 
     /* First check if the target files have been read */
@@ -1903,21 +1905,21 @@ int HCIobservation<_realT,verboseT>::readRDIFiles()
 } // readRDIFiles()
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT,verboseT>::postRDIReadFiles()
+int HCIobservation<_realT, verboseT>::postRDIReadFiles()
 {
     return 0;
 }
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT,verboseT>::postRDICoadd()
+int HCIobservation<_realT, verboseT>::postRDICoadd()
 {
     return 0;
 }
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT,verboseT>::threshold( std::vector<std::string> &fileList,
-                                       const std::string &qualityFile,
-                                       realT qualityThreshold )
+int HCIobservation<_realT, verboseT>::threshold( std::vector<std::string> &fileList,
+                                                 const std::string &qualityFile,
+                                                 realT qualityThreshold )
 {
     if( qualityFile == "" )
     {
@@ -1961,13 +1963,13 @@ int HCIobservation<_realT,verboseT>::threshold( std::vector<std::string> &fileLi
 }
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT,verboseT>::coaddImages( HCI::coaddMethod coaddMethod,
-                                          int coaddMaxImno,
-                                          int coaddMaxTime,
-                                          std::vector<std::string> &coaddKeywords,
-                                          std::vector<double> &imageMJD,
-                                          std::vector<fitsHeaderT> &heads,
-                                          eigenCube<realT> &ims )
+void HCIobservation<_realT, verboseT>::coaddImages( HCI::coaddMethod coaddMethod,
+                                                    int coaddMaxImno,
+                                                    int coaddMaxTime,
+                                                    std::vector<std::string> &coaddKeywords,
+                                                    std::vector<double> &imageMJD,
+                                                    std::vector<fitsHeaderT> &heads,
+                                                    eigenCube<realT> &ims )
 {
     std::cerr << "***************************************************************\n";
     std::cerr << "                       *** WARNING ***                         \n";
@@ -2082,8 +2084,8 @@ void HCIobservation<_realT,verboseT>::coaddImages( HCI::coaddMethod coaddMethod,
 
             for( size_t i = 0; i < coaddKeywords.size(); ++i )
             {
-                endVal[i] =
-                    heads[imno][coaddKeywords[i]].template value<double>(); // After the last one, this will be the last one
+                endVal[i] = heads[imno][coaddKeywords[i]]
+                                .template value<double>(); // After the last one, this will be the last one
                 initVals[i] += endVal[i];
             }
         }
@@ -2171,7 +2173,7 @@ void HCIobservation<_realT,verboseT>::coaddImages( HCI::coaddMethod coaddMethod,
 } // void HCIobservation<_realT,verboseT>::coaddImages()
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT,verboseT>::readMask()
+void HCIobservation<_realT, verboseT>::readMask()
 {
     /*** Load the mask ***/
     if( m_maskFile != "" )
@@ -2184,9 +2186,9 @@ void HCIobservation<_realT,verboseT>::readMask()
         if( m_mask.rows() > m_imSize || m_mask.cols() > m_imSize )
         {
             imageT tmask = m_mask.block( (int)( 0.5 * ( m_mask.rows() - 1 ) - 0.5 * ( m_imSize - 1 ) ),
-                                              (int)( 0.5 * ( m_mask.rows() - 1 ) - 0.5 * ( m_imSize - 1 ) ),
-                                              m_imSize,
-                                              m_imSize );
+                                         (int)( 0.5 * ( m_mask.rows() - 1 ) - 0.5 * ( m_imSize - 1 ) ),
+                                         m_imSize,
+                                         m_imSize );
             m_mask = tmask;
         }
 
@@ -2219,7 +2221,7 @@ void HCIobservation<realT, verboseT>::makeMaskCube()
 }
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT,verboseT>::preProcess( eigenCube<realT> &ims )
+void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
 {
     t_preproc_begin = sys::get_curr_time();
 
@@ -2330,7 +2332,8 @@ void HCIobservation<_realT,verboseT>::preProcess( eigenCube<realT> &ims )
         if( m_maskFile != "" && m_preProcess_mask )
         {
             std::cerr << "Masking . . .\n";
-#pragma omp parallel for
+            // clang-format off
+            #pragma omp parallel for // clang-format on
             for( int i = 0; i < ims.planes(); ++i )
             {
                 ims.image( i ) *= m_mask;
@@ -2346,20 +2349,29 @@ void HCIobservation<_realT,verboseT>::preProcess( eigenCube<realT> &ims )
 
         std::cerr << "applying azimuthal USM . . .\n";
         t_azusm_begin = sys::get_curr_time();
-#pragma omp parallel for
+
+        azBoxKernel<eigenImage<realT>> azbK( m_preProcess_azUSM_radW,
+                                             m_preProcess_azUSM_azW,
+                                             m_preProcess_azUSM_maxAz );
+
+        precalcKernel pcK( azbK, ims.rows(), ims.cols(), 0.5 * ( ims.rows() - 1 ), 0.5 * ( ims.cols() - 1 ) );
+
+        // clang-format off
+        #pragma omp parallel for // clang-format on
         for( int i = 0; i < ims.planes(); ++i )
         {
             imageT fim, im;
             im = ims.image( i );
-            medianFilterImage( fim,
-                               im,
-                               azBoxKernel<eigenImage<realT>>( m_preProcess_azUSM_radW,
-                                                               m_preProcess_azUSM_azW,
-                                                               m_preProcess_azUSM_maxAz ) );
+            medianFilterImage( fim, im, pcK );
+
             im = ( im - fim );
             ims.image( i ) = im;
             status.incrementAndOutputStatus();
         }
+
+        status.clearOutput();
+        status.outputFinalStatus();
+        std::cerr << '\n';
 
         if( m_maskFile != "" && m_preProcess_mask )
         {
@@ -2384,7 +2396,7 @@ void HCIobservation<_realT,verboseT>::preProcess( eigenCube<realT> &ims )
 } // void HCIobservation<_realT,verboseT>::preProcess()
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT,verboseT>::preProcess_meanSub( eigenCube<realT> &ims )
+void HCIobservation<_realT, verboseT>::preProcess_meanSub( eigenCube<realT> &ims )
 {
     if( m_preProcess_meanSubMethod == HCI::meanSubMethod::none )
     {
@@ -2422,7 +2434,7 @@ void HCIobservation<_realT,verboseT>::preProcess_meanSub( eigenCube<realT> &ims 
 }
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT,verboseT>::preProcess_pixelTSNorm( eigenCube<realT> &ims )
+void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> &ims )
 {
     if( m_preProcess_pixelTSNormMethod == HCI::pixelTSNormMethod::none )
     {
@@ -2476,7 +2488,7 @@ void HCIobservation<_realT,verboseT>::preProcess_pixelTSNorm( eigenCube<realT> &
 }
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT,verboseT>::readWeights()
+int HCIobservation<_realT, verboseT>::readWeights()
 {
     std::ifstream fin;
     std::string str;
@@ -2535,7 +2547,7 @@ int HCIobservation<_realT,verboseT>::readWeights()
 } // int HCIobservation<_realT,verboseT>::readWeights()
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT,verboseT>::combineFinim()
+void HCIobservation<_realT, verboseT>::combineFinim()
 {
     if( m_combineMethod == HCI::combineMethod::none )
     {
@@ -2615,7 +2627,7 @@ void HCIobservation<_realT,verboseT>::combineFinim()
 } // void HCIobservation<_realT,verboseT>::combineFinim()
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT,verboseT>::outputPreProcessed()
+void HCIobservation<_realT, verboseT>::outputPreProcessed()
 {
     if( m_preProcess_outputPrefix == "" )
     {
@@ -2643,7 +2655,7 @@ void HCIobservation<_realT,verboseT>::outputPreProcessed()
 } // void HCIobservation<_realT,verboseT>::outputPreProcessed()
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT,verboseT>::stdFitsHeader( fitsHeaderT &head )
+void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head )
 {
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
     head.append( "", fits::fitsCommentType(), "mx::HCIobservation parameters:" );
@@ -2674,28 +2686,34 @@ void HCIobservation<_realT,verboseT>::stdFitsHeader( fitsHeaderT &head )
 
     head.template append<int>( "PREPROC BEFORE", m_preProcess_beforeCoadd, "pre-process before coadd flag" );
     head.template append<int>( "PREPROC MASK", m_preProcess_mask, "pre-process mask flag" );
-    head.template append<int>( "PREPROC SUBRADPROF", m_preProcess_subradprof, "pre-process subtract radial profile flag" );
+    head.template append<int>( "PREPROC SUBRADPROF",
+                               m_preProcess_subradprof,
+                               "pre-process subtract radial profile flag" );
     head.template append<realT>( "PREPROC AZUSM AZWIDTH",
-                        m_preProcess_azUSM_azW,
-                        "pre-process azimuthal USM azimuthal width [pixels]" );
+                                 m_preProcess_azUSM_azW,
+                                 "pre-process azimuthal USM azimuthal width [pixels]" );
     head.template append<realT>( "PREPROC AZUSM MAXAZ",
-                        m_preProcess_azUSM_maxAz,
-                        "pre-process azimuthal USM maximum azimuthal width [degrees]" );
+                                 m_preProcess_azUSM_maxAz,
+                                 "pre-process azimuthal USM maximum azimuthal width [degrees]" );
     head.template append<realT>( "PREPROC AZUSM RADWIDTH",
-                        m_preProcess_azUSM_radW,
-                        "pre-process azimuthal USM radial width [pixels]" );
-    head.template append<realT>( "PREPROC MEDIANUSM FWHM", m_preProcess_medianUSM_fwhm, "pre-process median USM fwhm [pixels]" );
-    head.template append<realT>( "PREPROC GAUSSUSM FWHM", m_preProcess_gaussUSM_fwhm, "pre-process Gaussian USM fwhm [pixels]" );
+                                 m_preProcess_azUSM_radW,
+                                 "pre-process azimuthal USM radial width [pixels]" );
+    head.template append<realT>( "PREPROC MEDIANUSM FWHM",
+                                 m_preProcess_medianUSM_fwhm,
+                                 "pre-process median USM fwhm [pixels]" );
+    head.template append<realT>( "PREPROC GAUSSUSM FWHM",
+                                 m_preProcess_gaussUSM_fwhm,
+                                 "pre-process Gaussian USM fwhm [pixels]" );
     head.template append<std::string>( "PREPROC MEANSUB METHOD",
-                              HCI::meanSubMethodStr( m_preProcess_meanSubMethod ),
-                              "pre-process mean subtraction method" );
+                                       HCI::meanSubMethodStr( m_preProcess_meanSubMethod ),
+                                       "pre-process mean subtraction method" );
     head.template append<std::string>( "PREPROC PIXELTSNORM METHOD",
-                              HCI::pixelTSNormMethodStr( m_preProcess_pixelTSNormMethod ),
-                              "pre-process pixel time-series norm method" );
+                                       HCI::pixelTSNormMethodStr( m_preProcess_pixelTSNormMethod ),
+                                       "pre-process pixel time-series norm method" );
 }
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT,verboseT>::writeFinim( fitsHeaderT *addHead )
+void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
 {
     std::string fname = m_finimName;
 
@@ -2717,7 +2735,9 @@ void HCIobservation<_realT,verboseT>::writeFinim( fitsHeaderT *addHead )
     stdFitsHeader( head );
 
     // Now add the final combination details:
-    head.template append<std::string>( "COMBINATION METHOD", HCI::combineMethodStr( m_combineMethod ), "combination method" );
+    head.template append<std::string>( "COMBINATION METHOD",
+                                       HCI::combineMethodStr( m_combineMethod ),
+                                       "combination method" );
 
     if( m_weightFile != "" )
         head.append( "WEIGHT FILE", m_weightFile, "file containing weights for combination" );
@@ -2741,7 +2761,7 @@ void HCIobservation<_realT,verboseT>::writeFinim( fitsHeaderT *addHead )
 } // void HCIobservation<_realT,verboseT>::writeFinim(fitsHeaderT * addHead)
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT,verboseT>::outputPSFSub( fitsHeaderT *addHead )
+void HCIobservation<_realT, verboseT>::outputPSFSub( fitsHeaderT *addHead )
 {
 
     std::string fname;
