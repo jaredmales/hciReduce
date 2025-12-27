@@ -6,7 +6,8 @@
 ############################
 
 # list of source files
-set(libheaders common/HCIobservation.hpp
+set(libheaders common/HCI.hpp
+               common/HCIobservation.hpp
                common/ADIobservation.hpp
                common/ADIDerotator.hpp
                common/KLIPreduction.hpp )

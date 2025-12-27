@@ -6,11 +6,12 @@
  */
 
 #include <mx/ioutils/fits/fitsHeader.hpp>
+#include <mx/app/appConfigurator.hpp>
 
 #ifndef ADIDerotator_hpp
-#define ADIDerotator_hpp
+    #define ADIDerotator_hpp
 
-#include <mx/math/geo.hpp>
+    #include <mx/math/geo.hpp>
 
 namespace mx
 {
@@ -24,7 +25,7 @@ namespace improc
  * \ingroup hc_imaging
  *
  */
-template <typename _realT, class verboseT=mx::verbose::vvv>
+template <typename _realT, class verboseT = mx::verbose::vvv>
 struct ADIDerotator
 {
     typedef _realT realT;
@@ -67,15 +68,63 @@ struct ADIDerotator
         return true;
     }
 
+    int setupConfig( mx::app::appConfigurator &config )
+    {
+        config.add( "input.angleKeyword",
+                    "",
+                    "input.angleKeyword",
+                    mx::app::argType::Required,
+                    "input",
+                    "angleKeyword",
+                    false,
+                    "string",
+                    "The header keyword to use for the rotation angle of each image." );
+
+        config.add( "input.angleScale",
+                    "",
+                    "input.angleScale",
+                    mx::app::argType::Required,
+                    "input",
+                    "angleScale",
+                    false,
+                    "float",
+                    "The scale to apply to the angle, default is 1." );
+
+        config.add( "input.angleConstant",
+                    "",
+                    "input.angleConstant",
+                    mx::app::argType::Required,
+                    "input",
+                    "angleConstant",
+                    false,
+                    "float",
+                    "The offset to apply to each angle (e.g. the North angle), default is 0." );
+
+        return 0;
+    }
+
+    int loadConfig( mx::app::appConfigurator &config )
+    {
+        std::string angleKW = m_angleKeyword;
+
+        config( angleKW, "input.angleKeyword" );
+        angleKeyword(angleKW);
+
+        config( m_angleScale, "input.angleScale" );
+        config( m_angleConstant, "input.angleConstant" );
+
+        return 0;
+
+    }
+
     /// Method called by ADIobservation to get keyword-values
     /**
-      * \returns mx::error_t::noerror on success, and \p bad will be empty.
-      * \returns mx::error_t::error if any header fails conversion for \ref m_angleKeyword. \p bad will
-      *          then contain the indices of \p heads for which conversion failed.
-      */
-    mx::error_t
-    extractKeywords( std::vector<fitsHeaderT> &heads, /**< [in] The headers from the images being reduced.*/
-                     std::vector<size_t> &bad /**< [in] indices of any headers which fail to convert */ )
+     * \returns mx::error_t::noerror on success, and \p bad will be empty.
+     * \returns mx::error_t::error if any header fails conversion for \ref m_angleKeyword. \p bad will
+     *          then contain the indices of \p heads for which conversion failed.
+     */
+    mx::error_t extractKeywords( std::vector<fitsHeaderT> &heads, /**< [in] The headers from the images being reduced.*/
+                                 std::vector<size_t> &bad /**< [in] indices of any headers which fail to convert */ )
     {
         m_angles.clear();
         return fits::headersToValues<realT>( m_angles, bad, heads, m_angleKeyword );

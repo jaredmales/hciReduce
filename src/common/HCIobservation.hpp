@@ -20,7 +20,7 @@
 
 #include <mx/app/appConfigurator.hpp>
 
-#include <mx/mxException.hpp>
+// #include <mx/mxException.hpp>
 
 #include <mx/math/templateBLAS.hpp>
 #include <mx/sys/timeUtils.hpp>
@@ -36,108 +36,24 @@
 #include <mx/improc/imageTransforms.hpp>
 #include <mx/improc/imageUtils.hpp>
 
+#include "HCI.hpp"
+
 namespace mx
 {
 
 namespace improc
 {
 
-/// Namespace for high contrast imaging enums.
-/** \ingroup hc_imaging_enums
- */
-namespace HCI
-{
-
-/// Possible coadding methods
-/** \ingroup hc_imaging_enums
- */
-enum class coaddMethod
-{
-    none,   ///< Do not combine the images.
-    median, ///< Combine with the median.
-    mean,   ///< Combine with the mean.
-    invalid ///< An invalid method
-};
-
-/// Get the string name of the coaddMethod
-/**
- * \returns a string with the name of the coaddMethod
- */
-std::string coaddMethodStr( coaddMethod method /**< [in] one of the coaddMethod enum members */ );
-
-/// Get the coaddMethod from the corresponding string name
-/**
- * \returns the coaddMethod enum member corresponding to the string name.
- */
-coaddMethod coaddMethodStr( const std::string &method /**< [in] the string name of the coaddMethod */ );
-
-/// Mean subtraction methods
-/** These control how the data in each search region is centered to meet the PCA
- * requirement. \ingroup hc_imaging_enums
- */
-enum class meanSubMethod
-{
-    none,        ///< No mean subtraction
-    meanImage,   ///< The mean image of the data is subtracted from each image
-    medianImage, ///< The median image of the data is subtracted from each image
-    imageMean,   /**< The mean of each image (within the search region) is
-                      subtracted from itself*/
-    imageMedian, /**< The median of each image (within the search region) is
-                      subtracted from itself*/
-    imageMode    /**< The mode of each image (within the search region) is
-                      subtracted from itself*/
-};
-
-std::string meanSubMethodStr( meanSubMethod method );
-
-meanSubMethod meanSubMethodStr( const std::string &method );
-
-enum class pixelTSNormMethod
-{
-    none,           ///< no pixel time series norm
-    rms,            ///< the rms of the pixel time series
-    rmsSigmaClipped ///< the sigma clipped rms of the pixel time series
-};
-
-std::string pixelTSNormMethodStr( pixelTSNormMethod method );
-
-pixelTSNormMethod pixelTSNormMethodStr( const std::string &method );
-
-/// Possible combination methods
-/** \ingroup hc_imaging_enums
- */
-enum class combineMethod
-{
-    none,     ///< Do not combine the images.
-    median,   ///< Combine with the median.
-    mean,     ///< Combine with the mean.
-    sigmaMean ///< Combine with the sigma clipped mean.
-};
-
-/// Get the string name of the combineMethod
-/**
- * \returns a string with the name of the combineMethod
- */
-std::string combineMethodStr( combineMethod method /**< [in] one of the combineMethod enum members */ );
-
-/// Get the combineMethod from the corresponding string name
-/**
- * \returns the combineMethods enum member corresponding to the string name.
- */
-combineMethod combineMethodFmStr( const std::string &method /**< [in] the string name of the combineMethod */ );
-
-} // namespace HCI
-
 /// The basic high contrast imaging data type
 /** This class manages file reading, resizing, co-adding, pre-processing (masking and filtering),
- * and final image combination.
+ * final image combination, and output.
  *
  * \tparam _realT is the floating point type in which to do all arithmetic.
  * \tparam verboseT sets the verbosity of error reporting
  *
  * \ingroup hc_imaging
  */
-template <typename _realT, class verboseT = mx::verbose::vvv>
+template <typename _realT, class verboseT>
 struct HCIobservation
 {
 
@@ -412,13 +328,13 @@ struct HCIobservation
 
     /// The method to use for coadding the input images.
     /** Possibilities are
-     * - HCI::coaddMethod::none -- [default] do not combine.  This turns off coadding.
-     * - HCI::coaddMethod::median --  coadded image is the median
-     * - HCI::coaddMethod::mean -- coadded image is the simple mean
+     * - HCI::coadd::none -- [default] do not combine.  This turns off coadding.
+     * - HCI::coadd::median --  coadded image is the median
+     * - HCI::coadd::mean -- coadded image is the simple mean
      *
      * No other types of combination are currently supported for coadding.
      */
-    HCI::coaddMethod m_coaddMethod{ HCI::coaddMethod::none };
+    HCI::coadd m_coaddMethod{ HCI::coadd::none };
 
     /// Maximum number of images to coadd at a time.
     int m_coaddMaxImno{ 0 };
@@ -485,16 +401,16 @@ struct HCIobservation
     /// The mean subtraction method during pre-processing
     /** Can only be none, meanImage, or medianImage
      */
-    HCI::meanSubMethod m_preProcess_meanSubMethod{ HCI::meanSubMethod::none };
+    HCI::meanSub m_preProcess_meanSubMethod{ HCI::meanSub::none };
 
     /// Specify if each pixel time-series is normalized
     /** This normalizaton is applied after centering. Can have the following values:
-     * - <b>HCI::pixelTSNormMethod::none</b>: no normalization (the default)
-     * - <b>HCI::pixelTSNormMethod::rms</b>: divide by the time-series rms
-     * - <b>HCI::pixelTSNormMethod::rmsSigmaClipped</b>: divide by the sigma-slipped time-series rms.
+     * - <b>HCI::pixelTSNorm::none</b>: no normalization (the default)
+     * - <b>HCI::pixelTSNorm::rms</b>: divide by the time-series rms
+     * - <b>HCI::pixelTSNorm::rmsSigmaClipped</b>: divide by the sigma-slipped time-series rms.
      *                                                   The sigma is provided by m_preProcess_pixelTSSigma.
      */
-    HCI::pixelTSNormMethod m_preProcess_pixelTSNormMethod{ HCI::pixelTSNormMethod::none };
+    HCI::pixelTSNorm m_preProcess_pixelTSNormMethod{ HCI::pixelTSNorm::none };
 
     realT m_pixelTSSigma{ 3 }; ///< Sigma-clipping parameter for pixel time-series normalization
 
@@ -569,29 +485,29 @@ struct HCIobservation
     /**
      * \returns 0 on success, -1 on  error.
      */
-    int readFiles();
+    void readFiles();
 
     /// Perform post-read actions for the target images, for use by derived classes
-    virtual int postReadFiles();
+    virtual void postReadFiles();
 
     /// Perform post-coadd actions for the target images, for use by derived classes.
     /**
      * \returns 0 on success
      * \returns \<0 on error.
      */
-    virtual int postCoadd();
+    virtual void postCoadd();
 
     ///@}
 
     /// Read the list of reference files, cut to size, and preprocess.
     /** The target files must be read with \ref readFiles() before calling this method.
      *
-     * \returns 0 on success, -1 on  error.
+     * \throws on  error.
      */
-    int readRDIFiles();
+    void readRDIFiles();
 
     /// Perform post-read actions for the RDI images, for use by derived classes
-    virtual int postRDIReadFiles();
+    virtual void postRDIReadFiles();
 
     /// Perform post-coadd actions, for use by derived classes.
     /** A key example is to update keywords after the averaging occurs in coaddImages().
@@ -599,7 +515,7 @@ struct HCIobservation
      * \returns 0 on success
      * \returns \<0 on error.
      */
-    virtual int postRDICoadd();
+    virtual void postRDICoadd();
 
     ///@}
     //--RDI
@@ -612,11 +528,11 @@ struct HCIobservation
     /// Read the image qualities from a qualityFile and apply the threshold to a fileList
     /** This is called by readFiles().
      *
-     * \returns 0 on success, -1 on  error.
+     * \throws on  error.
      */
-    int threshold( std::vector<std::string> &fileList, ///< [in.out] the fileList to threshold
-                   const std::string &qualityFile, ///< [in] the path to the file containing qualities, one per file.
-                   realT qualityThreshold          ///< [in] the quality threshold to apply
+    void threshold( std::vector<std::string> &fileList, ///< [in.out] the fileList to threshold
+                    const std::string &qualityFile, ///< [in] the path to the file containing qualities, one per file.
+                    realT qualityThreshold          ///< [in] the quality threshold to apply
     );
 
     ///@}
@@ -645,7 +561,7 @@ struct HCIobservation
      */
 
     /// Coadd the images
-    void coaddImages( HCI::coaddMethod coaddMethod,
+    void coaddImages( HCI::coadd coaddMethod,
                       int coaddMaxImno,
                       int coaddMaxTime,
                       std::vector<std::string> &coaddKeywords,
@@ -679,13 +595,13 @@ struct HCIobservation
     /// Determine how to combine the PSF subtracted images
     /** Possibilities are
      * - HCI::noCombine -- do not combine
-     * - HCI::combineMethod::median -- [default] final image is the median
-     * - HCI::combineMethod::mean -- final image is the simple mean
+     * - HCI::combine::median -- [default] final image is the median
+     * - HCI::combine::mean -- final image is the simple mean
      * - HCI::weightedMeanCombine -- final image is the weighted mean.  m_weightFile must be provided.
-     * - HCI::combineMethod::sigmaMean -- final image is sigma clipped mean.  If m_sigmaThreshold \<= 0, then it reverts
+     * - HCI::combine::sigmaMean -- final image is sigma clipped mean.  If m_sigmaThreshold \<= 0, then it reverts
      * to meanCombine.
      */
-    HCI::combineMethod m_combineMethod{ HCI::combineMethod::mean };
+    HCI::combine m_combineMethod{ HCI::combine::mean };
 
     /// Specifies a file containing the image weights, for combining with weighted mean.
     /** This 2-column space-delimited ASCII file containing  filenames and weights. It must be specified before
@@ -700,7 +616,7 @@ struct HCIobservation
      */
     std::vector<realT> m_comboWeights;
 
-    /// The standard deviation threshold used if combineMethod == HCI::combineMethod::sigmaMean.
+    /// The standard deviation threshold used if m_combineMethod == HCI::combine::sigmaMean.
     realT m_sigmaThreshold{ 0 };
 
     /// The minimum fraction of good (un-masked) pixels to include in the final combination (0.0 to 1.0). If not met,
@@ -710,12 +626,12 @@ struct HCIobservation
     /// Read the image weights from m_weightFile
     /** This is called by readFiles().
      *
-     * \returns 0 on success, -1 on  error.
+     * \throws on error
      */
-    int readWeights();
+    void readWeights();
 
     /// Combine the images into a single final image.
-    /** Images are combined by the method specified in \ref combineMethod
+    /** Images are combined by the method specified in \ref m_combineMethod
      */
     void combineFinim();
 
@@ -1289,6 +1205,96 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 "bool",
                 "If true, stop after pre-processing.  Default is false." );
 
+    config.add( "combine.method",
+                "",
+                "combine.method",
+                mx::app::argType::Required,
+                "combine",
+                "method",
+                false,
+                "string",
+                "Averaging method for final combination: mean, median, weighted, sigma" );
+
+    config.add( "combine.weightFile",
+                "",
+                "combine.weightFile",
+                mx::app::argType::Required,
+                "combine",
+                "weightFile",
+                false,
+                "string",
+                "File containing weights for the weighted combo.  Two column format: filename weight" );
+
+    config.add( "combine.sigmaThreshold",
+                "",
+                "combine.sigmaThreshold",
+                mx::app::argType::Required,
+                "combine",
+                "sigmaThreshold",
+                false,
+                "float",
+                "Clipping threshold for sigma clipped mean combination." );
+
+    config.add( "combine.minGoodFract",
+                "",
+                "combine.minGoodFract",
+                mx::app::argType::Required,
+                "combine",
+                "minGoodFract",
+                false,
+                "float",
+                "Minimum fraction of good/un-masked pixels to include in final image, otherwise pixel is NaN-ed." );
+
+    config.add( "output.fileName",
+                "",
+                "output.fileName",
+                mx::app::argType::Required,
+                "output",
+                "fileName",
+                false,
+                "string",
+                "Prefix for output file name.  A 4 digit 0-padded number is appended." );
+
+    config.add( "output.exactFName",
+                "",
+                "output.exactFName",
+                mx::app::argType::True,
+                "output",
+                "exactFName",
+                false,
+                "bool",
+                "Used outputFile exactly as specified, without appending a number or .fits" );
+
+    config.add( "output.directory",
+                "",
+                "output.directory",
+                mx::app::argType::Required,
+                "output",
+                "directory",
+                false,
+                "string",
+                "The directory where to output files." );
+
+    config.add( "output.outputPSFSub",
+                "",
+                "output.outputPSFSub",
+                mx::app::argType::True,
+                "output",
+                "outputPSFSub",
+                false,
+                "bool",
+                "Output the PSF subtracted images (default false)" );
+
+    config.add( "output.psfSubPrefix",
+                "",
+                "output.psfSubPrefix",
+                mx::app::argType::Required,
+                "output",
+                "psfSubPrefix",
+                false,
+                "string",
+                "Prefix of the PSF subtracted output files." );
+
     return 0;
 }
 
@@ -1336,16 +1342,15 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
 
     config( m_RDImaskUseInput, "rdi.useInputMask" );
 
-    std::string coaddMethodStr = HCI::coaddMethodStr( m_coaddMethod ); // get default
-    config( coaddMethodStr, "coadd.method" );
+    std::string coaddToStr = HCI::coaddToStr<verboseT>( m_coaddMethod ); // get default
+    config( coaddToStr, "coadd.method" );
     try
     {
-        m_coaddMethod = HCI::coaddMethodStr( coaddMethodStr );
+        m_coaddMethod = HCI::coaddFmStr<verboseT>( coaddToStr );
     }
     catch( ... )
     {
-        std::throw_with_nested(
-            mx::err::invalidconfig( "HCIobservation::loadConfig", __FILE__, __LINE__, "invalid coadd method" ) );
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid coadd method" ) );
     }
 
     config( m_coaddMaxImno, "coadd.maxImno" );
@@ -1361,47 +1366,97 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
     config( m_preProcess_medianUSM_fwhm, "preProcess.medianUSM_fwhm" );
     config( m_preProcess_gaussUSM_fwhm, "preProcess.gaussUSM_fwhm" );
 
-    std::string ppmsm = HCI::meanSubMethodStr( m_preProcess_meanSubMethod );
+    std::string ppmsm;
+    try
+    {
+        ppmsm = HCI::meanSubToStr<verboseT>( m_preProcess_meanSubMethod );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception ) );
+    }
+
     config( ppmsm, "preProcess.meanSubMethod" );
     try
     {
-        m_preProcess_meanSubMethod = HCI::meanSubMethodStr( ppmsm );
+        m_preProcess_meanSubMethod = HCI::meanSubFmStr<verboseT>( ppmsm );
 
-        if( m_preProcess_meanSubMethod != HCI::meanSubMethod::none &&
-            m_preProcess_meanSubMethod != HCI::meanSubMethod::meanImage &&
-            m_preProcess_meanSubMethod != HCI::meanSubMethod::medianImage )
+        if( m_preProcess_meanSubMethod != HCI::meanSub::none && m_preProcess_meanSubMethod != HCI::meanSub::meanImage &&
+            m_preProcess_meanSubMethod != HCI::meanSub::medianImage )
         {
-            std::string msg = "Mean subtraction by " + HCI::meanSubMethodStr( m_preProcess_meanSubMethod );
-            msg += " can't be done in pre-processing. Only meanImage or medianImage can be used in pre.";
-            mxThrowException( mx::err::invalidconfig, "HCIobservation::loadConfig", msg );
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           std::format( "Mean subtraction by {} "
+                                                        "can't be done in pre-processing. "
+                                                        "Only meanImage or medianImage can be used in pre.",
+                                                        HCI::meanSubToStr<verboseT>( m_preProcess_meanSubMethod ) ) );
         }
     }
     catch( ... )
     {
-        std::throw_with_nested( mx::err::invalidconfig( "HCIobservation::loadConfig",
-                                                        __FILE__,
-                                                        __LINE__,
-                                                        "invalid pre-processing mean subtraction method" ) );
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                                         "invalid pre-processing mean "
+                                                         "subtraction method" ) );
     }
 
-    std::string ptsnm = HCI::pixelTSNormMethodStr( m_preProcess_pixelTSNormMethod );
-    config( ptsnm, "preProcess.pixelTSNormMethod" );
+    std::string ptsnm;
     try
     {
-        m_preProcess_pixelTSNormMethod = HCI::pixelTSNormMethodStr( ptsnm );
+        ptsnm = HCI::pixelTSNormToStr<verboseT>( m_preProcess_pixelTSNormMethod );
     }
     catch( ... )
     {
-        std::throw_with_nested( mx::err::invalidconfig( "HCIobservation::loadConfig",
-                                                        __FILE__,
-                                                        __LINE__,
-                                                        "invalid pixel time-series normalization method" ) );
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception ) );
+    }
+
+    config( ptsnm, "preProcess.pixelTSNormMethod" );
+
+    try
+    {
+        m_preProcess_pixelTSNormMethod = HCI::pixelTSNormFmStr<verboseT>( ptsnm );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                                         "invalid pixel time-series "
+                                                         "normalization method" ) );
     }
 
     config( m_preProcess_outputPrefix, "preProcess.outputPrefix" );
 
     config( m_preProcess_only, "preProcess.only" );
     config( m_skipPreProcess, "preProcess.skip" );
+
+    std::string cmbm;
+    try
+    {
+        cmbm = HCI::combineToStr<verboseT>( m_combineMethod );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception ) );
+    }
+
+    config( cmbm, "combine.method" );
+
+    try
+    {
+        m_combineMethod = HCI::combineFmStr<verboseT>( cmbm );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid combination method" ) );
+    }
+
+    config( m_weightFile, "combine.weightFile" );
+
+    config( m_sigmaThreshold, "combine.sigmaThreshold" );
+    config( m_minGoodFract, "combine.minGoodFract" );
+
+    config( m_finimName, "output.fileName" );
+    config( m_exactFinimName, "output.exactFName" );
+    config( m_outputDir, "output.directory" );
+    config( m_doOutputPSFSub, "output.outputPSFSub" );
+    config( m_PSFSubPrefix, "output.psfSubPrefix" );
 
     return 0;
 }
@@ -1417,7 +1472,7 @@ mx::error_t HCIobservation<_realT, verboseT>::load_fileList( std::vector<std::st
     {
         fileList.clear(); // otherwise readColumns appends
 
-        mx::error_t errc = ioutils::readColumns( fileListFile, fileList );
+        mx::error_t errc = ioutils::readColumns<mx::ioutils::readColSpaceDelim, verboseT>( fileListFile, fileList );
         if( errc != mx::error_t::noerror )
         {
             return mx::error_report<verboseT>( errc, "error reading " + fileListFile );
@@ -1437,7 +1492,7 @@ mx::error_t HCIobservation<_realT, verboseT>::load_fileList( std::vector<std::st
             }
         }
     }
-    else
+    else if( directory != "" )
     {
         mx::error_t errc = ioutils::getFileNames( fileList, directory, prefix, "", extension );
         if( errc != mx::error_t::noerror )
@@ -1480,13 +1535,12 @@ mx::error_t HCIobservation<_realT, verboseT>::load_RDIfileList()
 // --< construction and initialization
 
 template <typename realT, class verboseT>
-int HCIobservation<realT, verboseT>::readFiles()
+void HCIobservation<realT, verboseT>::readFiles()
 {
     if( m_fileList.size() == 0 )
     {
-        mxThrowException( err::invalidconfig,
-                          "HCIobservation<realT, verboseT>::readFiles",
-                          "The target fileList has 0 length, there are no files to be read." );
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "The target fileList has 0 length, there are no files to be read." );
     }
 
     // First make the list deletions
@@ -1506,9 +1560,9 @@ int HCIobservation<realT, verboseT>::readFiles()
 
     if( m_fileList.size() == 0 )
     {
-        mxThrowException( err::invalidconfig,
-                          "HCIobservation<realT, verboseT>::readFiles",
-                          "The target fileList has 0 length, there are no files to be read after deletions." );
+        throw mx::exception<verboseT>(
+            mx::error_t::invalidconfig,
+            "The target fileList has 0 length, there are no files to be read after deletions." );
     }
 
     if( m_qualityFile != "" )
@@ -1516,14 +1570,20 @@ int HCIobservation<realT, verboseT>::readFiles()
         std::cerr << "Thresholding target images...";
         size_t origsize = m_fileList.size();
 
-        if( threshold( m_fileList, m_qualityFile, m_qualityThreshold ) < 0 )
-            return -1;
+        try
+        {
+            threshold( m_fileList, m_qualityFile, m_qualityThreshold );
+        }
+        catch( const std::exception &e )
+        {
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "from threshold" ) );
+        }
 
         if( m_fileList.size() == 0 )
         {
-            mxThrowException( err::invalidconfig,
-                              "HCIobservation<realT, verboseT>::readFiles",
-                              "The fileList has 0 length, there are no files to be read after thresholding." );
+            throw mx::exception<verboseT>(
+                mx::error_t::invalidconfig,
+                "The fileList has 0 length, there are no files to be read after thresholding." );
         }
 
         std::cerr << "Done.  Selected " << m_fileList.size() << " out of " << origsize << "\n";
@@ -1542,8 +1602,14 @@ int HCIobservation<realT, verboseT>::readFiles()
 
     if( m_weightFile != "" )
     {
-        if( readWeights() < 0 )
-            return -1;
+        try
+        {
+            readWeights();
+        }
+        catch( const std::exception &e )
+        {
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "reading weights" ) );
+        }
     }
 
     /*----- Append the HCI keywords to propagate them if needed -----*/
@@ -1551,12 +1617,16 @@ int HCIobservation<realT, verboseT>::readFiles()
     fitsHeaderT head;
 
     if( m_dateKeyword != "" )
+    {
         head.append( m_dateKeyword );
+    }
 
     for( size_t i = 0; i < m_keywords.size(); ++i )
     {
         if( head.count( m_keywords[i] ) == 0 )
+        {
             head.append( m_keywords[i] );
+        }
     }
 
     m_heads.clear(); // This is necessary to make sure heads.resize() copies head on a 2nd call
@@ -1650,13 +1720,24 @@ int HCIobservation<realT, verboseT>::readFiles()
     std::cerr << "done\n";
 
     /*** Now do the post-read actions ***/
-    if( postReadFiles() < 0 )
+    try
     {
-        return -1;
+        postReadFiles();
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "from postReadFiles" ) );
     }
 
     /*** Read in the mask if present ***/
-    readMask();
+    try
+    {
+        readMask();
+    }
+    catch( const std::exception &e )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "from readMask" ) );
+    }
 
     /*** Now begin processing ***/
     if( !m_skipPreProcess )
@@ -1664,19 +1745,33 @@ int HCIobservation<realT, verboseT>::readFiles()
         /*** Now do any pre-processing ***/
         if( m_preProcess_beforeCoadd )
         {
-            preProcess( m_tgtIms );
+            try
+            {
+                preProcess( m_tgtIms );
+            }
+            catch( const std::exception &e )
+            {
+                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "from preProcess" ) );
+            }
         }
 
-        if( m_coaddMethod != HCI::coaddMethod::none )
+        if( m_coaddMethod != HCI::coadd::none )
         {
             std::cerr << "Coadding target images...\n";
-            coaddImages( m_coaddMethod,
-                         m_coaddMaxImno,
-                         m_coaddMaxTime,
-                         m_coaddKeywords,
-                         m_imageMJD,
-                         m_heads,
-                         m_tgtIms );
+            try
+            {
+                coaddImages( m_coaddMethod,
+                             m_coaddMaxImno,
+                             m_coaddMaxTime,
+                             m_coaddKeywords,
+                             m_imageMJD,
+                             m_heads,
+                             m_tgtIms );
+            }
+            catch( const std::exception &e )
+            {
+                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "from coaddImages" ) );
+            }
 
             m_Nims = m_tgtIms.planes();
             m_Nrows = m_tgtIms.rows();
@@ -1685,62 +1780,84 @@ int HCIobservation<realT, verboseT>::readFiles()
 
             std::cerr << "number of target images after coadding: " << m_Nims << "\n";
 
-            if( postCoadd() < 0 )
+            try
             {
-                std::cerr << "Post coadd error " << __FILE__ << " " << __LINE__ << "\n";
-                return -1;
+                postCoadd();
+            }
+            catch( ... )
+            {
+                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "from postCoadd" ) );
             }
             std::cerr << "Done.\n";
 
             // Re-make the mask cube if we coadded...
             if( m_maskFile != "" )
             {
-                makeMaskCube();
+                try
+                {
+                    makeMaskCube();
+                }
+                catch( const std::exception &e )
+                {
+                    std::throw_with_nested(
+                        mx::exception<verboseT>( mx::error_t::std_exception, "from makeMaskCube" ) );
+                }
             }
         }
 
         /*** Now do any pre-processing if not done already***/
         if( !m_preProcess_beforeCoadd )
         {
-            preProcess( m_tgtIms );
+            try
+            {
+                preProcess( m_tgtIms );
+            }
+            catch( const std::exception &e )
+            {
+                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "from preProcess" ) );
+            }
         }
 
-        outputPreProcessed();
+        try
+        {
+            outputPreProcessed();
+        }
+        catch( const std::exception &e )
+        {
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "from outputPreProcessed" ) );
+        }
     }
 
     m_filesRead = true;
 
-    return 0;
 } // readFiles()
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT, verboseT>::postReadFiles()
+void HCIobservation<_realT, verboseT>::postReadFiles()
 {
-    return 0;
 }
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT, verboseT>::postCoadd()
+void HCIobservation<_realT, verboseT>::postCoadd()
 {
-    return 0;
 }
 
 //------------------- readRDIFiles
 template <typename _realT, class verboseT>
-int HCIobservation<_realT, verboseT>::readRDIFiles()
+void HCIobservation<_realT, verboseT>::readRDIFiles()
 {
 
     /* First check if the target files have been read */
     if( m_Nrows == 0 || m_Ncols == 0 )
     {
-        mxError( "HCIobservation", MXE_PARAMNOTSET, "The target image size must be set before reading RDI files." );
-        return -1;
+        throw mx::exception<verboseT>( mx::error_t::paramnotset,
+                                       "The target image size must be set before reading RDI files." );
     }
 
     if( m_RDIfileList.size() == 0 )
     {
-        mxError( "HCIobservation", MXE_FILENOTFOUND, "The RDI fileList has 0 length, there are no files to be read." );
-        return -1;
+        throw mx::exception<verboseT>( mx::error_t::filenotfound,
+                                       "The RDI fileList has 0 length, there are no files to be read." );
     }
 
     // First make the list deletions
@@ -1760,10 +1877,9 @@ int HCIobservation<_realT, verboseT>::readRDIFiles()
 
     if( m_RDIfileList.size() == 0 )
     {
-        mxError( "HCIobservation",
-                 MXE_FILENOTFOUND,
-                 "The RDI fileList has 0 length, there are no files to be read after deletions." );
-        return -1;
+        throw mx::exception<verboseT>( mx::error_t::filenotfound,
+                                       "The RDI fileList has 0 length, there are no "
+                                       "files to be read after deletions." );
     }
 
     if( m_RDIqualityFile != "" )
@@ -1771,15 +1887,20 @@ int HCIobservation<_realT, verboseT>::readRDIFiles()
         std::cerr << "Thresholding RDI images...";
         size_t origsize = m_RDIfileList.size();
 
-        if( threshold( m_RDIfileList, m_RDIqualityFile, m_RDIqualityThreshold ) < 0 )
-            return -1;
+        try
+        {
+            threshold( m_RDIfileList, m_RDIqualityFile, m_RDIqualityThreshold );
+        }
+        catch( const std::exception &e )
+        {
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "while thresholding" ) );
+        }
 
         if( m_RDIfileList.size() == 0 )
         {
-            mxError( "HCIobservation",
-                     MXE_FILENOTFOUND,
-                     "The fileList has 0 length, there are no files to be read after thresholding." );
-            return -1;
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "The fileList has 0 length, there are no "
+                                           "files to be read after thresholding." );
         }
 
         std::cerr << "Done.  Selected " << m_RDIfileList.size() << " out of " << origsize << "\n";
@@ -1790,7 +1911,9 @@ int HCIobservation<_realT, verboseT>::readRDIFiles()
     fitsHeaderT head;
 
     if( m_dateKeyword != "" )
+    {
         head.append( m_dateKeyword ); // Currently assuming the MJD keyword will be the same
+    }
 
     for( size_t i = 0; i < m_RDIkeywords.size(); ++i )
     {
@@ -1809,8 +1932,8 @@ int HCIobservation<_realT, verboseT>::readRDIFiles()
 
     if( im.rows() < m_imSize || im.cols() < m_imSize )
     {
-        mxError( "HCIobservation", MXE_SIZEERR, "The reference images are too small, do not match the target images." );
-        return -1;
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "The reference images are too small, do not match the target images." );
     }
 
     // And now set the read size so we only read what we want.
@@ -1857,8 +1980,14 @@ int HCIobservation<_realT, verboseT>::readRDIFiles()
     std::cerr << "Done.\n";
 
     /*** Now do the post-read actions ***/
-    if( postRDIReadFiles() < 0 )
-        return -1;
+    try
+    {
+        postRDIReadFiles();
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from postRDIReadFiles" ) );
+    }
 
     /*** Now begin processing ***/
     if( !m_skipPreProcess )
@@ -1866,26 +1995,43 @@ int HCIobservation<_realT, verboseT>::readRDIFiles()
         /*** Now do any pre-processing ***/
         if( m_preProcess_beforeCoadd )
         {
-            preProcess( m_refIms );
+            try
+            {
+                preProcess( m_refIms );
+            }
+            catch( ... )
+            {
+                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from preProcess" ) );
+            }
         }
 
-        if( m_coaddMethod != HCI::coaddMethod::none )
+        if( m_coaddMethod != HCI::coadd::none )
         {
             std::cerr << "Coadding reference images...\n";
-            coaddImages( m_coaddMethod,
-                         m_coaddMaxImno,
-                         m_coaddMaxTime,
-                         m_coaddKeywords,
-                         m_RDIimageMJD,
-                         m_RDIheads,
-                         m_refIms );
+            try
+            {
+                coaddImages( m_coaddMethod,
+                             m_coaddMaxImno,
+                             m_coaddMaxTime,
+                             m_coaddKeywords,
+                             m_RDIimageMJD,
+                             m_RDIheads,
+                             m_refIms );
+            }
+            catch( ... )
+            {
+                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from coaddImages" ) );
+            }
 
             std::cerr << "number of reference images after coadding: " << m_refIms.planes() << "\n";
 
-            if( postRDICoadd() < 0 )
+            try
             {
-                std::cerr << "Post coadd error " << __FILE__ << " " << __LINE__ << "\n";
-                return -1;
+                postRDICoadd();
+            }
+            catch( ... )
+            {
+                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from postRDICoadd" ) );
             }
             std::cerr << "Done.\n";
         }
@@ -1893,7 +2039,14 @@ int HCIobservation<_realT, verboseT>::readRDIFiles()
         /*** Now do any pre-processing if not done already***/
         if( !m_preProcess_beforeCoadd )
         {
-            preProcess( m_refIms );
+            try
+            {
+                preProcess( m_refIms );
+            }
+            catch( ... )
+            {
+                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from preProcess" ) );
+            }
         }
 
         // outputRDIPreProcessed();
@@ -1901,30 +2054,26 @@ int HCIobservation<_realT, verboseT>::readRDIFiles()
 
     m_RDIfilesRead = true;
 
-    return 0;
 } // readRDIFiles()
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT, verboseT>::postRDIReadFiles()
+void HCIobservation<_realT, verboseT>::postRDIReadFiles()
 {
-    return 0;
 }
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT, verboseT>::postRDICoadd()
+void HCIobservation<_realT, verboseT>::postRDICoadd()
 {
-    return 0;
 }
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT, verboseT>::threshold( std::vector<std::string> &fileList,
-                                                 const std::string &qualityFile,
-                                                 realT qualityThreshold )
+void HCIobservation<_realT, verboseT>::threshold( std::vector<std::string> &fileList,
+                                                  const std::string &qualityFile,
+                                                  realT qualityThreshold )
 {
     if( qualityFile == "" )
     {
-        mxError( "HCIobservation::threshold", MXE_PARAMNOTSET, "qualityFile not set" );
-        return -1;
+        throw mx::exception<verboseT>( mx::error_t::paramnotset, "qualityFile not set" );
     }
 
     int origsize = fileList.size();
@@ -1933,23 +2082,38 @@ int HCIobservation<_realT, verboseT>::threshold( std::vector<std::string> &fileL
     std::vector<realT> imQ;
 
     // Read the quality file and load it into a map
-    ioutils::readColumns( qualityFile, qfileNames, imQ );
+    ioutils::readColumns<mx::ioutils::readColSpaceDelim, verboseT>( qualityFile, qfileNames, imQ );
 
     std::map<std::string, realT> quality;
     for( size_t i = 0; i < qfileNames.size(); ++i )
+    {
         quality[ioutils::pathFilename( qfileNames[i].c_str() )] = imQ[i];
+    }
 
     realT q;
 
     for( size_t i = 0; i < fileList.size(); ++i )
     {
+        std::string fname;
         try
         {
-            q = quality.at( ioutils::pathFilename( fileList[i].c_str() ) );
+            fname = ioutils::pathFilename( fileList[i].c_str() );
         }
-        catch( ... )
+        catch( const std::exception &e )
         {
-            q = qualityThreshold - 1; // Cause it to be erased
+            std::throw_with_nested(
+                mx::exception<verboseT>( mx::error_t::std_exception, std::format( "getting filename {}", i ) ) );
+        }
+
+        try
+        {
+            q = quality.at( fname );
+        }
+        catch( const std::exception &e )
+        {
+            std::throw_with_nested(
+                mx::exception<verboseT>( mx::error_t::std_exception,
+                                         std::format( "getting quality for filename {}", fname ) ) );
         }
 
         if( q < qualityThreshold )
@@ -1959,11 +2123,11 @@ int HCIobservation<_realT, verboseT>::threshold( std::vector<std::string> &fileL
         }
     }
 
-    return 0;
+    // return 0;
 }
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT, verboseT>::coaddImages( HCI::coaddMethod coaddMethod,
+void HCIobservation<_realT, verboseT>::coaddImages( HCI::coadd coaddMethod,
                                                     int coaddMaxImno,
                                                     int coaddMaxTime,
                                                     std::vector<std::string> &coaddKeywords,
@@ -1981,7 +2145,7 @@ void HCIobservation<_realT, verboseT>::coaddImages( HCI::coaddMethod coaddMethod
         return;
 
     // Validate combine method
-    if( coaddMethod == HCI::coaddMethod::none )
+    if( coaddMethod == HCI::coadd::none )
     {
         return;
     }
@@ -2107,11 +2271,11 @@ void HCIobservation<_realT, verboseT>::coaddImages( HCI::coaddMethod coaddMethod
         }
 
         // Here do the combine and insert into the vector
-        if( coaddMethod == HCI::coaddMethod::median )
+        if( coaddMethod == HCI::coadd::median )
         {
             imsToCoadd.median( coadd );
         }
-        if( coaddMethod == HCI::coaddMethod::mean )
+        if( coaddMethod == HCI::coadd::mean )
         {
             imsToCoadd.mean( coadd );
         }
@@ -2192,7 +2356,14 @@ void HCIobservation<_realT, verboseT>::readMask()
             m_mask = tmask;
         }
 
-        makeMaskCube();
+        try
+        {
+            makeMaskCube();
+        }
+        catch( ... )
+        {
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception ) );
+        }
     }
 }
 
@@ -2201,15 +2372,17 @@ void HCIobservation<realT, verboseT>::makeMaskCube()
 {
     if( m_mask.rows() != m_Nrows || m_mask.cols() != m_Ncols )
     {
-        // clang-format off
-        std::string message = "Mask is not the same size as images.\n";
-                   message += "    Mask:   rows=" + std::to_string(m_mask.rows()) + "\n";
-                   message += "            cols=" + std::to_string(m_mask.cols()) + "\n";
-                   message += "    Images: rows=" + std::to_string(m_Nrows) + "\n";
-                   message += "            cols=" + std::to_string(m_Ncols) + "\n";
-        // clang-format on
 
-        mxThrowException( err::invalidconfig, "HCIobservation<realT, verboseT>::makeMaskCube", message );
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       std::format( "Mask is not the same size as images.\n"
+                                                    "    Mask:   rows={}\n"
+                                                    "            cols={}\n"
+                                                    "    Images: rows={}\n"
+                                                    "            cols={}\n",
+                                                    m_mask.rows(),
+                                                    m_mask.cols(),
+                                                    m_Nrows,
+                                                    m_Ncols ) );
     }
 
     m_maskCube.resize( m_Nrows, m_Ncols, m_Nims );
@@ -2398,25 +2571,27 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::preProcess_meanSub( eigenCube<realT> &ims )
 {
-    if( m_preProcess_meanSubMethod == HCI::meanSubMethod::none )
+    if( m_preProcess_meanSubMethod == HCI::meanSub::none )
     {
         return;
     }
-    else if( m_preProcess_meanSubMethod != HCI::meanSubMethod::meanImage &&
-             m_preProcess_meanSubMethod != HCI::meanSubMethod::medianImage )
+    else if( m_preProcess_meanSubMethod != HCI::meanSub::meanImage &&
+             m_preProcess_meanSubMethod != HCI::meanSub::medianImage )
     {
-        std::string msg = "Mean subtraction by " + HCI::meanSubMethodStr( m_preProcess_meanSubMethod );
-        msg += " can't be done in pre-processing. Only meanImage or medianImage can be used in pre.";
-        mxThrowException( err::invalidconfig, "HCIobservation::preProcess_meanSub", msg );
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       std::format( "Mean subtraction by {} "
+                                                    "can't be done in pre-processing. "
+                                                    "Only meanImage or medianImage can be used in pre.",
+                                                    HCI::meanSubToStr<verboseT>( m_preProcess_meanSubMethod ) ) );
     }
 
     imageT mean;
 
-    if( m_preProcess_meanSubMethod == HCI::meanSubMethod::meanImage )
+    if( m_preProcess_meanSubMethod == HCI::meanSub::meanImage )
     {
         ims.mean( mean );
     }
-    else if( m_preProcess_meanSubMethod == HCI::meanSubMethod::medianImage )
+    else if( m_preProcess_meanSubMethod == HCI::meanSub::medianImage )
     {
         ims.median( mean );
     }
@@ -2436,25 +2611,26 @@ void HCIobservation<_realT, verboseT>::preProcess_meanSub( eigenCube<realT> &ims
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> &ims )
 {
-    if( m_preProcess_pixelTSNormMethod == HCI::pixelTSNormMethod::none )
+    if( m_preProcess_pixelTSNormMethod == HCI::pixelTSNorm::none )
     {
         return;
     }
 
-    if( m_preProcess_pixelTSNormMethod == HCI::pixelTSNormMethod::rmsSigmaClipped )
+    if( m_preProcess_pixelTSNormMethod == HCI::pixelTSNorm::rmsSigmaClipped )
     {
-        mxThrowException( err::notimpl,
-                          "KlipReduction::preProcess_pixelTSNorm",
-                          "pixelTSNormMethod is rmsSigmaClipped, which is not implemented" );
+        throw mx::exception<verboseT>( mx::error_t::notimpl,
+                                       "pixelTSNormMethod is rmsSigmaClipped, which is not implemented" );
     }
 
     std::cerr << "normalizing pixels\n";
 
-#pragma omp parallel
+    // clang-format off
+    #pragma omp parallel // clang-format on
     {
         std::vector<realT> pixs( ims.planes() );
 
-#pragma omp for
+        // clang-format off
+        #pragma omp for // clang-format on
         for( int cc = 0; cc < ims.cols(); ++cc )
         {
             for( int rr = 0; rr < ims.rows(); ++rr )
@@ -2488,35 +2664,37 @@ void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> 
 }
 
 template <typename _realT, class verboseT>
-int HCIobservation<_realT, verboseT>::readWeights()
+void HCIobservation<_realT, verboseT>::readWeights()
 {
     std::ifstream fin;
     std::string str;
 
     if( m_weightFile == "" )
     {
-        mxError( "HCIobservation::readWeights", MXE_PARAMNOTSET, "m_weightFile not set" );
-        return -1;
+        throw mx::exception<verboseT>( mx::error_t::paramnotset, "m_weightFile not set" );
     }
 
     // Read the weight file and load it into a map
     std::vector<std::string> wfileNames;
     std::vector<realT> imW;
 
-    if( ioutils::readColumns( m_weightFile, wfileNames, imW ) != mx::error_t::noerror )
+    mx::error_t errc = ioutils::readColumns<mx::ioutils::readColSpaceDelim, verboseT>( m_weightFile, wfileNames, imW );
+    if( errc != mx::error_t::noerror )
     {
-        return -1;
+        throw mx::exception<verboseT>( errc );
     }
 
     if( imW.size() < m_fileList.size() )
     {
-        mxError( "HCIobservation::readWeights", MXE_SIZEERR, "not enough weights specified" );
-        return -1;
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "not enough weights specified" );
     }
 
     std::map<std::string, realT> weights;
+
     for( size_t i = 0; i < wfileNames.size(); ++i )
+    {
         weights[ioutils::pathFilename( wfileNames[i].c_str() )] = imW[i];
+    }
 
     m_comboWeights.resize( m_fileList.size() );
 
@@ -2528,11 +2706,11 @@ int HCIobservation<_realT, verboseT>::readWeights()
         {
             wi = weights.at( ioutils::pathFilename( m_fileList[i].c_str() ) );
         }
-        catch( ... )
+        catch( const std::exception &e )
         {
-            mxError( "HCIobservation::readWeights", MXE_NOTFOUND, "Weight for a file in m_fileList not found." );
-            return -1;
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "finding weights for file" ) );
         }
+
         m_comboWeights[i] = wi;
         weightSum += wi;
     }
@@ -2543,13 +2721,13 @@ int HCIobservation<_realT, verboseT>::readWeights()
         m_comboWeights[i] /= weightSum;
     }
 
-    return 0;
-} // int HCIobservation<_realT,verboseT>::readWeights()
+    // return 0;
+} // void HCIobservation<_realT,verboseT>::readWeights()
 
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::combineFinim()
 {
-    if( m_combineMethod == HCI::combineMethod::none )
+    if( m_combineMethod == HCI::combine::none )
     {
         return;
     }
@@ -2564,12 +2742,12 @@ void HCIobservation<_realT, verboseT>::combineFinim()
     // Now cycle through each set of psf subtractions
     for( size_t n = 0; n < m_psfsub.size(); ++n )
     {
-        if( m_combineMethod == HCI::combineMethod::median )
+        if( m_combineMethod == HCI::combine::median )
         {
             m_psfsub[n].median( tfinim );
             m_finim.image( n ) = tfinim;
         }
-        else if( m_combineMethod == HCI::combineMethod::mean )
+        else if( m_combineMethod == HCI::combine::mean )
         {
             if( m_comboWeights.size() == (size_t)m_Nims )
             {
@@ -2595,7 +2773,7 @@ void HCIobservation<_realT, verboseT>::combineFinim()
             }
             m_finim.image( n ) = tfinim;
         }
-        else if( m_combineMethod == HCI::combineMethod::sigmaMean )
+        else if( m_combineMethod == HCI::combine::sigmaMean )
         {
             if( m_comboWeights.size() == (size_t)m_Nims )
             {
@@ -2642,11 +2820,9 @@ void HCIobservation<_realT, verboseT>::outputPreProcessed()
     fitsFileT ff;
 
     /** \todo Should add a HISTORY card here */
-    char nstr[16];
     for( int i = 0; i < m_Nims; ++i )
     {
-        snprintf( nstr, sizeof( nstr ), "%06d", i );
-        fname = m_preProcess_outputPrefix + nstr + ".fits";
+        fname = std::format( "{}{:06}.fits", m_preProcess_outputPrefix, i );
 
         fitsHeaderT fh = m_heads[i];
         stdFitsHeader( fh );
@@ -2670,8 +2846,10 @@ void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head )
 
     head.template append<int>( "IMSIZE", m_imSize, "image size after reading" );
 
-    head.template append<std::string>( "COADMTHD", HCI::coaddMethodStr( m_coaddMethod ), "coadd combination method" );
-    if( m_coaddMethod != HCI::coaddMethod::none )
+    head.template append<std::string>( "COADMTHD",
+                                       HCI::coaddToStr<verboseT>( m_coaddMethod ),
+                                       "coadd combination method" );
+    if( m_coaddMethod != HCI::coadd::none )
     {
         head.template append<int>( "COADIMNO", m_coaddMaxImno, "max number of images in each coadd" );
         head.template append<realT>( "COADTIME", m_coaddMaxTime, "max time in each coadd" );
@@ -2705,10 +2883,10 @@ void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head )
                                  m_preProcess_gaussUSM_fwhm,
                                  "pre-process Gaussian USM fwhm [pixels]" );
     head.template append<std::string>( "PREPROC MEANSUB METHOD",
-                                       HCI::meanSubMethodStr( m_preProcess_meanSubMethod ),
+                                       HCI::meanSubToStr<verboseT>( m_preProcess_meanSubMethod ),
                                        "pre-process mean subtraction method" );
     head.template append<std::string>( "PREPROC PIXELTSNORM METHOD",
-                                       HCI::pixelTSNormMethodStr( m_preProcess_pixelTSNormMethod ),
+                                       HCI::pixelTSNormToStr<verboseT>( m_preProcess_pixelTSNormMethod ),
                                        "pre-process pixel time-series norm method" );
 }
 
@@ -2736,13 +2914,13 @@ void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
 
     // Now add the final combination details:
     head.template append<std::string>( "COMBINATION METHOD",
-                                       HCI::combineMethodStr( m_combineMethod ),
+                                       HCI::combineToStr<verboseT>( m_combineMethod ),
                                        "combination method" );
 
     if( m_weightFile != "" )
         head.append( "WEIGHT FILE", m_weightFile, "file containing weights for combination" );
 
-    if( m_combineMethod == HCI::combineMethod::sigmaMean )
+    if( m_combineMethod == HCI::combine::sigmaMean )
         head.template append<realT>( "SIGMA THRESHOLD", m_sigmaThreshold, "threshold for sigma clipping" );
 
     head.template append<realT>( "MIN FOOD FRACTION", m_minGoodFract, "minimum good fraction for inclusion" );
@@ -3096,7 +3274,7 @@ int HCIobservation<_realT,verboseT>::readPSFSub( const std::string &dir,
     if( m_weightFile != "" )
     {
         std::vector<std::string> fn;
-        ioutils::readColumns( m_weightFile, fn, m_comboWeights );
+        ioutils::readColumns<mx::ioutils::readColSpaceDelim, verboseT>( m_weightFile, fn, m_comboWeights );
 
         std::cerr << "read: " << m_weightFile << " (" << m_comboWeights.size() << ")\n";
     }
@@ -3116,8 +3294,7 @@ int HCIobservation<_realT,verboseT>::readPSFSub( const std::string &dir,
 */
 ///@}
 
-extern template class HCIobservation<float>;
-extern template class HCIobservation<double>;
+extern template class HCIobservation<float, mx::verbose::vv>;
 
 } // namespace improc
 } // namespace mx

@@ -30,41 +30,6 @@ namespace improc
 // double t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, tf;
 // double dcut, dscv, dklims, dgemm, dsyevr, dcfs, drot, dcombo, dread;
 
-namespace HCI
-{
-
-/// Image exclusion methods
-/** \ingroup hc_imaging_enums
- */
-enum excludeMethods
-{
-    excludeNone,  ///< Exclude no images
-    excludePixel, ///< Exclude by pixels of rotation
-    excludeAngle, ///< Exclude by angle of roration
-    excludeImno   ///< Exclude by number of images
-};
-
-std::string excludeMethodStr( int method );
-
-int excludeMethodFmStr( const std::string &method );
-
-/// Image inclusion methods
-/** \ingroup hc_imaging_enums
- */
-enum includeMethods
-{
-    includeAll,   ///< include all images
-    includeCorr,  ///< include images which are most correlated with the target
-    includeTime,  ///< include images which are closest in time to the target
-    includeAngle, ///< include images which are closest in angle to the target
-    includeImno   ///< include images which are closest in imno to the target
-};
-
-std::string includeMethodStr( int method );
-
-int includeMethodFmStr( const std::string &method );
-} // namespace HCI
-
 /// An implementation of the Karhunen-Loeve Image Processing (KLIP) algorithm.
 /** KLIP\cite soummer_2012 is a principle components analysis (PCA) based
  * technique for PSF estimation.
@@ -75,7 +40,7 @@ int includeMethodFmStr( const std::string &method );
  * \tparam _evCalcT the real type in which to do eigen-decomposition.  Should
  * generally be double for stable results. \ingroup hc_imaging
  */
-template <typename _realT, class _derotFunctObj, typename _evCalcT = double, class verboseT = mx::verbose::vvv>
+template <typename _realT, class _derotFunctObj, typename _evCalcT, class verboseT>
 struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 {
     typedef _realT realT;
@@ -88,29 +53,33 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     virtual ~KLIPreduction();
 
+    void setupConfig( mx::app::appConfigurator &config );
+
+    void loadConfig( mx::app::appConfigurator &config );
+
     /// Specify how the data are centered for PCA within each search region
     /** Can have the following values:
-     * - <b>HCI::meanSubMethod::imageMean</b> = the mean of each image (within the search
+     * - <b>HCI::meanSub::imageMean</b> = the mean of each image (within the search
      * region) is subtracted from itself
-     * - <b>HCI::meanSubMethod::imageMedian</b> = the median of each image (within the search
+     * - <b>HCI::meanSub::imageMedian</b> = the median of each image (within the search
      * region) is subtracted from itself
-     * - <b>HCI::meanSubMethod::imageMode</b>  = the mode of each image (within the search
+     * - <b>HCI::meanSub::imageMode</b>  = the mode of each image (within the search
      * region) is subtracted from itself
-     * - <b>HCI::meanSubMethod::meanImage</b> = the mean image of the data is subtracted from
+     * - <b>HCI::meanSub::meanImage</b> = the mean image of the data is subtracted from
      * each image
-     * - <b>HCI::meanSubMethod::medianImage</b> = the median image of the data is subtracted
+     * - <b>HCI::meanSub::medianImage</b> = the median image of the data is subtracted
      * from each image
      */
-    HCI::meanSubMethod m_meanSubMethod{ HCI::meanSubMethod::imageMean };
+    HCI::meanSub m_meanSubMethod{ HCI::meanSub::imageMean };
 
     /// Specify if each pixel time-series is normalized
     /** This normalizaton is applied after centering. Can have the following values:
-     * - <b>HCI::pixelTSNormMethod::none</b>: no normalization (the default)
-     * - <b>HCI::pixelTSNormMethod::rms</b>: divide by the time-series rms
-     * - <b>HCI::pixelTSNormMethod::rmsSigmaClipped</b>: divide by the sigma-slipped time-series rms.
+     * - <b>HCI::pixelTSNorm::none</b>: no normalization (the default)
+     * - <b>HCI::pixelTSNorm::rms</b>: divide by the time-series rms
+     * - <b>HCI::pixelTSNorm::rmsSigmaClipped</b>: divide by the sigma-slipped time-series rms.
      *                                                   The sigma is provided by m_pixelTSSigma.
      */
-    HCI::pixelTSNormMethod m_pixelTSNormMethod{ HCI::pixelTSNormMethod::none };
+    HCI::pixelTSNorm m_pixelTSNormMethod{ HCI::pixelTSNorm::none };
 
     realT m_pixelTSSigma{ 3 }; ///< Sigma-clipping parameter for pixel time-series normalization
 
@@ -129,6 +98,12 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
      */
     std::vector<int> m_Nmodes;
 
+    std::vector<realT> m_minRadius;
+    std::vector<realT> m_maxRadius;
+    std::vector<realT> m_minAngle;
+    std::vector<realT> m_maxAngle;
+    int m_nWedges{ 0 };
+
     int m_maxNmodes{ 0 };
 
     /// Specify the minimum pixel difference at the inner edge of the search
@@ -142,26 +117,26 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Controls how reference images are excluded, if at all, from the
     /// covariance matrix for each target image based on a minimum criterion.
     /** Can have the following values:
-     *  - <b>HCI::excludeNone</b> = no exclusion, all images included [default]
-     *  - <b>HCI::excludePixel</b> = exclude based on pixels of rotation at the
+     *  - <b>HCI::exclude::none</b> = no exclusion, all images included [default]
+     *  - <b>HCI::exclude::pixel</b> = exclude based on pixels of rotation at the
      * inner edge of the region
-     *  - <b>HCI::excludeAngle</b> = exclude based on degrees of rotation at the
+     *  - <b>HCI::exclude::angle</b> = exclude based on degrees of rotation at the
      * inner edge of the region
-     *  - <b>HCI::excludeImno</b> = exclude based on number of images
+     *  - <b>HCI::exclude::imno</b> = exclude based on number of images
      */
-    int m_excludeMethod{ HCI::excludeNone };
+    HCI::exclude m_excludeMethod{ HCI::exclude::none };
 
     /// Controls how reference images are excluded, if at all, from the
     /// covariance matrix for each target image based on a maximum criterion.
     /** Can have the following values:
-     *  - <b>HCI::excludeNone</b> = no exclusion, all images included [default]
-     *  - <b>HCI::excludePixel</b> = exclude based on pixels of rotation at the
+     *  - <b>HCI::exclude::none</b> = no exclusion, all images included [default]
+     *  - <b>HCI::exclude::pixel</b> = exclude based on pixels of rotation at the
      * inner edge of the region
-     *  - <b>HCI::excludeAngle</b> = exclude based on degrees of rotation at the
+     *  - <b>HCI::exclude::angle</b> = exclude based on degrees of rotation at the
      * inner edge of the region
-     *  - <b>HCI::excludeImno</b> = exclude based on number of images
+     *  - <b>HCI::exclude::imno</b> = exclude based on number of images
      */
-    int m_excludeMethodMax{ HCI::excludeNone };
+    HCI::exclude m_excludeMethodMax{ HCI::exclude::none };
 
     /// Number of reference images to include in the covariance matrix
     /** If > 0, then at most this many images, determined by highest
@@ -184,7 +159,7 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
      * - <b>HCI::includeImno</b> = the m_includeRefNum of the remaining images
      * which are closest in image number to the target are included
      */
-    int m_includeMethod{ HCI::includeAll };
+    HCI::include m_includeMethod { HCI::include::all };
 
     eigenImage<int> m_imsIncluded;
 
@@ -294,6 +269,245 @@ KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::~KLIPreduction()
 }
 
 template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::setupConfig( mx::app::appConfigurator &config )
+{
+    HCIobservation<realT, verboseT>::setupConfig( config );
+
+    config.add( "adi.minDPx",
+                "",
+                "adi.minDPx",
+                mx::app::argType::Required,
+                "adi",
+                "minDPx",
+                false,
+                "float",
+                "Specify the minimum angle or pixel difference at the inner edge of the search region" );
+
+    config.add( "adi.maxDPx",
+                "",
+                "adi.maxDPx",
+                mx::app::argType::Required,
+                "adi",
+                "maxDPx",
+                false,
+                "float",
+                "Specify the maximum angle or pixel difference at the inner edge of the search region" );
+
+    config.add( "adi.excludeMethod",
+                "",
+                "adi.excludeMethod",
+                mx::app::argType::Required,
+                "adi",
+                "excludeMethod",
+                false,
+                "string",
+                "Method for minimum exclusion.  Values are none (default), pixel, angle, imno." );
+
+    config.add( "adi.excludeMethodMax",
+                "",
+                "adi.excludeMethodMax",
+                mx::app::argType::Required,
+                "adi",
+                "excludeMethodMax",
+                false,
+                "string",
+                "Method for maximum exclusion.  Values are none (default), pixel, angle, imno." );
+
+    ADIobservation<realT, derotFunctObj, verboseT>::setupConfig( config );
+
+    /*>>>> geom */
+    config.add( "geom.minRadius",
+                "",
+                "geom.minRadius",
+                mx::app::argType::Required,
+                "geom",
+                "minRadius",
+                false,
+                "vector<realT>",
+                "The minimum radius of the search regions" );
+
+    config.add( "geom.maxRadius",
+                "",
+                "geom.maxRadius",
+                mx::app::argType::Required,
+                "geom",
+                "maxRadius",
+                false,
+                "vector<realT>",
+                "The maximum radius of the search regions" );
+
+    config.add( "geom.minAngle",
+                "",
+                "geom.minAngle",
+                mx::app::argType::Required,
+                "geom",
+                "minAngle",
+                false,
+                "vector<realT>",
+                "The minimum angle of the search regions" );
+
+    config.add( "geom.maxAngle",
+                "",
+                "geom.maxAngle",
+                mx::app::argType::Required,
+                "geom",
+                "maxAngle",
+                false,
+                "vector<realT>",
+                "The maximum angle of the search regions" );
+
+    config.add( "geom.nWedges",
+                "",
+                "geom.nWedges",
+                mx::app::argType::Required,
+                "geom",
+                "nWedges",
+                false,
+                "",
+                "The number of angular wedges.  Overrides minAngle and maxAngle, "
+                "and expands minRadius and maxRadius" );
+
+    /*>>>> klip */
+    config.add( "klip.meanSubMethod",
+                "",
+                "klip.meanSubMethod",
+                mx::app::argType::Required,
+                "klip",
+                "meanSubMethod",
+                false,
+                "string",
+                "The method of mean subtraction for PCA: imageMean, imageMedian, meanImage, or medianImage." );
+
+    config.add( "klip.pixelTSNormMethod",
+                "",
+                "klip.pixelTSNormMethod",
+                mx::app::argType::Required,
+                "klip",
+                "pixelTSNormMethod",
+                false,
+                "int",
+                "The method of pixel time-series normalization for PCA: none or rms." );
+
+    config.add( "klip.includeRefNum",
+                "",
+                "klip.includeRefNum",
+                mx::app::argType::Required,
+                "klip",
+                "includeRefNum",
+                false,
+                "int",
+                "The number of references to include, based on correlation." );
+
+    config.add( "klip.Nmodes",
+                "",
+                "klip.Nmodes",
+                mx::app::argType::Required,
+                "klip",
+                "Nmodes",
+                false,
+                "vector<int>",
+                "The number of modes to included in the PSF estimate." );
+
+    config.add( "klip.rightReason",
+                "",
+                "klip.rightReason",
+                mx::app::argType::Required,
+                "klip",
+                "rightReason",
+                false,
+                "bool",
+                "Whether or not the right reason mask is applied" );
+
+    config.add( "klip.rrRadius",
+                "",
+                "klip.rrRadius",
+                mx::app::argType::Required,
+                "klip",
+                "rrRadius",
+                false,
+                "float",
+                "The radius of the right reason mask" );
+
+    /*<<<< klip */
+}
+
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::loadConfig( mx::app::appConfigurator &config )
+{
+    HCIobservation<realT, verboseT>::loadConfig( config );
+    config( m_minDPx, "adi.minDPx" );
+    config( m_maxDPx, "adi.maxDPx" );
+
+    std::string em = HCI::excludeToStr<verboseT>( m_excludeMethod );
+    config( em, "adi.excludeMethod" );
+    m_excludeMethod = HCI::excludeFmStr<verboseT>( em );
+
+    em = HCI::excludeToStr<verboseT>( m_excludeMethodMax );
+    config( em, "adi.excludeMethodMax" );
+    m_excludeMethodMax = HCI::excludeFmStr<verboseT>( em );
+
+    ADIobservation<realT, derotFunctObj, verboseT>::loadConfig( config );
+
+    /*>>>> geom */
+    config( m_minRadius, "geom.minRadius" );
+    config( m_maxRadius, "geom.maxRadius" );
+    config( m_minAngle, "geom.minAngle" );
+    config( m_maxAngle, "geom.maxAngle" );
+    config( m_nWedges, "geom.nWedges" );
+    /*<<<< geom */
+
+    /*>>>> klip */
+    std::string ms;
+    try
+    {
+        ms = HCI::meanSubToStr<verboseT>( m_meanSubMethod );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(mx::exception<verboseT>(mx::error_t::exception));
+    }
+
+    config( ms, "klip.meanSubMethod" );
+
+    try
+    {
+        m_meanSubMethod = HCI::meanSubFmStr<verboseT>( ms );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(mx::exception<verboseT>(mx::error_t::invalidconfig, "klip.meanSubMethod is not valid"));
+    }
+
+    std::string ptsnm;
+    try
+    {
+        ptsnm = HCI::pixelTSNormToStr<verboseT>( m_pixelTSNormMethod );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception ) );
+    }
+
+    config( ptsnm, "klip.pixelTSNormMethod" );
+
+    try
+    {
+        m_pixelTSNormMethod = HCI::pixelTSNormFmStr<verboseT>( ptsnm );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                                         "invalid pixel time-series "
+                                                         "normalization method" ) );
+    }
+
+    config( m_includeRefNum, "klip.includeRefNum" );
+    config( m_Nmodes, "klip.Nmodes" );
+    config( m_rightReason, "klip.rightReason" );
+    config( m_rightReasonRadius, "klip.rrRadius" );
+}
+
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
 void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigenCube<realT> &rims,
                                                                            eigenCube<realT> &tims,
                                                                            imageT &cmask,
@@ -302,45 +516,65 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
 
     norms.resize( rims.planes() );
 
-    bool haveMask = false;
+    int maskPix = 0;
+
     if( cmask.rows() > 0 && cmask.cols() > 0 )
     {
-        haveMask = true;
+        if( cmask.rows() != rims.rows() || cmask.cols() != rims.cols() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                           "mask does not have same size as reference images" );
+        }
+
+        if( cmask.rows() != tims.rows() || cmask.cols() != tims.cols() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "mask does not have same size as target images" );
+        }
+
+        maskPix = cmask.sum();
     }
 
-    if( m_meanSubMethod == HCI::meanSubMethod::meanImage || m_meanSubMethod == HCI::meanSubMethod::medianImage )
+    if( m_meanSubMethod == HCI::meanSub::meanImage || m_meanSubMethod == HCI::meanSub::medianImage )
     {
         imageT mean;
 
-        if( m_meanSubMethod == HCI::meanSubMethod::meanImage )
+        if( m_meanSubMethod == HCI::meanSub::meanImage )
         {
             rims.mean( mean );
         }
-        else if( m_meanSubMethod == HCI::meanSubMethod::medianImage )
+        else if( m_meanSubMethod == HCI::meanSub::medianImage )
         {
             rims.median( mean );
         }
 
+        realT immean;
         for( int n = 0; n < rims.planes(); ++n )
         {
             rims.image( n ) -= mean;
 
-            if( haveMask )
+            if( maskPix > 0 )
             {
                 rims.image( n ) *= cmask;
-            }
 
-            realT immean = rims.image( n ).mean();
-            norms[n] = ( rims.image( n ) - immean ).matrix().norm();
+                immean = rims.image( n ).sum() / maskPix;
+
+                norms[n] = ( ( rims.image( n ) - immean ) * cmask ).square().sum();
+            }
+            else
+            {
+                immean = rims.image( n ).mean();
+
+                norms[n] = ( rims.image( n ) - immean ).square().sum();
+            }
         }
 
         if( &tims != &rims )
         {
-            if( m_meanSubMethod == HCI::meanSubMethod::meanImage )
+            if( m_meanSubMethod == HCI::meanSub::meanImage )
             {
                 tims.mean( mean );
             }
-            else if( m_meanSubMethod == HCI::meanSubMethod::medianImage )
+            else if( m_meanSubMethod == HCI::meanSub::medianImage )
             {
                 tims.median( mean );
             }
@@ -349,7 +583,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
             {
                 tims.image( n ) -= mean;
 
-                if( haveMask )
+                if( maskPix > 0 )
                 {
                     tims.image( n ) *= cmask;
                 }
@@ -361,59 +595,77 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
         realT mean;
         std::vector<realT> work; // Working memmory for median calc
 
+        realT immean;
         for( int n = 0; n < rims.planes(); ++n )
         {
-            if( m_meanSubMethod == HCI::meanSubMethod::imageMean )
+            if( m_meanSubMethod == HCI::meanSub::imageMean )
             {
                 mean = rims.image( n ).mean();
             }
-            else if( m_meanSubMethod == HCI::meanSubMethod::imageMedian )
+            else if( m_meanSubMethod == HCI::meanSub::imageMedian )
             {
                 mean = imageMedian( rims.image( n ), &work );
             }
 
             rims.image( n ) -= mean;
 
-            if( haveMask )
+            if( maskPix > 0 )
             {
                 rims.image( n ) *= cmask;
+                immean = rims.image( n ).sum() / maskPix;
+                norms[n] = ( ( rims.image( n ) - immean ) * cmask ).square().sum();
             }
-            // Because we might not have used the mean, we need to re-mean to
-            // make this the standard deviation
-            realT immean = rims.image( n ).mean();
-            norms[n] = ( rims.image( n ) - immean ).matrix().norm();
+            else
+            {
+                // Because we might not have used the mean, we need to re-mean to
+                //  make this the standard deviation
+                immean = rims.image( n ).mean();
+                norms[n] = ( rims.image( n ) - immean ).square().sum();
+            }
         }
 
         if( &tims != &rims )
         {
             for( int n = 0; n < tims.planes(); ++n )
             {
-                if( m_meanSubMethod == HCI::meanSubMethod::imageMean )
+                if( maskPix > 0 )
                 {
-                    mean = tims.image( n ).mean();
-                }
-                else if( m_meanSubMethod == HCI::meanSubMethod::imageMedian )
-                {
-                    mean = imageMedian( tims.image( n ), &work );
-                }
+                    if( m_meanSubMethod == HCI::meanSub::imageMean )
+                    {
+                        mean = ( tims.image( n ) * cmask ).sum() / maskPix;
+                    }
+                    else if( m_meanSubMethod == HCI::meanSub::imageMedian )
+                    {
+                        mean = imageMedian( tims.image( n ), &cmask, &work );
+                    }
 
-                tims.image( n ) -= mean;
-                if( haveMask )
+                    tims.image( n ) -= mean;
+                }
+                else
                 {
-                    tims.image( n ) *= cmask;
+                    if( m_meanSubMethod == HCI::meanSub::imageMean )
+                    {
+                        mean = tims.image( n ).mean();
+                    }
+                    else if( m_meanSubMethod == HCI::meanSub::imageMedian )
+                    {
+                        mean = imageMedian( tims.image( n ), &work );
+                    }
+
+                    tims.image( n ) -= mean;
                 }
             }
         }
     }
 
-    if( m_pixelTSNormMethod == HCI::pixelTSNormMethod::rmsSigmaClipped )
+    if( m_pixelTSNormMethod == HCI::pixelTSNorm::rmsSigmaClipped )
     {
-        mxThrowException( err::notimpl,
-                          "KlipReduction::meanSubtract",
-                          "pixelTSNormMethod is rmsSigmaClipped, which is not implemented" );
+        throw mx::exception<verboseT>( mx::error_t::notimpl,
+                                       "pixelTSNormMethod is rmsSigmaClipped, "
+                                       "which is not implemented" );
     }
 
-    if( m_pixelTSNormMethod != HCI::pixelTSNormMethod::none )
+    if( m_pixelTSNormMethod != HCI::pixelTSNorm::none )
     {
         std::cerr << "normalizing pixels\n";
         std::vector<realT> pixs( rims.planes() );
@@ -422,7 +674,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
         {
             for( int rr = 0; rr < rims.rows(); ++rr )
             {
-                if( haveMask )
+                if( maskPix > 0 )
                 {
                     if( cmask( rr, cc ) == 0 )
                     {
@@ -478,16 +730,26 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
 
     if( !this->m_filesRead )
     {
-        if( this->readFiles() < 0 )
-            return -1;
+        try
+        {
+            this->readFiles();
+        }
+        catch( const std::exception &e )
+        {
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "from readFiles" ) );
+        }
     }
 
     // CHECK IF RDI HERE
     if( !this->m_RDIfilesRead && this->m_RDIfileList.size() != 0 )
     {
-        if( this->readRDIFiles() < 0 )
+        try
         {
-            return -1;
+            this->readRDIFiles();
+        }
+        catch( ... )
+        {
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from readRDIFiles" ) );
         }
     }
 
@@ -584,7 +846,12 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
             std::vector<realT> sds;
 
             //*** First mean subtract ***//
-            meanSubtract( tims, tims, cmask, sds );
+            try{
+            meanSubtract( tims, tims, cmask, sds );}
+            catch(...)
+            {
+                std::throw_with_nested(mx::exception<verboseT>(mx::error_t::exception, "from meanSubtract"));
+            }
 
 
             mx::fits::fitsFile<realT> ffff;
@@ -618,42 +885,42 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
 
         if( m_minDPx < 0 )
         {
-            m_excludeMethod = HCI::excludeNone;
+            m_excludeMethod = HCI::exclude::none;
         }
         if( m_maxDPx < 0 )
         {
-            m_excludeMethodMax = HCI::excludeNone;
+            m_excludeMethodMax = HCI::exclude::none;
         }
 
         //------- If doing RDI, excludeMethod and excludeMethodMax must be none!
         if( this->m_refIms.planes() > 0 )
         {
-            m_excludeMethod = HCI::excludeNone;
-            m_excludeMethodMax = HCI::excludeNone;
+            m_excludeMethod = HCI::exclude::none;
+            m_excludeMethodMax = HCI::exclude::none;
         }
 
-        if( m_excludeMethod == HCI::excludePixel )
+        if( m_excludeMethod == HCI::exclude::pixel )
         {
             dang = fabs( atan( m_minDPx / minr[regno] ) );
         }
-        else if( m_excludeMethod == HCI::excludeAngle )
+        else if( m_excludeMethod == HCI::exclude::angle )
         {
             dang = math::dtor( m_minDPx );
         }
-        else if( m_excludeMethod == HCI::excludeImno )
+        else if( m_excludeMethod == HCI::exclude::imno )
         {
             dang = m_minDPx;
         }
 
-        if( m_excludeMethodMax == HCI::excludePixel )
+        if( m_excludeMethodMax == HCI::exclude::pixel )
         {
             dangMax = fabs( atan( m_maxDPx / minr[regno] ) );
         }
-        else if( m_excludeMethodMax == HCI::excludeAngle )
+        else if( m_excludeMethodMax == HCI::exclude::angle )
         {
             dangMax = math::dtor( m_maxDPx );
         }
-        else if( m_excludeMethodMax == HCI::excludeImno )
+        else if( m_excludeMethodMax == HCI::exclude::imno )
         {
             dangMax = m_maxDPx;
         }
@@ -728,8 +995,8 @@ void collapseCovar( eigenT &cutCV,
                     double dang,
                     double dangMax,
                     int Nims,
-                    int excludeMethod,
-                    int excludeMethodMax,
+                    HCI::exclude excludeMethod,
+                    HCI::exclude excludeMethodMax,
                     int includeRefNum,
                     const derotFunctObj &derotF,
                     eigenImage<int> &imsIncluded )
@@ -753,7 +1020,7 @@ void collapseCovar( eigenT &cutCV,
         }
     }
 
-    if( excludeMethod == HCI::excludePixel || excludeMethod == HCI::excludeAngle )
+    if( excludeMethod == HCI::exclude::pixel || excludeMethod == HCI::exclude::angle )
     {
         for( size_t j = 0; j < Nims; ++j )
         {
@@ -764,7 +1031,7 @@ void collapseCovar( eigenT &cutCV,
             }
         }
     }
-    else if( excludeMethod == HCI::excludeImno )
+    else if( excludeMethod == HCI::exclude::imno )
     {
         for( size_t j = 0; j < Nims; ++j )
         {
@@ -775,7 +1042,7 @@ void collapseCovar( eigenT &cutCV,
         }
     }
 
-    if( excludeMethodMax == HCI::excludePixel || excludeMethodMax == HCI::excludeAngle )
+    if( excludeMethodMax == HCI::exclude::pixel || excludeMethodMax == HCI::exclude::angle )
     {
         for( size_t j = 0; j < Nims; ++j )
         {
@@ -784,7 +1051,7 @@ void collapseCovar( eigenT &cutCV,
                 allidx[j].included = false;
         }
     }
-    else if( excludeMethodMax == HCI::excludeImno )
+    else if( excludeMethodMax == HCI::exclude::imno )
     {
         for( size_t j = 0; j < Nims; ++j )
         {
@@ -866,7 +1133,14 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
     imageT meanim;
 
     //*** First mean subtract ***//
-    meanSubtract( rims, tims, cmask, sds );
+    try
+    {
+        meanSubtract( rims, tims, cmask, sds );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from meanSubtract" ) );
+    }
 
     //*** Form lower-triangle covariance matrix
     imageT cv;
@@ -909,7 +1183,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         ff.write( "rrMask.fits", rrMask );
     }
 
-    if( m_excludeMethod == HCI::excludeNone && m_excludeMethodMax == HCI::excludeNone && m_includeRefNum == 0 )
+    if( m_excludeMethod == HCI::exclude::none && m_excludeMethodMax == HCI::exclude::none && m_includeRefNum == 0 )
     {
         double teigenv;
         double tklim;
@@ -942,7 +1216,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
 
         math::syevrMem<evCalcT> mem;
 
-        if( m_excludeMethod == HCI::excludeNone && m_excludeMethodMax == HCI::excludeNone &&
+        if( m_excludeMethod == HCI::exclude::none && m_excludeMethodMax == HCI::exclude::none &&
             m_includeRefNum == 0 ) // OR RDI
         {
             klims = master_klims;
@@ -956,7 +1230,8 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         #pragma omp for // clang-format on
         for( int imno = 0; imno < this->m_Nims; ++imno )
         {
-            if( m_excludeMethod != HCI::excludeNone || m_excludeMethodMax != HCI::excludeNone || m_includeRefNum != 0 )
+            if( m_excludeMethod != HCI::exclude::none || m_excludeMethodMax != HCI::exclude::none ||
+                m_includeRefNum != 0 )
             {
                 collapseCovar<realT>( cv_cut,
                                       cv,
@@ -1030,7 +1305,6 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
     } // openmp parrallel
 
     t_worker_end = sys::get_curr_time();
-
 }
 
 template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
@@ -1067,7 +1341,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalProcess()
         this->derotate();
     }
 
-    if( this->m_combineMethod != HCI::combineMethod::none )
+    if( this->m_combineMethod != HCI:: combine::none )
     {
         std::cerr << "combining\n";
         this->combineFinim();
@@ -1085,8 +1359,8 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalProcess()
         head.append( "", fits::fitsCommentType(), "mx::KLIPreduction parameters:" );
         head.append( "", fits::fitsCommentType(), "----------------------------------------" );
 
-        head.append( "MEAN SUB METHOD", HCI::meanSubMethodStr( m_meanSubMethod ), "PCA mean subtraction method" );
-        head.append( "PIXTS NORM METHOD", HCI::pixelTSNormMethodStr( m_pixelTSNormMethod ), "Pixel TS norm method" );
+        head.append( "MEAN SUB METHOD", HCI::meanSubToStr<verboseT>( m_meanSubMethod ), "PCA mean subtraction method" );
+        head.append( "PIXTS NORM METHOD", HCI::pixelTSNormToStr<verboseT>( m_pixelTSNormMethod ), "Pixel TS norm method" );
 
         std::stringstream str;
 
@@ -1143,19 +1417,20 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalProcess()
         }
 
         head.template append<std::string>( "EXMTHDMN",
-                                           HCI::excludeMethodStr( m_excludeMethod ),
+                                           HCI::excludeToStr<verboseT>( m_excludeMethod ),
                                            "exclusion method (min)" );
+
         head.template append<realT>( "MINDPX", m_minDPx, "minimum delta (units based on EXMTHDMN)" );
 
         head.template append<std::string>( "EXMTHDMX",
-                                           HCI::excludeMethodStr( m_excludeMethodMax ),
+                                           HCI::excludeToStr<verboseT>( m_excludeMethodMax ),
                                            "exclusion method (max)" );
         head.template append<realT>( "MAXDPX", m_maxDPx, "maximum delta (units based on EXMTHDMX)" );
 
-        head.template append<std::string>( "INMTHDMX", HCI::includeMethodStr( m_includeMethod ), "inclusion method" );
+        head.template append<std::string>( "INMTHDMX", HCI::includeToStr<verboseT>( m_includeMethod ), "inclusion method" );
         head.template append<int>( "INCLREFN", m_includeRefNum, "number of images included by INMTHDMX" );
 
-        if( this->m_doWriteFinim == true && this->m_combineMethod != HCI::combineMethod::none )
+        if( this->m_doWriteFinim == true && this->m_combineMethod != HCI:: combine::none )
         {
             this->writeFinim( &head );
         }
@@ -1328,9 +1603,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::processPSFSub( const
 template <typename realT, class verboseT>
 class ADIDerotator;
 
-extern template struct KLIPreduction<float, ADIDerotator<float, verbose::vvv>, float, verbose::vvv>;
-extern template struct KLIPreduction<float, ADIDerotator<float, verbose::vvv>, double, verbose::vvv>;
-extern template struct KLIPreduction<double, ADIDerotator<double, verbose::vvv>, double, verbose::vvv>;
+extern template struct KLIPreduction<float, ADIDerotator<float, verbose::vv>, double, verbose::vv>;
 
 } // namespace improc
 } // namespace mx

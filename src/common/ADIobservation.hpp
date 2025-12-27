@@ -19,30 +19,6 @@ namespace mx
 {
 namespace improc
 {
-namespace HCI
-{
-/// Fake injection PSF file specification methods
-/** \ingroup hc_imaging_enums
- */
-enum fakeMethods
-{
-    single, ///< A single PSF is used
-    list    ///< A list of PSF files, one per input image, is used.
-};
-
-/// Get the string name of a fake injection method
-/**
- * \returns the string name corresponding to the fake injection method
- */
-std::string fakeMethodsStr( int method /**< [in] the fake injection method */ );
-
-/// Get the fake injection method from its string name
-/**
- * \returns the corresponding member of the fakeMethods enum
- */
-int fakeMethodFmStr( const std::string &method /**< [in] the fake injection method name*/ );
-
-} // namespace HCI
 
 /// Process an angular differential imaging (ADI) observation
 /** Angular differential imaging (ADI) uses sky rotation to differentiate real objects from
@@ -97,11 +73,11 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
 
     typedef _derotFunctObj derotFunctObj;
 
-    typedef HCIobservation<_realT,verboseT>::imageT imageT;
+    typedef HCIobservation<_realT, verboseT>::imageT imageT;
 
-    typedef HCIobservation<_realT,verboseT>::fitsFileT fitsFileT;
-    typedef HCIobservation<_realT,verboseT>::fitsHeaderT fitsHeaderT;
-    typedef HCIobservation<_realT,verboseT>::fitsHeaderCardT fitsHeaderCardT;
+    typedef HCIobservation<_realT, verboseT>::fitsFileT fitsFileT;
+    typedef HCIobservation<_realT, verboseT>::fitsHeaderT fitsHeaderT;
+    typedef HCIobservation<_realT, verboseT>::fitsHeaderCardT fitsHeaderCardT;
 
     derotFunctObj m_derotF;
 
@@ -113,48 +89,51 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
 
     ADIobservation();
 
+    void setupConfig( mx::app::appConfigurator &config );
+
+    void loadConfig( mx::app::appConfigurator &config );
+
     /// Read in the target files
     /** First sets up the keywords, then calls HCIobservation readFiles
      */
-    int readFiles();
+    void readFiles();
 
     /// Actions to take after the files are first read in by HCIobservation
     /** Exracts the angle keywords from the FITS headers, and checks that a valid value is found for each file.
      * Performs fake planet injectio if configured.
      *
      * \throws
-     * \returns -1 if an error occurs.
      */
-    virtual int postReadFiles();
+    virtual void postReadFiles();
 
     /// Post target coadd actions.
     /** Here updates derotation for new average values.
      */
-    virtual int postCoadd();
+    virtual void postCoadd();
 
     /// Read in the RDI files
     /** First sets up the keywords, then calls HCIobservation readRDIFiles
      */
-    int readRDIFiles();
+    void readRDIFiles();
 
     /// Post reference read actions, including fake injection
-    virtual int postRDIReadFiles();
+    virtual void postRDIReadFiles();
 
     /// Post reference coadd actions.
     /** Here updates derotation for new average values.
      */
-    virtual int postRDICoadd();
+    virtual void postRDICoadd();
 
     /// Read in already PSF-subtracted files
     /** Used to take up final processing after applying some non-klipReduce processing steps to
      * PSF-subtracted images.
      */
-    //int readPSFSub( const std::string &dir, const std::string &prefix, const std::string &ext, size_t nReductions );
+    // int readPSFSub( const std::string &dir, const std::string &prefix, const std::string &ext, size_t nReductions );
 
     /** \name Fake Planets
      * @{
      */
-    int m_fakeMethod{ HCI::single };   ///< Method for reading fake files, either HCI::single or HCI::list.
+    HCI::fake m_fakeMethod{ HCI::fake::single }; ///< Method for reading fake files, either HCI::single or HCI::list.
 
     std::string m_fakeFileName;        ///< FITS file containing the fake planet PSF to inject or a list of fake images
 
@@ -164,23 +143,25 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
     std::vector<realT> m_fakePA;       ///< Position angles(s) of the fake planet(s)
     std::vector<realT> m_fakeContrast; ///< Contrast(s) of the fake planet(s)
 
-    realT m_RDIFluxScale{ 1 };         /**< Flux scaling to apply to fake planets injected in RDI.
-                                            Would depend on the assumed spectrum in SDI.*/
-    realT m_RDISepScale{ 1 };          /**< Scaling to apply to fake planet separation in RDI.
-                                            Would be ratio of wavelengths for SDI.*/
+    realT m_fakeRDIFluxScale{ 1 };     /**< Flux scaling to apply to fake planets injected in RDI.
+                                            Depend on the assumed spectrum in SDI.*/
+    realT m_fakeRDISepScale{ 1 };      /**< Scaling to apply to fake planet separation in RDI.
+                                            This should be the ratio of wavelengths for SDI.*/
 
-    /// Inkect the fake plants
+    /// Inject the fake plants
     /**
      *  \todo should pad the fake before calling the single image version
      *  \todo throw exceptions for all errors, and switch to void
      */
-    int injectFake( eigenCube<realT> &ims,              ///< [in.out] the image cube in which to inject the fakes.
-                    std::vector<std::string> &fileList, ///< [in] a list of file paths used for per-image fake PSFs.  If
-                                                        ///< empty, then m_fakeFileName is used.
-                    derotFunctObj &derotF,
-                    realT RDIfluxScale, ///< [in] the flux scaling for RDI.  In SDI, this is from the planet spectrum.
-                    realT RDISepScale   ///< [in] the separation scale for RDI.  In SDI, this is the ratio of wavlengths
-                                        ///< after lambda/D scaling.
+    void injectFake( eigenCube<realT> &ims,              ///< [in.out] the image cube in which to inject the fakes.
+                     std::vector<std::string> &fileList, /**< [in] a list of file paths used for per-image fake PSFs. If
+                                                                   empty, then m_fakeFileName is used.*/
+                     derotFunctObj &derotF,              ///< [in] the derotation object
+                     realT RDIfluxScale,                 /**< [in] the flux scaling for RDI.  In SDI,
+                                                                   this is from the planet spectrum.*/
+                     realT RDISepScale                   /**< [in] the separation scale for RDI.
+                                                                   In SDI, this is the ratio of wavelengths
+                                                                   after lambda/D scaling. */
     );
 
     /// Inject the fake planet into a single image
@@ -188,16 +169,16 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
      *  \todo should pad the fake before this point
      *  \todo throw exceptions for all errors, and switch to void
      */
-    int injectFake( imageT &fakePSF,
-                    eigenCube<realT> &ims,
-                    int image_i,
-                    realT derotAngle,
-                    realT PA,
-                    realT sep,
-                    realT contrast,
-                    realT scale,
-                    realT RDIfluxScale,
-                    realT RDISepScale );
+    void injectFake( imageT &fakePSF,
+                     eigenCube<realT> &ims,
+                     int image_i,
+                     realT derotAngle,
+                     realT PA,
+                     realT sep,
+                     realT contrast,
+                     realT scale,
+                     realT RDIfluxScale,
+                     realT RDISepScale );
 
     /// @}
 
@@ -220,16 +201,168 @@ ADIobservation<realT, derotFunctObj, verboseT>::ADIobservation()
 {
 }
 
+template <typename realT, class derotFunctObj, class verboseT>
+void ADIobservation<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfigurator &config )
+{
+
+    m_derotF.setupConfig( config );
+
+    config.add( "adi.postMedSub",
+                "",
+                "adi.postMedSub",
+                mx::app::argType::True,
+                "adi",
+                "postMedSub",
+                false,
+                "string",
+                "If true, the median image is subtracted after post-processing, before de-rotation" );
+
+    config.add( "fake.method",
+                "",
+                "fake.method",
+                mx::app::argType::Required,
+                "fake",
+                "method",
+                false,
+                "string",
+                "How the fake PSF is specified by fileName: single, if a single PSF is used (default); or list, if "
+                "1 PSF per miage is used." );
+
+    config.add( "fake.fileName",
+                "",
+                "fake.fileName",
+                mx::app::argType::Required,
+                "fake",
+                "fileName",
+                false,
+                "string",
+                "Full path to FITS file containing the fake planet PSF to inject, or a file with a list of FITS "
+                "file paths." );
+
+    config.add( "fake.scaleFileName",
+                "",
+                "fake.scaleFileName",
+                mx::app::argType::Required,
+                "fake",
+                "scaleFileName",
+                false,
+                "string",
+                "Path to one-column text file containing a scale factor for each point in time." );
+
+    config.add( "fake.sep",
+                "",
+                "fake.sep",
+                mx::app::argType::Required,
+                "fake",
+                "sep",
+                false,
+                "vector<float>",
+                "Separation(s) of the fake planet(s) in pixels." );
+
+    config.add( "fake.PA",
+                "",
+                "fake.PA",
+                mx::app::argType::Required,
+                "fake",
+                "PA",
+                false,
+                "vector<float>",
+                "Position angles(s) of the fake planet(s)" );
+
+    config.add( "fake.contrast",
+                "",
+                "fake.contrast",
+                mx::app::argType::Required,
+                "fake",
+                "contrast",
+                false,
+                "vector<float>",
+                "Contrast(s) of the fake planet(s)" );
+
+    config.add( "fake.RDIFluxScale",
+                "",
+                "fake.RDIFluxScale",
+                mx::app::argType::Required,
+                "fake",
+                "RDIFluxScale",
+                false,
+                "vector<float>",
+                "Flux scaling for the planets injected into the RDI images" );
+
+    config.add( "fake.RDISepScale",
+                "",
+                "fake.RDISepScale",
+                mx::app::argType::Required,
+                "fake",
+                "RDISepScale",
+                false,
+                "vector<float>",
+                "Separation scaling for the planets injected into the RDI images" );
+
+    config.add( "combine.noDerotate",
+                "",
+                "combine.noDerotate",
+                mx::app::argType::True,
+                "combine",
+                "noDerotate",
+                false,
+                "bool",
+                "Do not derotate before combining." );
+}
 
 template <typename realT, class derotFunctObj, class verboseT>
-int ADIobservation<realT, derotFunctObj, verboseT>::readFiles()
+void ADIobservation<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfigurator &config )
+{
+    m_derotF.loadConfig( config );
+
+    m_RDIderotF.angleKeyword( m_derotF.m_angleKeyword );
+    m_RDIderotF.m_angleScale = m_derotF.m_angleScale;
+    m_RDIderotF.m_angleConstant = m_derotF.m_angleConstant;
+
+    config( m_postMedSub, "adi.postMedSub" );
+
+    std::string fakestr;
+    try
+    {
+        fakestr = fakeToStr<verboseT>( m_fakeMethod ); // get default
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception ) );
+    }
+
+    config( fakestr, "fake.method" );
+
+    try
+    {
+        m_fakeMethod = HCI::fakeFmStr<verboseT>( fakestr );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid fake method" ) );
+    }
+
+    config( m_fakeFileName, "fake.fileName" );
+    config( m_fakeScaleFileName, "fake.scaleFileName" );
+    config( m_fakeSep, "fake.sep" );
+    config( m_fakePA, "fake.PA" );
+    config( m_fakeContrast, "fake.contrast" );
+    config( m_fakeRDIFluxScale, "fake.RDIFluxScale" );
+    config( m_fakeRDISepScale, "fake.RDISepScale" );
+
+    bool noDer = !m_doDerotate;
+    config( noDer, "combine.noDerotate" );
+    m_doDerotate = !noDer;
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+void ADIobservation<realT, derotFunctObj, verboseT>::readFiles()
 {
     this->m_keywords.clear();
 
     if( !m_derotF.isSetup() )
     {
-        mxError( "ADIobservation::readFiles", MXE_PARAMNOTSET, "Derotator is not configured." );
-        return -1;
+        throw mx::exception<verboseT>( mx::error_t::paramnotset, "Derotator is not configured." );
     }
 
     /*----- Append the ADI keywords to propagate them if needed -----*/
@@ -239,16 +372,18 @@ int ADIobservation<realT, derotFunctObj, verboseT>::readFiles()
         this->m_keywords.push_back( m_derotF.m_keywords[i] );
     }
 
-    if( HCIobservation<realT,verboseT>::readFiles() < 0 )
+    try
     {
-        return -1;
+        HCIobservation<realT, verboseT>::readFiles();
     }
-
-    return 0;
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from readFiles" ) );
+    }
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-int ADIobservation<realT, derotFunctObj, verboseT>::postReadFiles()
+void ADIobservation<realT, derotFunctObj, verboseT>::postReadFiles()
 {
     std::vector<size_t> bad;
     mx::error_t errc = m_derotF.extractKeywords( this->m_heads, bad );
@@ -260,25 +395,26 @@ int ADIobservation<realT, derotFunctObj, verboseT>::postReadFiles()
             std::cerr << this->m_fileList[bad[n]] << " conversion failed for " << m_derotF.m_angleKeyword << "\n";
         }
 
-        mxThrowException( mx::err::invalidarg,
-                          "ADIobservation::postReadFiles",
-                          "bad derotation angles in FITS header" );
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "bad derotation angles in FITS header" );
     }
 
     if( m_fakeFileName != "" && !this->m_skipPreProcess )
     {
         std::cerr << "Injecting fakes in target images...\n";
-        if( injectFake( this->m_tgtIms, this->m_fileList, m_derotF, 1, 1 ) < 0 )
+
+        try
         {
-            return -1;
+            injectFake( this->m_tgtIms, this->m_fileList, m_derotF, 1, 1 );
+        }
+        catch( ... )
+        {
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "injecting fake" ) );
         }
     }
-
-    return 0;
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-int ADIobservation<realT, derotFunctObj, verboseT>::postCoadd()
+void ADIobservation<realT, derotFunctObj, verboseT>::postCoadd()
 {
     std::vector<size_t> bad;
     mx::error_t errc = m_derotF.extractKeywords( this->m_heads, bad );
@@ -290,23 +426,18 @@ int ADIobservation<realT, derotFunctObj, verboseT>::postCoadd()
             std::cerr << this->m_fileList[bad[n]] << " conversion failed for " << m_derotF.m_angleKeyword << "\n";
         }
 
-        mxThrowException( mx::err::invalidarg,
-                          "ADIobservation::postCoadd",
-                          "bad derotation angles in FITS header" );
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "bad derotation angles in FITS header" );
     }
-
-    return 0;
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-int ADIobservation<realT, derotFunctObj, verboseT>::readRDIFiles()
+void ADIobservation<realT, derotFunctObj, verboseT>::readRDIFiles()
 {
     this->m_RDIkeywords.clear();
 
     if( !m_RDIderotF.isSetup() )
     {
-        mxError( "ADIobservation::readRDIFiles", MXE_PARAMNOTSET, "Derotator is not configured." );
-        return -1;
+        throw mx::exception<verboseT>( mx::error_t::paramnotset, "Derotator is not configured." );
     }
 
     /*----- Append the ADI keywords to propagate them if needed -----*/
@@ -316,14 +447,18 @@ int ADIobservation<realT, derotFunctObj, verboseT>::readRDIFiles()
         this->m_RDIkeywords.push_back( m_RDIderotF.m_keywords[i] );
     }
 
-    if( HCIobservation<realT,verboseT>::readRDIFiles() < 0 )
-        return -1;
-
-    return 0;
+    try
+    {
+        HCIobservation<realT, verboseT>::readRDIFiles();
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from readRDIFiles" ) );
+    }
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-int ADIobservation<realT, derotFunctObj, verboseT>::postRDIReadFiles()
+void ADIobservation<realT, derotFunctObj, verboseT>::postRDIReadFiles()
 {
     std::vector<size_t> bad;
     mx::error_t errc = m_RDIderotF.extractKeywords( this->m_RDIheads, bad );
@@ -335,16 +470,12 @@ int ADIobservation<realT, derotFunctObj, verboseT>::postRDIReadFiles()
             std::cerr << this->m_RDIfileList[bad[n]] << " conversion failed for " << m_RDIderotF.m_angleKeyword << "\n";
         }
 
-        mxThrowException( mx::err::invalidarg,
-                          "ADIobservation::postRDIReadFiles",
-                          "bad derotation angles in FITS header" );
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "bad derotation angles in FITS header" );
     }
-
-    return 0;
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-int ADIobservation<realT, derotFunctObj, verboseT>::postRDICoadd()
+void ADIobservation<realT, derotFunctObj, verboseT>::postRDICoadd()
 {
     std::vector<size_t> bad;
     mx::error_t errc = m_RDIderotF.extractKeywords( this->m_RDIheads, bad );
@@ -356,12 +487,8 @@ int ADIobservation<realT, derotFunctObj, verboseT>::postRDICoadd()
             std::cerr << this->m_RDIfileList[bad[n]] << " conversion failed for " << m_RDIderotF.m_angleKeyword << "\n";
         }
 
-        mxThrowException( mx::err::invalidarg,
-                          "ADIobservation::postRDICoadd",
-                          "bad derotation angles in FITS header" );
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "bad derotation angles in FITS header" );
     }
-
-    return 0;
 }
 
 /*
@@ -456,11 +583,11 @@ int ADIobservation<realT, derotFunctObj, verboseT>::readPSFSub( const std::strin
 }*/
 
 template <typename realT, class derotFunctObj, class verboseT>
-int ADIobservation<realT, derotFunctObj, verboseT>::injectFake( eigenCube<realT> &ims,
-                                                        std::vector<std::string> &fileList,
-                                                        derotFunctObj &derotF,
-                                                        realT RDIFluxScale,
-                                                        realT RDISepScale )
+void ADIobservation<realT, derotFunctObj, verboseT>::injectFake( eigenCube<realT> &ims,
+                                                                 std::vector<std::string> &fileList,
+                                                                 derotFunctObj &derotF,
+                                                                 realT RDIFluxScale,
+                                                                 realT RDISepScale )
 {
     t_fake_begin = sys::get_curr_time();
 
@@ -479,17 +606,24 @@ int ADIobservation<realT, derotFunctObj, verboseT>::injectFake( eigenCube<realT>
         std::vector<realT> imS;
 
         // Read the scale file and load it into a map
-        if( ioutils::readColumns( m_fakeScaleFileName, sfileNames, imS ) != mx::error_t::noerror )
-            return -1;
+        mx::error_t errc = ioutils::readColumns( m_fakeScaleFileName, sfileNames, imS );
+
+        if( errc != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( errc, "reading fake scale file" );
+        }
 
         if( sfileNames.size() != imS.size() )
         {
-            std::cerr << "fake scale file must be two columns of: fileName scale\n";
-            exit( -1 );
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "fake scale file must be two columns of: fileName scale" );
         }
+
         std::map<std::string, realT> scales;
         for( size_t i = 0; i < sfileNames.size(); ++i )
+        {
             scales[ioutils::pathFilename( sfileNames[i].c_str() )] = imS[i];
+        }
 
         for( size_t i = 0; i < fileList.size(); ++i )
         {
@@ -499,35 +633,46 @@ int ADIobservation<realT, derotFunctObj, verboseT>::injectFake( eigenCube<realT>
             }
             else
             {
-                std::cerr << "File name not found in fakeScaleFile:\n";
-                std::cerr << ioutils::pathFilename( fileList[i].c_str() ) << "\n";
-                exit( -1 );
+                throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                               std::format( "File name not found in fakeScaleFile: {}",
+                                                            ioutils::pathFilename( fileList[i].c_str() ) ) );
             }
         }
     } // if(fakeScaleFileName != "")
 
-    if( m_fakeMethod == HCI::single )
+    if( m_fakeMethod == HCI::fake::single )
     {
-        if( ff.read( fakePSF, m_fakeFileName ) != error_t::noerror )
-            return -1;
+        mx::error_t errc = ff.read( fakePSF, m_fakeFileName );
+        if( errc != error_t::noerror )
+        {
+            throw mx::exception<verboseT>( errc, "reading fake PSF" );
+        }
     }
-
-    if( m_fakeMethod == HCI::list )
+    else if( m_fakeMethod == HCI::fake::list )
     {
-        if( ioutils::readColumns( m_fakeFileName, fakeFiles ) != mx::error_t::noerror )
-            return -1;
+        mx::error_t errc = ioutils::readColumns( m_fakeFileName, fakeFiles );
+        if( errc != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( errc, "reading fake PSF filenames" );
+        }
     }
 
     for( int i = 0; i < ims.planes(); ++i )
     {
-        if( m_fakeMethod == HCI::list )
+        if( m_fakeMethod == HCI::fake::list )
         {
-            ff.read( fakePSF, fakeFiles[i] );
+            mx::error_t errc = ff.read( fakePSF, fakeFiles[i] );
+            if( errc != error_t::noerror )
+            {
+                throw mx::exception<verboseT>( errc, std::format( "reading fake PSF {}", i ) );
+            }
         }
 
         for( size_t j = 0; j < m_fakeSep.size(); ++j )
         {
-            if( injectFake( fakePSF,
+            try
+            {
+                injectFake( fakePSF,
                             ims,
                             i,
                             derotF.derotAngle( i ),
@@ -536,35 +681,36 @@ int ADIobservation<realT, derotFunctObj, verboseT>::injectFake( eigenCube<realT>
                             m_fakeContrast[j],
                             fakeScale[j],
                             RDIFluxScale,
-                            RDISepScale ) < 0 )
-                return -1;
+                            RDISepScale );
+            }
+            catch( ... )
+            {
+                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from injectFake" ) );
+            }
         }
     }
 
     t_fake_end = sys::get_curr_time();
-
-    return 0;
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-int ADIobservation<realT, derotFunctObj, verboseT>::injectFake( imageT &fakePSF,
-                                                        eigenCube<realT> &ims,
-                                                        int image_i,
-                                                        realT derotAngle,
-                                                        realT PA,
-                                                        realT sep,
-                                                        realT contrast,
-                                                        realT scale,
-                                                        realT RDIFluxScale,
-                                                        realT RDISepScale )
+void ADIobservation<realT, derotFunctObj, verboseT>::injectFake( imageT &fakePSF,
+                                                                 eigenCube<realT> &ims,
+                                                                 int image_i,
+                                                                 realT derotAngle,
+                                                                 realT PA,
+                                                                 realT sep,
+                                                                 realT contrast,
+                                                                 realT scale,
+                                                                 realT RDIFluxScale,
+                                                                 realT RDISepScale )
 {
     // Check for correct sizing
     if( ( fakePSF.rows() < ims.rows() && fakePSF.cols() >= ims.cols() ) ||
         ( fakePSF.rows() >= ims.rows() && fakePSF.cols() < ims.cols() ) )
     {
-        mxThrowException( err::sizeerr,
-                          "ADIobservation::injectFake",
-                          "fake PSF has different dimensions and can't be sized properly" );
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "fake PSF has different dimensions and can't be sized properly" );
     }
 
     // Check if fake needs to be padded out
@@ -585,10 +731,9 @@ int ADIobservation<realT, derotFunctObj, verboseT>::injectFake( imageT &fakePSF,
 
     if( fakePSF.rows() != ims.rows() || fakePSF.cols() != ims.cols() )
     {
-        mxThrowException(
-            err::sizeerr,
-            "ADIobservation::injectFake",
-            "fake PSF has different dimensions and can't be sized properly (is it even in rows and cols?)" );
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "fake PSF has different dimensions and can't be "
+                                       "sized properly (is it even in rows and cols?)" );
     }
 
     /*** Now shift to the separation and PA, scale, apply contrast, and inject ***/
@@ -605,8 +750,6 @@ int ADIobservation<realT, derotFunctObj, verboseT>::injectFake( imageT &fakePSF,
     imageShift( shiftFake, fakePSF, dx, dy, cubicConvolTransform<realT>() );
 
     ims.image( image_i ) = ims.image( image_i ) + shiftFake * scale * RDIFluxScale * contrast;
-
-    return 0;
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -614,24 +757,27 @@ void ADIobservation<realT, derotFunctObj, verboseT>::makeMaskCube()
 {
     if( this->m_mask.rows() != this->m_Nrows || this->m_mask.cols() != this->m_Ncols )
     {
-        // clang-format off
-        std::string message = "Mask is not the same size as images.\n";
-                   message += "    Mask:   rows=" + std::to_string(this->m_mask.rows()) + "\n";
-                   message += "            cols=" + std::to_string(this->m_mask.cols()) + "\n";
-                   message += "    Images: rows=" + std::to_string(this->m_Nrows) + "\n";
-                   message += "            cols=" + std::to_string(this->m_Ncols) + "\n";
-        // clang-format on
-
-        mxThrowException( err::invalidconfig, "ADIobservation<realT, derotFunctObj>::makeMaskCube", message );
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       std::format( "Mask is not the same size as images.\n"
+                                                    "    Mask:   rows={}\n"
+                                                    "            cols={}\n"
+                                                    "    Images: rows={}\n"
+                                                    "            cols={}\n",
+                                                    this->m_mask.rows(),
+                                                    this->m_mask.cols(),
+                                                    this->m_Nrows,
+                                                    this->m_Ncols ) );
     }
 
     this->m_maskCube.resize( this->m_Nrows, this->m_Ncols, this->m_Nims );
 
-#pragma omp parallel
+    // clang-format off
+    #pragma omp parallel // clang-format on
     {
         imageT rm;
 
-#pragma omp for
+        // clang-format off
+        #pragma omp for // clang-format on
         for( int i = 0; i < this->m_Nims; ++i )
         {
             rotateMask( rm, this->m_mask, m_derotF.derotAngle( i ) );
@@ -741,15 +887,7 @@ void ADIobservation<realT, derotFunctObj, verboseT>::stdFitsHeader( fitsHeaderT 
 template <typename realT, class verboseT>
 class ADIDerotator;
 
-extern template class ADIobservation<float, ADIDerotator<float, verbose::o>, verbose::o>;
-extern template class ADIobservation<float, ADIDerotator<float, verbose::v>, verbose::v>;
 extern template class ADIobservation<float, ADIDerotator<float, verbose::vv>, verbose::vv>;
-extern template class ADIobservation<float, ADIDerotator<float, verbose::vvv>, verbose::vvv>;
-
-extern template class ADIobservation<double, ADIDerotator<double, verbose::o>, verbose::o>;
-extern template class ADIobservation<double, ADIDerotator<double, verbose::v>, verbose::v>;
-extern template class ADIobservation<double, ADIDerotator<double, verbose::vv>, verbose::vv>;
-extern template class ADIobservation<double, ADIDerotator<double, verbose::vvv>, verbose::vvv>;
 
 } // namespace improc
 } // namespace mx
