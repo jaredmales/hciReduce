@@ -8,7 +8,7 @@ using namespace mx::app;
 #include "../common/KLIPreduction.hpp"
 using namespace mx::improc;
 
-#include <libgen.h>
+//#include <libgen.h>
 
 /// A program to run the KLIP pipeline
 /**
@@ -58,8 +58,6 @@ class klipReduce : public application
     // This sets up the configuration
     void setupConfig()
     {
-        m_obs.setupConfig( config );
-
         config.add( "mode",
                     "",
                     "mode",
@@ -69,6 +67,8 @@ class klipReduce : public application
                     false,
                     "string",
                     "The mode of operation: either \"grid\" or \"normal\" (the default)" );
+
+        m_obs.setupConfig( config );
 
         config.add( "grid.centerSep",
                     "",
@@ -209,27 +209,8 @@ class klipReduce : public application
         }
     }
 
-    void printUsage()
-    {
-        fprintf( stderr, "%s: Perform a KLIP reduction using the mxlib pipeline.\n\n", invokedName.c_str() );
-        fprintf( stderr,
-                 "   usage: %s -D directory -P prefix [-E extension] -n \"x,y,z\" -r X -R x \n\n",
-                 invokedName.c_str() );
-        fprintf( stderr, "   For usage and full documentation see somewhere \n\n" );
-    }
-
-    bool m_configError{ false };
-
     void checkConfig()
     {
-
-        if( doHelp )
-        {
-            m_configError = true;
-            return;
-        }
-
-
 
         // KLIP:
 
@@ -238,31 +219,26 @@ class klipReduce : public application
             if( m_obs.m_Nmodes.size() == 0 )
             {
                 std::cerr << invokedName << ": must specify number of modes (Nmodes)\n";
-                m_configError = true;
             }
 
             if( m_obs.m_minRadius.size() == 0 )
             {
                 std::cerr << invokedName << ": must specify minimum radii of KLIP regions (minRadius)\n";
-                m_configError = true;
             }
 
             if( m_obs.m_maxRadius.size() == 0 )
             {
                 std::cerr << invokedName << ": must specify maximum radii of KLIP regions (maxRadius)\n";
-                m_configError = true;
             }
 
             if( m_obs.m_minRadius.size() != m_obs.m_maxRadius.size() )
             {
                 std::cerr << invokedName << ": number of minimum and maximum radii must be equal\n";
-                m_configError = true;
             }
 
             if( m_obs.m_minAngle.size() != m_obs.m_maxAngle.size() )
             {
                 std::cerr << invokedName << ": number of minimum and maximum angles must be equal\n";
-                m_configError = true;
             }
         }
 
@@ -274,11 +250,6 @@ class klipReduce : public application
 
     virtual int execute()
     {
-        if( m_configError )
-        {
-            printUsage();
-            return -1;
-        }
 
         if( mode == "grid" )
         {
