@@ -40,7 +40,8 @@ Follow these code style and documentation rules exactly.
 - Keep changes minimal and scoped.
 
 8) Formatting and Verification
-- Run `clang-format` on touched files.
+- Run `clang-format` on modify sections of code, or at least follow the guidance in `.clang-format`
+- Only run `clang-format` on whole files if it won't add large numbers of unrelated changes
 - Ensure docs and naming are consistent after formatting.
 - Report any places where project style is ambiguous before making assumptions.
 
