@@ -1,0 +1,9 @@
+/** \mainpage hciReduce
+ *
+ * hciReduce provides tools for reducing high-contrast imaging observations.
+ * The source is available from the
+ * <a href="https://github.com/jaredmales/hciReduce">hciReduce repository</a>.
+ *
+ * See the <a href="topics.html">User's Guide</a> for build, test, and coverage
+ * documentation.
+ */

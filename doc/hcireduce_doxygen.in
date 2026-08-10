@@ -1,0 +1,112 @@
+# Doxygen configuration for hciReduce.
+
+DOXYFILE_ENCODING       = UTF-8
+PROJECT_NAME            = hciReduce
+PROJECT_BRIEF           = "Tools for reducing high-contrast imaging observations."
+OUTPUT_DIRECTORY        = @HCIREDUCE_DOXYGEN_OUTPUT_DIRECTORY@
+
+CREATE_SUBDIRS          = NO
+OUTPUT_LANGUAGE         = English
+BRIEF_MEMBER_DESC       = YES
+REPEAT_BRIEF            = YES
+ALWAYS_DETAILED_SEC     = YES
+FULL_PATH_NAMES         = YES
+STRIP_FROM_PATH         = @CMAKE_SOURCE_DIR@/
+STRIP_FROM_INC_PATH     = @CMAKE_SOURCE_DIR@/
+JAVADOC_AUTOBRIEF       = NO
+QT_AUTOBRIEF            = NO
+MULTILINE_CPP_IS_BRIEF  = NO
+INHERIT_DOCS            = YES
+TAB_SIZE                = 4
+MARKDOWN_SUPPORT        = YES
+AUTOLINK_SUPPORT        = YES
+
+EXTRACT_ALL             = NO
+EXTRACT_PRIVATE         = NO
+EXTRACT_STATIC          = YES
+EXTRACT_LOCAL_CLASSES   = YES
+HIDE_UNDOC_MEMBERS      = NO
+HIDE_UNDOC_CLASSES      = NO
+HIDE_FRIEND_COMPOUNDS   = NO
+HIDE_IN_BODY_DOCS       = NO
+
+GENERATE_TODOLIST       = YES
+GENERATE_TESTLIST       = YES
+GENERATE_BUGLIST        = YES
+GENERATE_DEPRECATEDLIST = YES
+
+LAYOUT_FILE             = @CMAKE_SOURCE_DIR@/doc/hcireduceDoxygenLayout.xml
+CITE_BIB_FILES          = @CMAKE_SOURCE_DIR@/doc/hcireduce.bib
+
+QUIET                   = NO
+WARNINGS                = YES
+WARN_IF_UNDOCUMENTED    = YES
+WARN_IF_DOC_ERROR       = YES
+WARN_IF_INCOMPLETE_DOC  = YES
+WARN_NO_PARAMDOC        = NO
+WARN_AS_ERROR           = NO
+WARN_FORMAT             = "$file:$line: $text"
+
+INPUT                   = @CMAKE_SOURCE_DIR@/doc/main.dox \
+                          @CMAKE_SOURCE_DIR@/doc/groupdefs.dox \
+                          @CMAKE_SOURCE_DIR@/doc/testing.dox \
+                          @CMAKE_SOURCE_DIR@/doc/building_tests.dox \
+                          @CMAKE_SOURCE_DIR@/doc/coverage_report.dox \
+                          @CMAKE_SOURCE_DIR@/src \
+                          @CMAKE_SOURCE_DIR@/tests
+INPUT_ENCODING          = UTF-8
+FILE_PATTERNS           = *.hpp *.cpp *.dox *.md
+RECURSIVE               = YES
+EXCLUDE                 = @CMAKE_SOURCE_DIR@/tests/catch2 \
+                          @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css
+EXCLUDE_PATTERNS        = */build/* */build-*/* */_build/* */_build-*/*
+EXCLUDE_SYMLINKS        = NO
+
+SOURCE_BROWSER          = YES
+INLINE_SOURCES          = NO
+STRIP_CODE_COMMENTS     = NO
+REFERENCED_BY_RELATION  = YES
+REFERENCES_RELATION     = YES
+REFERENCES_LINK_SOURCE  = YES
+USE_HTAGS               = NO
+VERBATIM_HEADERS        = YES
+
+ALPHABETICAL_INDEX      = YES
+
+GENERATE_HTML           = YES
+HTML_OUTPUT             = html
+HTML_HEADER             = @CMAKE_SOURCE_DIR@/doc/hcireduce_header.html
+HTML_EXTRA_STYLESHEET   = @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css/doxygen-awesome.css \
+                          @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
+                          @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+HTML_EXTRA_FILES        = @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
+                          @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js
+HTML_COLORSTYLE         = LIGHT
+HTML_COLORSTYLE_HUE     = 20
+HTML_COLORSTYLE_SAT     = 20
+HTML_COLORSTYLE_GAMMA   = 200
+HTML_DYNAMIC_MENUS      = YES
+DISABLE_INDEX           = NO
+GENERATE_TREEVIEW       = YES
+FULL_SIDEBAR            = NO
+TREEVIEW_WIDTH          = 250
+SEARCHENGINE            = YES
+SERVER_BASED_SEARCH     = NO
+
+GENERATE_LATEX          = NO
+
+ENABLE_PREPROCESSING    = YES
+MACRO_EXPANSION         = NO
+EXPAND_ONLY_PREDEF      = NO
+SEARCH_INCLUDES         = YES
+PREDEFINED              = __DOXY_ONLY__
+
+HAVE_DOT                = NO
+CLASS_GRAPH             = YES
+COLLABORATION_GRAPH     = YES
+GROUP_GRAPHS            = YES
+INCLUDE_GRAPH           = YES
+INCLUDED_BY_GRAPH       = YES
+CALL_GRAPH              = NO
+CALLER_GRAPH            = NO
+DIRECTORY_GRAPH         = YES

@@ -4,14 +4,29 @@ cmake_policy(SET CMP0076 NEW)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include(FindPkgConfig)
-include(CheckLanguage)
 find_package(PkgConfig REQUIRED)
 
-project("hciReduce")
+project("hciReduce" LANGUAGES CXX)
 
 pkg_check_modules(MXLIB REQUIRED IMPORTED_TARGET mxlib)
-string(REPLACE ";" " " MXLIB_PC_CFLAGS "${MXLIB_CFLAGS}")
-set(CMAKE_C_FLAGS "${MXLIB_PC_CFLAGS}")
+
+option(HCIREDUCE_BUILD_TESTS "Whether or not to build hciReduce tests" OFF)
+option(HCIREDUCE_BUILD_COVERAGE "Whether or not to enable coverage instrumentation" OFF)
+set(HCIREDUCE_COVERAGE_TEST_TIMEOUT 300 CACHE STRING "CTest timeout (seconds) for the coverage target")
+option(HCIREDUCE_BUILD_DOCS "Whether or not to build Doxygen docs as part of the default build" OFF)
+
+if(HCIREDUCE_BUILD_COVERAGE)
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        message(FATAL_ERROR "HCIREDUCE_BUILD_COVERAGE currently requires GCC so lcov can read gcov data")
+    endif()
+
+    # Link this after PkgConfig::MXLIB so -O0 and -fno-fast-math override
+    # mxlib's exported optimization options in instrumented builds.
+    add_library(hcireduce-coverage-options INTERFACE)
+    target_compile_definitions(hcireduce-coverage-options INTERFACE HCIREDUCE_BUILD_COVERAGE=1)
+    target_compile_options(hcireduce-coverage-options INTERFACE --coverage -O0 -fno-fast-math)
+    target_link_options(hcireduce-coverage-options INTERFACE --coverage)
+endif()
 
 
 #######################################################################
@@ -26,3 +41,103 @@ add_subdirectory(src)
 #                            Tests
 #
 #######################################################################
+
+if(HCIREDUCE_BUILD_TESTS)
+    include(CTest)
+    add_subdirectory(tests)
+else()
+    add_subdirectory(tests EXCLUDE_FROM_ALL)
+endif()
+
+add_custom_target(tests DEPENDS hcireduceTests)
+
+#######################################################################
+#
+#                    Documentation and Coverage
+#
+#######################################################################
+
+set(HCIREDUCE_COVERAGE_BUILD_DIR ${CMAKE_BINARY_DIR}/coverage-build)
+set(HCIREDUCE_COVERAGE_INFO ${CMAKE_BINARY_DIR}/coverage.info)
+set(HCIREDUCE_COVERAGE_FILTERED_INFO ${CMAKE_BINARY_DIR}/coverage_filtered.info)
+set(HCIREDUCE_DOC_OUTPUT_DIR ${CMAKE_BINARY_DIR}/doc)
+set(HCIREDUCE_DOC_HTML_DIR ${HCIREDUCE_DOC_OUTPUT_DIR}/html)
+set(HCIREDUCE_COVERAGE_REPORT_DIR ${HCIREDUCE_DOC_HTML_DIR}/coverage)
+
+find_package(Doxygen QUIET)
+
+if(Doxygen_FOUND)
+    set(HCIREDUCE_DOXYGEN_CONFIG_IN ${CMAKE_SOURCE_DIR}/doc/hcireduce_doxygen.in)
+    set(HCIREDUCE_DOXYGEN_CONFIG ${CMAKE_BINARY_DIR}/hcireduce_doxygen)
+    set(HCIREDUCE_DOXYGEN_OUTPUT_DIRECTORY ${HCIREDUCE_DOC_OUTPUT_DIR})
+
+    configure_file(${HCIREDUCE_DOXYGEN_CONFIG_IN} ${HCIREDUCE_DOXYGEN_CONFIG} @ONLY)
+
+    if(HCIREDUCE_BUILD_DOCS)
+        set(_hcireduce_docs_all ALL)
+    else()
+        set(_hcireduce_docs_all)
+    endif()
+
+    add_custom_target(docs ${_hcireduce_docs_all}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${HCIREDUCE_DOC_OUTPUT_DIR}
+        COMMAND ${DOXYGEN_EXECUTABLE} ${HCIREDUCE_DOXYGEN_CONFIG}
+        COMMAND ${CMAKE_COMMAND} -DCOVERAGE_REPORT_DIR=${HCIREDUCE_COVERAGE_REPORT_DIR} -DPROJECT_NAME=hciReduce -P ${CMAKE_SOURCE_DIR}/cmake/ensure_coverage_placeholder.cmake
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/doc
+        DEPENDS ${HCIREDUCE_DOXYGEN_CONFIG}
+                ${CMAKE_SOURCE_DIR}/doc/hcireduce_header.html
+                ${CMAKE_SOURCE_DIR}/doc/hcireduceDoxygenLayout.xml
+                ${CMAKE_SOURCE_DIR}/doc/hcireduce.bib
+                ${CMAKE_SOURCE_DIR}/doc/main.dox
+                ${CMAKE_SOURCE_DIR}/doc/groupdefs.dox
+                ${CMAKE_SOURCE_DIR}/doc/testing.dox
+                ${CMAKE_SOURCE_DIR}/doc/building_tests.dox
+                ${CMAKE_SOURCE_DIR}/doc/coverage_report.dox
+                ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome.css
+                ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-sidebar-only.css
+                ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+                ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js
+                ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js
+                ${CMAKE_SOURCE_DIR}/cmake/ensure_coverage_placeholder.cmake
+        USES_TERMINAL
+        VERBATIM
+    )
+else()
+    message(WARNING "doxygen not found. The docs target will not be available.")
+endif()
+
+find_program(HCIREDUCE_LCOV_EXECUTABLE lcov)
+find_program(HCIREDUCE_GENHTML_EXECUTABLE genhtml)
+
+if(HCIREDUCE_LCOV_EXECUTABLE AND HCIREDUCE_GENHTML_EXECUTABLE)
+    add_custom_target(coverage
+        COMMAND ${CMAKE_COMMAND} -S ${CMAKE_SOURCE_DIR} -B ${HCIREDUCE_COVERAGE_BUILD_DIR} -G "${CMAKE_GENERATOR}" -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DHCIREDUCE_BUILD_TESTS=ON -DHCIREDUCE_BUILD_COVERAGE=ON
+        COMMAND ${CMAKE_COMMAND} --build ${HCIREDUCE_COVERAGE_BUILD_DIR} --target hcireduceTests -j
+        COMMAND ${HCIREDUCE_LCOV_EXECUTABLE} --directory ${HCIREDUCE_COVERAGE_BUILD_DIR} --zerocounters
+        COMMAND ${CMAKE_CTEST_COMMAND} --test-dir ${HCIREDUCE_COVERAGE_BUILD_DIR} --output-on-failure --timeout ${HCIREDUCE_COVERAGE_TEST_TIMEOUT}
+        COMMAND ${HCIREDUCE_LCOV_EXECUTABLE} --directory ${HCIREDUCE_COVERAGE_BUILD_DIR} --capture --output-file ${HCIREDUCE_COVERAGE_INFO}
+        COMMAND ${HCIREDUCE_LCOV_EXECUTABLE} --remove ${HCIREDUCE_COVERAGE_INFO} ${CMAKE_SOURCE_DIR}/tests/* /usr/* /sys/* /tty/* --ignore-errors unused,unused --ignore-errors inconsistent,inconsistent --output-file ${HCIREDUCE_COVERAGE_FILTERED_INFO}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${HCIREDUCE_COVERAGE_REPORT_DIR}
+        COMMAND ${HCIREDUCE_GENHTML_EXECUTABLE} ${HCIREDUCE_COVERAGE_FILTERED_INFO} --output-directory ${HCIREDUCE_COVERAGE_REPORT_DIR} --title hciReduce --hierarchical --merge-aliases --suppress-aliases --filter function --demangle-cpp --css-file ${CMAKE_SOURCE_DIR}/tests/coverage/gcov.css
+        USES_TERMINAL
+        VERBATIM
+    )
+    if(TARGET docs)
+        add_dependencies(coverage docs)
+    endif()
+else()
+    message(WARNING "lcov/genhtml not found. The coverage target will not be available.")
+endif()
+
+add_custom_target(coverage_clean
+    COMMAND ${CMAKE_COMMAND} -E rm -f ${HCIREDUCE_COVERAGE_INFO}
+    COMMAND ${CMAKE_COMMAND} -E rm -f ${HCIREDUCE_COVERAGE_FILTERED_INFO}
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${HCIREDUCE_COVERAGE_REPORT_DIR}
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${HCIREDUCE_COVERAGE_BUILD_DIR}
+)
+
+if(TARGET docs)
+    add_custom_target(docs_clean
+        COMMAND ${CMAKE_COMMAND} -E rm -rf ${HCIREDUCE_DOC_OUTPUT_DIR}
+    )
+endif()

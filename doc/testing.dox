@@ -1,0 +1,8 @@
+/** \addtogroup hcireduce_testing
+ * @{
+ *
+ * This section documents how to build and run the hciReduce tests and how to
+ * generate coverage reports.
+ *
+ * @}
+ */

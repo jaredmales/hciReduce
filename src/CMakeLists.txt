@@ -29,6 +29,9 @@ target_include_directories(objlib PUBLIC "${PROJECT_SOURCE_DIR}")
 add_library(hcireduce-shared SHARED $<TARGET_OBJECTS:objlib>)
 add_library(hcireduce-static STATIC $<TARGET_OBJECTS:objlib>)
 
+target_include_directories(hcireduce-shared PUBLIC "${PROJECT_SOURCE_DIR}")
+target_include_directories(hcireduce-static PUBLIC "${PROJECT_SOURCE_DIR}")
+
 #This makes it so we have libhcireduce.so and libhcireduce.a, without the -shared/-static
 SET_TARGET_PROPERTIES(hcireduce-shared PROPERTIES OUTPUT_NAME hcireduce CLEAN_DIRECT_OUTPUT 1)
 SET_TARGET_PROPERTIES(hcireduce-static PROPERTIES OUTPUT_NAME hcireduce CLEAN_DIRECT_OUTPUT 1)
@@ -39,7 +42,6 @@ add_executable(klipReduce)
 target_sources(klipReduce PRIVATE "apps/klipReduce.cpp")
 
 target_include_directories(klipReduce PUBLIC "${PROJECT_SOURCE_DIR}")
-add_subdirectory("common")
 
 target_link_libraries(objlib PUBLIC PkgConfig::MXLIB)
 target_link_libraries(hcireduce-shared PUBLIC PkgConfig::MXLIB)
@@ -47,9 +49,14 @@ target_link_libraries(hcireduce-static PUBLIC PkgConfig::MXLIB)
 
 target_link_libraries(klipReduce PUBLIC hcireduce-shared)
 
+if(TARGET hcireduce-coverage-options)
+    target_link_libraries(objlib PUBLIC hcireduce-coverage-options)
+    target_link_libraries(hcireduce-shared PUBLIC hcireduce-coverage-options)
+    target_link_libraries(hcireduce-static PUBLIC hcireduce-coverage-options)
+    target_link_libraries(klipReduce PUBLIC hcireduce-coverage-options)
+endif()
+
 install(TARGETS hcireduce-shared DESTINATION lib)
 install(TARGETS hcireduce-static DESTINATION lib)
 install(FILES ${libheaders} DESTINATION include/hcireduce)
 install(TARGETS klipReduce)
-
-

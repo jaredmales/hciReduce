@@ -1,3 +1,22 @@
+/** \defgroup hcireduce hciReduce
+  * High-contrast imaging reduction tools and project documentation.
+  */
+
+/** \defgroup genastro Astronomical Data Processing
+  * Astronomical data-processing topics used by hciReduce.
+  * \ingroup hcireduce
+  */
+
+/** \defgroup image_processing Image Processing
+  * Image-processing topics used by hciReduce.
+  * \ingroup hcireduce
+  */
+
+/** \defgroup image_processing_files Image Processing Files
+  * Source files implementing image-processing tools.
+  * \ingroup image_processing
+  */
+
 /** \defgroup hc_imaging High Contrast Imaging
   * Tools for astronomical high contrast image processing.
   * \ingroup genastro
@@ -12,4 +31,25 @@
 /** \defgroup hc_imaging_files High Contrast Imaging Files
   * Source files for High Contrast Imaging.
   * \ingroup hc_imaging
+  */
+
+/** \defgroup hcireduce_testing Testing
+  * Test, coverage, and verification documentation.
+  * \ingroup hcireduce
+  */
+
+/** \defgroup testing_building Building Tests
+  * \ingroup hcireduce_testing
+  */
+
+/** \defgroup testing_coverage Coverage Report
+  * \ingroup hcireduce_testing
+  */
+
+/** \defgroup unit_tests Unit Tests
+  * \ingroup hcireduce_testing
+  */
+
+/** \defgroup HCIobservation_unit_tests HCIobservation Unit Tests
+  * \ingroup unit_tests
   */

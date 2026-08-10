@@ -61,7 +61,8 @@ Follow these code style and documentation rules exactly.
 - Include the primary user prompt verbatim (or a faithful condensed version if it is extremely long or from a planning file).
 
 12) Unit Test Documentation
-- Add a brief Doxygen block immediately before every Catch2 `TEST_CASE` or `SCENARIO`.
+- Use Catch2 `TEST_CASE` for all top-level tests; do not use `SCENARIO`.
+- Add a brief Doxygen block immediately before every Catch2 `TEST_CASE`.
 - State the behavior being verified and identify the real production API under test.
 - Let Doxygen discover real calls in the test body so the test appears in each production API's `Referenced by` list.
 - Do not use `\test` or prose-only `\ref` commands to manufacture test-to-API links.
@@ -72,6 +73,10 @@ Follow these code style and documentation rules exactly.
 - Guard reference-only code with `#ifdef __DOXY_ONLY__` so it need not compile, and use raw calls or member references that Doxygen can add to the production symbol's `Referenced by` list.
 - Hide harness-only helpers from generated documentation with `\cond` and `\endcond` when they would dominate or obscure production API links.
 - Disable `clang-format` around non-compiling Doxygen-only reference blocks when necessary.
+
+14) mxlib Coverage Gate
+- Whenever you edit a function containing one or more calls to mxlib APIs, verify in mxlib's current LCOV report that every mxlib API called by that function has 100% executable-line coverage.
+- If any called API is below 100%, explicitly report the coverage gap and add a concrete follow-up under `Known non-blocking ownership follow-ups` in `agents/plans/mxlib_cleanup.md`.
 
 When you finish:
 - Summarize what changed.
