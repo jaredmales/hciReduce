@@ -44,12 +44,12 @@ Note: a code review is in-scope, and this includes any identified issues with mx
 Implement the phases in order.  A defect exposed by a focused test should be fixed before adding a broader test that
 depends on the same behavior.
 
-### Phase 0: harness and contracts
+### Phase 0: harness and contracts [complete]
 
-- Add a `HCIobservation<float, mx::verbose::vv>` fixture exposing only the protected configuration/data needed by a
+- [x] Add a `HCIobservation<float, mx::verbose::vv>` fixture exposing only the protected configuration/data needed by a
   given test, plus helpers for tiny FITS cubes, FITS headers, file lists, quality tables, and weight tables.
-- Pin OpenMP to one thread for numerical unit tests; add explicit one-thread-versus-many determinism coverage later.
-- Decide the following contracts before encoding assertions:
+- [x] Pin OpenMP to one thread for numerical unit tests; add explicit one-thread-versus-many determinism coverage later.
+- [x] Decide the following contracts before encoding assertions:
   - pixel time-series `rms` normalization uses root-mean-square (denominator `N`) or sample standard deviation
     (denominator `N-1`);
     ANSWER: use rms, N.
@@ -62,25 +62,25 @@ depends on the same behavior.
   - even median-USM widths are rejected or normalized to an odd kernel size (recommended: reject explicitly).
     ANSWER: we should allow even widths, and handle the median by averaging the two central values.  mxlib should be updated if needed.
 
-### Phase 1: configuration, lists, and pure operations
+### Phase 1: configuration, lists, and pure operations [complete]
 
-- `setupConfig` / `loadConfig`: verify defaults, all keys, valid and invalid enum strings, numeric date units, boolean
+- [x] `setupConfig` / `loadConfig`: verify defaults, all keys, valid and invalid enum strings, numeric date units, boolean
   option types, mask/skip flags, thresholds, and output settings.  Verify duplicate or incorrectly typed option
   declarations are rejected by the test expectations.
-- `load_fileList` / `load_RDIfileList`: verify sorted directory scans by prefix/extension; list-file order and clearing;
+- [x] `load_fileList` / `load_RDIfileList`: verify sorted directory scans by prefix/extension; list-file order and clearing;
   target and RDI relative-path prefixing; missing inputs; repeated loads and state reset.  Include a regression proving
   RDI loading neither mutates the target list nor leaves RDI paths relative.
-- `threshold`: cover below/equal/above values, stable order, basename matching, missing files/entries, malformed and
+- [x] `threshold`: cover below/equal/above values, stable order, basename matching, missing files/entries, malformed and
   duplicate rows, and the documented `qualityThreshold <= 0` disabled behavior.
-- `readWeights`: cover filename reordering, normalization (`[1,3] -> [0.25,0.75]`), missing/duplicate entries,
+- [x] `readWeights`: cover filename reordering, normalization (`[1,3] -> [0.25,0.75]`), missing/duplicate entries,
   insufficient rows, and zero/non-finite sums.
-- `preProcess_meanSub`: cover `none`, known mean-image and median-image cubes, mask reapplication, and invalid methods.
-- `preProcess_pixelTSNorm`: cover a known one-pixel series, zero variance, masked pixels, one-plane finite behavior,
+- [x] `preProcess_meanSub`: cover `none`, known mean-image and median-image cubes, mask reapplication, and invalid methods.
+- [x] `preProcess_pixelTSNorm`: cover a known one-pixel series, zero variance, masked pixels, one-plane finite behavior,
   and the not-implemented sigma-clipped path.
-- `coaddImages`: cover disabled/no-op cases; mean and median; exact count and time boundaries; both limits together;
+- [x] `coaddImages`: cover disabled/no-op cases; mean and median; exact count and time boundaries; both limits together;
   final remainder groups; two-frame boundary cases; averaged MJD/keywords; start/end/delta/history cards; unrelated
   header provenance; no-date count-only coadds; invalid methods and mismatched metadata vectors; and RDI provenance.
-- `combineFinim`: cover `none`, mean, median, sigma mean, documented non-positive-sigma fallback, normalized weights,
+- [x] `combineFinim`: cover `none`, mean, median, sigma mean, documented non-positive-sigma fallback, normalized weights,
   masks and the exact `minGoodFract` boundary, all-masked pixels, multiple reductions, and empty/mismatched cubes.
 
 ### Phase 2: FITS ingestion and masks

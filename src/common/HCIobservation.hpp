@@ -10,9 +10,12 @@
 #define __HCIobservation_hpp__
 
 #include <vector>
+#include <algorithm>
 #include <map>
 #include <string>
 #include <fstream>
+#include <cmath>
+#include <utility>
 
 #include <sys/stat.h>
 
@@ -357,7 +360,7 @@ struct HCIobservation
      * -# symmetric median unsharp mask (m_preProcess_gaussUSM_fwhm)
      * -# symmetric Gaussian unsharp mask (m_preProcess_gaussUSM_fwhm)
      * -# mask applied (enabled by m_preProcess_mask)
-     * -# azimuthal unsharp mask (m_preProcess_azUSM_azW, and m_preProcess_azUSM_radW)
+     * -# azimuthal unsharp mask (m_preProcess_azUSM_azHalfWidth and m_preProcess_azUSM_radHalfWidth)
      * -# mask applied (enabled by m_preProcess_mask)
      * -# mean subtraction (enabled by m_preProcess_meanSubMethod)
      * -# mask applied (enabled by m_preProcess_mask)
@@ -373,20 +376,20 @@ struct HCIobservation
 
     bool m_preProcess_subradprof{ false };  ///< If true, a radial profile is subtracted from each image.
 
-    /// Azimuthal boxcar width for azimuthal unsharp mask [pixels]
+    /// Azimuthal boxcar half-width for azimuthal unsharp mask [pixels]
     /** If this is 0 then azimuthal-USM is not performed.
      */
-    realT m_preProcess_azUSM_azW{ 0 };
+    realT m_preProcess_azUSM_azHalfWidth{ 0 };
 
     /// Maximum azimuthal boxcar width for azimuthal unsharp mask [degrees]
     /** Limits width close to center, preventing wrap-around.  Default is 45 degrees.  Set to 0 for no maximum.
      */
     realT m_preProcess_azUSM_maxAz{ 45 };
 
-    /// Radial boxcar width for azimuthal unsharp mask [pixels]
+    /// Radial boxcar half-width for azimuthal unsharp mask [pixels]
     /** If this is 0 then azimuthal-USM is not performed.
      */
-    realT m_preProcess_azUSM_radW{ 0 };
+    realT m_preProcess_azUSM_radHalfWidth{ 0 };
 
     /// Kernel full-width for symmetric box median unsharp mask (USM)
     /** USM is not performed if this is 0.
@@ -432,9 +435,11 @@ struct HCIobservation
     /// Default c'tor
     HCIobservation();
 
-    int setupConfig( mx::app::appConfigurator &config );
+    /// Register this observation's configuration options.
+    int setupConfig( mx::app::appConfigurator &config /**< [in.out] application configuration manager */ );
 
-    int loadConfig( mx::app::appConfigurator &config );
+    /// Load this observation's state from registered configuration values.
+    int loadConfig( mx::app::appConfigurator &config /**< [in] populated application configuration manager */ );
 
   protected:
     /// Load the file list (internal worker)
@@ -561,13 +566,15 @@ struct HCIobservation
      */
 
     /// Coadd the images
-    void coaddImages( HCI::coadd coaddMethod,
-                      int coaddMaxImno,
-                      int coaddMaxTime,
-                      std::vector<std::string> &coaddKeywords,
-                      std::vector<double> &imageMJD,
-                      std::vector<fitsHeaderT> &heads,
-                      eigenCube<realT> &ims );
+    void coaddImages( HCI::coadd coaddMethod,                        /**< [in] image combination method */
+                      int coaddMaxImno,                              /**< [in] maximum images per output group */
+                      realT coaddMaxTime,                            /**< [in] maximum group duration in seconds */
+                      const std::vector<std::string> &coaddKeywords, /**< [in] numeric header cards to average */
+                      const std::vector<std::string> &fileList,      /**< [in] filenames for HISTORY provenance */
+                      const std::string &dateKeyword,                /**< [in] date card name, or empty for no dates */
+                      std::vector<double> &imageMJD,                 /**< [in.out] image dates in MJD */
+                      std::vector<fitsHeaderT> &heads,               /**< [in.out] per-image FITS headers */
+                      eigenCube<realT> &ims /**< [in.out] image cube */ );
 
     ///@} -- coadding
 
@@ -855,11 +862,11 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "input.dateUnit",
                 "",
                 "input.dateUnit",
-                mx::app::argType::True,
+                mx::app::argType::Required,
                 "input",
                 "dateUnit",
                 false,
-                "bool",
+                "float",
                 "If the date is not ISO 8601, this specifies the conversion to Julian Days (e.g. seconds to days)" );
 
     config.add( "input.imSize",
@@ -990,11 +997,11 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "rdi.dateUnit",
                 "",
                 "rdi.dateUnit",
-                mx::app::argType::True,
+                mx::app::argType::Required,
                 "rdi",
                 "dateUnit",
                 false,
-                "bool",
+                "float",
                 "If the reference image date is not ISO 8601, this specifies the conversion to Julian Days (e.g. "
                 "seconds to days).  Default is to follow the main input.dateUnits." );
 
@@ -1013,7 +1020,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "rdi.useInputMask",
                 "",
                 "rdi.useInputMask",
-                mx::app::argType::Required,
+                mx::app::argType::True,
                 "rdi",
                 "useInputMask",
                 false,
@@ -1089,7 +1096,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 "preProcess",
                 "mask",
                 false,
-                "string",
+                "bool",
                 "Determines if mask is applied for pre-processing." );
 
     config.add( "preProcess.subradprof",
@@ -1102,16 +1109,17 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 "bool",
                 "If true, the radial profile is subtracted from each image." );
 
-    config.add( "preProcess.azUSM_azW",
+    config.add( "preProcess.azUSM_azHalfWidth",
                 "",
-                "preProcess.azUSM_azW",
+                "preProcess.azUSM_azHalfWidth",
                 mx::app::argType::Required,
                 "preProcess",
-                "azUSM_azW",
+                "azUSM_azHalfWidth",
                 false,
                 "float",
-                "The azimuth USM boxcar azimuthal width in pixels.  Enabled if both azW and radW are non-zero." );
+                "The azimuth USM boxcar azimuthal half-width in pixels. Enabled when both half-widths are non-zero." );
 
+    // Deprecated compatibility alias. The explicitly named half-width key wins when both are set.
     config.add( "preProcess.azUSM_azW",
                 "",
                 "preProcess.azUSM_azW",
@@ -1120,7 +1128,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 "azUSM_azW",
                 false,
                 "float",
-                "The azimuth USM boxcar azimuthal width in pixels.  Enabled if both azW and radW are non-zero." );
+                "Deprecated alias for preProcess.azUSM_azHalfWidth." );
 
     config.add( "preProcess.azUSM_maxAz",
                 "",
@@ -1133,6 +1141,16 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 "Maximum azimuthal boxcar width for azimuthal unsharp mask in degrees. Limits width close to center, "
                 "preventing wrap-around.  Default is 45 degrees.  Set to 0 for no maximum." );
 
+    config.add( "preProcess.azUSM_radHalfWidth",
+                "",
+                "preProcess.azUSM_radHalfWidth",
+                mx::app::argType::Required,
+                "preProcess",
+                "azUSM_radHalfWidth",
+                false,
+                "float",
+                "The azimuth USM boxcar radial half-width in pixels. Enabled when both half-widths are non-zero." );
+
     config.add( "preProcess.azUSM_radW",
                 "",
                 "preProcess.azUSM_radW",
@@ -1141,7 +1159,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 "azUSM_radW",
                 false,
                 "float",
-                "The azimuth USM boxcar radial width in pixels.  Enabled if both azW and radW are non-zero." );
+                "Deprecated alias for preProcess.azUSM_radHalfWidth." );
 
     config.add( "preProcess.medianUSM_fwhm",
                 "",
@@ -1150,7 +1168,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 "preProcess",
                 "medianUSM_fwhm",
                 false,
-                "float",
+                "int",
                 "The median USM kernel full-width at half max.  Enabled if non-zero." );
 
     config.add( "preProcess.gaussUSM_fwhm",
@@ -1182,7 +1200,17 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 false,
                 "string",
                 "The pixel time-series normalization method during pre-processing. "
-                "Options are none, rms, rsmSigmaClipped." );
+                "Options are none, rms, rmsSigmaClipped." );
+
+    config.add( "preProcess.pixelTSSigma",
+                "",
+                "preProcess.pixelTSSigma",
+                mx::app::argType::Required,
+                "preProcess",
+                "pixelTSSigma",
+                false,
+                "float",
+                "Sigma-clipping threshold for pixel time-series RMS normalization." );
 
     config.add( "preProcess.outputPrefix",
                 "",
@@ -1360,9 +1388,11 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
     config( m_preProcess_beforeCoadd, "preProcess.beforeCoadd" );
     config( m_preProcess_mask, "preProcess.mask" );
     config( m_preProcess_subradprof, "preProcess.subradprof" );
-    config( m_preProcess_azUSM_azW, "preProcess.azUSM_azW" );
+    config( m_preProcess_azUSM_azHalfWidth, "preProcess.azUSM_azW" );
+    config( m_preProcess_azUSM_azHalfWidth, "preProcess.azUSM_azHalfWidth" );
     config( m_preProcess_azUSM_maxAz, "preProcess.azUSM_maxAz" );
-    config( m_preProcess_azUSM_radW, "preProcess.azUSM_radW" );
+    config( m_preProcess_azUSM_radHalfWidth, "preProcess.azUSM_radW" );
+    config( m_preProcess_azUSM_radHalfWidth, "preProcess.azUSM_radHalfWidth" );
     config( m_preProcess_medianUSM_fwhm, "preProcess.medianUSM_fwhm" );
     config( m_preProcess_gaussUSM_fwhm, "preProcess.gaussUSM_fwhm" );
 
@@ -1409,6 +1439,7 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
     }
 
     config( ptsnm, "preProcess.pixelTSNormMethod" );
+    config( m_pixelTSSigma, "preProcess.pixelTSSigma" );
 
     try
     {
@@ -1468,10 +1499,10 @@ mx::error_t HCIobservation<_realT, verboseT>::load_fileList( std::vector<std::st
                                                              const std::string &prefix,
                                                              const std::string &extension )
 {
+    fileList.clear();
+
     if( fileListFile != "" )
     {
-        fileList.clear(); // otherwise readColumns appends
-
         mx::error_t errc = ioutils::readColumns<mx::ioutils::readColSpaceDelim, verboseT>( fileListFile, fileList );
         if( errc != mx::error_t::noerror )
         {
@@ -1486,7 +1517,7 @@ mx::error_t HCIobservation<_realT, verboseT>::load_fileList( std::vector<std::st
                 dir += '/';
             }
 
-            for( auto &&fpath : m_fileList )
+            for( auto &&fpath : fileList )
             {
                 fpath = dir + fpath;
             }
@@ -1511,6 +1542,7 @@ mx::error_t HCIobservation<_realT, verboseT>::load_fileList()
 {
     mx::error_t errc = load_fileList( m_fileList, m_fileListFile, m_directory, m_prefix, m_extension );
     m_filesDeleted = false;
+    m_filesRead = false;
 
     if( errc != mx::error_t::noerror )
     {
@@ -1524,6 +1556,7 @@ mx::error_t HCIobservation<_realT, verboseT>::load_RDIfileList()
 {
     mx::error_t errc = load_fileList( m_RDIfileList, m_RDIfileListFile, m_RDIdirectory, m_RDIprefix, m_RDIextension );
     m_RDIfilesDeleted = false;
+    m_RDIfilesRead = false;
 
     if( errc != mx::error_t::noerror )
     {
@@ -1764,6 +1797,8 @@ void HCIobservation<realT, verboseT>::readFiles()
                              m_coaddMaxImno,
                              m_coaddMaxTime,
                              m_coaddKeywords,
+                             m_fileList,
+                             m_dateKeyword,
                              m_imageMJD,
                              m_heads,
                              m_tgtIms );
@@ -2014,6 +2049,8 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
                              m_coaddMaxImno,
                              m_coaddMaxTime,
                              m_coaddKeywords,
+                             m_RDIfileList,
+                             m_RDIdateKeyword,
                              m_RDIimageMJD,
                              m_RDIheads,
                              m_refIms );
@@ -2071,23 +2108,43 @@ void HCIobservation<_realT, verboseT>::threshold( std::vector<std::string> &file
                                                   const std::string &qualityFile,
                                                   realT qualityThreshold )
 {
+    if( qualityThreshold <= 0 )
+    {
+        return;
+    }
+
     if( qualityFile == "" )
     {
         throw mx::exception<verboseT>( mx::error_t::paramnotset, "qualityFile not set" );
     }
 
-    int origsize = fileList.size();
-
     std::vector<std::string> qfileNames;
     std::vector<realT> imQ;
 
     // Read the quality file and load it into a map
-    ioutils::readColumns<mx::ioutils::readColSpaceDelim, verboseT>( qualityFile, qfileNames, imQ );
+    mx::error_t errc = ioutils::readColumns<mx::ioutils::readColSpaceDelim, verboseT>( qualityFile, qfileNames, imQ );
+    if( errc != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( errc, "error reading quality file " + qualityFile );
+    }
+
+    if( qfileNames.size() != imQ.size() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "quality file columns have different lengths" );
+    }
 
     std::map<std::string, realT> quality;
     for( size_t i = 0; i < qfileNames.size(); ++i )
     {
-        quality[ioutils::pathFilename( qfileNames[i].c_str() )] = imQ[i];
+        std::string fname = ioutils::pathFilename( qfileNames[i].c_str() );
+        if( !std::isfinite( imQ[i] ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "non-finite quality for filename " + fname );
+        }
+        if( !quality.emplace( fname, imQ[i] ).second )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "duplicate quality for filename " + fname );
+        }
     }
 
     realT q;
@@ -2129,207 +2186,169 @@ void HCIobservation<_realT, verboseT>::threshold( std::vector<std::string> &file
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::coaddImages( HCI::coadd coaddMethod,
                                                     int coaddMaxImno,
-                                                    int coaddMaxTime,
-                                                    std::vector<std::string> &coaddKeywords,
+                                                    realT coaddMaxTime,
+                                                    const std::vector<std::string> &coaddKeywords,
+                                                    const std::vector<std::string> &fileList,
+                                                    const std::string &dateKeyword,
                                                     std::vector<double> &imageMJD,
                                                     std::vector<fitsHeaderT> &heads,
                                                     eigenCube<realT> &ims )
 {
-    std::cerr << "***************************************************************\n";
-    std::cerr << "                       *** WARNING ***                         \n";
-    std::cerr << "       coadding is poorly tested.  proceed with caution.       \n";
-    std::cerr << "***************************************************************\n";
-
-    // Validate setup
-    if( coaddMaxImno <= 0 && coaddMaxTime <= 0 )
-        return;
-
-    // Validate combine method
-    if( coaddMethod == HCI::coadd::none )
+    if( coaddMethod == HCI::coadd::none || ( coaddMaxImno <= 0 && coaddMaxTime <= 0 ) )
     {
         return;
     }
 
-    int Nims = ims.planes();
-    int Nrows = ims.rows();
-    int Ncols = ims.cols();
+    if( coaddMethod != HCI::coadd::mean && coaddMethod != HCI::coadd::median )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid image coadd method" );
+    }
+
+    const int inputImages = ims.planes();
+    const int inputRows = ims.rows();
+    const int inputCols = ims.cols();
+    if( inputImages <= 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "cannot coadd an empty image cube" );
+    }
+    if( fileList.size() != static_cast<size_t>( inputImages ) || heads.size() != static_cast<size_t>( inputImages ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "coadd filenames and headers must match the image count" );
+    }
+
+    const bool haveDates = !imageMJD.empty();
+    if( haveDates && imageMJD.size() != static_cast<size_t>( inputImages ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "coadd date count must match the image count" );
+    }
+    if( coaddMaxTime > 0 && !haveDates )
+    {
+        throw mx::exception<verboseT>( mx::error_t::paramnotset, "time-limited coadding requires image dates" );
+    }
+    if( haveDates )
+    {
+        for( size_t index = 0; index < imageMJD.size(); ++index )
+        {
+            if( !std::isfinite( imageMJD[index] ) || ( index > 0 && imageMJD[index] < imageMJD[index - 1] ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               "coadd dates must be finite and nondecreasing" );
+            }
+        }
+    }
 
     t_coadd_begin = sys::get_curr_time();
 
-    std::vector<imageT> coadds;
-    std::vector<std::vector<std::string>> coaddFileNames;
-
-    // We do all math here in double, to avoid losing precision
-    std::vector<double> avgMJD;
-    std::vector<double> startMJD;
-    std::vector<double> endMJD;
-
-    std::vector<std::vector<double>> avgVals;
-    std::vector<std::vector<double>> startVals;
-    std::vector<std::vector<double>> endVals;
-
-    // Index range of images for next coadd
-    int im0, imF;
-    im0 = 0;
-    imF = 1;
-
-    // Accumulate images to coadd into a cube
-    eigenCube<realT> imsToCoadd;
-
-    // The filenames of the images included in the coadd
-    std::vector<std::string> imsCoadded;
-
-    // Temporary for combination.
-    imageT coadd;
-
-    // Accumulate values
-    double initMJD;
-
-    std::vector<double> initVals;
-    initVals.resize( coaddKeywords.size() );
-
-    std::vector<double> startVal;
-    startVal.resize( coaddKeywords.size() );
-
-    std::vector<double> endVal;
-    endVal.resize( coaddKeywords.size() );
-
-    while( im0 < Nims )
+    std::vector<std::pair<int, int>> ranges;
+    for( int begin = 0; begin < inputImages; )
     {
-        // Initialize the accumulators
-        initMJD = imageMJD[im0];
-        startMJD.push_back( initMJD );
-        endMJD.push_back( initMJD );
-
-        for( size_t i = 0; i < coaddKeywords.size(); ++i )
+        int end = begin + 1;
+        while( end < inputImages )
         {
-            initVals[i] = heads[im0][coaddKeywords[i]].template value<double>();
-            startVal[i] = initVals[i];
-            endVal[i] = initVals[i];
-        }
-
-        // Now increment imF, then test whether each variable is now outside the range
-        bool increment = true;
-        while( increment == true )
-        {
-            ++imF;
-
-            if( imF >= Nims ) // out of images
+            if( coaddMaxImno > 0 && end - begin >= coaddMaxImno )
             {
-                imF = Nims;
-                increment = false;
                 break;
             }
-
-            if( imF - im0 > coaddMaxImno && coaddMaxImno > 0 ) // too many images in coadd
+            if( coaddMaxTime > 0 )
             {
-                --imF;
-                increment = false;
-                break;
+                const double elapsedSeconds = ( imageMJD[end] - imageMJD[begin] ) * 86400.0;
+                const double timeTolerance = 1e-6 * std::max( 1.0, static_cast<double>( coaddMaxTime ) );
+                if( elapsedSeconds - coaddMaxTime > timeTolerance )
+                {
+                    break;
+                }
             }
-
-            ///\todo this should really include end of exposure too.
-            if( ( imageMJD[imF] - imageMJD[im0] ) * 86400.0 > coaddMaxTime && coaddMaxTime > 0 )
-            {
-                --imF;
-                increment = false;
-                break;
-            }
-
-        } // while(increment == true)
-        // At this point, imF is the first image NOT to include in the next coadd.
-
-        // Now actually do the accumulation
-        ///\todo this needs to handle averaging of angles
-        for( int imno = im0 + 1; imno < imF; ++imno )
-        {
-            initMJD += imageMJD[imno];
-            endMJD.back() = imageMJD[imno]; // After the last one, this will be the last one
-
-            for( size_t i = 0; i < coaddKeywords.size(); ++i )
-            {
-                endVal[i] = heads[imno][coaddKeywords[i]]
-                                .template value<double>(); // After the last one, this will be the last one
-                initVals[i] += endVal[i];
-            }
+            ++end;
         }
-
-        // And then turn them into an average
-        initMJD /= ( imF - im0 );
-        for( size_t i = 0; i < coaddKeywords.size(); ++i )
-        {
-            initVals[i] /= ( imF - im0 );
-        }
-
-        // Extract the images into the temporary
-        imsToCoadd.resize( Nrows, Ncols, imF - im0 );
-        imsCoadded.resize( imF - im0 );
-        for( int i = 0; i < ( imF - im0 ); ++i )
-        {
-            imsToCoadd.image( i ) = ims.image( im0 + i );
-            imsCoadded[i] = ioutils::pathFilename( m_fileList[im0 + i] );
-        }
-
-        // Here do the combine and insert into the vector
-        if( coaddMethod == HCI::coadd::median )
-        {
-            imsToCoadd.median( coadd );
-        }
-        if( coaddMethod == HCI::coadd::mean )
-        {
-            imsToCoadd.mean( coadd );
-        }
-        coadds.push_back( coadd );
-        coaddFileNames.push_back( imsCoadded );
-
-        // Insert the new averages
-        avgMJD.push_back( initMJD );
-        avgVals.push_back( initVals );
-        startVals.push_back( startVal );
-        endVals.push_back( endVal );
-
-        im0 = imF;
-        imF = im0 + 1;
-    } // while(im0 < Nims)
-
-    // Now resize ims and copy the coadds to the new cube
-    ims.resize( Nrows, Ncols, coadds.size() );
-    Nims = coadds.size();
-
-    for( int i = 0; i < Nims; ++i )
-    {
-        ims.image( i ) = coadds[i];
+        ranges.emplace_back( begin, end );
+        begin = end;
     }
 
-    // Now deal with imageMJD and headers
-    imageMJD.erase( imageMJD.begin() + Nims, imageMJD.end() );
-    heads.erase( heads.begin() + Nims, heads.end() );
+    std::vector<imageT> coadds;
+    std::vector<fitsHeaderT> outputHeads;
+    std::vector<double> outputMJD;
+    coadds.reserve( ranges.size() );
+    outputHeads.reserve( ranges.size() );
+    outputMJD.reserve( ranges.size() );
 
-    for( int i = 0; i < Nims; ++i )
+    eigenCube<realT> groupCube;
+    imageT coadd;
+
+    for( const auto &[begin, end] : ranges )
     {
-        imageMJD[i] = avgMJD[i];
-        heads[i][m_dateKeyword].value( mx::sys::ISO8601DateTimeStrMJD( imageMJD[i], 1 ) );
-        heads[i]["START " + m_dateKeyword].value( mx::sys::ISO8601DateTimeStrMJD( startMJD[i], 1 ) );
-        heads[i]["END " + m_dateKeyword].value( mx::sys::ISO8601DateTimeStrMJD( endMJD[i], 1 ) );
-        heads[i].append( "DELTA " + m_dateKeyword,
-                         ( endMJD[i] - startMJD[i] ) * 86400,
-                         "change in " + m_dateKeyword + " in seconds." );
-
-        for( size_t j = 0; j < coaddKeywords.size(); ++j )
+        const int groupSize = end - begin;
+        groupCube.resize( ims.rows(), ims.cols(), groupSize );
+        for( int offset = 0; offset < groupSize; ++offset )
         {
-            heads[i][coaddKeywords[j]].value( avgVals[i][j] );
-            heads[i]["START " + coaddKeywords[j]].value( startVals[i][j] );
-            heads[i]["END " + coaddKeywords[j]].value( endVals[i][j] );
-            heads[i]["DELTA " + coaddKeywords[j]].value( endVals[i][j] - startVals[i][j] );
+            groupCube.image( offset ) = ims.image( begin + offset );
         }
 
-        heads[i].append( "IMAGES COADDED", coaddFileNames[i].size(), "number of images included in this coadd" );
-        for( size_t j = 0; j < coaddFileNames[i].size(); ++j )
+        if( coaddMethod == HCI::coadd::mean )
         {
-            // fits::fitsHistoryType t;
-            // fits::fitsHeaderCard c("HISTORY", t , "coadded file: " + coaddFileNames[i][j]);
-            heads[i].append( "HISTORY", fits::fitsHistoryType(), "coadded file: " + coaddFileNames[i][j] );
+            groupCube.mean( coadd );
         }
+        else
+        {
+            groupCube.median( coadd );
+        }
+        coadds.push_back( coadd );
+
+        fitsHeaderT header = heads[begin];
+        if( haveDates )
+        {
+            double sum = 0;
+            for( int index = begin; index < end; ++index )
+            {
+                sum += imageMJD[index];
+            }
+            const double average = sum / groupSize;
+            outputMJD.push_back( average );
+
+            if( !dateKeyword.empty() )
+            {
+                header[dateKeyword].value( mx::sys::ISO8601DateTimeStrMJD( average, 1 ) );
+                header["START " + dateKeyword].value( mx::sys::ISO8601DateTimeStrMJD( imageMJD[begin], 1 ) );
+                header["END " + dateKeyword].value( mx::sys::ISO8601DateTimeStrMJD( imageMJD[end - 1], 1 ) );
+                header.append( "DELTA " + dateKeyword,
+                               ( imageMJD[end - 1] - imageMJD[begin] ) * 86400,
+                               "change in " + dateKeyword + " in seconds." );
+            }
+        }
+
+        for( const auto &keyword : coaddKeywords )
+        {
+            const double start = heads[begin][keyword].template value<double>();
+            const double finish = heads[end - 1][keyword].template value<double>();
+            double sum = 0;
+            for( int index = begin; index < end; ++index )
+            {
+                sum += heads[index][keyword].template value<double>();
+            }
+            header[keyword].value( sum / groupSize );
+            header["START " + keyword].value( start );
+            header["END " + keyword].value( finish );
+            header["DELTA " + keyword].value( finish - start );
+        }
+
+        header.append( "IMAGES COADDED", groupSize, "number of images included in this coadd" );
+        for( int index = begin; index < end; ++index )
+        {
+            header.append( "HISTORY",
+                           fits::fitsHistoryType(),
+                           "coadded file: " + ioutils::pathFilename( fileList[index] ) );
+        }
+        outputHeads.push_back( std::move( header ) );
+    }
+
+    ims.resize( inputRows, inputCols, coadds.size() );
+    for( size_t index = 0; index < coadds.size(); ++index )
+    {
+        ims.image( index ) = coadds[index];
+    }
+    heads = std::move( outputHeads );
+    if( haveDates )
+    {
+        imageMJD = std::move( outputMJD );
     }
 
     t_coadd_end = sys::get_curr_time();
@@ -2516,15 +2535,15 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         std::cerr << "done\n";
     }
 
-    if( m_preProcess_azUSM_azW && m_preProcess_azUSM_radW )
+    if( m_preProcess_azUSM_azHalfWidth && m_preProcess_azUSM_radHalfWidth )
     {
         ipc::ompLoopWatcher<> status( ims.planes(), std::cerr );
 
         std::cerr << "applying azimuthal USM . . .\n";
         t_azusm_begin = sys::get_curr_time();
 
-        azBoxKernel<eigenImage<realT>> azbK( m_preProcess_azUSM_radW,
-                                             m_preProcess_azUSM_azW,
+        azBoxKernel<eigenImage<realT>> azbK( m_preProcess_azUSM_radHalfWidth,
+                                             m_preProcess_azUSM_azHalfWidth,
                                              m_preProcess_azUSM_maxAz );
 
         precalcKernel pcK( azbK, ims.rows(), ims.cols(), 0.5 * ( ims.rows() - 1 ), 0.5 * ( ims.cols() - 1 ) );
@@ -2622,6 +2641,17 @@ void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> 
                                        "pixelTSNormMethod is rmsSigmaClipped, which is not implemented" );
     }
 
+    if( m_preProcess_pixelTSNormMethod != HCI::pixelTSNorm::rms )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "pixelTSNormMethod is not a supported normalization method" );
+    }
+
+    if( ims.planes() == 0 )
+    {
+        return;
+    }
+
     std::cerr << "normalizing pixels\n";
 
     // clang-format off
@@ -2649,9 +2679,15 @@ void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> 
                     pixs[pp] = ims.image( pp )( rr, cc );
                 }
 
-                realT sd = sqrt( math::vectorVariance( pixs, 0 ) );
+                realT sumSquares = 0;
+                for( int pp = 0; pp < ims.planes(); ++pp )
+                {
+                    sumSquares += pixs[pp] * pixs[pp];
+                }
 
-                if( sd == 0 )
+                realT sd = std::sqrt( sumSquares / static_cast<realT>( ims.planes() ) );
+
+                if( sd == 0 || !std::isfinite( sd ) )
                     continue;
 
                 for( int pp = 0; pp < ims.planes(); ++pp )
@@ -2666,9 +2702,6 @@ void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> 
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::readWeights()
 {
-    std::ifstream fin;
-    std::string str;
-
     if( m_weightFile == "" )
     {
         throw mx::exception<verboseT>( mx::error_t::paramnotset, "m_weightFile not set" );
@@ -2684,6 +2717,11 @@ void HCIobservation<_realT, verboseT>::readWeights()
         throw mx::exception<verboseT>( errc );
     }
 
+    if( wfileNames.size() != imW.size() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "weight file columns have different lengths" );
+    }
+
     if( imW.size() < m_fileList.size() )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr, "not enough weights specified" );
@@ -2693,7 +2731,15 @@ void HCIobservation<_realT, verboseT>::readWeights()
 
     for( size_t i = 0; i < wfileNames.size(); ++i )
     {
-        weights[ioutils::pathFilename( wfileNames[i].c_str() )] = imW[i];
+        std::string fname = ioutils::pathFilename( wfileNames[i].c_str() );
+        if( !std::isfinite( imW[i] ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "non-finite weight for filename " + fname );
+        }
+        if( !weights.emplace( fname, imW[i] ).second )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "duplicate weight for filename " + fname );
+        }
     }
 
     m_comboWeights.resize( m_fileList.size() );
@@ -2715,6 +2761,11 @@ void HCIobservation<_realT, verboseT>::readWeights()
         weightSum += wi;
     }
 
+    if( !std::isfinite( weightSum ) || weightSum == 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "weight sum must be finite and non-zero" );
+    }
+
     // Finally normalize the weights
     for( size_t i = 0; i < m_comboWeights.size(); ++i )
     {
@@ -2732,24 +2783,64 @@ void HCIobservation<_realT, verboseT>::combineFinim()
         return;
     }
 
+    if( m_psfsub.empty() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "no PSF-subtracted image cubes to combine" );
+    }
+
+    const int rows = m_psfsub.front().rows();
+    const int cols = m_psfsub.front().cols();
+    const int planes = m_psfsub.front().planes();
+    if( rows <= 0 || cols <= 0 || planes <= 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "PSF-subtracted image cubes must not be empty" );
+    }
+
+    for( const auto &cube : m_psfsub )
+    {
+        if( cube.rows() != rows || cube.cols() != cols || cube.planes() != planes )
+        {
+            throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                           "PSF-subtracted image cubes must have matching dimensions" );
+        }
+    }
+
+    if( !m_comboWeights.empty() && m_comboWeights.size() != static_cast<size_t>( planes ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "combination weight count must match the image count" );
+    }
+
+    if( m_combineMethod != HCI::combine::mean && m_combineMethod != HCI::combine::median &&
+        m_combineMethod != HCI::combine::sigmaMean )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid final image combination method" );
+    }
+
     t_combo_begin = sys::get_curr_time();
 
     // Create and size temporary image for averaging
     imageT tfinim;
 
-    m_finim.resize( m_psfsub[0].rows(), m_psfsub[0].cols(), m_psfsub.size() );
+    m_finim.resize( rows, cols, m_psfsub.size() );
 
     // Now cycle through each set of psf subtractions
     for( size_t n = 0; n < m_psfsub.size(); ++n )
     {
         if( m_combineMethod == HCI::combine::median )
         {
-            m_psfsub[n].median( tfinim );
+            if( m_maskFile != "" )
+            {
+                m_psfsub[n].median( tfinim, m_maskCube, m_minGoodFract );
+            }
+            else
+            {
+                m_psfsub[n].median( tfinim );
+            }
             m_finim.image( n ) = tfinim;
         }
         else if( m_combineMethod == HCI::combine::mean )
         {
-            if( m_comboWeights.size() == (size_t)m_Nims )
+            if( !m_comboWeights.empty() )
             {
                 if( m_maskFile != "" )
                 {
@@ -2775,7 +2866,29 @@ void HCIobservation<_realT, verboseT>::combineFinim()
         }
         else if( m_combineMethod == HCI::combine::sigmaMean )
         {
-            if( m_comboWeights.size() == (size_t)m_Nims )
+            if( m_sigmaThreshold <= 0 )
+            {
+                if( !m_comboWeights.empty() )
+                {
+                    if( m_maskFile != "" )
+                    {
+                        m_psfsub[n].mean( tfinim, m_comboWeights, m_maskCube, m_minGoodFract );
+                    }
+                    else
+                    {
+                        m_psfsub[n].mean( tfinim, m_comboWeights );
+                    }
+                }
+                else if( m_maskFile != "" )
+                {
+                    m_psfsub[n].mean( tfinim, m_maskCube, m_minGoodFract );
+                }
+                else
+                {
+                    m_psfsub[n].mean( tfinim );
+                }
+            }
+            else if( !m_comboWeights.empty() )
             {
                 if( m_maskFile != "" )
                 {
@@ -2868,14 +2981,14 @@ void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head )
                                m_preProcess_subradprof,
                                "pre-process subtract radial profile flag" );
     head.template append<realT>( "PREPROC AZUSM AZWIDTH",
-                                 m_preProcess_azUSM_azW,
-                                 "pre-process azimuthal USM azimuthal width [pixels]" );
+                                 m_preProcess_azUSM_azHalfWidth,
+                                 "pre-process azimuthal USM azimuthal half-width [pixels]" );
     head.template append<realT>( "PREPROC AZUSM MAXAZ",
                                  m_preProcess_azUSM_maxAz,
                                  "pre-process azimuthal USM maximum azimuthal width [degrees]" );
     head.template append<realT>( "PREPROC AZUSM RADWIDTH",
-                                 m_preProcess_azUSM_radW,
-                                 "pre-process azimuthal USM radial width [pixels]" );
+                                 m_preProcess_azUSM_radHalfWidth,
+                                 "pre-process azimuthal USM radial half-width [pixels]" );
     head.template append<realT>( "PREPROC MEDIANUSM FWHM",
                                  m_preProcess_medianUSM_fwhm,
                                  "pre-process median USM fwhm [pixels]" );
@@ -3117,16 +3230,16 @@ int HCIobservation<_realT,verboseT>::readPSFSub( const std::string &dir,
         mxError( "KLIPReduction", MXE_PARAMNOTSET, "PPAUSMAW not found in FITS header." );
         return -1;
     }
-    m_preProcess_azUSM_azW = fh["PPAUSMAW"].template value<realT>();
-    std::cerr << "preProcess_azUSM_azW: " << m_preProcess_azUSM_azW << "\n";
+    m_preProcess_azUSM_azHalfWidth = fh["PPAUSMAW"].template value<realT>();
+    std::cerr << "preProcess_azUSM_azHalfWidth: " << m_preProcess_azUSM_azHalfWidth << "\n";
 
     if( fh.count( "PPAUSMRW" ) == 0 )
     {
         mxError( "KLIPReduction", MXE_PARAMNOTSET, "PPAUSMRW not found in FITS header." );
         return -1;
     }
-    m_preProcess_azUSM_radW = fh["PPAUSMRW"].template value<realT>();
-    std::cerr << "preProcess_azUSM_radW: " << m_preProcess_azUSM_radW << "\n";
+    m_preProcess_azUSM_radHalfWidth = fh["PPAUSMRW"].template value<realT>();
+    std::cerr << "preProcess_azUSM_radHalfWidth: " << m_preProcess_azUSM_radHalfWidth << "\n";
 
     if( fh.count( "PPGUSMFW" ) == 0 )
     {

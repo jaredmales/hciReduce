@@ -281,6 +281,29 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Bring the `mx::fits::fitsFile<float, mx::verbose::vv>::write` Eigen image/cube overloads used by the hciReduce
+      test fixture to 100% executable-line coverage. The current mxlib report covers 240/470 executable lines in
+      `fitsFile.hpp`; successful float writes are exercised, but the relevant overloads and their error paths are not
+      complete.
+- [ ] Bring the mxlib configuration and file-logistics APIs exercised by edited `HCIobservation` functions to 100%
+      executable-line coverage: `appConfigurator::add` / typed `operator()`, the float/string `readColumns` overloads,
+      `getFileNames`, and `pathFilename`. The current LCOV report shows incomplete executable lines in each owning
+      header/source, so the hciReduce configuration, list, threshold, and weight regressions do not close the
+      dependency-owned error paths.
+- [ ] Bring the `eigenCube<float>` mean, weighted mean, masked mean, median, masked median, and sigma-mean overloads
+      called by `HCIobservation::preProcess_meanSub`, `coaddImages`, and `combineFinim` to 100% executable-line
+      coverage. The new hciReduce tests cover their integration contracts, but mxlib must own complete overload and
+      validation-path coverage.
+- [ ] Bring `fitsHeader`, `fitsHeaderCard`, `ISO8601DateTimeStrMJD`, `get_curr_time`, and `pathFilename` operations used
+      by `HCIobservation::coaddImages` to 100% executable-line coverage, including copied-header provenance, repeated
+      HISTORY cards, singleton start/end/delta cards, and date conversion errors.
+- [ ] Bring the mxlib azimuthal-kernel/precalculation calls in `HCIobservation::preProcess`, FITS-header append calls in
+      `stdFitsHeader`, and FITS read/header-card calls in `readPSFSub` to 100% executable-line coverage. Renaming the
+      configured widths to explicit half-widths necessarily touched all three containing functions; their dependency
+      overloads are not all at 100% in the current report.
+- [ ] Define a real deep-copy constructor (and move operations) for `mx::improc::eigenCube`. Its implicit copy
+      constructor shallow-copies the owned buffer while the custom copy assignment is deep; a Phase 1 test fixture
+      initially exposed this as a double free during stack unwinding.
 - [ ] Decide whether to delete or modernize the four explicit legacy headers before enabling their placeholder targets.
 - [ ] Resolve the incompatible duplicate `mx::AO::sim::wfMeasurement<T>` definitions in `generalIntegrator.hpp` and
       `leakyIntegrator.hpp`. They compile in isolated test translation units but cannot coexist safely in one program
@@ -324,4 +347,4 @@ removed a nondeterministic absolute-tolerance failure observed only in the instr
 - [x] Re-run the hciReduce infrastructure probe. A fresh coverage configuration places
       `--coverage -O0 -fno-fast-math` last, links the shared library and executable with coverage support, and produces
       `.gcno` files for all four hciReduce implementation units plus the CLI translation unit.
-- [ ] Begin Phase 0/1 of [initial_tests.md](initial_tests.md).
+- [x] Complete Phase 0/1 of [initial_tests.md](initial_tests.md).

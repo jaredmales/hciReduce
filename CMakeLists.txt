@@ -86,6 +86,7 @@ if(Doxygen_FOUND)
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/doc
         DEPENDS ${HCIREDUCE_DOXYGEN_CONFIG}
                 ${CMAKE_SOURCE_DIR}/doc/hcireduce_header.html
+                ${CMAKE_SOURCE_DIR}/doc/hcireduce-custom.css
                 ${CMAKE_SOURCE_DIR}/doc/hcireduceDoxygenLayout.xml
                 ${CMAKE_SOURCE_DIR}/doc/hcireduce.bib
                 ${CMAKE_SOURCE_DIR}/doc/main.dox

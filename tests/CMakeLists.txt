@@ -4,9 +4,19 @@
 
 set(HCIREDUCE_TEST_MAIN_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/testMain.cpp)
 
+add_library(hcireduceTestSupport STATIC common/HCIobservation_test_fixture.cpp)
+target_include_directories(hcireduceTestSupport PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(hcireduceTestSupport PUBLIC hcireduce-shared)
+
 # Keep one production test source per executable. This bounds compile time and
 # makes a failing subsystem immediately visible in CTest output.
-set(HCIREDUCE_TEST_SOURCES)
+set(HCIREDUCE_TEST_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_config_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_combine_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_coadd_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_logistics_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_preprocess_test.cpp
+)
 
 set(HCIREDUCE_TEST_TARGETS)
 
@@ -18,7 +28,7 @@ function(hcireduce_add_test_executable TEST_SOURCE)
 
     add_executable(${_hcireduce_test_target} ${HCIREDUCE_TEST_MAIN_SOURCE} ${TEST_SOURCE})
     target_include_directories(${_hcireduce_test_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    target_link_libraries(${_hcireduce_test_target} PRIVATE hcireduce-shared)
+    target_link_libraries(${_hcireduce_test_target} PRIVATE hcireduceTestSupport)
 
     if(NOT HCIREDUCE_BUILD_TESTS)
         set_target_properties(
@@ -38,7 +48,7 @@ foreach(_hcireduce_test_source IN LISTS HCIREDUCE_TEST_SOURCES)
     hcireduce_add_test_executable("${_hcireduce_test_source}")
 endforeach()
 
-add_custom_target(hcireduceTests DEPENDS hcireduce-shared ${HCIREDUCE_TEST_TARGETS})
+add_custom_target(hcireduceTests DEPENDS hcireduce-shared hcireduceTestSupport ${HCIREDUCE_TEST_TARGETS})
 
 if(HCIREDUCE_BUILD_TESTS AND BUILD_TESTING)
     add_custom_target(hcireduceTestRun
@@ -76,7 +86,7 @@ if(HCIREDUCE_ONE_TEST)
 
     add_executable(hcireduceTestOne ${HCIREDUCE_TEST_MAIN_SOURCE} ${HCIREDUCE_ONE_TEST_SOURCE})
     target_include_directories(hcireduceTestOne PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    target_link_libraries(hcireduceTestOne PRIVATE hcireduce-shared)
+    target_link_libraries(hcireduceTestOne PRIVATE hcireduceTestSupport)
 
     if(NOT HCIREDUCE_BUILD_TESTS)
         set_target_properties(
