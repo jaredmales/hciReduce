@@ -123,8 +123,9 @@ the inventory therefore requires 198 Catch2 sources, including the separately ge
 - [x] Verify `.gcno` files exist for every compiled production `.cpp`, execute the complete CTest suite, and confirm the
       report contains compiled implementation files as well as header/template instantiations. The final ISIO-enabled
       coverage build produced 226 `.gcno` files and 223 runtime `.gcda` files, including all 46 objlib units and the
-      three CPU error-generator tools, and passed 176/176 CTests. The filtered trace retains 141 mxlib-owned files at
-      38.0% line coverage (5,311/13,972); genhtml displays 40.0% function coverage after alias filtering (716/1,792).
+      three CPU error-generator tools, and passed 176/176 CTests. The current filtered trace retains 146 mxlib-owned
+      files at 48.8% line coverage (7,125/14,591); genhtml displays 51.1% function coverage after alias filtering
+      (953/1,865).
       The three generator
       tools are intentionally present at zero (305 executable lines total) because their build-time executions are
       cleared before the unit-test run. No test, system, vendor, generated-header, or outside-source path survives the
@@ -155,7 +156,7 @@ presenting the report as a physical line census.
       instantiation definitions; all build in the lean matrix, while the feature-sensitive subset also builds with
       CUDA, ISIO, and OpenMP enabled.
 - [x] Add a manifest-backed final-trace check so the coverage target fails when an expected instantiated template
-      header is missing or has no emitted line/function records. The manifest enforces 44 executable headers with
+      header is missing or has no emitted line/function records. The manifest enforces 48 executable headers with
       positive `LF` and `FNF` records; `units.hpp` and `tagT.hpp` are intentionally compile-owned but omitted because
       their constant/type-only instantiations emit no executable counters.
 - [x] Record and repair deferred template-body compilation defects exposed by the instantiation sweep before promoting
@@ -281,29 +282,291 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
-- [ ] Bring the `mx::fits::fitsFile<float, mx::verbose::vv>::write` Eigen image/cube overloads used by the hciReduce
-      test fixture to 100% executable-line coverage. The current mxlib report covers 240/470 executable lines in
-      `fitsFile.hpp`; successful float writes are exercised, but the relevant overloads and their error paths are not
-      complete.
-- [ ] Bring the mxlib configuration and file-logistics APIs exercised by edited `HCIobservation` functions to 100%
-      executable-line coverage: `appConfigurator::add` / typed `operator()`, the float/string `readColumns` overloads,
-      `getFileNames`, and `pathFilename`. The current LCOV report shows incomplete executable lines in each owning
-      header/source, so the hciReduce configuration, list, threshold, and weight regressions do not close the
-      dependency-owned error paths.
-- [ ] Bring the `eigenCube<float>` mean, weighted mean, masked mean, median, masked median, and sigma-mean overloads
-      called by `HCIobservation::preProcess_meanSub`, `coaddImages`, and `combineFinim` to 100% executable-line
-      coverage. The new hciReduce tests cover their integration contracts, but mxlib must own complete overload and
-      validation-path coverage.
-- [ ] Bring `fitsHeader`, `fitsHeaderCard`, `ISO8601DateTimeStrMJD`, `get_curr_time`, and `pathFilename` operations used
-      by `HCIobservation::coaddImages` to 100% executable-line coverage, including copied-header provenance, repeated
-      HISTORY cards, singleton start/end/delta cards, and date conversion errors.
-- [ ] Bring the mxlib azimuthal-kernel/precalculation calls in `HCIobservation::preProcess`, FITS-header append calls in
-      `stdFitsHeader`, and FITS read/header-card calls in `readPSFSub` to 100% executable-line coverage. Renaming the
-      configured widths to explicit half-widths necessarily touched all three containing functions; their dependency
-      overloads are not all at 100% in the current report.
-- [ ] Define a real deep-copy constructor (and move operations) for `mx::improc::eigenCube`. Its implicit copy
-      constructor shallow-copies the owned buffer while the custom copy assignment is deep; a Phase 1 test fixture
-      initially exposed this as a double free during stack unwinding.
+- [~] Continue closing mxlib coverage gaps exposed by hciReduce integration tests.
+  - Completed mxlib `dev` commits, each verified under its focused normal or coverage-instrumented target:
+    - `57488e0`, `a081b61`, `7f37f22`, `81124f0`, and `0906081`: application lifecycle, configuration reload, and
+      command-line/help coverage.
+    - `5be0c4c`: command-line configurator state.
+    - `32b583f`: path helpers.
+    - `f6d4459` and `12a34fa`: HCI filename/value-column parsing.
+    - `37a7fe6`: short filename filters.
+    - `b8cef98`: duplicate command-line-only targets.
+    - `974ce45`: missing column-file input.
+    - `4309b8b`: unmasked and weighted `eigenCube` combinations.
+    - `6c636cf`: FITS header-bearing image/cube write failures.
+    - `d30df2e`: HCI FITS-header provenance.
+    - `20ae905`: MJD-to-ISO header timestamps.
+    - `f3b0c9c`: coadd FITS-card updates.
+    - `23eb25a`: batch FITS image/header reads.
+    - `a32ebba`: bulk FITS header-vector validation and error paths.
+    - `29da072`: coadd start/end/delta metadata updates and invalid ISO-date input.
+    - `8986d5e`: FITS Git-status HISTORY provenance for HCI final outputs.
+    - `423f71f`: HCI raw-buffer batch FITS reads with selected headers.
+    - `7a9d3fa`: HCI reduction-parameter FITS headers, including a boolean write/read round trip.
+    - `70849e9`: HCI preprocessing radial-profile cleanup and azimuthal median filtering with a precomputed kernel.
+    - `e83e3ae`: direct raw-buffer FITS image output with HCI-style headers.
+    - `e16db6f`: persisted HCI COMMENT/HISTORY and typed parameter cards through FITS output.
+    - `75c8be7`: nested, idempotent output-directory creation before HCI preprocessed-image writes.
+    - `8db6073`: collision-safe sequential names for HCI final FITS outputs.
+    - `01c851e`: complete `eigenCube` lifecycle and storage-mode coverage.
+    - `e114dd5`: FITS file construction, state, dimensions, read-window reset, and pixel-coordinate allocation.
+    - `85e35de`: raw-pointer, one-dimensional Eigen, configured-subset, and headerless batch FITS reads.
+    - `6350b63`: FITS cube windows, direct writes, lazy opens, missing inputs, batch failures, and comment-free headers.
+    - `da3cf8e`: FITS Eigen destination resize exception propagation.
+    - `e838f22`: deterministic CFITSIO/allocation failure coverage, resource cleanup, correct header-write error
+      propagation, and memory-safe one-dimensional subset handling.
+    - `a49e3f3`: complete `fitsHeader`/`fitsHeaderCard` lifecycle, mutation, scalar-conversion, CONTINUE, CFITSIO-write,
+      and deterministic allocation-failure coverage; transactional rollback for failed list/map mutations; safe
+      missing-key lookup, exact duplicate-card erasure, self-assignment/self-append, and integer no-comment dispatch.
+    - `decd9ca`: complete `timeUtils` calendar parsing, ISO8601/current/compact formatting, UTC-to-TAI conversion,
+      timespec arithmetic/comparison/mean, clock, sleep, and external-failure coverage; safe broken-down-time failure
+      propagation and support for the documented null output pointer in `timespecUTC2TAIMJD`.
+    - `c30caa4`: complete `getFileNames` and path-conversion exception propagation/translation coverage, align the
+      catch-all standard-exception result with the documented `std_exception` code, and add `fileUtils.hpp` to the
+      permanent coverage manifest. The HCI-used `pathFilename` and `getFileNames` paths are both at 100%.
+    - `a74ecca`: complete HCI string/double `readColumns` field parsing, skip-column, conversion, allocation, and
+      stream-error coverage; prevent an empty comma-delimited field from indexing before the string, preserve read
+      errors without appending partial records, and add `readColumns.hpp` to the permanent coverage manifest.
+    - `353645e`: complete HCI scalar/vector `appConfigurator` access, defaults, indexed lookup, source logging, and
+      empty-value coverage; make vector whitespace parsing bounds-safe for trailing empty fields; and add
+      `appConfigurator.hpp` to the permanent coverage manifest.
+    - `6d4f997`: complete defensive `azBoxKernel` coverage and masked radial-profile subtraction used by the HCI
+      preprocessing sequence, including finite dimension overflow, inconsistent cached bounds, empty kernels, and
+      off-center maximum-azimuth evaluation.
+    - `0e88106`: replace the `eigenLapack` placeholder with behavioral `eigenSYRK`/`calcKLModes` coverage; accept valid
+      zero-valued eigenvector components, remove an uninitialized LAPACK workspace-cache comparison, and release
+      locally allocated workspaces on both `calcKLModes` error exits.
+    - `f4fad51`: complete HCI radius/angle-image and annular-region coverage for centered rectangular images, radial
+      and angular exclusions, wrapped sectors, clipped image bounds, optional masks, and negative angle normalization;
+      add `imageMasks.hpp` to the permanent coverage manifest.
+    - `e3d2e4d`: complete integer and real-valued `parseStringVector` coverage for the delimiter forms used by HCI
+      reduction FITS headers, replace its deprecated internal `convertFromString` calls with `stoT`, and add
+      `stringUtils.hpp` to the permanent coverage manifest.
+    - `2accce5`: replace the `vectorUtils` placeholder with behavioral coverage for both `std::vector`
+      `vectorVariance` overloads reached by HCI preprocessing, distinguish sample variance from root-mean-square in
+      the regression values, and add `vectorUtils.hpp` to the permanent coverage manifest.
+    - `a1693cb`: replace the `exception` placeholder with behavioral coverage for every constructor and accessor used
+      by HCI, recursive standard and non-standard nested-exception extraction, and ladder-formatted reporting.
+    - `3ff1eec`: complete the masked and unmasked `imageMedian` paths used by HCI, including both caller-owned and
+      internally allocated workspaces.
+    - `c7c72cd`: add behavioral cubic-convolution `imageRotate` coverage for HCI derotation, including output
+      allocation, counterclockwise direction, flux preservation, interpolation, and rejected-edge pixels.
+    - `44d4190`: complete `createDirectories` coverage for HCI output paths, including deterministic translation of
+      an otherwise platform-dependent filesystem error into `error_t::filesystem` through the existing hidden test
+      seam pattern.
+  - Baseline verification:
+    - CUDA-off/ISIO-on LCOV passed all 176 mxlib tests and generated
+      `/tmp/mxlib-coverage-filelogistics/doc/html/coverage/index.html`.
+    - Final LCOV after `a49e3f3` passed all 176 tests and regenerated
+      `/tmp/mxlib-coverage-filelogistics/doc/html/coverage/index.html`: 48.2% overall executable-line coverage
+      (7,023/14,565); HCI-relevant `eigenCube.hpp` is 100% (185/185 lines and 37/37 functions), `fitsFile.hpp`
+      is 100% (491/491 lines and 46/46 functions), `fitsHeader.hpp` is 100% (259/259 lines and 30/30 functions),
+      and `fitsHeaderCard.hpp` is 100% (563/563 lines and 80/80 functions).
+    - Final LCOV after `decd9ca` passed all 176 tests and verified all 48 required records: 48.8% overall
+      executable-line coverage (7,125/14,591), with `timeUtils.hpp` at 100% (30/30 lines and 4/4 alias-filtered
+      functions) and `timeUtils.cpp` at 100% (140/140 lines and 24/24 functions).
+    - Final LCOV after `c30caa4` passed all 176 tests and verified all 49 required records: 49.1% overall
+      executable-line coverage (7,171/14,608) and 51.2% alias-filtered function coverage (957/1,868).
+    - Final LCOV after `a74ecca` passed all 176 tests and verified all 50 required records: 49.5% overall
+      executable-line coverage (7,240/14,629) and 51.4% alias-filtered function coverage (960/1,869), with
+      `readColumns.hpp` at 100% (129/129 lines and 6/6 alias-filtered functions).
+    - Final LCOV after `353645e` passed all 176 tests and verified all 51 required records: 49.8% overall
+      executable-line coverage (7,282/14,631) and 51.8% alias-filtered function coverage (968/1,869), with
+      `appConfigurator.hpp` at 100% (86/86 lines and 11/11 alias-filtered functions). Both `add` overloads are also
+      completely covered in `appConfigurator.cpp`.
+    - Final LCOV after `6d4f997` passed all 176 tests and verified all 51 required records: 49.9% overall
+      executable-line coverage (7,307/14,631) and 51.8% alias-filtered function coverage (968/1,869).
+      `imageFilters.hpp` has 100% function coverage (22/22), and every executable line in the HCI-used Gaussian,
+      azimuthal, precalculated-kernel, filter, median-smoothing, and radial-profile call ranges is covered.
+    - Final LCOV after `0e88106` passed all 176 tests and verified all 51 required records: 50.4% overall
+      executable-line coverage (7,458/14,798) and 52.2% alias-filtered function coverage (977/1,873). The exact
+      HCI-used `eigenSYRK` and `calcKLModes` ranges are at 100% (9/9 and 37/37 executable lines, respectively).
+    - Final LCOV after `f4fad51` passed all 176 tests and verified all 52 required records: 50.6% overall
+      executable-line coverage (7,512/14,851) and 52.3% alias-filtered function coverage (981/1,877). The exact
+      HCI-used `radAngImage`, `annulusIndices`, `angleMod`, `angleDiff`, and `dtor` ranges and the annulus worker are
+      all at 100% executable-line coverage.
+    - Final LCOV after `e3d2e4d` passed all 176 tests and verified all 53 required records after a clean nested rebuild:
+      50.6% overall executable-line coverage (7,532/14,871) and 52.3% alias-filtered function coverage (983/1,879).
+      Both `parseStringVector` overloads are at 100% (10/10 executable lines each).
+    - Final LCOV after `2accce5` passed all 176 tests and verified all 54 required records: 50.7% overall
+      executable-line coverage (7,535/14,871) and 52.4% alias-filtered function coverage (984/1,879). The exact
+      HCI-used `vectorVariance(const std::vector&)` overload is at 100% (3/3 executable lines), as is its
+      supplied-mean helper (6/6 executable lines).
+    - Final LCOV after `a1693cb` passed all 176 tests and verified all 54 required records: 50.8% overall
+      executable-line coverage (7,563/14,887) and 52.7% alias-filtered function coverage (991/1,881).
+      `exception.hpp` is at 100% (42/42 executable lines and 11/11 alias-filtered functions).
+    - Final LCOV after `3ff1eec` passed all 176 tests and verified all 54 required records: 50.9% overall
+      executable-line coverage (7,574/14,887) and 52.7% alias-filtered function coverage (991/1,881). The exact
+      masked/unmasked `imageMedian` implementation and its public wrapper are at 100% (28/28 executable lines).
+    - Final LCOV after `c7c72cd` passed all 176 tests and verified all 54 required records: 51.0% overall
+      executable-line coverage (7,611/14,924) and 52.7% alias-filtered function coverage (992/1,882). The HCI-used
+      `imageRotate` implementation is at 100% (37/37 executable lines).
+    - Final LCOV after `44d4190` passed all 176 tests and verified all 54 required records: 51.0% overall
+      executable-line coverage (7,617/14,929) and 52.8% alias-filtered function coverage (994/1,884). The HCI-used
+      `createDirectories` implementation is at 100% (10/10 executable lines).
+    - A fully instrumented ASan/UBSan `fitsFile` run with leak detection passed 345 assertions. It exposed and drove
+      the fix for a pre-existing one-dimensional subimage coordinate overflow.
+    - Fully instrumented ASan/UBSan `fitsHeader` and `fitsHeaderCard` runs with leak detection passed 477 assertions.
+    - The fully instrumented ASan/UBSan `timeUtils` target passed all 18 test cases and 142 assertions with leak
+      detection enabled.
+    - The fully instrumented ASan/UBSan `fileUtils` target passed all 10 test cases and 117 assertions with leak
+      detection enabled.
+    - The fully instrumented ASan/UBSan `readColumns` target passed all 8 test cases and 98 assertions with leak
+      detection enabled.
+    - The fully instrumented ASan/UBSan `appConfigurator` target passed all 6 test cases and 151 assertions with leak
+      detection enabled.
+    - The fully instrumented ASan/UBSan `imageFilters` target passed all 13 test cases and 752 assertions with leak
+      detection enabled.
+    - A correctly instrumented ASan/UBSan `eigenLapack` target passed both test cases and 22 assertions with leak
+      detection enabled, including both locally allocated workspace error exits.
+    - The fully instrumented ASan/UBSan `imageMasks` target passed all 3 test cases and 29 assertions with leak
+      detection enabled.
+    - The fully instrumented ASan/UBSan `stringUtils` target passed both test cases and 129 assertions with leak
+      detection enabled.
+    - The fully instrumented ASan/UBSan `vectorUtils` target passed its sample-variance test case and both assertions
+      with leak detection enabled.
+    - The fully instrumented ASan/UBSan `exception` target passed all 3 test cases and 20 assertions with leak
+      detection enabled.
+    - The fully instrumented ASan/UBSan `imageUtils` target passed all 3 test cases and 15 assertions with leak
+      detection enabled, including all `imageMedian` workspace paths.
+    - The fully instrumented ASan/UBSan `imageTransforms` target passed both test cases and 11 assertions with leak
+      detection enabled, including HCI-style cubic rotation.
+  - Next verification:
+    - Continue rerunning aggregate LCOV after subsequent focused commits before recording new percentages or claiming
+      additional APIs are at 100%.
+- [x] Bring the HCI FITS file I/O calls to 100% executable-line coverage.
+  - APIs: `mx::fits::fitsFile<float, mx::verbose::vv>::write` Eigen image/cube overloads and the HCI bulk
+    image/header `read` overload.
+  - Completed coverage: successful float writes, unavailable-output errors, HCI-style Eigen-cube and raw-buffer
+    multi-frame image/header reads, direct 2-D raw-buffer writes with persisted headers, empty inputs, mismatched
+    header vectors, missing later files, and COMMENT/HISTORY plus typed parameter-card persistence.
+  - Completed error coverage: deterministic open, dimension, size, close, allocation, subset-read, header-read,
+    create-image, pixel-write, header-card, and final-close failures, including first and later batch elements.
+  - Verification: `fitsFile.hpp` is 100% in the final filtered trace (491/491 executable lines and 46/46 functions),
+    and the permanent coverage manifest now requires its counter record.
+- [x] Bring HCI configuration and file-logistics calls to 100% executable-line coverage.
+  - APIs: `appConfigurator::add`, typed `operator()`, float/string `readColumns`, `getFileNames`, and `pathFilename`.
+  - Completed coverage: normal path helpers and filename filtering, plus deterministic allocation, filesystem,
+    standard, and unknown-exception propagation/translation for path conversion and `getFileNames`; complete HCI
+    filename/double `readColumns` parsing, skip-column, conversion, allocation, and stream-error paths; application
+    lifecycle, reload, CLI filtering/unknown options, duplicate command-line-only registrations, and the HCI scalar
+    and vector types through defaults, indexed lookup, empty values, and source logging. The HCI-used
+    `pathFilename`, full `getFileNames` implementation, `readColumns.hpp`, and `appConfigurator.hpp` are at 100%;
+    both `appConfigurator::add` overloads are completely covered as well. `createDirectories` is at 100%, including
+    nested and already-existing output paths and deterministic translation of an unmapped filesystem error;
+    `getSequentialFilename` covers existing-output collisions.
+  - API follow-up: `appConfigurator::get` documents `-1` on conversion errors, but currently calls the exception-free
+    `stoT` overload without requesting its error code, so malformed numeric configuration can produce a fallback
+    value while returning success. Resolving whether to preserve the destination or store the fallback requires an
+    explicit public error-contract decision.
+- [x] Bring HCI `eigenCube<float>` combinations to 100% executable-line coverage.
+  - APIs: mean, weighted mean, masked mean, median, masked median, and sigma mean, called by
+    `HCIobservation::preProcess_meanSub`, `coaddImages`, and `combineFinim`.
+  - Completed coverage: masked/weighted-masked combinations, threshold/shape validation, and unmasked
+    mean/median/sigma-mean plus weighted mean/sigma-mean.
+  - Verification: the final aggregate report records 100% for `eigenCube.hpp` (185/185 executable lines and 37/37
+    functions).
+- [x] Bring the HCI KL numerical calls to 100% executable-line coverage.
+  - APIs: `mx::math::eigenSYRK` and `mx::math::calcKLModes`, called by `KLIPreduction::regions()` and
+    `KLIPreduction::regions_radii()`.
+  - Completed coverage: lower-triangle covariance construction, all- and limited-mode solutions, normalized and
+    mutually orthogonal modes containing valid zero components, elapsed-time outputs, reusable caller-owned LAPACK
+    workspace, incompatible reference geometry, and non-square covariance errors.
+  - Correctness fixes: zero eigenvector components are no longer rejected as non-normal; the workspace cache no
+    longer reads an uninitialized LAPACK output count; and locally allocated workspaces are released on both
+    `calcKLModes` error returns.
+  - Verification: the final aggregate trace records 100% for the exact HCI-used `eigenSYRK` (9/9) and `calcKLModes`
+    (37/37) executable-line ranges. A fully instrumented ASan/UBSan run with leak detection passed 22 assertions.
+- [x] Bring the HCI KL region-geometry calls to 100% executable-line coverage.
+  - APIs: `mx::improc::radAngImage`, `mx::improc::annulusIndices`, `mx::math::angleMod`, `mx::math::angleDiff`, and
+    `mx::math::dtor`, used to build and select KLIP annular sectors and enforce frame-separation angles.
+  - Completed coverage: rectangular centered grids, cardinal degree angles, radius scaling, full and wrapped sectors,
+    inner/outer radial rejection, clipping all four search bounds to the image, optional mask exclusion, and negative
+    angle normalization.
+  - Verification: the final aggregate trace records 100% for `radAngImage` (9/9), `annulusIndices` (2/2), its worker
+    (40/40), `angleMod` (5/5), `angleDiff` (7/7), and `dtor` (2/2) executable lines. The image-mask header is now
+    manifest-enforced, and an ASan/UBSan run with leak detection passed 29 assertions.
+- [x] Bring HCI reduction-header vector parsing to 100% executable-line coverage.
+  - API: the string-delimiter-set `mx::ioutils::parseStringVector` overload used by `KLIPreduction::loadReduction`,
+    plus its default character-delimiter overload.
+  - Completed coverage: integer mode lists, signed/fractional real-valued region bounds, replacement of existing vector
+    contents, the default comma delimiter, multiple delimiter characters, and singleton input.
+  - Cleanup: both overloads now call the supported `stoT` conversion API instead of mxlib's deprecated
+    `convertFromString` wrapper.
+  - Verification: both overloads are at 100% (10/10 executable lines each), `stringUtils.hpp` is manifest-enforced,
+    and a fully instrumented ASan/UBSan run with leak detection passed 129 assertions.
+  - HCI follow-up: `parseStringVector` returns `void` and always appends a final converted token, so
+    `KLIPreduction::loadReduction()` cannot detect empty or malformed header content with its current `size() == 0`
+    checks. HCI must validate header text/tokens explicitly or mxlib needs a separately designed status-returning API.
+- [x] Bring the current HCI pixel-series variance dependency to 100% executable-line coverage.
+  - API: `mx::math::vectorVariance(const std::vector&)`, currently called by
+    `HCIobservation::preProcess_pixelTSNorm()`.
+  - Completed coverage: the default overload computes the vector mean and delegates to the supplied-mean overload;
+    the regression values distinguish sample variance about the computed mean from sample mean-square about zero.
+  - Verification: the exact default overload is at 100% (3/3 executable lines), its supplied-mean helper is at 100%
+    (6/6 executable lines), `vectorUtils.hpp` is manifest-enforced, and the sanitizer run passed with leak detection.
+  - HCI follow-up: mxlib's documented implementation divides by `N - 1`, while the Phase-0 HCI contract requires a
+    true root-mean-square with denominator `N`. HCI must replace this call and explicitly handle empty, one-plane,
+    zero-valued, and non-finite series; the mxlib sample-variance API should not be redefined as RMS.
+- [x] Bring HCI exception construction and nested-error reporting to 100% executable-line coverage.
+  - APIs: all four `mx::exception` constructor forms, `what`, `message`, `file_name`, `line`, `code`,
+    `unwind_exceptions`, and `print_exceptions`; HCI directly uses the code-only and code-plus-message constructors
+    throughout validation and nested error propagation.
+  - Completed coverage: default code/location, message-only, code-plus-message, code-only, all accessors, recursive
+    standard nested exceptions, a non-standard nested payload, and exact ladder formatting.
+  - Verification: `exception.hpp` is at 100% (42/42 executable lines and 11/11 alias-filtered functions), remains
+    manifest-enforced, and the fully instrumented sanitizer run passed all 20 assertions with leak detection.
+- [x] Bring HCI image-median calls to 100% executable-line coverage.
+  - APIs: masked and unmasked `mx::improc::imageMedian` calls in `KLIPreduction::meanSubtract()`.
+  - Completed coverage: even-sized unmasked data, a sparse valid-pixel mask that exercises both selected and skipped
+    pixels, caller-retained workspace reuse, internal workspace allocation, and internal workspace release.
+  - Verification: the shared implementation and unmasked public wrapper are at 100% (28/28 executable lines),
+    `imageUtils.hpp` remains manifest-enforced, and the fully instrumented sanitizer run passed all 15 assertions.
+- [x] Bring HCI image-rotation calls to 100% executable-line coverage.
+  - API: `mx::improc::imageRotate` with `cubicConvolTransform<realT>`, used by
+    `ADIobservation::outputPSFSub()` for derotation.
+  - Completed coverage: automatic output allocation, exact counterclockwise impulse placement, cubic interpolation,
+    flux preservation for an interior source, and the zero-valued edge branch where a complete kernel is unavailable.
+  - Verification: `imageRotate` is at 100% (37/37 executable lines), `imageTransforms.hpp` remains
+    manifest-enforced, and the fully instrumented sanitizer run passed all 11 assertions.
+- [x] Bring HCI coadd metadata calls to 100% executable-line coverage.
+  - APIs: `fitsHeader`, `fitsHeaderCard`, `ISO8601DateTimeStrMJD`, `get_curr_time`, and `pathFilename` used by
+    `HCIobservation::coaddImages`.
+  - Completed coverage: copied-header provenance, repeated HISTORY cards, MJD-to-ISO strings, singleton
+    start/end/delta cards, invalid ISO-date input, final-output Git-status HISTORY provenance, and the scalar/string
+    reduction-parameter card types emitted by `stdFitsHeader`.
+  - Completed verification: `fitsHeader.hpp` is 100% (259/259 executable lines and 30/30 functions),
+    `fitsHeaderCard.hpp` is 100% (563/563 executable lines and 80/80 functions); both are now required by the
+    permanent coverage manifest. `timeUtils.hpp` is 100% (30/30 executable lines and 4/4 alias-filtered functions),
+    `timeUtils.cpp` is 100% (140/140 executable lines and 24/24 functions), and the time header is also manifest
+    enforced. The `pathFilename` implementation is also at 100% in the final trace.
+- [x] Bring the remaining calls in recently edited HCI functions to 100% executable-line coverage.
+  - `HCIobservation::preProcess`: completed `radprofim` plus `zeroNaNs` cleanup, Gaussian and median smoothing,
+    azimuthal-kernel generation, kernel precalculation, and mean/median-filter calls in `70849e9` and `6d4f997`.
+    The radial-profile regressions model the production cleanup sequence because profile interpolation can leave
+    non-finite edge pixels before `zeroNaNs`, and now also verify that masked pixels are excluded and preserved.
+  - `HCIobservation::stdFitsHeader`: the FITS-header append calls are covered through the `fitsHeader` and
+    `fitsHeaderCard` suites, both of which are at 100%.
+  - `HCIobservation::readPSFSub`: the FITS read and header-card calls are covered through the 100% `fitsFile`,
+    `fitsHeader`, and `fitsHeaderCard` suites.
+  - `ADIobservation` injection/output: the exact default cubic-convolution constructor, kernel, and `imageShift`
+    specialization have counters on all 63 executable lines selected by that call path. The separately used
+    `imageRotate` implementation is 37/37.
+  - Remaining direct helpers: `fitsHeaderGitStatus` is 9/9, the default COMMENT/HISTORY tag constructors are 6/6,
+    the two `error_report` overload bodies are 10/10, the HCI-used degree/radian and angle-normalization helpers are
+    16/16, and `parentPath` plus `getSequentialFilename` are 21/21 executable lines in the current trace.
+  - Verification: every executable line in the exact `gaussKernel`, `azBoxKernel`, `precalcKernel`, `filterImage`,
+    `medianFilterImage`, `medianSmooth`, `radprofim`, and `zeroNaNs` overload ranges called by these HCI functions is
+    covered. The remaining uncovered lines in `imageFilters.hpp` belong to unrelated smoothing APIs.
+- [x] Define a real deep-copy constructor and move operations for `mx::improc::eigenCube`. Copying now allocates
+      independent storage; moving and ownership transfer leave the source empty; and `clear()` resets ownership and
+      the data pointer. Focused normal and ASan/UBSan regressions cover copy, assignment, move, and shallow transfer.
+- [x] Fix `pywfsSlopeReconstructor::calcMask()`: a configured FITS mask is no longer overwritten by the circular-pupil
+      path. A focused test writes a non-circular temporary FITS mask and verifies its content and derived measurement
+      size after loading.
+
+## Not related to hciReduce
+
 - [ ] Decide whether to delete or modernize the four explicit legacy headers before enabling their placeholder targets.
 - [ ] Resolve the incompatible duplicate `mx::AO::sim::wfMeasurement<T>` definitions in `generalIntegrator.hpp` and
       `leakyIntegrator.hpp`. They compile in isolated test translation units but cannot coexist safely in one program
@@ -313,11 +576,14 @@ Known non-blocking ownership follow-ups:
 - [ ] Continue the non-mechanical template sweep: free/member-function templates need exact representative signatures
       or real calls, while policy-, feature-, and user-type-dependent templates need an explicit supported-type
       decision before either test-local or production-library instantiation.
-- [ ] Fix `pywfsSlopeReconstructor::calcMask()`: a configured FITS mask is loaded and then unconditionally overwritten
-      by the following circular-pupil block.
 - [ ] Add a temporary FITS-cube fixture for behavioral coverage of `turbSequence::turbFnames()` success and clamping.
 - [ ] Extract the four error-generator tools' logic from their `main()` functions so their ownership placeholders can
       become behavioral unit tests.
+- [ ] Forward the documented `mean` argument through both `radprofim` overloads. The current implementations omit it
+      when delegating to `radprof` and to the radius-image overload, so requesting mean profiles still selects the
+      default median behavior; hciReduce currently uses the default median path.
+- [ ] Forward the documented `pixbuf` argument from `annulusCoords` and `annulusIndices` to `annulusCoordsWorker`.
+      Both wrappers currently drop nonzero buffers; hciReduce uses the unaffected default value of zero.
 
 The focused sanitizer configuration uses `-DMXLIB_OPTIMIZE=-O1`,
 `-DMXLIB_CXXFLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"`, and matching
