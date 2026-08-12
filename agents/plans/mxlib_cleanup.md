@@ -282,10 +282,15 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
-- [ ] Bring the default `mx::ipc::ompLoopWatcher` constructor and `incrementAndOutputStatus()` path used by
-      `KLIPreduction::worker()` to 100% executable-line coverage. The current aggregate trace records only 33.3%
-      (21/63) for `ompLoopWatcher.hpp`; the constructor and wrapper are hit, but their default timed/pretty-output
-      implementation still contains uncovered executable branches.
+- [x] Bring `mx::improc::cutImageRegion()` and `mx::improc::insertImageRegion()` to 100% executable-line coverage.
+      Commit `b3635f4` adds indexed cut/insert tests covering automatic allocation, caller-owned storage, Eigen views,
+      preserved linear order, and empty regions. The final trace records `imageMasks.hpp` at 95/95 executable lines
+      and 10/10 functions.
+
+- [x] Bring the default `mx::ipc::ompLoopWatcher` constructor and `incrementAndOutputStatus()` path used by
+      `KLIPreduction::worker()` to 100% executable-line coverage. Commit `b3635f4` replaces the placeholder with
+      behavioral progress, batching, final-status, clearing, timing, newline, and formatting-policy tests. The final
+      trace records `ompLoopWatcher.hpp` at 69/69 executable lines and 11/11 functions.
 
 - [~] Continue closing mxlib coverage gaps exposed by hciReduce integration tests.
   - Completed mxlib `dev` commits, each verified under its focused normal or coverage-instrumented target:
@@ -359,6 +364,8 @@ Known non-blocking ownership follow-ups:
     - `44d4190`: complete `createDirectories` coverage for HCI output paths, including deterministic translation of
       an otherwise platform-dependent filesystem error into `error_t::filesystem` through the existing hidden test
       seam pattern.
+    - `b3635f4`: complete indexed image-region cut/insert and OpenMP loop-watcher coverage used by KLIP region
+      extraction and worker progress reporting.
   - Baseline verification:
     - CUDA-off/ISIO-on LCOV passed all 176 mxlib tests and generated
       `/tmp/mxlib-coverage-filelogistics/doc/html/coverage/index.html`.
@@ -409,6 +416,8 @@ Known non-blocking ownership follow-ups:
     - Final LCOV after `44d4190` passed all 176 tests and verified all 54 required records: 51.0% overall
       executable-line coverage (7,617/14,929) and 52.8% alias-filtered function coverage (994/1,884). The HCI-used
       `createDirectories` implementation is at 100% (10/10 executable lines).
+    - Final CUDA-off/ISIO-off LCOV after `b3635f4` passed all 173 tests: `imageMasks.hpp` is 100% (95/95 executable
+      lines and 10/10 functions), and `ompLoopWatcher.hpp` is 100% (69/69 executable lines and 11/11 functions).
     - A fully instrumented ASan/UBSan `fitsFile` run with leak detection passed 345 assertions. It exposed and drove
       the fix for a pre-existing one-dimensional subimage coordinate overflow.
     - Fully instrumented ASan/UBSan `fitsHeader` and `fitsHeaderCard` runs with leak detection passed 477 assertions.

@@ -42,10 +42,12 @@ struct testDerotator
 
 struct reductionHarness : public reductionT
 {
+    using reductionT::m_imageMJD;
     using reductionT::m_Ncols;
     using reductionT::m_Nims;
     using reductionT::m_Nrows;
     using reductionT::m_psfsub;
+    using reductionT::m_RDIimageMJD;
 };
 /// \endcond
 
@@ -63,10 +65,14 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( config.m_targets.at( "klip.diagnosticDirectory" ).helpType == "string" );
     REQUIRE( config.m_targets.at( "klip.pixelTSNormMethod" ).helpType == "string" );
     REQUIRE( config.m_targets.at( "klip.pixelTSSigma" ).helpType == "float" );
+    REQUIRE( config.m_targets.at( "klip.includeMethod" ).clType == mx::app::argType::Required );
+    REQUIRE( config.m_targets.at( "klip.includeMethod" ).helpType == "string" );
 
     defaults.loadConfig( config );
     REQUIRE_FALSE( defaults.m_writeDiagnostics );
     REQUIRE( defaults.m_diagnosticDirectory == "." );
+    REQUIRE( defaults.m_includeMethod == mx::improc::HCI::include::all );
+    REQUIRE( defaults.m_includeRefNum == 0 );
 
     TestDirectory directory;
     reductionT configured;
@@ -103,6 +109,7 @@ TEST_CASE( "KLIP configuration loading", "[KLIPreduction][config]" )
                          "pixelTSNormMethod=rms\n"
                          "pixelTSSigma=2.25\n"
                          "includeRefNum=4\n"
+                         "includeMethod=angle\n"
                          "Nmodes=1,3,5\n"
                          "rightReason=true\n"
                          "rrRadius=3.5\n" );
@@ -120,9 +127,36 @@ TEST_CASE( "KLIP configuration loading", "[KLIPreduction][config]" )
     REQUIRE( reduction.m_pixelTSNormMethod == mx::improc::HCI::pixelTSNorm::rms );
     REQUIRE( reduction.m_pixelTSSigma == Approx( 2.25 ) );
     REQUIRE( reduction.m_includeRefNum == 4 );
+    REQUIRE( reduction.m_includeMethod == mx::improc::HCI::include::angle );
     REQUIRE( reduction.m_Nmodes == std::vector<int>{ 1, 3, 5 } );
     REQUIRE( reduction.m_rightReason );
     REQUIRE( reduction.m_rightReasonRadius == Approx( 3.5 ) );
+}
+
+/// Verify KLIPreduction::loadConfig accepts every documented reference-inclusion method.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP inclusion-method configuration", "[KLIPreduction][config][include]" )
+{
+    TestDirectory directory;
+    const std::vector<std::pair<std::string, mx::improc::HCI::include>> methods{
+        { "all", mx::improc::HCI::include::all },
+        { "corr", mx::improc::HCI::include::corr },
+        { "time", mx::improc::HCI::include::time },
+        { "angle", mx::improc::HCI::include::angle },
+        { "imno", mx::improc::HCI::include::imno },
+    };
+
+    for( const auto &[name, method] : methods )
+    {
+        const std::filesystem::path configPath = directory.file( "include-" + name + ".conf" );
+        writeTextFile( configPath, "[klip]\nincludeMethod=" + name + "\n" );
+        reductionT reduction;
+        mx::app::appConfigurator config;
+        reduction.setupConfig( config );
+        REQUIRE( config.readConfig( configPath.string() ) == 0 );
+        reduction.loadConfig( config );
+        REQUIRE( reduction.m_includeMethod == method );
+    }
 }
 
 /// Verify KLIPreduction::loadConfig rejects unsupported enum strings.
@@ -143,6 +177,16 @@ TEST_CASE( "KLIP invalid configuration methods", "[KLIPreduction][config][valida
     REQUIRE_THROWS( readReductionConfig( badExclusion,
                                          directory.file( "bad-exclusion.conf" ),
                                          "[adi]\nexcludeMethod=not-a-method\n" ) );
+
+    reductionT badInclusion;
+    REQUIRE_THROWS( readReductionConfig( badInclusion,
+                                         directory.file( "bad-inclusion.conf" ),
+                                         "[klip]\nincludeMethod=not-a-method\n" ) );
+
+    reductionT negativeReferenceCount;
+    REQUIRE_THROWS( readReductionConfig( negativeReferenceCount,
+                                         directory.file( "negative-reference-count.conf" ),
+                                         "[klip]\nincludeRefNum=-1\n" ) );
 }
 
 /// Verify KLIPreduction::writeDiagnostic is inert by default and writes exact FITS data when enabled.
@@ -365,14 +409,18 @@ TEST_CASE( "KLIP covariance exclusion", "[KLIPreduction][covariance][exclude]" )
                                       norms,
                                       selectedReferences,
                                       references,
+                                      references,
                                       1,
                                       1,
                                       0,
-                                      4,
                                       mx::improc::HCI::exclude::imno,
                                       mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::all,
                                       0,
                                       derotator,
+                                      derotator,
+                                      {},
+                                      {},
                                       included );
     REQUIRE( included( 1, 0 ) == 0 );
     REQUIRE( included( 1, 1 ) == 0 );
@@ -387,14 +435,18 @@ TEST_CASE( "KLIP covariance exclusion", "[KLIPreduction][covariance][exclude]" )
                                       norms,
                                       selectedReferences,
                                       references,
+                                      references,
                                       1,
                                       0.15,
                                       0,
-                                      4,
                                       mx::improc::HCI::exclude::angle,
                                       mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::all,
                                       0,
                                       derotator,
+                                      derotator,
+                                      {},
+                                      {},
                                       included );
     REQUIRE( included( 1, 0 ) == 0 );
     REQUIRE( included( 1, 1 ) == 0 );
@@ -409,18 +461,17 @@ TEST_CASE( "KLIP covariance exclusion", "[KLIPreduction][covariance][exclude]" )
 /** \ingroup KLIPreduction_unit_tests */
 TEST_CASE( "KLIP covariance correlation selection", "[KLIPreduction][covariance][include]" )
 {
-    Eigen::ArrayXXf covariance = Eigen::ArrayXXf::Zero( 4, 4 );
-    covariance( 1, 0 ) = 0.8;
-    covariance( 1, 1 ) = 1.0;
-    covariance( 2, 1 ) = 0.8;
-    covariance( 3, 1 ) = 0.5;
+    Eigen::ArrayXXf covariance = Eigen::MatrixXf::Identity( 4, 4 ).array();
     Eigen::ArrayXXf references( 2, 4 );
-    references << 0, 1, 2, 3, 10, 11, 12, 13;
+    references << 1, 1, 0, -1, 0, 0, 1, 0;
+    Eigen::ArrayXXf targets( 2, 1 );
+    targets << 1, 0;
     const std::vector<float> norms( 4, 1 );
-    testDerotator derotator{ { 0.0, 0.1, 0.5, 1.0 } };
+    testDerotator referenceDerotator{ { 0.0, 0.1, 0.5, 1.0 } };
+    testDerotator targetDerotator{ { 0.1 } };
     Eigen::ArrayXXf selectedCovariance;
     Eigen::ArrayXXf selectedReferences;
-    mx::improc::eigenImage<int> included( 4, 4 );
+    mx::improc::eigenImage<int> included( 1, 4 );
     included.setZero();
 
     mx::improc::collapseCovar<float>( selectedCovariance,
@@ -428,41 +479,181 @@ TEST_CASE( "KLIP covariance correlation selection", "[KLIPreduction][covariance]
                                       norms,
                                       selectedReferences,
                                       references,
+                                      targets,
+                                      0,
+                                      0,
+                                      0,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::corr,
+                                      1,
+                                      referenceDerotator,
+                                      targetDerotator,
+                                      {},
+                                      {},
+                                      included );
+    REQUIRE( included( 0, 0 ) == 1 );
+    REQUIRE( included( 0, 1 ) == 0 );
+    REQUIRE( included( 0, 2 ) == 0 );
+    REQUIRE( included( 0, 3 ) == 0 );
+    REQUIRE( selectedReferences.cols() == 1 );
+    REQUIRE( selectedReferences.col( 0 ).isApprox( references.col( 0 ) ) );
+
+    included.setZero();
+    mx::improc::collapseCovar<float>( selectedCovariance,
+                                      covariance,
+                                      norms,
+                                      selectedReferences,
+                                      references,
+                                      targets,
+                                      0,
+                                      0,
+                                      0,
+                                      mx::improc::HCI::exclude::imno,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::corr,
+                                      1,
+                                      referenceDerotator,
+                                      targetDerotator,
+                                      {},
+                                      {},
+                                      included );
+    REQUIRE( included( 0, 0 ) == 0 );
+    REQUIRE( included( 0, 1 ) == 1 );
+    REQUIRE( included.row( 0 ).sum() == 1 );
+    REQUIRE( selectedReferences.col( 0 ).isApprox( references.col( 1 ) ) );
+}
+
+/// Verify collapseCovar implements all, time, wrapped-angle, and image-number inclusion ordering.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP covariance inclusion methods", "[KLIPreduction][covariance][include]" )
+{
+    Eigen::ArrayXXf covariance = Eigen::MatrixXf::Identity( 4, 4 ).array();
+    Eigen::ArrayXXf references( 2, 4 );
+    references << 1, 2, 3, 4, 5, 6, 7, 8;
+    Eigen::ArrayXXf targets = Eigen::ArrayXXf::Ones( 2, 2 );
+    const std::vector<float> norms{ std::sqrt( 26.0F ), std::sqrt( 40.0F ), std::sqrt( 58.0F ), std::sqrt( 80.0F ) };
+    testDerotator referenceDerotator{ { -3.1, 0.2, 2.0, -1.0 } };
+    testDerotator targetDerotator{ { 3.1, 0.5 } };
+    const std::vector<double> referenceMJD{ 10, 5, 12, 7 };
+    const std::vector<double> targetMJD{ 8, 20 };
+    Eigen::ArrayXXf selectedCovariance;
+    Eigen::ArrayXXf selectedReferences;
+    mx::improc::eigenImage<int> included( 2, 4 );
+
+    included.setZero();
+    mx::improc::collapseCovar<float>( selectedCovariance,
+                                      covariance,
+                                      norms,
+                                      selectedReferences,
+                                      references,
+                                      targets,
+                                      0,
+                                      0,
+                                      0,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::all,
+                                      1,
+                                      referenceDerotator,
+                                      targetDerotator,
+                                      referenceMJD,
+                                      targetMJD,
+                                      included );
+    REQUIRE( included.row( 0 ).isOnes() );
+    REQUIRE( selectedReferences.cols() == 4 );
+
+    included.setZero();
+    mx::improc::collapseCovar<float>( selectedCovariance,
+                                      covariance,
+                                      norms,
+                                      selectedReferences,
+                                      references,
+                                      targets,
+                                      0,
+                                      0,
+                                      0,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::time,
+                                      0,
+                                      referenceDerotator,
+                                      targetDerotator,
+                                      {},
+                                      {},
+                                      included );
+    REQUIRE( included.row( 0 ).isOnes() );
+    REQUIRE( selectedReferences.cols() == 4 );
+
+    included.setZero();
+    mx::improc::collapseCovar<float>( selectedCovariance,
+                                      covariance,
+                                      norms,
+                                      selectedReferences,
+                                      references,
+                                      targets,
+                                      0,
+                                      0,
+                                      0,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::time,
+                                      2,
+                                      referenceDerotator,
+                                      targetDerotator,
+                                      referenceMJD,
+                                      targetMJD,
+                                      included );
+    REQUIRE( included( 0, 0 ) == 1 );
+    REQUIRE( included( 0, 1 ) == 0 );
+    REQUIRE( included( 0, 2 ) == 0 );
+    REQUIRE( included( 0, 3 ) == 1 );
+
+    included.setZero();
+    mx::improc::collapseCovar<float>( selectedCovariance,
+                                      covariance,
+                                      norms,
+                                      selectedReferences,
+                                      references,
+                                      targets,
+                                      0,
+                                      0,
+                                      0,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::angle,
+                                      1,
+                                      referenceDerotator,
+                                      targetDerotator,
+                                      referenceMJD,
+                                      targetMJD,
+                                      included );
+    REQUIRE( included( 0, 0 ) == 1 );
+    REQUIRE( included.row( 0 ).sum() == 1 );
+
+    included.setZero();
+    mx::improc::collapseCovar<float>( selectedCovariance,
+                                      covariance,
+                                      norms,
+                                      selectedReferences,
+                                      references,
+                                      targets,
                                       1,
                                       0,
                                       0,
-                                      4,
                                       mx::improc::HCI::exclude::none,
                                       mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::imno,
                                       2,
-                                      derotator,
+                                      referenceDerotator,
+                                      targetDerotator,
+                                      referenceMJD,
+                                      targetMJD,
                                       included );
     REQUIRE( included( 1, 0 ) == 1 );
     REQUIRE( included( 1, 1 ) == 1 );
     REQUIRE( included( 1, 2 ) == 0 );
     REQUIRE( included( 1, 3 ) == 0 );
-    REQUIRE( selectedReferences.cols() == 2 );
-
-    included.setZero();
-    mx::improc::collapseCovar<float>( selectedCovariance,
-                                      covariance,
-                                      norms,
-                                      selectedReferences,
-                                      references,
-                                      1,
-                                      1,
-                                      0,
-                                      4,
-                                      mx::improc::HCI::exclude::imno,
-                                      mx::improc::HCI::exclude::none,
-                                      2,
-                                      derotator,
-                                      included );
-    REQUIRE( included( 1, 0 ) == 0 );
-    REQUIRE( included( 1, 1 ) == 0 );
-    REQUIRE( included( 1, 2 ) == 0 );
-    REQUIRE( included( 1, 3 ) == 1 );
-    REQUIRE( selectedReferences.cols() == 1 );
 }
 
 /// Verify collapseCovar rejects inconsistent covariance-selection dimensions.
@@ -481,14 +672,38 @@ TEST_CASE( "KLIP covariance input validation", "[KLIPreduction][covariance][vali
                                                          std::vector<float>{ 1 },
                                                          selectedReferences,
                                                          references,
+                                                         references,
                                                          0,
                                                          0,
                                                          0,
-                                                         2,
                                                          mx::improc::HCI::exclude::none,
                                                          mx::improc::HCI::exclude::none,
+                                                         mx::improc::HCI::include::all,
                                                          0,
                                                          derotator,
+                                                         derotator,
+                                                         {},
+                                                         {},
+                                                         included ),
+                       std::invalid_argument );
+
+    REQUIRE_THROWS_AS( mx::improc::collapseCovar<float>( selectedCovariance,
+                                                         covariance,
+                                                         std::vector<float>{ 1, 1 },
+                                                         selectedReferences,
+                                                         references,
+                                                         references,
+                                                         0,
+                                                         0,
+                                                         0,
+                                                         mx::improc::HCI::exclude::none,
+                                                         mx::improc::HCI::exclude::none,
+                                                         mx::improc::HCI::include::time,
+                                                         1,
+                                                         derotator,
+                                                         derotator,
+                                                         {},
+                                                         {},
                                                          included ),
                        std::invalid_argument );
 }
@@ -502,6 +717,8 @@ TEST_CASE( "KLIP worker one-mode reduction", "[KLIPreduction][worker][diagnostic
     reductionHarness reduction;
     reduction.m_meanSubMethod = mx::improc::HCI::meanSub::imageMean;
     reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::none;
+    reduction.m_includeMethod = mx::improc::HCI::include::all;
+    reduction.m_includeRefNum = 1;
     reduction.m_Nrows = 1;
     reduction.m_Ncols = 3;
     reduction.m_Nims = 2;
@@ -543,6 +760,70 @@ TEST_CASE( "KLIP worker one-mode reduction", "[KLIPreduction][worker][diagnostic
     REQUIRE( covariance( 0, 0 ) == Approx( 2 ) );
     REQUIRE( covariance( 1, 0 ) == Approx( 0 ) );
     REQUIRE( covariance( 1, 1 ) == Approx( 6 ) );
+}
+
+/// Verify KLIPreduction::worker ranks an RDI library independently of the target image count.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP worker RDI correlation inclusion", "[KLIPreduction][worker][RDI][include]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    reductionHarness reduction;
+    reduction.m_meanSubMethod = mx::improc::HCI::meanSub::none;
+    reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::none;
+    reduction.m_includeMethod = mx::improc::HCI::include::corr;
+    reduction.m_includeRefNum = 2;
+    reduction.m_Nrows = 1;
+    reduction.m_Ncols = 3;
+    reduction.m_Nims = 1;
+    reduction.m_Nmodes = { 1 };
+    reduction.m_maxNmodes = 1;
+    reduction.m_psfsub.resize( 1 );
+    reduction.m_psfsub[0].resize( 1, 3, 1 );
+    reduction.m_psfsub[0].cube().setZero();
+    reduction.m_imsIncluded.resize( 1, 3 );
+    reduction.m_imsIncluded.setZero();
+
+    mx::improc::eigenCube<float> references( 3, 1, 3 );
+    references.image( 0 ) << 1, 0, -1;
+    references.image( 1 ) << 0, 1, -1;
+    references.image( 2 ) << -1, 0, 1;
+    mx::improc::eigenCube<float> targets( 3, 1, 1 );
+    targets.image( 0 ) << 1, 0, -1;
+    reductionT::imageT mask;
+    std::vector<size_t> indices{ 0, 1, 2 };
+
+    reduction.worker( references, targets, mask, indices, 0, 0 );
+
+    REQUIRE( reduction.m_imsIncluded.rows() == 1 );
+    REQUIRE( reduction.m_imsIncluded.cols() == 3 );
+    REQUIRE( reduction.m_imsIncluded( 0, 0 ) == 1 );
+    REQUIRE( reduction.m_imsIncluded( 0, 1 ) == 1 );
+    REQUIRE( reduction.m_imsIncluded( 0, 2 ) == 0 );
+    REQUIRE( reduction.m_psfsub[0].image( 0 ).isFinite().all() );
+}
+
+/// Verify KLIPreduction::worker validates inclusion metadata before entering its parallel region.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP worker inclusion metadata validation", "[KLIPreduction][worker][include][validation]" )
+{
+    reductionHarness reduction;
+    reduction.m_meanSubMethod = mx::improc::HCI::meanSub::none;
+    reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::none;
+    reduction.m_includeMethod = mx::improc::HCI::include::time;
+    reduction.m_includeRefNum = 1;
+
+    mx::improc::eigenCube<float> references( 2, 1, 2 );
+    references.cube().setOnes();
+    mx::improc::eigenCube<float> targets( 2, 1, 1 );
+    targets.cube().setOnes();
+    reductionT::imageT mask;
+    std::vector<size_t> indices{ 0, 1 };
+
+    REQUIRE_THROWS( reduction.worker( references, targets, mask, indices, 0, 0 ) );
+
+    reduction.m_RDIimageMJD = { 1, std::numeric_limits<double>::quiet_NaN() };
+    reduction.m_imageMJD = { 2 };
+    REQUIRE_THROWS( reduction.worker( references, targets, mask, indices, 0, 0 ) );
 }
 
 /// Verify KLIPreduction::meanSubtract rejects unimplemented and invalid methods before mutating either cube.

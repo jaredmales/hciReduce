@@ -183,16 +183,22 @@ depends on the same behavior.
   - Image-number and angular exclusion boundaries are covered. Correlation selection keeps exactly the configured
     maximum with deterministic index tie-breaking and remains safe when exclusions leave fewer references.
   - A one-mode synthetic `worker()` reduction verifies the KL result and the disabled/enabled covariance diagnostic.
-- [ ] Resolve the advertised reference-inclusion API before extending `worker()`/`regions()` coverage.
-  - `m_includeMethod` defaults to `all` and is written as `INMTHDMX`, but it has no configuration target and
-    `includeRefNum > 0` currently always performs correlation ranking.
-  - Implementing the documented `time`, `angle`, and `imno` choices requires passing timestamps and selection context
-    into the covariance helper; preserve the current correlation-only behavior until that API contract is chosen.
+- [x] Implement and test every advertised reference-inclusion method.
+  - `klip.includeMethod` accepts `all`, `corr`, `time`, `angle`, and `imno`; invalid strings and negative
+    `includeRefNum` values are rejected during configuration.
+  - Exclusion is applied before ranking. `all` retains every surviving reference regardless of a positive cap, while
+    a zero cap retains every survivor for every method. Ranked ties resolve deterministically to the lower reference
+    index.
+  - Correlation uses the direct normalized target-reference dot product. Time uses absolute MJD separation, angle uses
+    wrapped derotation-angle separation, and image-number selection uses absolute index separation.
+  - RDI selection uses the independent reference count, timestamps, and derotation angles; a worker regression covers
+    an RDI library with more references than target images. Missing or non-finite selection metadata is rejected before
+    entering the OpenMP region.
 - Verification:
-  - The full normal suite and focused ASan/UBSan suite pass; Doxygen improves from 101 to 98 legacy warnings with no
-    new test/group diagnostics.
-  - Coverage passes 10/10 at 74.1% overall (1768/2385). `KLIPreduction.hpp` rises from 34/535 (6.4%) to 355/592
-    (60.0%); `HCIobservation.hpp` remains 1199/1335 (89.8%).
+  - The fresh full normal suite passes 10/10, and the focused ASan/UBSan suite passes 164 assertions in 19 test cases.
+    Doxygen succeeds with 91 legacy warnings and no new test/group/helper diagnostics.
+  - Coverage passes 10/10 at 74.2% overall (1842/2481). `KLIPreduction.hpp` rises to 414/676 (61.2%), `HCI.hpp`
+    reaches 95/136 (69.9%), and `HCIobservation.hpp` remains 1199/1335 (89.8%).
 
 ## Code-review findings that set test priority
 

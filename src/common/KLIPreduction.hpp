@@ -148,28 +148,27 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
      */
     HCI::exclude m_excludeMethodMax{ HCI::exclude::none };
 
-    /// Number of reference images to include in the covariance matrix
-    /** If > 0, then at most this many images, determined by highest
-     * cross-correlation, are included. This is determined after
-     * rotational/image-number exclusion. If == 0, then all reference images are
-     * included.
+    /// Maximum number of reference images to include in the covariance matrix.
+    /** If greater than zero, at most this many images are retained according to
+     * m_includeMethod after exclusion. If zero, all surviving reference images
+     * are included.
      */
     int m_includeRefNum{ 0 };
 
     /// Controls how number of included images is calculated.
     /** The number of included images is calculated after exclusion is complete.
      * Can have the following values:
-     * - <b>HCI::includeAll</b> = all remaining images are included [default]
-     * - <b>HCI::includeCorr</b> = the m_includeRefNum of the remaining images
+     * - <b>HCI::include::all</b> = all remaining images are included, ignoring m_includeRefNum [default]
+     * - <b>HCI::include::corr</b> = the m_includeRefNum of the remaining images
      * which are most correlated with the target are included
-     * - <b>HCI::includeTime</b> = the m_includeRefNum of the remaining images
+     * - <b>HCI::include::time</b> = the m_includeRefNum of the remaining images
      * which are closest in time to the target are included
-     * - <b>HCI::includeAngle</b> = the m_includeRefNum of the remaining images
+     * - <b>HCI::include::angle</b> = the m_includeRefNum of the remaining images
      * which are closest in angle to the target are included
-     * - <b>HCI::includeImno</b> = the m_includeRefNum of the remaining images
+     * - <b>HCI::include::imno</b> = the m_includeRefNum of the remaining images
      * which are closest in image number to the target are included
      */
-    HCI::include m_includeMethod { HCI::include::all };
+    HCI::include m_includeMethod{ HCI::include::all };
 
     eigenImage<int> m_imsIncluded;
 
@@ -428,7 +427,17 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::setupConfig( mx::ap
                 "includeRefNum",
                 false,
                 "int",
-                "The number of references to include, based on correlation." );
+                "The maximum number of references to include after exclusion." );
+
+    config.add( "klip.includeMethod",
+                "",
+                "klip.includeMethod",
+                mx::app::argType::Required,
+                "klip",
+                "includeMethod",
+                false,
+                "string",
+                "Reference inclusion method: all, corr, time, angle, or imno." );
 
     config.add( "klip.Nmodes",
                 "",
@@ -555,6 +564,30 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::loadConfig( mx::app
     }
 
     config( m_includeRefNum, "klip.includeRefNum" );
+    if( m_includeRefNum < 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig, "klip.includeRefNum must be non-negative" );
+    }
+
+    std::string includeMethod;
+    try
+    {
+        includeMethod = HCI::includeToStr<verboseT>( m_includeMethod );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception ) );
+    }
+    config( includeMethod, "klip.includeMethod" );
+    try
+    {
+        m_includeMethod = HCI::includeFmStr<verboseT>( includeMethod );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "klip.includeMethod is not valid" ) );
+    }
     config( m_Nmodes, "klip.Nmodes" );
     config( m_rightReason, "klip.rightReason" );
     config( m_rightReasonRadius, "klip.rrRadius" );
@@ -903,7 +936,8 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
 
     radAngImage<math::degreesT<realT>>( rIm, qIm, .5 * ( this->m_Nrows - 1 ), .5 * ( this->m_Ncols - 1 ) );
 
-    m_imsIncluded.resize( this->m_Nims, this->m_Nims );
+    const int referenceCount = this->m_refIms.planes() > 0 ? this->m_refIms.planes() : this->m_Nims;
+    m_imsIncluded.resize( this->m_Nims, referenceCount );
     m_imsIncluded.setConstant( 1 );
 
     if( this->m_refIms.planes() > 0 ) // RDI
@@ -951,7 +985,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
 
         if( this->m_refIms.planes() > 0 )
         {
-            rims.resize( idx.size(), 1, this->m_Nims );
+            rims.resize( idx.size(), 1, this->m_refIms.planes() );
         }
 
         for( int i = 0; i < this->m_Nims; ++i )
@@ -1081,11 +1115,13 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
     return 0;
 }
 
+/// Reference-image candidate state used while selecting a target's KLIP library.
 struct cvEntry
 {
-    int index;
-    double cvVal;
-    double angle;
+    /// Correlation score or distance used to rank the candidate.
+    double cvVal{ 0 };
+
+    /// Whether the candidate remains admissible after exclusion and ranking.
     bool included{ true };
 };
 
@@ -1121,64 +1157,98 @@ void extractCols( eigenT &out,        /**< [out] selected columns */
 }
 
 /// Select a target image's admissible reference covariance rows, columns, and images.
-template <typename realT, typename eigenT, typename eigenTv, class derotFunctObj>
-void collapseCovar( eigenT &cutCV,                 /**< [out] selected covariance matrix */
-                    const eigenT &CV,              /**< [in] lower-triangular covariance matrix */
-                    const std::vector<realT> &sds, /**< [in] reference Euclidean norms */
-                    eigenT &rimsCut,               /**< [out] selected vectorized references */
-                    const eigenTv &rims,           /**< [in] vectorized references */
-                    int imno,                      /**< [in] target image index */
-                    double dang,                   /**< [in] minimum exclusion threshold */
-                    double dangMax,                /**< [in] maximum exclusion threshold */
-                    int Nims,                      /**< [in] number of reference images */
-                    HCI::exclude excludeMethod,    /**< [in] minimum exclusion method */
-                    HCI::exclude excludeMethodMax, /**< [in] maximum exclusion method */
-                    int includeRefNum,             /**< [in] maximum references retained by correlation */
-                    const derotFunctObj &derotF,   /**< [in] target/reference derotator */
+template <typename realT, typename eigenT, typename eigenTv, class referenceDerotT, class targetDerotT>
+void collapseCovar( eigenT &cutCV,                           /**< [out] selected covariance matrix */
+                    const eigenT &CV,                        /**< [in] lower-triangular covariance matrix */
+                    const std::vector<realT> &sds,           /**< [in] reference Euclidean norms */
+                    eigenT &rimsCut,                         /**< [out] selected vectorized references */
+                    const eigenTv &rims,                     /**< [in] vectorized references */
+                    const eigenTv &tims,                     /**< [in] vectorized target images */
+                    int imno,                                /**< [in] target image index */
+                    double dang,                             /**< [in] minimum exclusion threshold */
+                    double dangMax,                          /**< [in] maximum exclusion threshold */
+                    HCI::exclude excludeMethod,              /**< [in] minimum exclusion method */
+                    HCI::exclude excludeMethodMax,           /**< [in] maximum exclusion method */
+                    HCI::include includeMethod,              /**< [in] reference inclusion ranking method */
+                    int includeRefNum,                       /**< [in] maximum ranked references retained */
+                    const referenceDerotT &referenceDerotF,  /**< [in] reference derotator */
+                    const targetDerotT &targetDerotF,        /**< [in] target derotator */
+                    const std::vector<double> &referenceMJD, /**< [in] reference timestamps */
+                    const std::vector<double> &targetMJD,    /**< [in] target timestamps */
                     eigenImage<int> &imsIncluded /**< [out] per-target inclusion flags */ )
 {
-    if( Nims <= 0 || imno < 0 || imno >= Nims || CV.rows() < Nims || CV.cols() < Nims ||
-        sds.size() < static_cast<size_t>( Nims ) || rims.cols() < Nims || imsIncluded.rows() <= imno ||
-        imsIncluded.cols() < Nims )
+    const int referenceCount = rims.cols();
+    const int targetCount = tims.cols();
+    if( referenceCount <= 0 || targetCount <= 0 || imno < 0 || imno >= targetCount || CV.rows() < referenceCount ||
+        CV.cols() < referenceCount || sds.size() < static_cast<size_t>( referenceCount ) ||
+        rims.rows() != tims.rows() || imsIncluded.rows() < targetCount || imsIncluded.cols() < referenceCount ||
+        includeRefNum < 0 )
     {
         throw std::invalid_argument( "invalid KLIP covariance-selection dimensions" );
     }
-
-    std::vector<cvEntry> allidx( Nims );
-
-    // Initialize the vector of cvEntries
-    for( int i = 0; i < Nims; ++i )
+    if( includeMethod != HCI::include::all && includeMethod != HCI::include::corr &&
+        includeMethod != HCI::include::time && includeMethod != HCI::include::angle &&
+        includeMethod != HCI::include::imno )
     {
-        allidx[i].index = i;
-        allidx[i].angle = derotF.derotAngle( i );
+        throw std::invalid_argument( "invalid KLIP reference inclusion method" );
+    }
+    if( includeMethod == HCI::include::time && includeRefNum > 0 &&
+        ( referenceMJD.size() < static_cast<size_t>( referenceCount ) ||
+          targetMJD.size() < static_cast<size_t>( targetCount ) ) )
+    {
+        throw std::invalid_argument( "time-based KLIP inclusion requires target and reference timestamps" );
+    }
 
-        realT covariance;
-        if( i <= imno )
-        {
-            covariance = CV( imno, i );
-        }
-        else
-        {
-            covariance = CV( i, imno );
-        }
+    std::vector<cvEntry> allidx( referenceCount );
 
-        const realT denominator = sds[i] * sds[imno];
-        if( std::isfinite( denominator ) && denominator > std::numeric_limits<realT>::epsilon() )
+    realT targetNorm{ 0 };
+    if( includeMethod == HCI::include::corr && includeRefNum > 0 )
+    {
+        targetNorm = std::sqrt( tims.col( imno ).square().sum() );
+    }
+    for( int i = 0; i < referenceCount; ++i )
+    {
+        if( includeMethod == HCI::include::corr && includeRefNum > 0 )
         {
-            allidx[i].cvVal = covariance / denominator;
+            const realT denominator = sds[i] * targetNorm;
+            if( std::isfinite( denominator ) && denominator > std::numeric_limits<realT>::epsilon() )
+            {
+                allidx[i].cvVal = ( rims.col( i ) * tims.col( imno ) ).sum() / denominator;
+                if( !std::isfinite( allidx[i].cvVal ) )
+                {
+                    allidx[i].cvVal = -std::numeric_limits<double>::infinity();
+                }
+            }
+            else
+            {
+                allidx[i].cvVal = -std::numeric_limits<double>::infinity();
+            }
         }
-        else
+        else if( includeMethod == HCI::include::time && includeRefNum > 0 )
         {
-            allidx[i].cvVal = -std::numeric_limits<double>::infinity();
+            if( !std::isfinite( referenceMJD[i] ) || !std::isfinite( targetMJD[imno] ) )
+            {
+                throw std::invalid_argument( "time-based KLIP inclusion requires finite timestamps" );
+            }
+            allidx[i].cvVal = std::abs( referenceMJD[i] - targetMJD[imno] );
+        }
+        else if( includeMethod == HCI::include::angle && includeRefNum > 0 )
+        {
+            allidx[i].cvVal = std::abs( math::angleDiff<math::radiansT<realT>>( referenceDerotF.derotAngle( i ),
+                                                                                targetDerotF.derotAngle( imno ) ) );
+        }
+        else if( includeMethod == HCI::include::imno && includeRefNum > 0 )
+        {
+            allidx[i].cvVal = std::abs( static_cast<long>( i ) - static_cast<long>( imno ) );
         }
     }
 
     if( excludeMethod == HCI::exclude::pixel || excludeMethod == HCI::exclude::angle )
     {
-        for( size_t j = 0; j < Nims; ++j )
+        for( int j = 0; j < referenceCount; ++j )
         {
-            if( fabs( math::angleDiff<math::radiansT<realT>>( derotF.derotAngle( j ), derotF.derotAngle( imno ) ) ) <=
-                dang )
+            if( std::abs( math::angleDiff<math::radiansT<realT>>( referenceDerotF.derotAngle( j ),
+                                                                  targetDerotF.derotAngle( imno ) ) ) <= dang )
             {
                 allidx[j].included = false;
             }
@@ -1186,7 +1256,7 @@ void collapseCovar( eigenT &cutCV,                 /**< [out] selected covarianc
     }
     else if( excludeMethod == HCI::exclude::imno )
     {
-        for( size_t j = 0; j < Nims; ++j )
+        for( int j = 0; j < referenceCount; ++j )
         {
             if( fabs( (long)j - imno ) <= dang )
             {
@@ -1197,23 +1267,23 @@ void collapseCovar( eigenT &cutCV,                 /**< [out] selected covarianc
 
     if( excludeMethodMax == HCI::exclude::pixel || excludeMethodMax == HCI::exclude::angle )
     {
-        for( size_t j = 0; j < Nims; ++j )
+        for( int j = 0; j < referenceCount; ++j )
         {
-            if( fabs( math::angleDiff<math::radiansT<realT>>( derotF.derotAngle( j ), derotF.derotAngle( imno ) ) ) >
-                dangMax )
+            if( std::abs( math::angleDiff<math::radiansT<realT>>( referenceDerotF.derotAngle( j ),
+                                                                  targetDerotF.derotAngle( imno ) ) ) > dangMax )
                 allidx[j].included = false;
         }
     }
     else if( excludeMethodMax == HCI::exclude::imno )
     {
-        for( size_t j = 0; j < Nims; ++j )
+        for( int j = 0; j < referenceCount; ++j )
         {
             if( fabs( (long)j - imno ) > dangMax )
                 allidx[j].included = false;
         }
     }
 
-    if( includeRefNum > 0 )
+    if( includeMethod != HCI::include::all && includeRefNum > 0 )
     {
         std::vector<size_t> included;
         for( size_t j = 0; j < allidx.size(); ++j )
@@ -1228,13 +1298,17 @@ void collapseCovar( eigenT &cutCV,                 /**< [out] selected covarianc
         {
             std::sort( included.begin(),
                        included.end(),
-                       [&allidx]( size_t lhs, size_t rhs )
+                       [&allidx, includeMethod]( size_t lhs, size_t rhs )
                        {
                            if( allidx[lhs].cvVal == allidx[rhs].cvVal )
                            {
                                return lhs < rhs;
                            }
-                           return allidx[lhs].cvVal > allidx[rhs].cvVal;
+                           if( includeMethod == HCI::include::corr )
+                           {
+                               return allidx[lhs].cvVal > allidx[rhs].cvVal;
+                           }
+                           return allidx[lhs].cvVal < allidx[rhs].cvVal;
                        } );
             for( size_t j = static_cast<size_t>( includeRefNum ); j < included.size(); ++j )
             {
@@ -1244,7 +1318,7 @@ void collapseCovar( eigenT &cutCV,                 /**< [out] selected covarianc
     }
 
     std::vector<size_t> keepidx;
-    for( size_t j = 0; j < Nims; ++j )
+    for( int j = 0; j < referenceCount; ++j )
     {
         imsIncluded( imno, j ) = allidx[j].included;
 
@@ -1270,6 +1344,75 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
     eigenCube<realT> &rims, eigenCube<realT> &tims, imageT &cmask, std::vector<size_t> &idx, realT dang, realT dangMax )
 {
 
+    const bool isRDI = &rims != &tims;
+    const derotFunctObj &referenceDerotF = isRDI ? this->m_RDIderotF : this->m_derotF;
+    const std::vector<double> &referenceMJD = isRDI ? this->m_RDIimageMJD : this->m_imageMJD;
+    const bool selectionActive = m_includeMethod != HCI::include::all && m_includeRefNum > 0;
+    const bool exclusionActive = m_excludeMethod != HCI::exclude::none || m_excludeMethodMax != HCI::exclude::none;
+    const bool angleExclusionActive =
+        m_excludeMethod == HCI::exclude::pixel || m_excludeMethod == HCI::exclude::angle ||
+        m_excludeMethodMax == HCI::exclude::pixel || m_excludeMethodMax == HCI::exclude::angle;
+    const bool useAllReferences = !exclusionActive && !selectionActive;
+
+    if( m_includeRefNum < 0 || ( m_includeMethod != HCI::include::all && m_includeMethod != HCI::include::corr &&
+                                 m_includeMethod != HCI::include::time && m_includeMethod != HCI::include::angle &&
+                                 m_includeMethod != HCI::include::imno ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "invalid KLIP reference inclusion configuration" );
+    }
+    if( selectionActive && m_includeMethod == HCI::include::time &&
+        ( referenceMJD.size() < static_cast<size_t>( rims.planes() ) ||
+          this->m_imageMJD.size() < static_cast<size_t>( tims.planes() ) ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                       "time-based KLIP inclusion requires target and reference timestamps" );
+    }
+    if( selectionActive && m_includeMethod == HCI::include::time )
+    {
+        for( int i = 0; i < rims.planes(); ++i )
+        {
+            if( !std::isfinite( referenceMJD[i] ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               "time-based KLIP inclusion requires finite reference timestamps" );
+            }
+        }
+        for( int i = 0; i < tims.planes(); ++i )
+        {
+            if( !std::isfinite( this->m_imageMJD[i] ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               "time-based KLIP inclusion requires finite target timestamps" );
+            }
+        }
+    }
+    if( ( angleExclusionActive || ( selectionActive && m_includeMethod == HCI::include::angle ) ) &&
+        ( referenceDerotF.m_angles.size() < static_cast<size_t>( rims.planes() ) ||
+          this->m_derotF.m_angles.size() < static_cast<size_t>( tims.planes() ) ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                       "angle-based KLIP selection requires target and reference angles" );
+    }
+    if( angleExclusionActive || ( selectionActive && m_includeMethod == HCI::include::angle ) )
+    {
+        for( int i = 0; i < rims.planes(); ++i )
+        {
+            if( !std::isfinite( referenceDerotF.derotAngle( i ) ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               "angle-based KLIP selection requires finite reference angles" );
+            }
+        }
+        for( int i = 0; i < tims.planes(); ++i )
+        {
+            if( !std::isfinite( this->m_derotF.derotAngle( i ) ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               "angle-based KLIP selection requires finite target angles" );
+            }
+        }
+    }
+
     t_worker_begin = sys::get_curr_time();
 
     std::vector<realT> sds;
@@ -1292,7 +1435,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
     math::eigenSYRK( cv, rims.cube() );
 
     writeDiagnostic( "cv.fits", cv );
-    ipc::ompLoopWatcher<> status( this->m_Nims, std::cerr );
+    ipc::ompLoopWatcher<> status( tims.planes(), std::cerr );
 
     // Pre-calculate KL images once if we are exclude none OR IF RDI
     imageT master_klims;
@@ -1326,7 +1469,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         writeDiagnostic( "rrMask.fits", rrMask );
     }
 
-    if( m_excludeMethod == HCI::exclude::none && m_excludeMethodMax == HCI::exclude::none && m_includeRefNum == 0 )
+    if( useAllReferences )
     {
         double teigenv;
         double tklim;
@@ -1359,8 +1502,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
 
         math::syevrMem<evCalcT> mem;
 
-        if( m_excludeMethod == HCI::exclude::none && m_excludeMethodMax == HCI::exclude::none &&
-            m_includeRefNum == 0 ) // OR RDI
+        if( useAllReferences )
         {
             klims = master_klims;
             if( m_rightReason )
@@ -1371,24 +1513,27 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
 
         // clang-format off
         #pragma omp for // clang-format on
-        for( int imno = 0; imno < this->m_Nims; ++imno )
+        for( int imno = 0; imno < tims.planes(); ++imno )
         {
-            if( m_excludeMethod != HCI::exclude::none || m_excludeMethodMax != HCI::exclude::none ||
-                m_includeRefNum != 0 )
+            if( !useAllReferences )
             {
                 collapseCovar<realT>( cv_cut,
                                       cv,
                                       sds,
                                       rims_cut,
                                       rims.asVectors(),
+                                      tims.asVectors(),
                                       imno,
                                       dang,
                                       dangMax,
-                                      this->m_Nims,
                                       this->m_excludeMethod,
                                       this->m_excludeMethodMax,
+                                      this->m_includeMethod,
                                       this->m_includeRefNum,
+                                      referenceDerotF,
                                       this->m_derotF,
+                                      referenceMJD,
+                                      this->m_imageMJD,
                                       m_imsIncluded );
 
                 /**** Now calculate the K-L Images ****/
