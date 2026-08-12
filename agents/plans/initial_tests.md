@@ -146,21 +146,22 @@ depends on the same behavior.
 - [x] Compare deterministic outputs with one and multiple OpenMP threads.
   - A four-plane composite regression produces matching preprocessed cubes and final combinations with one and four
     OpenMP threads.
-- [ ] Confirm the mxlib regressions tracked in [mxlib_cleanup.md](mxlib_cleanup.md) against the installed dependency, then
+- [x] Confirm the mxlib regressions tracked in [mxlib_cleanup.md](mxlib_cleanup.md) against the installed dependency, then
   retain a small hciReduce integration assertion only where dependency behavior changes scientific output.
-  - The source-level dependency regressions and hciReduce integration assertions pass against the exact header overlay.
-  - `/usr/local/include/mx/improc/imageFilters.hpp` still differs from mxlib `dev`; install commits `9715752` and
-    `b53c425`, remove the overlay, and repeat the normal/full/coverage checks to close this item.
+  - `/usr/local/include/mx/improc/imageFilters.hpp` is byte-identical to the mxlib `dev` header containing `9715752`
+    and `b53c425`; no temporary include overlay remains.
+  - Fresh normal, full executable, ASan/UBSan, documentation, and coverage builds all resolve the installed mxlib.
+    Both runtime suites pass 10/10, and the dependency-sensitive preprocessing assertions retain their expected output.
 - [x] Make `KLIPreduction::meanSubtract` deterministic for every accepted enum value.
   - `none` subtracts zero while retaining norm calculation; `imageMode` reports `notimpl`; unknown values report
     `invalidconfig`; all validation occurs before either cube or the norm vector is mutated.
   - Focused normal and ASan/UBSan tests pass. The exact mxlib `eigenCube` mean/median, image-median, and vector-variance
     call paths remain at 100% executable-line coverage.
 - Verification:
-  - The normal, ASan/UBSan, and coverage suites pass 10/10; Doxygen stays at the 101-warning legacy baseline and adds
-    the `KLIPreduction_unit_tests` group without group/test warnings.
-  - The final source-level coverage trace is 51.5% overall; `HCIobservation.hpp` is 1199/1335 (89.8%) and the newly
-    started `KLIPreduction.hpp` suite is 34/535 (6.4%).
+  - Fresh installed-dependency normal, ASan/UBSan, and coverage suites pass 10/10; Doxygen stays at the 101-warning
+    legacy baseline and adds the `KLIPreduction_unit_tests` group without group/test warnings.
+  - The final installed-dependency coverage trace is 55.7% overall (1296/2328); `HCIobservation.hpp` is 1199/1335
+    (89.8%) and the newly started `KLIPreduction.hpp` suite is 34/535 (6.4%).
 
 ## Code-review findings that set test priority
 

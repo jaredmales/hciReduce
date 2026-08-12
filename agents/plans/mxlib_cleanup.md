@@ -568,7 +568,8 @@ Known non-blocking ownership follow-ups:
     even sampled dimensions that the hciReduce preprocessing integration exposed.
   - Verification: the final focused mxlib run passes 97 assertions in 2 `azBoxKernel` cases in both normal and
     ASan/UBSan builds. The hciReduce odd/even, narrow-`maxAz`, and composite preprocessing regressions pass against this
-    exact header. The two commits must be installed before building hciReduce without the temporary header overlay.
+    exact header. Both commits are installed under `/usr/local`; fresh hciReduce normal, ASan/UBSan, documentation, and
+    coverage builds pass without the temporary header overlay.
 - [x] Define a real deep-copy constructor and move operations for `mx::improc::eigenCube`. Copying now allocates
       independent storage; moving and ownership transfer leave the source empty; and `clear()` resets ownership and
       the data pointer. Focused normal and ASan/UBSan regressions cover copy, assignment, move, and shallow transfer.
