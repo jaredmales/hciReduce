@@ -42,13 +42,51 @@ struct testDerotator
 
 struct reductionHarness : public reductionT
 {
+    using reductionT::m_exactFinimName;
+    using reductionT::m_filesRead;
+    using reductionT::m_finim;
+    using reductionT::m_finimName;
     using reductionT::m_imageMJD;
+    using reductionT::m_imSize;
+    using reductionT::m_mask;
+    using reductionT::m_maskFile;
     using reductionT::m_Ncols;
     using reductionT::m_Nims;
+    using reductionT::m_Npix;
     using reductionT::m_Nrows;
+    using reductionT::m_outputDir;
     using reductionT::m_psfsub;
+    using reductionT::m_RDIfilesRead;
     using reductionT::m_RDIimageMJD;
+    using reductionT::m_refIms;
+    using reductionT::m_tgtIms;
 };
+
+void prepareRegionReduction( reductionHarness &reduction )
+{
+    reduction.m_filesRead = true;
+    reduction.m_RDIfilesRead = true;
+    reduction.m_imSize = 3;
+    reduction.m_Nrows = 3;
+    reduction.m_Ncols = 3;
+    reduction.m_Nims = 3;
+    reduction.m_Npix = 9;
+    reduction.m_tgtIms.resize( 3, 3, 3 );
+    reduction.m_tgtIms.image( 0 ) << 1, 0, 2, -1, 3, 1, 2, -2, 0;
+    reduction.m_tgtIms.image( 1 ) << 0, 2, -1, 1, -2, 3, -1, 1, 2;
+    reduction.m_tgtIms.image( 2 ) << 2, -1, 0, 3, 1, -2, 0, 2, -1;
+    reduction.m_Nmodes = { 1, 2 };
+    reduction.m_meanSubMethod = mx::improc::HCI::meanSub::none;
+    reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::none;
+    reduction.m_excludeMethod = mx::improc::HCI::exclude::none;
+    reduction.m_excludeMethodMax = mx::improc::HCI::exclude::none;
+    reduction.m_includeMethod = mx::improc::HCI::include::all;
+    reduction.m_includeRefNum = 0;
+    reduction.m_doDerotate = false;
+    reduction.m_combineMethod = mx::improc::HCI::combine::none;
+    reduction.m_doWriteFinim = false;
+    reduction.m_doOutputPSFSub = false;
+}
 /// \endcond
 
 /// Verify KLIPreduction registers and loads its diagnostic-output configuration with safe defaults.
@@ -824,6 +862,217 @@ TEST_CASE( "KLIP worker inclusion metadata validation", "[KLIPreduction][worker]
     reduction.m_RDIimageMJD = { 1, std::numeric_limits<double>::quiet_NaN() };
     reduction.m_imageMJD = { 2 };
     REQUIRE_THROWS( reduction.worker( references, targets, mask, indices, 0, 0 ) );
+}
+
+/// Verify KLIPreduction::regions extracts a masked annulus, runs each requested mode count, and preserves geometry.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP region orchestration", "[KLIPreduction][regions][ADI][mask]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    reductionHarness reduction;
+    prepareRegionReduction( reduction );
+    reduction.m_maskFile = "in-memory-mask";
+    reduction.m_mask.resize( 3, 3 );
+    reduction.m_mask.setOnes();
+    reduction.m_mask( 1, 0 ) = 0;
+
+    REQUIRE( reduction.regions( std::vector<float>{ 0, 0 },
+                                std::vector<float>{ 2, 2 },
+                                std::vector<float>{ 0, 180 },
+                                std::vector<float>{ 180, 360 } ) == 0 );
+
+    REQUIRE( reduction.m_minr == std::vector<float>{ 0, 0 } );
+    REQUIRE( reduction.m_maxr == std::vector<float>{ 2, 2 } );
+    REQUIRE( reduction.m_minq == std::vector<float>{ 0, 180 } );
+    REQUIRE( reduction.m_maxq == std::vector<float>{ 180, 360 } );
+    REQUIRE( reduction.m_maxNmodes == 2 );
+    REQUIRE( reduction.m_psfsub.size() == 2 );
+    REQUIRE( reduction.m_imsIncluded.rows() == 3 );
+    REQUIRE( reduction.m_imsIncluded.cols() == 3 );
+    REQUIRE( reduction.m_imsIncluded.isOnes() );
+
+    for( auto &cube : reduction.m_psfsub )
+    {
+        REQUIRE( cube.rows() == 3 );
+        REQUIRE( cube.cols() == 3 );
+        REQUIRE( cube.planes() == 3 );
+        REQUIRE( cube.cube().isFinite().all() );
+        REQUIRE( cube.image( 0 )( 1, 0 ) == 0 );
+    }
+    REQUIRE_FALSE( reduction.m_psfsub[0].cube().isZero() );
+}
+
+/// Verify KLIPreduction::regions uses an independent RDI library without permanently changing exclusion settings.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP RDI region orchestration", "[KLIPreduction][regions][RDI]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    reductionHarness reduction;
+    prepareRegionReduction( reduction );
+    reduction.m_Nmodes = { 1 };
+    reduction.m_refIms.resize( 3, 3, 4 );
+    reduction.m_refIms.image( 0 ) << 2, 1, 0, -1, 1, 2, 0, -2, 1;
+    reduction.m_refIms.image( 1 ) << 0, -1, 2, 2, 1, 0, -2, 1, 1;
+    reduction.m_refIms.image( 2 ) << 1, 2, -1, 0, -2, 1, 2, 0, 1;
+    reduction.m_refIms.image( 3 ) << -1, 0, 1, 1, 2, -2, 0, 1, 2;
+    reduction.m_excludeMethod = mx::improc::HCI::exclude::angle;
+    reduction.m_excludeMethodMax = mx::improc::HCI::exclude::imno;
+    reduction.m_minDPx = 2;
+    reduction.m_maxDPx = 5;
+
+    REQUIRE( reduction.regions( 0, 2, 0, 360 ) == 0 );
+
+    REQUIRE( reduction.m_excludeMethod == mx::improc::HCI::exclude::angle );
+    REQUIRE( reduction.m_excludeMethodMax == mx::improc::HCI::exclude::imno );
+    REQUIRE( reduction.m_imsIncluded.rows() == 3 );
+    REQUIRE( reduction.m_imsIncluded.cols() == 4 );
+    REQUIRE( reduction.m_imsIncluded.isOnes() );
+    REQUIRE( reduction.m_psfsub.size() == 1 );
+    REQUIRE( reduction.m_psfsub[0].cube().isFinite().all() );
+}
+
+/// Verify KLIPreduction::regions rejects malformed modes, geometry, and preloaded image state before unsafe access.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP region validation", "[KLIPreduction][regions][validation]" )
+{
+    reductionHarness reduction;
+
+    REQUIRE_THROWS( reduction.regions( 0, 2, 0, 360 ) );
+    REQUIRE( reduction.m_minr.empty() );
+    REQUIRE( reduction.m_psfsub.empty() );
+
+    reduction.m_Nmodes = { 1 };
+    REQUIRE_THROWS( reduction.regions( std::vector<float>{ 0 },
+                                       std::vector<float>{ 2, 3 },
+                                       std::vector<float>{ 0 },
+                                       std::vector<float>{ 360 } ) );
+    REQUIRE( reduction.m_minr.empty() );
+
+    reduction.m_Nmodes = { 0 };
+    REQUIRE_THROWS( reduction.regions( 0, 2, 0, 360 ) );
+
+    reduction.m_Nmodes = { 1 };
+    REQUIRE_THROWS( reduction.regions( 2, 2, 0, 360 ) );
+    REQUIRE_THROWS( reduction.regions( -1, 2, 0, 360 ) );
+    REQUIRE_THROWS( reduction.regions( 0, std::numeric_limits<float>::quiet_NaN(), 0, 360 ) );
+
+    prepareRegionReduction( reduction );
+    reduction.m_Nrows = 2;
+    REQUIRE_THROWS( reduction.regions( 0, 2, 0, 360 ) );
+
+    prepareRegionReduction( reduction );
+    reduction.m_excludeMethod = mx::improc::HCI::exclude::pixel;
+    reduction.m_minDPx = 1;
+    REQUIRE_THROWS( reduction.regions( 0, 2, 0, 360 ) );
+    REQUIRE( reduction.m_excludeMethod == mx::improc::HCI::exclude::pixel );
+
+    prepareRegionReduction( reduction );
+    reduction.m_maskFile = "empty-mask";
+    reduction.m_mask.resize( 3, 3 );
+    reduction.m_mask.setZero();
+    REQUIRE_THROWS( reduction.regions( 0, 2, 0, 360 ) );
+}
+
+/// Verify KLIPreduction::finalProcess applies post-median subtraction, derotation, and final combination in order.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP final processing", "[KLIPreduction][finalProcess][combine]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    reductionHarness reduction;
+    reduction.m_psfsub.resize( 1 );
+    reduction.m_psfsub[0].resize( 2, 2, 3 );
+    reduction.m_psfsub[0].image( 0 ) << 1, 2, 3, 4;
+    reduction.m_psfsub[0].image( 1 ) << 3, 4, 5, 6;
+    reduction.m_psfsub[0].image( 2 ) << 5, 6, 7, 8;
+    reduction.m_postMedSub = true;
+    reduction.m_doDerotate = true;
+    reduction.m_derotF.m_angleScale = 1;
+    reduction.m_derotF.m_angles = { 0, 0, 0 };
+    reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+    reduction.m_doWriteFinim = false;
+    reduction.m_doOutputPSFSub = false;
+
+    REQUIRE( reduction.finalProcess() == 0 );
+
+    const reductionT::imageT negative = reductionT::imageT::Constant( 2, 2, -2 );
+    const reductionT::imageT positive = reductionT::imageT::Constant( 2, 2, 2 );
+    REQUIRE( reduction.m_psfsub[0].image( 0 ).isApprox( negative ) );
+    REQUIRE( reduction.m_psfsub[0].image( 1 ).isZero() );
+    REQUIRE( reduction.m_psfsub[0].image( 2 ).isApprox( positive ) );
+    REQUIRE( reduction.m_finim.rows() == 2 );
+    REQUIRE( reduction.m_finim.cols() == 2 );
+    REQUIRE( reduction.m_finim.planes() == 1 );
+    REQUIRE( reduction.m_finim.image( 0 ).isZero() );
+}
+
+/// Verify KLIPreduction::finalProcess writes the complete KLIP configuration into a final FITS header.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP final output metadata", "[KLIPreduction][finalProcess][output][header]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    reductionHarness reduction;
+    reduction.m_psfsub.resize( 2 );
+    for( size_t mode = 0; mode < reduction.m_psfsub.size(); ++mode )
+    {
+        reduction.m_psfsub[mode].resize( 2, 2, 2 );
+        reduction.m_psfsub[mode].image( 0 ).setConstant( static_cast<float>( mode + 1 ) );
+        reduction.m_psfsub[mode].image( 1 ).setConstant( static_cast<float>( mode + 3 ) );
+    }
+    reduction.m_Nims = 2;
+    reduction.m_Nrows = 2;
+    reduction.m_Ncols = 2;
+    reduction.m_imSize = 2;
+    reduction.m_Nmodes = { 1, 2 };
+    reduction.m_meanSubMethod = mx::improc::HCI::meanSub::imageMedian;
+    reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::rms;
+    reduction.m_rightReason = true;
+    reduction.m_rightReasonRadius = 3.5;
+    reduction.m_minr = { 1, 2 };
+    reduction.m_maxr = { 2, 3 };
+    reduction.m_minq = { 0, 180 };
+    reduction.m_maxq = { 180, 360 };
+    reduction.m_excludeMethod = mx::improc::HCI::exclude::angle;
+    reduction.m_excludeMethodMax = mx::improc::HCI::exclude::imno;
+    reduction.m_minDPx = 1.5;
+    reduction.m_maxDPx = 4;
+    reduction.m_includeMethod = mx::improc::HCI::include::corr;
+    reduction.m_includeRefNum = 7;
+    reduction.m_doDerotate = false;
+    reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+    reduction.m_doWriteFinim = true;
+    reduction.m_doOutputPSFSub = false;
+    reduction.m_outputDir = directory.file( "nested" ).string();
+    reduction.m_finimName = "klip-final.fits";
+    reduction.m_exactFinimName = true;
+
+    REQUIRE( reduction.finalProcess() == 0 );
+
+    mx::improc::eigenCube<float> output;
+    mx::fits::fitsHeader<mx::verbose::vv> header;
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+    REQUIRE( reader.read( output, header, directory.file( "nested/klip-final.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( output.rows() == 2 );
+    REQUIRE( output.cols() == 2 );
+    REQUIRE( output.planes() == 2 );
+    REQUIRE( output.image( 0 )( 0, 0 ) == Approx( 2 ) );
+    REQUIRE( output.image( 1 )( 0, 0 ) == Approx( 3 ) );
+    REQUIRE( header["MEAN SUB METHOD"].String().starts_with( "imageMedian" ) );
+    REQUIRE( header["PIXTS NORM METHOD"].String().starts_with( "rms" ) );
+    REQUIRE( header["NMODES"].String().starts_with( "1,2" ) );
+    REQUIRE( header["RIGHT REASON"].value<char>() == 1 );
+    REQUIRE( header["RIGHT REASON RADIUS"].value<float>() == Approx( 3.5 ) );
+    REQUIRE( header["REGMINR"].String().starts_with( "1,2" ) );
+    REQUIRE( header["REGMAXR"].String().starts_with( "2,3" ) );
+    REQUIRE( header["REGMINQ"].String().starts_with( "0,180" ) );
+    REQUIRE( header["REGMAXQ"].String().starts_with( "180,360" ) );
+    REQUIRE( header["EXMTHDMN"].String().starts_with( "angle" ) );
+    REQUIRE( header["MINDPX"].value<float>() == Approx( 1.5 ) );
+    REQUIRE( header["EXMTHDMX"].String().starts_with( "imno" ) );
+    REQUIRE( header["MAXDPX"].value<float>() == Approx( 4 ) );
+    REQUIRE( header["INMTHDMX"].String().starts_with( "corr" ) );
+    REQUIRE( header["INCLREFN"].value<int>() == 7 );
 }
 
 /// Verify KLIPreduction::meanSubtract rejects unimplemented and invalid methods before mutating either cube.

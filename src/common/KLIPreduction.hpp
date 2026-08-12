@@ -21,6 +21,7 @@
 
 #include <mx/ipc/ompLoopWatcher.hpp>
 #include <mx/math/eigenLapack.hpp>
+#include <mx/math/floatUtils.hpp>
 #include <mx/math/geo.hpp>
 #include <mx/sigproc/gramSchmidt.hpp>
 using namespace mx::sigproc;
@@ -868,6 +869,35 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
                                                                      const std::vector<realT> &minq,
                                                                      const std::vector<realT> &maxq )
 {
+    if( m_Nmodes.empty() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP requires at least one mode count" );
+    }
+    if( minr.empty() || minr.size() != maxr.size() || minr.size() != minq.size() || minr.size() != maxq.size() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                       "KLIP region vectors must be nonempty and have equal lengths" );
+    }
+    for( const int modeCount : m_Nmodes )
+    {
+        if( modeCount <= 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP mode counts must be positive" );
+        }
+    }
+    for( size_t region = 0; region < minr.size(); ++region )
+    {
+        if( !math::isFinite( minr[region] ) || !math::isFinite( maxr[region] ) || !math::isFinite( minq[region] ) ||
+            !math::isFinite( maxq[region] ) || minr[region] < 0 || maxr[region] <= minr[region] )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "invalid KLIP region geometry" );
+        }
+    }
+    if( m_padSize < 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP image padding must be nonnegative" );
+    }
+
     this->t_begin = sys::get_curr_time();
 
     m_minr = minr;
@@ -914,6 +944,17 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
         {
             std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from readRDIFiles" ) );
         }
+    }
+
+    if( this->m_Nims <= 0 || this->m_Nrows <= 0 || this->m_Ncols <= 0 || this->m_tgtIms.planes() != this->m_Nims ||
+        this->m_tgtIms.rows() != this->m_Nrows || this->m_tgtIms.cols() != this->m_Ncols )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "invalid target cube state for KLIP regions" );
+    }
+    if( this->m_refIms.planes() > 0 &&
+        ( this->m_refIms.rows() != this->m_Nrows || this->m_refIms.cols() != this->m_Ncols ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "reference and target image dimensions must match" );
     }
 
     if( this->m_preProcess_only && !this->m_skipPreProcess )
@@ -973,6 +1014,11 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
                                                                          m_minq[regno],
                                                                          m_maxq[regno],
                                                                          maskPtr );
+
+        if( idx.empty() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP region contains no usable pixels" );
+        }
 
         // Create storage for the R-ims and psf-subbed Ims
         eigenCube<realT> tims( idx.size(), 1, this->m_Nims );
@@ -1047,58 +1093,74 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
         realT dang = 0;
         realT dangMax = 0;
 
-        if( m_minDPx < 0 )
+        const HCI::exclude configuredExcludeMethod = m_excludeMethod;
+        const HCI::exclude configuredExcludeMethodMax = m_excludeMethodMax;
+        HCI::exclude effectiveExcludeMethod = configuredExcludeMethod;
+        HCI::exclude effectiveExcludeMethodMax = configuredExcludeMethodMax;
+
+        if( m_minDPx < 0 || this->m_refIms.planes() > 0 )
         {
-            m_excludeMethod = HCI::exclude::none;
+            effectiveExcludeMethod = HCI::exclude::none;
         }
-        if( m_maxDPx < 0 )
+        if( m_maxDPx < 0 || this->m_refIms.planes() > 0 )
         {
-            m_excludeMethodMax = HCI::exclude::none;
+            effectiveExcludeMethodMax = HCI::exclude::none;
         }
 
-        //------- If doing RDI, excludeMethod and excludeMethodMax must be none!
-        if( this->m_refIms.planes() > 0 )
+        if( ( effectiveExcludeMethod == HCI::exclude::pixel || effectiveExcludeMethodMax == HCI::exclude::pixel ) &&
+            minr[regno] <= 0 )
         {
-            m_excludeMethod = HCI::exclude::none;
-            m_excludeMethodMax = HCI::exclude::none;
+            throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                           "pixel-based KLIP exclusion requires a positive inner radius" );
         }
 
-        if( m_excludeMethod == HCI::exclude::pixel )
+        if( effectiveExcludeMethod == HCI::exclude::pixel )
         {
             dang = fabs( atan( m_minDPx / minr[regno] ) );
         }
-        else if( m_excludeMethod == HCI::exclude::angle )
+        else if( effectiveExcludeMethod == HCI::exclude::angle )
         {
             dang = math::dtor( m_minDPx );
         }
-        else if( m_excludeMethod == HCI::exclude::imno )
+        else if( effectiveExcludeMethod == HCI::exclude::imno )
         {
             dang = m_minDPx;
         }
 
-        if( m_excludeMethodMax == HCI::exclude::pixel )
+        if( effectiveExcludeMethodMax == HCI::exclude::pixel )
         {
             dangMax = fabs( atan( m_maxDPx / minr[regno] ) );
         }
-        else if( m_excludeMethodMax == HCI::exclude::angle )
+        else if( effectiveExcludeMethodMax == HCI::exclude::angle )
         {
             dangMax = math::dtor( m_maxDPx );
         }
-        else if( m_excludeMethodMax == HCI::exclude::imno )
+        else if( effectiveExcludeMethodMax == HCI::exclude::imno )
         {
             dangMax = m_maxDPx;
         }
 
-        //------- If doing RDI, call this with rims, bims
-        //*** Dispatch the work
-        if( this->m_refIms.planes() > 0 ) // RDI
+        m_excludeMethod = effectiveExcludeMethod;
+        m_excludeMethodMax = effectiveExcludeMethodMax;
+        try
         {
-            worker( rims, tims, cmask, idx, dang, dangMax );
+            if( this->m_refIms.planes() > 0 )
+            {
+                worker( rims, tims, cmask, idx, dang, dangMax );
+            }
+            else
+            {
+                worker( tims, tims, cmask, idx, dang, dangMax );
+            }
         }
-        else // ADI
+        catch( ... )
         {
-            worker( tims, tims, cmask, idx, dang, dangMax );
+            m_excludeMethod = configuredExcludeMethod;
+            m_excludeMethodMax = configuredExcludeMethodMax;
+            throw;
         }
+        m_excludeMethod = configuredExcludeMethod;
+        m_excludeMethodMax = configuredExcludeMethodMax;
     }
 
     writeDiagnostic( "imsIncluded.fits", m_imsIncluded );

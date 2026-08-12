@@ -7,6 +7,8 @@
 
 #include "HCIobservation_test_fixture.hpp"
 
+#include <mx/improc/imageUtils.hpp>
+
 #include <cmath>
 
 namespace unitTest
@@ -101,7 +103,7 @@ TEST_CASE( "HCIobservation masked median combination", "[HCIobservation][combine
 
     observation.combineFinim();
     REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3 ) );
-    REQUIRE( observation.m_finim.image( 0 )( 0, 1 ) < -1e30f );
+    REQUIRE( mx::improc::isInvalidPixel( observation.m_finim.image( 0 )( 0, 1 ) ) );
 
     // clang-format off
 #ifdef __DOXY_ONLY__

@@ -200,6 +200,31 @@ depends on the same behavior.
   - Coverage passes 10/10 at 74.2% overall (1842/2481). `KLIPreduction.hpp` rises to 414/676 (61.2%), `HCI.hpp`
     reaches 95/136 (69.9%), and `HCIobservation.hpp` remains 1199/1335 (89.8%).
 
+### Phase 7: KLIP region and final-product orchestration [in progress]
+
+- [x] Exercise `regions()` with in-memory ADI and RDI cubes.
+  - Multi-wedge ADI coverage verifies region geometry persistence, mask-aware extraction, multiple requested mode counts,
+    inclusion-matrix dimensions, finite full-frame reconstruction, and preservation of masked pixels.
+  - RDI coverage verifies an independent reference count and proves that RDI's effective no-exclusion behavior no
+    longer permanently overwrites the configured ADI exclusion methods.
+- [x] Validate region inputs before allocation or OpenMP work.
+  - Empty/non-positive mode lists, mismatched geometry vectors, non-finite or reversed radii, inconsistent loaded cube
+    dimensions, pixel exclusion at zero inner radius, and regions emptied by a mask now fail deterministically.
+- [x] Exercise `finalProcess()` stage ordering and output gates.
+  - Post-median subtraction, derotation, and mean combination are verified in order on a small exact cube.
+  - Exact nested FITS output is round-tripped with both mode planes and the complete KLIP geometry, centering,
+    normalization, right-reason, exclusion, and inclusion metadata.
+- [ ] Define and implement the saved-reduction resume contract before restoring `processPSFSub()` / `readPSFSub()`.
+  - Both historical implementations are currently commented out. Restoring them requires an explicit public API,
+    filename/index convention, authoritative metadata source, and malformed/partial reduction behavior rather than a
+    test-only resurrection of the obsolete code.
+- Verification:
+  - The optimized full suite and the coverage suite pass 10/10; the focused ASan/UBSan suite passes 236 assertions in
+    24 cases.
+  - Coverage is 82.3% overall (2072/2517), with `KLIPreduction.hpp` at 618/712 executable lines (86.8%) and every
+    instantiated KLIP function reached.
+  - Doxygen succeeds at the 91-warning legacy baseline without new test/group diagnostics.
+
 ## Code-review findings that set test priority
 
 Resolve these under focused regression tests before relying on the affected integration paths:
