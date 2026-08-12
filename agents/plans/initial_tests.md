@@ -95,19 +95,25 @@ depends on the same behavior.
 
 ### Phase 3: preprocessing physics
 
-- Masking: verify excluded pixels remain excluded after every enabled stage and do not contaminate fitted/filter
+- [x] Masking: verify excluded pixels remain excluded after every enabled stage and do not contaminate fitted/filter
   statistics.
-- Radial profile: use a synthetic radial background whose annular residual should be approximately zero plus a
+- [x] Radial profile: use a synthetic radial background whose annular residual should be approximately zero plus a
   localized source; repeat with a heavily masked annulus to prove excluded zeros are omitted from the estimator.
-- Median USM: test constant and impulse responses against a direct small-kernel oracle, define edge behavior, require
+- [x] Median USM: test constant and impulse responses against a direct small-kernel oracle, define edge behavior, require
   finite output, and exercise width validation.
-- Gaussian USM: test constant-to-zero response, an impulse against `delta - normalized Gaussian`, finite edges, and
+- [x] Gaussian USM: test constant-to-zero response, an impulse against `delta - normalized Gaussian`, finite edges, and
   width/image-size limits.
-- Azimuthal USM: use radial and azimuthal synthetic backgrounds plus a localized source; verify configured width and
+- [x] Azimuthal USM: use radial and azimuthal synthetic backgrounds plus a localized source; verify configured width and
   `maxAz` semantics, even/odd image sizes, and a finite central pixel.
-- Add one small composite golden case that locks the documented stage order:
+- [x] Add one small composite golden case that locks the documented stage order:
   mask -> radial profile -> median USM -> Gaussian USM -> azimuthal USM -> mean subtraction -> time-series
   normalization.
+- Verification:
+  - The focused suite passes 8 cases in normal and ASan/UBSan builds, including exact independent oracles for every
+    filter stage and the complete composite sequence.
+  - The full hciReduce suite passes 8/8, and the coverage build passes 8/8 with `HCIobservation.hpp` at 1028/1265
+    executable lines (81.1%).
+  - Doxygen renders all eight new cases under `HCIobservation_unit_tests` without adding a test/group warning.
 
 ### Phase 4: output and end-to-end behavior
 

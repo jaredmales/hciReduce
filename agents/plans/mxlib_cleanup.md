@@ -554,10 +554,18 @@ Known non-blocking ownership follow-ups:
     `imageRotate` implementation is 37/37.
   - Remaining direct helpers: `fitsHeaderGitStatus` is 9/9, the default COMMENT/HISTORY tag constructors are 6/6,
     the two `error_report` overload bodies are 10/10, the HCI-used degree/radian and angle-normalization helpers are
-    16/16, and `parentPath` plus `getSequentialFilename` are 21/21 executable lines in the current trace.
+    16/16, `parentPath` plus `getSequentialFilename` are 21/21, and both the canonical-center `radiusImage` overload
+    and the coordinate-explicit overload it delegates to have counters on every executable line in the current trace.
   - Verification: every executable line in the exact `gaussKernel`, `azBoxKernel`, `precalcKernel`, `filterImage`,
     `medianFilterImage`, `medianSmooth`, `radprofim`, and `zeroNaNs` overload ranges called by these HCI functions is
     covered. The remaining uncovered lines in `imageFilters.hpp` belong to unrelated smoothing APIs.
+  - `9715752`: keep a limited `azBoxKernel` finite at the exact center by ensuring its sampled footprint includes the
+    output pixel, with focused normal and sanitizer regressions.
+  - `b53c425`: generalize that invariant to every angularly limited kernel, including the one-pixel off-center case on
+    even sampled dimensions that the hciReduce preprocessing integration exposed.
+  - Verification: the final focused mxlib run passes 97 assertions in 2 `azBoxKernel` cases in both normal and
+    ASan/UBSan builds. The hciReduce odd/even, narrow-`maxAz`, and composite preprocessing regressions pass against this
+    exact header. The two commits must be installed before building hciReduce without the temporary header overlay.
 - [x] Define a real deep-copy constructor and move operations for `mx::improc::eigenCube`. Copying now allocates
       independent storage; moving and ownership transfer leave the source empty; and `clear()` resets ownership and
       the data pointer. Focused normal and ASan/UBSan regressions cover copy, assignment, move, and shallow transfer.

@@ -357,7 +357,7 @@ struct HCIobservation
      * -# mask applied (enabled by m_preProcess_mask)
      * -# radial profile subtraction (enabled by m_preProcess_subradprof)
      * -# mask applied (enabled by m_preProcess_mask)
-     * -# symmetric median unsharp mask (m_preProcess_gaussUSM_fwhm)
+     * -# symmetric median unsharp mask (m_preProcess_medianUSM_fwhm)
      * -# symmetric Gaussian unsharp mask (m_preProcess_gaussUSM_fwhm)
      * -# mask applied (enabled by m_preProcess_mask)
      * -# azimuthal unsharp mask (m_preProcess_azUSM_azHalfWidth and m_preProcess_azUSM_radHalfWidth)
@@ -2576,7 +2576,17 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
             for( int i = 0; i < ims.planes(); ++i )
             {
                 Eigen::Map<Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic>> imRef( ims.image( i ) );
-                radprofim( rp, imRef, true );
+                if( mask != nullptr && m_preProcess_mask )
+                {
+                    imageT radius;
+                    radius.resize( imRef.rows(), imRef.cols() );
+                    radiusImage( radius );
+                    radprofim( rp, imRef, radius, mask, true );
+                }
+                else
+                {
+                    radprofim( rp, imRef, true );
+                }
                 zeroNaNs( imRef );
             }
         }
@@ -2597,33 +2607,56 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
 
     if( m_preProcess_medianUSM_fwhm > 0 )
     {
+        if( m_preProcess_medianUSM_fwhm > ims.rows() || m_preProcess_medianUSM_fwhm > ims.cols() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "The median USM width cannot exceed the image dimensions." );
+        }
+
         std::cerr << "applying median USM . . .\n";
 
         imageT medmask;
         medmask.resize( ims.rows(), ims.cols() );
         medmask.setConstant( 1 );
 
-        for( int z = 0; z < (int)( 0.5 * m_preProcess_medianUSM_fwhm ); ++z )
+        const int before = m_preProcess_medianUSM_fwhm / 2;
+        const int after = m_preProcess_medianUSM_fwhm - before - 1;
+        for( int z = 0; z < before; ++z )
         {
             medmask.row( z ) = 0;
-            medmask.row( medmask.rows() - 1 - z ) = 0;
             medmask.col( z ) = 0;
+        }
+        for( int z = 0; z < after; ++z )
+        {
+            medmask.row( medmask.rows() - 1 - z ) = 0;
             medmask.col( medmask.cols() - 1 - z ) = 0;
         }
 
+        int medianResult = 0;
 #pragma omp parallel
         {
             imageT fim, im;
             fim.resize( ims.rows(), ims.cols() );
+            fim.setZero();
             im.resize( ims.rows(), ims.cols() );
 
 #pragma omp for
             for( int i = 0; i < ims.planes(); ++i )
             {
                 im = ims.image( i );
-                medianSmooth( fim, im, m_preProcess_medianUSM_fwhm );
+                const int result = medianSmooth( fim, im, m_preProcess_medianUSM_fwhm );
+                if( result != 0 )
+                {
+#pragma omp critical
+                    medianResult = result;
+                }
                 ims.image( i ) = ( im - fim ) * medmask;
             }
+        }
+
+        if( medianResult != 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig, "Could not apply the median USM." );
         }
 
         if( mask != nullptr && m_preProcess_mask )
@@ -2638,22 +2671,59 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         std::cerr << "done\n";
     }
 
+    if( !std::isfinite( m_preProcess_gaussUSM_fwhm ) || m_preProcess_gaussUSM_fwhm < 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "The Gaussian USM FWHM must be finite and nonnegative." );
+    }
+
     if( m_preProcess_gaussUSM_fwhm > 0 )
     {
+        const realT scaledWidth = 2 * m_preProcess_gaussUSM_fwhm;
+        if( scaledWidth > std::numeric_limits<int>::max() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "The Gaussian USM kernel exceeds the supported dimensions." );
+        }
+
+        int kernelWidth = static_cast<int>( scaledWidth );
+        if( kernelWidth % 2 == 0 )
+        {
+            ++kernelWidth;
+        }
+        if( kernelWidth > ims.rows() || kernelWidth > ims.cols() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "The Gaussian USM kernel cannot exceed the image dimensions." );
+        }
+
         std::cerr << "applying Gauss USM . . .\n";
         t_gaussusm_begin = sys::get_curr_time();
+        const gaussKernel<eigenImage<_realT>, 2> kernel( m_preProcess_gaussUSM_fwhm );
+        mx::error_t gaussResult = mx::error_t::noerror;
 
 #pragma omp parallel for
         for( int i = 0; i < ims.planes(); ++i )
         {
             imageT fim, im;
             im = ims.image( i );
-            filterImage( fim,
-                         im,
-                         gaussKernel<eigenImage<_realT>, 2>( m_preProcess_gaussUSM_fwhm ),
-                         0.5 * ( ims.cols() - 1 ) - m_preProcess_gaussUSM_fwhm * 4 );
+            const mx::error_t result =
+                filterImage( fim,
+                             im,
+                             kernel,
+                             0.5 * ( std::min( ims.rows(), ims.cols() ) - 1 ) - m_preProcess_gaussUSM_fwhm * 4 );
+            if( result != mx::error_t::noerror )
+            {
+#pragma omp critical
+                gaussResult = result;
+            }
             im = ( im - fim );
             ims.image( i ) = im;
+        }
+
+        if( gaussResult != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( gaussResult, "Could not apply the Gaussian USM." );
         }
 
         if( mask != nullptr && m_preProcess_mask )
