@@ -9,7 +9,12 @@
 #ifndef __KLIPreduction_hpp__
 #define __KLIPreduction_hpp__
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
 #include <map>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #include <omp.h>
@@ -53,9 +58,11 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     virtual ~KLIPreduction();
 
-    void setupConfig( mx::app::appConfigurator &config );
+    /// Register KLIP configuration targets.
+    void setupConfig( mx::app::appConfigurator &config /**< [in.out] application configuration */ );
 
-    void loadConfig( mx::app::appConfigurator &config );
+    /// Load KLIP settings from an application configuration.
+    void loadConfig( mx::app::appConfigurator &config /**< [in] parsed application configuration */ );
 
     /// Specify how the data are centered for PCA within each search region
     /** Can have the following values:
@@ -170,6 +177,17 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     realT m_rightReasonRadius = 2.5;
 
+    /// Whether intermediate KLIP diagnostic FITS products are written.
+    bool m_writeDiagnostics{ false };
+
+    /// Directory in which intermediate KLIP diagnostic FITS products are written.
+    std::string m_diagnosticDirectory{ "." };
+
+    /// Write an intermediate KLIP diagnostic FITS product when diagnostics are enabled.
+    template <typename dataT>
+    void writeDiagnostic( const std::string &fileName, /**< [in] basename of the diagnostic product */
+                          const dataT &data /**< [in] image-like data to write */ ) const;
+
     /// Subtract the basis mean from each of the images
     /** The mean is subtracted according to m_meanSubMethod.
      */
@@ -223,12 +241,13 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         return regions( vminr, vmaxr, vminq, vmaxq );
     }
 
-    void worker( eigenCube<realT> &rims,
-                 eigenCube<realT> &tims,
-                 imageT &cmask,
-                 std::vector<size_t> &idx,
-                 realT dang,
-                 realT dangMax );
+    /// Perform KLIP subtraction for one flattened image region.
+    void worker( eigenCube<realT> &rims,   /**< [in.out] flattened reference images */
+                 eigenCube<realT> &tims,   /**< [in.out] flattened target images */
+                 imageT &cmask,            /**< [in] flattened optional mask */
+                 std::vector<size_t> &idx, /**< [in] full-image indices for the region */
+                 realT dang,               /**< [in] minimum exclusion threshold */
+                 realT dangMax /**< [in] maximum exclusion threshold */ );
 
     int finalProcess();
 
@@ -388,8 +407,18 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::setupConfig( mx::ap
                 "klip",
                 "pixelTSNormMethod",
                 false,
-                "int",
+                "string",
                 "The method of pixel time-series normalization for PCA: none or rms." );
+
+    config.add( "klip.pixelTSSigma",
+                "",
+                "klip.pixelTSSigma",
+                mx::app::argType::Required,
+                "klip",
+                "pixelTSSigma",
+                false,
+                "float",
+                "Sigma-clipping threshold for pixel time-series normalization" );
 
     config.add( "klip.includeRefNum",
                 "",
@@ -431,6 +460,26 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::setupConfig( mx::ap
                 "float",
                 "The radius of the right reason mask" );
 
+    config.add( "klip.writeDiagnostics",
+                "",
+                "klip.writeDiagnostics",
+                mx::app::argType::True,
+                "klip",
+                "writeDiagnostics",
+                false,
+                "bool",
+                "Whether intermediate KLIP diagnostic FITS products are written" );
+
+    config.add( "klip.diagnosticDirectory",
+                "",
+                "klip.diagnosticDirectory",
+                mx::app::argType::Required,
+                "klip",
+                "diagnosticDirectory",
+                false,
+                "string",
+                "Directory in which intermediate KLIP diagnostic FITS products are written" );
+
     /*<<<< klip */
 }
 
@@ -467,7 +516,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::loadConfig( mx::app
     }
     catch( ... )
     {
-        std::throw_with_nested(mx::exception<verboseT>(mx::error_t::exception));
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception ) );
     }
 
     config( ms, "klip.meanSubMethod" );
@@ -478,7 +527,8 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::loadConfig( mx::app
     }
     catch( ... )
     {
-        std::throw_with_nested(mx::exception<verboseT>(mx::error_t::invalidconfig, "klip.meanSubMethod is not valid"));
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "klip.meanSubMethod is not valid" ) );
     }
 
     std::string ptsnm;
@@ -508,6 +558,38 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::loadConfig( mx::app
     config( m_Nmodes, "klip.Nmodes" );
     config( m_rightReason, "klip.rightReason" );
     config( m_rightReasonRadius, "klip.rrRadius" );
+    config( m_pixelTSSigma, "klip.pixelTSSigma" );
+    config( m_writeDiagnostics, "klip.writeDiagnostics" );
+    config( m_diagnosticDirectory, "klip.diagnosticDirectory" );
+}
+
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+template <typename dataT>
+void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writeDiagnostic( const std::string &fileName,
+                                                                              const dataT &data ) const
+{
+    if( !m_writeDiagnostics )
+    {
+        return;
+    }
+
+    std::string path = fileName;
+    if( !m_diagnosticDirectory.empty() && m_diagnosticDirectory != "." )
+    {
+        const mx::error_t result = ioutils::createDirectories( m_diagnosticDirectory );
+        if( result != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( result, "could not create KLIP diagnostic directory" );
+        }
+        path = m_diagnosticDirectory + "/" + fileName;
+    }
+
+    fits::fitsFile<typename dataT::Scalar, verboseT> writer;
+    const mx::error_t result = writer.write( path, data );
+    if( result != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( result, "could not write KLIP diagnostic product " + path );
+    }
 }
 
 template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
@@ -527,9 +609,29 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
         throw mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid KLIP mean-subtraction method" );
     }
 
-    norms.resize( rims.planes() );
+    if( m_pixelTSNormMethod == HCI::pixelTSNorm::rmsSigmaClipped )
+    {
+        throw mx::exception<verboseT>( mx::error_t::notimpl,
+                                       "pixelTSNormMethod is rmsSigmaClipped, which is not implemented" );
+    }
+    if( m_pixelTSNormMethod != HCI::pixelTSNorm::none && m_pixelTSNormMethod != HCI::pixelTSNorm::rms )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "invalid KLIP pixel time-series normalization method" );
+    }
+
+    if( rims.rows() <= 0 || rims.cols() <= 0 || rims.planes() <= 0 || tims.rows() != rims.rows() ||
+        tims.cols() != rims.cols() || tims.planes() <= 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "invalid reference or target cube geometry" );
+    }
 
     int maskPix = 0;
+
+    if( ( cmask.rows() > 0 ) != ( cmask.cols() > 0 ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP mask has incomplete geometry" );
+    }
 
     if( cmask.rows() > 0 && cmask.cols() > 0 )
     {
@@ -545,7 +647,13 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
         }
 
         maskPix = cmask.sum();
+        if( maskPix <= 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP mask does not select any pixels" );
+        }
     }
+
+    norms.resize( rims.planes() );
 
     if( m_meanSubMethod == HCI::meanSub::meanImage || m_meanSubMethod == HCI::meanSub::medianImage )
     {
@@ -571,27 +679,18 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
 
                 immean = rims.image( n ).sum() / maskPix;
 
-                norms[n] = ( ( rims.image( n ) - immean ) * cmask ).square().sum();
+                norms[n] = std::sqrt( ( ( rims.image( n ) - immean ) * cmask ).square().sum() );
             }
             else
             {
                 immean = rims.image( n ).mean();
 
-                norms[n] = ( rims.image( n ) - immean ).square().sum();
+                norms[n] = std::sqrt( ( rims.image( n ) - immean ).square().sum() );
             }
         }
 
         if( &tims != &rims )
         {
-            if( m_meanSubMethod == HCI::meanSub::meanImage )
-            {
-                tims.mean( mean );
-            }
-            else if( m_meanSubMethod == HCI::meanSub::medianImage )
-            {
-                tims.median( mean );
-            }
-
             for( int n = 0; n < tims.planes(); ++n )
             {
                 tims.image( n ) -= mean;
@@ -613,11 +712,12 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
         {
             if( m_meanSubMethod == HCI::meanSub::imageMean )
             {
-                mean = rims.image( n ).mean();
+                mean = maskPix > 0 ? ( rims.image( n ) * cmask ).sum() / maskPix : rims.image( n ).mean();
             }
             else if( m_meanSubMethod == HCI::meanSub::imageMedian )
             {
-                mean = imageMedian( rims.image( n ), &work );
+                mean =
+                    maskPix > 0 ? imageMedian( rims.image( n ), &cmask, &work ) : imageMedian( rims.image( n ), &work );
             }
 
             rims.image( n ) -= mean;
@@ -626,14 +726,14 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
             {
                 rims.image( n ) *= cmask;
                 immean = rims.image( n ).sum() / maskPix;
-                norms[n] = ( ( rims.image( n ) - immean ) * cmask ).square().sum();
+                norms[n] = std::sqrt( ( ( rims.image( n ) - immean ) * cmask ).square().sum() );
             }
             else
             {
                 // Because we might not have used the mean, we need to re-mean to
                 //  make this the standard deviation
                 immean = rims.image( n ).mean();
-                norms[n] = ( rims.image( n ) - immean ).square().sum();
+                norms[n] = std::sqrt( ( rims.image( n ) - immean ).square().sum() );
             }
         }
 
@@ -653,6 +753,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
                     }
 
                     tims.image( n ) -= mean;
+                    tims.image( n ) *= cmask;
                 }
                 else
                 {
@@ -671,17 +772,9 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
         }
     }
 
-    if( m_pixelTSNormMethod == HCI::pixelTSNorm::rmsSigmaClipped )
-    {
-        throw mx::exception<verboseT>( mx::error_t::notimpl,
-                                       "pixelTSNormMethod is rmsSigmaClipped, "
-                                       "which is not implemented" );
-    }
-
-    if( m_pixelTSNormMethod != HCI::pixelTSNorm::none )
+    if( m_pixelTSNormMethod == HCI::pixelTSNorm::rms )
     {
         std::cerr << "normalizing pixels\n";
-        std::vector<realT> pixs( rims.planes() );
 
         for( int cc = 0; cc < rims.cols(); ++cc )
         {
@@ -695,17 +788,41 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
                     }
                 }
 
-                // We bother to load a vector in prep to add sigma clipping later.
+                realT sumSquares{ 0 };
                 for( int pp = 0; pp < rims.planes(); ++pp )
                 {
-                    pixs[pp] = rims.image( pp )( rr, cc );
+                    sumSquares += rims.image( pp )( rr, cc ) * rims.image( pp )( rr, cc );
                 }
 
-                realT sd = sqrt( math::vectorVariance( pixs ) );
+                const realT rms = std::sqrt( sumSquares / rims.planes() );
 
-                for( int pp = 0; pp < rims.planes(); ++pp )
+                if( std::isfinite( rms ) && rms > std::numeric_limits<realT>::epsilon() )
                 {
-                    rims.image( pp )( rr, cc ) /= sd;
+                    for( int pp = 0; pp < rims.planes(); ++pp )
+                    {
+                        rims.image( pp )( rr, cc ) /= rms;
+                    }
+                    if( &tims != &rims )
+                    {
+                        for( int pp = 0; pp < tims.planes(); ++pp )
+                        {
+                            tims.image( pp )( rr, cc ) /= rms;
+                        }
+                    }
+                }
+                else
+                {
+                    for( int pp = 0; pp < rims.planes(); ++pp )
+                    {
+                        rims.image( pp )( rr, cc ) = 0;
+                    }
+                    if( &tims != &rims )
+                    {
+                        for( int pp = 0; pp < tims.planes(); ++pp )
+                        {
+                            tims.image( pp )( rr, cc ) = 0;
+                        }
+                    }
                 }
             }
         }
@@ -950,8 +1067,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
         }
     }
 
-    fits::fitsFile<int> ffii;
-    ffii.write( "imsIncluded.fits", m_imsIncluded );
+    writeDiagnostic( "imsIncluded.fits", m_imsIncluded );
 
     if( finalProcess() < 0 )
     {
@@ -973,8 +1089,11 @@ struct cvEntry
     bool included{ true };
 };
 
+/// Extract a square matrix containing the selected rows and columns.
 template <typename eigenT, typename eigenTin>
-void extractRowsAndCols( eigenT &out, const eigenTin &in, const std::vector<size_t> &idx )
+void extractRowsAndCols( eigenT &out,        /**< [out] selected square matrix */
+                         const eigenTin &in, /**< [in] source matrix */
+                         const std::vector<size_t> &idx /**< [in] ordered source indices */ )
 {
     out.resize( idx.size(), idx.size() );
 
@@ -987,8 +1106,11 @@ void extractRowsAndCols( eigenT &out, const eigenTin &in, const std::vector<size
     }
 }
 
+/// Extract selected columns from a matrix.
 template <typename eigenT, typename eigenTin>
-void extractCols( eigenT &out, const eigenTin &in, const std::vector<size_t> &idx )
+void extractCols( eigenT &out,        /**< [out] selected columns */
+                  const eigenTin &in, /**< [in] source matrix */
+                  const std::vector<size_t> &idx /**< [in] ordered source column indices */ )
 {
     out.resize( in.rows(), idx.size() );
 
@@ -998,22 +1120,30 @@ void extractCols( eigenT &out, const eigenTin &in, const std::vector<size_t> &id
     }
 }
 
+/// Select a target image's admissible reference covariance rows, columns, and images.
 template <typename realT, typename eigenT, typename eigenTv, class derotFunctObj>
-void collapseCovar( eigenT &cutCV,
-                    const eigenT &CV,
-                    const std::vector<realT> &sds,
-                    eigenT &rimsCut,
-                    const eigenTv &rims,
-                    int imno,
-                    double dang,
-                    double dangMax,
-                    int Nims,
-                    HCI::exclude excludeMethod,
-                    HCI::exclude excludeMethodMax,
-                    int includeRefNum,
-                    const derotFunctObj &derotF,
-                    eigenImage<int> &imsIncluded )
+void collapseCovar( eigenT &cutCV,                 /**< [out] selected covariance matrix */
+                    const eigenT &CV,              /**< [in] lower-triangular covariance matrix */
+                    const std::vector<realT> &sds, /**< [in] reference Euclidean norms */
+                    eigenT &rimsCut,               /**< [out] selected vectorized references */
+                    const eigenTv &rims,           /**< [in] vectorized references */
+                    int imno,                      /**< [in] target image index */
+                    double dang,                   /**< [in] minimum exclusion threshold */
+                    double dangMax,                /**< [in] maximum exclusion threshold */
+                    int Nims,                      /**< [in] number of reference images */
+                    HCI::exclude excludeMethod,    /**< [in] minimum exclusion method */
+                    HCI::exclude excludeMethodMax, /**< [in] maximum exclusion method */
+                    int includeRefNum,             /**< [in] maximum references retained by correlation */
+                    const derotFunctObj &derotF,   /**< [in] target/reference derotator */
+                    eigenImage<int> &imsIncluded /**< [out] per-target inclusion flags */ )
 {
+    if( Nims <= 0 || imno < 0 || imno >= Nims || CV.rows() < Nims || CV.cols() < Nims ||
+        sds.size() < static_cast<size_t>( Nims ) || rims.cols() < Nims || imsIncluded.rows() <= imno ||
+        imsIncluded.cols() < Nims )
+    {
+        throw std::invalid_argument( "invalid KLIP covariance-selection dimensions" );
+    }
+
     std::vector<cvEntry> allidx( Nims );
 
     // Initialize the vector of cvEntries
@@ -1022,14 +1152,24 @@ void collapseCovar( eigenT &cutCV,
         allidx[i].index = i;
         allidx[i].angle = derotF.derotAngle( i );
 
-        // CV is lower-triangular
+        realT covariance;
         if( i <= imno )
         {
-            allidx[i].cvVal = CV( imno, i ) / ( sds[i] * sds[imno] );
+            covariance = CV( imno, i );
         }
         else
         {
-            allidx[i].cvVal = CV( i, imno ) / ( sds[i] * sds[imno] );
+            covariance = CV( i, imno );
+        }
+
+        const realT denominator = sds[i] * sds[imno];
+        if( std::isfinite( denominator ) && denominator > std::numeric_limits<realT>::epsilon() )
+        {
+            allidx[i].cvVal = covariance / denominator;
+        }
+        else
+        {
+            allidx[i].cvVal = -std::numeric_limits<double>::infinity();
         }
     }
 
@@ -1073,41 +1213,32 @@ void collapseCovar( eigenT &cutCV,
         }
     }
 
-    if( includeRefNum > 0 && (size_t)includeRefNum < allidx.size() )
+    if( includeRefNum > 0 )
     {
-        long kept = 0;
-        for( size_t j = 0; j < Nims; ++j )
+        std::vector<size_t> included;
+        for( size_t j = 0; j < allidx.size(); ++j )
         {
-            if( allidx[j].included == true )
+            if( allidx[j].included )
             {
-                ++kept;
+                included.push_back( j );
             }
         }
 
-        // Get a vector for sorting
-        std::vector<realT> cvVal;
-        cvVal.resize( kept );
-        size_t k = 0;
-        for( size_t j = 0; j < Nims; ++j )
+        if( static_cast<size_t>( includeRefNum ) < included.size() )
         {
-            if( allidx[j].included == true )
+            std::sort( included.begin(),
+                       included.end(),
+                       [&allidx]( size_t lhs, size_t rhs )
+                       {
+                           if( allidx[lhs].cvVal == allidx[rhs].cvVal )
+                           {
+                               return lhs < rhs;
+                           }
+                           return allidx[lhs].cvVal > allidx[rhs].cvVal;
+                       } );
+            for( size_t j = static_cast<size_t>( includeRefNum ); j < included.size(); ++j )
             {
-                cvVal[k] = allidx[j].cvVal;
-                ++k;
-            }
-        }
-
-        // Partially sort the correlation values
-        std::nth_element( cvVal.begin(), cvVal.begin() + ( kept - includeRefNum ), cvVal.end() );
-
-        realT mincorr = cvVal[kept - includeRefNum];
-        // std::cerr << "    Minimum correlation: " << mincorr << "\n";
-
-        for( size_t j = 0; j < Nims; ++j )
-        {
-            if( allidx[j].cvVal < mincorr )
-            {
-                allidx[j].included = false;
+                allidx[included[j]].included = false;
             }
         }
     }
@@ -1160,8 +1291,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
 
     math::eigenSYRK( cv, rims.cube() );
 
-    fits::fitsFile<realT> ff;
-    ff.write( "cv.fits", cv );
+    writeDiagnostic( "cv.fits", cv );
     ipc::ompLoopWatcher<> status( this->m_Nims, std::cerr );
 
     // Pre-calculate KL images once if we are exclude none OR IF RDI
@@ -1193,7 +1323,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
             }
         }
 
-        ff.write( "rrMask.fits", rrMask );
+        writeDiagnostic( "rrMask.fits", rrMask );
     }
 
     if( m_excludeMethod == HCI::exclude::none && m_excludeMethodMax == HCI::exclude::none && m_includeRefNum == 0 )
@@ -1206,9 +1336,9 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         if( m_rightReason )
         {
             master_projMat = ( master_klims.matrix().transpose() * master_klims.matrix() ).array();
-            ff.write( "projMat.fits", master_projMat );
+            writeDiagnostic( "projMat.fits", master_projMat );
             master_projMat *= rrMask;
-            ff.write( "projMatrr.fits", master_projMat );
+            writeDiagnostic( "projMatrr.fits", master_projMat );
         }
 
         t_eigenv += teigenv;

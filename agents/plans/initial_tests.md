@@ -155,13 +155,44 @@ depends on the same behavior.
 - [x] Make `KLIPreduction::meanSubtract` deterministic for every accepted enum value.
   - `none` subtracts zero while retaining norm calculation; `imageMode` reports `notimpl`; unknown values report
     `invalidconfig`; all validation occurs before either cube or the norm vector is mutated.
-  - Focused normal and ASan/UBSan tests pass. The exact mxlib `eigenCube` mean/median, image-median, and vector-variance
-    call paths remain at 100% executable-line coverage.
+  - Focused normal and ASan/UBSan tests pass. The exact mxlib `eigenCube` mean/median and image-median call paths remain
+    at 100% executable-line coverage; KLIP true-RMS normalization is now calculated locally with denominator `N`.
 - Verification:
   - Fresh installed-dependency normal, ASan/UBSan, and coverage suites pass 10/10; Doxygen stays at the 101-warning
     legacy baseline and adds the `KLIPreduction_unit_tests` group without group/test warnings.
   - The final installed-dependency coverage trace is 55.7% overall (1296/2328); `HCIobservation.hpp` is 1199/1335
     (89.8%) and the newly started `KLIPreduction.hpp` suite is 34/535 (6.4%).
+
+### Phase 6: KLIP configuration, centering, and covariance selection
+
+- [x] Register and load the complete current KLIP configuration surface.
+  - `pixelTSNormMethod` is correctly described as a string, and the existing `m_pixelTSSigma` state now has a
+    `klip.pixelTSSigma` configuration target.
+  - Intermediate covariance, right-reason mask/projection, and inclusion-matrix FITS products are disabled by default.
+    `klip.writeDiagnostics=true` enables them, and `klip.diagnosticDirectory` selects an automatically created output
+    directory.
+- [x] Complete scalar/image centering and normalization regressions.
+  - Masked per-image mean and median centers exclude masked pixels and reapply the mask to references and targets.
+  - `meanImage` and `medianImage` apply the reference-basis center to distinct target data rather than recomputing a
+    target center.
+  - Correlation normalization receives Euclidean norms rather than sums of squares. Pixel time-series normalization
+    uses true RMS, applies the reference scale to targets, and maps zero/non-finite scales to finite zeros.
+  - Unsupported methods, empty or mismatched cubes, and invalid masks are rejected before mutation.
+- [x] Cover matrix extraction and covariance/reference selection.
+  - Ordered and empty row/column selections are deterministic; inconsistent dimensions are rejected.
+  - Image-number and angular exclusion boundaries are covered. Correlation selection keeps exactly the configured
+    maximum with deterministic index tie-breaking and remains safe when exclusions leave fewer references.
+  - A one-mode synthetic `worker()` reduction verifies the KL result and the disabled/enabled covariance diagnostic.
+- [ ] Resolve the advertised reference-inclusion API before extending `worker()`/`regions()` coverage.
+  - `m_includeMethod` defaults to `all` and is written as `INMTHDMX`, but it has no configuration target and
+    `includeRefNum > 0` currently always performs correlation ranking.
+  - Implementing the documented `time`, `angle`, and `imno` choices requires passing timestamps and selection context
+    into the covariance helper; preserve the current correlation-only behavior until that API contract is chosen.
+- Verification:
+  - The full normal suite and focused ASan/UBSan suite pass; Doxygen improves from 101 to 98 legacy warnings with no
+    new test/group diagnostics.
+  - Coverage passes 10/10 at 74.1% overall (1768/2385). `KLIPreduction.hpp` rises from 34/535 (6.4%) to 355/592
+    (60.0%); `HCIobservation.hpp` remains 1199/1335 (89.8%).
 
 ## Code-review findings that set test priority
 

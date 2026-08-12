@@ -282,6 +282,11 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Bring the default `mx::ipc::ompLoopWatcher` constructor and `incrementAndOutputStatus()` path used by
+      `KLIPreduction::worker()` to 100% executable-line coverage. The current aggregate trace records only 33.3%
+      (21/63) for `ompLoopWatcher.hpp`; the constructor and wrapper are hit, but their default timed/pretty-output
+      implementation still contains uncovered executable branches.
+
 - [~] Continue closing mxlib coverage gaps exposed by hciReduce integration tests.
   - Completed mxlib `dev` commits, each verified under its focused normal or coverage-instrumented target:
     - `57488e0`, `a081b61`, `7f37f22`, `81124f0`, and `0906081`: application lifecycle, configuration reload, and
