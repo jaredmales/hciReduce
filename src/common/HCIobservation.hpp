@@ -453,6 +453,21 @@ struct HCIobservation
                                const std::string &prefix,
                                const std::string &extension );
 
+    /// Read and center-crop one configured mask file to the input image size.
+    void readMaskFile( imageT &mask,                    /**< [out] loaded and cropped mask */
+                       const std::string &maskFileName, /**< [in] FITS mask path */
+                       const std::string &description /**< [in] mask role for diagnostics */ );
+
+    /// Replicate a validated image mask into a cube.
+    void populateMaskCube( eigenCube<realT> &maskCube, /**< [out] replicated mask cube */
+                           const imageT &mask,         /**< [in] two-dimensional mask */
+                           int rows,                   /**< [in] required row count */
+                           int cols,                   /**< [in] required column count */
+                           int planes /**< [in] output plane count */ );
+
+    /// Select the target or RDI mask associated with an image cube.
+    const imageT *preProcessMask( const eigenCube<realT> &ims /**< [in] cube being preprocessed */ ) const;
+
   public:
     /// Load the file list
     /** Populates the \ref m_fileList vector by either reading m_fileListFile (if it is not "") or by
@@ -1975,9 +1990,9 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
 
     fitsHeaderT head;
 
-    if( m_dateKeyword != "" )
+    if( m_RDIdateKeyword != "" )
     {
-        head.append( m_dateKeyword ); // Currently assuming the MJD keyword will be the same
+        head.append( m_RDIdateKeyword );
     }
 
     for( size_t i = 0; i < m_RDIkeywords.size(); ++i )
@@ -1993,7 +2008,11 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
 
     fitsFileT f( m_RDIfileList[0] );
 
-    f.read( im );
+    mx::error_t errc = f.read( im );
+    if( errc != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( errc, "Could not read the first RDI image." );
+    }
 
     if( im.rows() < m_imSize || im.cols() < m_imSize )
     {
@@ -2012,28 +2031,36 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
 
     t_load_begin = sys::get_curr_time();
 
-    f.read( m_refIms.data(), m_RDIheads, m_RDIfileList );
+    errc = f.read( m_refIms.data(), m_RDIheads, m_RDIfileList );
+    if( errc != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( errc, "Could not read the RDI image list." );
+    }
 
     f.setReadSize();
 
-    if( m_dateKeyword != "" )
+    if( m_RDIdateKeyword != "" )
     {
         m_RDIimageMJD.resize( m_RDIheads.size() );
 
-        if( m_dateIsISO8601 )
+        if( m_RDIdateIsISO8601 )
         {
             for( size_t i = 0; i < m_RDIimageMJD.size(); ++i )
             {
-                m_RDIimageMJD[i] = sys::ISO8601date2mjd( m_RDIheads[i][m_dateKeyword].String() );
+                m_RDIimageMJD[i] = sys::ISO8601date2mjd( m_RDIheads[i][m_RDIdateKeyword].String() );
             }
         }
         else
         {
             for( size_t i = 0; i < m_RDIimageMJD.size(); ++i )
             {
-                m_RDIimageMJD[i] = m_RDIheads[i][m_dateKeyword].template value<realT>() * m_dateUnit;
+                m_RDIimageMJD[i] = m_RDIheads[i][m_RDIdateKeyword].template value<realT>() * m_RDIdateUnit;
             }
         }
+    }
+    else
+    {
+        m_RDIimageMJD.clear();
     }
 
     t_load_end = sys::get_curr_time();
@@ -2052,6 +2079,35 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
     catch( ... )
     {
         std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from postRDIReadFiles" ) );
+    }
+
+    /*** Read the independently configured RDI mask, if present. ***/
+    try
+    {
+        if( m_RDImaskUseInput )
+        {
+            if( m_maskFile.empty() || m_mask.size() == 0 )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                               "The input mask must be loaded before it can be reused for RDI." );
+            }
+            m_RDImask = m_mask;
+            populateMaskCube( m_RDImaskCube, m_RDImask, m_refIms.rows(), m_refIms.cols(), m_refIms.planes() );
+        }
+        else if( !m_RDImaskFile.empty() )
+        {
+            readMaskFile( m_RDImask, m_RDImaskFile, "RDI" );
+            populateMaskCube( m_RDImaskCube, m_RDImask, m_refIms.rows(), m_refIms.cols(), m_refIms.planes() );
+        }
+        else
+        {
+            m_RDImask.resize( 0, 0 );
+            m_RDImaskCube.clear();
+        }
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from RDI mask setup" ) );
     }
 
     /*** Now begin processing ***/
@@ -2101,6 +2157,11 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
                 std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from postRDICoadd" ) );
             }
             std::cerr << "Done.\n";
+
+            if( m_RDImask.size() != 0 )
+            {
+                populateMaskCube( m_RDImaskCube, m_RDImask, m_refIms.rows(), m_refIms.cols(), m_refIms.planes() );
+            }
         }
 
         /*** Now do any pre-processing if not done already***/
@@ -2386,34 +2447,42 @@ void HCIobservation<_realT, verboseT>::coaddImages( HCI::coadd coaddMethod,
 } // void HCIobservation<_realT,verboseT>::coaddImages()
 
 template <typename _realT, class verboseT>
+void HCIobservation<_realT, verboseT>::readMaskFile( imageT &mask,
+                                                     const std::string &maskFileName,
+                                                     const std::string &description )
+{
+    fitsFileT ff;
+    mx::error_t errc = ff.read( mask, maskFileName );
+    if( errc != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( errc, std::format( "Could not read the {} mask.", description ) );
+    }
+
+    if( m_imSize <= 0 || mask.rows() < m_imSize || mask.cols() < m_imSize )
+    {
+        throw mx::exception<verboseT>(
+            mx::error_t::sizeerr,
+            std::format( "The {} mask is smaller than the input image size.", description ) );
+    }
+
+    if( mask.rows() > m_imSize || mask.cols() > m_imSize )
+    {
+        imageT cropped = mask.block( static_cast<int>( 0.5 * ( mask.rows() - 1 ) - 0.5 * ( m_imSize - 1 ) ),
+                                     static_cast<int>( 0.5 * ( mask.cols() - 1 ) - 0.5 * ( m_imSize - 1 ) ),
+                                     m_imSize,
+                                     m_imSize );
+        mask = cropped;
+    }
+}
+
+template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::readMask()
 {
     /*** Load the mask ***/
     if( m_maskFile != "" )
     {
         std::cerr << "creating mask cube\n";
-        fitsFileT ff;
-        mx::error_t errc = ff.read( m_mask, m_maskFile );
-        if( errc != mx::error_t::noerror )
-        {
-            throw mx::exception<verboseT>( errc, "Could not read the input mask." );
-        }
-
-        if( m_imSize <= 0 || m_mask.rows() < m_imSize || m_mask.cols() < m_imSize )
-        {
-            throw mx::exception<verboseT>( mx::error_t::sizeerr,
-                                           "The input mask is smaller than the target image size." );
-        }
-
-        if( m_mask.rows() > m_imSize || m_mask.cols() > m_imSize )
-        {
-            imageT tmask = m_mask.block( (int)( 0.5 * ( m_mask.rows() - 1 ) - 0.5 * ( m_imSize - 1 ) ),
-                                         (int)( 0.5 * ( m_mask.cols() - 1 ) - 0.5 * ( m_imSize - 1 ) ),
-                                         m_imSize,
-                                         m_imSize );
-            m_mask = tmask;
-        }
-
+        readMaskFile( m_mask, m_maskFile, "input" );
         try
         {
             makeMaskCube();
@@ -2426,44 +2495,71 @@ void HCIobservation<_realT, verboseT>::readMask()
 }
 
 template <typename realT, class verboseT>
-void HCIobservation<realT, verboseT>::makeMaskCube()
+void HCIobservation<realT, verboseT>::populateMaskCube(
+    eigenCube<realT> &maskCube, const imageT &mask, int rows, int cols, int planes )
 {
-    if( m_mask.rows() != m_Nrows || m_mask.cols() != m_Ncols )
+    if( mask.rows() != rows || mask.cols() != cols )
     {
-
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                        std::format( "Mask is not the same size as images.\n"
                                                     "    Mask:   rows={}\n"
                                                     "            cols={}\n"
                                                     "    Images: rows={}\n"
                                                     "            cols={}\n",
-                                                    m_mask.rows(),
-                                                    m_mask.cols(),
-                                                    m_Nrows,
-                                                    m_Ncols ) );
+                                                    mask.rows(),
+                                                    mask.cols(),
+                                                    rows,
+                                                    cols ) );
     }
 
-    m_maskCube.resize( m_Nrows, m_Ncols, m_Nims );
+    maskCube.resize( rows, cols, planes );
 
-    for( int i = 0; i < m_Nims; ++i )
+    for( int i = 0; i < planes; ++i )
     {
-        m_maskCube.image( i ) = m_mask;
+        maskCube.image( i ) = mask;
     }
+}
+
+template <typename realT, class verboseT>
+void HCIobservation<realT, verboseT>::makeMaskCube()
+{
+    populateMaskCube( m_maskCube, m_mask, m_Nrows, m_Ncols, m_Nims );
+}
+
+template <typename realT, class verboseT>
+const typename HCIobservation<realT, verboseT>::imageT *
+HCIobservation<realT, verboseT>::preProcessMask( const eigenCube<realT> &ims ) const
+{
+    if( &ims == &m_refIms )
+    {
+        if( ( m_RDImaskUseInput || !m_RDImaskFile.empty() ) && m_RDImask.size() != 0 )
+        {
+            return &m_RDImask;
+        }
+        return nullptr;
+    }
+
+    if( !m_maskFile.empty() && m_mask.size() != 0 )
+    {
+        return &m_mask;
+    }
+    return nullptr;
 }
 
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
 {
     t_preproc_begin = sys::get_curr_time();
+    const imageT *mask = preProcessMask( ims );
 
     // The mask is applied first, and then after each subsequent P.P. step.
-    if( m_maskFile != "" && m_preProcess_mask )
+    if( mask != nullptr && m_preProcess_mask )
     {
         std::cerr << "Masking . . .\n";
 #pragma omp parallel for
         for( int i = 0; i < ims.planes(); ++i )
         {
-            ims.image( i ) *= m_mask;
+            ims.image( i ) *= *mask;
         }
         std::cerr << "done\n";
     }
@@ -2487,13 +2583,13 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
 
         std::cerr << "done\n";
 
-        if( m_maskFile != "" && m_preProcess_mask )
+        if( mask != nullptr && m_preProcess_mask )
         {
             std::cerr << "Masking . . .\n";
 #pragma omp parallel for
             for( int i = 0; i < ims.planes(); ++i )
             {
-                ims.image( i ) *= m_mask;
+                ims.image( i ) *= *mask;
             }
             std::cerr << "done\n";
         }
@@ -2530,13 +2626,13 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
             }
         }
 
-        if( m_maskFile != "" && m_preProcess_mask )
+        if( mask != nullptr && m_preProcess_mask )
         {
             std::cerr << "Masking . . .\n";
 #pragma omp parallel for
             for( int i = 0; i < ims.planes(); ++i )
             {
-                ims.image( i ) *= m_mask;
+                ims.image( i ) *= *mask;
             }
         }
         std::cerr << "done\n";
@@ -2560,14 +2656,14 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
             ims.image( i ) = im;
         }
 
-        if( m_maskFile != "" && m_preProcess_mask )
+        if( mask != nullptr && m_preProcess_mask )
         {
             std::cerr << "Masking . . .\n";
             // clang-format off
             #pragma omp parallel for // clang-format on
             for( int i = 0; i < ims.planes(); ++i )
             {
-                ims.image( i ) *= m_mask;
+                ims.image( i ) *= *mask;
             }
         }
         t_gaussusm_end = sys::get_curr_time();
@@ -2604,13 +2700,13 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         status.outputFinalStatus();
         std::cerr << '\n';
 
-        if( m_maskFile != "" && m_preProcess_mask )
+        if( mask != nullptr && m_preProcess_mask )
         {
             std::cerr << "Masking . . .\n";
 #pragma omp parallel for
             for( int i = 0; i < ims.planes(); ++i )
             {
-                ims.image( i ) *= m_mask;
+                ims.image( i ) *= *mask;
             }
         }
 
@@ -2644,6 +2740,7 @@ void HCIobservation<_realT, verboseT>::preProcess_meanSub( eigenCube<realT> &ims
     }
 
     imageT mean;
+    const imageT *mask = preProcessMask( ims );
 
     if( m_preProcess_meanSubMethod == HCI::meanSub::meanImage )
     {
@@ -2659,9 +2756,9 @@ void HCIobservation<_realT, verboseT>::preProcess_meanSub( eigenCube<realT> &ims
     {
         ims.image( n ) -= mean;
 
-        if( m_maskFile != "" && m_preProcess_mask )
+        if( mask != nullptr && m_preProcess_mask )
         {
-            ims.image( n ) *= m_mask;
+            ims.image( n ) *= *mask;
         }
     }
 }
@@ -2692,6 +2789,7 @@ void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> 
     }
 
     std::cerr << "normalizing pixels\n";
+    const imageT *mask = preProcessMask( ims );
 
     // clang-format off
     #pragma omp parallel // clang-format on
@@ -2704,9 +2802,9 @@ void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> 
         {
             for( int rr = 0; rr < ims.rows(); ++rr )
             {
-                if( m_maskFile != "" && m_preProcess_mask )
+                if( mask != nullptr && m_preProcess_mask )
                 {
-                    if( m_mask( rr, cc ) == 0 )
+                    if( ( *mask )( rr, cc ) == 0 )
                     {
                         continue;
                     }

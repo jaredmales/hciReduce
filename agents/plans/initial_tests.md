@@ -83,14 +83,14 @@ depends on the same behavior.
 - [x] `combineFinim`: cover `none`, mean, median, sigma mean, documented non-positive-sigma fallback, normalized weights,
   masks and the exact `minGoodFract` boundary, all-masked pixels, multiple reductions, and empty/mismatched cubes.
 
-### Phase 2: FITS ingestion and masks
+### Phase 2: FITS ingestion and masks [complete]
 
-- `readFiles`: verify filename order, centered crops for rectangular odd/even inputs, requested-size clamping, cube and
+- [x] `readFiles`: verify filename order, centered crops for rectangular odd/even inputs, requested-size clamping, cube and
   dimension state, ISO-8601 and numeric dates, selected header propagation, NaN-to-zero handling, front/back deletion
   including oversized requests, skip-preprocess behavior, repeat reads, and hook order.
-- `readRDIFiles`: verify target-size precondition, undersized-reference rejection, independent RDI list/date
+- [x] `readRDIFiles`: verify target-size precondition, undersized-reference rejection, independent RDI list/date
   keyword/format/unit handling, independent/input/no-mask modes, state flags, repeat reads, and RDI hook order.
-- `readMask` / `makeMaskCube`: verify exact-size masks, centered rectangular larger masks, inputs too small in either
+- [x] `readMask` / `makeMaskCube`: verify exact-size masks, centered rectangular larger masks, inputs too small in either
   dimension, output plane count/content, and rebuilding after coaddition.
 
 ### Phase 3: preprocessing physics
