@@ -1570,6 +1570,8 @@ mx::error_t HCIobservation<_realT, verboseT>::load_RDIfileList()
 template <typename realT, class verboseT>
 void HCIobservation<realT, verboseT>::readFiles()
 {
+    m_filesRead = false;
+
     if( m_fileList.size() == 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
@@ -1579,6 +1581,13 @@ void HCIobservation<realT, verboseT>::readFiles()
     // First make the list deletions
     if( !m_filesDeleted )
     {
+        if( m_deleteFront < 0 || m_deleteBack < 0 || static_cast<size_t>( m_deleteFront ) > m_fileList.size() ||
+            static_cast<size_t>( m_deleteBack ) > m_fileList.size() - static_cast<size_t>( m_deleteFront ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "Target front/back deletions exceed the file-list bounds." );
+        }
+
         if( m_deleteFront > 0 )
         {
             m_fileList.erase( m_fileList.begin(), m_fileList.begin() + m_deleteFront );
@@ -1661,7 +1670,6 @@ void HCIobservation<realT, verboseT>::readFiles()
             head.append( m_keywords[i] );
         }
     }
-
     m_heads.clear(); // This is necessary to make sure heads.resize() copies head on a 2nd call
     m_heads.resize( m_fileList.size(), head );
 
@@ -1671,7 +1679,11 @@ void HCIobservation<realT, verboseT>::readFiles()
 
     fitsFileT f( m_fileList[0] );
 
-    f.read( im );
+    mx::error_t errc = f.read( im );
+    if( errc != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( errc, "Could not read the first target image." );
+    }
 
     // We set imSize to match the first image, but we make it a square.
     if( m_imSize == 0 )
@@ -1714,7 +1726,11 @@ void HCIobservation<realT, verboseT>::readFiles()
 
     t_load_begin = sys::get_curr_time();
 
-    f.read( m_tgtIms.data(), m_heads, m_fileList );
+    errc = f.read( m_tgtIms.data(), m_heads, m_fileList );
+    if( errc != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( errc, "Could not read the target image list." );
+    }
 
     f.setReadSize();
 
@@ -1737,6 +1753,10 @@ void HCIobservation<realT, verboseT>::readFiles()
                 m_imageMJD[i] = m_heads[i][m_dateKeyword].template value<realT>() * m_dateUnit;
             }
         }
+    }
+    else
+    {
+        m_imageMJD.clear();
     }
 
     t_load_end = sys::get_curr_time();
@@ -1882,6 +1902,8 @@ template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::readRDIFiles()
 {
 
+    m_RDIfilesRead = false;
+
     /* First check if the target files have been read */
     if( m_Nrows == 0 || m_Ncols == 0 )
     {
@@ -1898,6 +1920,14 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
     // First make the list deletions
     if( !m_RDIfilesDeleted )
     {
+        if( m_RDIdeleteFront < 0 || m_RDIdeleteBack < 0 ||
+            static_cast<size_t>( m_RDIdeleteFront ) > m_RDIfileList.size() ||
+            static_cast<size_t>( m_RDIdeleteBack ) > m_RDIfileList.size() - static_cast<size_t>( m_RDIdeleteFront ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "RDI front/back deletions exceed the file-list bounds." );
+        }
+
         if( m_RDIdeleteFront > 0 )
         {
             m_RDIfileList.erase( m_RDIfileList.begin(), m_RDIfileList.begin() + m_RDIdeleteFront );
@@ -2363,13 +2393,22 @@ void HCIobservation<_realT, verboseT>::readMask()
     {
         std::cerr << "creating mask cube\n";
         fitsFileT ff;
-        ff.read( m_mask, m_maskFile );
+        mx::error_t errc = ff.read( m_mask, m_maskFile );
+        if( errc != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( errc, "Could not read the input mask." );
+        }
 
-        ///\todo here re-size mask if needed to match imSize
+        if( m_imSize <= 0 || m_mask.rows() < m_imSize || m_mask.cols() < m_imSize )
+        {
+            throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                           "The input mask is smaller than the target image size." );
+        }
+
         if( m_mask.rows() > m_imSize || m_mask.cols() > m_imSize )
         {
             imageT tmask = m_mask.block( (int)( 0.5 * ( m_mask.rows() - 1 ) - 0.5 * ( m_imSize - 1 ) ),
-                                         (int)( 0.5 * ( m_mask.rows() - 1 ) - 0.5 * ( m_imSize - 1 ) ),
+                                         (int)( 0.5 * ( m_mask.cols() - 1 ) - 0.5 * ( m_imSize - 1 ) ),
                                          m_imSize,
                                          m_imSize );
             m_mask = tmask;

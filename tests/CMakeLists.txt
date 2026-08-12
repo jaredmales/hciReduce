@@ -16,6 +16,7 @@ set(HCIREDUCE_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_coadd_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_logistics_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_preprocess_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_read_test.cpp
 )
 
 set(HCIREDUCE_TEST_TARGETS)

@@ -21,6 +21,26 @@ namespace
 std::atomic<unsigned long> testDirectorySequence{ 0 };
 }
 
+void HCIobservationTestHarness::postReadFiles()
+{
+    m_hookEvents.push_back( "target-read" );
+}
+
+void HCIobservationTestHarness::postCoadd()
+{
+    m_hookEvents.push_back( "target-coadd" );
+}
+
+void HCIobservationTestHarness::postRDIReadFiles()
+{
+    m_hookEvents.push_back( "rdi-read" );
+}
+
+void HCIobservationTestHarness::postRDICoadd()
+{
+    m_hookEvents.push_back( "rdi-coadd" );
+}
+
 TestDirectory::TestDirectory()
 {
     std::error_code error;

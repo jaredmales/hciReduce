@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 #include "src/common/HCIobservation.hpp"
 
@@ -99,6 +100,21 @@ struct HCIobservationTestHarness : public mx::improc::HCIobservation<float, mx::
     using baseT::m_tgtIms;
     using baseT::m_thresholdOnly;
     using baseT::m_weightFile;
+
+    /// Ordered record of target/RDI post-read and post-coadd hook calls.
+    std::vector<std::string> m_hookEvents;
+
+    /// Record the target post-read hook.
+    void postReadFiles() override;
+
+    /// Record the target post-coadd hook.
+    void postCoadd() override;
+
+    /// Record the RDI post-read hook.
+    void postRDIReadFiles() override;
+
+    /// Record the RDI post-coadd hook.
+    void postRDICoadd() override;
 };
 
 /// A unique temporary directory removed when the fixture leaves scope.
