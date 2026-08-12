@@ -42,6 +42,7 @@ struct HCIobservationTestHarness : public mx::improc::HCIobservation<float, mx::
     using baseT::m_fileListFile;
     using baseT::m_filesDeleted;
     using baseT::m_filesRead;
+    using baseT::m_finim;
     using baseT::m_finimName;
     using baseT::m_heads;
     using baseT::m_imageMJD;
@@ -70,6 +71,7 @@ struct HCIobservationTestHarness : public mx::improc::HCIobservation<float, mx::
     using baseT::m_preProcess_outputPrefix;
     using baseT::m_preProcess_pixelTSNormMethod;
     using baseT::m_preProcess_subradprof;
+    using baseT::m_psfsub;
     using baseT::m_PSFSubPrefix;
     using baseT::m_qualityFile;
     using baseT::m_qualityThreshold;

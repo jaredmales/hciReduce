@@ -17,8 +17,6 @@
 #include <cmath>
 #include <utility>
 
-#include <sys/stat.h>
-
 #include <mx/mxlib.hpp>
 
 #include <mx/app/appConfigurator.hpp>
@@ -698,27 +696,25 @@ struct HCIobservation
     /// true.
     std::string m_PSFSubPrefix;
 
-    /// Output the pre-processed target images
+    /// Output the pre-processed target images using the configured output prefix and six-digit sequence numbers.
+    /** \throws mx::exception if the cube/header sizes are invalid or an output operation fails. */
     void outputPreProcessed();
 
-    /// Output the pre-processed reference images
+    /// Output the pre-processed reference images using an `RDI_` suffix after the configured output prefix.
+    /** \throws mx::exception if the cube/header sizes are invalid or an output operation fails. */
     void outputRDIPreProcessed();
 
-    /// Fill in the HCIobservation standard FITS header
-    /**
-     */
-    void stdFitsHeader( fitsHeaderT &head /**< [in.out] the fistHeader structure which will
+    /// Append the standard HCIobservation reduction metadata to a FITS header.
+    void stdFitsHeader( fitsHeaderT &head /**< [in.out] the fitsHeader structure which will
                                                              have cards appended to it. */
     );
 
-    /// Write the final combined image to disk
-    /**
-     */
+    /// Write the final combined image cube to its exact or next sequential output path.
+    /** \throws mx::exception if the cube is empty or an output operation fails. */
     void writeFinim( fitsHeaderT *addHead = 0 );
 
-    /// Write the PSF subtracted images to disk
-    /**
-     */
+    /// Write every PSF-subtracted reduction/image and the optional combination-weight sidecar.
+    /** \throws mx::exception if the input sizes are inconsistent or an output operation fails. */
     void outputPSFSub( fitsHeaderT *addHead = 0 );
 
     ///@}
@@ -3133,22 +3129,85 @@ void HCIobservation<_realT, verboseT>::outputPreProcessed()
     }
 
     std::string dir = ioutils::parentPath( m_preProcess_outputPrefix );
-    ioutils::createDirectories( dir );
+    if( !dir.empty() )
+    {
+        const mx::error_t result = ioutils::createDirectories( dir );
+        if( result != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( result, "creating the preprocessed-image output directory" );
+        }
+    }
+
+    if( m_tgtIms.planes() <= 0 || m_tgtIms.rows() <= 0 || m_tgtIms.cols() <= 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "the target image cube is empty" );
+    }
+    if( m_heads.size() != static_cast<size_t>( m_tgtIms.planes() ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "the target header count does not match the image count" );
+    }
 
     std::string fname;
 
     fitsFileT ff;
 
     /** \todo Should add a HISTORY card here */
-    for( int i = 0; i < m_Nims; ++i )
+    for( int i = 0; i < m_tgtIms.planes(); ++i )
     {
         fname = std::format( "{}{:06}.fits", m_preProcess_outputPrefix, i );
 
         fitsHeaderT fh = m_heads[i];
         stdFitsHeader( fh );
-        ff.write( fname, m_tgtIms.image( i ).data(), m_Ncols, m_Nrows, 1, fh );
+        const mx::error_t result =
+            ff.write( fname, m_tgtIms.image( i ).data(), m_tgtIms.rows(), m_tgtIms.cols(), 1, fh );
+        if( result != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( result, "writing preprocessed target image " + fname );
+        }
     }
 } // void HCIobservation<_realT,verboseT>::outputPreProcessed()
+
+template <typename _realT, class verboseT>
+void HCIobservation<_realT, verboseT>::outputRDIPreProcessed()
+{
+    if( m_preProcess_outputPrefix.empty() )
+    {
+        return;
+    }
+
+    const std::string dir = ioutils::parentPath( m_preProcess_outputPrefix );
+    if( !dir.empty() )
+    {
+        const mx::error_t result = ioutils::createDirectories( dir );
+        if( result != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( result, "creating the preprocessed-RDI output directory" );
+        }
+    }
+
+    if( m_refIms.planes() <= 0 || m_refIms.rows() <= 0 || m_refIms.cols() <= 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "the RDI image cube is empty" );
+    }
+    if( m_RDIheads.size() != static_cast<size_t>( m_refIms.planes() ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "the RDI header count does not match the image count" );
+    }
+
+    fitsFileT ff;
+    for( int i = 0; i < m_refIms.planes(); ++i )
+    {
+        const std::string fname = std::format( "{}RDI_{:06}.fits", m_preProcess_outputPrefix, i );
+        fitsHeaderT head = m_RDIheads[i];
+        stdFitsHeader( head );
+        const mx::error_t result =
+            ff.write( fname, m_refIms.image( i ).data(), m_refIms.rows(), m_refIms.cols(), 1, head );
+        if( result != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( result, "writing preprocessed RDI image " + fname );
+        }
+    }
+} // void HCIobservation<_realT,verboseT>::outputRDIPreProcessed()
 
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head )
@@ -3213,13 +3272,26 @@ void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head )
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
 {
+    if( m_finim.rows() <= 0 || m_finim.cols() <= 0 || m_finim.planes() <= 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "the final image cube is empty" );
+    }
+
     std::string fname = m_finimName;
 
-    if( m_outputDir != "" )
+    if( !m_outputDir.empty() )
     {
-        mkdir( m_outputDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
-
         fname = m_outputDir + "/" + fname;
+    }
+
+    const std::string outputParent = ioutils::parentPath( fname );
+    if( !outputParent.empty() )
+    {
+        const mx::error_t result = ioutils::createDirectories( outputParent );
+        if( result != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( result, "creating the final-image output directory" );
+        }
     }
 
     if( !m_exactFinimName )
@@ -3243,7 +3315,7 @@ void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
     if( m_combineMethod == HCI::combine::sigmaMean )
         head.template append<realT>( "SIGMA THRESHOLD", m_sigmaThreshold, "threshold for sigma clipping" );
 
-    head.template append<realT>( "MIN FOOD FRACTION", m_minGoodFract, "minimum good fraction for inclusion" );
+    head.template append<realT>( "MIN GOOD FRACTION", m_minGoodFract, "minimum good fraction for inclusion" );
     if( addHead )
     {
         head.append( *addHead );
@@ -3253,7 +3325,11 @@ void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
 
     fitsFileT f;
 
-    f.write( fname, m_finim, head );
+    const mx::error_t result = f.write( fname, m_finim, head );
+    if( result != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( result, "writing final image " + fname );
+    }
 
     std::cerr << "Final image written to: " << fname << "\n";
 } // void HCIobservation<_realT,verboseT>::writeFinim(fitsHeaderT * addHead)
@@ -3261,8 +3337,59 @@ void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::outputPSFSub( fitsHeaderT *addHead )
 {
+    if( m_psfsub.empty() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "the PSF-subtracted image collection is empty" );
+    }
 
-    std::string fname;
+    const int rows = m_psfsub.front().rows();
+    const int cols = m_psfsub.front().cols();
+    const int planes = m_psfsub.front().planes();
+    if( rows <= 0 || cols <= 0 || planes <= 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "the PSF-subtracted image cubes are empty" );
+    }
+    for( const auto &cube : m_psfsub )
+    {
+        if( cube.rows() != rows || cube.cols() != cols || cube.planes() != planes )
+        {
+            throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                           "the PSF-subtracted image cubes have inconsistent dimensions" );
+        }
+    }
+    if( m_heads.size() != static_cast<size_t>( planes ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "the target header count does not match the PSF-subtracted image count" );
+    }
+    if( !m_comboWeights.empty() && m_comboWeights.size() != static_cast<size_t>( planes ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "the combination weight count does not match the PSF-subtracted image count" );
+    }
+
+    const auto outputPath = [this]( const std::string &name )
+    {
+        if( m_outputDir.empty() )
+        {
+            return name;
+        }
+        return m_outputDir + "/" + name;
+    };
+
+    const auto ensureParent = []( const std::string &path )
+    {
+        const std::string parent = ioutils::parentPath( path );
+        if( parent.empty() )
+        {
+            return;
+        }
+        const mx::error_t result = ioutils::createDirectories( parent );
+        if( result != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( result, "creating a PSF-subtracted output directory" );
+        }
+    };
 
     fitsHeaderT head;
 
@@ -3280,46 +3407,50 @@ void HCIobservation<_realT, verboseT>::outputPSFSub( fitsHeaderT *addHead )
 
     std::ofstream wout;
 
-    if( m_comboWeights.size() > 0 )
+    if( !m_comboWeights.empty() )
     {
-        fname = m_PSFSubPrefix + "weights.dat";
-        if( m_outputDir != "" )
+        const std::string weightName = outputPath( m_PSFSubPrefix + "weights.dat" );
+        ensureParent( weightName );
+        wout.open( weightName );
+        if( !wout )
         {
-            mkdir( m_outputDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
-            fname = m_outputDir + "/" + fname;
+            throw mx::exception<verboseT>( mx::error_t::fileoerr, "opening combination-weight output " + weightName );
         }
-        wout.open( fname );
-        std::cerr << "writing comboWeights: " << fname << "\n";
+        std::cerr << "writing comboWeights: " << weightName << "\n";
     }
 
-    char num[256];
     for( size_t n = 0; n < m_psfsub.size(); ++n )
     {
         for( int p = 0; p < m_psfsub[n].planes(); ++p )
         {
-            snprintf( num, 256, "_%03zu_%05d.fits", n, p );
-            fname = m_PSFSubPrefix + num;
-
-            if( m_outputDir != "" )
-            {
-                mkdir( m_outputDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
-                fname = m_outputDir + "/" + fname;
-            }
+            const std::string fname = outputPath( std::format( "{}_{:03}_{:05}.fits", m_PSFSubPrefix, n, p ) );
+            ensureParent( fname );
 
             fitsHeaderT h = head;
 
             h.append( m_heads[p] );
+            h.template append<int>( "REDUCTION", static_cast<int>( n ), "reduction index" );
+            h.template append<int>( "IMAGE", p, "input image index" );
 
-            f.write( fname, m_psfsub[n].image( p ).data(), m_psfsub[n].rows(), m_psfsub[n].cols(), 1, h );
+            const mx::error_t result =
+                f.write( fname, m_psfsub[n].image( p ).data(), m_psfsub[n].rows(), m_psfsub[n].cols(), 1, h );
+            if( result != mx::error_t::noerror )
+            {
+                throw mx::exception<verboseT>( result, "writing PSF-subtracted image " + fname );
+            }
 
-            if( m_comboWeights.size() > 0 && n == 0 )
+            if( !m_comboWeights.empty() && n == 0 )
             {
                 wout << fname << " " << m_comboWeights[p] << "\n";
+                if( !wout )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::fileoerr, "writing combination weights" );
+                }
             }
         }
     }
 
-    if( m_comboWeights.size() > 0 )
+    if( !m_comboWeights.empty() )
     {
         wout.close();
     }

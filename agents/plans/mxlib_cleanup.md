@@ -549,6 +549,9 @@ Known non-blocking ownership follow-ups:
     `fitsHeaderCard` suites, both of which are at 100%.
   - `HCIobservation::readPSFSub`: the FITS read and header-card calls are covered through the 100% `fitsFile`,
     `fitsHeader`, and `fitsHeaderCard` suites.
+  - `HCIobservation` output methods: the exact `parentPath`, `createDirectories`, `getSequentialFilename`, FITS image
+    and cube `write` overloads, header/card append and serialization paths, and `fitsHeaderGitStatus` calls used by the
+    Phase 4 implementation are all at 100% executable-line coverage in mxlib's current manifest-enforced trace.
   - `ADIobservation` injection/output: the exact default cubic-convolution constructor, kernel, and `imageShift`
     specialization have counters on all 63 executable lines selected by that call path. The separately used
     `imageRotate` implementation is 37/37.

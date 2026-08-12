@@ -117,13 +117,25 @@ depends on the same behavior.
 
 ### Phase 4: output and end-to-end behavior
 
-- `stdFitsHeader`: verify required cards, values, and provenance metadata.
-- `outputPreProcessed` / `outputRDIPreProcessed`: verify filenames, image count/content, headers, and nested-directory
+- [x] `stdFitsHeader`: verify required cards, values, and provenance metadata.
+- [x] `outputPreProcessed` / `outputRDIPreProcessed`: verify filenames, image count/content, headers, and nested-directory
   creation.
-- `writeFinim`: verify exact versus sequential naming, overwrite semantics, additional headers, and FITS round-trip.
-- `outputPSFSub`: verify every reduction/image, headers, and weight sidecars.
-- Run one tiny golden workflow through read -> coadd -> preprocess -> combine -> write and compare the final FITS data
+- [x] `writeFinim`: verify exact versus sequential naming, overwrite semantics, additional headers, and FITS round-trip.
+- [x] `outputPSFSub`: verify every reduction/image, headers, and weight sidecars.
+- [x] Run one tiny golden workflow through read -> coadd -> preprocess -> combine -> write and compare the final FITS data
   and essential headers to independently calculated values.
+- Output contracts and corrections:
+  - Preprocessed target images preserve rectangular row/column order; reference products use
+    `<outputPrefix>RDI_######.fits`; both retain their corresponding input headers and append the standard metadata.
+  - Final products recursively create nested directories, sequential names advance without overwriting, exact names
+    overwrite as documented, and the corrected card is `MIN GOOD FRACTION`.
+  - PSF-subtracted products validate cube/header/weight dimensions, include reduction and image indices, and create
+    nested prefix directories plus the optional weight sidecar.
+- Verification:
+  - The focused seven-case output suite passes in normal and ASan/UBSan builds; the full and coverage suites pass 9/9.
+  - `HCIobservation.hpp` is 1199/1335 executable lines (89.8%) in the final Phase 4 trace; the remaining uncovered
+    output branches are low-level directory/file/stream failure translations.
+  - Doxygen remains at the 101-warning legacy baseline and renders all output cases in `HCIobservation_unit_tests`.
 
 ### Phase 5: robustness and dependency regressions
 
@@ -150,7 +162,7 @@ Resolve these under focused regression tests before relying on the affected inte
    non-positive-sigma fallback.
 8. `readMask` uses the row dimension for both crop origins and can request an invalid block when only one dimension is
    oversized.
-9. `outputRDIPreProcessed` is declared but has no definition.
+9. [resolved] `outputRDIPreProcessed` now writes distinct `RDI_`-suffixed files with RDI data and headers.
 10. `KLIPreduction::meanSubtract` can subtract an uninitialized image for accepted `none` / `imageMode` enum values.
 
 All mxlib-specific infrastructure, documentation, packaging, and scientific issues found during this review are
