@@ -292,6 +292,13 @@ Known non-blocking ownership follow-ups:
       behavioral progress, batching, final-status, clearing, timing, newline, and formatting-policy tests. The final
       trace records `ompLoopWatcher.hpp` at 69/69 executable lines and 11/11 functions.
 
+- [x] Make `mx::improc::invalidNumber<T>()` return a quiet NaN by default so FITS and image-display tools recognize
+      invalid pixels, while retaining fast-math-safe classification through `mx::math::isFinite()`. Commit `a931a5b`
+      adds the public `MXLIB_INVALID_NUMBER_VALUE` CMake/pkg-config override for builds that require a finite sentinel,
+      updates masked-cube assertions for the NaN contract, and tests both float and double values. The optimized
+      173-test suite, focused finite-override tests, ASan/UBSan tests, documentation build, and full LCOV target pass;
+      every executable line in the default `invalidNumber()` and `isInvalidPixel()` specializations is covered.
+
 - [~] Continue closing mxlib coverage gaps exposed by hciReduce integration tests.
   - Completed mxlib `dev` commits, each verified under its focused normal or coverage-instrumented target:
     - `57488e0`, `a081b61`, `7f37f22`, `81124f0`, and `0906081`: application lifecycle, configuration reload, and
