@@ -7,6 +7,8 @@
  * cmake -S . -B _build
  * cmake --build _build --target tests -j
  * \endcode
+ * Single-configuration generators default to a Release build when no build type is specified. Pass
+ * `-DCMAKE_BUILD_TYPE=Debug` explicitly when an unoptimized build with debug information is wanted.
  *
  * Configure tests as part of the default build and register them with CTest:
  *

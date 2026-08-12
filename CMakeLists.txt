@@ -15,13 +15,23 @@ option(HCIREDUCE_BUILD_COVERAGE "Whether or not to enable coverage instrumentati
 set(HCIREDUCE_COVERAGE_TEST_TIMEOUT 300 CACHE STRING "CTest timeout (seconds) for the coverage target")
 option(HCIREDUCE_BUILD_DOCS "Whether or not to build Doxygen docs as part of the default build" OFF)
 
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+    if(HCIREDUCE_BUILD_COVERAGE)
+        set(_hcireduce_default_build_type Debug)
+    else()
+        set(_hcireduce_default_build_type Release)
+    endif()
+    set(CMAKE_BUILD_TYPE ${_hcireduce_default_build_type} CACHE STRING "Choose the build type" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo MinSizeRel)
+    message(STATUS "No build type selected; defaulting to ${_hcireduce_default_build_type}")
+endif()
+
 if(HCIREDUCE_BUILD_COVERAGE)
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(FATAL_ERROR "HCIREDUCE_BUILD_COVERAGE currently requires GCC so lcov can read gcov data")
     endif()
 
-    # Link this after PkgConfig::MXLIB so -O0 and -fno-fast-math override
-    # mxlib's exported optimization options in instrumented builds.
+    # Link this after PkgConfig::MXLIB so coverage options remain last.
     add_library(hcireduce-coverage-options INTERFACE)
     target_compile_definitions(hcireduce-coverage-options INTERFACE HCIREDUCE_BUILD_COVERAGE=1)
     target_compile_options(hcireduce-coverage-options INTERFACE --coverage -O0 -fno-fast-math)
@@ -112,7 +122,7 @@ find_program(HCIREDUCE_GENHTML_EXECUTABLE genhtml)
 
 if(HCIREDUCE_LCOV_EXECUTABLE AND HCIREDUCE_GENHTML_EXECUTABLE)
     add_custom_target(coverage
-        COMMAND ${CMAKE_COMMAND} -S ${CMAKE_SOURCE_DIR} -B ${HCIREDUCE_COVERAGE_BUILD_DIR} -G "${CMAKE_GENERATOR}" -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DHCIREDUCE_BUILD_TESTS=ON -DHCIREDUCE_BUILD_COVERAGE=ON
+        COMMAND ${CMAKE_COMMAND} -S ${CMAKE_SOURCE_DIR} -B ${HCIREDUCE_COVERAGE_BUILD_DIR} -G "${CMAKE_GENERATOR}" -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_BUILD_TYPE=Debug -DHCIREDUCE_BUILD_TESTS=ON -DHCIREDUCE_BUILD_COVERAGE=ON
         COMMAND ${CMAKE_COMMAND} --build ${HCIREDUCE_COVERAGE_BUILD_DIR} --target hcireduceTests -j
         COMMAND ${HCIREDUCE_LCOV_EXECUTABLE} --directory ${HCIREDUCE_COVERAGE_BUILD_DIR} --zerocounters
         COMMAND ${CMAKE_CTEST_COMMAND} --test-dir ${HCIREDUCE_COVERAGE_BUILD_DIR} --output-on-failure --timeout ${HCIREDUCE_COVERAGE_TEST_TIMEOUT}
