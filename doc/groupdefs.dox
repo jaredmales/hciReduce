@@ -53,3 +53,7 @@
 /** \defgroup HCIobservation_unit_tests HCIobservation Unit Tests
   * \ingroup unit_tests
   */
+
+/** \defgroup KLIPreduction_unit_tests KLIPreduction Unit Tests
+  * \ingroup unit_tests
+  */

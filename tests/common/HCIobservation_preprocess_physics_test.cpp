@@ -406,5 +406,65 @@ TEST_CASE( "HCIobservation composite preprocessing order", "[HCIobservation][pre
     REQUIRE( cube.image( 1 )( 1, 1 ) == 0 );
 }
 
+/// Verify HCIobservation preprocessing and combination are deterministic across OpenMP team sizes.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation OpenMP preprocessing determinism", "[HCIobservation][preprocess][OpenMP]" )
+{
+    const auto process = []( int threads )
+    {
+        OpenMPThreadGuard threadGuard( threads );
+        HCIobservationTestHarness observation;
+        observation.m_preProcess_subradprof = true;
+        observation.m_preProcess_medianUSM_fwhm = 3;
+        observation.m_preProcess_gaussUSM_fwhm = 1;
+        observation.m_preProcess_azUSM_radHalfWidth = 1;
+        observation.m_preProcess_azUSM_azHalfWidth = 2;
+        observation.m_preProcess_azUSM_maxAz = 45;
+        observation.m_preProcess_meanSubMethod = mx::improc::HCI::meanSub::meanImage;
+        observation.m_preProcess_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::rms;
+        observation.m_maskFile = "configured-mask.fits";
+        observation.m_mask.resize( 11, 11 );
+        observation.m_mask.setOnes();
+        observation.m_mask( 2, 3 ) = 0;
+        observation.m_mask( 8, 7 ) = 0;
+
+        HCIobservationTestHarness::cubeT cube( 11, 11, 4 );
+        for( int plane = 0; plane < cube.planes(); ++plane )
+        {
+            for( int col = 0; col < cube.cols(); ++col )
+            {
+                for( int row = 0; row < cube.rows(); ++row )
+                {
+                    const float radius = std::hypot( row - 5.0F, col - 5.0F );
+                    cube.image( plane )( row, col ) = 3 * radius + 0.2F * plane * row - 0.1F * ( plane + 1 ) * col;
+                }
+            }
+            cube.image( plane )( 5, 7 ) += 10 + plane;
+        }
+
+        observation.preProcess( cube );
+        observation.m_maskFile.clear();
+        observation.m_psfsub = { cube };
+        observation.m_combineMethod = mx::improc::HCI::combine::mean;
+        observation.combineFinim();
+        return std::pair{ cube, observation.m_finim };
+    };
+
+    const auto oneThread = process( 1 );
+    const auto fourThreads = process( 4 );
+    for( int plane = 0; plane < oneThread.first.planes(); ++plane )
+    {
+        REQUIRE( oneThread.first.image( plane ).isApprox( fourThreads.first.image( plane ), 1e-6 ) );
+    }
+    REQUIRE( oneThread.second.image( 0 ).isApprox( fourThreads.second.image( 0 ), 1e-6 ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::preProcess( oneThread.first );
+    mx::improc::HCIobservation<float, mx::verbose::vv>::combineFinim();
+#endif
+    // clang-format on
+}
+
 } // namespace HCIobservation_preprocess_physics_test
 } // namespace unitTest

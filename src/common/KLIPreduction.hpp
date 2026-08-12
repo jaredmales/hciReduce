@@ -59,6 +59,7 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     /// Specify how the data are centered for PCA within each search region
     /** Can have the following values:
+     * - <b>HCI::meanSub::none</b> = no value is subtracted
      * - <b>HCI::meanSub::imageMean</b> = the mean of each image (within the search
      * region) is subtracted from itself
      * - <b>HCI::meanSub::imageMedian</b> = the median of each image (within the search
@@ -69,6 +70,8 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
      * each image
      * - <b>HCI::meanSub::medianImage</b> = the median image of the data is subtracted
      * from each image
+     *
+     * \note `HCI::meanSub::imageMode` is recognized by the configuration parser but is not implemented.
      */
     HCI::meanSub m_meanSubMethod{ HCI::meanSub::imageMean };
 
@@ -513,6 +516,16 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
                                                                            imageT &cmask,
                                                                            std::vector<realT> &norms )
 {
+    if( m_meanSubMethod == HCI::meanSub::imageMode )
+    {
+        throw mx::exception<verboseT>( mx::error_t::notimpl, "image-mode subtraction is not implemented" );
+    }
+    if( m_meanSubMethod != HCI::meanSub::none && m_meanSubMethod != HCI::meanSub::meanImage &&
+        m_meanSubMethod != HCI::meanSub::medianImage && m_meanSubMethod != HCI::meanSub::imageMean &&
+        m_meanSubMethod != HCI::meanSub::imageMedian )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid KLIP mean-subtraction method" );
+    }
 
     norms.resize( rims.planes() );
 
@@ -592,7 +605,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
     }
     else
     {
-        realT mean;
+        realT mean{ 0 };
         std::vector<realT> work; // Working memmory for median calc
 
         realT immean;

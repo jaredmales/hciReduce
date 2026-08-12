@@ -139,11 +139,28 @@ depends on the same behavior.
 
 ### Phase 5: robustness and dependency regressions
 
-- Run the focused suite under AddressSanitizer and UndefinedBehaviorSanitizer; add MemorySanitizer where the toolchain
+- [x] Run the focused suite under AddressSanitizer and UndefinedBehaviorSanitizer; add MemorySanitizer where the toolchain
   permits.  Prioritize deletion bounds, empty/mismatched vectors and cubes, mask crops, and median kernel widths.
-- Compare deterministic outputs with one and multiple OpenMP threads.
-- Confirm the mxlib regressions tracked in [mxlib_cleanup.md](mxlib_cleanup.md) against the installed dependency, then
+  - The complete 10-test suite passes under ASan+UBSan with leak detection disabled for the ptrace environment.
+  - MemorySanitizer is unavailable on this host because no Clang toolchain is installed.
+- [x] Compare deterministic outputs with one and multiple OpenMP threads.
+  - A four-plane composite regression produces matching preprocessed cubes and final combinations with one and four
+    OpenMP threads.
+- [ ] Confirm the mxlib regressions tracked in [mxlib_cleanup.md](mxlib_cleanup.md) against the installed dependency, then
   retain a small hciReduce integration assertion only where dependency behavior changes scientific output.
+  - The source-level dependency regressions and hciReduce integration assertions pass against the exact header overlay.
+  - `/usr/local/include/mx/improc/imageFilters.hpp` still differs from mxlib `dev`; install commits `9715752` and
+    `b53c425`, remove the overlay, and repeat the normal/full/coverage checks to close this item.
+- [x] Make `KLIPreduction::meanSubtract` deterministic for every accepted enum value.
+  - `none` subtracts zero while retaining norm calculation; `imageMode` reports `notimpl`; unknown values report
+    `invalidconfig`; all validation occurs before either cube or the norm vector is mutated.
+  - Focused normal and ASan/UBSan tests pass. The exact mxlib `eigenCube` mean/median, image-median, and vector-variance
+    call paths remain at 100% executable-line coverage.
+- Verification:
+  - The normal, ASan/UBSan, and coverage suites pass 10/10; Doxygen stays at the 101-warning legacy baseline and adds
+    the `KLIPreduction_unit_tests` group without group/test warnings.
+  - The final source-level coverage trace is 51.5% overall; `HCIobservation.hpp` is 1199/1335 (89.8%) and the newly
+    started `KLIPreduction.hpp` suite is 34/535 (6.4%).
 
 ## Code-review findings that set test priority
 
@@ -163,7 +180,8 @@ Resolve these under focused regression tests before relying on the affected inte
 8. `readMask` uses the row dimension for both crop origins and can request an invalid block when only one dimension is
    oversized.
 9. [resolved] `outputRDIPreProcessed` now writes distinct `RDI_`-suffixed files with RDI data and headers.
-10. `KLIPreduction::meanSubtract` can subtract an uninitialized image for accepted `none` / `imageMode` enum values.
+10. [resolved] `KLIPreduction::meanSubtract` implements `none` as zero subtraction and rejects `imageMode` before
+    mutation because mode estimation is not implemented.
 
 All mxlib-specific infrastructure, documentation, packaging, and scientific issues found during this review are
 tracked in [mxlib_cleanup.md](mxlib_cleanup.md), which is the prerequisite work plan for this suite.
