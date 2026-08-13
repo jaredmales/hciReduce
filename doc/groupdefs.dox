@@ -57,3 +57,7 @@
 /** \defgroup KLIPreduction_unit_tests KLIPreduction Unit Tests
   * \ingroup unit_tests
   */
+
+/** \defgroup klipReduce_unit_tests klipReduce Application Unit Tests
+  * \ingroup unit_tests
+  */

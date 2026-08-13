@@ -223,13 +223,20 @@ depends on the same behavior.
     and applies the caller's current post-median, derotation, combination, weight-file, and output configuration. The
     saved weight sidecar is round-tripped through filename-based matching. Missing files, malformed names, mismatched
     header indices, missing mode metadata, and mismatched mode counts are covered.
+- [x] Wire saved-reduction processing into the `klipReduce` application.
+  - `mode=postprocess` loads `postprocess.directory`, `postprocess.prefix`, and `postprocess.extension` (default
+    `.fits`), validates all three before execution, and dispatches directly to the restored `processPSFSub()` path.
+    Historical `basic` and `normal` spellings remain accepted, while unknown modes fail deterministically.
+  - An application-level test loads a real configuration, resumes a two-reduction FITS collection through `execute()`,
+    and round-trips the configured final output. The generated command-line help exposes all three new options.
 - Verification:
-  - The optimized full suite and the coverage suite pass 10/10. Focused ASan/UBSan runs pass 144 assertions in eight
-    output cases and 248 assertions in 25 KLIP cases.
-  - Coverage is 82.4% overall (2176/2641), with `HCIobservation.hpp` at 1287/1441 (89.3%) and `KLIPreduction.hpp` at
-    634/730 executable lines (86.8%); every instantiated KLIP function is reached.
-  - Doxygen succeeds with 78 legacy warnings and no test/group diagnostics; the timing state adjacent to the restored
-    API is now documented.
+  - The optimized full suite and the coverage suite pass 11/11. Focused ASan/UBSan runs pass 19 assertions in both
+    application cases, 144 assertions in eight output cases, and 248 assertions in 25 KLIP cases.
+  - Coverage is 80.5% overall (2306/2863), with `klipReduce.cpp` at 121/222 (54.5%), `HCIobservation.hpp` at
+    1287/1441 (89.3%), and `KLIPreduction.hpp` at 634/730 executable lines (86.8%). Every restored KLIP function and
+    every application function relevant to postprocess configuration/dispatch is reached; the unrelated unfinished
+    grid implementation and true process entry point account for most uncovered application lines.
+  - Doxygen succeeds with 72 legacy warnings and no test/group diagnostics.
 
 ## Code-review findings that set test priority
 
