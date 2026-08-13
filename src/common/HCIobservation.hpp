@@ -9,13 +9,16 @@
 #ifndef __HCIobservation_hpp__
 #define __HCIobservation_hpp__
 
-#include <vector>
 #include <algorithm>
+#include <charconv>
+#include <cmath>
+#include <filesystem>
+#include <fstream>
 #include <map>
 #include <string>
-#include <fstream>
-#include <cmath>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 #include <mx/mxlib.hpp>
 
@@ -719,32 +722,36 @@ struct HCIobservation
 
     ///@}
 
-    /// Read in already PSF-subtracted files
-    /** Used to take up final processing after applying some non-klipReduce processing steps to
-     * PSF-subtracted images.
+    /// Read a complete saved collection of PSF-subtracted FITS images.
+    /** Files must use the naming and header contract produced by outputPSFSub(). The reduction and image counts are
+     * inferred from a complete, zero-based rectangular index grid.
+     *
+     * \throws mx::exception if the directory, names, headers, index grid, or image dimensions are invalid.
      */
-    // int readPSFSub( const std::string &dir, const std::string &prefix, const std::string &ext, size_t nReductions );
+    void readPSFSub( const std::string &directory, /**< [in] directory containing the saved products */
+                     const std::string &prefix,    /**< [in] literal filename prefix used by outputPSFSub() */
+                     const std::string &extension = ".fits" /**< [in] literal filename extension */ );
 
-    double t_begin{ 0 };
-    double t_end{ 0 };
+    double t_begin{ 0 }; ///< Start time of the complete reduction.
+    double t_end{ 0 };   ///< End time of the complete reduction.
 
-    double t_load_begin{ 0 };
-    double t_load_end{ 0 };
+    double t_load_begin{ 0 }; ///< Start time of input loading.
+    double t_load_end{ 0 };   ///< End time of input loading.
 
-    double t_coadd_begin{ 0 };
-    double t_coadd_end{ 0 };
+    double t_coadd_begin{ 0 }; ///< Start time of image coaddition.
+    double t_coadd_end{ 0 };   ///< End time of image coaddition.
 
-    double t_preproc_begin{ 0 };
-    double t_preproc_end{ 0 };
+    double t_preproc_begin{ 0 }; ///< Start time of preprocessing.
+    double t_preproc_end{ 0 };   ///< End time of preprocessing.
 
-    double t_azusm_begin{ 0 };
-    double t_azusm_end{ 0 };
+    double t_azusm_begin{ 0 }; ///< Start time of azimuthal unsharp masking.
+    double t_azusm_end{ 0 };   ///< End time of azimuthal unsharp masking.
 
-    double t_gaussusm_begin{ 0 };
-    double t_gaussusm_end{ 0 };
+    double t_gaussusm_begin{ 0 }; ///< Start time of Gaussian unsharp masking.
+    double t_gaussusm_end{ 0 };   ///< End time of Gaussian unsharp masking.
 
-    double t_combo_begin{ 0 };
-    double t_combo_end{ 0 };
+    double t_combo_begin{ 0 }; ///< Start time of final image combination.
+    double t_combo_end{ 0 };   ///< End time of final image combination.
 };
 
 // -- construction and initialization
@@ -3455,6 +3462,184 @@ void HCIobservation<_realT, verboseT>::outputPSFSub( fitsHeaderT *addHead )
         wout.close();
     }
 } // void HCIobservation<_realT,verboseT>::outputPSFSub(fitsHeaderT * addHead)
+
+template <typename _realT, class verboseT>
+void HCIobservation<_realT, verboseT>::readPSFSub( const std::string &directory,
+                                                   const std::string &prefix,
+                                                   const std::string &extension )
+{
+    namespace fs = std::filesystem;
+
+    if( prefix.empty() || extension.empty() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                       "saved PSF-subtracted prefix and extension must not be empty" );
+    }
+
+    std::error_code filesystemError;
+    if( !fs::is_directory( directory, filesystemError ) || filesystemError )
+    {
+        throw mx::exception<verboseT>( mx::error_t::dirnotfound, "saved PSF-subtracted directory is not readable" );
+    }
+
+    using indexT = std::pair<size_t, size_t>;
+    std::map<indexT, std::string> indexedFiles;
+    const std::string filenamePrefix = prefix + "_";
+
+    fs::directory_iterator entry( directory, filesystemError );
+    const fs::directory_iterator end;
+    if( filesystemError )
+    {
+        throw mx::exception<verboseT>( mx::error_t::dirnotfound,
+                                       "could not inspect the saved PSF-subtracted directory" );
+    }
+
+    while( entry != end )
+    {
+        const bool isRegularFile = entry->is_regular_file( filesystemError );
+        if( filesystemError )
+        {
+            throw mx::exception<verboseT>( mx::error_t::fileoerr,
+                                           "could not inspect an entry in the saved PSF-subtracted directory" );
+        }
+
+        if( isRegularFile )
+        {
+            const std::string filename = entry->path().filename().string();
+            if( filename.starts_with( filenamePrefix ) && filename.ends_with( extension ) )
+            {
+                const size_t bodyLength = filename.size() - filenamePrefix.size() - extension.size();
+                const std::string_view body( filename.data() + filenamePrefix.size(), bodyLength );
+                const size_t separator = body.find( '_' );
+                if( separator == std::string_view::npos || separator == 0 || separator + 1 >= body.size() ||
+                    body.find( '_', separator + 1 ) != std::string_view::npos )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::parseerr,
+                                                   "malformed saved PSF-subtracted filename " + filename );
+                }
+
+                size_t reduction = 0;
+                size_t image = 0;
+                const auto reductionResult = std::from_chars( body.data(), body.data() + separator, reduction );
+                const auto imageResult =
+                    std::from_chars( body.data() + separator + 1, body.data() + body.size(), image );
+                if( reductionResult.ec != std::errc{} || reductionResult.ptr != body.data() + separator ||
+                    imageResult.ec != std::errc{} || imageResult.ptr != body.data() + body.size() )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::parseerr,
+                                                   "malformed saved PSF-subtracted filename " + filename );
+                }
+
+                const auto [inserted, unique] =
+                    indexedFiles.emplace( indexT{ reduction, image }, entry->path().string() );
+                static_cast<void>( inserted );
+                if( !unique )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                                   "multiple saved PSF-subtracted files have the same indices" );
+                }
+            }
+        }
+
+        entry.increment( filesystemError );
+        if( filesystemError )
+        {
+            throw mx::exception<verboseT>( mx::error_t::fileoerr,
+                                           "could not traverse the saved PSF-subtracted directory" );
+        }
+    }
+
+    if( indexedFiles.empty() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::filenotfound, "no saved PSF-subtracted images were found" );
+    }
+
+    const size_t reductionCount = indexedFiles.rbegin()->first.first + 1;
+    size_t imageCount = 0;
+    for( const auto &[index, path] : indexedFiles )
+    {
+        static_cast<void>( path );
+        imageCount = std::max( imageCount, index.second + 1 );
+    }
+    if( indexedFiles.size() != reductionCount * imageCount )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "saved PSF-subtracted images do not form a complete index grid" );
+    }
+
+    std::vector<eigenCube<realT>> psfsub( reductionCount );
+    std::vector<fitsHeaderT> heads( imageCount );
+    std::vector<std::string> fileList( imageCount );
+    fitsFileT fitsFile;
+    int rows = 0;
+    int cols = 0;
+
+    for( size_t reduction = 0; reduction < reductionCount; ++reduction )
+    {
+        for( size_t imageIndex = 0; imageIndex < imageCount; ++imageIndex )
+        {
+            const auto found = indexedFiles.find( indexT{ reduction, imageIndex } );
+            if( found == indexedFiles.end() )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                               "saved PSF-subtracted images do not form a complete index grid" );
+            }
+
+            imageT image;
+            fitsHeaderT header;
+            const mx::error_t result = fitsFile.read( image, header, found->second );
+            if( result != mx::error_t::noerror )
+            {
+                throw mx::exception<verboseT>( result, "reading saved PSF-subtracted image " + found->second );
+            }
+            if( header.count( "REDUCTION" ) == 0 || header.count( "IMAGE" ) == 0 ||
+                header["REDUCTION"].template value<int>() != static_cast<int>( reduction ) ||
+                header["IMAGE"].template value<int>() != static_cast<int>( imageIndex ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               "saved PSF-subtracted header indices do not match the filename" );
+            }
+
+            if( reduction == 0 && imageIndex == 0 )
+            {
+                rows = image.rows();
+                cols = image.cols();
+                if( rows <= 0 || cols <= 0 )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                                   "saved PSF-subtracted images must not be empty" );
+                }
+                for( auto &cube : psfsub )
+                {
+                    cube.resize( rows, cols, imageCount );
+                }
+            }
+            else if( image.rows() != rows || image.cols() != cols )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                               "saved PSF-subtracted images have inconsistent dimensions" );
+            }
+
+            psfsub[reduction].image( imageIndex ) = image;
+            if( reduction == 0 )
+            {
+                heads[imageIndex] = header;
+                fileList[imageIndex] = found->second;
+            }
+        }
+    }
+
+    m_psfsub = std::move( psfsub );
+    m_heads = std::move( heads );
+    m_fileList = std::move( fileList );
+    m_Nims = static_cast<int>( imageCount );
+    m_Nrows = rows;
+    m_Ncols = cols;
+    m_Npix = rows * cols;
+    m_imSize = std::min( rows, cols );
+    m_filesRead = true;
+    postReadFiles();
+}
 
 /*
 template <typename _realT, class verboseT>

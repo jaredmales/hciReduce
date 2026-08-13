@@ -11,15 +11,18 @@
 
 #include <algorithm>
 #include <cmath>
+#include <exception>
 #include <limits>
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <omp.h>
 
 #include <mx/ipc/ompLoopWatcher.hpp>
+#include <mx/ioutils/stringUtils.hpp>
 #include <mx/math/eigenLapack.hpp>
 #include <mx/math/floatUtils.hpp>
 #include <mx/math/geo.hpp>
@@ -251,7 +254,16 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     int finalProcess();
 
-    // int processPSFSub( const std::string &dir, const std::string &prefix, const std::string &ext );
+    /// Load a saved KLIP reduction and apply the currently configured final-processing stages.
+    /** The saved mode list is restored from the required `NMODES` header card; post-median subtraction, derotation,
+     * combination, and output behavior remain controlled by the current configuration.
+     *
+     * \returns 0 on success.
+     * \throws mx::exception if the saved collection or mode metadata is invalid.
+     */
+    int processPSFSub( const std::string &directory, /**< [in] directory containing the saved products */
+                       const std::string &prefix,    /**< [in] literal filename prefix */
+                       const std::string &extension = ".fits" /**< [in] literal filename extension */ );
 
     double t_worker_begin{ 0 };
     double t_worker_end{ 0 };
@@ -1792,6 +1804,44 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalProcess()
     }
 
     return 0;
+}
+
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::processPSFSub( const std::string &directory,
+                                                                           const std::string &prefix,
+                                                                           const std::string &extension )
+{
+    this->readPSFSub( directory, prefix, extension );
+
+    if( this->m_heads.empty() || this->m_heads.front().count( "NMODES" ) == 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "saved KLIP reductions require an NMODES header card" );
+    }
+
+    std::vector<int> modeCounts;
+    try
+    {
+        ioutils::parseStringVector( modeCounts, this->m_heads.front()["NMODES"].String(), ',' );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::parseerr, "could not parse saved KLIP NMODES metadata" ) );
+    }
+    if( modeCounts.size() != this->m_psfsub.size() ||
+        std::any_of( modeCounts.begin(), modeCounts.end(), []( int count ) { return count <= 0; } ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                       "saved KLIP NMODES metadata does not match the reduction collection" );
+    }
+    m_Nmodes = std::move( modeCounts );
+
+    if( !this->m_weightFile.empty() )
+    {
+        this->readWeights();
+    }
+
+    return finalProcess();
 }
 
 /*

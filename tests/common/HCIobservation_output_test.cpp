@@ -331,6 +331,20 @@ TEST_CASE( "HCIobservation PSF-subtracted output", "[HCIobservation][output][out
     REQUIRE( firstLine.find( "psf_000_00000.fits 0.25" ) != std::string::npos );
     REQUIRE( secondLine.find( "psf_000_00001.fits 0.75" ) != std::string::npos );
 
+    HCIobservationTestHarness loaded;
+    loaded.readPSFSub( directory.file( "nested/psf-output/products" ).string(), "psf" );
+    REQUIRE( loaded.m_filesRead );
+    REQUIRE( loaded.m_psfsub.size() == observation.m_psfsub.size() );
+    REQUIRE( loaded.m_Nrows == 2 );
+    REQUIRE( loaded.m_Ncols == 3 );
+    REQUIRE( loaded.m_Nims == 2 );
+    REQUIRE( loaded.m_heads.size() == 2 );
+    REQUIRE( loaded.m_hookEvents == std::vector<std::string>{ "target-read" } );
+    for( size_t reduction = 0; reduction < loaded.m_psfsub.size(); ++reduction )
+    {
+        REQUIRE( loaded.m_psfsub[reduction].cube().isApprox( observation.m_psfsub[reduction].cube() ) );
+    }
+
     observation.m_comboWeights.pop_back();
     REQUIRE_THROWS( observation.outputPSFSub() );
 
@@ -353,6 +367,48 @@ TEST_CASE( "HCIobservation PSF-subtracted output", "[HCIobservation][output][out
     direct.m_heads.resize( 1 );
     direct.outputPSFSub();
     REQUIRE( std::filesystem::exists( directory.file( "direct-psf_000_00000.fits" ) ) );
+}
+
+/// Verify HCIobservation::readPSFSub rejects incomplete grids, malformed names, and mismatched header indices.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation saved PSF-subtracted validation", "[HCIobservation][readPSFSub][validation]" )
+{
+    TestDirectory directory;
+    const auto makeSavedImage = [&directory]( const std::string &name, int reduction, int imageIndex )
+    {
+        HCIobservationTestHarness::imageT image = indexedImage( 2, 3, 10 * reduction + imageIndex );
+        HCIobservationTestHarness::fitsHeaderT header;
+        header.append<int>( "REDUCTION", reduction, "reduction index" );
+        header.append<int>( "IMAGE", imageIndex, "image index" );
+        writeFitsImage( directory.file( name ), image, &header );
+    };
+
+    makeSavedImage( "saved_000_00000.fits", 0, 0 );
+    makeSavedImage( "saved_000_00001.fits", 0, 1 );
+    makeSavedImage( "saved_001_00000.fits", 1, 0 );
+
+    HCIobservationTestHarness incomplete;
+    REQUIRE_THROWS( incomplete.readPSFSub( directory.path().string(), "saved" ) );
+    REQUIRE( incomplete.m_psfsub.empty() );
+
+    makeSavedImage( "saved_001_00001.fits", 9, 1 );
+    HCIobservationTestHarness mismatchedHeader;
+    REQUIRE_THROWS( mismatchedHeader.readPSFSub( directory.path().string(), "saved" ) );
+    REQUIRE( mismatchedHeader.m_psfsub.empty() );
+
+    writeTextFile( directory.file( "saved_bad_00002.fits" ), "not a FITS file" );
+    HCIobservationTestHarness malformedName;
+    REQUIRE_THROWS( malformedName.readPSFSub( directory.path().string(), "saved" ) );
+
+    HCIobservationTestHarness missing;
+    REQUIRE_THROWS( missing.readPSFSub( directory.file( "missing" ).string(), "saved" ) );
+    REQUIRE_THROWS( missing.readPSFSub( directory.path().string(), "" ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::readPSFSub( "", "" );
+#endif
+    // clang-format on
 }
 
 /// Verify the HCIobservation read-to-write workflow preserves independently calculated data and essential metadata.

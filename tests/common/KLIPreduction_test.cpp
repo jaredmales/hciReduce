@@ -46,6 +46,7 @@ struct reductionHarness : public reductionT
     using reductionT::m_filesRead;
     using reductionT::m_finim;
     using reductionT::m_finimName;
+    using reductionT::m_heads;
     using reductionT::m_imageMJD;
     using reductionT::m_imSize;
     using reductionT::m_mask;
@@ -56,10 +57,15 @@ struct reductionHarness : public reductionT
     using reductionT::m_Nrows;
     using reductionT::m_outputDir;
     using reductionT::m_psfsub;
+    using reductionT::m_PSFSubPrefix;
     using reductionT::m_RDIfilesRead;
     using reductionT::m_RDIimageMJD;
     using reductionT::m_refIms;
     using reductionT::m_tgtIms;
+
+    void postReadFiles() override
+    {
+    }
 };
 
 void prepareRegionReduction( reductionHarness &reduction )
@@ -1073,6 +1079,79 @@ TEST_CASE( "KLIP final output metadata", "[KLIPreduction][finalProcess][output][
     REQUIRE( header["MAXDPX"].value<float>() == Approx( 4 ) );
     REQUIRE( header["INMTHDMX"].String().starts_with( "corr" ) );
     REQUIRE( header["INCLREFN"].value<int>() == 7 );
+}
+
+/// Verify KLIPreduction::processPSFSub resumes the current final-processing configuration from saved KLIP products.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP saved-reduction processing", "[KLIPreduction][processPSFSub][output][combine]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    reductionHarness producer;
+    producer.m_psfsub.resize( 2 );
+    producer.m_heads.resize( 2 );
+    producer.m_heads[0].append<int>( "SOURCE", 10, "source image" );
+    producer.m_heads[1].append<int>( "SOURCE", 20, "source image" );
+    producer.m_Nims = 2;
+    producer.m_Nrows = 2;
+    producer.m_Ncols = 2;
+    producer.m_imSize = 2;
+    producer.m_Nmodes = { 1, 3 };
+    for( size_t reduction = 0; reduction < producer.m_psfsub.size(); ++reduction )
+    {
+        producer.m_psfsub[reduction].resize( 2, 2, 2 );
+        producer.m_psfsub[reduction].image( 0 ).setConstant( 2 * reduction + 1 );
+        producer.m_psfsub[reduction].image( 1 ).setConstant( 2 * reduction + 3 );
+    }
+    producer.m_doDerotate = false;
+    producer.m_combineMethod = mx::improc::HCI::combine::none;
+    producer.m_doWriteFinim = false;
+    producer.m_doOutputPSFSub = true;
+    producer.m_outputDir = directory.path().string();
+    producer.m_PSFSubPrefix = "saved";
+    producer.m_comboWeights = { 0.25F, 0.75F };
+    REQUIRE( producer.finalProcess() == 0 );
+
+    reductionHarness resumed;
+    resumed.m_doDerotate = false;
+    resumed.m_combineMethod = mx::improc::HCI::combine::mean;
+    resumed.m_doWriteFinim = false;
+    resumed.m_doOutputPSFSub = false;
+    resumed.m_weightFile = directory.file( "savedweights.dat" ).string();
+    REQUIRE( resumed.processPSFSub( directory.path().string(), "saved" ) == 0 );
+    REQUIRE( resumed.m_Nmodes == std::vector<int>{ 1, 3 } );
+    REQUIRE( resumed.m_comboWeights == std::vector<float>{ 0.25F, 0.75F } );
+    REQUIRE( resumed.m_psfsub.size() == 2 );
+    REQUIRE( resumed.m_finim.planes() == 2 );
+    REQUIRE( resumed.m_finim.image( 0 ).isConstant( 2.5F ) );
+    REQUIRE( resumed.m_finim.image( 1 ).isConstant( 4.5F ) );
+
+    producer.m_Nmodes.clear();
+    producer.m_outputDir = directory.file( "missing-metadata" ).string();
+    REQUIRE( producer.finalProcess() == 0 );
+    reductionHarness missingMetadata;
+    missingMetadata.m_doDerotate = false;
+    missingMetadata.m_combineMethod = mx::improc::HCI::combine::mean;
+    missingMetadata.m_doWriteFinim = false;
+    REQUIRE_THROWS( missingMetadata.processPSFSub( producer.m_outputDir, "saved" ) );
+
+    producer.m_Nmodes = { 1 };
+    producer.m_outputDir = directory.file( "mismatched-metadata" ).string();
+    REQUIRE( producer.finalProcess() == 0 );
+    reductionHarness mismatchedMetadata;
+    mismatchedMetadata.m_doDerotate = false;
+    mismatchedMetadata.m_combineMethod = mx::improc::HCI::combine::mean;
+    mismatchedMetadata.m_doWriteFinim = false;
+    REQUIRE_THROWS( mismatchedMetadata.processPSFSub( producer.m_outputDir, "saved" ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::KLIPreduction<float,
+                               mx::improc::ADIDerotator<float, mx::verbose::vv>,
+                               double,
+                               mx::verbose::vv>::processPSFSub( "", "" );
+#endif
+    // clang-format on
 }
 
 /// Verify KLIPreduction::meanSubtract rejects unimplemented and invalid methods before mutating either cube.

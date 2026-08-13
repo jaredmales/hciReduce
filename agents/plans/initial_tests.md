@@ -200,7 +200,7 @@ depends on the same behavior.
   - Coverage passes 10/10 at 74.2% overall (1842/2481). `KLIPreduction.hpp` rises to 414/676 (61.2%), `HCI.hpp`
     reaches 95/136 (69.9%), and `HCIobservation.hpp` remains 1199/1335 (89.8%).
 
-### Phase 7: KLIP region and final-product orchestration [in progress]
+### Phase 7: KLIP region and final-product orchestration [complete]
 
 - [x] Exercise `regions()` with in-memory ADI and RDI cubes.
   - Multi-wedge ADI coverage verifies region geometry persistence, mask-aware extraction, multiple requested mode counts,
@@ -214,16 +214,22 @@ depends on the same behavior.
   - Post-median subtraction, derotation, and mean combination are verified in order on a small exact cube.
   - Exact nested FITS output is round-tripped with both mode planes and the complete KLIP geometry, centering,
     normalization, right-reason, exclusion, and inclusion metadata.
-- [ ] Define and implement the saved-reduction resume contract before restoring `processPSFSub()` / `readPSFSub()`.
-  - Both historical implementations are currently commented out. Restoring them requires an explicit public API,
-    filename/index convention, authoritative metadata source, and malformed/partial reduction behavior rather than a
-    test-only resurrection of the obsolete code.
+- [x] Define and implement the saved-reduction resume contract for `processPSFSub()` / `readPSFSub()`.
+  - The current `outputPSFSub()` format is authoritative: `<prefix>_<reduction>_<image><extension>`, with matching
+    zero-based `REDUCTION` and `IMAGE` FITS cards. Loading infers both dimensions, requires a complete rectangular index
+    grid, validates every header and image shape, and retains the first reduction's per-image headers for downstream
+    derotation/provenance hooks.
+  - `processPSFSub()` requires a positive `NMODES` list matching the inferred reduction count, restores that provenance,
+    and applies the caller's current post-median, derotation, combination, weight-file, and output configuration. The
+    saved weight sidecar is round-tripped through filename-based matching. Missing files, malformed names, mismatched
+    header indices, missing mode metadata, and mismatched mode counts are covered.
 - Verification:
-  - The optimized full suite and the coverage suite pass 10/10; the focused ASan/UBSan suite passes 236 assertions in
-    24 cases.
-  - Coverage is 82.3% overall (2072/2517), with `KLIPreduction.hpp` at 618/712 executable lines (86.8%) and every
-    instantiated KLIP function reached.
-  - Doxygen succeeds at the 91-warning legacy baseline without new test/group diagnostics.
+  - The optimized full suite and the coverage suite pass 10/10. Focused ASan/UBSan runs pass 144 assertions in eight
+    output cases and 248 assertions in 25 KLIP cases.
+  - Coverage is 82.4% overall (2176/2641), with `HCIobservation.hpp` at 1287/1441 (89.3%) and `KLIPreduction.hpp` at
+    634/730 executable lines (86.8%); every instantiated KLIP function is reached.
+  - Doxygen succeeds with 78 legacy warnings and no test/group diagnostics; the timing state adjacent to the restored
+    API is now documented.
 
 ## Code-review findings that set test priority
 
