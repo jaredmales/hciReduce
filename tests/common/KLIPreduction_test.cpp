@@ -56,11 +56,14 @@ struct reductionHarness : public reductionT
     using reductionT::m_Npix;
     using reductionT::m_Nrows;
     using reductionT::m_outputDir;
+    using reductionT::m_preProcess_only;
     using reductionT::m_psfsub;
     using reductionT::m_PSFSubPrefix;
+    using reductionT::m_RDIfileList;
     using reductionT::m_RDIfilesRead;
     using reductionT::m_RDIimageMJD;
     using reductionT::m_refIms;
+    using reductionT::m_skipPreProcess;
     using reductionT::m_tgtIms;
 
     void postReadFiles() override
@@ -231,6 +234,24 @@ TEST_CASE( "KLIP invalid configuration methods", "[KLIPreduction][config][valida
     REQUIRE_THROWS( readReductionConfig( negativeReferenceCount,
                                          directory.file( "negative-reference-count.conf" ),
                                          "[klip]\nincludeRefNum=-1\n" ) );
+
+    mx::app::appConfigurator config;
+    reductionT badCurrentMean;
+    badCurrentMean.setupConfig( config );
+    badCurrentMean.m_meanSubMethod = static_cast<mx::improc::HCI::meanSub>( 99 );
+    REQUIRE_THROWS( badCurrentMean.loadConfig( config ) );
+
+    config = mx::app::appConfigurator{};
+    reductionT badCurrentNorm;
+    badCurrentNorm.setupConfig( config );
+    badCurrentNorm.m_pixelTSNormMethod = static_cast<mx::improc::HCI::pixelTSNorm>( 99 );
+    REQUIRE_THROWS( badCurrentNorm.loadConfig( config ) );
+
+    config = mx::app::appConfigurator{};
+    reductionT badCurrentInclusion;
+    badCurrentInclusion.setupConfig( config );
+    badCurrentInclusion.m_includeMethod = static_cast<mx::improc::HCI::include>( 99 );
+    REQUIRE_THROWS( badCurrentInclusion.loadConfig( config ) );
 }
 
 /// Verify KLIPreduction::writeDiagnostic is inert by default and writes exact FITS data when enabled.
@@ -254,6 +275,13 @@ TEST_CASE( "KLIP diagnostic output gate", "[KLIPreduction][diagnostics]" )
     mx::fits::fitsFile<float, mx::verbose::vv> reader;
     REQUIRE( reader.read( loaded, directory.file( "nested/diagnostics/cv.fits" ).string() ) == mx::error_t::noerror );
     REQUIRE( loaded.isApprox( image ) );
+
+    writeTextFile( directory.file( "not-a-directory" ), "blocking file\n" );
+    reduction.m_diagnosticDirectory = directory.file( "not-a-directory/child" ).string();
+    REQUIRE_THROWS( reduction.writeDiagnostic( "cv.fits", image ) );
+
+    reduction.m_diagnosticDirectory = ".";
+    REQUIRE_THROWS( reduction.writeDiagnostic( directory.path().string(), image ) );
 }
 
 /// Verify KLIPreduction::meanSubtract leaves both cubes unchanged for `none` while calculating reference norms.
@@ -376,6 +404,69 @@ TEST_CASE( "KLIP reference-image centering", "[KLIPreduction][meanSubtract][refe
     }
 }
 
+/// Verify KLIPreduction::meanSubtract reapplies a mask after reference-image centering.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP masked reference-image centering", "[KLIPreduction][meanSubtract][reference][mask]" )
+{
+    reductionT reduction;
+    reduction.m_meanSubMethod = mx::improc::HCI::meanSub::meanImage;
+    reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::none;
+
+    mx::improc::eigenCube<float> references( 1, 3, 2 );
+    references.image( 0 ) << 1, 100, 3;
+    references.image( 1 ) << 3, 200, 7;
+    mx::improc::eigenCube<float> targets( 1, 3, 1 );
+    targets.image( 0 ) << 12, 300, 15;
+    reductionT::imageT mask( 1, 3 );
+    mask << 1, 0, 1;
+    std::vector<float> norms;
+
+    reduction.meanSubtract( references, targets, mask, norms );
+
+    REQUIRE( references.image( 0 ).isApprox( ( reductionT::imageT( 1, 3 ) << -1, 0, -2 ).finished() ) );
+    REQUIRE( references.image( 1 ).isApprox( ( reductionT::imageT( 1, 3 ) << 1, 0, 2 ).finished() ) );
+    REQUIRE( targets.image( 0 ).isApprox( ( reductionT::imageT( 1, 3 ) << 10, 0, 10 ).finished() ) );
+    REQUIRE( norms.size() == 2 );
+    REQUIRE( norms[0] == Approx( std::sqrt( 0.5F ) ) );
+    REQUIRE( norms[1] == Approx( std::sqrt( 0.5F ) ) );
+}
+
+/// Verify KLIPreduction::meanSubtract independently centers unmasked target images for both per-image methods.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP unmasked target-image centering", "[KLIPreduction][meanSubtract][target]" )
+{
+    for( const mx::improc::HCI::meanSub method :
+         { mx::improc::HCI::meanSub::imageMean, mx::improc::HCI::meanSub::imageMedian } )
+    {
+        reductionT reduction;
+        reduction.m_meanSubMethod = method;
+        reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::none;
+
+        mx::improc::eigenCube<float> references( 1, 3, 1 );
+        references.image( 0 ) << 1, 2, 4;
+        mx::improc::eigenCube<float> targets( 1, 3, 1 );
+        targets.image( 0 ) << 9, 10, 12;
+        reductionT::imageT mask;
+        std::vector<float> norms;
+
+        reduction.meanSubtract( references, targets, mask, norms );
+
+        if( method == mx::improc::HCI::meanSub::imageMean )
+        {
+            const reductionT::imageT expected =
+                ( reductionT::imageT( 1, 3 ) << -4.0F / 3.0F, -1.0F / 3.0F, 5.0F / 3.0F ).finished();
+            REQUIRE( references.image( 0 ).isApprox( expected ) );
+            REQUIRE( targets.image( 0 ).isApprox( expected ) );
+        }
+        else
+        {
+            const reductionT::imageT expected = ( reductionT::imageT( 1, 3 ) << -1, 0, 2 ).finished();
+            REQUIRE( references.image( 0 ).isApprox( expected ) );
+            REQUIRE( targets.image( 0 ).isApprox( expected ) );
+        }
+    }
+}
+
 /// Verify KLIPreduction::meanSubtract uses true RMS pixel scaling, applies it to targets, and handles zero series.
 /** \ingroup KLIPreduction_unit_tests */
 TEST_CASE( "KLIP pixel time-series RMS normalization", "[KLIPreduction][meanSubtract][rms]" )
@@ -405,6 +496,34 @@ TEST_CASE( "KLIP pixel time-series RMS normalization", "[KLIPreduction][meanSubt
     REQUIRE( targets.image( 0 ).isApprox( expectedTarget ) );
     REQUIRE( references.cube().isFinite().all() );
     REQUIRE( targets.cube().isFinite().all() );
+}
+
+/// Verify KLIPreduction::meanSubtract excludes masked pixels from RMS normalization.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP masked pixel RMS normalization", "[KLIPreduction][meanSubtract][rms][mask]" )
+{
+    reductionT reduction;
+    reduction.m_meanSubMethod = mx::improc::HCI::meanSub::none;
+    reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::rms;
+
+    mx::improc::eigenCube<float> references( 1, 2, 2 );
+    references.image( 0 ) << 1, 99;
+    references.image( 1 ) << 3, 88;
+    mx::improc::eigenCube<float> targets( 1, 2, 1 );
+    targets.image( 0 ) << 6, 77;
+    reductionT::imageT mask( 1, 2 );
+    mask << 1, 0;
+    std::vector<float> norms;
+
+    reduction.meanSubtract( references, targets, mask, norms );
+
+    const float rms = std::sqrt( 5.0F );
+    REQUIRE( references.image( 0 )( 0, 0 ) == Approx( 1.0F / rms ) );
+    REQUIRE( references.image( 1 )( 0, 0 ) == Approx( 3.0F / rms ) );
+    REQUIRE( targets.image( 0 )( 0, 0 ) == Approx( 6.0F / rms ) );
+    REQUIRE( references.image( 0 )( 0, 1 ) == 0 );
+    REQUIRE( references.image( 1 )( 0, 1 ) == 0 );
+    REQUIRE( targets.image( 0 )( 0, 1 ) == 0 );
 }
 
 /// Verify extractRowsAndCols and extractCols preserve index order and support empty selections.
@@ -499,6 +618,73 @@ TEST_CASE( "KLIP covariance exclusion", "[KLIPreduction][covariance][exclude]" )
     REQUIRE( selectedReferences.cols() == 2 );
     REQUIRE( selectedReferences.col( 0 ).isApprox( references.col( 2 ) ) );
     REQUIRE( selectedReferences.col( 1 ).isApprox( references.col( 3 ) ) );
+
+    included.setZero();
+    mx::improc::collapseCovar<float>( selectedCovariance,
+                                      covariance,
+                                      norms,
+                                      selectedReferences,
+                                      references,
+                                      references,
+                                      1,
+                                      0,
+                                      0.45,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::exclude::angle,
+                                      mx::improc::HCI::include::all,
+                                      0,
+                                      derotator,
+                                      derotator,
+                                      {},
+                                      {},
+                                      included );
+    REQUIRE( included.row( 1 ).sum() == 3 );
+    REQUIRE( included( 1, 3 ) == 0 );
+
+    included.setZero();
+    mx::improc::collapseCovar<float>( selectedCovariance,
+                                      covariance,
+                                      norms,
+                                      selectedReferences,
+                                      references,
+                                      references,
+                                      1,
+                                      0,
+                                      1,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::exclude::imno,
+                                      mx::improc::HCI::include::all,
+                                      0,
+                                      derotator,
+                                      derotator,
+                                      {},
+                                      {},
+                                      included );
+    REQUIRE( included.row( 1 ).sum() == 3 );
+    REQUIRE( included( 1, 3 ) == 0 );
+
+    included.setZero();
+    mx::improc::collapseCovar<float>( selectedCovariance,
+                                      covariance,
+                                      norms,
+                                      selectedReferences,
+                                      references,
+                                      references,
+                                      1,
+                                      10,
+                                      0,
+                                      mx::improc::HCI::exclude::angle,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::all,
+                                      0,
+                                      derotator,
+                                      derotator,
+                                      {},
+                                      {},
+                                      included );
+    REQUIRE( included.row( 1 ).isZero() );
+    REQUIRE( selectedCovariance.size() == 0 );
+    REQUIRE( selectedReferences.cols() == 0 );
 }
 
 /// Verify collapseCovar keeps an exact deterministic correlation-ranked maximum after exclusions.
@@ -566,6 +752,48 @@ TEST_CASE( "KLIP covariance correlation selection", "[KLIPreduction][covariance]
     REQUIRE( included( 0, 1 ) == 1 );
     REQUIRE( included.row( 0 ).sum() == 1 );
     REQUIRE( selectedReferences.col( 0 ).isApprox( references.col( 1 ) ) );
+}
+
+/// Verify collapseCovar demotes zero-denominator and non-finite correlation candidates.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP covariance invalid correlations", "[KLIPreduction][covariance][include][nonfinite]" )
+{
+    Eigen::ArrayXXf covariance = Eigen::MatrixXf::Identity( 3, 3 ).array();
+    Eigen::ArrayXXf references( 2, 3 );
+    references << 1, std::numeric_limits<float>::infinity(), 0, 0, 0, 1;
+    Eigen::ArrayXXf targets( 2, 1 );
+    targets << 0, 1;
+    const std::vector<float> norms{ 0, 1, 1 };
+    testDerotator referenceDerotator{ { 0, 0, 0 } };
+    testDerotator targetDerotator{ { 0 } };
+    Eigen::ArrayXXf selectedCovariance;
+    Eigen::ArrayXXf selectedReferences;
+    mx::improc::eigenImage<int> included( 1, 3 );
+    included.setZero();
+
+    mx::improc::collapseCovar<float>( selectedCovariance,
+                                      covariance,
+                                      norms,
+                                      selectedReferences,
+                                      references,
+                                      targets,
+                                      0,
+                                      0,
+                                      0,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::exclude::none,
+                                      mx::improc::HCI::include::corr,
+                                      1,
+                                      referenceDerotator,
+                                      targetDerotator,
+                                      {},
+                                      {},
+                                      included );
+
+    REQUIRE( included( 0, 0 ) == 0 );
+    REQUIRE( included( 0, 1 ) == 0 );
+    REQUIRE( included( 0, 2 ) == 1 );
+    REQUIRE( selectedReferences.col( 0 ).isApprox( references.col( 2 ) ) );
 }
 
 /// Verify collapseCovar implements all, time, wrapped-angle, and image-number inclusion ordering.
@@ -750,6 +978,46 @@ TEST_CASE( "KLIP covariance input validation", "[KLIPreduction][covariance][vali
                                                          {},
                                                          included ),
                        std::invalid_argument );
+
+    REQUIRE_THROWS_AS( mx::improc::collapseCovar<float>( selectedCovariance,
+                                                         covariance,
+                                                         std::vector<float>{ 1, 1 },
+                                                         selectedReferences,
+                                                         references,
+                                                         references,
+                                                         0,
+                                                         0,
+                                                         0,
+                                                         mx::improc::HCI::exclude::none,
+                                                         mx::improc::HCI::exclude::none,
+                                                         static_cast<mx::improc::HCI::include>( 99 ),
+                                                         0,
+                                                         derotator,
+                                                         derotator,
+                                                         {},
+                                                         {},
+                                                         included ),
+                       std::invalid_argument );
+
+    REQUIRE_THROWS_AS( mx::improc::collapseCovar<float>( selectedCovariance,
+                                                         covariance,
+                                                         std::vector<float>{ 1, 1 },
+                                                         selectedReferences,
+                                                         references,
+                                                         references,
+                                                         0,
+                                                         0,
+                                                         0,
+                                                         mx::improc::HCI::exclude::none,
+                                                         mx::improc::HCI::exclude::none,
+                                                         mx::improc::HCI::include::time,
+                                                         1,
+                                                         derotator,
+                                                         derotator,
+                                                         { 0, std::numeric_limits<double>::quiet_NaN() },
+                                                         { 0, 1 },
+                                                         included ),
+                       std::invalid_argument );
 }
 
 /// Verify KLIPreduction::worker performs a deterministic one-mode subtraction and gates covariance diagnostics.
@@ -804,6 +1072,19 @@ TEST_CASE( "KLIP worker one-mode reduction", "[KLIPreduction][worker][diagnostic
     REQUIRE( covariance( 0, 0 ) == Approx( 2 ) );
     REQUIRE( covariance( 1, 0 ) == Approx( 0 ) );
     REQUIRE( covariance( 1, 1 ) == Approx( 6 ) );
+
+    reduction.m_rightReason = true;
+    reduction.m_rightReasonRadius = 1;
+    reduction.m_diagnosticDirectory = directory.file( "right-reason" ).string();
+    reduction.m_psfsub[0].cube().setZero();
+    images.image( 0 ) << 1, -1, 0;
+    images.image( 1 ) << 1, 1, -2;
+    reduction.worker( images, images, mask, indices, 0, 0 );
+
+    REQUIRE( std::filesystem::exists( directory.file( "right-reason/rrMask.fits" ) ) );
+    REQUIRE( std::filesystem::exists( directory.file( "right-reason/projMat.fits" ) ) );
+    REQUIRE( std::filesystem::exists( directory.file( "right-reason/projMatrr.fits" ) ) );
+    REQUIRE( reduction.m_psfsub[0].cube().isFinite().all() );
 }
 
 /// Verify KLIPreduction::worker ranks an RDI library independently of the target image count.
@@ -868,6 +1149,59 @@ TEST_CASE( "KLIP worker inclusion metadata validation", "[KLIPreduction][worker]
     reduction.m_RDIimageMJD = { 1, std::numeric_limits<double>::quiet_NaN() };
     reduction.m_imageMJD = { 2 };
     REQUIRE_THROWS( reduction.worker( references, targets, mask, indices, 0, 0 ) );
+
+    reduction.m_RDIimageMJD = { 1, 2 };
+    reduction.m_imageMJD = { std::numeric_limits<double>::quiet_NaN() };
+    REQUIRE_THROWS( reduction.worker( references, targets, mask, indices, 0, 0 ) );
+
+    reduction.m_includeMethod = static_cast<mx::improc::HCI::include>( 99 );
+    reduction.m_includeRefNum = 0;
+    REQUIRE_THROWS( reduction.worker( references, targets, mask, indices, 0, 0 ) );
+
+    reduction.m_includeMethod = mx::improc::HCI::include::angle;
+    reduction.m_includeRefNum = 1;
+    reduction.m_RDIderotF.m_angles.clear();
+    reduction.m_derotF.m_angles.clear();
+    REQUIRE_THROWS( reduction.worker( references, targets, mask, indices, 0, 0 ) );
+
+    reduction.m_RDIderotF.m_angles = { 0, std::numeric_limits<double>::quiet_NaN() };
+    reduction.m_derotF.m_angles = { 0 };
+    REQUIRE_THROWS( reduction.worker( references, targets, mask, indices, 0, 0 ) );
+
+    reduction.m_RDIderotF.m_angles = { 0, 1 };
+    reduction.m_derotF.m_angles = { std::numeric_limits<double>::quiet_NaN() };
+    REQUIRE_THROWS( reduction.worker( references, targets, mask, indices, 0, 0 ) );
+
+    reduction.m_includeMethod = mx::improc::HCI::include::all;
+    reduction.m_includeRefNum = 0;
+    reduction.m_meanSubMethod = static_cast<mx::improc::HCI::meanSub>( 99 );
+    REQUIRE_THROWS( reduction.worker( references, targets, mask, indices, 0, 0 ) );
+}
+
+/// Verify KLIPreduction::regions converts each exclusion unit and restores configuration after worker failure.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP region exclusion conversion", "[KLIPreduction][regions][exclude][validation]" )
+{
+    const std::vector<mx::improc::HCI::exclude> methods{ mx::improc::HCI::exclude::pixel,
+                                                         mx::improc::HCI::exclude::angle,
+                                                         mx::improc::HCI::exclude::imno };
+
+    for( const mx::improc::HCI::exclude method : methods )
+    {
+        reductionHarness reduction;
+        prepareRegionReduction( reduction );
+        reduction.m_Nmodes = { 1 };
+        reduction.m_meanSubMethod = static_cast<mx::improc::HCI::meanSub>( 99 );
+        reduction.m_excludeMethod = method;
+        reduction.m_excludeMethodMax = method;
+        reduction.m_minDPx = 0.1F;
+        reduction.m_maxDPx = 2.0F;
+        reduction.m_derotF.m_angles = { 0, 0.5, 1.0 };
+
+        REQUIRE_THROWS( reduction.regions( 1, 2, 0, 360 ) );
+        REQUIRE( reduction.m_excludeMethod == method );
+        REQUIRE( reduction.m_excludeMethodMax == method );
+    }
 }
 
 /// Verify KLIPreduction::regions extracts a masked annulus, runs each requested mode count, and preserves geometry.
@@ -977,6 +1311,43 @@ TEST_CASE( "KLIP region validation", "[KLIPreduction][regions][validation]" )
     reduction.m_mask.resize( 3, 3 );
     reduction.m_mask.setZero();
     REQUIRE_THROWS( reduction.regions( 0, 2, 0, 360 ) );
+
+    prepareRegionReduction( reduction );
+    reduction.m_padSize = -1;
+    REQUIRE_THROWS( reduction.regions( 0, 2, 0, 360 ) );
+
+    prepareRegionReduction( reduction );
+    reduction.m_padSize = 4;
+    reduction.m_refIms.resize( 2, 3, 1 );
+    REQUIRE_THROWS( reduction.regions( 0, 2, 0, 360 ) );
+
+    reductionHarness unloaded;
+    unloaded.m_Nmodes = { 1 };
+    unloaded.m_padSize = 0;
+    REQUIRE_THROWS( unloaded.regions( 0, 2, 0, 360 ) );
+
+    reductionHarness missingRDI;
+    prepareRegionReduction( missingRDI );
+    missingRDI.m_RDIfilesRead = false;
+    missingRDI.m_RDIfileList = { "/definitely/not/a/reference.fits" };
+    REQUIRE_THROWS( missingRDI.regions( 0, 2, 0, 360 ) );
+}
+
+/// Verify KLIPreduction::regions derives an image size and honors preprocess-only early completion.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP region early completion", "[KLIPreduction][regions][preprocess]" )
+{
+    reductionHarness inferredSize;
+    prepareRegionReduction( inferredSize );
+    inferredSize.m_Nmodes = { 1 };
+    inferredSize.m_imSize = 0;
+    inferredSize.m_padSize = 0;
+    inferredSize.m_preProcess_only = true;
+    inferredSize.m_skipPreProcess = false;
+
+    REQUIRE( inferredSize.regions( 0, 2, 0, 360 ) == 0 );
+    REQUIRE( inferredSize.m_imSize == 4 );
+    REQUIRE( inferredSize.m_psfsub.empty() );
 }
 
 /// Verify KLIPreduction::finalProcess applies post-median subtraction, derotation, and final combination in order.
@@ -1154,6 +1525,26 @@ TEST_CASE( "KLIP saved-reduction processing", "[KLIPreduction][processPSFSub][ou
     // clang-format on
 }
 
+/// Verify KLIPreduction::processPSFSub rejects malformed saved mode metadata.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP saved mode-list parse failure", "[KLIPreduction][processPSFSub][validation]" )
+{
+    TestDirectory directory;
+    reductionT::imageT image( 2, 2 );
+    image.setOnes();
+    mx::fits::fitsHeader<mx::verbose::vv> header;
+    header.append<int>( "REDUCTION", 0, "reduction index" );
+    header.append<int>( "IMAGE", 0, "image index" );
+    header.append<std::string>( "NMODES", "not-an-integer", "KLIP mode counts" );
+
+    mx::fits::fitsFile<float, mx::verbose::vv> writer;
+    REQUIRE( writer.write( directory.file( "malformed_000_00000.fits" ).string(), image, header ) ==
+             mx::error_t::noerror );
+
+    reductionHarness reduction;
+    REQUIRE_THROWS( reduction.processPSFSub( directory.path().string(), "malformed" ) );
+}
+
 /// Verify KLIPreduction::meanSubtract rejects unimplemented and invalid methods before mutating either cube.
 /** \ingroup KLIPreduction_unit_tests */
 TEST_CASE( "KLIP mean subtraction method validation", "[KLIPreduction][meanSubtract][validation]" )
@@ -1216,6 +1607,15 @@ TEST_CASE( "KLIP mean subtraction input validation", "[KLIPreduction][meanSubtra
     REQUIRE( references.image( 0 ).isApprox( original.image( 0 ) ) );
     REQUIRE( targets.image( 0 ).isApprox( original.image( 0 ) ) );
     REQUIRE( norms == std::vector<float>{ 17 } );
+
+    mask.resize( 1, 0 );
+    REQUIRE_THROWS( reduction.meanSubtract( references, targets, mask, norms ) );
+    REQUIRE( references.image( 0 ).isApprox( original.image( 0 ) ) );
+
+    mask.resize( 2, 2 );
+    mask.setOnes();
+    REQUIRE_THROWS( reduction.meanSubtract( references, targets, mask, norms ) );
+    REQUIRE( references.image( 0 ).isApprox( original.image( 0 ) ) );
 }
 
 } // namespace KLIPreduction_test

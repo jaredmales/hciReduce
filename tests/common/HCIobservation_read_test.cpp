@@ -8,7 +8,11 @@
 #include "HCIobservation_test_fixture.hpp"
 
 #include <cmath>
+#include <cstdlib>
 #include <limits>
+#include <stdexcept>
+#include <sys/wait.h>
+#include <unistd.h>
 
 namespace unitTest
 {
@@ -30,6 +34,53 @@ HCIobservationTestHarness::imageT indexedImage( int rows, int cols, float offset
     }
     return image;
 }
+
+struct throwingTargetHookHarness : public HCIobservationTestHarness
+{
+    bool m_throwPostRead{ false };
+    bool m_throwPostCoadd{ false };
+
+    void postReadFiles() override
+    {
+        if( m_throwPostRead )
+        {
+            throw std::runtime_error( "post-read test failure" );
+        }
+        HCIobservationTestHarness::postReadFiles();
+    }
+
+    void postCoadd() override
+    {
+        if( m_throwPostCoadd )
+        {
+            throw std::runtime_error( "post-coadd test failure" );
+        }
+        HCIobservationTestHarness::postCoadd();
+    }
+};
+
+struct secondMaskFailureHarness : public HCIobservationTestHarness
+{
+    int m_maskCalls{ 0 };
+
+    void makeMaskCube() override
+    {
+        ++m_maskCalls;
+        if( m_maskCalls == 2 )
+        {
+            throw std::runtime_error( "second mask-cube test failure" );
+        }
+        HCIobservationTestHarness::makeMaskCube();
+    }
+};
+
+struct firstMaskFailureHarness : public HCIobservationTestHarness
+{
+    void makeMaskCube() override
+    {
+        throw std::runtime_error( "first mask-cube test failure" );
+    }
+};
 } // namespace
 /// \endcond
 
@@ -118,6 +169,16 @@ TEST_CASE( "HCIobservation repeated target FITS ingestion", "[HCIobservation][re
     observation.readFiles();
     REQUIRE( observation.m_imageMJD.empty() );
     REQUIRE( observation.m_hookEvents == std::vector<std::string>{ "target-read", "target-read" } );
+
+    const auto narrowPath = directory.file( "narrow.fits" );
+    writeFitsImage( narrowPath, indexedImage( 5, 3 ) );
+    HCIobservationTestHarness narrow;
+    narrow.m_fileList = { narrowPath.string() };
+    narrow.m_imSize = 4;
+    narrow.m_dateKeyword.clear();
+    narrow.m_skipPreProcess = true;
+    narrow.readFiles();
+    REQUIRE( narrow.m_imSize == 3 );
 }
 
 /// Verify HCIobservation::readFiles rejects invalid deletion ranges without partially mutating the list.
@@ -139,6 +200,85 @@ TEST_CASE( "HCIobservation target deletion bounds", "[HCIobservation][readFiles]
     observation.m_deleteBack = 0;
     REQUIRE_THROWS( observation.readFiles() );
     REQUIRE( observation.m_fileList == original );
+
+    HCIobservationTestHarness empty;
+    REQUIRE_THROWS( empty.readFiles() );
+
+    HCIobservationTestHarness emptiedByDeletion;
+    emptiedByDeletion.m_fileList = { "only.fits" };
+    emptiedByDeletion.m_deleteFront = 1;
+    REQUIRE_THROWS( emptiedByDeletion.readFiles() );
+    REQUIRE( emptiedByDeletion.m_fileList.empty() );
+}
+
+/// Verify HCIobservation::readFiles applies valid list deletions and quality selection before automatic cropping.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation target selection and automatic size", "[HCIobservation][readFiles][quality][crop]" )
+{
+    TestDirectory directory;
+    const auto firstPath = directory.file( "first.fits" );
+    const auto middlePath = directory.file( "middle.fits" );
+    const auto lastPath = directory.file( "last.fits" );
+    writeFitsImage( firstPath, indexedImage( 5, 3 ) );
+    writeFitsImage( middlePath, indexedImage( 5, 3, 100 ) );
+    writeFitsImage( lastPath, indexedImage( 5, 3, 200 ) );
+
+    const auto qualityPath = directory.file( "quality.txt" );
+    writeTextFile( qualityPath, "middle.fits 2\n" );
+
+    HCIobservationTestHarness observation;
+    observation.m_fileList = { firstPath.string(), middlePath.string(), lastPath.string() };
+    observation.m_deleteFront = 1;
+    observation.m_deleteBack = 1;
+    observation.m_qualityFile = qualityPath.string();
+    observation.m_qualityThreshold = 2;
+    observation.m_dateKeyword.clear();
+    observation.m_skipPreProcess = true;
+
+    observation.readFiles();
+
+    REQUIRE( observation.m_fileList == std::vector<std::string>{ middlePath.string() } );
+    REQUIRE( observation.m_imSize == 3 );
+    REQUIRE( observation.m_tgtIms.rows() == 3 );
+    REQUIRE( observation.m_tgtIms.cols() == 3 );
+    REQUIRE( observation.m_tgtIms.image( 0 )( 0, 0 ) == Approx( 110 ) );
+    REQUIRE( observation.m_hookEvents == std::vector<std::string>{ "target-read" } );
+}
+
+/// Verify HCIobservation::readFiles threshold-only mode prints the selected list and exits successfully.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation threshold-only mode", "[HCIobservation][readFiles][quality][thresholdOnly]" )
+{
+    TestDirectory directory;
+    const auto imagePath = directory.file( "selected.fits" );
+    const auto qualityPath = directory.file( "quality.txt" );
+    writeFitsImage( imagePath, indexedImage( 1, 1 ) );
+    writeTextFile( qualityPath, "selected.fits 2\n" );
+
+    const pid_t child = fork();
+    REQUIRE( child >= 0 );
+    if( child == 0 )
+    {
+        HCIobservationTestHarness observation;
+        observation.m_fileList = { imagePath.string() };
+        observation.m_qualityFile = qualityPath.string();
+        observation.m_qualityThreshold = 1;
+        observation.m_thresholdOnly = true;
+        try
+        {
+            observation.readFiles();
+        }
+        catch( ... )
+        {
+            std::_Exit( 2 );
+        }
+        std::_Exit( 3 );
+    }
+
+    int status = 0;
+    REQUIRE( waitpid( child, &status, 0 ) == child );
+    REQUIRE( WIFEXITED( status ) );
+    REQUIRE( WEXITSTATUS( status ) == 0 );
 }
 
 /// Verify HCIobservation::readFiles propagates failures from the first and later FITS inputs.
@@ -162,6 +302,97 @@ TEST_CASE( "HCIobservation target FITS failures", "[HCIobservation][readFiles][F
 
     REQUIRE_THROWS( observation.readFiles() );
     REQUIRE_FALSE( observation.m_filesRead );
+
+    HCIobservationTestHarness badWeights;
+    badWeights.m_fileList = { validPath.string() };
+    badWeights.m_weightFile = directory.file( "missing-weights.txt" ).string();
+    badWeights.m_skipPreProcess = true;
+    REQUIRE_THROWS( badWeights.readFiles() );
+    REQUIRE_FALSE( badWeights.m_filesRead );
+}
+
+/// Verify HCIobservation::readFiles adds operation context to failures from each delegated processing stage.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation target delegated failures", "[HCIobservation][readFiles][validation][delegation]" )
+{
+    TestDirectory directory;
+    const auto imagePath = directory.file( "valid.fits" );
+    writeFitsImage( imagePath, indexedImage( 3, 3 ) );
+
+    HCIobservationTestHarness thresholdFailure;
+    thresholdFailure.m_fileList = { imagePath.string() };
+    thresholdFailure.m_qualityFile = directory.file( "missing-quality.txt" ).string();
+    thresholdFailure.m_qualityThreshold = 1;
+    REQUIRE_THROWS( thresholdFailure.readFiles() );
+
+    const auto qualityPath = directory.file( "quality.txt" );
+    writeTextFile( qualityPath, "valid.fits 1\n" );
+    HCIobservationTestHarness thresholdEmpty;
+    thresholdEmpty.m_fileList = { imagePath.string() };
+    thresholdEmpty.m_qualityFile = qualityPath.string();
+    thresholdEmpty.m_qualityThreshold = 2;
+    REQUIRE_THROWS( thresholdEmpty.readFiles() );
+
+    throwingTargetHookHarness postReadFailure;
+    postReadFailure.m_fileList = { imagePath.string() };
+    postReadFailure.m_dateKeyword.clear();
+    postReadFailure.m_skipPreProcess = true;
+    postReadFailure.m_throwPostRead = true;
+    REQUIRE_THROWS( postReadFailure.readFiles() );
+
+    HCIobservationTestHarness maskFailure;
+    maskFailure.m_fileList = { imagePath.string() };
+    maskFailure.m_dateKeyword.clear();
+    maskFailure.m_maskFile = directory.file( "missing-mask.fits" ).string();
+    REQUIRE_THROWS( maskFailure.readFiles() );
+
+    HCIobservationTestHarness beforeCoaddFailure;
+    beforeCoaddFailure.m_fileList = { imagePath.string() };
+    beforeCoaddFailure.m_dateKeyword.clear();
+    beforeCoaddFailure.m_preProcess_beforeCoadd = true;
+    beforeCoaddFailure.m_preProcess_meanSubMethod = static_cast<mx::improc::HCI::meanSub>( 99 );
+    REQUIRE_THROWS( beforeCoaddFailure.readFiles() );
+
+    HCIobservationTestHarness coaddFailure;
+    coaddFailure.m_fileList = { imagePath.string() };
+    coaddFailure.m_dateKeyword.clear();
+    coaddFailure.m_coaddMethod = static_cast<mx::improc::HCI::coadd>( 99 );
+    coaddFailure.m_coaddMaxImno = 1;
+    REQUIRE_THROWS( coaddFailure.readFiles() );
+
+    throwingTargetHookHarness postCoaddFailure;
+    postCoaddFailure.m_fileList = { imagePath.string() };
+    postCoaddFailure.m_dateKeyword.clear();
+    postCoaddFailure.m_coaddMethod = mx::improc::HCI::coadd::mean;
+    postCoaddFailure.m_coaddMaxImno = 1;
+    postCoaddFailure.m_throwPostCoadd = true;
+    REQUIRE_THROWS( postCoaddFailure.readFiles() );
+
+    HCIobservationTestHarness afterCoaddFailure;
+    afterCoaddFailure.m_fileList = { imagePath.string() };
+    afterCoaddFailure.m_dateKeyword.clear();
+    afterCoaddFailure.m_preProcess_meanSubMethod = static_cast<mx::improc::HCI::meanSub>( 99 );
+    REQUIRE_THROWS( afterCoaddFailure.readFiles() );
+
+    const auto outputBlocker = directory.file( "output-blocker" );
+    writeTextFile( outputBlocker, "regular file" );
+    HCIobservationTestHarness outputFailure;
+    outputFailure.m_fileList = { imagePath.string() };
+    outputFailure.m_dateKeyword.clear();
+    outputFailure.m_preProcess_outputPrefix = ( outputBlocker / "target_" ).string();
+    REQUIRE_THROWS( outputFailure.readFiles() );
+
+    const auto maskPath = directory.file( "mask.fits" );
+    HCIobservationTestHarness::imageT mask( 3, 3 );
+    mask.setOnes();
+    writeFitsImage( maskPath, mask );
+    secondMaskFailureHarness maskRebuildFailure;
+    maskRebuildFailure.m_fileList = { imagePath.string() };
+    maskRebuildFailure.m_dateKeyword.clear();
+    maskRebuildFailure.m_maskFile = maskPath.string();
+    maskRebuildFailure.m_coaddMethod = mx::improc::HCI::coadd::mean;
+    maskRebuildFailure.m_coaddMaxImno = 1;
+    REQUIRE_THROWS( maskRebuildFailure.readFiles() );
 }
 
 /// Verify HCIobservation::readFiles honors preprocessing skip and invokes post-coadd only when coaddition runs.
@@ -228,6 +459,20 @@ TEST_CASE( "HCIobservation mask ingestion", "[HCIobservation][readMask][makeMask
     writeFitsImage( directory.file( "short-mask.fits" ), tooShort );
     observation.m_maskFile = directory.file( "short-mask.fits" ).string();
     REQUIRE_THROWS( observation.readMask() );
+
+    observation.m_maskFile = directory.file( "missing-mask.fits" ).string();
+    REQUIRE_THROWS( observation.readMask() );
+
+    firstMaskFailureHarness maskCubeFailure;
+    maskCubeFailure.m_imSize = 3;
+    maskCubeFailure.m_maskFile = directory.file( "mask.fits" ).string();
+    REQUIRE_THROWS( maskCubeFailure.readMask() );
+
+    observation.m_mask.resize( 2, 3 );
+    observation.m_Nrows = 3;
+    observation.m_Ncols = 3;
+    observation.m_Nims = 1;
+    REQUIRE_THROWS( observation.makeMaskCube() );
 
     // clang-format off
 #ifdef __DOXY_ONLY__

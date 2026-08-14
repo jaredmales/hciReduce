@@ -124,6 +124,10 @@ TEST_CASE( "HCIobservation pixel time-series RMS normalization", "[HCIobservatio
     observation.m_preProcess_pixelTSNormMethod = static_cast<mx::improc::HCI::pixelTSNorm>( 99 );
     REQUIRE_THROWS( observation.preProcess_pixelTSNorm( cube ) );
 
+    observation.m_preProcess_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::rms;
+    cube.resize( 0, 0, 0 );
+    REQUIRE_NOTHROW( observation.preProcess_pixelTSNorm( cube ) );
+
     // clang-format off
 #ifdef __DOXY_ONLY__
     mx::improc::HCIobservation<float, mx::verbose::vv>::preProcess_pixelTSNorm( cube );

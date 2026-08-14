@@ -250,6 +250,30 @@ TEST_CASE( "HCIobservation invalid configuration methods", "[HCIobservation][con
                                            directory.file( "bad-combine.conf" ),
                                            "[combine]\nmethod=not-a-method\n" ) );
 
+    {
+        HCIobservationTestHarness invalidCurrentMean;
+        mx::app::appConfigurator config;
+        invalidCurrentMean.setupConfig( config );
+        invalidCurrentMean.m_preProcess_meanSubMethod = static_cast<mx::improc::HCI::meanSub>( 99 );
+        REQUIRE_THROWS( invalidCurrentMean.loadConfig( config ) );
+    }
+
+    {
+        HCIobservationTestHarness invalidCurrentNorm;
+        mx::app::appConfigurator config;
+        invalidCurrentNorm.setupConfig( config );
+        invalidCurrentNorm.m_preProcess_pixelTSNormMethod = static_cast<mx::improc::HCI::pixelTSNorm>( 99 );
+        REQUIRE_THROWS( invalidCurrentNorm.loadConfig( config ) );
+    }
+
+    {
+        HCIobservationTestHarness invalidCurrentCombination;
+        mx::app::appConfigurator config;
+        invalidCurrentCombination.setupConfig( config );
+        invalidCurrentCombination.m_combineMethod = static_cast<mx::improc::HCI::combine>( 99 );
+        REQUIRE_THROWS( invalidCurrentCombination.loadConfig( config ) );
+    }
+
     // clang-format off
 #ifdef __DOXY_ONLY__
     mx::improc::HCIobservation<float, mx::verbose::vv>::loadConfig( config );

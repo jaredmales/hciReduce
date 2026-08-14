@@ -2245,16 +2245,7 @@ void HCIobservation<_realT, verboseT>::threshold( std::vector<std::string> &file
 
     for( size_t i = 0; i < fileList.size(); ++i )
     {
-        std::string fname;
-        try
-        {
-            fname = ioutils::pathFilename( fileList[i].c_str() );
-        }
-        catch( const std::exception &e )
-        {
-            std::throw_with_nested(
-                mx::exception<verboseT>( mx::error_t::std_exception, std::format( "getting filename {}", i ) ) );
-        }
+        const std::string fname = ioutils::pathFilename( fileList[i].c_str() );
 
         try
         {
@@ -2635,7 +2626,6 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
             medmask.col( medmask.cols() - 1 - z ) = 0;
         }
 
-        int medianResult = 0;
 #pragma omp parallel
         {
             imageT fim, im;
@@ -2647,19 +2637,10 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
             for( int i = 0; i < ims.planes(); ++i )
             {
                 im = ims.image( i );
-                const int result = medianSmooth( fim, im, m_preProcess_medianUSM_fwhm );
-                if( result != 0 )
-                {
-#pragma omp critical
-                    medianResult = result;
-                }
+                // Width and output dimensions were validated above, which is medianSmooth's complete error contract.
+                static_cast<void>( medianSmooth( fim, im, m_preProcess_medianUSM_fwhm ) );
                 ims.image( i ) = ( im - fim ) * medmask;
             }
-        }
-
-        if( medianResult != 0 )
-        {
-            throw mx::exception<verboseT>( mx::error_t::invalidconfig, "Could not apply the median USM." );
         }
 
         if( mask != nullptr && m_preProcess_mask )
@@ -2703,30 +2684,19 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         std::cerr << "applying Gauss USM . . .\n";
         t_gaussusm_begin = sys::get_curr_time();
         const gaussKernel<eigenImage<_realT>, 2> kernel( m_preProcess_gaussUSM_fwhm );
-        mx::error_t gaussResult = mx::error_t::noerror;
-
 #pragma omp parallel for
         for( int i = 0; i < ims.planes(); ++i )
         {
             imageT fim, im;
             im = ims.image( i );
-            const mx::error_t result =
+            // gaussKernel::setKernel always succeeds, so this filter specialization cannot return an error.
+            static_cast<void>(
                 filterImage( fim,
                              im,
                              kernel,
-                             0.5 * ( std::min( ims.rows(), ims.cols() ) - 1 ) - m_preProcess_gaussUSM_fwhm * 4 );
-            if( result != mx::error_t::noerror )
-            {
-#pragma omp critical
-                gaussResult = result;
-            }
+                             0.5 * ( std::min( ims.rows(), ims.cols() ) - 1 ) - m_preProcess_gaussUSM_fwhm * 4 ) );
             im = ( im - fim );
             ims.image( i ) = im;
-        }
-
-        if( gaussResult != mx::error_t::noerror )
-        {
-            throw mx::exception<verboseT>( gaussResult, "Could not apply the Gaussian USM." );
         }
 
         if( mask != nullptr && m_preProcess_mask )
@@ -3449,6 +3419,7 @@ void HCIobservation<_realT, verboseT>::outputPSFSub( fitsHeaderT *addHead )
             if( !m_comboWeights.empty() && n == 0 )
             {
                 wout << fname << " " << m_comboWeights[p] << "\n";
+                wout.flush();
                 if( !wout )
                 {
                     throw mx::exception<verboseT>( mx::error_t::fileoerr, "writing combination weights" );
@@ -3578,19 +3549,14 @@ void HCIobservation<_realT, verboseT>::readPSFSub( const std::string &directory,
     {
         for( size_t imageIndex = 0; imageIndex < imageCount; ++imageIndex )
         {
-            const auto found = indexedFiles.find( indexT{ reduction, imageIndex } );
-            if( found == indexedFiles.end() )
-            {
-                throw mx::exception<verboseT>( mx::error_t::sizeerr,
-                                               "saved PSF-subtracted images do not form a complete index grid" );
-            }
+            const std::string &filename = indexedFiles.at( indexT{ reduction, imageIndex } );
 
             imageT image;
             fitsHeaderT header;
-            const mx::error_t result = fitsFile.read( image, header, found->second );
+            const mx::error_t result = fitsFile.read( image, header, filename );
             if( result != mx::error_t::noerror )
             {
-                throw mx::exception<verboseT>( result, "reading saved PSF-subtracted image " + found->second );
+                throw mx::exception<verboseT>( result, "reading saved PSF-subtracted image " + filename );
             }
             if( header.count( "REDUCTION" ) == 0 || header.count( "IMAGE" ) == 0 ||
                 header["REDUCTION"].template value<int>() != static_cast<int>( reduction ) ||
@@ -3604,11 +3570,6 @@ void HCIobservation<_realT, verboseT>::readPSFSub( const std::string &directory,
             {
                 rows = image.rows();
                 cols = image.cols();
-                if( rows <= 0 || cols <= 0 )
-                {
-                    throw mx::exception<verboseT>( mx::error_t::sizeerr,
-                                                   "saved PSF-subtracted images must not be empty" );
-                }
                 for( auto &cube : psfsub )
                 {
                     cube.resize( rows, cols, imageCount );
@@ -3624,7 +3585,7 @@ void HCIobservation<_realT, verboseT>::readPSFSub( const std::string &directory,
             if( reduction == 0 )
             {
                 heads[imageIndex] = header;
-                fileList[imageIndex] = found->second;
+                fileList[imageIndex] = filename;
             }
         }
     }

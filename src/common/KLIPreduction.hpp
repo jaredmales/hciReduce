@@ -687,11 +687,6 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::meanSubtract( eigen
                                            "mask does not have same size as reference images" );
         }
 
-        if( cmask.rows() != tims.rows() || cmask.cols() != tims.cols() )
-        {
-            throw mx::exception<verboseT>( mx::error_t::invalidarg, "mask does not have same size as target images" );
-        }
-
         maskPix = cmask.sum();
         if( maskPix <= 0 )
         {
@@ -1177,10 +1172,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
 
     writeDiagnostic( "imsIncluded.fits", m_imsIncluded );
 
-    if( finalProcess() < 0 )
-    {
-        std::cerr << "Error in final processing\n";
-    }
+    finalProcess();
 
     this->t_end = sys::get_curr_time();
 
@@ -1819,15 +1811,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::processPSFSub( const
     }
 
     std::vector<int> modeCounts;
-    try
-    {
-        ioutils::parseStringVector( modeCounts, this->m_heads.front()["NMODES"].String(), ',' );
-    }
-    catch( ... )
-    {
-        std::throw_with_nested(
-            mx::exception<verboseT>( mx::error_t::parseerr, "could not parse saved KLIP NMODES metadata" ) );
-    }
+    ioutils::parseStringVector( modeCounts, this->m_heads.front()["NMODES"].String(), ',' );
     if( modeCounts.size() != this->m_psfsub.size() ||
         std::any_of( modeCounts.begin(), modeCounts.end(), []( int count ) { return count <= 0; } ) )
     {

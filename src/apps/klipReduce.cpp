@@ -30,23 +30,11 @@ class klipReduce : public application
   protected:
     //************************************//
     // Mode of execution                  //
-    std::string m_mode{ "basic" };                 ///< Execution mode: basic, normal, grid, or postprocess.
+    std::string m_mode{ "basic" };                 ///< Execution mode: basic, normal, or postprocess.
 
     std::string m_postprocessDirectory;            ///< Directory containing saved PSF-subtracted products.
     std::string m_postprocessPrefix;               ///< Literal prefix of saved PSF-subtracted products.
     std::string m_postprocessExtension{ ".fits" }; ///< Literal extension of saved PSF-subtracted products.
-
-    // Executes a grid of fake planets.
-    realT gridCenterSep{ 0 };         ///< The separation of the grid center [pixels].
-    realT gridCenterPA{ 0 };          ///< The PA of the grid center [deg E of N].
-    realT gridHalfWidthSep{ 0 };      ///< The grid half-width in radius [pixels]
-    realT gridDeltaSep{ 0 };          ///< The grid spacing in radius [pixels]
-    realT gridHalfWidthPA{ 0 };       ///< The grid half-wdith in PA [pixels]
-    realT gridDeltaPA{ 0 };           ///< The grid spacing in PA [pixels]
-    std::vector<realT> gridContrasts; ///< The grid contrasts, possibly negative.
-
-    /// Execute the fake-planet grid mode.
-    int doGrid();
 
     KLIPreduction<realT, ADIDerotator<realT, verboseT>, evCalcT, verboseT> m_obs;
 
@@ -75,7 +63,7 @@ class klipReduce : public application
                     "mode",
                     false,
                     "string",
-                    "The mode of operation: basic/normal (the default), grid, or postprocess" );
+                    "The mode of operation: basic/normal (the default) or postprocess" );
 
         config.add( "postprocess.directory",
                     "",
@@ -108,76 +96,6 @@ class klipReduce : public application
                     "Literal extension of saved PSF-subtracted FITS products (default: .fits)" );
 
         m_obs.setupConfig( config );
-
-        config.add( "grid.centerSep",
-                    "",
-                    "grid.centerSep",
-                    argType::Required,
-                    "grid",
-                    "centerSep",
-                    false,
-                    "float",
-                    "The grid center in separation [pixels]" );
-
-        config.add( "grid.centerPA",
-                    "",
-                    "grid.centerPA",
-                    argType::Required,
-                    "grid",
-                    "centerPA",
-                    false,
-                    "float",
-                    "The grid center in position angle [degrees]" );
-
-        config.add( "grid.halfWidthSep",
-                    "",
-                    "grid.halfWidthSep",
-                    argType::Required,
-                    "grid",
-                    "halfWidthSep",
-                    false,
-                    "float",
-                    "The half width of the grid in spearation [pixels]" );
-
-        config.add( "grid.halfWidthPA",
-                    "",
-                    "grid.halfWidthPA",
-                    argType::Required,
-                    "grid",
-                    "halfWidthPA",
-                    false,
-                    "float",
-                    "The half width of the grid in PA [degrees]" );
-
-        config.add( "grid.deltaSep",
-                    "",
-                    "grid.deltaSep",
-                    argType::Required,
-                    "grid",
-                    "deltaSep",
-                    false,
-                    "float",
-                    "The grid step size in separation [pixels]" );
-
-        config.add( "grid.deltaPA",
-                    "",
-                    "grid.deltaPA",
-                    argType::Required,
-                    "grid",
-                    "deltaPA",
-                    false,
-                    "float",
-                    "The grid step size in PA [degrees]" );
-
-        config.add( "grid.contrasts",
-                    "",
-                    "grid.contrasts",
-                    argType::Required,
-                    "grid",
-                    "contrasts",
-                    false,
-                    "vector<float>",
-                    "The contrast grid [planet:star]." );
     }
 
     /// Load the command-line configuration path.
@@ -190,15 +108,6 @@ class klipReduce : public application
     void loadConfig()
     {
         m_obs.loadConfig( config );
-
-        config( gridCenterSep, "grid.centerSep" );
-
-        config( gridCenterPA, "grid.centerPA" );
-        config( gridHalfWidthSep, "grid.halfWidthSep" );
-        config( gridDeltaSep, "grid.deltaSep" );
-        config( gridHalfWidthPA, "grid.halfWidthPA" );
-        config( gridDeltaPA, "grid.deltaPA" );
-        config( gridContrasts, "grid.contrasts" );
 
         config( m_mode, "mode" );
         config( m_postprocessDirectory, "postprocess.directory" );
@@ -255,7 +164,7 @@ class klipReduce : public application
     /// Validate configuration required by the selected execution mode.
     void checkConfig()
     {
-        if( m_mode != "basic" && m_mode != "normal" && m_mode != "grid" && m_mode != "postprocess" )
+        if( m_mode != "basic" && m_mode != "normal" && m_mode != "postprocess" )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid klipReduce mode: " + m_mode );
         }
@@ -308,11 +217,7 @@ class klipReduce : public application
     virtual int execute()
     {
 
-        if( m_mode == "grid" )
-        {
-            return doGrid();
-        }
-        else if( m_mode == "postprocess" )
+        if( m_mode == "postprocess" )
         {
             return m_obs.processPSFSub( m_postprocessDirectory, m_postprocessPrefix, m_postprocessExtension );
         }
@@ -376,145 +281,6 @@ class klipReduce : public application
         }
     }
 };
-
-template <typename realT, typename evCalcT, class verboseT>
-int klipReduce<realT, evCalcT, verboseT>::doGrid()
-{
-    if( gridCenterSep == 0 )
-    {
-        mx::error_report<verboseT>( mx::error_t::paramnotset, "Grid center separation not set (grid.centerSep)" );
-        return -1;
-    }
-
-    if( gridCenterPA == 0 )
-    {
-        mx::error_report<verboseT>( mx::error_t::paramnotset, "Grid center PA not set (grid.centerPA)" );
-        return -1;
-    }
-
-    if( gridHalfWidthSep == 0 )
-    {
-        mx::error_report<verboseT>( mx::error_t::paramnotset, "Grid half-width in radius not set (grid.halfWidthSep)" );
-        return -1;
-    }
-
-    if( gridHalfWidthPA == 0 )
-    {
-        mx::error_report<verboseT>( mx::error_t::paramnotset, "Grid half-width in PA not set (grid.halfWidthPA)" );
-        return -1;
-    }
-
-    if( gridDeltaSep == 0 )
-    {
-        mx::error_report<verboseT>( mx::error_t::paramnotset, "Grid spacing in radius not set (gridDeltaSep)" );
-        return -1;
-    }
-
-    if( gridDeltaPA == 0 )
-    {
-        mx::error_report<verboseT>( mx::error_t::paramnotset, "Grid spacing in PA not set (grid.deltaPA)" );
-        return -1;
-    }
-
-    if( gridContrasts.size() == 0 )
-    {
-        mx::error_report<verboseT>( mx::error_t::paramnotset, "Grid contrasts not set (grid.contrasts)" );
-        return -1;
-    }
-
-    realT x0, y0;
-
-    x0 = -1 * gridCenterSep * sin( mx::math::dtor( gridCenterPA ) );
-    y0 = gridCenterSep * cos( mx::math::dtor( gridCenterPA ) );
-
-    //   std::cerr << gridCenterSep << " " << x0 << " " << y0 << "\n";
-
-    int Nrad = 2 * floor( gridHalfWidthSep / gridDeltaSep ) + 1;
-    int Npa = 2 * floor( gridHalfWidthPA / gridDeltaPA ) + 1;
-
-    Eigen::Array<realT, -1, -1> sep, pa;
-
-    sep.resize( Nrad, Npa );
-    pa.resize( Nrad, Npa );
-
-    realT xp, yp, q, x, y;
-
-    std::vector<realT> xv, yv;
-
-    for( int i = 0; i < Nrad; ++i )
-    {
-        xp = ( -0.5 * ( Nrad - 1 ) + i ) * gridDeltaSep;
-
-        for( int j = 0; j < Npa; ++j )
-        {
-            yp = ( -0.5 * ( Npa - 1 ) + j ) * gridDeltaPA;
-
-            q = mx::math::dtor( 90 - gridCenterPA );
-
-            x = ( x0 + xp * cos( q ) + yp * sin( q ) );
-            y = ( y0 - xp * sin( q ) + yp * cos( q ) );
-
-            xv.push_back( x );
-            yv.push_back( y );
-
-            sep( i, j ) = sqrt( pow( x, 2 ) + pow( y, 2 ) );
-
-            std::cerr << "THIS WON'T WORK UNTIL YOU FIX ANGLEMOD\n";
-            exit( 0 );
-            // pa(i,j) = mx::math::angleMod<mx::math::degreesT<realT>>(mx::math::rtod( atan2(y, x))  - 90.0);
-
-            // std::cerr << sep(i,j) << " " << pa(i,j) << "\n";
-
-            for( size_t k = 0; k < gridContrasts.size(); ++k )
-            {
-                // m_obs.m_filesRead = false;
-                std::cerr << "THIS WON'T WORK UNTIL YOU FIX FILESREAD IS PROTECTED\n";
-                exit( 0 );
-
-                m_obs.m_fakeSep = { sep( i, j ) };
-                m_obs.m_fakePA = { pa( i, j ) };
-                m_obs.m_fakeContrast = { gridContrasts[k] };
-
-                // std::cerr << sep(i,j) << " " << pa(i,j) << " " << gridContrasts[k] << "\n";
-                std::vector<realT> minMaxQ( m_obs.m_minRadius.size(), 0 );
-                m_obs.regions( m_obs.m_minRadius, m_obs.m_maxRadius, minMaxQ, minMaxQ );
-            }
-        }
-    }
-
-    mx::fits::fitsFile<realT> ff;
-
-    std::string fn;
-    fn = "gridSep.fits";
-    if( m_obs.m_outputDir != "" )
-    {
-        fn = m_obs.m_outputDir + "/" + fn;
-    }
-
-    ff.write( fn, sep );
-
-    fn = "gridPA.fits";
-    if( m_obs.m_outputDir != "" )
-    {
-        fn = m_obs.m_outputDir + "/" + fn;
-    }
-    ff.write( fn, pa );
-
-    fn = "gridContrasts.dat";
-    if( m_obs.m_outputDir != "" )
-    {
-        fn = m_obs.m_outputDir + "/" + fn;
-    }
-    std::ofstream fout;
-    fout.open( fn );
-    for( size_t i = 0; i < gridContrasts.size(); ++i )
-    {
-        fout << gridContrasts[i] << "\n";
-    }
-    fout.close();
-
-    return 0;
-}
 
 #ifndef HCIREDUCE_KLIPREDUCE_NO_MAIN
 int main( int argc, char **argv )

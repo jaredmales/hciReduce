@@ -12,6 +12,8 @@ target_link_libraries(hcireduceTestSupport PUBLIC hcireduce-shared)
 # makes a failing subsystem immediately visible in CTest output.
 set(HCIREDUCE_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/apps/klipReduce_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/ADIobservation_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/HCI_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_config_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_combine_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_coadd_test.cpp

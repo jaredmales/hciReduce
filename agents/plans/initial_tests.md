@@ -238,23 +238,121 @@ depends on the same behavior.
     grid implementation and true process entry point account for most uncovered application lines.
   - Doxygen succeeds with 72 legacy warnings and no test/group diagnostics.
 
+### Phase 8: ADI observation integration [complete]
+
+- [x] Exercise target and RDI FITS-ingestion wrappers with independent derotators, propagated angle cards, and both
+  configured and unconfigured failure paths.
+- [x] Exercise target/RDI post-read and post-coadd angle hooks with valid and missing metadata.
+- [x] Cover single-file and per-image-list fake injection, per-image scale lookup, padding/cropping, RDI scale factors,
+  invalid vector/list/method inputs, missing files, and nested error propagation.
+- [x] Cover zero- and nonzero-angle mask-cube construction, auxiliary angle/FITS products, PSF-subtracted image
+  derotation, size validation, and ADI FITS provenance cards.
+- [x] Correct fake-scale indexing to use the image index rather than the planet index, validate all parallel fake
+  metadata before indexing, and preserve the input mask exactly when its derotation angle is zero.
+- Verification:
+  - The optimized full suite passes 12/12; the focused ASan/UBSan suite passes 63 assertions in six test cases.
+  - Coverage passes 12/12 at 86.8% overall (2494/2873). `ADIobservation.hpp` is 295/295 executable lines (100%) and
+    all 14 functions are reached. A malformed one-column scale row explicitly covers the unequal-column guard left
+    reachable by `mx::ioutils::readColumns()`.
+  - Doxygen renders all six cases under `ADIobservation_unit_tests` without new test/group diagnostics.
+  - The mxlib coverage gate confirms the exact `get_curr_time`, `readColumns`, `pathFilename`, `fitsFile` read/write,
+    `createDirectories`, and exception APIs used by the edited functions are at 100%. `rotateMask()` has no record in
+    the current mxlib trace, so its focused coverage work is recorded in [mxlib_cleanup.md](mxlib_cleanup.md).
+
+### Phase 9: HCI enumeration conversions [complete]
+
+- [x] Exhaustively exercise every string-to-enum and enum-to-string conversion in `HCI.hpp`, including every
+  documented spelling and every invalid string/enum error branch.
+- [x] Correct the invalid-`includeMethod` diagnostic so it identifies the inclusion method rather than the exclusion
+  method.
+- Verification:
+  - The focused optimized and ASan/UBSan targets pass 68 assertions in seven test cases, and the full coverage suite
+    passes 13/13.
+  - `HCI.hpp` is 136/136 executable lines and 14/14 functions (100%). Overall coverage rises to 87.8% (2522/2873),
+    while `ADIobservation.hpp` and `ADIDerotator.hpp` remain at 100%.
+  - Every mxlib exception API reached by the edited conversion functions is at 100% in the current mxlib trace.
+
+### Phase 10: KLIP branch closure [complete]
+
+- [x] Cover invalid current enum state during configuration, diagnostic directory/write failures, masked and unmasked
+  centering variants, masked true-RMS normalization, invalid and non-finite covariance candidates, every minimum and
+  maximum exclusion unit, reference-ranking metadata validation, right-reason diagnostics, region loading/state
+  errors, preprocess-only completion, and malformed saved mode metadata.
+- [x] Remove three structurally unreachable paths exposed by the coverage audit:
+  - Target-mask dimensions were rechecked after target/reference dimensions and reference-mask dimensions had already
+    established the same invariant.
+  - `regions()` tested a negative return from `finalProcess()`, whose contract returns zero or throws.
+  - `processPSFSub()` wrapped an exception from mxlib's explicitly exception-free `parseStringVector()` API.
+- Verification:
+  - The focused Release and ASan/UBSan targets pass 314 assertions in 32 test cases; the coverage suite passes 13/13.
+  - `KLIPreduction.hpp` is 724/724 executable lines and 17/17 functions (100%). Overall coverage rises to 91.1%
+    (2612/2867), with all four common headers other than `HCIobservation.hpp` now at 100%.
+  - The mxlib coverage gate remains satisfied: `eigenCube`, `imageMedian`, `eigenSYRK`, `calcKLModes`, region geometry,
+    `parseStringVector`, `ompLoopWatcher`, exception construction, and the diagnostic FITS/directory APIs used by the
+    edited functions are all recorded at 100% for their HCI-used ranges in [mxlib_cleanup.md](mxlib_cleanup.md).
+
+### Phase 11: HCIobservation branch closure [complete except platform fault injection]
+
+- [x] Cover unequal-column, missing-file, missing-basename, empty-cube, non-finite/decreasing-date, zero-plane,
+  masked/weighted combination, hook-failure, threshold-only child-process, mask-rebuild, and every output/readback
+  error branch that can be induced deterministically with local fixtures.
+- [x] Exercise target and RDI preprocessing/coaddition wrappers, every masked weighted/unweighted mean and sigma-mean
+  overload, target/RDI/preprocessed/final/PSF-subtracted output failures, and malformed/duplicate/inconsistent saved
+  PSF-subtracted collections.
+- [x] Remove four paths proved structurally unreachable by their preceding invariants or mxlib contracts:
+  - `threshold()` caught an exception from the exception-free `pathFilename()` helper.
+  - Median and Gaussian preprocessing accumulated impossible negative returns after their arguments and kernel were
+    already validated.
+  - `readPSFSub()` rechecked complete indexed-grid membership after unique cardinality had established it, and
+    rechecked zero image dimensions after `fitsFile::read()` had already rejected such a FITS input.
+- [x] Flush the PSF-subtraction weight stream before checking it so a real write failure is observable and reported.
+- Verification:
+  - The full coverage suite passes 13/13. `HCIobservation.hpp` is 1424/1426 executable lines (99.9%) and 32/32
+    functions; the only misses are the two-line translation of an operating-system error returned while incrementing
+    a `std::filesystem::directory_iterator` after successful construction and entry inspection. Deterministically
+    forcing that race requires filesystem fault injection, so the defensive production branch remains intact.
+  - At this milestone the overall trace is 96.4% (2749/2852), with every other common header at 100%.
+  - The mxlib coverage gate remains satisfied for the exact `readColumns`, path, FITS, header/card, directory,
+    smoothing/filtering, combination, exception, and Git-provenance APIs called by the edited functions; their current
+    100% records are enumerated in [mxlib_cleanup.md](mxlib_cleanup.md).
+
+### Phase 12: klipReduce application branch closure [complete]
+
+- [x] Cover command-line configuration-path extraction; unused, unknown, source-attributed, and positional-option
+  diagnostics; non-postprocess geometry validation; and rejection of unsupported modes.
+- [x] Run a real basic-mode FITS input through file discovery, ADI metadata extraction, preprocessing, and the
+  documented preprocess-only stopping point.
+- [x] Preserve the existing saved-product postprocess configuration and end-to-end dispatch coverage.
+- [x] Remove the incomplete grid mode from `klipReduce`: delete its configuration targets, state, accepted mode,
+  dispatch, unconditional process exits, and unreachable implementation. Preserve the scientific design work in the
+  [future distributed grid-runner plan](grid_mode.md), which will orchestrate both KLIP and the forthcoming algorithm
+  as independent executables.
+- Verification:
+  - The focused application suite passes 29 assertions in six test cases. The coverage suite passes 13/13;
+    `klipReduce.cpp` is 102/102 executable lines and 7/7 functions (100%).
+  - Overall coverage is 99.9% (2730/2732) with all 91 alias-filtered production functions reached. The only two
+    remaining misses are the retained platform-fault translation in `HCIobservation::readPSFSub()` documented above.
+  - The mxlib coverage gate remains satisfied: the edited application configuration and dispatch functions call the
+    manifest-enforced `appConfigurator`, application lifecycle, exception, and saved-product APIs already recorded at
+    100% in [mxlib_cleanup.md](mxlib_cleanup.md).
+
 ## Code-review findings that set test priority
 
 Resolve these under focused regression tests before relying on the affected integration paths:
 
-1. `load_fileList(fileList, ...)` prefixes `m_fileList` instead of its `fileList` parameter, so an RDI list can corrupt
-   the target list while leaving RDI entries unprefixed.
-2. RDI date and mask configuration is currently ignored in favor of target settings.
-3. Front/back deletions can erase outside the file-list bounds.
-4. Coadd grouping can violate count/time limits on the final pair, assumes dates exist for count-only coadds, uses
-   target filenames for RDI history, and preserves headers from the wrong group members.
-5. The radial-profile stage includes zeroed masked pixels in its estimator, biasing the physical subtraction.
-6. Even median widths overrun mxlib's current `medianSmooth` workspace, while hciReduce also leaves filtered edge
+1. [resolved] `load_fileList(fileList, ...)` prefixes `m_fileList` instead of its `fileList` parameter, so an RDI list
+   can corrupt the target list while leaving RDI entries unprefixed.
+2. [resolved] RDI date and mask configuration is currently ignored in favor of target settings.
+3. [resolved] Front/back deletions can erase outside the file-list bounds.
+4. [resolved] Coadd grouping can violate count/time limits on the final pair, assumes dates exist for count-only
+   coadds, uses target filenames for RDI history, and preserves headers from the wrong group members.
+5. [resolved] The radial-profile stage includes zeroed masked pixels in its estimator, biasing the physical subtraction.
+6. [resolved] Even median widths overrun mxlib's current `medianSmooth` workspace, while hciReduce also leaves filtered edge
    storage uninitialized.
-7. `combineFinim` dereferences empty input, does not mask median combinations, and does not implement its documented
-   non-positive-sigma fallback.
-8. `readMask` uses the row dimension for both crop origins and can request an invalid block when only one dimension is
-   oversized.
+7. [resolved] `combineFinim` dereferences empty input, does not mask median combinations, and does not implement its
+   documented non-positive-sigma fallback.
+8. [resolved] `readMask` uses the row dimension for both crop origins and can request an invalid block when only one
+   dimension is oversized.
 9. [resolved] `outputRDIPreProcessed` now writes distinct `RDI_`-suffixed files with RDI data and headers.
 10. [resolved] `KLIPreduction::meanSubtract` implements `none` as zero subtraction and rejects `imageMode` before
     mutation because mode estimation is not implemented.

@@ -300,6 +300,10 @@ Known non-blocking ownership follow-ups:
       every executable line in the default `invalidNumber()` and `isInvalidPixel()` specializations is covered.
 
 - [~] Continue closing mxlib coverage gaps exposed by hciReduce integration tests.
+  - [ ] Bring `mx::improc::rotateMask()` to 100% executable-line coverage. The `ADIobservation::makeMaskCube()`
+    integration suite now exercises zero- and nonzero-angle masks, but the current mxlib LCOV trace has no
+    `rotateMask` record at all; add focused binary-threshold, allocation, and rotation-direction tests and then add
+    the instantiated implementation to the permanent coverage manifest.
   - Completed mxlib `dev` commits, each verified under its focused normal or coverage-instrumented target:
     - `57488e0`, `a081b61`, `7f37f22`, `81124f0`, and `0906081`: application lifecycle, configuration reload, and
       command-line/help coverage.

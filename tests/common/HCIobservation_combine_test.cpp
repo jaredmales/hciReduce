@@ -112,6 +112,67 @@ TEST_CASE( "HCIobservation masked median combination", "[HCIobservation][combine
     // clang-format on
 }
 
+/// Verify HCIobservation::combineFinim exercises every weighted and masked mean and sigma-mean combination.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation weighted masked combinations", "[HCIobservation][combine][mask][weights]" )
+{
+    OpenMPThreadGuard threads;
+    HCIobservationTestHarness observation;
+    observation.m_psfsub.resize( 1 );
+    observation.m_psfsub[0].resize( 1, 1, 3 );
+    observation.m_psfsub[0].image( 0 )( 0, 0 ) = 1;
+    observation.m_psfsub[0].image( 1 )( 0, 0 ) = 3;
+    observation.m_psfsub[0].image( 2 )( 0, 0 ) = 5;
+    observation.m_maskCube.resize( 1, 1, 3 );
+    observation.m_maskCube.cube().setOnes();
+    observation.m_minGoodFract = 1;
+
+    observation.m_maskFile = "configured-mask.fits";
+    observation.m_combineMethod = mx::improc::HCI::combine::mean;
+    observation.m_comboWeights = { 0.25F, 0.25F, 0.5F };
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3.5F ) );
+
+    observation.m_comboWeights.clear();
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3 ) );
+
+    observation.m_combineMethod = mx::improc::HCI::combine::sigmaMean;
+    observation.m_sigmaThreshold = 0;
+    observation.m_comboWeights = { 0.25F, 0.25F, 0.5F };
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3.5F ) );
+
+    observation.m_comboWeights.clear();
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3 ) );
+
+    observation.m_maskFile.clear();
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3 ) );
+
+    observation.m_sigmaThreshold = 10;
+    observation.m_comboWeights = { 0.25F, 0.25F, 0.5F };
+    observation.m_maskFile = "configured-mask.fits";
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3.5F ) );
+
+    observation.m_maskFile.clear();
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3.5F ) );
+
+    observation.m_comboWeights.clear();
+    observation.m_maskFile = "configured-mask.fits";
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3 ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::combineFinim();
+#endif
+    // clang-format on
+}
+
 /// Verify HCIobservation::combineFinim rejects missing and empty PSF-subtracted inputs.
 /** \ingroup HCIobservation_unit_tests */
 TEST_CASE( "HCIobservation empty combination inputs", "[HCIobservation][combine]" )

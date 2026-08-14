@@ -41,6 +41,28 @@ void readFitsImage( const std::filesystem::path &path,
         throw mx::exception<mx::verbose::vv>( result, "reading output FITS image" );
     }
 }
+
+class currentPathGuard
+{
+  public:
+    /// Change to a temporary current directory and remember the original location.
+    explicit currentPathGuard( const std::filesystem::path &path /**< [in] temporary current directory */ )
+        : m_previous( std::filesystem::current_path() )
+    {
+        std::filesystem::current_path( path );
+    }
+
+    /// Restore the original current directory.
+    ~currentPathGuard()
+    {
+        std::filesystem::current_path( m_previous );
+    }
+
+  private:
+    /// Current directory active before construction.
+    std::filesystem::path m_previous;
+};
+
 } // namespace
 /// \endcond
 
@@ -203,6 +225,31 @@ TEST_CASE( "HCIobservation preprocessed output validation", "[HCIobservation][ou
     blocked.m_tgtIms.image( 0 ).setZero();
     blocked.m_heads.resize( 1 );
     REQUIRE_THROWS( blocked.outputPreProcessed() );
+
+    HCIobservationTestHarness targetWriteFailure;
+    targetWriteFailure.m_preProcess_outputPrefix = directory.file( "target-write_" ).string();
+    targetWriteFailure.m_tgtIms.resize( 1, 1, 1 );
+    targetWriteFailure.m_tgtIms.image( 0 ).setZero();
+    targetWriteFailure.m_heads.resize( 1 );
+    std::filesystem::create_directory( directory.file( "target-write_000000.fits" ) );
+    writeTextFile( directory.file( "target-write_000000.fits/marker" ), "keep directory non-empty" );
+    REQUIRE_THROWS( targetWriteFailure.outputPreProcessed() );
+
+    HCIobservationTestHarness blockedRDI;
+    blockedRDI.m_preProcess_outputPrefix = ( blocker / "reference_" ).string();
+    blockedRDI.m_refIms.resize( 1, 1, 1 );
+    blockedRDI.m_refIms.image( 0 ).setZero();
+    blockedRDI.m_RDIheads.resize( 1 );
+    REQUIRE_THROWS( blockedRDI.outputRDIPreProcessed() );
+
+    HCIobservationTestHarness rdiWriteFailure;
+    rdiWriteFailure.m_preProcess_outputPrefix = directory.file( "reference-write_" ).string();
+    rdiWriteFailure.m_refIms.resize( 1, 1, 1 );
+    rdiWriteFailure.m_refIms.image( 0 ).setZero();
+    rdiWriteFailure.m_RDIheads.resize( 1 );
+    std::filesystem::create_directory( directory.file( "reference-write_RDI_000000.fits" ) );
+    writeTextFile( directory.file( "reference-write_RDI_000000.fits/marker" ), "keep directory non-empty" );
+    REQUIRE_THROWS( rdiWriteFailure.outputRDIPreProcessed() );
 }
 
 /// Verify HCIobservation::writeFinim writes sequential and exact cube products with complete headers.
@@ -270,6 +317,24 @@ TEST_CASE( "HCIobservation final-image output", "[HCIobservation][output][writeF
     HCIobservationTestHarness empty;
     empty.m_outputDir = directory.file( "unused" ).string();
     REQUIRE_THROWS( empty.writeFinim() );
+
+    const auto blocker = directory.file( "final-blocker" );
+    writeTextFile( blocker, "regular file" );
+    HCIobservationTestHarness blocked;
+    blocked.m_outputDir = ( blocker / "output" ).string();
+    blocked.m_finim.resize( 1, 1, 1 );
+    blocked.m_finim.image( 0 ).setZero();
+    REQUIRE_THROWS( blocked.writeFinim() );
+
+    HCIobservationTestHarness writeFailure;
+    writeFailure.m_outputDir = directory.path().string();
+    writeFailure.m_finimName = "existing-directory";
+    writeFailure.m_exactFinimName = true;
+    writeFailure.m_finim.resize( 1, 1, 1 );
+    writeFailure.m_finim.image( 0 ).setZero();
+    std::filesystem::create_directory( directory.file( "existing-directory" ) );
+    writeTextFile( directory.file( "existing-directory/marker" ), "keep directory non-empty" );
+    REQUIRE_THROWS( writeFailure.writeFinim() );
 }
 
 /// Verify HCIobservation::outputPSFSub writes every reduction/image, copied headers, indices, and weight sidecar.
@@ -367,6 +432,65 @@ TEST_CASE( "HCIobservation PSF-subtracted output", "[HCIobservation][output][out
     direct.m_heads.resize( 1 );
     direct.outputPSFSub();
     REQUIRE( std::filesystem::exists( directory.file( "direct-psf_000_00000.fits" ) ) );
+
+    {
+        currentPathGuard currentDirectory( directory.path() );
+        HCIobservationTestHarness relative;
+        relative.m_PSFSubPrefix = "relative-psf";
+        relative.m_psfsub.resize( 1 );
+        relative.m_psfsub[0].resize( 1, 1, 1 );
+        relative.m_psfsub[0].image( 0 ).setZero();
+        relative.m_heads.resize( 1 );
+        relative.outputPSFSub();
+    }
+    REQUIRE( std::filesystem::exists( directory.file( "relative-psf_000_00000.fits" ) ) );
+
+    HCIobservationTestHarness emptyCube;
+    emptyCube.m_psfsub.resize( 1 );
+    REQUIRE_THROWS( emptyCube.outputPSFSub() );
+
+    const auto blocker = directory.file( "psf-blocker" );
+    writeTextFile( blocker, "regular file" );
+    HCIobservationTestHarness blocked;
+    blocked.m_outputDir = ( blocker / "output" ).string();
+    blocked.m_PSFSubPrefix = "psf";
+    blocked.m_psfsub.resize( 1 );
+    blocked.m_psfsub[0].resize( 1, 1, 1 );
+    blocked.m_psfsub[0].image( 0 ).setZero();
+    blocked.m_heads.resize( 1 );
+    REQUIRE_THROWS( blocked.outputPSFSub() );
+
+    HCIobservationTestHarness weightOpenFailure;
+    weightOpenFailure.m_outputDir = directory.path().string();
+    weightOpenFailure.m_PSFSubPrefix = "blocked-weights/psf";
+    weightOpenFailure.m_psfsub.resize( 1 );
+    weightOpenFailure.m_psfsub[0].resize( 1, 1, 1 );
+    weightOpenFailure.m_psfsub[0].image( 0 ).setZero();
+    weightOpenFailure.m_heads.resize( 1 );
+    weightOpenFailure.m_comboWeights = { 1 };
+    std::filesystem::create_directories( directory.file( "blocked-weights/psfweights.dat" ) );
+    REQUIRE_THROWS( weightOpenFailure.outputPSFSub() );
+
+    HCIobservationTestHarness weightWriteFailure;
+    weightWriteFailure.m_PSFSubPrefix = directory.file( "full" ).string();
+    weightWriteFailure.m_psfsub.resize( 1 );
+    weightWriteFailure.m_psfsub[0].resize( 1, 1, 1 );
+    weightWriteFailure.m_psfsub[0].image( 0 ).setZero();
+    weightWriteFailure.m_heads.resize( 1 );
+    weightWriteFailure.m_comboWeights = { 1 };
+    std::filesystem::create_symlink( "/dev/full", directory.file( "fullweights.dat" ) );
+    REQUIRE_THROWS( weightWriteFailure.outputPSFSub() );
+
+    HCIobservationTestHarness imageWriteFailure;
+    imageWriteFailure.m_outputDir = directory.path().string();
+    imageWriteFailure.m_PSFSubPrefix = "blocked-image/psf";
+    imageWriteFailure.m_psfsub.resize( 1 );
+    imageWriteFailure.m_psfsub[0].resize( 1, 1, 1 );
+    imageWriteFailure.m_psfsub[0].image( 0 ).setZero();
+    imageWriteFailure.m_heads.resize( 1 );
+    std::filesystem::create_directories( directory.file( "blocked-image/psf_000_00000.fits" ) );
+    writeTextFile( directory.file( "blocked-image/psf_000_00000.fits/marker" ), "keep directory non-empty" );
+    REQUIRE_THROWS( imageWriteFailure.outputPSFSub() );
 }
 
 /// Verify HCIobservation::readPSFSub rejects incomplete grids, malformed names, and mismatched header indices.
@@ -403,6 +527,55 @@ TEST_CASE( "HCIobservation saved PSF-subtracted validation", "[HCIobservation][r
     HCIobservationTestHarness missing;
     REQUIRE_THROWS( missing.readPSFSub( directory.file( "missing" ).string(), "saved" ) );
     REQUIRE_THROWS( missing.readPSFSub( directory.path().string(), "" ) );
+
+    const auto emptyDirectory = directory.file( "empty" );
+    std::filesystem::create_directory( emptyDirectory );
+    REQUIRE_THROWS( missing.readPSFSub( emptyDirectory.string(), "saved" ) );
+
+    const auto unreadableDirectory = directory.file( "unreadable" );
+    std::filesystem::create_directory( unreadableDirectory );
+    std::filesystem::permissions( unreadableDirectory, std::filesystem::perms::none );
+    REQUIRE_THROWS( missing.readPSFSub( unreadableDirectory.string(), "saved" ) );
+    std::filesystem::permissions( unreadableDirectory, std::filesystem::perms::owner_all );
+
+    const auto danglingDirectory = directory.file( "dangling" );
+    std::filesystem::create_directory( danglingDirectory );
+    std::filesystem::create_symlink( danglingDirectory / "missing-target", danglingDirectory / "saved_0_0.fits" );
+    REQUIRE_THROWS( missing.readPSFSub( danglingDirectory.string(), "saved" ) );
+
+    const auto malformedDirectory = directory.file( "malformed" );
+    std::filesystem::create_directory( malformedDirectory );
+    writeTextFile( malformedDirectory / "saved_bad.fits", "not a FITS file" );
+    REQUIRE_THROWS( missing.readPSFSub( malformedDirectory.string(), "saved" ) );
+
+    const auto duplicateDirectory = directory.file( "duplicate" );
+    std::filesystem::create_directory( duplicateDirectory );
+    HCIobservationTestHarness::imageT duplicateImage = indexedImage( 1, 1 );
+    HCIobservationTestHarness::fitsHeaderT duplicateHeader;
+    duplicateHeader.append<int>( "REDUCTION", 0, "reduction index" );
+    duplicateHeader.append<int>( "IMAGE", 0, "image index" );
+    writeFitsImage( duplicateDirectory / "saved_0_0.fits", duplicateImage, &duplicateHeader );
+    writeFitsImage( duplicateDirectory / "saved_00_00.fits", duplicateImage, &duplicateHeader );
+    REQUIRE_THROWS( missing.readPSFSub( duplicateDirectory.string(), "saved" ) );
+
+    const auto invalidFitsDirectory = directory.file( "invalid-fits" );
+    std::filesystem::create_directory( invalidFitsDirectory );
+    writeTextFile( invalidFitsDirectory / "saved_0_0.fits", "not a FITS file" );
+    REQUIRE_THROWS( missing.readPSFSub( invalidFitsDirectory.string(), "saved" ) );
+
+    const auto inconsistentDirectory = directory.file( "inconsistent" );
+    std::filesystem::create_directory( inconsistentDirectory );
+    HCIobservationTestHarness::imageT firstImage = indexedImage( 1, 1 );
+    HCIobservationTestHarness::imageT secondImage = indexedImage( 2, 1 );
+    HCIobservationTestHarness::fitsHeaderT firstHeader;
+    firstHeader.append<int>( "REDUCTION", 0, "reduction index" );
+    firstHeader.append<int>( "IMAGE", 0, "image index" );
+    HCIobservationTestHarness::fitsHeaderT secondHeader;
+    secondHeader.append<int>( "REDUCTION", 0, "reduction index" );
+    secondHeader.append<int>( "IMAGE", 1, "image index" );
+    writeFitsImage( inconsistentDirectory / "saved_0_0.fits", firstImage, &firstHeader );
+    writeFitsImage( inconsistentDirectory / "saved_0_1.fits", secondImage, &secondHeader );
+    REQUIRE_THROWS( missing.readPSFSub( inconsistentDirectory.string(), "saved" ) );
 
     // clang-format off
 #ifdef __DOXY_ONLY__

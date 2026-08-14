@@ -137,7 +137,7 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
 
     std::string m_fakeFileName;        ///< FITS file containing the fake planet PSF to inject or a list of fake images
 
-    std::string m_fakeScaleFileName;   ///< One-column text file containing a scale factor for each point in time.
+    std::string m_fakeScaleFileName;   ///< Two-column text file mapping each input filename to its fake scale.
 
     std::vector<realT> m_fakeSep;      ///< Separation(s) of the fake planet(s)
     std::vector<realT> m_fakePA;       ///< Position angles(s) of the fake planet(s)
@@ -148,15 +148,15 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
     realT m_fakeRDISepScale{ 1 };      /**< Scaling to apply to fake planet separation in RDI.
                                             This should be the ratio of wavelengths for SDI.*/
 
-    /// Inject the fake plants
+    /// Inject the fake planets
     /**
      *  \todo should pad the fake before calling the single image version
      *  \todo throw exceptions for all errors, and switch to void
      */
-    void injectFake( eigenCube<realT> &ims,              ///< [in.out] the image cube in which to inject the fakes.
-                     std::vector<std::string> &fileList, /**< [in] a list of file paths used for per-image fake PSFs. If
-                                                                   empty, then m_fakeFileName is used.*/
-                     derotFunctObj &derotF,              ///< [in] the derotation object
+    void injectFake( eigenCube<realT> &ims,              /**< [in,out] image cube in which to inject the fakes */
+                     std::vector<std::string> &fileList, /**< [in] input image paths used to match the optional
+                                                                   per-image scale table. */
+                     derotFunctObj &derotF,              /**< [in] derotation object for the image sequence */
                      realT RDIfluxScale,                 /**< [in] the flux scaling for RDI.  In SDI,
                                                                    this is from the planet spectrum.*/
                      realT RDISepScale                   /**< [in] the separation scale for RDI.
@@ -169,21 +169,23 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
      *  \todo should pad the fake before this point
      *  \todo throw exceptions for all errors, and switch to void
      */
-    void injectFake( imageT &fakePSF,
-                     eigenCube<realT> &ims,
-                     int image_i,
-                     realT derotAngle,
-                     realT PA,
-                     realT sep,
-                     realT contrast,
-                     realT scale,
-                     realT RDIfluxScale,
-                     realT RDISepScale );
+    void injectFake( imageT &fakePSF,       /**< [in,out] fake PSF, resized to match the image when necessary */
+                     eigenCube<realT> &ims, /**< [in,out] image cube receiving the fake */
+                     int image_i,           /**< [in] image-plane index */
+                     realT derotAngle,      /**< [in] derotation angle in radians */
+                     realT PA,              /**< [in] fake position angle in degrees */
+                     realT sep,             /**< [in] fake separation in pixels */
+                     realT contrast,        /**< [in] fake contrast */
+                     realT scale,           /**< [in] per-image fake scale */
+                     realT RDIfluxScale,    /**< [in] RDI flux scale */
+                     realT RDISepScale      /**< [in] RDI separation scale */
+    );
 
     /// @}
 
     void stdFitsHeader( fitsHeaderT *head );
 
+    /// Construct the per-image rotated mask cube and write its auxiliary angle and FITS products.
     virtual void makeMaskCube();
 
     /// De-rotate the PSF subtracted images
@@ -247,7 +249,7 @@ void ADIobservation<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appCo
                 "scaleFileName",
                 false,
                 "string",
-                "Path to one-column text file containing a scale factor for each point in time." );
+                "Path to a two-column text file mapping each input filename to a fake scale factor." );
 
     config.add( "fake.sep",
                 "",
@@ -591,6 +593,12 @@ void ADIobservation<realT, derotFunctObj, verboseT>::injectFake( eigenCube<realT
 {
     t_fake_begin = sys::get_curr_time();
 
+    if( m_fakeSep.size() != m_fakePA.size() || m_fakeSep.size() != m_fakeContrast.size() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "fake separation, position-angle, and contrast vectors must have equal sizes" );
+    }
+
     // typedef Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic> imT;
     imageT fakePSF;
     std::vector<std::string> fakeFiles; // used if m_fakeMethod == HCI::list
@@ -602,6 +610,12 @@ void ADIobservation<realT, derotFunctObj, verboseT>::injectFake( eigenCube<realT
     std::vector<realT> fakeScale( ims.planes(), 1.0 );
     if( m_fakeScaleFileName != "" )
     {
+        if( fileList.size() != static_cast<size_t>( ims.planes() ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "fake scale lookup requires one filename per image" );
+        }
+
         std::vector<std::string> sfileNames;
         std::vector<realT> imS;
 
@@ -655,6 +669,16 @@ void ADIobservation<realT, derotFunctObj, verboseT>::injectFake( eigenCube<realT
         {
             throw mx::exception<verboseT>( errc, "reading fake PSF filenames" );
         }
+
+        if( fakeFiles.size() != static_cast<size_t>( ims.planes() ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "fake PSF list requires one filename per image" );
+        }
+    }
+    else
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid fake PSF method" );
     }
 
     for( int i = 0; i < ims.planes(); ++i )
@@ -679,7 +703,7 @@ void ADIobservation<realT, derotFunctObj, verboseT>::injectFake( eigenCube<realT
                             m_fakePA[j],
                             m_fakeSep[j],
                             m_fakeContrast[j],
-                            fakeScale[j],
+                            fakeScale[i],
                             RDIFluxScale,
                             RDISepScale );
             }
@@ -780,8 +804,16 @@ void ADIobservation<realT, derotFunctObj, verboseT>::makeMaskCube()
         #pragma omp for // clang-format on
         for( int i = 0; i < this->m_Nims; ++i )
         {
-            rotateMask( rm, this->m_mask, m_derotF.derotAngle( i ) );
-            this->m_maskCube.image( i ) = rm;
+            const realT derot = m_derotF.derotAngle( i );
+            if( derot == 0 )
+            {
+                this->m_maskCube.image( i ) = this->m_mask;
+            }
+            else
+            {
+                rotateMask( rm, this->m_mask, derot );
+                this->m_maskCube.image( i ) = rm;
+            }
         }
     }
 

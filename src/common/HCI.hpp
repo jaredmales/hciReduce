@@ -357,7 +357,7 @@ enum class exclude
  * \throws mx::exception with mx::error_t::invalidarg if the method is not valid (this is a bug)
  */
 template <class verboseT>
-std::string excludeToStr( const exclude &method /**< [in] the \ref exclude method to convert to string */)
+std::string excludeToStr( const exclude &method /**< [in] the \ref exclude method to convert to string */ )
 {
     if( method == exclude::none )
     {
@@ -412,7 +412,6 @@ exclude excludeFmStr( const std::string &method /**< [in] the string name of the
     }
 }
 
-
 /// Image inclusion methods
 /** \ingroup hc_imaging_enums
  */
@@ -431,8 +430,8 @@ enum class include
  *
  * \throws mx::exception with mx::error_t::invalidarg if the method is not valid (this is a bug)
  */
-template<class verboseT>
-std::string includeToStr( const include & method /**< [in] the \ref include method to convert to string */)
+template <class verboseT>
+std::string includeToStr( const include &method /**< [in] the \ref include method to convert to string */ )
 {
     if( method == include::all )
     {
@@ -456,7 +455,7 @@ std::string includeToStr( const include & method /**< [in] the \ref include meth
     }
     else
     {
-        throw mx::exception<verboseT>( mx::error_t::invalidarg, "got an invalid exclude method (bug)" );
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "got an invalid include method (bug)" );
     }
 }
 
@@ -467,8 +466,8 @@ std::string includeToStr( const include & method /**< [in] the \ref include meth
  * \throws mx::exception with mx::error_t::invalidarg if string name is not valid
  */
 
-template<class verboseT>
-include includeFmStr( const std::string &method /**< [in] the string name of the \ref include method */)
+template <class verboseT>
+include includeFmStr( const std::string &method /**< [in] the string name of the \ref include method */ )
 {
     if( method == "all" )
     {

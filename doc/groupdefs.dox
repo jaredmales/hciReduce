@@ -54,6 +54,14 @@
   * \ingroup unit_tests
   */
 
+/** \defgroup HCI_unit_tests HCI Configuration Type Unit Tests
+  * \ingroup unit_tests
+  */
+
+/** \defgroup ADIobservation_unit_tests ADIobservation Unit Tests
+  * \ingroup unit_tests
+  */
+
 /** \defgroup KLIPreduction_unit_tests KLIPreduction Unit Tests
   * \ingroup unit_tests
   */

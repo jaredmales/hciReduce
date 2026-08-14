@@ -7,6 +7,8 @@
 
 #include "HCIobservation_test_fixture.hpp"
 
+#include <limits>
+
 namespace unitTest
 {
 namespace HCIobservation_coadd_test
@@ -201,6 +203,29 @@ TEST_CASE( "HCIobservation coadd validation", "[HCIobservation][coadd]" )
                                              dates,
                                              heads,
                                              cube ) );
+
+    HCIobservationTestHarness::cubeT emptyCube;
+    std::vector<std::string> emptyFiles;
+    std::vector<double> emptyDates;
+    std::vector<HCIobservationTestHarness::fitsHeaderT> emptyHeads;
+    REQUIRE_THROWS( observation.coaddImages( mx::improc::HCI::coadd::mean,
+                                             1,
+                                             0,
+                                             {},
+                                             emptyFiles,
+                                             "DATE-OBS",
+                                             emptyDates,
+                                             emptyHeads,
+                                             emptyCube ) );
+
+    makeCoaddInputs( cube, files, dates, heads, { 1, 2 }, { 0, 1 } );
+    dates[1] = std::numeric_limits<double>::quiet_NaN();
+    REQUIRE_THROWS(
+        observation.coaddImages( mx::improc::HCI::coadd::mean, 1, 0, {}, files, "DATE-OBS", dates, heads, cube ) );
+
+    dates = { 60001, 60000 };
+    REQUIRE_THROWS(
+        observation.coaddImages( mx::improc::HCI::coadd::mean, 1, 0, {}, files, "DATE-OBS", dates, heads, cube ) );
 
     // clang-format off
 #ifdef __DOXY_ONLY__

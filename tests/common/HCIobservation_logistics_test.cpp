@@ -14,6 +14,17 @@ namespace unitTest
 namespace HCIobservation_logistics_test
 {
 
+/// \cond HCIobservation_logistics_test_harness
+struct baseHookHarness : public mx::improc::HCIobservation<float, mx::verbose::vv>
+{
+    using baseT = mx::improc::HCIobservation<float, mx::verbose::vv>;
+    using baseT::postCoadd;
+    using baseT::postRDICoadd;
+    using baseT::postRDIReadFiles;
+    using baseT::postReadFiles;
+};
+/// \endcond
+
 /// Verify that HCIobservation::load_fileList scans, sorts, prefixes, and resets lists correctly.
 /** \ingroup HCIobservation_unit_tests */
 TEST_CASE( "HCIobservation file-list loading", "[HCIobservation][files]" )
@@ -47,6 +58,8 @@ TEST_CASE( "HCIobservation file-list loading", "[HCIobservation][files]" )
     REQUIRE( files.empty() );
 
     REQUIRE( observation.load_fileList( files, "", directory.file( "missing" ).string(), "", "fits" ) !=
+             mx::error_t::noerror );
+    REQUIRE( observation.load_fileList( files, directory.file( "missing.list" ).string(), "", "", "" ) !=
              mx::error_t::noerror );
 
     // clang-format off
@@ -88,12 +101,30 @@ TEST_CASE( "HCIobservation RDI file-list independence", "[HCIobservation][files]
     REQUIRE( observation.m_RDIfileList ==
              std::vector<std::string>{ directory.file( "rdi-dir/reference.fits" ).string() } );
 
+    observation.m_fileListFile = directory.file( "missing-target.list" ).string();
+    REQUIRE( observation.load_fileList() != mx::error_t::noerror );
+
+    observation.m_RDIfileListFile = directory.file( "missing-rdi.list" ).string();
+    REQUIRE( observation.load_RDIfileList() != mx::error_t::noerror );
+
     // clang-format off
 #ifdef __DOXY_ONLY__
     mx::improc::HCIobservation<float, mx::verbose::vv>::load_fileList();
     mx::improc::HCIobservation<float, mx::verbose::vv>::load_RDIfileList();
 #endif
     // clang-format on
+}
+
+/// Verify the base HCIobservation post-read and post-coadd extension hooks are safe no-ops.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation base extension hooks", "[HCIobservation][hooks]" )
+{
+    baseHookHarness observation;
+
+    REQUIRE_NOTHROW( observation.postReadFiles() );
+    REQUIRE_NOTHROW( observation.postCoadd() );
+    REQUIRE_NOTHROW( observation.postRDIReadFiles() );
+    REQUIRE_NOTHROW( observation.postRDICoadd() );
 }
 
 /// Verify threshold boundary, ordering, basename matching, validation, and disabled behavior in
@@ -124,6 +155,11 @@ TEST_CASE( "HCIobservation quality thresholding", "[HCIobservation][threshold]" 
 
     writeTextFile( quality, "a.fits nan\n" );
     REQUIRE_THROWS( observation.threshold( files, quality.string(), 1 ) );
+
+    writeTextFile( quality, "a.fits \n" );
+    REQUIRE_THROWS( observation.threshold( files, quality.string(), 1 ) );
+
+    REQUIRE_THROWS( observation.threshold( files, directory.file( "missing-quality.txt" ).string(), 1 ) );
 
     // clang-format off
 #ifdef __DOXY_ONLY__
@@ -157,6 +193,15 @@ TEST_CASE( "HCIobservation weight loading", "[HCIobservation][weights]" )
     REQUIRE_THROWS( observation.readWeights() );
 
     writeTextFile( observation.m_weightFile, "a.fits nan\nb.fits 1\n" );
+    REQUIRE_THROWS( observation.readWeights() );
+
+    writeTextFile( observation.m_weightFile, "a.fits \n" );
+    REQUIRE_THROWS( observation.readWeights() );
+
+    writeTextFile( observation.m_weightFile, "a.fits 1\nc.fits 2\n" );
+    REQUIRE_THROWS( observation.readWeights() );
+
+    observation.m_weightFile = directory.file( "missing-weights.txt" ).string();
     REQUIRE_THROWS( observation.readWeights() );
 
     observation.m_weightFile.clear();

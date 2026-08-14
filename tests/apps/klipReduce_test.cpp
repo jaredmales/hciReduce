@@ -24,10 +24,13 @@ struct appHarness : public appT
     using appT::config;
     using appT::execute;
     using appT::loadConfig;
+    using appT::m_configPathCL;
     using appT::m_mode;
+    using appT::m_obs;
     using appT::m_postprocessDirectory;
     using appT::m_postprocessExtension;
     using appT::m_postprocessPrefix;
+    using appT::setConfigPathCL;
     using appT::setupConfig;
 };
 
@@ -50,6 +53,117 @@ void writeSavedProduct(
 }
 /// \endcond
 
+/// Verify klipReduce extracts the command-line configuration target into the application path.
+/** \ingroup klipReduce_unit_tests */
+TEST_CASE( "klipReduce command-line configuration path", "[klipReduce][config][command-line]" )
+{
+    appHarness application;
+    mx::app::configTarget target;
+    target.name = "config";
+    target.set = true;
+    target.values = { "/tmp/klipReduce-test.conf" };
+    application.config.m_targets[target.name] = target;
+
+    application.setConfigPathCL();
+
+    REQUIRE( application.m_configPathCL == "/tmp/klipReduce-test.conf" );
+}
+
+/// Verify klipReduce diagnoses unused targets, unknown configuration entries, and positional arguments while loading.
+/** \ingroup klipReduce_unit_tests */
+TEST_CASE( "klipReduce configuration diagnostics", "[klipReduce][config][diagnostics]" )
+{
+    SECTION( "source locations enabled" )
+    {
+        appHarness application;
+        application.setupConfig();
+
+        mx::app::configTarget unusedTarget;
+        unusedTarget.name = "unused.target";
+        application.config.m_targets[unusedTarget.name] = unusedTarget;
+
+        mx::app::configTarget unknownTarget;
+        unknownTarget.name = "unknown.target";
+        unknownTarget.sources = { "unknown.conf" };
+        application.config.m_unusedConfigs[unknownTarget.name] = unknownTarget;
+        application.config.nonOptions = { "unexpected" };
+
+        REQUIRE_NOTHROW( application.loadConfig() );
+        REQUIRE( application.config.m_targets.at( "unused.target" ).used == false );
+    }
+
+    SECTION( "source locations disabled" )
+    {
+        appHarness application;
+        application.setupConfig();
+        application.config.m_sources = false;
+
+        mx::app::configTarget unknownTarget;
+        unknownTarget.name = "unknown.target";
+        application.config.m_unusedConfigs[unknownTarget.name] = unknownTarget;
+
+        REQUIRE_NOTHROW( application.loadConfig() );
+    }
+}
+
+/// Verify klipReduce reports every missing or inconsistent non-postprocess geometry requirement.
+/** \ingroup klipReduce_unit_tests */
+TEST_CASE( "klipReduce reduction configuration validation", "[klipReduce][config][validation]" )
+{
+    appHarness application;
+    application.m_mode = "normal";
+
+    REQUIRE_NOTHROW( application.checkConfig() );
+
+    application.m_obs.m_Nmodes = { 1 };
+    application.m_obs.m_minRadius = { 1, 2 };
+    application.m_obs.m_maxRadius = { 3 };
+    application.m_obs.m_minAngle = { 0, 90 };
+    application.m_obs.m_maxAngle = { 180 };
+
+    REQUIRE_NOTHROW( application.checkConfig() );
+}
+
+/// Verify klipReduce executes a complete basic-mode dispatch through the documented preprocess-only stopping point.
+/** \ingroup klipReduce_unit_tests */
+TEST_CASE( "klipReduce basic preprocess-only dispatch", "[klipReduce][execute][basic][preprocess]" )
+{
+    TestDirectory directory;
+    HCIobservationTestHarness::imageT image( 5, 5 );
+    image.setConstant( 1 );
+    HCIobservationTestHarness::fitsHeaderT header;
+    header.append<float>( "ANGLE", 0, "parallactic angle" );
+    writeFitsImage( directory.file( "target.fits" ), image, &header );
+
+    const auto configPath = directory.file( "basic.conf" );
+    writeTextFile( configPath,
+                   "mode=basic\n"
+                   "[input]\n"
+                   "directory=" +
+                       directory.path().string() +
+                       "\n"
+                       "prefix=target\n"
+                       "extension=.fits\n"
+                       "dateKeyword=\n"
+                       "angleKeyword=ANGLE\n"
+                       "angleScale=1\n"
+                       "[geom]\n"
+                       "minRadius=0\n"
+                       "maxRadius=2\n"
+                       "[klip]\n"
+                       "Nmodes=1\n"
+                       "[preProcess]\n"
+                       "only=true\n" );
+
+    appHarness application;
+    std::string invokedName = "klipReduce-test";
+    std::string configOption = "--config";
+    std::string configName = configPath.string();
+    char *arguments[]{ invokedName.data(), configOption.data(), configName.data() };
+
+    REQUIRE( application.main( 3, arguments ) == 0 );
+}
+
 /// Verify klipReduce registers, loads, and validates saved-product configuration.
 /** \ingroup klipReduce_unit_tests */
 TEST_CASE( "klipReduce postprocess configuration", "[klipReduce][config][postprocess]" )
@@ -61,6 +175,14 @@ TEST_CASE( "klipReduce postprocess configuration", "[klipReduce][config][postpro
     REQUIRE( application.config.m_targets.at( "postprocess.directory" ).clType == mx::app::argType::Required );
     REQUIRE( application.config.m_targets.at( "postprocess.prefix" ).helpType == "string" );
     REQUIRE( application.config.m_targets.at( "postprocess.extension" ).helpType == "string" );
+    REQUIRE( application.config.m_targets.at( "mode" ).helpExplanation.find( "grid" ) == std::string::npos );
+    bool hasGridTarget = false;
+    for( const auto &[name, target] : application.config.m_targets )
+    {
+        static_cast<void>( target );
+        hasGridTarget = hasGridTarget || name.starts_with( "grid." );
+    }
+    REQUIRE_FALSE( hasGridTarget );
 
     const auto configPath = directory.file( "postprocess.conf" );
     writeTextFile( configPath,
@@ -83,6 +205,8 @@ TEST_CASE( "klipReduce postprocess configuration", "[klipReduce][config][postpro
     application.m_postprocessPrefix.clear();
     REQUIRE_THROWS( application.checkConfig() );
     application.m_postprocessPrefix = "saved";
+    application.m_mode = "grid";
+    REQUIRE_THROWS( application.checkConfig() );
     application.m_mode = "unknown";
     REQUIRE_THROWS( application.checkConfig() );
 }
