@@ -1,0 +1,45 @@
+/** \file klip.dox
+ * \brief User's Guide for Karhunen-Loeve Image Processing and klipReduce.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup klipreduce_user_guide
+ * @{
+ *
+ * `klipReduce` performs Karhunen-Loeve Image Processing (KLIP) on configured annular regions. It reads the common
+ * hciReduce input sequence, constructs a reference library for each target image, estimates a PSF from retained KL
+ * modes, subtracts it, then applies the common ADI derotation and final-combination stages.
+ *
+ * \section klip_modes Run modes
+ *
+ * `basic` and `normal` run a configured reduction. `postprocess` reads saved PSF-subtracted products and reapplies
+ * the currently configured post-median, derotation, and combination stages. For `postprocess`, set
+ * `postprocess.directory`, `postprocess.prefix`, and `postprocess.extension`.
+ *
+ * \section klip_regions Regions and KL modes
+ *
+ * `geom.minRadius` and `geom.maxRadius` define matching radial bounds. Optional `geom.minAngle` and
+ * `geom.maxAngle` split them into wedges; omitted angle vectors mean full annuli. `klip.Nmodes` is the ordered list
+ * of requested retained KL modes and therefore sets the output-cube planes.
+ *
+ * `adi.excludeMethod`, `adi.minDPx`, and `adi.maxDPx` control which ADI frames may enter each target's reference
+ * library. `klip.includeMethod` and `klip.includeRefNum` provide explicit inclusion controls. `klip.rightReason`
+ * and `klip.rrRadius` enable the specialized right-reason diagnostic/projection path.
+ *
+ * The implementation automatically forms the smaller of the reference-image and pixel-space covariance matrices for
+ * each realized library. This is an internal performance optimization: it preserves configured mode order and the
+ * reduction interface, while making narrow regions with many reference images substantially faster.
+ *
+ * \section klip_diagnostics Diagnostics
+ *
+ * Set `klip.writeDiagnostics=true` and choose `klip.diagnosticDirectory` to write region and reference-library
+ * diagnostics. These products help audit frame selection and geometry; they do not change the science result.
+ *
+ * \section klip_dictionary Configuration reference
+ *
+ * See the \ref klip_configuration_dictionary "klipReduce configuration dictionary" for every application, geometry,
+ * library-selection, PCA, and diagnostic option. Shared input, preprocessing, ADI, combination, and output settings
+ * are documented in the \ref common_configuration_dictionary "common dictionary".
+ *
+ * @}
+ */

@@ -92,6 +92,7 @@ if(Doxygen_FOUND)
     add_custom_target(docs ${_hcireduce_docs_all}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${HCIREDUCE_DOC_OUTPUT_DIR}
         COMMAND ${DOXYGEN_EXECUTABLE} ${HCIREDUCE_DOXYGEN_CONFIG}
+        COMMAND ${CMAKE_COMMAND} -DHCIREDUCE_DOC_HTML_DIR=${HCIREDUCE_DOC_HTML_DIR} -P ${CMAKE_SOURCE_DIR}/cmake/restructure_doxygen_navtree.cmake
         COMMAND ${CMAKE_COMMAND} -DCOVERAGE_REPORT_DIR=${HCIREDUCE_COVERAGE_REPORT_DIR} -DPROJECT_NAME=hciReduce -P ${CMAKE_SOURCE_DIR}/cmake/ensure_coverage_placeholder.cmake
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/doc
         DEPENDS ${HCIREDUCE_DOXYGEN_CONFIG}
@@ -101,6 +102,14 @@ if(Doxygen_FOUND)
                 ${CMAKE_SOURCE_DIR}/doc/hcireduce.bib
                 ${CMAKE_SOURCE_DIR}/doc/main.dox
                 ${CMAKE_SOURCE_DIR}/doc/groupdefs.dox
+                ${CMAKE_SOURCE_DIR}/doc/common.dox
+                ${CMAKE_SOURCE_DIR}/doc/common_config.dox
+                ${CMAKE_SOURCE_DIR}/doc/klip.dox
+                ${CMAKE_SOURCE_DIR}/doc/klip_config.dox
+                ${CMAKE_SOURCE_DIR}/doc/p4.dox
+                ${CMAKE_SOURCE_DIR}/doc/p4_config.dox
+                ${CMAKE_SOURCE_DIR}/doc/programming.dox
+                ${CMAKE_SOURCE_DIR}/doc/bibliography.dox
                 ${CMAKE_SOURCE_DIR}/doc/testing.dox
                 ${CMAKE_SOURCE_DIR}/doc/building_tests.dox
                 ${CMAKE_SOURCE_DIR}/doc/coverage_report.dox
@@ -110,6 +119,7 @@ if(Doxygen_FOUND)
                 ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js
                 ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js
                 ${CMAKE_SOURCE_DIR}/cmake/ensure_coverage_placeholder.cmake
+                ${CMAKE_SOURCE_DIR}/cmake/restructure_doxygen_navtree.cmake
         USES_TERMINAL
         VERBATIM
     )

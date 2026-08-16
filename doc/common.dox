@@ -1,0 +1,58 @@
+/** \file common.dox
+ * \brief Scientist-facing guide to hciReduce's shared workflow and configuration.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup common_user_guide
+ * @{
+ *
+ * Both applications use the same observation workflow: read FITS images, optionally coadd and preprocess them, run
+ * the selected algorithm, derotate residuals, then combine and write FITS products.
+ *
+ * A configuration file contains sectioned `key=value` entries. Pass it explicitly with
+ * `--config path/to/reduction.conf`; command-line options override values read from that file. Run either executable
+ * with `--help` to see every accepted option and its current default. The
+ * \ref common_configuration_dictionary "Common configuration dictionary" gives the CLI spelling, configuration
+ * syntax, type, limits, and detailed behavior of every shared option.
+ *
+ * \section common_input Input images and masks
+ *
+ * Set `input.directory`, `input.prefix`, and `input.extension` to discover a FITS sequence, or set
+ * `input.fileList` to use an explicit ordered list. `input.deleteFront`, `input.deleteBack`, and the
+ * `input.qualityFile`/`input.qualityThreshold` pair provide reproducible frame rejection. Set
+ * `input.thresholdOnly=true` to inspect the selected list without running a reduction.
+ *
+ * `input.angleKeyword`, `input.angleScale`, and `input.angleConstant` define the parallactic angle used for ADI
+ * derotation. An optional binary `input.maskFile` uses zero for excluded detector pixels. A mask is part of the
+ * scientific input: it affects preprocessing, local modeling, and final valid-pixel accounting.
+ *
+ * \section common_rdi Reference libraries
+ *
+ * `rdi.*` mirrors the input-file settings for a reference library. It is useful to algorithms that support Reference
+ * Differential Imaging. `klipReduce` supports RDI; the initial `p4Reduce` implementation intentionally rejects RDI
+ * configuration because P4 currently models target sequences only.
+ *
+ * \section common_preprocessing Coaddition and preprocessing
+ *
+ * `coadd.method` controls optional temporal coaddition. The `preProcess.*` settings control masking, radial-profile
+ * subtraction, azimuthal/median/Gaussian unsharp masking, mean or median image subtraction, and pixel time-series
+ * normalization. Use `preProcess.skip=true` for an already preprocessed sequence. `preProcess.only=true` writes any
+ * requested preprocessed products and stops before the algorithm.
+ *
+ * \section common_adi ADI, fake companions, and final combination
+ *
+ * Both applications use the configured detector angles to derotate residual images before final combination unless
+ * `combine.noDerotate=true`. `adi.postMedSub` applies a median subtraction immediately before derotation. The
+ * `fake.*` settings inject calibrated artificial companions for throughput experiments. `combine.method` selects the
+ * final mean, median, weighted, or sigma-clipped (`sigmaMean`) combination; `combine.minGoodFract` determines when insufficient
+ * valid samples produce an invalid output pixel.
+ *
+ * \section common_output Output products
+ *
+ * `output.directory` selects the destination. With `output.exactFName=false`, `output.fileName` is a literal prefix
+ * and hciReduce appends the next unused four-digit sequence number and `.fits`; with `true`, it is the exact output
+ * filename. `output.outputPSFSub=true` additionally writes the residual-image cube. FITS headers record the
+ * configured algorithm and final-processing provenance.
+ *
+ * @}
+ */

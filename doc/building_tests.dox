@@ -50,6 +50,11 @@
  * - `doc/html/coverage/index.html`
  * - `doc/html/index.html`
  *
+ * The filtered report contains only hciReduce-owned production files beneath
+ * `src/`. Dependency coverage is verified separately in each dependency's own
+ * source repository, so an mxlib installation outside `/usr` cannot silently
+ * distort the hciReduce denominator.
+ *
  * Set `HCIREDUCE_COVERAGE_TEST_TIMEOUT` to change the default 300-second test
  * timeout. Clean generated reports and the isolated build with:
  *

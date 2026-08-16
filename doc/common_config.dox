@@ -1,0 +1,125 @@
+/** \file common_config.dox
+ * \brief Configuration dictionary shared by hciReduce reductions.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup common_user_guide
+ * @{
+ *
+ * \page common_configuration_dictionary Common configuration dictionary
+ *
+ * This is the reference for settings shared by `klipReduce` and `p4Reduce`. The algorithm-specific dictionaries are
+ * \ref klip_configuration_dictionary "KLIP configuration" and
+ * \ref p4_configuration_dictionary "P4 configuration".
+ *
+ * \section common_config_syntax Configuration and command-line syntax
+ *
+ * Every setting has a dotted command-line spelling, for example
+ * `--input.directory /data/sequence`. In a configuration file, write either the dotted assignment
+ * `input.directory=/data/sequence` or the equivalent sectioned form:
+ *
+ * \code{.ini}
+ * [input]
+ * directory=/data/sequence
+ * \endcode
+ *
+ * Command-line values override configuration-file values. `-c path` / `--config path` selects a configuration file;
+ * `--help` prints the complete live option list and defaults. Boolean values are `true` or `false`. Lists are
+ * comma-separated, for example `minRadius=6,8,10`.
+ *
+ * \section common_input_dictionary Input target sequence
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `-D`, `--input.directory` | `input.directory=/path` | string; readable directory | unset | Directory searched for target FITS files. |
+ * | `-P`, `--input.prefix` | `input.prefix=prefix` | string; may be empty | empty | Filename prefix. An empty prefix considers every matching file. |
+ * | `-E`, `--input.extension` | `input.extension=.fits` | string | `.fits` | Filename extension used for discovery. |
+ * | `-F`, `--input.fileList` | `input.fileList=files.txt` | string; readable text file | unset | Explicit ordered file list. Paths are relative to `input.directory` when both are set. |
+ * | `--input.deleteFront` | `input.deleteFront=0` | nonnegative integer | `0` | Drops this many entries from the beginning of the discovered/listed sequence. |
+ * | `--input.deleteBack` | `input.deleteBack=0` | nonnegative integer | `0` | Drops this many entries from the end of the sequence. |
+ * | `--input.qualityFile` | `input.qualityFile=quality.txt` | string | unset | Two-column `filename number` table used for frame-quality selection. |
+ * | `--input.qualityThreshold` | `input.qualityThreshold=value` | real scalar; `<=0` disables thresholding | `0` | Threshold applied to the quality-table values. |
+ * | `--input.thresholdOnly` | `input.thresholdOnly=true` | bool | `false` | Prints the selected filenames after quality filtering and stops before reduction. |
+ * | `--input.dateKeyword` | `input.dateKeyword=DATE-OBS` | FITS keyword string; empty disables date reading | `DATE-OBS` | Date keyword for timing, coaddition, and time-based selection. |
+ * | `--input.dateIsISO8601` | `input.dateIsISO8601=true` | bool | `true` | Interpret the date keyword as ISO-8601 rather than a numeric time. |
+ * | `--input.dateUnit` | `input.dateUnit=value` | positive real conversion to Julian days | `1` | Converts a non-ISO numeric date to Julian days; e.g. seconds-to-days. |
+ * | `-S`, `--input.imSize` | `input.imSize=0` | integer; `0` means uncut | `0` | Maximum detector size to read; use `0` for the complete image. |
+ * | `--input.maskFile` | `input.maskFile=mask.fits` | FITS 1/0 image | unset | Common detector mask. Zero pixels are excluded from analysis. |
+ *
+ * \section common_rdi_dictionary RDI reference sequence
+ *
+ * `klipReduce` can read a Reference Differential Imaging library. `p4Reduce` rejects every nonempty RDI setting.
+ * The RDI files use the same discovery and quality semantics as the target sequence.
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--rdi.directory`, `--rdi.prefix`, `--rdi.extension` | `rdi.directory=...` etc. | strings | unset, empty, `.fits` | Reference-library discovery. Empty prefix selects all matching files. |
+ * | `--rdi.fileList` | `rdi.fileList=files.txt` | text-file path | unset | Explicit reference list; entries are relative to `rdi.directory` when it is set. |
+ * | `--rdi.deleteFront`, `--rdi.deleteBack` | `rdi.deleteFront=0` etc. | nonnegative integers | `0`, `0` | Trim the reference list before use. |
+ * | `--rdi.qualityFile`, `--rdi.qualityThreshold` | `rdi.qualityFile=...` etc. | `filename number` table; threshold `<=0` disables it | unset, `0` | Quality-select reference frames. |
+ * | `--rdi.dateKeyword`, `--rdi.dateIsISO8601`, `--rdi.dateUnit` | `rdi.dateKeyword=...` etc. | same as `input.date*` | `DATE-OBS`, `true`, `1` | Reference timestamps for time-based inclusion. |
+ * | `--rdi.maskFile` | `rdi.maskFile=mask.fits` | FITS 1/0 image | unset | Reference-only mask. It defaults to the input mask; set it empty to mask targets but not references. |
+ * | `--rdi.useInputMask` | `rdi.useInputMask=true` | bool | `false` | Forces the input mask onto references, overriding `rdi.maskFile`. |
+ *
+ * \section common_coadd_dictionary Temporal coaddition
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--coadd.method` | `coadd.method=none` | `none`, `median`, or `mean` | `none` | Enables temporal coaddition. |
+ * | `--coadd.maxImno` | `coadd.maxImno=N` | positive integer | `0` | Maximum number of consecutive images in one coadd. |
+ * | `--coadd.maxTime` | `coadd.maxTime=seconds` | positive real seconds | `0` | Maximum elapsed time represented by one coadd. |
+ * | `--coadd.keywords` | `coadd.keywords=KEY1,KEY2` | comma-separated FITS keyword list | empty | Values of these header keywords are averaged and replaced in coadded products. |
+ *
+ * \section common_preprocess_dictionary Preprocessing
+ *
+ * Preprocessing can be applied before or after coaddition. `preProcess.only` is useful for creating a reproducible
+ * preprocessed input set; point a later reduction at that set and use `preProcess.skip=true`.
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--preProcess.skip` | `preProcess.skip=true` | bool | `false` | Skip all preprocessing, for already prepared input. |
+ * | `--preProcess.beforeCoadd` | `preProcess.beforeCoadd=true` | bool | `false` | Run preprocessing before, rather than after, temporal coaddition. |
+ * | `--preProcess.mask` | `preProcess.mask=true` | bool | `true` | Apply the common input mask during preprocessing. |
+ * | `--preProcess.subradprof` | `preProcess.subradprof=true` | bool | `false` | Subtract a radial profile from each image. |
+ * | `--preProcess.azUSM_azHalfWidth` | `preProcess.azUSM_azHalfWidth=pixels` | nonzero real pixels | `0` | Azimuthal half-width for boxcar unsharp masking; both azimuthal and radial half-widths must be nonzero. |
+ * | `--preProcess.azUSM_radHalfWidth` | `preProcess.azUSM_radHalfWidth=pixels` | nonzero real pixels | `0` | Radial half-width for the same filter. |
+ * | `--preProcess.azUSM_maxAz` | `preProcess.azUSM_maxAz=degrees` | nonnegative real; `0` disables cap | `45` | Limits the azimuthal width near the center to avoid wrap-around. |
+ * | `--preProcess.azUSM_azW`, `--preProcess.azUSM_radW` | `preProcess.azUSM_azW=...` etc. | deprecated aliases | `0`, `0` | Compatibility names for the corresponding `*HalfWidth` options. The explicit half-width names win. |
+ * | `--preProcess.medianUSM_fwhm` | `preProcess.medianUSM_fwhm=pixels` | nonzero integer enables | `0` | Median unsharp-mask kernel FWHM. |
+ * | `--preProcess.gaussUSM_fwhm` | `preProcess.gaussUSM_fwhm=pixels` | nonzero real enables | `0` | Gaussian unsharp-mask kernel FWHM. |
+ * | `--preProcess.meanSubMethod` | `preProcess.meanSubMethod=none` | `none`, `meanImage`, `medianImage` | `none` | Image-level subtraction during preprocessing. |
+ * | `--preProcess.pixelTSNormMethod` | `preProcess.pixelTSNormMethod=none` | `none`, `rms` | `none` | Per-pixel temporal normalization. `rms` is a true RMS normalization. `rmsSigmaClipped` is registered for compatibility but is not implemented and is rejected. |
+ * | `--preProcess.pixelTSSigma` | `preProcess.pixelTSSigma=value` | positive real | `3` | Reserved sigma threshold for the currently unavailable sigma-clipped normalization. |
+ * | `--preProcess.outputPrefix` | `preProcess.outputPrefix=/path/prefix` | full output prefix | unset | Writes preprocessed images when nonempty. |
+ * | `--preProcess.only` | `preProcess.only=true` | bool | `false` | Stop after preprocessing and any requested preprocessed output. |
+ *
+ * \section common_adi_dictionary ADI, artificial companions, and combination
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--input.angleKeyword` | `input.angleKeyword=POSANG` | FITS keyword string | unset | Per-frame detector angle used for ADI derotation. |
+ * | `--input.angleScale`, `--input.angleConstant` | `input.angleScale=1`, `input.angleConstant=0` | real scalars | `1`, `0` | Derotation angle is `scale * keyword + constant`, in degrees. |
+ * | `--adi.postMedSub` | `adi.postMedSub=true` | bool | `false` | Subtract a temporal median immediately before derotation. |
+ * | `--fake.method` | `fake.method=single` | `single` or `list` | `single` | Artificial-companion injection mode. |
+ * | `--fake.fileName` | `fake.fileName=psf.fits` | FITS file path | unset | Off-axis PSF/template used for injection. |
+ * | `--fake.scaleFileName` | `fake.scaleFileName=scales.txt` | two-column filename/scale table | unset | Per-image fake-companion scale factors. |
+ * | `--fake.sep`, `--fake.PA`, `--fake.contrast` | `fake.sep=...` etc. | matching comma-separated real vectors; pixels, degrees, contrast | empty | Locations and brightnesses for injected companions. |
+ * | `--fake.RDIFluxScale`, `--fake.RDISepScale` | `fake.RDIFluxScale=...` etc. | comma-separated real vectors | empty | Optional RDI-specific fake scaling. |
+ * | `--combine.noDerotate` | `combine.noDerotate=true` | bool | `false` | Suppress ADI derotation before final combination. |
+ * | `--combine.method` | `combine.method=mean` | `mean`, `median`, `weighted`, `sigmaMean` | `mean` | Final image-combination estimator. |
+ * | `--combine.weightFile` | `combine.weightFile=weights.txt` | two-column filename/weight table | unset | Weights for `weighted` combination. |
+ * | `--combine.sigmaThreshold` | `combine.sigmaThreshold=value` | nonnegative real | `0` | Clip threshold for `sigmaMean` combination; `<=0` falls back to mean. |
+ * | `--combine.minGoodFract` | `combine.minGoodFract=fraction` | real fraction in `[0,1]` | `0` | Minimum valid temporal fraction; insufficient samples produce an invalid final pixel. |
+ *
+ * \section common_output_dictionary Output products
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--output.directory` | `output.directory=/path` | writable directory | unset | Destination for final products. |
+ * | `--output.fileName` | `output.fileName=finim_` | literal string | `finim_` | Prefix when `exactFName=false`; hciReduce appends the next unused `0000`-style suffix and `.fits`. |
+ * | `--output.exactFName` | `output.exactFName=true` | bool | `false` | Treat `output.fileName` as the complete literal filename, with no suffix or extension appended. |
+ * | `--output.outputPSFSub` | `output.outputPSFSub=true` | bool | `false` | Also write the PSF-subtracted residual cube. |
+ * | `--output.psfSubPrefix` | `output.psfSubPrefix=psfsub_` | literal string | unset | Prefix used for residual-cube products. |
+ *
+ * @}
+ */

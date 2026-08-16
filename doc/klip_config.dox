@@ -1,0 +1,80 @@
+/** \file klip_config.dox
+ * \brief Configuration dictionary for klipReduce.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup klipreduce_user_guide
+ * @{
+ *
+ * \page klip_configuration_dictionary klipReduce configuration dictionary
+ *
+ * This dictionary adds KLIP settings to the shared \ref common_configuration_dictionary
+ * "common configuration dictionary". Long options use `--dotted.key value`; the config-file column shows the
+ * equivalent sectioned assignment.
+ *
+ * \section klip_app_dictionary Application modes and postprocessing
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--mode` | `mode=basic` | `basic`, `normal`, `postprocess` | `basic` | `basic` and `normal` run a configured KLIP reduction. `postprocess` reads saved residual products and reapplies final-stage processing. |
+ * | `--postprocess.directory` | `postprocess.directory=/path` | readable directory | unset | Location of saved PSF-subtracted FITS products for `postprocess`. |
+ * | `--postprocess.prefix` | `postprocess.prefix=psfsub_` | literal string | unset | Saved-product filename prefix. |
+ * | `--postprocess.extension` | `postprocess.extension=.fits` | literal extension | `.fits` | Saved-product filename extension. |
+ *
+ * \section klip_geometry_dictionary Search geometry
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--geom.minRadius` | `geom.minRadius=6,8,10` | comma-separated real pixels | required | Inner radii of KLIP search regions. Pair each entry with `maxRadius`. |
+ * | `--geom.maxRadius` | `geom.maxRadius=8,10,12` | matching real-pixel vector | required | Outer radii of KLIP search regions. |
+ * | `--geom.minAngle` | `geom.minAngle=0,90` | optional real-degree vector | unset | Lower angular bounds for wedges. Omit both angle vectors for complete annuli. |
+ * | `--geom.maxAngle` | `geom.maxAngle=90,180` | optional matching real-degree vector | unset | Upper angular bounds for wedges. |
+ * | `--geom.nWedges` | `geom.nWedges=N` | positive integer | `0` | Generates equal angular wedges and overrides explicit angle vectors; radius vectors are expanded to match the resulting regions. |
+ *
+ * Regions determine both computational cost and locality. Use several narrow annuli/wedges when spatial variation is
+ * important, but ensure each contains enough unmasked pixels for the requested KL modes.
+ *
+ * \section klip_library_dictionary ADI exclusion and reference inclusion
+ *
+ * A target frame's library first applies the minimum and maximum ADI exclusions, then the configured inclusion rule.
+ * The realized number of references can vary by target, especially with RDI or angle/time exclusions.
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--adi.excludeMethod` | `adi.excludeMethod=none` | `none`, `pixel`, `angle`, `imno` | `none` | Quantity used for the minimum exclusion around a target frame. |
+ * | `--adi.minDPx` | `adi.minDPx=value` | nonnegative real | `0` | Minimum difference at the inner edge of the region, interpreted by `excludeMethod`. |
+ * | `--adi.excludeMethodMax` | `adi.excludeMethodMax=none` | `none`, `pixel`, `angle`, `imno` | `none` | Quantity used for an optional maximum exclusion. |
+ * | `--adi.maxDPx` | `adi.maxDPx=value` | nonnegative real | `0` | Maximum difference at the inner edge, interpreted by `excludeMethodMax`. |
+ * | `--klip.includeMethod` | `klip.includeMethod=all` | `all`, `corr`, `time`, `angle`, `imno` | `all` | Ordering/selection method applied after exclusions. |
+ * | `--klip.includeRefNum` | `klip.includeRefNum=N` | nonnegative integer | `0` (all) | Maximum retained references after exclusion and ordering. |
+ *
+ * `pixel` expresses motion at the inner search radius, `angle` uses field rotation, `imno` uses image-number spacing,
+ * and `time` uses configured FITS dates. A missing/disabled date key cannot support meaningful time selection.
+ *
+ * \section klip_pca_dictionary KL basis and residual products
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--klip.Nmodes` | `klip.Nmodes=1,5,10` | comma-separated positive integers | required | Requested retained KL-mode counts. The list order is the output-cube plane order. Counts beyond a realized library's available degrees of freedom use all available modes. |
+ * | `--klip.meanSubMethod` | `klip.meanSubMethod=imageMean` | `imageMean`, `imageMedian`, `meanImage`, `medianImage` | `imageMean` | Mean/median subtraction convention used while constructing the KL basis. |
+ * | `--klip.pixelTSNormMethod` | `klip.pixelTSNormMethod=none` | `none`, `rms` | `none` | Per-pixel temporal normalization for the PCA library. |
+ * | `--klip.pixelTSSigma` | `klip.pixelTSSigma=value` | positive real | `3` | Sigma threshold used where the selected normalization needs clipping. |
+ * | `--klip.rightReason` | `klip.rightReason=true` | bool | `false` | Enables the specialized right-reason masked projection diagnostic. |
+ * | `--klip.rrRadius` | `klip.rrRadius=pixels` | positive real pixels | `2.5` | Radius defining the right-reason mask. |
+ *
+ * For each realized reference library, KLIP automatically solves the smaller of the reference-image and pixel-space
+ * Gram matrices. This has no configuration switch: it preserves the requested mode list while avoiding an expensive
+ * large eigensolve for small regions with many references.
+ *
+ * \section klip_diagnostics_dictionary Diagnostics
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--klip.writeDiagnostics` | `klip.writeDiagnostics=true` | bool | `false` | Write intermediate region, covariance, and library-selection FITS diagnostics. |
+ * | `--klip.diagnosticDirectory` | `klip.diagnosticDirectory=/path` | writable directory | `.` | Destination for enabled KLIP diagnostics. |
+ *
+ * Diagnostics are for audit and tuning; they do not change the calculated residuals. In particular, the covariance
+ * diagnostic retains the historical reference-frame covariance representation.
+ *
+ * @}
+ */

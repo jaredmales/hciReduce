@@ -1,0 +1,145 @@
+/** \file p4.dox
+ * \brief User's Guide for Pixel Prediction Post-Processing and p4Reduce.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup p4reduce_user_guide
+ * @{
+ *
+ * P4 (Pixel Prediction Post-Processing) predicts one detector pixel at a time from a local annular-wedge region in
+ * the same image. The complete time sequence trains one in-sample regression for each search pixel. A central
+ * exclusion disk prevents the expected companion location from entering the predictor set.
+ *
+ * For one search pixel, let `y` be its `T x 1` time series and let `X` contain `K` interpolated predictor-pixel time
+ * series. P4 eigendecomposes the smaller of the two Gram matrices. For `T <= K` it forms the temporal Gram matrix
+ *
+ * \f[
+ *     G_T = X X^T
+ * \f]
+ *
+ * and subtracts each retained temporal eigenvector `u` as `u (u^T y)`. For `T > K` it forms the predictor Gram
+ * matrix `G_K = X^T X` and `b = X^T y`, then applies the algebraically equivalent truncated pseudoinverse. Both
+ * branches solve an `N x N` symmetric problem with `N = min(T,K)`, use the same nonzero eigenvalues and rank policy,
+ * and add no hidden centering or intercept. Mean-image subtraction and other preprocessing are controlled entirely
+ * by the inherited hciReduce preprocessing configuration.
+ *
+ * Invalid or unsupported detector locations are carried by an explicit per-output validity cube while arithmetic is
+ * in progress. Rank-insufficient output pixels are invalid rather than silently clamped to a smaller mode count.
+ * Validity is propagated through post-median subtraction, derotation, and final combination before persistent invalid
+ * values are materialized.
+ *
+ * \section p4reduce_modes Application modes
+ *
+ * `p4Reduce` supports `basic` and `normal` as exact aliases. Each performs one configured target-only ADI reduction.
+ * Grid scheduling is deliberately external to the executable. Saved-product `postprocess` mode is not yet supported:
+ * it requires a versioned raw-residual and validity-mask checkpoint format so invalid pixels cannot contaminate a
+ * resumed derotation or combination.
+ *
+ * \section p4reduce_configuration P4 configuration
+ *
+ * The application reuses the ordinary hciReduce input, mask, fake-injection, preprocessing, coaddition, ADI,
+ * combination, and output settings. P4 adds only these targets:
+ *
+ * | Target | Contract |
+ * |---|---|
+ * | `geom.minRadius`, `geom.maxRadius` | Matching, ordered, non-overlapping full-annulus bounds. Inner radii are inclusive and outer radii are exclusive. |
+ * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
+ * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
+ * | `p4.orArcHalfWidth` | Positive azimuthal half-width expressed as arc length in pixels. |
+ * | `p4.orMaxHalfAngle` | Angular half-width cap strictly between 0 and 180 degrees. |
+ * | `p4.psfRadius` | Positive physical radius of the central signal-exclusion disk, in pixels. |
+ * | `p4.exclusionPolicy` | Required `sampleCenter` or `kernelSupport` policy. |
+ * | `p4.exclusionRadiusBuffer` | Explicit nonnegative amount added to `p4.psfRadius`; `0.5` reproduces the prototype's effective mask buffer. |
+ * | `p4.rankTolerance` | Relative eigenvalue threshold in `[0,1)`, default `1e-12`. |
+ * | `p4.writeDiagnostics` | Enable ownership, validity, canonical-region, rank, and timing FITS diagnostics. |
+ * | `p4.diagnosticDirectory` | Destination for enabled diagnostics. |
+ *
+ * P4 rejects configured RDI input, overlapping annuli, any incomplete interpolation footprint, and nonfinite input as
+ * hard errors. A target or predictor footprint that touches the common input mask instead marks only that local fit and
+ * its output samples invalid in the per-output validity cube, and the reduction continues. `sampleCenter` reproduces
+ * the prototype's center-only exclusion, while `kernelSupport` enforces the exclusion across every nominal
+ * cubic-interpolation footprint.
+ *
+ * The rank test is the literal strict comparison `lambda > p4.rankTolerance * lambdaMax`. A zero tolerance therefore
+ * accepts every eigenvalue returned as positive, including a roundoff-positive numerical null; use a nonzero relative
+ * tolerance when reliable rank-deficiency classification matters.
+ *
+ * During geometry construction, `p4Reduce` reports each annulus together with its search-pixel and predictor counts.
+ * During regression, a rate-limited `std::cerr` status line combines the active annulus's completed/total pixels,
+ * measured seconds per pixel, and local ETA with cumulative completed/total pixels across all annuli. Each annulus
+ * ends with an exact newline-delimited completion record, so redirected logs remain readable as well as interactive
+ * terminal output.
+ *
+ * \section p4reduce_example Example configuration
+ *
+ * This compact example follows the public AF Lep/NACO prototype science geometry and adds a `[3.5,6)` calculation
+ * annulus for the current inner-boundary support experiment. Paths remain for the user to select. A checked
+ * comparison configuration is provided at `examples/p4Reduce_afLepNaco_prototype.conf` and installed under
+ * `share/hcireduce/examples`. It uses the prototype's input path, `p4.rankTolerance=0`, and the sequential `finim_`
+ * output prefix. With `exactFName=false`, `output.fileName` is a literal prefix rather than a format string, so this
+ * produces `finim_0000.fits` and then the next unused four-digit name.
+ *
+ * \code{.ini}
+ * mode=normal
+ *
+ * [input]
+ * directory=/path/to/preprocessed
+ * prefix=pp_
+ * extension=.fits
+ * dateKeyword=
+ * angleKeyword=POSANG
+ * angleScale=1
+ * angleConstant=1.6
+ *
+ * [geom]
+ * minRadius=3.5,6,8,10,12,14,16,18
+ * maxRadius=6,8,10,12,14,16,18,20
+ *
+ * [p4]
+ * modeFractions=0.01,0.03,0.05,0.07,0.09,0.11,0.13,0.15,0.17,0.19,0.21,0.23,0.25,0.27,0.29
+ * orDeltaRadiusInner=8
+ * orDeltaRadiusOuter=30
+ * orArcHalfWidth=32
+ * orMaxHalfAngle=90
+ * psfRadius=1.5
+ * exclusionPolicy=sampleCenter
+ * exclusionRadiusBuffer=0.5
+ * rankTolerance=1e-12
+ * writeDiagnostics=false
+ * diagnosticDirectory=./p4-diagnostics
+ *
+ * [preProcess]
+ * skip=true
+ *
+ * [combine]
+ * method=sigmaMean
+ * sigmaThreshold=5
+ * minGoodFract=0
+ * noDerotate=false
+ *
+ * [output]
+ * directory=./p4-output
+ * fileName=finim_
+ * exactFName=false
+ * outputPSFSub=false
+ * \endcode
+ *
+ * The comparison configuration does not promise bitwise-identical output. The prototype used float/CUDA PCA and
+ * zero-filled unsupported pixels, whereas p4Reduce uses all-double CPU PCA and propagates authoritative validity
+ * through derotation and combination. The prototype also wrote an unused `psf_mean.fits` sidecar that has no effect
+ * on the reduction and is not reproduced by p4Reduce.
+ *
+ * For a new dataset, leave `preProcess.skip=false` and configure inherited preprocessing explicitly. Diagnostics do
+ * not change the numerical result, but the ownership and region-summary products are useful when validating new
+ * geometry. `p4Validity_*.fits` records the residual validity immediately after local fitting, in detector
+ * coordinates and before post-median subtraction, derotation, or combination; it is not pixel-aligned with a
+ * derotated final product.
+ *
+ * \section p4reduce_dictionary Configuration reference
+ *
+ * The \ref p4_configuration_dictionary "p4Reduce configuration dictionary" gives the command-line spelling,
+ * configuration-file form, accepted values, and detailed scientific effect of every P4 setting. The shared
+ * \ref common_configuration_dictionary "common dictionary" covers input, preprocessing, ADI, combination, and output.
+ *
+ * @}
+ */

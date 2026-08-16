@@ -1,0 +1,85 @@
+/** \file p4_config.dox
+ * \brief Configuration dictionary for p4Reduce.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup p4reduce_user_guide
+ * @{
+ *
+ * \page p4_configuration_dictionary p4Reduce configuration dictionary
+ *
+ * This dictionary adds P4 settings to the shared \ref common_configuration_dictionary
+ * "common configuration dictionary". Long options use `--dotted.key value`; the config-file column shows the
+ * equivalent sectioned assignment.
+ *
+ * \section p4_app_dictionary Application mode and scope
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--mode` | `mode=basic` | `basic` or `normal` | `basic` | Exact aliases for one configured, target-only P4 reduction. |
+ *
+ * `p4Reduce` currently rejects RDI configuration and does not provide saved-product `postprocess`. Its external grid
+ * scheduling is deliberately not an application mode: run separate fully specified configurations instead.
+ *
+ * \section p4_geometry_dictionary Search annuli and output support
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--geom.minRadius` | `geom.minRadius=3.5,6,8` | strictly ordered real pixels | required | Inclusive inner radii of P4 search annuli. |
+ * | `--geom.maxRadius` | `geom.maxRadius=6,8,10` | matching ordered real-pixel vector | required | Exclusive outer radii. Annuli may not overlap. |
+ *
+ * P4 rejects an annulus whose search or predictor interpolation footprint crosses an image edge. The final ADI stage
+ * requires complete cubic-interpolation support. To retain science over `[r0,r1)`, calculate halo annuli beyond both
+ * boundaries, then interpret/crop the desired science interval after finalization. Merely widening the first science
+ * annulus changes its predictor geometry; a separate support annulus preserves the core model.
+ *
+ * \section p4_model_dictionary Predictor region and PCA modes
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--p4.modeFractions` | `p4.modeFractions=0.01,0.03,...` | finite, strictly increasing values in `(0,1]` | required | Requested PCA fractions. Each becomes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
+ * | `--p4.orDeltaRadiusInner` | `p4.orDeltaRadiusInner=pixels` | positive real pixels | required | Inward radial extent of the local annular predictor wedge. |
+ * | `--p4.orDeltaRadiusOuter` | `p4.orDeltaRadiusOuter=pixels` | positive real pixels | required | Outward radial extent of that wedge. |
+ * | `--p4.orArcHalfWidth` | `p4.orArcHalfWidth=pixels` | positive real arc length | required | Azimuthal half-width of the predictor wedge, expressed as arc length at the region radius. |
+ * | `--p4.orMaxHalfAngle` | `p4.orMaxHalfAngle=degrees` | real degrees strictly in `(0,180)` | required | Cap on the predictor wedge's angular half-width. |
+ * | `--p4.rankTolerance` | `p4.rankTolerance=1e-12` | real in `[0,1)` | `1e-12` | Relative rank criterion: a mode is retained only when `lambda > tolerance * lambdaMax`. `0` accepts all positive returned eigenvalues, including roundoff-positive nulls. |
+ *
+ * P4 solves the smaller `min(T,K)` Gram matrix. This is automatic, uses all-double numerical work, and is algebraically
+ * equivalent to the predictor-space solution; it is not a backend choice exposed in the configuration.
+ *
+ * \section p4_exclusion_dictionary Signal exclusion
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--p4.psfRadius` | `p4.psfRadius=pixels` | positive real pixels | required | Physical central radius excluded from predictors. |
+ * | `--p4.exclusionRadiusBuffer` | `p4.exclusionRadiusBuffer=0.5` | nonnegative real pixels | required | Explicit additional radius applied to the physical exclusion. `0.5` reproduces the prototype's effective buffer. |
+ * | `--p4.exclusionPolicy` | `p4.exclusionPolicy=sampleCenter` | `sampleCenter` or `kernelSupport` | required | Defines how the buffered exclusion is tested. |
+ *
+ * `sampleCenter` rejects a predictor sample when its interpolated sample center lies inside the buffered disk. It is the
+ * closest match to the prototype's center-only mask. `kernelSupport` rejects a sample when any pixel in its nominal
+ * cubic-interpolation support lies inside the disk. Thus `kernelSupport` is more conservative near the boundary, but
+ * it is not simply a larger `psfRadius`: the exact rejection depends on the fractional interpolation location and the
+ * orientation of the four-by-four footprint.
+ *
+ * \section p4_validity_dictionary Masks, rank, and invalid local fits
+ *
+ * Common input masks are honored during grid construction. A local fit becomes invalid when its target or predictor
+ * support touches a masked pixel, or when a requested mode is not supported by its numerical rank. P4 carries this
+ * state in a separate validity cube through post-median subtraction, derotation, and final combination; invalid
+ * values become NaN only after final arithmetic. Nonfinite target input and image-edge footprint failures are hard
+ * configuration/reduction errors rather than values to be silently filled.
+ *
+ * \section p4_diagnostics_dictionary Diagnostics and progress
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--p4.writeDiagnostics` | `p4.writeDiagnostics=true` | bool | `false` | Writes ownership, validity, canonical-region, rank, timing, and summary FITS diagnostics. |
+ * | `--p4.diagnosticDirectory` | `p4.diagnosticDirectory=/path` | writable directory; required when diagnostics are enabled | `.` | Destination for P4 diagnostic products. |
+ *
+ * Geometry construction reports each annulus's search-pixel and predictor count. Regression status reports the active
+ * annulus, completed/total local fits, rate, local ETA, and cumulative overall progress to standard error. The
+ * `p4Validity_*.fits` diagnostic is in detector coordinates immediately after local fitting; it is not aligned to a
+ * derotated final image.
+ *
+ * @}
+ */

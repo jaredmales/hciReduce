@@ -49,6 +49,14 @@ WARN_FORMAT             = "$file:$line: $text"
 
 INPUT                   = @CMAKE_SOURCE_DIR@/doc/main.dox \
                           @CMAKE_SOURCE_DIR@/doc/groupdefs.dox \
+                          @CMAKE_SOURCE_DIR@/doc/common.dox \
+                          @CMAKE_SOURCE_DIR@/doc/common_config.dox \
+                          @CMAKE_SOURCE_DIR@/doc/klip.dox \
+                          @CMAKE_SOURCE_DIR@/doc/klip_config.dox \
+                          @CMAKE_SOURCE_DIR@/doc/p4.dox \
+                          @CMAKE_SOURCE_DIR@/doc/p4_config.dox \
+                          @CMAKE_SOURCE_DIR@/doc/programming.dox \
+                          @CMAKE_SOURCE_DIR@/doc/bibliography.dox \
                           @CMAKE_SOURCE_DIR@/doc/testing.dox \
                           @CMAKE_SOURCE_DIR@/doc/building_tests.dox \
                           @CMAKE_SOURCE_DIR@/doc/coverage_report.dox \

@@ -1,41 +1,34 @@
-/** \defgroup hcireduce hciReduce
-  * High-contrast imaging reduction tools and project documentation.
+/** \defgroup user_guide User's Guide
+  * Scientist-facing guides for configuring and running hciReduce reductions.
   */
 
-/** \defgroup genastro Astronomical Data Processing
-  * Astronomical data-processing topics used by hciReduce.
-  * \ingroup hcireduce
+/** \defgroup common_user_guide Common Configuration and Workflow
+  * Shared input, preprocessing, ADI, combination, and output behavior.
+  * \ingroup user_guide
   */
 
-/** \defgroup image_processing Image Processing
-  * Image-processing topics used by hciReduce.
-  * \ingroup hcireduce
+/** \defgroup klipreduce_user_guide klipReduce
+  * User guide for the KLIP reduction application.
+  * \ingroup user_guide
   */
 
-/** \defgroup image_processing_files Image Processing Files
-  * Source files implementing image-processing tools.
-  * \ingroup image_processing
+/** \defgroup p4reduce_user_guide p4Reduce
+  * User guide for the Pixel Prediction Post-Processing application.
+  * \ingroup user_guide
   */
 
-/** \defgroup hc_imaging High Contrast Imaging
-  * Tools for astronomical high contrast image processing.
-  * \ingroup genastro
-  * \ingroup image_processing
+/** \defgroup programming_guide Programming
+  * Library architecture, extension points, tests, and verification for developers.
   */
 
-/** \defgroup hc_imaging_enums HCI Enums
-  * Enums for high contrast imaging.
-  * \ingroup hc_imaging
+/** \defgroup programming_library Library API
+  * Public high-contrast-imaging reduction types and supporting APIs.
+  * \ingroup programming_guide
   */
 
-/** \defgroup hc_imaging_files High Contrast Imaging Files
-  * Source files for High Contrast Imaging.
-  * \ingroup hc_imaging
-  */
-
-/** \defgroup hcireduce_testing Testing
-  * Test, coverage, and verification documentation.
-  * \ingroup hcireduce
+/** \defgroup hcireduce_testing Testing and Verification
+  * Build, test, coverage, and verification documentation.
+  * \ingroup programming_guide
   */
 
 /** \defgroup testing_building Building Tests
@@ -66,6 +59,27 @@
   * \ingroup unit_tests
   */
 
+/** \defgroup P4PCA_unit_tests P4 PCA Unit Tests
+  * \ingroup unit_tests
+  */
+
+/** \defgroup P4PixelGrid_unit_tests P4 Pixel Grid Unit Tests
+  * \ingroup unit_tests
+  */
+
+/** \defgroup P4Reduction_unit_tests P4 Reduction Unit Tests
+  * \ingroup unit_tests
+  */
+
 /** \defgroup klipReduce_unit_tests klipReduce Application Unit Tests
   * \ingroup unit_tests
+  */
+
+/** \defgroup p4Reduce_unit_tests p4Reduce Application Unit Tests
+  * \ingroup unit_tests
+  */
+
+/** \defgroup bibliography Bibliography
+  * Literature cited by the hciReduce documentation.
+  * \ingroup programming_guide
   */

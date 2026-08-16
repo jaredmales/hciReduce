@@ -1,0 +1,51 @@
+/** \file programming.dox
+ * \brief Developer-facing overview of hciReduce's library architecture and execution flow.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup programming_guide
+ * @{
+ *
+ * hciReduce separates shared observation logistics from algorithm-specific modeling. The public library API is
+ * collected under \ref programming_library "Library API"; this overview explains how the pieces fit together.
+ *
+ * \section programming_hierarchy Class hierarchy
+ *
+ * \code{.unparsed}
+ * HCIobservation
+ * └── ADIobservation
+ *     ├── KLIPreduction
+ *     └── P4Reduction
+ * \endcode
+ *
+ * \ref mx::improc::HCIobservation "HCIobservation" owns input discovery, FITS I/O, optional coaddition and
+ * preprocessing, common masks, final-image combination, and output. \ref mx::improc::ADIobservation
+ * "ADIobservation" adds parallactic-angle derotation, fake-companion injection, and the shared final-processing
+ * lifecycle. \ref mx::improc::KLIPreduction "KLIPreduction" supplies region-by-region KLIP PSF modeling, while
+ * \ref mx::improc::P4Reduction "P4Reduction" supplies local pixel-prediction modeling.
+ * \ref mx::improc::ADIDerotator "ADIDerotator" provides the standard configured image rotation transform.
+ *
+ * P4 further separates immutable geometry (\ref mx::improc::P4PixelGrid "P4PixelGrid") from the numerical
+ * truncated-PCA calculation (\ref mx::improc::P4PCA "P4PCA"). That separation keeps geometry, numerical rank
+ * handling, and reduction orchestration independently testable.
+ *
+ * \section programming_flow Execution flow
+ *
+ * Each application derives from `mx::app::application`, registers configuration targets, loads configuration, and
+ * invokes its reduction object. A normal run proceeds from configuration to file discovery and FITS read, common
+ * preprocessing, algorithm residuals, ADI final processing, and finally FITS products.
+ *
+ * Algorithms own their science-specific validation and provenance cards. The shared final-processing lifecycle owns
+ * post-median subtraction, derotation, combination, validity materialization, and output gating so that algorithms
+ * do not duplicate those stateful steps.
+ *
+ * \section programming_extension Extending hciReduce
+ *
+ * A new algorithm should reuse \ref mx::improc::HCIobservation "HCIobservation" or
+ * \ref mx::improc::ADIobservation "ADIobservation" where their data and final-processing contracts fit, keep
+ * non-trivial definitions in a `.cpp` file, expose documented configuration through `setupConfig` and `loadConfig`,
+ * and add focused Catch2 tests. See \ref hcireduce_testing "Testing and Verification" for the build, coverage, and
+ * documentation-link requirements.
+ *
+ * @}
+ */

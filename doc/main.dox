@@ -4,6 +4,7 @@
  * The source is available from the
  * <a href="https://github.com/jaredmales/hciReduce">hciReduce repository</a>.
  *
- * See the <a href="topics.html">User's Guide</a> for build, test, and coverage
- * documentation.
+ * Start with the \ref user_guide "User's Guide" to configure and run a reduction. The
+ * \ref programming_guide "Programming" section describes the library, its architecture,
+ * tests, verification, and bibliography.
  */
