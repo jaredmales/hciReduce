@@ -9,6 +9,10 @@
 #include "src/common/ADIDerotator.hpp"
 #include "src/common/KLIPreduction.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cmath>
+
 namespace unitTest
 {
 namespace KLIPreduction_test
@@ -96,6 +100,114 @@ void prepareRegionReduction( reductionHarness &reduction )
     reduction.m_doWriteFinim = false;
     reduction.m_doOutputPSFSub = false;
 }
+
+/// Compare two Eigen-like arrays coefficient by coefficient.
+template <typename actualT, typename expectedT>
+void requireApprox( const actualT &actual,     /**< [in] values produced by the adaptive KL basis */
+                    const expectedT &expected, /**< [in] reference values */
+                    double tolerance = 2e-5 /**< [in] absolute comparison tolerance */ )
+{
+    REQUIRE( actual.rows() == expected.rows() );
+    REQUIRE( actual.cols() == expected.cols() );
+    for( Eigen::Index column = 0; column < actual.cols(); ++column )
+    {
+        for( Eigen::Index row = 0; row < actual.rows(); ++row )
+        {
+            REQUIRE( actual( row, column ) == Approx( expected( row, column ) ).margin( tolerance ) );
+        }
+    }
+}
+
+/// Form a spatial projector from the largest rows of an ascending KL-mode matrix.
+reductionT::imageT modeProjector( const reductionT::imageT &modes, /**< [in] ascending KL modes stored by row */
+                                  int modeCount /**< [in] number of largest modes to retain */ )
+{
+    if( modeCount <= 0 || modeCount > modes.rows() )
+    {
+        throw std::invalid_argument( "invalid test projector mode count" );
+    }
+
+    const Eigen::MatrixXf selected = modes.matrix().bottomRows( modeCount );
+    return ( selected.transpose() * selected ).array();
+}
+
+/// Form the direct thin-SVD spatial projector for a vectorized reference library.
+reductionT::imageT svdProjector( const reductionT::imageT &references, /**< [in] pixels-by-references matrix */
+                                 int modeCount /**< [in] number of largest singular modes to retain */ )
+{
+    Eigen::JacobiSVD<Eigen::MatrixXf> decomposition( references.matrix(), Eigen::ComputeThinU );
+    const Eigen::MatrixXf selected = decomposition.matrixU().leftCols( modeCount );
+    return ( selected * selected.transpose() ).array();
+}
+
+/// Form a target residual from a spatial projector.
+reductionT::imageT projectedResidual( const reductionT::imageT &projector, /**< [in] spatial projector */
+                                      const reductionT::imageT &target /**< [in] target column */ )
+{
+    return ( target.matrix() - projector.matrix() * target.matrix() ).array();
+}
+
+/// Initialize the direct-worker state shared by adaptive-basis tests.
+void prepareWorkerReduction( reductionHarness &reduction, /**< [out] configured reduction harness */
+                             int pixelCount,              /**< [in] flattened region size */
+                             int targetCount,             /**< [in] number of target images */
+                             int referenceCount,          /**< [in] number of reference images */
+                             const std::vector<int> &modeCounts /**< [in] configured KL mode counts */ )
+{
+    reduction.m_meanSubMethod = mx::improc::HCI::meanSub::none;
+    reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::none;
+    reduction.m_includeMethod = mx::improc::HCI::include::all;
+    reduction.m_includeRefNum = 0;
+    reduction.m_excludeMethod = mx::improc::HCI::exclude::none;
+    reduction.m_excludeMethodMax = mx::improc::HCI::exclude::none;
+    reduction.m_Nrows = 1;
+    reduction.m_Ncols = pixelCount;
+    reduction.m_Npix = pixelCount;
+    reduction.m_Nims = targetCount;
+    reduction.m_Nmodes = modeCounts;
+    reduction.m_maxNmodes = *std::max_element( modeCounts.begin(), modeCounts.end() );
+    reduction.m_psfsub.resize( modeCounts.size() );
+    for( auto &output : reduction.m_psfsub )
+    {
+        output.resize( pixelCount, 1, targetCount );
+        output.cube().setZero();
+    }
+    reduction.m_imsIncluded.resize( targetCount, referenceCount );
+    reduction.m_imsIncluded.setOnes();
+}
+
+/// Reject an mxlib eigensolver workspace allocation for deterministic failure testing.
+void *rejectEigenAllocation( std::size_t /**< [in] ignored requested byte count */ )
+{
+    return nullptr;
+}
+
+/// Restore mxlib's eigensolver allocation hook after a scoped failure test.
+class EigenAllocatorGuard
+{
+  public:
+    /// Install the deterministic allocation failure hook.
+    EigenAllocatorGuard() : m_previous( mx::math::detail::eigenLapackTestHooks<double>::allocator )
+    {
+        mx::math::detail::eigenLapackTestHooks<double>::allocator = rejectEigenAllocation;
+    }
+
+    /// Restore the allocator that was active before construction.
+    ~EigenAllocatorGuard()
+    {
+        mx::math::detail::eigenLapackTestHooks<double>::allocator = m_previous;
+    }
+
+    /// Scoped allocator guards cannot be copied.
+    EigenAllocatorGuard( const EigenAllocatorGuard & ) = delete;
+
+    /// Scoped allocator guards cannot be assigned.
+    EigenAllocatorGuard &operator=( const EigenAllocatorGuard & ) = delete;
+
+  private:
+    /// Allocator hook restored at scope exit.
+    mx::math::detail::eigenLapackTestHooks<double>::allocatorT m_previous;
+};
 /// \endcond
 
 /// Verify KLIPreduction registers and loads its diagnostic-output configuration with safe defaults.
@@ -1020,6 +1132,512 @@ TEST_CASE( "KLIP covariance input validation", "[KLIPreduction][covariance][vali
                        std::invalid_argument );
 }
 
+/// Verify calcKLModesAdaptive agrees with direct SVD and the legacy reference-Gram projector for every matrix shape.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP adaptive basis shape equivalence", "[KLIPreduction][basis][reference]" )
+{
+    reductionT::imageT target;
+    reductionT::imageT covariance;
+    reductionT::imageT modes;
+    mx::math::syevrMem<double> workspace;
+
+    SECTION( "pixels less than references" )
+    {
+        reductionT::imageT references( 3, 5 );
+        references << 3, 0.2, 0, 1, -0.5, 0.1, 2, 0.4, -0.3, 0.8, 0, -0.2, 1, 0.7, 2;
+        target.resize( 3, 1 );
+        target << 5, -1, 2;
+
+        double eigenSeconds = -1;
+        double modeSeconds = -1;
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes,
+                                                          covariance,
+                                                          references,
+                                                          3,
+                                                          &workspace,
+                                                          &eigenSeconds,
+                                                          &modeSeconds ) == 0 );
+        REQUIRE( modes.rows() == 3 );
+        REQUIRE( modes.cols() == 3 );
+        REQUIRE( eigenSeconds >= 0 );
+        REQUIRE( modeSeconds >= 0 );
+
+        reductionT::imageT legacyCovariance;
+        reductionT::imageT legacyModes;
+        mx::math::eigenSYRK( legacyCovariance, references );
+        REQUIRE( mx::math::calcKLModes<double>( legacyModes, legacyCovariance, references, 3 ) == 0 );
+
+        for( int modeCount = 1; modeCount <= 3; ++modeCount )
+        {
+            const reductionT::imageT actualProjector = modeProjector( modes, modeCount );
+            requireApprox( actualProjector, svdProjector( references, modeCount ) );
+            requireApprox( actualProjector, modeProjector( legacyModes, modeCount ) );
+            requireApprox( projectedResidual( actualProjector, target ),
+                           projectedResidual( svdProjector( references, modeCount ), target ) );
+        }
+    }
+
+    SECTION( "references less than pixels" )
+    {
+        reductionT::imageT references( 5, 3 );
+        references << 3, 0.2, 1, 0.1, 2, -0.3, 0.7, -0.2, 1, -0.5, 0.8, 2, 0.4, -1.1, 0.6;
+        target.resize( 5, 1 );
+        target << 5, -1, 2, 0.5, -2;
+        mx::math::eigenSYRK( covariance, references );
+
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, references, 3, &workspace ) == 0 );
+        REQUIRE( modes.rows() == 3 );
+        REQUIRE( modes.cols() == 5 );
+
+        for( int modeCount = 1; modeCount <= 3; ++modeCount )
+        {
+            const reductionT::imageT actualProjector = modeProjector( modes, modeCount );
+            requireApprox( actualProjector, svdProjector( references, modeCount ) );
+            requireApprox( projectedResidual( actualProjector, target ),
+                           projectedResidual( svdProjector( references, modeCount ), target ) );
+        }
+    }
+
+    SECTION( "pixels equal references" )
+    {
+        reductionT::imageT references( 3, 3 );
+        references << 3, 0.2, 1, 0.1, 2, -0.3, 0.7, -0.2, 1;
+        target.resize( 3, 1 );
+        target << 5, -1, 2;
+
+        mx::math::eigenSYRK( covariance, references );
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, references, 3, &workspace ) == 0 );
+        reductionT::imageT legacyModes;
+        REQUIRE( mx::math::calcKLModes<double>( legacyModes, covariance, references, 3 ) == 0 );
+        for( int modeCount = 1; modeCount <= 3; ++modeCount )
+        {
+            const reductionT::imageT actualProjector = modeProjector( modes, modeCount );
+            requireApprox( actualProjector, svdProjector( references, modeCount ) );
+            requireApprox( actualProjector, modeProjector( legacyModes, modeCount ) );
+            requireApprox( projectedResidual( actualProjector, target ),
+                           projectedResidual( svdProjector( references, modeCount ), target ) );
+        }
+    }
+}
+
+/// Verify calcKLModesAdaptive preserves legacy mode clamping and exact-positive rank behavior.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP adaptive basis mode and rank behavior", "[KLIPreduction][basis][rank]" )
+{
+    reductionT::imageT covariance;
+    reductionT::imageT modes;
+    mx::math::syevrMem<double> workspace;
+
+    SECTION( "empty reference dimensions are rejected and clear timing outputs" )
+    {
+        double eigenSeconds = -1;
+        double modeSeconds = -1;
+        reductionT::imageT noPixels( 0, 3 );
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes,
+                                                          covariance,
+                                                          noPixels,
+                                                          1,
+                                                          &workspace,
+                                                          &eigenSeconds,
+                                                          &modeSeconds ) == -1 );
+        REQUIRE( eigenSeconds == 0 );
+        REQUIRE( modeSeconds == 0 );
+
+        eigenSeconds = -1;
+        modeSeconds = -1;
+        reductionT::imageT noReferences( 3, 0 );
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes,
+                                                          covariance,
+                                                          noReferences,
+                                                          1,
+                                                          &workspace,
+                                                          &eigenSeconds,
+                                                          &modeSeconds ) == -1 );
+        REQUIRE( eigenSeconds == 0 );
+        REQUIRE( modeSeconds == 0 );
+    }
+
+    SECTION( "mode requests clamp to the available dimension" )
+    {
+        reductionT::imageT wideReferences( 3, 5 );
+        wideReferences << 3, 0.2, 0, 1, -0.5, 0.1, 2, 0.4, -0.3, 0.8, 0, -0.2, 1, 0.7, 2;
+
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, wideReferences, 99, &workspace ) == 0 );
+        REQUIRE( modes.rows() == 3 );
+        REQUIRE( modes.cols() == 3 );
+        requireApprox( modeProjector( modes, 3 ), svdProjector( wideReferences, 3 ) );
+
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, wideReferences, 2, &workspace ) == 0 );
+        REQUIRE( modes.rows() == 2 );
+        requireApprox( modeProjector( modes, 1 ), svdProjector( wideReferences, 1 ) );
+        requireApprox( modeProjector( modes, 2 ), svdProjector( wideReferences, 2 ) );
+
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, wideReferences, 0, &workspace ) == 0 );
+        REQUIRE( modes.rows() == 3 );
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, wideReferences, -7, &workspace ) == 0 );
+        REQUIRE( modes.rows() == 3 );
+
+        reductionT::imageT tallReferences( 5, 3 );
+        tallReferences << 3, 0.2, 1, 0.1, 2, -0.3, 0.7, -0.2, 1, -0.5, 0.8, 2, 0.4, -1.1, 0.6;
+        mx::math::eigenSYRK( covariance, tallReferences );
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, tallReferences, 99, &workspace ) == 0 );
+        REQUIRE( modes.rows() == 3 );
+        REQUIRE( modes.cols() == 5 );
+    }
+
+    SECTION( "wide exact rank deficiency" )
+    {
+        reductionT::imageT references = reductionT::imageT::Zero( 3, 5 );
+        references( 0, 0 ) = 3;
+        references( 1, 1 ) = 2;
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, references, 3, &workspace ) == 0 );
+        REQUIRE( modes.row( 0 ).isZero() );
+        requireApprox( modeProjector( modes, 2 ), modeProjector( modes, 3 ) );
+
+        reductionT::imageT target( 3, 1 );
+        target << 1, 2, 3;
+        reductionT::imageT expected( 3, 1 );
+        expected << 0, 0, 3;
+        requireApprox( projectedResidual( modeProjector( modes, 2 ), target ), expected );
+        requireApprox( projectedResidual( modeProjector( modes, 3 ), target ), expected );
+    }
+
+    SECTION( "tall exact rank deficiency" )
+    {
+        reductionT::imageT references = reductionT::imageT::Zero( 5, 3 );
+        references( 0, 0 ) = 3;
+        references( 1, 1 ) = 2;
+        mx::math::eigenSYRK( covariance, references );
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, references, 3, &workspace ) == 0 );
+        REQUIRE( modes.row( 0 ).isZero() );
+        requireApprox( modeProjector( modes, 2 ), modeProjector( modes, 3 ) );
+    }
+
+    SECTION( "zero and positive near-zero spatial eigenvalues" )
+    {
+        reductionT::imageT references = reductionT::imageT::Zero( 3, 5 );
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, references, 3, &workspace ) == 0 );
+        REQUIRE( modes.isZero() );
+
+        references( 0, 0 ) = 3;
+        references( 1, 1 ) = 2;
+        references( 2, 2 ) = 1e-4F;
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, references, 3, &workspace ) == 0 );
+        REQUIRE_FALSE( modes.row( 0 ).isZero() );
+        reductionT::imageT identity( 3, 3 );
+        identity.matrix().setIdentity();
+        requireApprox( modeProjector( modes, 3 ), identity );
+    }
+}
+
+/// Verify one calcKLModesAdaptive workspace can be reused across both Gram branches and changing dimensions.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP adaptive basis workspace reuse", "[KLIPreduction][basis][workspace]" )
+{
+    mx::math::syevrMem<double> workspace;
+    reductionT::imageT covariance;
+    reductionT::imageT modes;
+
+    reductionT::imageT wideReferences( 3, 5 );
+    wideReferences << 3, 0.2, 0, 1, -0.5, 0.1, 2, 0.4, -0.3, 0.8, 0, -0.2, 1, 0.7, 2;
+    REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, wideReferences, 2, &workspace ) == 0 );
+    requireApprox( modeProjector( modes, 2 ), svdProjector( wideReferences, 2 ) );
+
+    reductionT::imageT tallReferences( 5, 2 );
+    tallReferences << 3, 0.2, 0.1, 2, 0.7, -0.2, -0.5, 0.8, 1, -0.3;
+    mx::math::eigenSYRK( covariance, tallReferences );
+    REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, tallReferences, 2, &workspace ) == 0 );
+    requireApprox( modeProjector( modes, 2 ), svdProjector( tallReferences, 2 ) );
+
+    reductionT::imageT largerWideReferences( 4, 6 );
+    largerWideReferences << 3, 0.2, 0, 1, -0.5, 0.4, 0.1, 2, 0.4, -0.3, 0.8, -0.2, 0, -0.2, 1, 0.7, 2, 0.3, 0.5, -0.1,
+        0.2, 1.3, -0.7, 1.8;
+    REQUIRE( mx::improc::calcKLModesAdaptive<double>( modes, covariance, largerWideReferences, 3, &workspace ) == 0 );
+    requireApprox( modeProjector( modes, 3 ), svdProjector( largerWideReferences, 3 ) );
+}
+
+/// Verify KLIPreduction::worker uses the spatial Gram basis once for an unfiltered image library.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP worker adaptive master basis", "[KLIPreduction][worker][basis][OpenMP]" )
+{
+    TestDirectory directory;
+    const std::vector<int> modeCounts{ 2, 1, 9, 1 };
+    mx::improc::eigenCube<float> input( 2, 1, 4 );
+    input.image( 0 ) << 3, 0.2;
+    input.image( 1 ) << 0.1, 2;
+    input.image( 2 ) << 1, -0.3;
+    input.image( 3 ) << -0.5, 0.8;
+    const reductionT::imageT referenceMatrix = input.cube();
+    reductionT::imageT mask;
+    std::vector<size_t> indices{ 0, 1 };
+
+    reductionHarness serial;
+    prepareWorkerReduction( serial, 2, 4, 4, modeCounts );
+    mx::improc::eigenCube<float> serialInput = input;
+    {
+        OpenMPThreadGuard threads( 1 );
+        serial.worker( serialInput, serialInput, mask, indices, 0, 0 );
+    }
+
+    reductionHarness parallel;
+    prepareWorkerReduction( parallel, 2, 4, 4, modeCounts );
+    mx::improc::eigenCube<float> parallelInput = input;
+    {
+        OpenMPThreadGuard threads( 3 );
+        parallel.worker( parallelInput, parallelInput, mask, indices, 0, 0 );
+    }
+
+    REQUIRE( serial.m_Nmodes == modeCounts );
+    REQUIRE( parallel.m_Nmodes == modeCounts );
+    REQUIRE( serial.m_imsIncluded.isOnes() );
+    REQUIRE( parallel.m_imsIncluded.isOnes() );
+    for( size_t modeIndex = 0; modeIndex < modeCounts.size(); ++modeIndex )
+    {
+        const int effectiveModeCount = std::min( modeCounts[modeIndex], 2 );
+        const reductionT::imageT projector = svdProjector( referenceMatrix, effectiveModeCount );
+        requireApprox( serial.m_psfsub[modeIndex].cube(), parallel.m_psfsub[modeIndex].cube() );
+        for( int targetIndex = 0; targetIndex < 4; ++targetIndex )
+        {
+            requireApprox( serial.m_psfsub[modeIndex].cube().col( targetIndex ),
+                           projectedResidual( projector, referenceMatrix.col( targetIndex ) ) );
+        }
+    }
+    requireApprox( serial.m_psfsub[1].cube(), serial.m_psfsub[3].cube() );
+
+    for( const reductionHarness *result : { &serial, &parallel } )
+    {
+        REQUIRE( std::isfinite( result->t_eigenv ) );
+        REQUIRE( std::isfinite( result->t_klim ) );
+        REQUIRE( std::isfinite( result->t_psf ) );
+        REQUIRE( result->t_eigenv >= 0 );
+        REQUIRE( result->t_klim >= 0 );
+        REQUIRE( result->t_psf >= 0 );
+    }
+
+    reductionHarness diagnostic;
+    prepareWorkerReduction( diagnostic, 2, 4, 4, modeCounts );
+    diagnostic.m_writeDiagnostics = true;
+    diagnostic.m_diagnosticDirectory = directory.file( "adaptive-diagnostics" ).string();
+    mx::improc::eigenCube<float> diagnosticInput = input;
+    {
+        OpenMPThreadGuard threads( 1 );
+        diagnostic.worker( diagnosticInput, diagnosticInput, mask, indices, 0, 0 );
+    }
+
+    reductionT::imageT savedCovariance;
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+    REQUIRE( reader.read( savedCovariance, directory.file( "adaptive-diagnostics/cv.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( savedCovariance.rows() == 4 );
+    REQUIRE( savedCovariance.cols() == 4 );
+    const reductionT::imageT expectedCovariance =
+        ( referenceMatrix.matrix().transpose() * referenceMatrix.matrix() ).array();
+    for( int column = 0; column < 4; ++column )
+    {
+        for( int row = 0; row < 4; ++row )
+        {
+            REQUIRE( savedCovariance( row, column ) == Approx( expectedCovariance( row, column ) ).margin( 1e-5 ) );
+        }
+    }
+}
+
+/// Verify KLIPreduction::worker applies the spatial Gram basis after per-target RDI selection.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP worker adaptive selected RDI basis", "[KLIPreduction][worker][basis][RDI][include][OpenMP]" )
+{
+    const std::vector<int> modeCounts{ 1, 2, 7 };
+    mx::improc::eigenCube<float> references( 2, 1, 4 );
+    references.image( 0 ) << 3, 0.2;
+    references.image( 1 ) << 0.1, 2;
+    references.image( 2 ) << 1, -0.3;
+    references.image( 3 ) << -0.5, 0.8;
+    mx::improc::eigenCube<float> targets( 2, 1, 4 );
+    targets.image( 0 ) << 0.8, -0.2;
+    targets.image( 1 ) << -1, 1.5;
+    targets.image( 2 ) << 2, 0.4;
+    targets.image( 3 ) << 0.3, -0.7;
+    const reductionT::imageT referenceMatrix = references.cube();
+    const reductionT::imageT targetMatrix = targets.cube();
+    reductionT::imageT mask;
+    std::vector<size_t> indices{ 0, 1 };
+
+    reductionHarness serial;
+    prepareWorkerReduction( serial, 2, 4, 4, modeCounts );
+    serial.m_includeMethod = mx::improc::HCI::include::imno;
+    serial.m_includeRefNum = 3;
+    serial.m_imsIncluded.setZero();
+    mx::improc::eigenCube<float> serialReferences = references;
+    mx::improc::eigenCube<float> serialTargets = targets;
+    {
+        OpenMPThreadGuard threads( 1 );
+        serial.worker( serialReferences, serialTargets, mask, indices, 0, 0 );
+    }
+
+    reductionHarness parallel;
+    prepareWorkerReduction( parallel, 2, 4, 4, modeCounts );
+    parallel.m_includeMethod = mx::improc::HCI::include::imno;
+    parallel.m_includeRefNum = 3;
+    parallel.m_imsIncluded.setZero();
+    mx::improc::eigenCube<float> parallelReferences = references;
+    mx::improc::eigenCube<float> parallelTargets = targets;
+    {
+        OpenMPThreadGuard threads( 3 );
+        parallel.worker( parallelReferences, parallelTargets, mask, indices, 0, 0 );
+    }
+
+    Eigen::ArrayXXi expectedIncluded( 4, 4 );
+    expectedIncluded << 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1;
+    REQUIRE( ( serial.m_imsIncluded == expectedIncluded ).all() );
+    REQUIRE( ( parallel.m_imsIncluded == expectedIncluded ).all() );
+
+    for( int targetIndex = 0; targetIndex < 4; ++targetIndex )
+    {
+        const std::array<int, 3> selectedIndices =
+            targetIndex < 2 ? std::array<int, 3>{ 0, 1, 2 } : std::array<int, 3>{ 1, 2, 3 };
+        reductionT::imageT selectedReferences( 2, 3 );
+        for( int selectedIndex = 0; selectedIndex < 3; ++selectedIndex )
+        {
+            selectedReferences.col( selectedIndex ) = referenceMatrix.col( selectedIndices[selectedIndex] );
+        }
+
+        for( size_t modeIndex = 0; modeIndex < modeCounts.size(); ++modeIndex )
+        {
+            const int effectiveModeCount = std::min( modeCounts[modeIndex], 2 );
+            const reductionT::imageT expected =
+                projectedResidual( svdProjector( selectedReferences, effectiveModeCount ),
+                                   targetMatrix.col( targetIndex ) );
+            requireApprox( serial.m_psfsub[modeIndex].cube().col( targetIndex ), expected );
+            requireApprox( parallel.m_psfsub[modeIndex].cube().col( targetIndex ), expected );
+        }
+    }
+
+    for( size_t modeIndex = 0; modeIndex < modeCounts.size(); ++modeIndex )
+    {
+        requireApprox( serial.m_psfsub[modeIndex].cube(), parallel.m_psfsub[modeIndex].cube() );
+    }
+    for( const reductionHarness *result : { &serial, &parallel } )
+    {
+        REQUIRE( std::isfinite( result->t_eigenv ) );
+        REQUIRE( std::isfinite( result->t_klim ) );
+        REQUIRE( std::isfinite( result->t_psf ) );
+        REQUIRE( result->t_eigenv >= 0 );
+        REQUIRE( result->t_klim >= 0 );
+        REQUIRE( result->t_psf >= 0 );
+    }
+}
+
+/// Verify KLIPreduction::worker applies right-reason support masking to an adaptive spatial basis.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP worker adaptive right-reason basis", "[KLIPreduction][worker][basis][rightReason][OpenMP]" )
+{
+    mx::improc::eigenCube<float> input( 4, 1, 5 );
+    input.image( 0 ) << 3, 0.2, 1, -0.5;
+    input.image( 1 ) << 0.1, 2, -0.3, 0.8;
+    input.image( 2 ) << 1, -0.3, 1.5, 0.4;
+    input.image( 3 ) << -0.5, 0.8, 0.2, 2;
+    input.image( 4 ) << 0.7, 1.1, -0.6, 0.3;
+    const reductionT::imageT inputMatrix = input.cube();
+    reductionT::imageT mask;
+    std::vector<size_t> indices{ 0, 1, 2, 3 };
+
+    reductionHarness serial;
+    prepareWorkerReduction( serial, 4, 5, 5, { 2 } );
+    serial.m_rightReason = true;
+    serial.m_rightReasonRadius = 100;
+    mx::improc::eigenCube<float> serialInput = input;
+    {
+        OpenMPThreadGuard threads( 1 );
+        serial.worker( serialInput, serialInput, mask, indices, 0, 0 );
+    }
+
+    reductionHarness parallel;
+    prepareWorkerReduction( parallel, 4, 5, 5, { 2 } );
+    parallel.m_rightReason = true;
+    parallel.m_rightReasonRadius = 100;
+    mx::improc::eigenCube<float> parallelInput = input;
+    {
+        OpenMPThreadGuard threads( 3 );
+        parallel.worker( parallelInput, parallelInput, mask, indices, 0, 0 );
+    }
+
+    requireApprox( serial.m_psfsub[0].cube(), inputMatrix );
+    requireApprox( parallel.m_psfsub[0].cube(), inputMatrix );
+    requireApprox( serial.m_psfsub[0].cube(), parallel.m_psfsub[0].cube() );
+    REQUIRE( std::isfinite( serial.t_psf ) );
+    REQUIRE( std::isfinite( parallel.t_psf ) );
+    REQUIRE( serial.t_psf >= 0 );
+    REQUIRE( parallel.t_psf >= 0 );
+}
+
+/// Verify KLIPreduction::worker safely rethrows a per-target empty-library failure after its OpenMP region.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP worker rejects an empty selected library", "[KLIPreduction][worker][exclude][error][OpenMP]" )
+{
+    reductionHarness reduction;
+    prepareWorkerReduction( reduction, 2, 4, 4, { 1 } );
+    reduction.m_excludeMethod = mx::improc::HCI::exclude::imno;
+
+    mx::improc::eigenCube<float> images( 2, 1, 4 );
+    images.image( 0 ) << 3, 0.2;
+    images.image( 1 ) << 0.1, 2;
+    images.image( 2 ) << 1, -0.3;
+    images.image( 3 ) << -0.5, 0.8;
+    reductionT::imageT mask;
+    std::vector<size_t> indices{ 0, 1 };
+
+    OpenMPThreadGuard threads( 3 );
+    REQUIRE_THROWS_WITH( reduction.worker( images, images, mask, indices, 99, 0 ),
+                         Catch::Matchers::Contains( "has no admissible references" ) );
+}
+
+/// Verify KLIPreduction::worker rejects empty or inconsistent geometry and propagates a master-solver failure.
+/** \ingroup KLIPreduction_unit_tests */
+TEST_CASE( "KLIP worker adaptive validation failures", "[KLIPreduction][worker][basis][validation][error]" )
+{
+    reductionT::imageT mask;
+    std::vector<size_t> indices{ 0, 1 };
+
+    SECTION( "empty image collection" )
+    {
+        reductionHarness reduction;
+        prepareWorkerReduction( reduction, 2, 1, 2, { 1 } );
+        mx::improc::eigenCube<float> empty;
+        mx::improc::eigenCube<float> target( 2, 1, 1 );
+        target.cube().setOnes();
+
+        REQUIRE_THROWS_WITH( reduction.worker( empty, target, mask, indices, 0, 0 ),
+                             Catch::Matchers::Contains( "KLIP requires reference and target images" ) );
+    }
+
+    SECTION( "inconsistent image geometry" )
+    {
+        reductionHarness reduction;
+        prepareWorkerReduction( reduction, 2, 1, 2, { 1 } );
+        mx::improc::eigenCube<float> references( 2, 1, 2 );
+        references.cube().setOnes();
+        mx::improc::eigenCube<float> target( 3, 1, 1 );
+        target.cube().setOnes();
+
+        REQUIRE_THROWS_WITH( reduction.worker( references, target, mask, indices, 0, 0 ),
+                             Catch::Matchers::Contains( "invalid KLIP worker image dimensions" ) );
+    }
+
+    SECTION( "master eigensolver allocation failure" )
+    {
+        reductionHarness reduction;
+        prepareWorkerReduction( reduction, 2, 4, 4, { 1 } );
+        mx::improc::eigenCube<float> images( 2, 1, 4 );
+        images.image( 0 ) << 3, 0.2;
+        images.image( 1 ) << 0.1, 2;
+        images.image( 2 ) << 1, -0.3;
+        images.image( 3 ) << -0.5, 0.8;
+
+        EigenAllocatorGuard allocatorFailure;
+        REQUIRE_THROWS_WITH( reduction.worker( images, images, mask, indices, 0, 0 ),
+                             Catch::Matchers::Contains( "KLIP eigensolver failed with status -1" ) );
+    }
+}
+
 /// Verify KLIPreduction::worker performs a deterministic one-mode subtraction and gates covariance diagnostics.
 /** \ingroup KLIPreduction_unit_tests */
 TEST_CASE( "KLIP worker one-mode reduction", "[KLIPreduction][worker][diagnostics]" )
@@ -1369,7 +1987,9 @@ TEST_CASE( "KLIP final processing", "[KLIPreduction][finalProcess][combine]" )
     reduction.m_doWriteFinim = false;
     reduction.m_doOutputPSFSub = false;
 
+    REQUIRE( reduction.m_psfsubValidity.empty() );
     REQUIRE( reduction.finalProcess() == 0 );
+    REQUIRE( reduction.m_psfsubValidity.empty() );
 
     const reductionT::imageT negative = reductionT::imageT::Constant( 2, 2, -2 );
     const reductionT::imageT positive = reductionT::imageT::Constant( 2, 2, 2 );
@@ -1380,9 +2000,17 @@ TEST_CASE( "KLIP final processing", "[KLIPreduction][finalProcess][combine]" )
     REQUIRE( reduction.m_finim.cols() == 2 );
     REQUIRE( reduction.m_finim.planes() == 1 );
     REQUIRE( reduction.m_finim.image( 0 ).isZero() );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::KLIPreduction<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, double, mx::verbose::vv>
+        doxygenReduction;
+    doxygenReduction.finalProcess();
+#endif
+    // clang-format on
 }
 
-/// Verify KLIPreduction::finalProcess writes the complete KLIP configuration into a final FITS header.
+/// Verify KLIPreduction::appendReductionHeader and finalProcess preserve complete, ordered KLIP FITS provenance.
 /** \ingroup KLIPreduction_unit_tests */
 TEST_CASE( "KLIP final output metadata", "[KLIPreduction][finalProcess][output][header]" )
 {
@@ -1423,6 +2051,32 @@ TEST_CASE( "KLIP final output metadata", "[KLIPreduction][finalProcess][output][
     reduction.m_finimName = "klip-final.fits";
     reduction.m_exactFinimName = true;
 
+    reductionHarness::fitsHeaderT reductionHeader;
+    reduction.appendReductionHeader( reductionHeader );
+    std::vector<std::string> reductionKeywords;
+    for( auto card = reductionHeader.begin(); card != reductionHeader.end(); ++card )
+    {
+        if( !card->keyword().empty() )
+        {
+            reductionKeywords.push_back( card->keyword() );
+        }
+    }
+    REQUIRE( reductionKeywords == std::vector<std::string>{ "MEAN SUB METHOD",
+                                                            "PIXTS NORM METHOD",
+                                                            "NMODES",
+                                                            "RIGHT REASON",
+                                                            "RIGHT REASON RADIUS",
+                                                            "REGMINR",
+                                                            "REGMAXR",
+                                                            "REGMINQ",
+                                                            "REGMAXQ",
+                                                            "EXMTHDMN",
+                                                            "MINDPX",
+                                                            "EXMTHDMX",
+                                                            "MAXDPX",
+                                                            "INMTHDMX",
+                                                            "INCLREFN" } );
+
     REQUIRE( reduction.finalProcess() == 0 );
 
     mx::improc::eigenCube<float> output;
@@ -1450,6 +2104,26 @@ TEST_CASE( "KLIP final output metadata", "[KLIPreduction][finalProcess][output][
     REQUIRE( header["MAXDPX"].value<float>() == Approx( 4 ) );
     REQUIRE( header["INMTHDMX"].String().starts_with( "corr" ) );
     REQUIRE( header["INCLREFN"].value<int>() == 7 );
+
+    size_t adiPosition = header.size();
+    size_t klipPosition = header.size();
+    size_t position = 0;
+    for( auto card = header.begin(); card != header.end(); ++card, ++position )
+    {
+        if( card->keyword() == "POSTMEDS" )
+            adiPosition = position;
+        else if( card->keyword() == "MEAN SUB METHOD" )
+            klipPosition = position;
+    }
+    REQUIRE( adiPosition < klipPosition );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::KLIPreduction<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, double, mx::verbose::vv>
+        doxygenReduction;
+    doxygenReduction.appendReductionHeader( reductionHeader );
+#endif
+    // clang-format on
 }
 
 /// Verify KLIPreduction::processPSFSub resumes the current final-processing configuration from saved KLIP products.

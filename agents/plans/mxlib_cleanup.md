@@ -300,6 +300,91 @@ Known non-blocking ownership follow-ups:
       every executable line in the default `invalidNumber()` and `isInvalidPixel()` specializations is covered.
 
 - [~] Continue closing mxlib coverage gaps exposed by hciReduce integration tests.
+  - [ ] Bring the exact `mx::app::appConfigurator::readConfig()` path used by the permanent p4Reduce prototype-config
+        regression to 100% executable-line coverage. The current mxlib trace records 30/38 lines in this function;
+        missing cases include quiet file-not-found handling, parser/allocation failures, and recognized/unrecognized
+        source tracking.
+  - [x] Repair the P4 annulus pixel-buffer path.
+    - [x] Forward the documented `pixbuf` argument from `annulusCoords` and `annulusIndices` to
+      `annulusCoordsWorker`.
+    - [x] Expand the worker's candidate rectangle by the buffered outer radius using non-truncating bounds, including
+      the prototype's half-pixel-center geometry.
+    - [x] Add exact inclusive-inner/exclusive-outer, common-mask, fractional-center symmetry, and nonpositive buffered
+      radius regressions for both coordinate and linear-index wrappers.
+    - [x] Pass the focused optimized test (61 assertions), ASan/UBSan test (61 assertions; leak detection disabled for
+      the ptrace environment), and focused LCOV check (`imageMasks.hpp` 75/75 lines and 10/10 functions).
+    - [x] Pass the permanent aggregate coverage target: 176/176 tests, all 54 enforced coverage records verified, and
+      `imageMasks.hpp` at 98/98 lines and 12/12 functions.
+    - [x] Commit the repair to mxlib `dev` as `5b4234f` (`Fix buffered annulus coordinate selection`).
+    - [x] Install mxlib `24f11e1` system-wide and repeat the default-prefix P4 build/test matrix.
+      The installed version, repaired buffered bounds, and both `pixbuf`-forwarding wrappers match mxlib `dev`; a
+      clean hciReduce Release configure resolves `/usr/local` with no temporary-prefix paths, uses `-O3 -DNDEBUG`,
+      builds libraries/executables/tests/docs, and passes 18/18 CTests.
+      - [x] Create `/tmp/mxlib-p4-prefix` from mxlib `24f11e1` and use it for the complete isolated P4 implementation
+        gate: 18/18 Release, Debug/coverage, and ASan/UBSan tests; Doxygen; install; installed help; and clean
+        shared/static downstream consumers before performing the final system installation.
+  - [x] Close the exact P4 geometry/numerics coverage gaps before their hciReduce callers are edited.
+    - [x] Audit the exact prototype specializations against mxlib's current LCOV trace.
+    - [x] Use double-precision `radAngImage`/`annulusCoords` geometry internally and retain the repaired coordinate
+      wrapper at 100%; avoid the uncovered float-only radius/angle specializations.
+      The completed `P4PixelGrid` uses the covered double paths and reaches 303/303 executable lines and 41/41
+      functions in its focused trace.
+    - [x] Use directly tested scalar coordinate rotation rather than the unnecessary uncovered `point2D` constructor.
+    - [x] Add focused float cubic-convolution tests for the default constructor, every scalar-kernel branch,
+      normalized/exact fractional kernels, complete-footprint boundaries, and constant-image sampling. Release and
+      ASan/UBSan runs pass 51 assertions, and focused LCOV records 35/35 executable lines and 3/3 functions. Commit
+      `1c801ee` carries the tests. P4 will default-construct thread-local transforms rather than depend on the
+      uncovered copy constructor.
+    - [x] Bring the selected all-double `calcEigenVecs`/`eigenSYEVR` specialization and its workspace lifecycle,
+      allocation, reuse, validation, normalization, and solver-error paths to 100% before implementing the P4 PCA
+      caller. Focused optimized and ASan/UBSan runs pass 138 assertions in nine `TEST_CASE`s, and focused LCOV records
+      154/154 executable lines and 10/10 functions for the exact selected path. Commit `24f11e1` carries the safety
+      fixes and coverage.
+      - [x] Pass the permanent aggregate coverage target after the commit: 176/176 tests, all enforced coverage
+        records verified, and 226 instrumented baseline units.
+      - [x] Implement the hciReduce all-double `P4PCA` caller against the temporary install and verify its exact
+        `calcEigenVecs<double>` and fast-math-safe `isFinite(double)` dependencies remain coverage-gate clean.
+        `P4PCA.cpp` reaches 94/94 executable lines and 7/7 functions; Release and ASan/UBSan runs pass all 99 focused
+        assertions.
+      - [x] Complete the target-only P4 integration without introducing another mxlib coverage gap. The ownership-
+        scoped hciReduce report contains ten production files at 3,766/3,768 executable lines and 100% of reportable
+        functions; every new P4 production source is 100%, and the only two aggregate line misses are a pre-existing
+        `HCIobservation::readPSFSub()` filesystem-iterator error branch.
+    - [ ] Decide whether to delete `syevrMem` copy construction/assignment and optionally add move operations. The
+      workspace owns five raw allocations but remains implicitly copyable, so a copy can double-free and copy
+      assignment can also leak the destination's prior allocations. This is a pre-existing source-API defect; P4
+      avoids it by constructing one workspace per worker and passing it only by reference.
+  - [ ] Prepare the exact mxlib CUDA eigensolver path required by the deferred P4 backend before adding a CUDA caller
+        in hciReduce. The P4 backend will use `mx::cuda::cusolverDnHandle`, `mx::cuda::cusolverDnParams`, and
+        `mx::cuda::syevdxT<double>` only; `cudaPtr`, cuBLAS, and the prototype's disabled device-projection path are
+        outside this milestone unless the implementation actually introduces one of those calls.
+    - [ ] Make `cusolverDnHandle` and `cusolverDnParams` safe owning RAII types: remove every `exit(-1)` error path,
+          report creation/stream failures to the caller with CUDA status and operation context, prevent owning-handle
+          copies, define any supported moves explicitly, and keep destruction non-throwing.
+    - [ ] Make `syevdxT<double>` safe for repeated P4 solves of the symmetric Gram matrix already selected by the
+          shared CPU/GPU P4PCA core. Its dimension is `N = min(T,K)`; in the AF Lep case this means a `621 x 621`
+          temporal Gram even where the prototype allocated a `3704 x 3704` predictor Gram. Prevent owning-buffer
+          copies, make allocation/reallocation strongly exception-safe, eliminate stale-pointer/double-free paths
+          after a partial allocation failure, make cleanup non-throwing, validate selected-eigenpair counts and
+          dimensions, and preserve the cuSOLVER contract of unnormalized ascending eigenpairs. The hciReduce adapter,
+          not mxlib's numerical kernel, owns conversion from the current `1 x N` eigenvalue result to P4PCA's `N x 1`
+          result contract.
+    - [ ] Replace the three placeholder tests with behavioral `TEST_CASE`s covering handle/parameter lifecycle,
+          allocation and allocation reuse, full and selected all-double symmetric solves, ascending eigenpair order,
+          the `normalize=false` path P4 will use, nonzero solver `info`, invalid setup, injected allocation/API failures,
+          and safe cleanup after every partial state. Include a real-device CPU-versus-cuSOLVER comparison on a CUDA
+          runner; a no-device skip on this laptop is a build check, not behavioral coverage.
+    - [ ] Add a separate CUDA-enabled LCOV lane. The ordinary aggregate coverage target intentionally configures
+          `MXLIB_USE_CUDA=OFF`, so it cannot establish the hciReduce 100%-coverage gate for these APIs. The CUDA lane
+          must retain and enforce executable-line records for the exact all-double handle/parameter/`syevdxT` path;
+          use deterministic API-failure injection for error branches and a CUDA runner for the real solve. Keep the
+          existing CUDA-off aggregate denominator and results unchanged.
+    - [ ] Export a machine-readable CUDA-support value from `mxlib.pc` so hciReduce can fail configuration cleanly
+          when its optional CUDA backend is requested against a CUDA-off mxlib, without parsing compiler flags or
+          discovering the mismatch in a translation unit.
+    - [ ] Commit, install, and identify the mxlib revision carrying the safety/coverage work before the hciReduce CUDA
+          translation unit is added. P4 will call the repaired mxlib wrapper rather than duplicate direct cuSOLVER
+          handle, workspace, buffer, and error ownership in hciReduce.
   - [ ] Bring `mx::improc::rotateMask()` to 100% executable-line coverage. The `ADIobservation::makeMaskCube()`
     integration suite now exercises zero- and nonzero-angle masks, but the current mxlib LCOV trace has no
     `rotateMask` record at all; add focused binary-threshold, allocation, and rotation-direction tests and then add
@@ -492,16 +577,17 @@ Known non-blocking ownership follow-ups:
   - Verification: the final aggregate report records 100% for `eigenCube.hpp` (185/185 executable lines and 37/37
     functions).
 - [x] Bring the HCI KL numerical calls to 100% executable-line coverage.
-  - APIs: `mx::math::eigenSYRK` and `mx::math::calcKLModes`, called by `KLIPreduction::regions()` and
-    `KLIPreduction::regions_radii()`.
+  - APIs: `mx::math::eigenSYRK`, `mx::math::calcEigenVecs`, and `mx::math::calcKLModes`, called by the adaptive
+    smaller-Gram mode calculation used by `KLIPreduction::regions()` and `KLIPreduction::regions_radii()`.
   - Completed coverage: lower-triangle covariance construction, all- and limited-mode solutions, normalized and
     mutually orthogonal modes containing valid zero components, elapsed-time outputs, reusable caller-owned LAPACK
     workspace, incompatible reference geometry, and non-square covariance errors.
   - Correctness fixes: zero eigenvector components are no longer rejected as non-normal; the workspace cache no
     longer reads an uninitialized LAPACK output count; and locally allocated workspaces are released on both
     `calcKLModes` error returns.
-  - Verification: the final aggregate trace records 100% for the exact HCI-used `eigenSYRK` (9/9) and `calcKLModes`
-    (37/37) executable-line ranges. A fully instrumented ASan/UBSan run with leak detection passed 22 assertions.
+  - Verification: the current aggregate trace records 100% for the exact HCI-used `eigenSYRK` (10/10),
+    `calcEigenVecs` (49/49), and `calcKLModes` (40/40) executable-line ranges. The adaptive hciReduce Release and
+    ASan/UBSan suites pass 1,133 assertions in 40 `TEST_CASE`s; no new mxlib ownership follow-up is required.
 - [x] Bring the HCI KL region-geometry calls to 100% executable-line coverage.
   - APIs: `mx::improc::radAngImage`, `mx::improc::annulusIndices`, `mx::math::angleMod`, `mx::math::angleDiff`, and
     `mx::math::dtor`, used to build and select KLIP annular sectors and enforce frame-separation angles.
@@ -619,9 +705,6 @@ Known non-blocking ownership follow-ups:
 - [ ] Forward the documented `mean` argument through both `radprofim` overloads. The current implementations omit it
       when delegating to `radprof` and to the radius-image overload, so requesting mean profiles still selects the
       default median behavior; hciReduce currently uses the default median path.
-- [ ] Forward the documented `pixbuf` argument from `annulusCoords` and `annulusIndices` to `annulusCoordsWorker`.
-      Both wrappers currently drop nonzero buffers; hciReduce uses the unaffected default value of zero.
-
 The focused sanitizer configuration uses `-DMXLIB_OPTIMIZE=-O1`,
 `-DMXLIB_CXXFLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"`, and matching
 `CMAKE_EXE_LINKER_FLAGS` / `CMAKE_SHARED_LINKER_FLAGS`. Run the focused executable with

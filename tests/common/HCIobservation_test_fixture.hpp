@@ -97,11 +97,13 @@ struct HCIobservationTestHarness : public mx::improc::HCIobservation<float, mx::
     using baseT::m_RDIqualityFile;
     using baseT::m_RDIqualityThreshold;
     using baseT::m_refIms;
+    using baseT::m_rejectNonFiniteTargetInput;
     using baseT::m_sigmaThreshold;
     using baseT::m_skipPreProcess;
     using baseT::m_tgtIms;
     using baseT::m_thresholdOnly;
     using baseT::m_weightFile;
+    using baseT::validatePSFSubValidity;
 
     /// Ordered record of target/RDI post-read and post-coadd hook calls.
     std::vector<std::string> m_hookEvents;

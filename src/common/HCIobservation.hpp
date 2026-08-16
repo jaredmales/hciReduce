@@ -1,8 +1,6 @@
 /** \file HCIobservation.hpp
  * \author Jared R. Males
  * \brief Defines the basic high contrast imaging data type.
- * \ingroup hc_imaging_files
- * \ingroup image_processing_files
  *
  */
 
@@ -55,7 +53,7 @@ namespace improc
  * \tparam _realT is the floating point type in which to do all arithmetic.
  * \tparam verboseT sets the verbosity of error reporting
  *
- * \ingroup hc_imaging
+ * \ingroup programming_library
  */
 template <typename _realT, class verboseT>
 struct HCIobservation
@@ -151,6 +149,12 @@ struct HCIobservation
      * Image sizes are not increased if this is larger than their size on disk.
      */
     int m_imSize{ 0 };
+
+    /// Reject non-finite target pixels before the legacy input cleanup can replace them with zero.
+    /** This is a protected algorithm policy rather than a user-facing configuration option. The default preserves the
+     * historical HCI and KLIP input behavior; algorithms requiring pristine finite input set it during construction.
+     */
+    bool m_rejectNonFiniteTargetInput{ false };
 
     ///@}
 
@@ -469,6 +473,18 @@ struct HCIobservation
     /// Select the target or RDI mask associated with an image cube.
     const imageT *preProcessMask( const eigenCube<realT> &ims /**< [in] cube being preprocessed */ ) const;
 
+    /// Validate the optional per-reduction PSF-subtracted validity cubes and their valid science samples.
+    /** An empty validity collection selects the legacy shared-mask behavior. Invalid science samples are permitted only
+     * where the corresponding validity value is exactly zero.
+     */
+    void validatePSFSubValidity() const;
+
+    /// Replace invalid PSF-subtracted working samples with finite zero after validating the complete collection.
+    void sanitizePSFSubInvalid();
+
+    /// Replace invalid PSF-subtracted samples with the configured persistent invalid value.
+    void materializePSFSubInvalid();
+
   public:
     /// Load the file list
     /** Populates the \ref m_fileList vector by either reading m_fileListFile (if it is not "") or by
@@ -494,6 +510,12 @@ struct HCIobservation
      * e.g. different modes when using KLIP.
      */
     std::vector<eigenCube<realT>> m_psfsub;
+
+    /// Optional per-reduction validity cubes corresponding one-to-one with \ref m_psfsub.
+    /** Values are exactly zero or one. An empty vector retains the legacy common-mask behavior. When populated, each
+     * cube is authoritative for its reduction and carries every ownership, mask, rank, and interpolation restriction.
+     */
+    std::vector<eigenCube<realT>> m_psfsubValidity;
 
     /// The final combined images, one for each cube in psfsub.
     eigenCube<realT> m_finim;
@@ -1583,6 +1605,115 @@ mx::error_t HCIobservation<_realT, verboseT>::load_RDIfileList()
     return mx::error_t::noerror;
 }
 
+template <typename realT, class verboseT>
+void HCIobservation<realT, verboseT>::validatePSFSubValidity() const
+{
+    if( m_psfsubValidity.empty() )
+    {
+        return;
+    }
+
+    if( m_psfsubValidity.size() != m_psfsub.size() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "PSF-subtracted validity count must match the reduction count" );
+    }
+
+    for( size_t reduction = 0; reduction < m_psfsub.size(); ++reduction )
+    {
+        const eigenCube<realT> &science = m_psfsub[reduction];
+        const eigenCube<realT> &validity = m_psfsubValidity[reduction];
+
+        if( validity.rows() != science.rows() || validity.cols() != science.cols() ||
+            validity.planes() != science.planes() )
+        {
+            throw mx::exception<verboseT>(
+                mx::error_t::sizeerr,
+                std::format( "PSF-subtracted validity dimensions do not match reduction {}", reduction ) );
+        }
+
+        for( int plane = 0; plane < validity.planes(); ++plane )
+        {
+            for( int row = 0; row < validity.rows(); ++row )
+            {
+                for( int column = 0; column < validity.cols(); ++column )
+                {
+                    const realT valid = validity.image( plane )( row, column );
+                    if( !math::isFinite( valid ) || ( valid != 0 && valid != 1 ) )
+                    {
+                        throw mx::exception<verboseT>(
+                            mx::error_t::invalidarg,
+                            std::format( "PSF-subtracted validity must be binary at reduction {}, image {}, row {}, "
+                                         "column {}",
+                                         reduction,
+                                         plane,
+                                         row,
+                                         column ) );
+                    }
+
+                    if( valid == 1 && !math::isFinite( science.image( plane )( row, column ) ) )
+                    {
+                        throw mx::exception<verboseT>(
+                            mx::error_t::invalidarg,
+                            std::format( "PSF-subtracted science is non-finite at a valid sample in reduction {}, "
+                                         "image {}, row {}, column {}",
+                                         reduction,
+                                         plane,
+                                         row,
+                                         column ) );
+                    }
+                }
+            }
+        }
+    }
+}
+
+template <typename realT, class verboseT>
+void HCIobservation<realT, verboseT>::sanitizePSFSubInvalid()
+{
+    validatePSFSubValidity();
+
+    for( size_t reduction = 0; reduction < m_psfsubValidity.size(); ++reduction )
+    {
+        for( int plane = 0; plane < m_psfsubValidity[reduction].planes(); ++plane )
+        {
+            for( int row = 0; row < m_psfsubValidity[reduction].rows(); ++row )
+            {
+                for( int column = 0; column < m_psfsubValidity[reduction].cols(); ++column )
+                {
+                    if( m_psfsubValidity[reduction].image( plane )( row, column ) == 0 )
+                    {
+                        m_psfsub[reduction].image( plane )( row, column ) = 0;
+                    }
+                }
+            }
+        }
+    }
+}
+
+template <typename realT, class verboseT>
+void HCIobservation<realT, verboseT>::materializePSFSubInvalid()
+{
+    validatePSFSubValidity();
+
+    for( size_t reduction = 0; reduction < m_psfsubValidity.size(); ++reduction )
+    {
+        for( int plane = 0; plane < m_psfsubValidity[reduction].planes(); ++plane )
+        {
+            for( int row = 0; row < m_psfsubValidity[reduction].rows(); ++row )
+            {
+                for( int column = 0; column < m_psfsubValidity[reduction].cols(); ++column )
+                {
+                    if( m_psfsubValidity[reduction].image( plane )( row, column ) == 0 )
+                    {
+                        m_psfsub[reduction].image( plane )( row, column ) = invalidNumber<realT>();
+                    }
+                }
+            }
+        }
+    }
+}
+
 // --< construction and initialization
 
 template <typename realT, class verboseT>
@@ -1785,6 +1916,28 @@ void HCIobservation<realT, verboseT>::readFiles()
     m_Npix = m_tgtIms.rows() * m_tgtIms.cols();
 
     std::cerr << "loading complete\n";
+
+    if( m_rejectNonFiniteTargetInput )
+    {
+        for( int plane = 0; plane < m_tgtIms.planes(); ++plane )
+        {
+            for( int row = 0; row < m_tgtIms.rows(); ++row )
+            {
+                for( int column = 0; column < m_tgtIms.cols(); ++column )
+                {
+                    if( !math::isFinite( m_tgtIms.image( plane )( row, column ) ) )
+                    {
+                        throw mx::exception<verboseT>(
+                            mx::error_t::invalidarg,
+                            std::format( "Non-finite target input at image {}, row {}, column {}",
+                                         plane,
+                                         row,
+                                         column ) );
+                    }
+                }
+            }
+        }
+    }
 
     std::cerr << "zero-ing NaNs\n";
     zeroNaNCube( m_tgtIms );
@@ -2996,6 +3149,12 @@ void HCIobservation<_realT, verboseT>::combineFinim()
         throw mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid final image combination method" );
     }
 
+    const bool hasReductionValidity = !m_psfsubValidity.empty();
+    if( hasReductionValidity )
+    {
+        sanitizePSFSubInvalid();
+    }
+
     t_combo_begin = sys::get_curr_time();
 
     // Create and size temporary image for averaging
@@ -3008,7 +3167,11 @@ void HCIobservation<_realT, verboseT>::combineFinim()
     {
         if( m_combineMethod == HCI::combine::median )
         {
-            if( m_maskFile != "" )
+            if( hasReductionValidity )
+            {
+                m_psfsub[n].median( tfinim, m_psfsubValidity[n], m_minGoodFract );
+            }
+            else if( m_maskFile != "" )
             {
                 m_psfsub[n].median( tfinim, m_maskCube, m_minGoodFract );
             }
@@ -3022,7 +3185,11 @@ void HCIobservation<_realT, verboseT>::combineFinim()
         {
             if( !m_comboWeights.empty() )
             {
-                if( m_maskFile != "" )
+                if( hasReductionValidity )
+                {
+                    m_psfsub[n].mean( tfinim, m_comboWeights, m_psfsubValidity[n], m_minGoodFract );
+                }
+                else if( m_maskFile != "" )
                 {
                     m_psfsub[n].mean( tfinim, m_comboWeights, m_maskCube, m_minGoodFract );
                 }
@@ -3033,7 +3200,11 @@ void HCIobservation<_realT, verboseT>::combineFinim()
             }
             else
             {
-                if( m_maskFile != "" )
+                if( hasReductionValidity )
+                {
+                    m_psfsub[n].mean( tfinim, m_psfsubValidity[n], m_minGoodFract );
+                }
+                else if( m_maskFile != "" )
                 {
                     m_psfsub[n].mean( tfinim, m_maskCube, m_minGoodFract );
                 }
@@ -3050,7 +3221,11 @@ void HCIobservation<_realT, verboseT>::combineFinim()
             {
                 if( !m_comboWeights.empty() )
                 {
-                    if( m_maskFile != "" )
+                    if( hasReductionValidity )
+                    {
+                        m_psfsub[n].mean( tfinim, m_comboWeights, m_psfsubValidity[n], m_minGoodFract );
+                    }
+                    else if( m_maskFile != "" )
                     {
                         m_psfsub[n].mean( tfinim, m_comboWeights, m_maskCube, m_minGoodFract );
                     }
@@ -3058,6 +3233,10 @@ void HCIobservation<_realT, verboseT>::combineFinim()
                     {
                         m_psfsub[n].mean( tfinim, m_comboWeights );
                     }
+                }
+                else if( hasReductionValidity )
+                {
+                    m_psfsub[n].mean( tfinim, m_psfsubValidity[n], m_minGoodFract );
                 }
                 else if( m_maskFile != "" )
                 {
@@ -3070,7 +3249,15 @@ void HCIobservation<_realT, verboseT>::combineFinim()
             }
             else if( !m_comboWeights.empty() )
             {
-                if( m_maskFile != "" )
+                if( hasReductionValidity )
+                {
+                    m_psfsub[n].sigmaMean( tfinim,
+                                           m_comboWeights,
+                                           m_psfsubValidity[n],
+                                           m_sigmaThreshold,
+                                           m_minGoodFract );
+                }
+                else if( m_maskFile != "" )
                 {
                     m_psfsub[n].sigmaMean( tfinim, m_comboWeights, m_maskCube, m_sigmaThreshold, m_minGoodFract );
                 }
@@ -3081,7 +3268,11 @@ void HCIobservation<_realT, verboseT>::combineFinim()
             }
             else
             {
-                if( m_maskFile != "" )
+                if( hasReductionValidity )
+                {
+                    m_psfsub[n].sigmaMean( tfinim, m_psfsubValidity[n], m_sigmaThreshold, m_minGoodFract );
+                }
+                else if( m_maskFile != "" )
                 {
                     m_psfsub[n].sigmaMean( tfinim, m_maskCube, m_sigmaThreshold, m_minGoodFract );
                 }

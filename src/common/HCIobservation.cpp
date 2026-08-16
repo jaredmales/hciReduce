@@ -1,8 +1,6 @@
 /** \file HCIobservation.cpp
  * \author Jared R. Males
  * \brief Instantiation of the basic high contrast imaging data type.
- * \ingroup hc_imaging_files
- * \ingroup image_processing_files
  *
  */
 

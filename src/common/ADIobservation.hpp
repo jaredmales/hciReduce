@@ -1,8 +1,6 @@
 /** \file ADIobservation.hpp
  * \author Jared R. Males
  * \brief Defines the ADI high contrast imaging data type.
- * \ingroup hc_imaging_files
- * \ingroup image_processing_files
  *
  */
 
@@ -19,6 +17,35 @@ namespace mx
 {
 namespace improc
 {
+
+/// \cond ADIobservation_detail
+namespace detail
+{
+
+/// Uniform interpolation transform that accepts only complete nominal cubic footprints.
+template <typename _realT>
+struct completeCubicFootprintTransform
+{
+    using arithT = _realT; ///< Arithmetic type matching the corresponding cubic science transform.
+    using cubicT = cubicConvolTransform<arithT>;   ///< Cubic transform whose nominal footprint is being validated.
+
+    static constexpr size_t width = cubicT::width; ///< Nominal cubic footprint width.
+    static constexpr size_t lbuff = cubicT::lbuff; ///< Cubic pixels preceding the interpolation anchor.
+
+    /// Fill a phase-independent kernel whose sum is the valid fraction of the nominal cubic footprint.
+    template <typename kernelT, typename coordinateT>
+    void operator()( kernelT &kernel, /**< [out] uniform complete-footprint kernel */
+                     coordinateT x,   /**< [in] unused subpixel row phase */
+                     coordinateT y /**< [in] unused subpixel column phase */ ) const
+    {
+        static_cast<void>( x );
+        static_cast<void>( y );
+        kernel.setConstant( arithT( 1 ) / arithT( width * width ) );
+    }
+};
+
+} // namespace detail
+/// \endcond
 
 /// Process an angular differential imaging (ADI) observation
 /** Angular differential imaging (ADI) uses sky rotation to differentiate real objects from
@@ -64,7 +91,7 @@ namespace improc
  * \endcode
  * \endparblock
  *
- * \ingroup hc_imaging
+ * \ingroup programming_library
  */
 template <typename _realT, class _derotFunctObj, class verboseT>
 struct ADIobservation : public HCIobservation<_realT, verboseT>
@@ -190,6 +217,17 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
 
     /// De-rotate the PSF subtracted images
     void derotate();
+
+    /// Apply the shared ADI final-processing lifecycle and write any configured products.
+    /** Processing is destructive and occurs in this order: optional post-median subtraction, optional derotation,
+     * final-image combination, and output. The optional algorithm header is appended after the standard ADI cards
+     * and before either final or PSF-subtracted products are written.
+     *
+     * \returns 0 on success.
+     * \throws mx::exception if combination or output fails.
+     */
+    int
+    finalProcess( const fitsHeaderT *algorithmHeader = nullptr /**< [in] optional algorithm-specific FITS cards */ );
 
     double t_fake_begin{ 0 };
     double t_fake_end{ 0 };
@@ -834,11 +872,40 @@ void ADIobservation<realT, derotFunctObj, verboseT>::derotate()
 {
     t_derotate_begin = sys::get_curr_time();
 
+    if( this->m_psfsubValidity.empty() )
+    {
+        for( size_t n = 0; n < this->m_psfsub.size(); ++n )
+        {
+#pragma omp parallel
+            {
+                imageT rotim;
+                realT derot;
+
+#pragma omp for
+                for( int i = 0; i < this->m_psfsub[n].planes(); ++i )
+                {
+                    derot = m_derotF.derotAngle( i );
+                    if( derot != 0 )
+                    {
+                        imageRotate( rotim, this->m_psfsub[n].image( i ), derot, cubicConvolTransform<realT>() );
+                        this->m_psfsub[n].image( i ) = rotim;
+                    }
+                }
+            }
+        }
+
+        t_derotate_end = sys::get_curr_time();
+        return;
+    }
+
+    this->sanitizePSFSubInvalid();
+
     for( size_t n = 0; n < this->m_psfsub.size(); ++n )
     {
 #pragma omp parallel
         {
             imageT rotim;
+            imageT rotatedValidity;
             realT derot;
 
 #pragma omp for
@@ -848,13 +915,152 @@ void ADIobservation<realT, derotFunctObj, verboseT>::derotate()
                 if( derot != 0 )
                 {
                     imageRotate( rotim, this->m_psfsub[n].image( i ), derot, cubicConvolTransform<realT>() );
+                    imageRotate( rotatedValidity,
+                                 this->m_psfsubValidity[n].image( i ),
+                                 derot,
+                                 detail::completeCubicFootprintTransform<realT>() );
+
+                    for( int row = 0; row < rotatedValidity.rows(); ++row )
+                    {
+                        for( int column = 0; column < rotatedValidity.cols(); ++column )
+                        {
+                            if( rotatedValidity( row, column ) == 1 )
+                            {
+                                rotatedValidity( row, column ) = 1;
+                            }
+                            else
+                            {
+                                rotatedValidity( row, column ) = 0;
+                                rotim( row, column ) = 0;
+                            }
+                        }
+                    }
+
                     this->m_psfsub[n].image( i ) = rotim;
+                    this->m_psfsubValidity[n].image( i ) = rotatedValidity;
                 }
             }
         }
     }
 
     t_derotate_end = sys::get_curr_time();
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+int ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( const fitsHeaderT *algorithmHeader )
+{
+    const bool hasReductionValidity = !this->m_psfsubValidity.empty();
+    if( hasReductionValidity )
+    {
+        this->sanitizePSFSubInvalid();
+    }
+
+    if( m_postMedSub )
+    {
+        std::cerr << "Subtracting medians in post\n";
+
+        for( size_t n = 0; n < this->m_psfsub.size(); ++n )
+        {
+            if( hasReductionValidity )
+            {
+                eigenImage<realT> medim;
+                this->m_psfsub[n].median( medim, this->m_psfsubValidity[n], this->m_minGoodFract );
+
+                // clang-format off
+                #pragma omp parallel for
+                // clang-format on
+                for( int i = 0; i < this->m_psfsub[n].planes(); ++i )
+                {
+                    for( int row = 0; row < this->m_psfsub[n].rows(); ++row )
+                    {
+                        for( int column = 0; column < this->m_psfsub[n].cols(); ++column )
+                        {
+                            if( this->m_psfsubValidity[n].image( i )( row, column ) == 0 )
+                            {
+                                continue;
+                            }
+
+                            if( isInvalidPixel( medim( row, column ) ) )
+                            {
+                                this->m_psfsub[n].image( i )( row, column ) = 0;
+                                this->m_psfsubValidity[n].image( i )( row, column ) = 0;
+                            }
+                            else
+                            {
+                                this->m_psfsub[n].image( i )( row, column ) -= medim( row, column );
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // clang-format off
+            #pragma omp parallel
+            // clang-format on
+            {
+                eigenImage<realT> medim;
+
+                this->m_psfsub[n].median( medim );
+
+                // clang-format off
+                #pragma omp for
+                // clang-format on
+                for( int i = 0; i < this->m_psfsub[n].planes(); ++i )
+                {
+                    this->m_psfsub[n].image( i ) -= medim;
+                }
+            }
+        }
+
+        if( hasReductionValidity )
+        {
+            this->sanitizePSFSubInvalid();
+        }
+    }
+
+    if( m_doDerotate )
+    {
+        std::cerr << "derotating\n";
+        derotate();
+    }
+
+    if( this->m_combineMethod != HCI::combine::none )
+    {
+        std::cerr << "combining\n";
+        this->combineFinim();
+    }
+
+    if( hasReductionValidity )
+    {
+        this->materializePSFSubInvalid();
+    }
+
+    if( this->m_doWriteFinim == true || this->m_doOutputPSFSub == true )
+    {
+        std::cerr << "writing\n";
+
+        fitsHeaderT head;
+        stdFitsHeader( &head );
+
+        if( algorithmHeader != nullptr )
+        {
+            fitsHeaderT algorithmHeaderCopy( *algorithmHeader );
+            head.append( algorithmHeaderCopy );
+        }
+
+        if( this->m_doWriteFinim == true && this->m_combineMethod != HCI::combine::none )
+        {
+            this->writeFinim( &head );
+        }
+
+        if( this->m_doOutputPSFSub )
+        {
+            this->outputPSFSub( &head );
+        }
+    }
+
+    return 0;
 }
 
 // If fakeFileName == "" or skipPreProcess == true then use the structure of propagated values

@@ -127,7 +127,7 @@ if(HCIREDUCE_LCOV_EXECUTABLE AND HCIREDUCE_GENHTML_EXECUTABLE)
         COMMAND ${HCIREDUCE_LCOV_EXECUTABLE} --directory ${HCIREDUCE_COVERAGE_BUILD_DIR} --zerocounters
         COMMAND ${CMAKE_CTEST_COMMAND} --test-dir ${HCIREDUCE_COVERAGE_BUILD_DIR} --output-on-failure --timeout ${HCIREDUCE_COVERAGE_TEST_TIMEOUT}
         COMMAND ${HCIREDUCE_LCOV_EXECUTABLE} --directory ${HCIREDUCE_COVERAGE_BUILD_DIR} --capture --output-file ${HCIREDUCE_COVERAGE_INFO}
-        COMMAND ${HCIREDUCE_LCOV_EXECUTABLE} --remove ${HCIREDUCE_COVERAGE_INFO} ${CMAKE_SOURCE_DIR}/tests/* /usr/* /sys/* /tty/* --ignore-errors unused,unused --ignore-errors inconsistent,inconsistent --output-file ${HCIREDUCE_COVERAGE_FILTERED_INFO}
+        COMMAND ${HCIREDUCE_LCOV_EXECUTABLE} --extract ${HCIREDUCE_COVERAGE_INFO} ${CMAKE_SOURCE_DIR}/src/* --ignore-errors unused,unused --ignore-errors inconsistent,inconsistent --output-file ${HCIREDUCE_COVERAGE_FILTERED_INFO}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${HCIREDUCE_COVERAGE_REPORT_DIR}
         COMMAND ${HCIREDUCE_GENHTML_EXECUTABLE} ${HCIREDUCE_COVERAGE_FILTERED_INFO} --output-directory ${HCIREDUCE_COVERAGE_REPORT_DIR} --title hciReduce --hierarchical --merge-aliases --suppress-aliases --filter function --demangle-cpp --css-file ${CMAKE_SOURCE_DIR}/tests/coverage/gcov.css
         USES_TERMINAL

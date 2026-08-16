@@ -10,6 +10,7 @@
 #include <mx/improc/imageUtils.hpp>
 
 #include <cmath>
+#include <limits>
 
 namespace unitTest
 {
@@ -168,6 +169,125 @@ TEST_CASE( "HCIobservation weighted masked combinations", "[HCIobservation][comb
 
     // clang-format off
 #ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::combineFinim();
+#endif
+    // clang-format on
+}
+
+/// Verify HCIobservation::combineFinim uses each reduction's authoritative validity cube for every combination mode.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation per-reduction validity combination", "[HCIobservation][combine][validity][mask][weights]" )
+{
+    OpenMPThreadGuard threads;
+    HCIobservationTestHarness observation;
+    observation.m_psfsub.resize( 2 );
+    observation.m_psfsubValidity.resize( 2 );
+    for( size_t reduction = 0; reduction < 2; ++reduction )
+    {
+        observation.m_psfsub[reduction].resize( 1, 2, 3 );
+        observation.m_psfsubValidity[reduction].resize( 1, 2, 3 );
+    }
+
+    observation.m_psfsub[0].image( 0 ) << 1, 2;
+    observation.m_psfsub[0].image( 1 ) << std::numeric_limits<float>::quiet_NaN(), 4;
+    observation.m_psfsub[0].image( 2 ) << 5, 6;
+    observation.m_psfsubValidity[0].image( 0 ) << 1, 0;
+    observation.m_psfsubValidity[0].image( 1 ) << 0, 0;
+    observation.m_psfsubValidity[0].image( 2 ) << 1, 0;
+
+    observation.m_psfsub[1].image( 0 ) << 2, 10;
+    observation.m_psfsub[1].image( 1 ) << 4, 20;
+    observation.m_psfsub[1].image( 2 ) << 8, 30;
+    observation.m_psfsubValidity[1].image( 0 ) << 0, 1;
+    observation.m_psfsubValidity[1].image( 1 ) << 1, 1;
+    observation.m_psfsubValidity[1].image( 2 ) << 1, 0;
+
+    observation.m_maskFile = "legacy-mask-must-not-win.fits";
+    observation.m_maskCube.resize( 1, 2, 3 );
+    observation.m_maskCube.cube().setZero();
+    observation.m_minGoodFract = 0;
+
+    observation.m_combineMethod = mx::improc::HCI::combine::median;
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3 ) );
+    REQUIRE( mx::improc::isInvalidPixel( observation.m_finim.image( 0 )( 0, 1 ) ) );
+    REQUIRE( observation.m_finim.image( 1 )( 0, 0 ) == Approx( 6 ) );
+    REQUIRE( observation.m_finim.image( 1 )( 0, 1 ) == Approx( 15 ) );
+    REQUIRE( observation.m_psfsub[0].image( 1 )( 0, 0 ) == 0 );
+
+    observation.m_combineMethod = mx::improc::HCI::combine::mean;
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3 ) );
+    REQUIRE( observation.m_finim.image( 1 )( 0, 0 ) == Approx( 6 ) );
+
+    observation.m_comboWeights = { 0.25F, 0.25F, 0.5F };
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 11.0F / 3.0F ) );
+    REQUIRE( observation.m_finim.image( 1 )( 0, 0 ) == Approx( 20.0F / 3.0F ) );
+
+    observation.m_combineMethod = mx::improc::HCI::combine::sigmaMean;
+    observation.m_sigmaThreshold = 0;
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 11.0F / 3.0F ) );
+
+    observation.m_comboWeights.clear();
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 1 )( 0, 1 ) == Approx( 15 ) );
+
+    observation.m_sigmaThreshold = 10;
+    observation.m_comboWeights = { 0.25F, 0.25F, 0.5F };
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 1 )( 0, 0 ) == Approx( 20.0F / 3.0F ) );
+
+    observation.m_comboWeights.clear();
+    observation.combineFinim();
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 3 ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::combineFinim();
+#endif
+    // clang-format on
+}
+
+/// Verify HCIobservation::validatePSFSubValidity and combineFinim reject malformed state before mutating science.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation validity validation", "[HCIobservation][combine][validity][validation]" )
+{
+    HCIobservationTestHarness observation;
+    REQUIRE_NOTHROW( observation.validatePSFSubValidity() );
+
+    observation.m_combineMethod = mx::improc::HCI::combine::mean;
+    observation.m_psfsub.resize( 1 );
+    observation.m_psfsub[0].resize( 1, 1, 1 );
+    observation.m_psfsub[0].cube().setOnes();
+
+    observation.m_psfsubValidity.resize( 2 );
+    REQUIRE_THROWS( observation.combineFinim() );
+
+    observation.m_psfsubValidity.resize( 1 );
+    REQUIRE_THROWS( observation.combineFinim() );
+
+    observation.m_psfsubValidity[0].resize( 1, 1, 1 );
+    observation.m_psfsubValidity[0].cube().setConstant( 0.5F );
+    REQUIRE_THROWS( observation.combineFinim() );
+    REQUIRE( observation.m_psfsub[0].image( 0 )( 0, 0 ) == 1 );
+
+    observation.m_psfsubValidity[0].cube().setConstant( std::numeric_limits<float>::quiet_NaN() );
+    REQUIRE_THROWS( observation.combineFinim() );
+
+    observation.m_psfsubValidity[0].cube().setOnes();
+    observation.m_psfsub[0].cube().setConstant( std::numeric_limits<float>::quiet_NaN() );
+    REQUIRE_THROWS( observation.combineFinim() );
+
+    observation.m_psfsubValidity[0].cube().setZero();
+    REQUIRE_NOTHROW( observation.combineFinim() );
+    REQUIRE( observation.m_psfsub[0].image( 0 )( 0, 0 ) == 0 );
+    REQUIRE( mx::improc::isInvalidPixel( observation.m_finim.image( 0 )( 0, 0 ) ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::validatePSFSubValidity();
     mx::improc::HCIobservation<float, mx::verbose::vv>::combineFinim();
 #endif
     // clang-format on

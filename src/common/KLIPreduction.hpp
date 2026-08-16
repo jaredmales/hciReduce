@@ -1,8 +1,7 @@
 /** \file KLIPreduction.hpp
  * \author Jared R. Males
  * \brief Declarations and definitions for an implementation of the
- * Karhunen-Loeve Image Processing (KLIP) algorithm. \ingroup hc_imaging_files
- * \ingroup image_processing_files
+ * Karhunen-Loeve Image Processing (KLIP) algorithm.
  *
  */
 
@@ -10,6 +9,7 @@
 #define __KLIPreduction_hpp__
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <exception>
 #include <limits>
@@ -39,15 +39,105 @@ namespace improc
 // double t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, tf;
 // double dcut, dscv, dklims, dgemm, dsyevr, dcfs, drot, dcombo, dread;
 
+/// \cond KLIPreduction_detail
+/// Calculate KL modes with the smaller of the reference- and pixel-space Gram matrices.
+template <typename _evCalcT = double, typename eigenT, typename eigenT1>
+MXLAPACK_INT calcKLModesAdaptive(
+    eigenT &klModes,                /**< [out] KL modes stored by row in ascending eigenvalue order */
+    eigenT &referenceCovariance,    /**< [in] reference-space Gram matrix; unused when pixels < references */
+    const eigenT1 &referenceImages, /**< [in] vectorized reference images, with images stored by column */
+    int maximumModeCount = 0,       /**< [in] maximum number of largest-eigenvalue modes, or zero for all */
+    math::syevrMem<_evCalcT> *workspace = nullptr, /**< [in,out] optional reusable eigensolver workspace */
+    double *eigenSeconds = nullptr,                /**< [out] optional eigensolver elapsed time */
+    double *modeSeconds = nullptr /**< [out] optional spatial-mode construction elapsed time */ )
+{
+    const int pixelCount = referenceImages.rows();
+    const int referenceCount = referenceImages.cols();
+
+    if( eigenSeconds != nullptr )
+    {
+        *eigenSeconds = 0;
+    }
+    if( modeSeconds != nullptr )
+    {
+        *modeSeconds = 0;
+    }
+    if( pixelCount <= 0 || referenceCount <= 0 )
+    {
+        return -1;
+    }
+
+    if( referenceCount <= pixelCount )
+    {
+        return math::calcKLModes<_evCalcT>( klModes,
+                                            referenceCovariance,
+                                            referenceImages,
+                                            maximumModeCount,
+                                            workspace,
+                                            eigenSeconds,
+                                            modeSeconds );
+    }
+
+    const int modeCount = maximumModeCount <= 0 ? pixelCount : std::min( maximumModeCount, pixelCount );
+    eigenT pixelCovariance;
+    eigenT eigenvectors;
+    eigenT eigenvalues;
+    pixelCovariance = ( referenceImages.matrix() * referenceImages.matrix().transpose() ).array();
+
+    const MXLAPACK_INT solverStatus = math::calcEigenVecs<_evCalcT>( eigenvectors,
+                                                                     eigenvalues,
+                                                                     pixelCovariance,
+                                                                     modeCount,
+                                                                     false,
+                                                                     false,
+                                                                     workspace,
+                                                                     eigenSeconds );
+    if( solverStatus != 0 )
+    {
+        return solverStatus;
+    }
+    const double modeStart = modeSeconds == nullptr ? 0 : sys::get_curr_time();
+    klModes = eigenvectors.matrix().transpose().array();
+    for( int mode = 0; mode < modeCount; ++mode )
+    {
+        bool validMode = math::isFinite( eigenvalues( mode ) ) && eigenvalues( mode ) > 0;
+        for( int pixel = 0; validMode && pixel < pixelCount; ++pixel )
+        {
+            validMode = math::isFinite( klModes( mode, pixel ) );
+        }
+        if( !validMode )
+        {
+            klModes.row( mode ).setZero();
+        }
+    }
+    if( modeSeconds != nullptr )
+    {
+        *modeSeconds = sys::get_curr_time() - modeStart;
+    }
+
+    return 0;
+}
+/// \endcond
+
 /// An implementation of the Karhunen-Loeve Image Processing (KLIP) algorithm.
 /** KLIP\cite soummer_2012 is a principle components analysis (PCA) based
  * technique for PSF estimation.
  *
+ * For a vectorized reference library \f$X\f$ with \f$P\f$ region pixels and \f$R\f$ reference images, the mode
+ * calculation automatically uses the smaller Gram matrix. It retains the reference-space \f$X^T X\f$ path when
+ * \f$R \leq P\f$ (including the equal-dimension tie) and uses the pixel-space \f$X X^T\f$ path when \f$P < R\f$.
+ * Returned mode rows are the largest-eigenvalue modes in ascending order, and a request larger than the available
+ * dimension is clamped to \f$\min(P,R)\f$. Nonpositive or non-finite modes are represented by zero rows.
+ *
+ * When diagnostics are enabled, `cv.fits` remains the complete symmetric reference-space \f$X^T X\f$ covariance
+ * even when the pixel-space solve is selected. At a truncation boundary that crosses an exactly or nearly degenerate
+ * eigenvalue cluster, finite-precision eigensolvers may choose different valid bases (and potentially different
+ * truncated subspaces); include the complete cluster when that distinction matters.
  *
  * \tparam _realT  is the floating point type in which to do calculations
  * \tparam _derotFunctObj the ADIobservation derotator class.
  * \tparam _evCalcT the real type in which to do eigen-decomposition.  Should
- * generally be double for stable results. \ingroup hc_imaging
+ * generally be double for stable results. \ingroup programming_library
  */
 template <typename _realT, class _derotFunctObj, typename _evCalcT, class verboseT>
 struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
@@ -56,6 +146,9 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     typedef _evCalcT evCalcT;
 
     typedef Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic> imageT;
+
+    /// FITS-header type shared with ADIobservation final processing.
+    typedef typename ADIobservation<realT, _derotFunctObj, verboseT>::fitsHeaderT fitsHeaderT;
 
     /// Default c'tor
     KLIPreduction();
@@ -252,6 +345,13 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                  realT dang,               /**< [in] minimum exclusion threshold */
                  realT dangMax /**< [in] maximum exclusion threshold */ );
 
+    /// Append KLIP-specific reduction parameters to a FITS header.
+    void appendReductionHeader( fitsHeaderT &head /**< [in.out] header receiving the KLIP cards */ );
+
+    /// Apply the shared ADI final-processing lifecycle with KLIP provenance.
+    /** \returns 0 on success.
+     * \throws mx::exception if final processing or output fails.
+     */
     int finalProcess();
 
     /// Load a saved KLIP reduction and apply the currently configured final-processing stages.
@@ -265,13 +365,22 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                        const std::string &prefix,    /**< [in] literal filename prefix */
                        const std::string &extension = ".fits" /**< [in] literal filename extension */ );
 
+    /// Wall-clock start of the complete multi-region KLIP calculation.
     double t_worker_begin{ 0 };
+
+    /// Wall-clock end of the complete multi-region KLIP calculation.
     double t_worker_end{ 0 };
 
+    /// Sum of per-solve eigendecomposition times; excludes Gram construction and reference selection.
     double t_eigenv{ 0 };
+
+    /// Sum of per-solve spatial-mode construction times.
     double t_klim{ 0 };
+
+    /// Sum of per-target projection and subtraction times.
     double t_psf{ 0 };
 
+    /// Print the current reduction-stage timing summary.
     void dump_times()
     {
         printf( "KLIP reduction times: \n" );
@@ -876,6 +985,12 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
                                                                      const std::vector<realT> &minq,
                                                                      const std::vector<realT> &maxq )
 {
+    t_worker_begin = 0;
+    t_worker_end = 0;
+    t_eigenv = 0;
+    t_klim = 0;
+    t_psf = 0;
+
     if( m_Nmodes.empty() )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP requires at least one mode count" );
@@ -1000,6 +1115,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
     std::cerr << "processing " << minr.size() << " regions\n";
 
     //******** For each region do this:
+    t_worker_begin = sys::get_curr_time();
     for( size_t regno = 0; regno < minr.size(); ++regno )
     {
         std::cerr << "  region " << regno + 1 << ": " << m_minr[regno] << "-" << m_maxr[regno] << " pixels, ";
@@ -1169,6 +1285,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
         m_excludeMethod = configuredExcludeMethod;
         m_excludeMethodMax = configuredExcludeMethodMax;
     }
+    t_worker_end = sys::get_curr_time();
 
     writeDiagnostic( "imsIncluded.fits", m_imsIncluded );
 
@@ -1396,11 +1513,6 @@ void collapseCovar( eigenT &cutCV,                           /**< [out] selected
     // "
     // << Nims << " (" << Nims-keepidx.size() << " rejected)\n";
 
-    if( keepidx.size() == 0 )
-    {
-        std::cerr << "\n\n" << imno << "\n\n";
-    }
-
     extractRowsAndCols( cutCV, CV, keepidx );
     extractCols( rimsCut, rims, keepidx );
 }
@@ -1419,6 +1531,16 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         m_excludeMethod == HCI::exclude::pixel || m_excludeMethod == HCI::exclude::angle ||
         m_excludeMethodMax == HCI::exclude::pixel || m_excludeMethodMax == HCI::exclude::angle;
     const bool useAllReferences = !exclusionActive && !selectionActive;
+
+    if( rims.planes() <= 0 || tims.planes() <= 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP requires reference and target images" );
+    }
+    if( rims.rows() <= 0 || rims.cols() <= 0 || rims.rows() != tims.rows() || rims.cols() != tims.cols() ||
+        static_cast<size_t>( rims.rows() ) * static_cast<size_t>( rims.cols() ) != idx.size() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "invalid KLIP worker image dimensions" );
+    }
 
     if( m_includeRefNum < 0 || ( m_includeMethod != HCI::include::all && m_includeMethod != HCI::include::corr &&
                                  m_includeMethod != HCI::include::time && m_includeMethod != HCI::include::angle &&
@@ -1479,8 +1601,6 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         }
     }
 
-    t_worker_begin = sys::get_curr_time();
-
     std::vector<realT> sds;
 
     imageT meanim;
@@ -1495,12 +1615,30 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from meanSubtract" ) );
     }
 
-    //*** Form lower-triangle covariance matrix
+    //*** Form the reference covariance when required by the solve, selection, or diagnostics.
     imageT cv;
-
-    math::eigenSYRK( cv, rims.cube() );
-
-    writeDiagnostic( "cv.fits", cv );
+    const int pixelCount = rims.cube().rows();
+    const int referenceCount = rims.cube().cols();
+    const bool formReferenceCovariance = !useAllReferences || referenceCount <= pixelCount || m_writeDiagnostics;
+    if( formReferenceCovariance )
+    {
+        math::eigenSYRK( cv, rims.cube() );
+    }
+    // eigenSYRK fills only the lower triangle; selection and full-matrix diagnostics inspect both triangles.
+    if( !useAllReferences || m_writeDiagnostics )
+    {
+        for( int column = 1; column < cv.cols(); ++column )
+        {
+            for( int row = 0; row < column; ++row )
+            {
+                cv( row, column ) = cv( column, row );
+            }
+        }
+    }
+    if( m_writeDiagnostics )
+    {
+        writeDiagnostic( "cv.fits", cv );
+    }
     ipc::ompLoopWatcher<> status( tims.planes(), std::cerr );
 
     // Pre-calculate KL images once if we are exclude none OR IF RDI
@@ -1537,10 +1675,17 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
 
     if( useAllReferences )
     {
-        double teigenv;
-        double tklim;
+        double teigenv{ 0 };
+        double tklim{ 0 };
+        math::syevrMem<evCalcT> workspace;
 
-        math::calcKLModes<double>( master_klims, cv, rims.cube(), m_maxNmodes, nullptr, &teigenv, &tklim );
+        const MXLAPACK_INT solverStatus =
+            calcKLModesAdaptive<evCalcT>( master_klims, cv, rims.cube(), m_maxNmodes, &workspace, &teigenv, &tklim );
+        if( solverStatus != 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::lapackerr,
+                                           "KLIP eigensolver failed with status " + std::to_string( solverStatus ) );
+        }
 
         if( m_rightReason )
         {
@@ -1554,248 +1699,254 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         t_klim += tklim;
     }
 
+    const imageT &sharedMasterKlims = master_klims;
+    const imageT &sharedMasterProjMat = master_projMat;
+    std::exception_ptr workerException;
+    std::atomic<bool> workerFailed{ false };
+    double parallelEigenSeconds{ 0 };
+    double parallelModeSeconds{ 0 };
+    double parallelPsfSeconds{ 0 };
+
     // clang-format off
-    #pragma omp parallel // num_threads(20) // clang-format on
+    #pragma omp parallel reduction( + : parallelEigenSeconds, parallelModeSeconds, parallelPsfSeconds )
+    // clang-format on
     {
-        // We need local copies for each thread.  Only way this works, for
-        // whatever reason.
         imageT cfs; // The coefficients
         imageT psf;
         imageT rims_cut;
         imageT cv_cut;
-        imageT klims;
-        imageT projMat;
+        imageT localKlims;
+        imageT localProjMat;
 
         math::syevrMem<evCalcT> mem;
 
-        if( useAllReferences )
-        {
-            klims = master_klims;
-            if( m_rightReason )
-            {
-                projMat = master_projMat;
-            }
-        }
-
         // clang-format off
-        #pragma omp for // clang-format on
+        #pragma omp for
+        // clang-format on
         for( int imno = 0; imno < tims.planes(); ++imno )
         {
-            if( !useAllReferences )
+            if( workerFailed.load( std::memory_order_relaxed ) )
             {
-                collapseCovar<realT>( cv_cut,
-                                      cv,
-                                      sds,
-                                      rims_cut,
-                                      rims.asVectors(),
-                                      tims.asVectors(),
-                                      imno,
-                                      dang,
-                                      dangMax,
-                                      this->m_excludeMethod,
-                                      this->m_excludeMethodMax,
-                                      this->m_includeMethod,
-                                      this->m_includeRefNum,
-                                      referenceDerotF,
-                                      this->m_derotF,
-                                      referenceMJD,
-                                      this->m_imageMJD,
-                                      m_imsIncluded );
-
-                /**** Now calculate the K-L Images ****/
-                double teigenv, tklim;
-                math::calcKLModes( klims, cv_cut, rims_cut, m_maxNmodes, &mem, &teigenv, &tklim );
-
-                if( m_rightReason )
-                {
-                    projMat = ( klims.matrix().transpose() * klims.matrix() ).array();
-                    projMat *= rrMask;
-                }
-
-                t_eigenv += teigenv;
-                t_klim += tklim;
+                continue;
             }
-            cfs.resize( 1, klims.rows() );
 
-            double t0 = sys::get_curr_time();
-
-            if( !m_rightReason )
+            try
             {
-                for( int j = 0; j < cfs.size(); ++j )
+                const imageT *activeKlims = &sharedMasterKlims;
+                const imageT *activeProjMat = &sharedMasterProjMat;
+                if( !useAllReferences )
                 {
-                    cfs( j ) = klims.row( j ).matrix().dot( tims.cube().col( imno ).matrix() );
-                }
-
-                for( size_t mode_i = 0; mode_i < m_Nmodes.size(); ++mode_i )
-                {
-                    psf = cfs( cfs.size() - 1 ) * klims.row( cfs.size() - 1 );
-
-                    // Count down, since eigenvalues are returned in increasing
-                    // order
-                    //   handle case where cfs.size() < m_Nmodes[mode_i], i.e.
-                    //   when more modes than images.
-                    for( int j = cfs.size() - 2; j >= cfs.size() - m_Nmodes[mode_i] && j >= 0; --j )
+                    collapseCovar<realT>( cv_cut,
+                                          cv,
+                                          sds,
+                                          rims_cut,
+                                          rims.asVectors(),
+                                          tims.asVectors(),
+                                          imno,
+                                          dang,
+                                          dangMax,
+                                          this->m_excludeMethod,
+                                          this->m_excludeMethodMax,
+                                          this->m_includeMethod,
+                                          this->m_includeRefNum,
+                                          referenceDerotF,
+                                          this->m_derotF,
+                                          referenceMJD,
+                                          this->m_imageMJD,
+                                          m_imsIncluded );
+                    if( rims_cut.cols() <= 0 )
                     {
-                        psf += cfs( j ) * klims.row( j );
+                        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                                       "KLIP target " + std::to_string( imno ) +
+                                                           " has no admissible references" );
                     }
 
-                    // #pragma omp critical
-                    insertImageRegion( this->m_psfsub[mode_i].cube().col( imno ),
-                                       tims.cube().col( imno ) - psf.transpose(),
-                                       idx );
+                    double teigenv{ 0 };
+                    double tklim{ 0 };
+                    const MXLAPACK_INT solverStatus = calcKLModesAdaptive<evCalcT>( localKlims,
+                                                                                    cv_cut,
+                                                                                    rims_cut,
+                                                                                    m_maxNmodes,
+                                                                                    &mem,
+                                                                                    &teigenv,
+                                                                                    &tklim );
+                    if( solverStatus != 0 )
+                    {
+                        throw mx::exception<verboseT>( mx::error_t::lapackerr,
+                                                       "KLIP eigensolver failed for target " + std::to_string( imno ) +
+                                                           " with status " + std::to_string( solverStatus ) );
+                    }
+
+                    if( m_rightReason )
+                    {
+                        localProjMat = ( localKlims.matrix().transpose() * localKlims.matrix() ).array();
+                        localProjMat *= rrMask;
+                    }
+
+                    parallelEigenSeconds += teigenv;
+                    parallelModeSeconds += tklim;
+                    activeKlims = &localKlims;
+                    activeProjMat = &localProjMat;
+                }
+
+                cfs.resize( 1, activeKlims->rows() );
+                if( cfs.size() <= 0 )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::sizeerr, "KLIP eigensolver returned no modes" );
+                }
+
+                const double psfStart = sys::get_curr_time();
+
+                if( !m_rightReason )
+                {
+                    for( int j = 0; j < cfs.size(); ++j )
+                    {
+                        cfs( j ) = activeKlims->row( j ).matrix().dot( tims.cube().col( imno ).matrix() );
+                    }
+
+                    for( size_t mode_i = 0; mode_i < m_Nmodes.size(); ++mode_i )
+                    {
+                        psf = cfs( cfs.size() - 1 ) * activeKlims->row( cfs.size() - 1 );
+
+                        // Count down, since eigenvalues are returned in increasing
+                        // order
+                        //   handle case where cfs.size() < m_Nmodes[mode_i], i.e.
+                        //   when more modes than images.
+                        for( int j = cfs.size() - 2; j >= cfs.size() - m_Nmodes[mode_i] && j >= 0; --j )
+                        {
+                            psf += cfs( j ) * activeKlims->row( j );
+                        }
+
+                        insertImageRegion( this->m_psfsub[mode_i].cube().col( imno ),
+                                           tims.cube().col( imno ) - psf.transpose(),
+                                           idx );
+                    }
+                }
+                else
+                {
+                    psf = activeProjMat->matrix() * tims.cube().col( imno ).matrix();
+                    insertImageRegion( this->m_psfsub[0].cube().col( imno ), tims.cube().col( imno ) - psf, idx );
+                }
+
+                parallelPsfSeconds += sys::get_curr_time() - psfStart;
+                status.incrementAndOutputStatus();
+            }
+            catch( ... )
+            {
+                workerFailed.store( true, std::memory_order_relaxed );
+                // clang-format off
+                #pragma omp critical( KLIPreduction_worker_exception )
+                // clang-format on
+                {
+                    if( workerException == nullptr )
+                    {
+                        workerException = std::current_exception();
+                    }
                 }
             }
-            else
-            {
-                psf = projMat.matrix() * tims.cube().col( imno ).matrix();
-                insertImageRegion( this->m_psfsub[0].cube().col( imno ), tims.cube().col( imno ) - psf, idx );
-            }
-
-            t_psf += ( sys::get_curr_time() - t0 ); /// omp_get_num_threads();
-
-            status.incrementAndOutputStatus();
 
         } // for imno
     } // openmp parrallel
 
-    t_worker_end = sys::get_curr_time();
+    t_eigenv += parallelEigenSeconds;
+    t_klim += parallelModeSeconds;
+    t_psf += parallelPsfSeconds;
+    if( workerException != nullptr )
+    {
+        std::rethrow_exception( workerException );
+    }
+}
+
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::appendReductionHeader( fitsHeaderT &head )
+{
+    head.append( "", fits::fitsCommentType(), "----------------------------------------" );
+    head.append( "", fits::fitsCommentType(), "mx::KLIPreduction parameters:" );
+    head.append( "", fits::fitsCommentType(), "----------------------------------------" );
+
+    head.append( "MEAN SUB METHOD", HCI::meanSubToStr<verboseT>( m_meanSubMethod ), "PCA mean subtraction method" );
+    head.append( "PIXTS NORM METHOD", HCI::pixelTSNormToStr<verboseT>( m_pixelTSNormMethod ), "Pixel TS norm method" );
+
+    std::stringstream str;
+
+    if( m_Nmodes.size() > 0 )
+    {
+        for( size_t nm = 0; nm < m_Nmodes.size() - 1; ++nm )
+            str << m_Nmodes[nm] << ",";
+        str << m_Nmodes[m_Nmodes.size() - 1];
+        head.template append<char *>( "NMODES", (char *)str.str().c_str(), "number of modes" );
+    }
+
+    head.template append<bool>( "RIGHT REASON", m_rightReason, "whether or not the right reason mask is used" );
+    if( m_rightReason )
+    {
+        head.template append<realT>( "RIGHT REASON RADIUS", m_rightReasonRadius, "radius of the right reason mask" );
+    }
+
+    if( m_minr.size() > 0 )
+    {
+        str.str( "" );
+        for( size_t nm = 0; nm < m_minr.size() - 1; ++nm )
+            str << m_minr[nm] << ",";
+        str << m_minr[m_minr.size() - 1];
+        head.template append<char *>( "REGMINR", (char *)str.str().c_str(), "region inner edge(s)" );
+    }
+
+    if( m_maxr.size() > 0 )
+    {
+        str.str( "" );
+        for( size_t nm = 0; nm < m_maxr.size() - 1; ++nm )
+            str << m_maxr[nm] << ",";
+        str << m_maxr[m_maxr.size() - 1];
+        head.template append<char *>( "REGMAXR", (char *)str.str().c_str(), "region outer edge(s)" );
+    }
+
+    if( m_minq.size() > 0 )
+    {
+        str.str( "" );
+        for( size_t nm = 0; nm < m_minq.size() - 1; ++nm )
+            str << m_minq[nm] << ",";
+        str << m_minq[m_minq.size() - 1];
+        head.template append<char *>( "REGMINQ", (char *)str.str().c_str(), "region minimum angle(s)" );
+    }
+
+    if( m_maxq.size() > 0 )
+    {
+        str.str( "" );
+        for( size_t nm = 0; nm < m_maxq.size() - 1; ++nm )
+            str << m_maxq[nm] << ",";
+        str << m_maxq[m_maxq.size() - 1];
+        head.template append<char *>( "REGMAXQ", (char *)str.str().c_str(), "region maximum angle(s)" );
+    }
+
+    head.template append<std::string>( "EXMTHDMN",
+                                       HCI::excludeToStr<verboseT>( m_excludeMethod ),
+                                       "exclusion method (min)" );
+
+    head.template append<realT>( "MINDPX", m_minDPx, "minimum delta (units based on EXMTHDMN)" );
+
+    head.template append<std::string>( "EXMTHDMX",
+                                       HCI::excludeToStr<verboseT>( m_excludeMethodMax ),
+                                       "exclusion method (max)" );
+    head.template append<realT>( "MAXDPX", m_maxDPx, "maximum delta (units based on EXMTHDMX)" );
+
+    head.template append<std::string>( "INMTHDMX", HCI::includeToStr<verboseT>( m_includeMethod ), "inclusion method" );
+    head.template append<int>( "INCLREFN", m_includeRefNum, "number of images included by INMTHDMX" );
 }
 
 template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
 int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalProcess()
 {
-    if( this->m_postMedSub )
-    {
-        std::cerr << "Subtracting medians in post\n";
-
-        for( size_t n = 0; n < this->m_psfsub.size(); ++n )
-        {
-            // clang-format off
-            #pragma omp parallel
-            // clang-format on
-            {
-                eigenImage<realT> medim;
-
-                this->m_psfsub[n].median( medim );
-
-                // clang-format off
-                #pragma omp for
-                // clang-format on
-                for( int i = 0; i < this->m_psfsub[n].planes(); ++i )
-                {
-                    this->m_psfsub[n].image( i ) -= medim;
-                }
-            }
-        }
-    }
-
-    if( this->m_doDerotate )
-    {
-        std::cerr << "derotating\n";
-        this->derotate();
-    }
-
-    if( this->m_combineMethod != HCI:: combine::none )
-    {
-        std::cerr << "combining\n";
-        this->combineFinim();
-    }
+    fitsHeaderT algorithmHeader;
+    const fitsHeaderT *algorithmHeaderPointer = nullptr;
 
     if( this->m_doWriteFinim == true || this->m_doOutputPSFSub == true )
     {
-        std::cerr << "writing\n";
-
-        fits::fitsHeader<verboseT> head;
-
-        this->ADIobservation<realT, derotFunctObj, verboseT>::stdFitsHeader( &head );
-
-        head.append( "", fits::fitsCommentType(), "----------------------------------------" );
-        head.append( "", fits::fitsCommentType(), "mx::KLIPreduction parameters:" );
-        head.append( "", fits::fitsCommentType(), "----------------------------------------" );
-
-        head.append( "MEAN SUB METHOD", HCI::meanSubToStr<verboseT>( m_meanSubMethod ), "PCA mean subtraction method" );
-        head.append( "PIXTS NORM METHOD", HCI::pixelTSNormToStr<verboseT>( m_pixelTSNormMethod ), "Pixel TS norm method" );
-
-        std::stringstream str;
-
-        if( m_Nmodes.size() > 0 )
-        {
-            for( size_t nm = 0; nm < m_Nmodes.size() - 1; ++nm )
-                str << m_Nmodes[nm] << ",";
-            str << m_Nmodes[m_Nmodes.size() - 1];
-            head.template append<char *>( "NMODES", (char *)str.str().c_str(), "number of modes" );
-        }
-
-        head.template append<bool>( "RIGHT REASON", m_rightReason, "whether or not the right reason mask is used" );
-        if( m_rightReason )
-        {
-            head.template append<realT>( "RIGHT REASON RADIUS",
-                                         m_rightReasonRadius,
-                                         "radius of the right reason mask" );
-        }
-
-        if( m_minr.size() > 0 )
-        {
-            str.str( "" );
-            for( size_t nm = 0; nm < m_minr.size() - 1; ++nm )
-                str << m_minr[nm] << ",";
-            str << m_minr[m_minr.size() - 1];
-            head.template append<char *>( "REGMINR", (char *)str.str().c_str(), "region inner edge(s)" );
-        }
-
-        if( m_maxr.size() > 0 )
-        {
-            str.str( "" );
-            for( size_t nm = 0; nm < m_maxr.size() - 1; ++nm )
-                str << m_maxr[nm] << ",";
-            str << m_maxr[m_maxr.size() - 1];
-            head.template append<char *>( "REGMAXR", (char *)str.str().c_str(), "region outer edge(s)" );
-        }
-
-        if( m_minq.size() > 0 )
-        {
-            str.str( "" );
-            for( size_t nm = 0; nm < m_minq.size() - 1; ++nm )
-                str << m_minq[nm] << ",";
-            str << m_minq[m_minq.size() - 1];
-            head.template append<char *>( "REGMINQ", (char *)str.str().c_str(), "region minimum angle(s)" );
-        }
-
-        if( m_maxq.size() > 0 )
-        {
-            str.str( "" );
-            for( size_t nm = 0; nm < m_maxq.size() - 1; ++nm )
-                str << m_maxq[nm] << ",";
-            str << m_maxq[m_maxq.size() - 1];
-            head.template append<char *>( "REGMAXQ", (char *)str.str().c_str(), "region maximum angle(s)" );
-        }
-
-        head.template append<std::string>( "EXMTHDMN",
-                                           HCI::excludeToStr<verboseT>( m_excludeMethod ),
-                                           "exclusion method (min)" );
-
-        head.template append<realT>( "MINDPX", m_minDPx, "minimum delta (units based on EXMTHDMN)" );
-
-        head.template append<std::string>( "EXMTHDMX",
-                                           HCI::excludeToStr<verboseT>( m_excludeMethodMax ),
-                                           "exclusion method (max)" );
-        head.template append<realT>( "MAXDPX", m_maxDPx, "maximum delta (units based on EXMTHDMX)" );
-
-        head.template append<std::string>( "INMTHDMX", HCI::includeToStr<verboseT>( m_includeMethod ), "inclusion method" );
-        head.template append<int>( "INCLREFN", m_includeRefNum, "number of images included by INMTHDMX" );
-
-        if( this->m_doWriteFinim == true && this->m_combineMethod != HCI:: combine::none )
-        {
-            this->writeFinim( &head );
-        }
-
-        if( this->m_doOutputPSFSub )
-        {
-            this->outputPSFSub( &head );
-        }
+        appendReductionHeader( algorithmHeader );
+        algorithmHeaderPointer = &algorithmHeader;
     }
 
-    return 0;
+    return this->ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( algorithmHeaderPointer );
 }
 
 template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>

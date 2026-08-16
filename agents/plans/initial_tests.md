@@ -336,6 +336,43 @@ depends on the same behavior.
     manifest-enforced `appConfigurator`, application lifecycle, exception, and saved-product APIs already recorded at
     100% in [mxlib_cleanup.md](mxlib_cleanup.md).
 
+### Phase 13: adaptive smaller-Gram KLIP basis [complete]
+
+- [x] Select the smaller KLIP Gram matrix automatically for each realized reference library.
+  - For a vectorized region with `P` pixels and `R` retained references, preserve the legacy `X^T X` route when
+    `R <= P`, including the square tie, and solve the pixel-space `X X^T` route only when `P < R`.
+  - Preserve the configured output-plane order, largest-mode accumulation, duplicate/unordered requests, effective
+    clamping to `min(P,R)`, exact-positive eigenvalue policy, and right-reason projection behavior without adding a
+    configuration or output-provenance option.
+  - Keep `cv.fits` as the complete symmetric reference-space covariance even when the pixel-space solver is selected.
+    Normal use-all pixel-space reductions skip construction of the unused `R x R` matrix when diagnostics are off.
+- [x] Repair worker safety and timing at the changed numerical seam.
+  - Check every eigensolver return, reject an empty selected library, capture worker exceptions across OpenMP before
+    rethrowing, share immutable master modes/projectors, and keep selected scratch and solver workspaces thread-local.
+  - Replace raced timing accumulation with OpenMP reductions, reset it for each `regions()` call, and bracket the full
+    multi-region calculation. The component totals are sums of per-call solve/mode/projection times and deliberately
+    exclude Gram construction and reference selection.
+- [x] Verify numerical equivalence and the expected performance crossover.
+  - Direct-SVD and frozen legacy projectors/residuals agree across `P<R`, `R<P`, square, rank-deficient, zero,
+    near-null, oversized-mode, unordered/duplicate-mode, workspace-reuse, RDI-selection, right-reason, and one-versus-
+    three-thread cases. Solver allocation failure and malformed worker geometry propagate deterministically.
+  - Controlled one-thread Release benchmarks using KLIP's production float arrays and double eigensolver improve
+    `96 x 621` basis construction from 16.124 ms to 0.889 ms (18.13 times) and `32 x 621` from 15.086 ms to 0.202 ms
+    (74.79 times). The retained reference/tie routes are unchanged within measurement noise, while pixel-route
+    projector and residual relative differences stay below `2.5e-6`.
+  - The `96 x 621` double eigensolver Gram storage falls from 2.942 MiB to 0.0703 MiB (41.84 times smaller). Per-target
+    selection still constructs/collapses the full reference Gram before choosing its solve, so avoiding that preparation
+    is a separate optimization opportunity.
+- Verification:
+  - The focused optimized and ASan/UBSan suites pass 1,133 assertions in 40 `TEST_CASE`s.
+  - `KLIPreduction.hpp` is at 100% executable-line coverage; the only raw zero-count function record is the compiler's
+    deleting-destructor alias, while every logical function is reached.
+  - GCC ThreadSanitizer does not model libgomp's `omp critical` synchronization and reports the internally protected
+    `ompLoopWatcher` counter as a race; the OpenMP contract, serial/three-thread equivalence tests, and independent
+    source review confirm the changed worker state is target-disjoint or synchronized.
+  - The mxlib gate remains satisfied for `eigenSYRK`, `calcEigenVecs`, `calcKLModes`, `isFinite`, `get_curr_time`,
+    `ompLoopWatcher`, region insertion/masks, FITS diagnostics, and exception construction.
+
 ## Code-review findings that set test priority
 
 Resolve these under focused regression tests before relying on the affected integration paths:

@@ -1,7 +1,6 @@
 /** \file HCI.hpp
  * \author Jared R. Males
  * \brief Defines the configuration types for high contrast imaging.
- * \ingroup hc_imaging_files
  *
  */
 
@@ -17,13 +16,13 @@ namespace improc
 {
 
 /// Namespace for high contrast imaging configuration enums.
-/** \ingroup hc_imaging_enums
+/** \ingroup programming_library
  */
 namespace HCI
 {
 
 /// Possible coadding methods
-/** \ingroup hc_imaging_enums
+/** \ingroup programming_library
  */
 enum class coadd
 {
@@ -85,7 +84,7 @@ coadd coaddFmStr( const std::string &method /**< [in] the string name of the \re
 
 /// Mean subtraction methods
 /** These control how the data in each search region is centered to meet the PCA
- * requirement. \ingroup hc_imaging_enums
+ * requirement. \ingroup programming_library
  */
 enum class meanSub
 {
@@ -219,7 +218,7 @@ pixelTSNorm pixelTSNormFmStr( const std::string &method /**< [in] The string nam
 }
 
 /// Possible combination methods
-/** \ingroup hc_imaging_enums
+/** \ingroup programming_library
  */
 enum class combine
 {
@@ -288,7 +287,7 @@ combine combineFmStr( const std::string &method /**< [in] the string name of the
 }
 
 /// Fake injection PSF file specification methods
-/** \ingroup hc_imaging_enums
+/** \ingroup programming_library
  */
 enum class fake
 {
@@ -340,7 +339,7 @@ fake fakeFmStr( const std::string &method /**< [in] the \ref fake injection meth
 }
 
 /// Image exclusion methods
-/** \ingroup hc_imaging_enums
+/** \ingroup programming_library
  */
 enum class exclude
 {
@@ -413,7 +412,7 @@ exclude excludeFmStr( const std::string &method /**< [in] the string name of the
 }
 
 /// Image inclusion methods
-/** \ingroup hc_imaging_enums
+/** \ingroup programming_library
  */
 enum class include
 {

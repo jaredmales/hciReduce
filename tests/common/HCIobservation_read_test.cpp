@@ -138,6 +138,35 @@ TEST_CASE( "HCIobservation target FITS ingestion", "[HCIobservation][readFiles][
     // clang-format on
 }
 
+/// Verify HCIobservation::readFiles can reject pristine non-finite target data before cleanup and extension hooks.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation pristine non-finite rejection", "[HCIobservation][readFiles][FITS][validation]" )
+{
+    TestDirectory directory;
+    HCIobservationTestHarness observation;
+    auto image = indexedImage( 3, 3 );
+    image( 1, 2 ) = std::numeric_limits<float>::quiet_NaN();
+
+    const auto path = directory.file( "non-finite.fits" );
+    writeFitsImage( path, image );
+
+    observation.m_fileList = { path.string() };
+    observation.m_dateKeyword.clear();
+    observation.m_skipPreProcess = true;
+    observation.m_rejectNonFiniteTargetInput = true;
+
+    REQUIRE_THROWS( observation.readFiles() );
+    REQUIRE_FALSE( observation.m_filesRead );
+    REQUIRE( observation.m_hookEvents.empty() );
+    REQUIRE_FALSE( mx::math::isFinite( observation.m_tgtIms.image( 0 )( 1, 2 ) ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::readFiles();
+#endif
+    // clang-format on
+}
+
 /// Verify HCIobservation::readFiles clamps oversized requests, scales numeric dates, and clears stale date state.
 /** \ingroup HCIobservation_unit_tests */
 TEST_CASE( "HCIobservation repeated target FITS ingestion", "[HCIobservation][readFiles][state]" )

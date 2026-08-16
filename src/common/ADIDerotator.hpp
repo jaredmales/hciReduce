@@ -1,7 +1,6 @@
 /** \file ADIDerotator.hpp
  * \author Jared R. Males
  * \brief Defines a generic ADI derotator class.
- * \ingroup hc_imaging_files
  *
  */
 
@@ -22,7 +21,7 @@ namespace improc
 /// A generic ADI derotator class.
 /** This class is used to calculate the derotation angle for angular differential imaging.
  *
- * \ingroup hc_imaging
+ * \ingroup programming_library
  *
  */
 template <typename _realT, class verboseT = mx::verbose::vvv>

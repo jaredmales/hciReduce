@@ -9,6 +9,10 @@
 #include "src/common/ADIDerotator.hpp"
 #include "src/common/ADIobservation.hpp"
 
+#include <cmath>
+#include <limits>
+#include <numbers>
+
 namespace unitTest
 {
 namespace ADIobservation_test
@@ -386,6 +390,367 @@ TEST_CASE( "ADIobservation mask and image derotation", "[ADIobservation][makeMas
     mx::improc::ADIobservation<float,
                                 mx::improc::ADIDerotator<float, mx::verbose::vv>,
                                 mx::verbose::vv>::derotate();
+#endif
+    // clang-format on
+}
+
+/// Verify ADIobservation::derotate accepts validity only with complete nominal cubic interpolation support.
+/** \ingroup ADIobservation_unit_tests */
+TEST_CASE( "ADIobservation complete-footprint validity derotation", "[ADIobservation][derotate][validity]" )
+{
+    OpenMPThreadGuard threads( 1 );
+
+    for( int invalidRow = 3; invalidRow <= 6; ++invalidRow )
+    {
+        for( int invalidColumn = 2; invalidColumn <= 5; ++invalidColumn )
+        {
+            observationHarness observation;
+            observation.m_psfsub.resize( 1 );
+            observation.m_psfsubValidity.resize( 1 );
+            observation.m_psfsub[0].resize( 9, 9, 1 );
+            observation.m_psfsubValidity[0].resize( 9, 9, 1 );
+            observation.m_psfsub[0].cube().setOnes();
+            observation.m_psfsubValidity[0].cube().setOnes();
+            observation.m_psfsub[0].image( 0 )( invalidRow, invalidColumn ) = std::numeric_limits<float>::quiet_NaN();
+            observation.m_psfsubValidity[0].image( 0 )( invalidRow, invalidColumn ) = 0;
+            observation.m_derotF.m_angleScale = 1;
+            observation.m_derotF.m_angles = { 90 };
+
+            observation.derotate();
+
+            REQUIRE( observation.m_psfsubValidity[0].image( 0 )( 4, 4 ) == 0 );
+            REQUIRE( observation.m_psfsub[0].image( 0 )( 4, 4 ) == 0 );
+        }
+    }
+
+    observationHarness complete;
+    complete.m_psfsub.resize( 1 );
+    complete.m_psfsubValidity.resize( 1 );
+    complete.m_psfsub[0].resize( 9, 9, 1 );
+    complete.m_psfsubValidity[0].resize( 9, 9, 1 );
+    complete.m_psfsub[0].cube().setOnes();
+    complete.m_psfsubValidity[0].cube().setOnes();
+    complete.m_psfsub[0].image( 0 )( 2, 3 ) = std::numeric_limits<float>::quiet_NaN();
+    complete.m_psfsubValidity[0].image( 0 )( 2, 3 ) = 0;
+    complete.m_derotF.m_angleScale = 1;
+    complete.m_derotF.m_angles = { 90 };
+    complete.derotate();
+
+    REQUIRE( complete.m_psfsubValidity[0].image( 0 )( 4, 4 ) == 1 );
+    REQUIRE( complete.m_psfsub[0].image( 0 )( 4, 4 ) == Approx( 1 ) );
+    REQUIRE( complete.m_psfsubValidity[0].image( 0 )( 0, 0 ) == 0 );
+    for( int row = 0; row < 9; ++row )
+    {
+        for( int column = 0; column < 9; ++column )
+        {
+            REQUIRE( ( complete.m_psfsubValidity[0].image( 0 )( row, column ) == 0 ||
+                       complete.m_psfsubValidity[0].image( 0 )( row, column ) == 1 ) );
+            REQUIRE( mx::math::isFinite( complete.m_psfsub[0].image( 0 )( row, column ) ) );
+        }
+    }
+
+    constexpr int outputRow = 4;
+    constexpr int outputColumn = 5;
+    constexpr float center = 4;
+    constexpr float angleDegrees = 17;
+    constexpr int footprintWidth = 4;
+    constexpr int lowerBuffer = 1;
+    // Derive the fractional source anchor from the rotation geometry, independently of imageRotate's implementation.
+    const float angleRadians = angleDegrees * std::numbers::pi_v<float> / 180;
+    const float sourceRow = ( outputRow - center ) * std::cos( angleRadians ) +
+                            ( outputColumn - center ) * std::sin( angleRadians ) + center;
+    const float sourceColumn = -( outputRow - center ) * std::sin( angleRadians ) +
+                               ( outputColumn - center ) * std::cos( angleRadians ) + center;
+    const int sourceAnchorRow = static_cast<int>( std::floor( sourceRow ) );
+    const int sourceAnchorColumn = static_cast<int>( std::floor( sourceColumn ) );
+
+    for( int footprintRow = 0; footprintRow < footprintWidth; ++footprintRow )
+    {
+        for( int footprintColumn = 0; footprintColumn < footprintWidth; ++footprintColumn )
+        {
+            observationHarness fractional;
+            fractional.m_psfsub.resize( 1 );
+            fractional.m_psfsubValidity.resize( 1 );
+            fractional.m_psfsub[0].resize( 9, 9, 1 );
+            fractional.m_psfsubValidity[0].resize( 9, 9, 1 );
+            fractional.m_psfsub[0].cube().setOnes();
+            fractional.m_psfsubValidity[0].cube().setOnes();
+            const int invalidRow = sourceAnchorRow - lowerBuffer + footprintRow;
+            const int invalidColumn = sourceAnchorColumn - lowerBuffer + footprintColumn;
+            fractional.m_psfsub[0].image( 0 )( invalidRow, invalidColumn ) = std::numeric_limits<float>::quiet_NaN();
+            fractional.m_psfsubValidity[0].image( 0 )( invalidRow, invalidColumn ) = 0;
+            fractional.m_derotF.m_angleScale = 1;
+            fractional.m_derotF.m_angles = { angleDegrees };
+
+            fractional.derotate();
+
+            REQUIRE( fractional.m_psfsubValidity[0].image( 0 )( outputRow, outputColumn ) == 0 );
+            REQUIRE( fractional.m_psfsub[0].image( 0 )( outputRow, outputColumn ) == 0 );
+        }
+    }
+
+    observationHarness fractionalOutside;
+    fractionalOutside.m_psfsub.resize( 1 );
+    fractionalOutside.m_psfsubValidity.resize( 1 );
+    fractionalOutside.m_psfsub[0].resize( 9, 9, 1 );
+    fractionalOutside.m_psfsubValidity[0].resize( 9, 9, 1 );
+    fractionalOutside.m_psfsub[0].cube().setOnes();
+    fractionalOutside.m_psfsubValidity[0].cube().setOnes();
+    const int outsideRow = sourceAnchorRow - lowerBuffer - 1;
+    const int outsideColumn = sourceAnchorColumn - lowerBuffer;
+    fractionalOutside.m_psfsub[0].image( 0 )( outsideRow, outsideColumn ) = std::numeric_limits<float>::quiet_NaN();
+    fractionalOutside.m_psfsubValidity[0].image( 0 )( outsideRow, outsideColumn ) = 0;
+    fractionalOutside.m_derotF.m_angleScale = 1;
+    fractionalOutside.m_derotF.m_angles = { angleDegrees };
+    fractionalOutside.derotate();
+    REQUIRE( fractionalOutside.m_psfsubValidity[0].image( 0 )( outputRow, outputColumn ) == 1 );
+    REQUIRE( fractionalOutside.m_psfsub[0].image( 0 )( outputRow, outputColumn ) == Approx( 1 ) );
+    REQUIRE( fractionalOutside.m_psfsubValidity[0].image( 0 )( 0, 0 ) == 0 );
+
+    observationHarness zeroAngle;
+    zeroAngle.m_psfsub.resize( 1 );
+    zeroAngle.m_psfsubValidity.resize( 1 );
+    zeroAngle.m_psfsub[0].resize( 5, 5, 1 );
+    zeroAngle.m_psfsubValidity[0].resize( 5, 5, 1 );
+    zeroAngle.m_psfsub[0].cube().setOnes();
+    zeroAngle.m_psfsubValidity[0].cube().setOnes();
+    zeroAngle.m_psfsub[0].image( 0 )( 2, 2 ) = std::numeric_limits<float>::quiet_NaN();
+    zeroAngle.m_psfsubValidity[0].image( 0 )( 2, 2 ) = 0;
+    zeroAngle.m_derotF.m_angleScale = 1;
+    zeroAngle.m_derotF.m_angles = { 0 };
+    zeroAngle.derotate();
+    REQUIRE( zeroAngle.m_psfsubValidity[0].image( 0 )( 2, 2 ) == 0 );
+    REQUIRE( zeroAngle.m_psfsub[0].image( 0 )( 2, 2 ) == 0 );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::ADIobservation<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, mx::verbose::vv>
+        doxygenObservation;
+    doxygenObservation.derotate();
+#endif
+    // clang-format on
+}
+
+/// Verify ADIobservation::finalProcess masks post-medians, combines validity, and persists invalid samples last.
+/** \ingroup ADIobservation_unit_tests */
+TEST_CASE( "ADIobservation validity-aware final processing", "[ADIobservation][finalProcess][validity][combine]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    observationHarness observation;
+    observation.m_psfsub.resize( 1 );
+    observation.m_psfsubValidity.resize( 1 );
+    observation.m_psfsub[0].resize( 1, 1, 3 );
+    observation.m_psfsubValidity[0].resize( 1, 1, 3 );
+    observation.m_psfsub[0].image( 0 )( 0, 0 ) = 1;
+    observation.m_psfsub[0].image( 1 )( 0, 0 ) = std::numeric_limits<float>::quiet_NaN();
+    observation.m_psfsub[0].image( 2 )( 0, 0 ) = 5;
+    observation.m_psfsubValidity[0].image( 0 )( 0, 0 ) = 1;
+    observation.m_psfsubValidity[0].image( 1 )( 0, 0 ) = 0;
+    observation.m_psfsubValidity[0].image( 2 )( 0, 0 ) = 1;
+    observation.m_postMedSub = true;
+    observation.m_doDerotate = false;
+    observation.m_combineMethod = mx::improc::HCI::combine::mean;
+    observation.m_doWriteFinim = false;
+    observation.m_doOutputPSFSub = false;
+
+    REQUIRE( observation.finalProcess() == 0 );
+    REQUIRE( observation.m_psfsub[0].image( 0 )( 0, 0 ) == Approx( -2 ) );
+    REQUIRE( mx::improc::isInvalidPixel( observation.m_psfsub[0].image( 1 )( 0, 0 ) ) );
+    REQUIRE( observation.m_psfsub[0].image( 2 )( 0, 0 ) == Approx( 2 ) );
+    REQUIRE( observation.m_finim.image( 0 )( 0, 0 ) == Approx( 0 ) );
+    REQUIRE( observation.m_psfsubValidity[0].image( 0 )( 0, 0 ) == 1 );
+    REQUIRE( observation.m_psfsubValidity[0].image( 1 )( 0, 0 ) == 0 );
+    REQUIRE( observation.m_psfsubValidity[0].image( 2 )( 0, 0 ) == 1 );
+
+    observationHarness insufficient;
+    insufficient.m_psfsub.resize( 1 );
+    insufficient.m_psfsubValidity.resize( 1 );
+    insufficient.m_psfsub[0].resize( 1, 1, 3 );
+    insufficient.m_psfsubValidity[0].resize( 1, 1, 3 );
+    insufficient.m_psfsub[0].cube().setConstant( 1 );
+    insufficient.m_psfsubValidity[0].cube().setOnes();
+    insufficient.m_psfsubValidity[0].image( 1 )( 0, 0 ) = 0;
+    insufficient.m_postMedSub = true;
+    insufficient.m_doDerotate = false;
+    insufficient.m_combineMethod = mx::improc::HCI::combine::mean;
+    insufficient.m_minGoodFract = 1;
+    insufficient.m_doWriteFinim = false;
+    insufficient.m_doOutputPSFSub = false;
+    REQUIRE( insufficient.finalProcess() == 0 );
+    REQUIRE( insufficient.m_psfsubValidity[0].cube().isZero() );
+    REQUIRE( mx::improc::isInvalidPixel( insufficient.m_finim.image( 0 )( 0, 0 ) ) );
+    for( int plane = 0; plane < 3; ++plane )
+    {
+        REQUIRE( mx::improc::isInvalidPixel( insufficient.m_psfsub[0].image( plane )( 0, 0 ) ) );
+    }
+
+    observationHarness malformed;
+    malformed.m_psfsub.resize( 1 );
+    malformed.m_psfsubValidity.resize( 1 );
+    malformed.m_psfsub[0].resize( 1, 1, 1 );
+    malformed.m_psfsubValidity[0].resize( 1, 1, 1 );
+    malformed.m_psfsub[0].cube().setConstant( 7 );
+    malformed.m_psfsubValidity[0].cube().setConstant( 0.5F );
+    malformed.m_doDerotate = false;
+    malformed.m_combineMethod = mx::improc::HCI::combine::none;
+    malformed.m_doWriteFinim = false;
+    malformed.m_doOutputPSFSub = false;
+    REQUIRE_THROWS( malformed.finalProcess() );
+    REQUIRE( malformed.m_psfsub[0].image( 0 )( 0, 0 ) == 7 );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::ADIobservation<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, mx::verbose::vv>
+        doxygenObservation;
+    doxygenObservation.finalProcess();
+#endif
+    // clang-format on
+}
+
+/// Verify ADIobservation::finalProcess applies post-median subtraction, derotation, and combination in order.
+/** \ingroup ADIobservation_unit_tests */
+TEST_CASE( "ADIobservation shared final processing", "[ADIobservation][finalProcess][combine]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    observationHarness observation;
+    observation.m_psfsub.resize( 1 );
+    observation.m_psfsub[0].resize( 2, 2, 3 );
+    observation.m_psfsub[0].image( 0 ) << 1, 2, 3, 4;
+    observation.m_psfsub[0].image( 1 ) << 3, 4, 5, 6;
+    observation.m_psfsub[0].image( 2 ) << 5, 6, 7, 8;
+    observation.m_postMedSub = true;
+    observation.m_doDerotate = true;
+    observation.m_derotF.m_angleScale = 1;
+    observation.m_derotF.m_angles = { 0, 0, 0 };
+    observation.m_combineMethod = mx::improc::HCI::combine::mean;
+    observation.m_doWriteFinim = false;
+    observation.m_doOutputPSFSub = false;
+
+    REQUIRE( observation.finalProcess() == 0 );
+
+    const observationT::imageT negative = observationT::imageT::Constant( 2, 2, -2 );
+    const observationT::imageT positive = observationT::imageT::Constant( 2, 2, 2 );
+    REQUIRE( observation.m_psfsub[0].image( 0 ).isApprox( negative ) );
+    REQUIRE( observation.m_psfsub[0].image( 1 ).isZero() );
+    REQUIRE( observation.m_psfsub[0].image( 2 ).isApprox( positive ) );
+    REQUIRE( observation.m_finim.rows() == 2 );
+    REQUIRE( observation.m_finim.cols() == 2 );
+    REQUIRE( observation.m_finim.planes() == 1 );
+    REQUIRE( observation.m_finim.image( 0 ).isZero() );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::ADIobservation<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, mx::verbose::vv>
+        doxygenObservation;
+    doxygenObservation.finalProcess();
+#endif
+    // clang-format on
+}
+
+/// Verify ADIobservation::finalProcess composes ADI and algorithm headers for both output forms without changing gates.
+/** \ingroup ADIobservation_unit_tests */
+TEST_CASE( "ADIobservation shared final output", "[ADIobservation][finalProcess][output][header]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    observationHarness observation;
+    observation.m_psfsub.resize( 1 );
+    observation.m_psfsub[0].resize( 2, 2, 2 );
+    observation.m_psfsub[0].image( 0 ).setConstant( 1 );
+    observation.m_psfsub[0].image( 1 ).setConstant( 3 );
+    observation.m_heads.resize( 2 );
+    observation.m_heads[0].append<int>( "SOURCE", 10, "source image" );
+    observation.m_heads[1].append<int>( "SOURCE", 20, "source image" );
+    observation.m_Nims = 2;
+    observation.m_Nrows = 2;
+    observation.m_Ncols = 2;
+    observation.m_imSize = 2;
+    observation.m_postMedSub = false;
+    observation.m_doDerotate = false;
+    observation.m_combineMethod = mx::improc::HCI::combine::mean;
+    observation.m_doWriteFinim = true;
+    observation.m_doOutputPSFSub = true;
+    observation.m_outputDir = directory.path().string();
+    observation.m_finimName = "adi-final.fits";
+    observation.m_exactFinimName = true;
+    observation.m_PSFSubPrefix = "adi-psf";
+
+    observationHarness::fitsHeaderT algorithmHeader;
+    algorithmHeader.append<std::string>( "ALGOTEST", "shared", "algorithm-specific provenance" );
+    const observationHarness::fitsHeaderT &constAlgorithmHeader = algorithmHeader;
+    REQUIRE( observation.finalProcess( &constAlgorithmHeader ) == 0 );
+
+    observationHarness::cubeT finalCube;
+    observationHarness::fitsHeaderT finalHeader;
+    observationHarness::fitsFileT file;
+    REQUIRE( file.read( finalCube, finalHeader, directory.file( "adi-final.fits" ).string() ) == mx::error_t::noerror );
+    REQUIRE( finalCube.planes() == 1 );
+    REQUIRE( finalCube.image( 0 ).isConstant( 2 ) );
+    REQUIRE( finalHeader["POSTMEDS"].value<char>() == 0 );
+    REQUIRE( finalHeader["ALGOTEST"].String().starts_with( "shared" ) );
+
+    size_t combinationPosition = finalHeader.size();
+    size_t adiPosition = finalHeader.size();
+    size_t algorithmPosition = finalHeader.size();
+    size_t position = 0;
+    for( auto card = finalHeader.begin(); card != finalHeader.end(); ++card, ++position )
+    {
+        if( card->keyword() == "COMBINATION METHOD" )
+            combinationPosition = position;
+        else if( card->keyword() == "POSTMEDS" )
+            adiPosition = position;
+        else if( card->keyword() == "ALGOTEST" )
+            algorithmPosition = position;
+    }
+    REQUIRE( combinationPosition < adiPosition );
+    REQUIRE( adiPosition < algorithmPosition );
+
+    observationHarness::imageT psfImage;
+    observationHarness::fitsHeaderT psfHeader;
+    REQUIRE( file.read( psfImage, psfHeader, directory.file( "adi-psf_000_00000.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( psfImage.isConstant( 1 ) );
+    REQUIRE( psfHeader["ALGOTEST"].String().starts_with( "shared" ) );
+    REQUIRE( psfHeader["SOURCE"].Int() == 10 );
+    REQUIRE( psfHeader["REDUCTION"].Int() == 0 );
+    REQUIRE( psfHeader["IMAGE"].Int() == 0 );
+
+    size_t psfAdiPosition = psfHeader.size();
+    size_t psfAlgorithmPosition = psfHeader.size();
+    size_t sourcePosition = psfHeader.size();
+    size_t reductionPosition = psfHeader.size();
+    position = 0;
+    for( auto card = psfHeader.begin(); card != psfHeader.end(); ++card, ++position )
+    {
+        if( card->keyword() == "POSTMEDS" )
+            psfAdiPosition = position;
+        else if( card->keyword() == "ALGOTEST" )
+            psfAlgorithmPosition = position;
+        else if( card->keyword() == "SOURCE" )
+            sourcePosition = position;
+        else if( card->keyword() == "REDUCTION" )
+            reductionPosition = position;
+    }
+    REQUIRE( psfAdiPosition < psfAlgorithmPosition );
+    REQUIRE( psfAlgorithmPosition < sourcePosition );
+    REQUIRE( sourcePosition < reductionPosition );
+
+    observationHarness noCombination;
+    noCombination.m_doDerotate = false;
+    noCombination.m_combineMethod = mx::improc::HCI::combine::none;
+    noCombination.m_doWriteFinim = true;
+    noCombination.m_doOutputPSFSub = false;
+    noCombination.m_outputDir = directory.path().string();
+    noCombination.m_finimName = "must-not-exist.fits";
+    noCombination.m_exactFinimName = true;
+    REQUIRE( noCombination.finalProcess( &constAlgorithmHeader ) == 0 );
+    REQUIRE_FALSE( std::filesystem::exists( directory.file( "must-not-exist.fits" ) ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::ADIobservation<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, mx::verbose::vv>
+        doxygenObservation;
+    doxygenObservation.finalProcess( &constAlgorithmHeader );
 #endif
     // clang-format on
 }

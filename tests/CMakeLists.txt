@@ -12,6 +12,7 @@ target_link_libraries(hcireduceTestSupport PUBLIC hcireduce-shared)
 # makes a failing subsystem immediately visible in CTest output.
 set(HCIREDUCE_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/apps/klipReduce_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/apps/p4Reduce_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/ADIobservation_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCI_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_config_test.cpp
@@ -23,6 +24,9 @@ set(HCIREDUCE_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_preprocess_physics_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_read_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_RDI_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PixelGrid_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PCA_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/P4Reduction_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/KLIPreduction_test.cpp
 )
 
@@ -56,9 +60,11 @@ foreach(_hcireduce_test_source IN LISTS HCIREDUCE_TEST_SOURCES)
     hcireduce_add_test_executable("${_hcireduce_test_source}")
 endforeach()
 
-add_custom_target(hcireduceTests DEPENDS hcireduce-shared hcireduceTestSupport ${HCIREDUCE_TEST_TARGETS})
+add_custom_target(hcireduceTests DEPENDS hcireduce-shared hcireduceTestSupport p4Reduce ${HCIREDUCE_TEST_TARGETS})
 
 if(HCIREDUCE_BUILD_TESTS AND BUILD_TESTING)
+    add_test(NAME p4Reduce_help COMMAND p4Reduce --help)
+
     add_custom_target(hcireduceTestRun
         COMMAND ${CMAKE_CTEST_COMMAND} --test-dir ${CMAKE_BINARY_DIR} --output-on-failure
         DEPENDS hcireduceTests
