@@ -11,6 +11,7 @@ set(libheaders common/HCI.hpp
                common/ADIobservation.hpp
                common/ADIDerotator.hpp
                common/P4PixelGrid.hpp
+               common/P4RotatedGrid.hpp
                common/P4PCA.hpp
                common/P4Reduction.hpp
                common/KLIPreduction.hpp )
@@ -19,6 +20,7 @@ set(libsource common/HCIobservation.cpp
               common/ADIobservation.cpp
               common/ADIDerotator.cpp
               common/P4PixelGrid.cpp
+              common/P4RotatedGrid.cpp
               common/P4PCA.cpp
               common/P4Reduction.cpp
               common/KLIPreduction.cpp )

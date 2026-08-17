@@ -272,13 +272,29 @@ void P4PixelGrid<transformT>::resize( int rows, int columns, double xCenter, dou
     m_radiusImage = std::move( radiusImage );
     m_angleImage = std::move( angleImage );
     m_region.reset();
+    m_regionComplete = false;
     m_searchPixels.clear();
+    m_candidateOffsets.clear();
     m_predictorOffsets.clear();
     m_interpolations.clear();
 }
 
 template <typename transformT>
 void P4PixelGrid<transformT>::region( const P4PixelGridRegion &configuration, const imageT *commonMask )
+{
+    regionImpl( configuration, commonMask, false );
+}
+
+template <typename transformT>
+void P4PixelGrid<transformT>::candidateRegion( const P4PixelGridRegion &configuration )
+{
+    regionImpl( configuration, nullptr, true );
+}
+
+template <typename transformT>
+void P4PixelGrid<transformT>::regionImpl( const P4PixelGridRegion &configuration,
+                                          const imageT *commonMask,
+                                          bool candidatesOnly )
 {
     if( !resized() )
     {
@@ -438,24 +454,43 @@ void P4PixelGrid<transformT>::region( const P4PixelGridRegion &configuration, co
         }
 
         const P4PixelCoordinate offset( coordinate[0] - canonicalMargin, coordinate[1] - canonicalMargin );
-        if( configuration.exclusionPolicy == P4ExclusionPolicy::sampleCenter &&
-            std::hypot( static_cast<double>( offset.row() ), static_cast<double>( offset.column() ) ) <=
-                effectiveRadius )
-        {
-            continue;
-        }
         candidateOffsets.push_back( offset );
     }
 
     if( candidateOffsets.empty() )
     {
-        throw std::invalid_argument( "P4PixelGrid central exclusion removed every predictor column" );
+        throw std::invalid_argument( "P4PixelGrid optimization wedge contains no predictor candidates" );
+    }
+
+    if( candidatesOnly )
+    {
+        std::vector<P4SearchPixelRecord> candidateSearchRecords;
+        candidateSearchRecords.reserve( searchPixels.size() );
+        for( const P4PixelCoordinate &searchPixel : searchPixels )
+        {
+            candidateSearchRecords.emplace_back( searchPixel, P4PixelInvalidReason::none );
+        }
+
+        m_region = configuration;
+        m_regionComplete = false;
+        m_searchPixels = std::move( candidateSearchRecords );
+        m_candidateOffsets = std::move( candidateOffsets );
+        m_predictorOffsets.clear();
+        m_interpolations.clear();
+        return;
     }
 
     std::vector<P4PixelCoordinate> predictorOffsets;
     predictorOffsets.reserve( candidateOffsets.size() );
     for( const P4PixelCoordinate &offset : candidateOffsets )
     {
+        if( configuration.exclusionPolicy == P4ExclusionPolicy::sampleCenter &&
+            std::hypot( static_cast<double>( offset.row() ), static_cast<double>( offset.column() ) ) <=
+                effectiveRadius )
+        {
+            continue;
+        }
+
         bool excluded{ false };
         if( configuration.exclusionPolicy == P4ExclusionPolicy::kernelSupport )
         {
@@ -536,7 +571,9 @@ void P4PixelGrid<transformT>::region( const P4PixelGridRegion &configuration, co
     }
 
     m_region = configuration;
+    m_regionComplete = true;
     m_searchPixels = std::move( searchRecords );
+    m_candidateOffsets = std::move( candidateOffsets );
     m_predictorOffsets = std::move( predictorOffsets );
     m_interpolations = std::move( interpolations );
 }
@@ -574,7 +611,13 @@ bool P4PixelGrid<transformT>::resized() const noexcept
 template <typename transformT>
 bool P4PixelGrid<transformT>::regionConfigured() const noexcept
 {
-    return m_region.has_value();
+    return m_region.has_value() && m_regionComplete;
+}
+
+template <typename transformT>
+bool P4PixelGrid<transformT>::candidateRegionConfigured() const noexcept
+{
+    return m_region.has_value() && !m_searchPixels.empty() && !m_candidateOffsets.empty();
 }
 
 template <typename transformT>
@@ -607,6 +650,12 @@ std::size_t P4PixelGrid<transformT>::predictorCount() const noexcept
 }
 
 template <typename transformT>
+std::size_t P4PixelGrid<transformT>::candidatePredictorCount() const noexcept
+{
+    return m_candidateOffsets.size();
+}
+
+template <typename transformT>
 const P4SearchPixelRecord &P4PixelGrid<transformT>::searchPixel( std::size_t searchIndex ) const
 {
     if( searchIndex >= m_searchPixels.size() )
@@ -624,6 +673,25 @@ const P4PixelCoordinate &P4PixelGrid<transformT>::predictorOffset( std::size_t p
         throw std::out_of_range( "P4PixelGrid predictor index is out of range" );
     }
     return m_predictorOffsets[predictorIndex];
+}
+
+template <typename transformT>
+const P4PixelCoordinate &P4PixelGrid<transformT>::candidatePredictorOffset( std::size_t candidateIndex ) const
+{
+    if( candidateIndex >= m_candidateOffsets.size() )
+    {
+        throw std::out_of_range( "P4PixelGrid candidate-predictor index is out of range" );
+    }
+    return m_candidateOffsets[candidateIndex];
+}
+
+template <typename transformT>
+std::pair<double, double> P4PixelGrid<transformT>::candidateCoordinate( std::size_t searchIndex,
+                                                                        std::size_t candidateIndex ) const
+{
+    const P4SearchPixelRecord &search = searchPixel( searchIndex );
+    const P4PixelCoordinate &candidate = candidatePredictorOffset( candidateIndex );
+    return p4PixelGridMap<P4PixelGrid<transformT>>( search.coordinate(), candidate, m_xCenter, m_yCenter );
 }
 
 template <typename transformT>

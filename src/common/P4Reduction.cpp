@@ -78,6 +78,8 @@ class P4ProgressOutput
 
     std::size_t m_totalSearchPixels{ 0 };  ///< Total search-pixel count across all annuli.
 
+    bool m_rotated{ false };               ///< Whether status describes rotated-frame regression.
+
     std::size_t m_region{ 0 };             ///< Zero-based active annulus index.
 
     std::size_t m_regionSearchPixels{ 0 }; ///< Search-pixel count in the active annulus.
@@ -103,7 +105,12 @@ class P4ProgressOutput
     /// Write the stable active-annulus label.
     void writePrefix()
     {
-        m_output << "P4 annulus " << m_region + 1 << " / " << m_totalRegions << " [" << m_minimumRadius << ','
+        m_output << "P4 ";
+        if( m_rotated )
+        {
+            m_output << "rotated ";
+        }
+        m_output << "annulus " << m_region + 1 << " / " << m_totalRegions << " [" << m_minimumRadius << ','
                  << m_maximumRadius << "), K=" << m_predictorCount << ": ";
     }
 
@@ -132,10 +139,12 @@ class P4ProgressOutput
 
   public:
     /// Construct a decorator for one complete P4 regression.
-    P4ProgressOutput( std::ostream &output,           /**< [in,out] destination stream */
-                      std::size_t totalRegions,       /**< [in] total configured annuli */
-                      std::size_t totalSearchPixels ) /**< [in] total search pixels */
-        : m_output( output ), m_totalRegions( totalRegions ), m_totalSearchPixels( totalSearchPixels )
+    P4ProgressOutput( std::ostream &output,          /**< [in,out] destination stream */
+                      std::size_t totalRegions,      /**< [in] total configured annuli */
+                      std::size_t totalSearchPixels, /**< [in] total search pixels */
+                      bool rotated )                 /**< [in] whether regression is in the rotated frame */
+        : m_output( output ), m_totalRegions( totalRegions ), m_totalSearchPixels( totalSearchPixels ),
+          m_rotated( rotated )
     {
     }
 
@@ -259,6 +268,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "vector<realT>",
                 "Strictly increasing PCA fractions in (0,1]" );
+    config.add( "p4.regressionFrame",
+                "",
+                "p4.regressionFrame",
+                mx::app::argType::Required,
+                "p4",
+                "regressionFrame",
+                false,
+                "string",
+                "Regression coordinate frame: detector or rotated; default detector" );
     config.add( "p4.orDeltaRadiusInner",
                 "",
                 "p4.orDeltaRadiusInner",
@@ -360,6 +378,19 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( m_minRadius, "geom.minRadius" );
     config( m_maxRadius, "geom.maxRadius" );
     config( m_modeFractions, "p4.modeFractions" );
+
+    std::string regressionFrame = regressionFrameString( m_regressionFrame );
+    config( regressionFrame, "p4.regressionFrame" );
+    try
+    {
+        m_regressionFrame = parseRegressionFrame( regressionFrame );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.regressionFrame is not valid" ) );
+    }
+
     config( m_orDeltaRadiusInner, "p4.orDeltaRadiusInner" );
     config( m_orDeltaRadiusOuter, "p4.orDeltaRadiusOuter" );
     config( m_orArcHalfWidth, "p4.orArcHalfWidth" );
@@ -424,8 +455,43 @@ P4ExclusionPolicy P4Reduction<realT, derotFunctObj, verboseT>::parseExclusionPol
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+std::string P4Reduction<realT, derotFunctObj, verboseT>::regressionFrameString( P4RegressionFrame frame )
+{
+    if( frame == P4RegressionFrame::detector )
+    {
+        return "detector";
+    }
+    if( frame == P4RegressionFrame::rotated )
+    {
+        return "rotated";
+    }
+    throw std::invalid_argument( "unsupported P4 regression frame" );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+P4RegressionFrame P4Reduction<realT, derotFunctObj, verboseT>::parseRegressionFrame( const std::string &value )
+{
+    if( value == "detector" )
+    {
+        return P4RegressionFrame::detector;
+    }
+    if( value == "rotated" )
+    {
+        return P4RegressionFrame::rotated;
+    }
+    throw std::invalid_argument( "unsupported P4 regression frame: " + value );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
 {
+    static_cast<void>( regressionFrameString( m_regressionFrame ) );
+    if( m_regressionFrame == P4RegressionFrame::rotated && this->m_postMedSub )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "adi.postMedSub is not supported for rotated-frame P4 regression" );
+    }
+
     if( m_minRadius.empty() || m_minRadius.size() != m_maxRadius.size() )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
@@ -540,13 +606,20 @@ realT P4Reduction<realT, derotFunctObj, verboseT>::checkedResidualCast( double v
 
 template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::checkedMaximumDegreesOfFreedom( int imageCount,
-                                                                                 std::size_t predictorCount )
+                                                                                 std::size_t predictorCount,
+                                                                                 bool temporallyCentered )
 {
     if( predictorCount > static_cast<std::size_t>( std::numeric_limits<int>::max() ) )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 predictor count exceeds supported range" );
     }
-    return std::min( imageCount, static_cast<int>( predictorCount ) );
+    if( temporallyCentered && imageCount < 2 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "rotated-frame P4 requires at least two temporal samples" );
+    }
+    const int temporalDegreesOfFreedom = imageCount - ( temporallyCentered ? 1 : 0 );
+    return std::min( temporalDegreesOfFreedom, static_cast<int>( predictorCount ) );
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -640,32 +713,60 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     }
 
     const double geometryBegin = omp_get_wtime();
-    std::vector<pixelGridT> grids;
-    grids.reserve( m_minRadius.size() );
+    std::vector<pixelGridT> grids( m_minRadius.size() );
+    std::vector<rotatedGridT> rotatedGrids( m_minRadius.size() );
     m_realizedModes.resize( m_minRadius.size() );
     m_regionStatistics.resize( m_minRadius.size() );
     m_ownership.resize( this->m_Nrows, this->m_Ncols );
     m_ownership.setConstant( -1 );
 
     const imageT *mask = this->m_mask.size() == 0 ? nullptr : &this->m_mask;
+    std::vector<double> derotationAngles;
+    if( m_regressionFrame == P4RegressionFrame::rotated )
+    {
+        derotationAngles.reserve( static_cast<std::size_t>( this->m_Nims ) );
+        for( int image = 0; image < this->m_Nims; ++image )
+        {
+            const double angle = static_cast<double>( this->m_derotF.derotAngle( static_cast<std::size_t>( image ) ) );
+            if( !mx::math::isFinite( angle ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg, "P4 derotation angles must remain finite" );
+            }
+            derotationAngles.push_back( angle );
+        }
+    }
+
     for( std::size_t region = 0; region < m_minRadius.size(); ++region )
     {
-        std::cerr << "P4 geometry annulus " << region + 1 << " / " << m_minRadius.size() << " [" << m_minRadius[region]
+        std::cerr << "P4 ";
+        if( m_regressionFrame == P4RegressionFrame::rotated )
+        {
+            std::cerr << "rotated ";
+        }
+        std::cerr << "geometry annulus " << region + 1 << " / " << m_minRadius.size() << " [" << m_minRadius[region]
                   << ',' << m_maxRadius[region] << ")... " << std::flush;
-        pixelGridT grid;
-        grid.resize( this->m_Nrows, this->m_Ncols );
+        const P4PixelGridRegion configuration( m_minRadius[region],
+                                               m_maxRadius[region],
+                                               m_orDeltaRadiusInner,
+                                               m_orDeltaRadiusOuter,
+                                               m_orArcHalfWidth,
+                                               m_orMaxHalfAngle,
+                                               m_psfRadius,
+                                               *m_exclusionPolicy,
+                                               m_exclusionRadiusBuffer );
         try
         {
-            grid.region( P4PixelGridRegion( m_minRadius[region],
-                                            m_maxRadius[region],
-                                            m_orDeltaRadiusInner,
-                                            m_orDeltaRadiusOuter,
-                                            m_orArcHalfWidth,
-                                            m_orMaxHalfAngle,
-                                            m_psfRadius,
-                                            *m_exclusionPolicy,
-                                            m_exclusionRadiusBuffer ),
-                         mask );
+            grids[region].resize( this->m_Nrows, this->m_Ncols );
+            if( m_regressionFrame == P4RegressionFrame::detector )
+            {
+                grids[region].region( configuration, mask );
+            }
+            else
+            {
+                grids[region].candidateRegion( configuration );
+                rotatedGrids[region].configure( grids[region], derotationAngles, mask );
+                grids[region] = pixelGridT();
+            }
         }
         catch( ... )
         {
@@ -674,9 +775,19 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                 mx::exception<verboseT>( mx::error_t::invalidconfig,
                                          "could not construct P4 region " + std::to_string( region ) ) );
         }
-        std::cerr << "done: " << grid.searchPixelCount() << " search pixels, K=" << grid.predictorCount() << '\n';
 
-        const int maximumDegreesOfFreedom = checkedMaximumDegreesOfFreedom( this->m_Nims, grid.predictorCount() );
+        const std::size_t searchPixelCount = m_regressionFrame == P4RegressionFrame::detector
+                                                 ? grids[region].searchPixelCount()
+                                                 : rotatedGrids[region].searchPixelCount();
+        const std::size_t predictorCount = m_regressionFrame == P4RegressionFrame::detector
+                                               ? grids[region].predictorCount()
+                                               : rotatedGrids[region].predictorCount();
+        std::cerr << "done: " << searchPixelCount << " search pixels, K=" << predictorCount << '\n';
+
+        const int maximumDegreesOfFreedom =
+            checkedMaximumDegreesOfFreedom( this->m_Nims,
+                                            predictorCount,
+                                            m_regressionFrame == P4RegressionFrame::rotated );
         int previousMode{ 0 };
         for( const realT fraction : m_modeFractions )
         {
@@ -698,25 +809,26 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             previousMode = mode;
         }
 
-        for( std::size_t search = 0; search < grid.searchPixelCount(); ++search )
+        for( std::size_t search = 0; search < searchPixelCount; ++search )
         {
-            const P4PixelCoordinate &coordinate = grid.searchPixel( search ).coordinate();
+            const P4PixelCoordinate &coordinate = m_regressionFrame == P4RegressionFrame::detector
+                                                      ? grids[region].searchPixel( search ).coordinate()
+                                                      : rotatedGrids[region].searchPixel( search ).coordinate();
             claimOwnership( m_ownership, coordinate, static_cast<int>( region ) );
         }
 
         P4RegionStatistics &statistics = m_regionStatistics[region];
-        statistics.searchPixelCount = grid.searchPixelCount();
-        statistics.predictorCount = grid.predictorCount();
+        statistics.searchPixelCount = searchPixelCount;
+        statistics.predictorCount = predictorCount;
         statistics.maximumDegreesOfFreedom = maximumDegreesOfFreedom;
         statistics.rankInvalidCounts.assign( m_modeFractions.size(), 0 );
-        grids.push_back( std::move( grid ) );
     }
     m_geometrySeconds = omp_get_wtime() - geometryBegin;
 
     std::size_t totalSearchPixels{ 0 };
-    for( const pixelGridT &grid : grids )
+    for( const P4RegionStatistics &statistics : m_regionStatistics )
     {
-        totalSearchPixels += grid.searchPixelCount();
+        totalSearchPixels += statistics.searchPixelCount;
     }
 
     this->m_psfsub.resize( m_modeFractions.size() );
@@ -730,25 +842,32 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     }
 
     const double regressionBegin = omp_get_wtime();
-    P4ProgressOutput progressOutput( std::cerr, grids.size(), totalSearchPixels );
+    P4ProgressOutput progressOutput( std::cerr,
+                                     grids.size(),
+                                     totalSearchPixels,
+                                     m_regressionFrame == P4RegressionFrame::rotated );
     std::size_t completedSearchPixels{ 0 };
     for( std::size_t region = 0; region < grids.size(); ++region )
     {
         const pixelGridT &grid = grids[region];
+        const rotatedGridT &rotatedGrid = rotatedGrids[region];
+        const bool rotated = m_regressionFrame == P4RegressionFrame::rotated;
+        const std::size_t searchPixelCount = m_regionStatistics[region].searchPixelCount;
+        const std::size_t predictorCount = m_regionStatistics[region].predictorCount;
         const std::vector<int> &modes = m_realizedModes[region];
         progressOutput.beginRegion( region,
-                                    grid.searchPixelCount(),
-                                    grid.predictorCount(),
+                                    searchPixelCount,
+                                    predictorCount,
                                     completedSearchPixels,
                                     static_cast<double>( m_minRadius[region] ),
                                     static_cast<double>( m_maxRadius[region] ) );
-        mx::ipc::ompLoopWatcher<P4ProgressOutput, true, true, true, true, true> progressWatcher(
-            grid.searchPixelCount(),
-            progressOutput );
+        mx::ipc::ompLoopWatcher<P4ProgressOutput, true, true, true, true, true> progressWatcher( searchPixelCount,
+                                                                                                 progressOutput );
         std::exception_ptr workerException;
         std::atomic<bool> failed{ false };
         std::size_t validLocalFitCount{ 0 };
         std::size_t maskedLocalFitCount{ 0 };
+        std::size_t supportInvalidLocalFitCount{ 0 };
         int minimumNumericalRank{ std::numeric_limits<int>::max() };
         std::vector<std::size_t> rankInvalidCounts( modes.size(), 0 );
 
@@ -757,44 +876,90 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         // clang-format on
         {
             P4PCA::workspaceT workspace;
-            P4PCA::matrixT predictors( this->m_Nims, static_cast<Eigen::Index>( grid.predictorCount() ) );
+            P4PCA::matrixT predictors( this->m_Nims, static_cast<Eigen::Index>( predictorCount ) );
             P4PCA::vectorT target( this->m_Nims );
             P4PCAResult result;
             std::size_t threadValid{ 0 };
             std::size_t threadMasked{ 0 };
+            std::size_t threadSupportInvalid{ 0 };
             int threadMinimumRank{ std::numeric_limits<int>::max() };
             std::vector<std::size_t> threadRankInvalid( modes.size(), 0 );
 
             // clang-format off
 #pragma omp for schedule(static)
             // clang-format on
-            for( std::size_t search = 0; search < grid.searchPixelCount(); ++search )
+            for( std::size_t search = 0; search < searchPixelCount; ++search )
             {
                 const bool attempt = !failed.load( std::memory_order_acquire );
                 if( attempt )
                 {
                     try
                     {
-                        const P4SearchPixelRecord &searchPixel = grid.searchPixel( search );
-                        if( !searchPixel.valid() )
+                        const bool searchValid =
+                            rotated ? rotatedGrid.searchPixel( search ).valid() : grid.searchPixel( search ).valid();
+                        if( !searchValid )
                         {
-                            ++threadMasked;
+                            if( rotated )
+                            {
+                                ++threadSupportInvalid;
+                            }
+                            else
+                            {
+                                ++threadMasked;
+                            }
                         }
                         else
                         {
-                            const int row = searchPixel.coordinate().row();
-                            const int column = searchPixel.coordinate().column();
-                            for( int image = 0; image < this->m_Nims; ++image )
+                            const P4PixelCoordinate &coordinate = rotated
+                                                                      ? rotatedGrid.searchPixel( search ).coordinate()
+                                                                      : grid.searchPixel( search ).coordinate();
+                            const int row = coordinate.row();
+                            const int column = coordinate.column();
+                            if( rotated )
                             {
-                                target( image ) = static_cast<double>( this->m_tgtIms.image( image )( row, column ) );
-                                for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+                                for( int image = 0; image < this->m_Nims; ++image )
                                 {
-                                    predictors( image, predictor ) = checkedPredictorPromotion(
-                                        grid.sample( this->m_tgtIms.image( image ), search, predictor ) );
+                                    target( image ) = checkedPredictorPromotion(
+                                        rotatedGrid.sampleTarget( this->m_tgtIms.image( image ),
+                                                                  static_cast<std::size_t>( image ),
+                                                                  search ) );
+                                    for( std::size_t predictor = 0; predictor < predictorCount; ++predictor )
+                                    {
+                                        predictors( image, predictor ) = checkedPredictorPromotion(
+                                            rotatedGrid.samplePredictor( this->m_tgtIms.image( image ),
+                                                                         static_cast<std::size_t>( image ),
+                                                                         search,
+                                                                         predictor ) );
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                for( int image = 0; image < this->m_Nims; ++image )
+                                {
+                                    target( image ) =
+                                        static_cast<double>( this->m_tgtIms.image( image )( row, column ) );
+                                    for( std::size_t predictor = 0; predictor < predictorCount; ++predictor )
+                                    {
+                                        predictors( image, predictor ) = checkedPredictorPromotion(
+                                            grid.sample( this->m_tgtIms.image( image ), search, predictor ) );
+                                    }
                                 }
                             }
 
-                            P4PCA::calculate( result, predictors, target, modes, m_rankTolerance, workspace );
+                            if( rotated )
+                            {
+                                P4PCA::calculateCentered( result,
+                                                          predictors,
+                                                          target,
+                                                          modes,
+                                                          m_rankTolerance,
+                                                          workspace );
+                            }
+                            else
+                            {
+                                P4PCA::calculate( result, predictors, target, modes, m_rankTolerance, workspace );
+                            }
                             ++threadValid;
                             threadMinimumRank = std::min( threadMinimumRank, result.numericalRank );
 
@@ -837,6 +1002,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             {
                 validLocalFitCount += threadValid;
                 maskedLocalFitCount += threadMasked;
+                supportInvalidLocalFitCount += threadSupportInvalid;
                 minimumNumericalRank = std::min( minimumNumericalRank, threadMinimumRank );
                 for( std::size_t output = 0; output < modes.size(); ++output )
                 {
@@ -860,12 +1026,13 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             }
         }
 
-        completedSearchPixels += grid.searchPixelCount();
+        completedSearchPixels += searchPixelCount;
         progressOutput.completeRegion( completedSearchPixels );
 
         P4RegionStatistics &statistics = m_regionStatistics[region];
         statistics.validLocalFitCount = validLocalFitCount;
         statistics.maskedLocalFitCount = maskedLocalFitCount;
+        statistics.supportInvalidLocalFitCount = supportInvalidLocalFitCount;
         statistics.minimumNumericalRank =
             minimumNumericalRank == std::numeric_limits<int>::max() ? 0 : minimumNumericalRank;
         statistics.rankInvalidCounts = rankInvalidCounts;
@@ -892,22 +1059,29 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         for( std::size_t region = 0; region < grids.size(); ++region )
         {
             int offsetRadius{ 0 };
-            for( std::size_t predictor = 0; predictor < grids[region].predictorCount(); ++predictor )
+            const std::size_t predictorCount = m_regionStatistics[region].predictorCount;
+            const auto predictorOffset = [&]( std::size_t predictor ) -> const P4PixelCoordinate &
             {
-                const P4PixelCoordinate &offset = grids[region].predictorOffset( predictor );
+                return m_regressionFrame == P4RegressionFrame::detector
+                           ? grids[region].predictorOffset( predictor )
+                           : rotatedGrids[region].predictorOffset( predictor );
+            };
+            for( std::size_t predictor = 0; predictor < predictorCount; ++predictor )
+            {
+                const P4PixelCoordinate &offset = predictorOffset( predictor );
                 offsetRadius = std::max( { offsetRadius, std::abs( offset.row() ), std::abs( offset.column() ) } );
             }
             imageT canonical = imageT::Zero( 2 * offsetRadius + 1, 2 * offsetRadius + 1 );
-            for( std::size_t predictor = 0; predictor < grids[region].predictorCount(); ++predictor )
+            for( std::size_t predictor = 0; predictor < predictorCount; ++predictor )
             {
-                const P4PixelCoordinate &offset = grids[region].predictorOffset( predictor );
+                const P4PixelCoordinate &offset = predictorOffset( predictor );
                 canonical( offset.row() + offsetRadius, offset.column() + offsetRadius ) = 1;
             }
             writeDiagnostic( "p4CanonicalOR_" + p4Index( region ) + ".fits", canonical );
         }
 
         imageT summary( static_cast<Eigen::Index>( m_regionStatistics.size() ),
-                        static_cast<Eigen::Index>( 8 + 2 * m_modeFractions.size() ) );
+                        static_cast<Eigen::Index>( 9 + 2 * m_modeFractions.size() ) );
         for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
         {
             const P4RegionStatistics &statistics = m_regionStatistics[region];
@@ -919,10 +1093,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             summary( region, 5 ) = statistics.minimumNumericalRank;
             summary( region, 6 ) = static_cast<realT>( statistics.validLocalFitCount );
             summary( region, 7 ) = static_cast<realT>( statistics.maskedLocalFitCount );
+            summary( region, 8 ) = static_cast<realT>( statistics.supportInvalidLocalFitCount );
             for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
             {
-                summary( region, 8 + output ) = static_cast<realT>( m_realizedModes[region][output] );
-                summary( region, 8 + m_modeFractions.size() + output ) =
+                summary( region, 9 + output ) = static_cast<realT>( m_realizedModes[region][output] );
+                summary( region, 9 + m_modeFractions.size() + output ) =
                     static_cast<realT>( statistics.rankInvalidCounts[output] );
             }
         }
@@ -962,8 +1137,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::writeDiagnostic( const std::st
     static std::atomic<unsigned long long> diagnosticSequence{ 0 };
     const std::string temporaryPath =
         path + ".tmp." + std::to_string( diagnosticSequence.fetch_add( 1, std::memory_order_relaxed ) );
+    fitsHeaderT diagnosticHeader;
+    appendReductionHeader( diagnosticHeader );
     mx::fits::fitsFile<typename dataT::Scalar, verboseT> writer;
-    const mx::error_t writeResult = writer.write( temporaryPath, data );
+    const mx::error_t writeResult = writer.write( temporaryPath, data, diagnosticHeader );
     if( writeResult != mx::error_t::noerror )
     {
         std::error_code cleanupError;
@@ -990,6 +1167,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.append( "", fits::fitsCommentType(), "P4 reduction parameters:" );
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
     head.template append<std::string>( "P4ALGOR", "P4-PCA", "pixel prediction algorithm" );
+    head.template append<std::string>( "P4 FRAME", regressionFrameString( m_regressionFrame ), "regression frame" );
     head.template append<int>( "P4INSAMP", 1, "in-sample temporal regression" );
     head.template append<int>( "P4RDI", 0, "target-only ADI implementation" );
     head.template append<std::string>( "P4MODFR", p4Join( m_modeFractions ), "ordered output mode fractions" );
@@ -1013,12 +1191,14 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     std::vector<std::size_t> searchCounts;
     std::vector<std::size_t> validCounts;
     std::vector<std::size_t> maskedCounts;
+    std::vector<std::size_t> supportInvalidCounts;
     predictorCounts.reserve( m_regionStatistics.size() );
     degreesOfFreedom.reserve( m_regionStatistics.size() );
     minimumRanks.reserve( m_regionStatistics.size() );
     searchCounts.reserve( m_regionStatistics.size() );
     validCounts.reserve( m_regionStatistics.size() );
     maskedCounts.reserve( m_regionStatistics.size() );
+    supportInvalidCounts.reserve( m_regionStatistics.size() );
     for( const P4RegionStatistics &statistics : m_regionStatistics )
     {
         predictorCounts.push_back( statistics.predictorCount );
@@ -1027,13 +1207,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
         searchCounts.push_back( statistics.searchPixelCount );
         validCounts.push_back( statistics.validLocalFitCount );
         maskedCounts.push_back( statistics.maskedLocalFitCount );
+        supportInvalidCounts.push_back( statistics.supportInvalidLocalFitCount );
     }
     head.template append<std::string>( "P4K", p4Join( predictorCounts ), "predictor counts by annulus" );
     head.template append<std::string>( "P4DOF", p4Join( degreesOfFreedom ), "maximum DOF by annulus" );
     head.template append<std::string>( "P4RANK", p4Join( minimumRanks ), "minimum numerical rank by annulus" );
     head.template append<std::string>( "P4SRCH", p4Join( searchCounts ), "search pixels by annulus" );
-    head.template append<std::string>( "P4VALID", p4Join( validCounts ), "mask-valid local fits by annulus" );
-    head.template append<std::string>( "P4MASK", p4Join( maskedCounts ), "mask-invalid fits by annulus" );
+    head.template append<std::string>( "P4VALID", p4Join( validCounts ), "valid local fits by annulus" );
+    head.template append<std::string>( "P4MASK", p4Join( maskedCounts ), "detector-grid mask-invalid fits" );
+    head.template append<std::string>( "P4SUP", p4Join( supportInvalidCounts ), "direct support-invalid fits" );
     for( std::size_t region = 0; region < m_realizedModes.size(); ++region )
     {
         head.template append<std::string>( "P4M" + p4Index( region ),
@@ -1048,6 +1230,13 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
 template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess()
 {
+    static_cast<void>( regressionFrameString( m_regressionFrame ) );
+    if( m_regressionFrame == P4RegressionFrame::rotated && this->m_postMedSub )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "adi.postMedSub is not supported for rotated-frame P4 regression" );
+    }
+
     fitsHeaderT algorithmHeader;
     const fitsHeaderT *algorithmHeaderPointer{ nullptr };
     if( this->m_doWriteFinim || this->m_doOutputPSFSub )
@@ -1055,7 +1244,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess()
         appendReductionHeader( algorithmHeader );
         algorithmHeaderPointer = &algorithmHeader;
     }
-    return this->ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( algorithmHeaderPointer );
+    const ADIDataFrame dataFrame =
+        m_regressionFrame == P4RegressionFrame::rotated ? ADIDataFrame::sky : ADIDataFrame::detector;
+    return this->ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( algorithmHeaderPointer, dataFrame );
 }
 
 template struct P4Reduction<float, ADIDerotator<float, verbose::vv>, verbose::vv>;

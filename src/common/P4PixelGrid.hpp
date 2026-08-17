@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Dense>
@@ -248,6 +249,13 @@ class P4PixelGrid
     void region( const P4PixelGridRegion &configuration, /**< [in] complete region and exclusion configuration */
                  const imageT *commonMask /**< [in] optional image-wide common mask, or nullptr */ );
 
+    /// Build only search pixels and pre-exclusion canonical predictor candidates.
+    /** This path stops before central exclusion, mapped-coordinate edge checks, common-mask handling, and kernel
+     * construction. It supports direct rotated sampling whose detector-frame footprints must be evaluated only after
+     * inverse derotation. A successful candidate build is not reported as a complete `regionConfigured()` result.
+     */
+    void candidateRegion( const P4PixelGridRegion &configuration /**< [in] complete region configuration */ );
+
     /// Return the configured image row count.
     int rows() const noexcept;
 
@@ -266,6 +274,9 @@ class P4PixelGrid
     /// Report whether a successful region build is available.
     bool regionConfigured() const noexcept;
 
+    /// Report whether search pixels and pre-exclusion canonical candidates are available.
+    bool candidateRegionConfigured() const noexcept;
+
     /// Return the most recently configured region.
     const P4PixelGridRegion &regionConfiguration() const;
 
@@ -278,12 +289,24 @@ class P4PixelGrid
     /// Return the annulus-wide number of predictor columns.
     std::size_t predictorCount() const noexcept;
 
+    /// Return the number of canonical wedge candidates before central exclusion is applied.
+    std::size_t candidatePredictorCount() const noexcept;
+
     /// Return one immutable search-pixel coordinate and common-mask validity record.
     const P4SearchPixelRecord &searchPixel( std::size_t searchIndex /**< [in] zero-based search-pixel index */ ) const;
 
     /// Return one immutable canonical predictor offset.
     const P4PixelCoordinate &
     predictorOffset( std::size_t predictorIndex /**< [in] zero-based annulus-wide predictor index */ ) const;
+
+    /// Return one canonical wedge candidate before central exclusion is applied.
+    const P4PixelCoordinate &
+    candidatePredictorOffset( std::size_t candidateIndex /**< [in] zero-based pre-exclusion candidate index */ ) const;
+
+    /// Map one pre-exclusion canonical candidate into the fixed image frame at a search pixel.
+    std::pair<double, double>
+    candidateCoordinate( std::size_t searchIndex, /**< [in] zero-based search-pixel index */
+                         std::size_t candidateIndex /**< [in] zero-based pre-exclusion candidate index */ ) const;
 
     /// Return one immutable mapped interpolation record.
     const interpolationRecordT &
@@ -312,6 +335,11 @@ class P4PixelGrid
     static std::size_t checkedInterpolationCount( std::size_t searchPixelCount, /**< [in] number of search pixels */
                                                   std::size_t predictorCount /**< [in] shared predictor count */ );
 
+    /// Implement complete and candidate-only region construction transactionally.
+    void regionImpl( const P4PixelGridRegion &configuration, /**< [in] complete region configuration */
+                     const imageT *commonMask,               /**< [in] optional complete-region common mask */
+                     bool candidatesOnly /**< [in] whether to stop before exclusion and interpolation */ );
+
     int m_rows{ 0 };              ///< Configured input-image row count.
 
     int m_columns{ 0 };           ///< Configured input-image column count.
@@ -326,7 +354,11 @@ class P4PixelGrid
 
     std::optional<P4PixelGridRegion> m_region;          ///< Successfully constructed region, if any.
 
+    bool m_regionComplete{ false };                     ///< Whether the current region includes interpolation data.
+
     std::vector<P4SearchPixelRecord> m_searchPixels;    ///< Search-pixel coordinates and validity records.
+
+    std::vector<P4PixelCoordinate> m_candidateOffsets;  ///< Canonical wedge before central exclusion.
 
     std::vector<P4PixelCoordinate> m_predictorOffsets;  ///< Shared canonical predictor offsets.
 

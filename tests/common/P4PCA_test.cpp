@@ -45,6 +45,31 @@ pcaT::vectorT svdResidual( const pcaT::matrixT &predictors, /**< [in] predictor 
     return ( target.matrix() - basis * ( basis.transpose() * target.matrix() ) ).array();
 }
 
+/// Return a copy with each column's temporal mean removed.
+template <typename arrayT>
+arrayT centeredColumns( const arrayT &input /**< [in] values to center */ )
+{
+    arrayT centered = input;
+    for( Eigen::Index column = 0; column < centered.cols(); ++column )
+    {
+        centered.col( column ) -= centered.col( column ).mean();
+    }
+    return centered;
+}
+
+/// Return the direct thin-SVD mean-preserving residual for centered regression.
+pcaT::vectorT centeredSvdResidual( const pcaT::matrixT &predictors, /**< [in] uncentered predictor matrix */
+                                   const pcaT::vectorT &target,     /**< [in] uncentered target time series */
+                                   int modeCount /**< [in] number of largest centered singular modes */ )
+{
+    const pcaT::matrixT centeredPredictors = centeredColumns( predictors );
+    const pcaT::vectorT centeredTarget = centeredColumns( target );
+    Eigen::JacobiSVD<Eigen::MatrixXd> decomposition( centeredPredictors.matrix(),
+                                                     Eigen::ComputeThinU | Eigen::ComputeThinV );
+    const Eigen::MatrixXd basis = decomposition.matrixU().leftCols( modeCount );
+    return ( target.matrix() - basis * ( basis.transpose() * centeredTarget.matrix() ) ).array();
+}
+
 /// Determine whether an Eigen-like array contains only finite values under fast-math.
 template <typename arrayT>
 bool allFinite( const arrayT &array /**< [in] values to inspect */ )
@@ -769,6 +794,259 @@ TEST_CASE( "P4PCA propagates eigensolver and invalid solver output", "[P4PCA][so
         REQUIRE_THROWS_AS( mx::improc::P4PCA::calculate( result, predictors, target, { 1 }, 0, workspace ),
                            std::runtime_error );
     }
+}
+
+/// Verify centered P4PCA agrees with direct SVD for predictor- and sample-limited problems.
+/** This exercises mx::improc::P4PCA::calculateCentered() across both adaptive Gram-matrix branches. */
+TEST_CASE( "P4PCA centered regression agrees with direct SVD", "[P4PCA][centered][reference]" )
+{
+    pcaT::workspaceT workspace;
+
+    SECTION( "K is less than T with non-contiguous modes" )
+    {
+        pcaT::matrixT predictors( 5, 3 );
+        predictors << 13, -4, 3, 8, 0, 2, 11, -5, 4, 10, -6, -2, 8, -5, 3;
+        pcaT::vectorT target( 5 );
+        target << 9, 4, 8, -1, 5;
+
+        resultT result;
+        mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 3 }, 1e-12, workspace );
+
+        REQUIRE( result.numericalRank == 3 );
+        REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankSupported, statusT::rankSupported } );
+        requireApprox( result.residuals.col( 0 ), centeredSvdResidual( predictors, target, 1 ) );
+        requireApprox( result.residuals.col( 1 ), centeredSvdResidual( predictors, target, 3 ) );
+    }
+
+    SECTION( "K equals or exceeds T" )
+    {
+        pcaT::matrixT predictors( 4, 5 );
+        predictors << 1, 2, 0, 4, -1, 3, -1, 2, 0, 5, -2, 4, 1, -3, 2, 0, 1, -4, 2, 3;
+        pcaT::vectorT target( 4 );
+        target << 11, 3, 8, -2;
+
+        resultT result;
+        mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 2, 3 }, 0, workspace );
+
+        REQUIRE( result.numericalRank == 3 );
+        REQUIRE( result.modeStatus ==
+                 std::vector<statusT>{ statusT::rankSupported, statusT::rankSupported, statusT::rankSupported } );
+        requireApprox( result.residuals.col( 0 ), centeredSvdResidual( predictors, target, 1 ) );
+        requireApprox( result.residuals.col( 1 ), centeredSvdResidual( predictors, target, 2 ) );
+        requireApprox( result.residuals.col( 2 ), centeredSvdResidual( predictors, target, 3 ) );
+    }
+
+    SECTION( "T equals two" )
+    {
+        pcaT::matrixT predictors( 2, 3 );
+        predictors << 1, 4, -2, 3, 1, 6;
+        pcaT::vectorT target( 2 );
+        target << 7, 11;
+
+        resultT result;
+        mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1 }, 0, workspace );
+
+        pcaT::vectorT expected( 2 );
+        expected.setConstant( 9 );
+        REQUIRE( result.numericalRank == 1 );
+        REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankSupported } );
+        requireApprox( result.residuals.col( 0 ), expected );
+    }
+}
+
+/// Verify centered P4PCA uses min(K,T-1) eigenpairs and the corresponding smaller Gram matrix.
+/** This directly exercises mx::improc::P4PCA::calculateCentered() structural-rank dispatch. */
+TEST_CASE( "P4PCA centered regression enforces structural degrees of freedom", "[P4PCA][centered][rank][solver]" )
+{
+    resultT result;
+    pcaT::workspaceT workspace;
+
+    SECTION( "predictor limited" )
+    {
+        pcaT::matrixT predictors( 5, 2 );
+        predictors << 1, 8, 2, 4, 4, 3, -1, 2, 3, -2;
+        pcaT::vectorT target( 5 );
+        target << 7, 1, 3, 8, -2;
+        const pcaT::matrixT centered = centeredColumns( predictors );
+        const pcaT::matrixT expected = ( centered.matrix().transpose() * centered.matrix() ).array();
+
+        solverReset reset( fakeSolverBehavior::failure );
+        REQUIRE_THROWS_WITH( mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 2 }, 0, workspace ),
+                             "P4PCA eigensolver failed with status 37" );
+        REQUIRE( solverModeCount == 2 );
+        requireApprox( solverGram, expected );
+    }
+
+    SECTION( "sample limited" )
+    {
+        pcaT::matrixT predictors( 3, 5 );
+        predictors << 1, 2, 0, 4, -1, 3, -1, 2, 0, 5, -2, 4, 1, -3, 2;
+        pcaT::vectorT target( 3 );
+        target << 7, 1, 3;
+        const pcaT::matrixT centered = centeredColumns( predictors );
+        const pcaT::matrixT expected = ( centered.matrix() * centered.matrix().transpose() ).array();
+
+        solverReset reset( fakeSolverBehavior::failure );
+        REQUIRE_THROWS_WITH( mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 2 }, 0, workspace ),
+                             "P4PCA eigensolver failed with status 37" );
+        REQUIRE( solverModeCount == 2 );
+        REQUIRE( solverGram.rows() == 3 );
+        requireApprox( solverGram, expected );
+    }
+}
+
+/// Verify centered P4PCA preserves the uncentered target mean and ignores constant target offsets during fitting.
+/** This locks the mean-preserving output contract of mx::improc::P4PCA::calculateCentered(). */
+TEST_CASE( "P4PCA centered regression restores the target mean", "[P4PCA][centered][mean]" )
+{
+    pcaT::matrixT predictors( 5, 3 );
+    predictors << 13, -4, 3, 8, 0, 2, 11, -5, 4, 10, -6, -2, 8, -5, 3;
+    pcaT::vectorT target( 5 );
+    target << 9, 4, 8, -1, 5;
+    pcaT::vectorT shiftedTarget = target + 37;
+
+    resultT original;
+    resultT shifted;
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCA::calculateCentered( original, predictors, target, { 1, 2, 3 }, 1e-12, workspace );
+    mx::improc::P4PCA::calculateCentered( shifted, predictors, shiftedTarget, { 1, 2, 3 }, 1e-12, workspace );
+
+    REQUIRE( shifted.numericalRank == original.numericalRank );
+    REQUIRE( shifted.modeStatus == original.modeStatus );
+    for( Eigen::Index column = 0; column < original.residuals.cols(); ++column )
+    {
+        pcaT::vectorT offset = shifted.residuals.col( column ) - original.residuals.col( column );
+        pcaT::vectorT expectedOffset( target.rows() );
+        expectedOffset.setConstant( 37 );
+        requireApprox( offset, expectedOffset );
+        REQUIRE( original.residuals.col( column ).mean() == Approx( target.mean() ).margin( 1e-12 ) );
+        REQUIRE( shifted.residuals.col( column ).mean() == Approx( shiftedTarget.mean() ).margin( 1e-12 ) );
+    }
+
+    pcaT::vectorT constantTarget( 5 );
+    constantTarget.setConstant( 12.5 );
+    mx::improc::P4PCA::calculateCentered( shifted, predictors, constantTarget, { 1, 3 }, 1e-12, workspace );
+    requireApprox( shifted.residuals.col( 0 ), constantTarget );
+    requireApprox( shifted.residuals.col( 1 ), constantTarget );
+}
+
+/// Verify centered P4PCA handles numerical rank deficiency without admitting its structural null direction.
+/** This exercises mx::improc::P4PCA::calculateCentered() at zero and nonzero rank tolerances. */
+TEST_CASE( "P4PCA centered regression reports only supported numerical rank", "[P4PCA][centered][rank]" )
+{
+    pcaT::workspaceT workspace;
+
+    SECTION( "structural null is excluded at zero tolerance" )
+    {
+        pcaT::matrixT predictors( 3, 3 );
+        predictors << 1, 0, 2, 0, 1, 4, -1, -1, 6;
+        pcaT::vectorT target( 3 );
+        target << 4, -2, 7;
+
+        resultT result;
+        mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 2 }, 0, workspace );
+        REQUIRE( result.numericalRank == 2 );
+        REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankSupported, statusT::rankSupported } );
+    }
+
+    SECTION( "exact centered rank deficiency" )
+    {
+        pcaT::matrixT predictors( 4, 3 );
+        predictors << 1, 2, 8, 2, 4, 8, 3, 6, 8, 4, 8, 8;
+        pcaT::vectorT target( 4 );
+        target << 4, -2, 7, 1;
+
+        resultT result;
+        mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 2, 3 }, 1e-10, workspace );
+        REQUIRE( result.numericalRank == 1 );
+        REQUIRE( result.modeStatus ==
+                 std::vector<statusT>{ statusT::rankSupported, statusT::rankInsufficient, statusT::rankInsufficient } );
+        REQUIRE( allFinite( result.residuals.col( 0 ) ) );
+        REQUIRE( allNan( result.residuals.col( 1 ) ) );
+        REQUIRE( allNan( result.residuals.col( 2 ) ) );
+    }
+
+    SECTION( "constant predictors have zero centered rank" )
+    {
+        pcaT::matrixT predictors( 3, 2 );
+        predictors << 2, -4, 2, -4, 2, -4;
+        pcaT::vectorT target( 3 );
+        target << 4, -2, 7;
+
+        resultT result;
+        mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 2 }, 0, workspace );
+        REQUIRE( result.numericalRank == 0 );
+        REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankInsufficient, statusT::rankInsufficient } );
+        REQUIRE( allNan( result.residuals ) );
+    }
+}
+
+/// Verify centered P4PCA rejects invalid sample counts, structural mode counts, and numeric inputs.
+/** This exercises validation performed by mx::improc::P4PCA::calculateCentered(). */
+TEST_CASE( "P4PCA centered regression rejects invalid requests", "[P4PCA][centered][validation]" )
+{
+    resultT result;
+    pcaT::workspaceT workspace;
+
+    pcaT::matrixT oneSample( 1, 2 );
+    oneSample << 1, 2;
+    pcaT::vectorT oneTarget( 1 );
+    oneTarget << 3;
+    REQUIRE_THROWS_WITH( mx::improc::P4PCA::calculateCentered( result, oneSample, oneTarget, { 1 }, 0, workspace ),
+                         "P4PCA centered regression requires at least two samples" );
+
+    pcaT::matrixT sampleLimited( 3, 4 );
+    sampleLimited.setRandom();
+    pcaT::vectorT target( 3 );
+    target << 1, 2, 3;
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateCentered( result, sampleLimited, target, { 3 }, 0, workspace ),
+                       std::invalid_argument );
+
+    pcaT::matrixT predictorLimited( 4, 2 );
+    predictorLimited.setRandom();
+    pcaT::vectorT tallTarget( 4 );
+    tallTarget << 1, 2, 3, 4;
+    REQUIRE_THROWS_AS(
+        mx::improc::P4PCA::calculateCentered( result, predictorLimited, tallTarget, { 3 }, 0, workspace ),
+        std::invalid_argument );
+
+    pcaT::vectorT wrongTarget( 4 );
+    wrongTarget.setZero();
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateCentered( result, sampleLimited, wrongTarget, { 1 }, 0, workspace ),
+                       std::invalid_argument );
+
+    sampleLimited( 0, 0 ) = std::numeric_limits<double>::quiet_NaN();
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateCentered( result, sampleLimited, target, { 1 }, 0, workspace ),
+                       std::invalid_argument );
+
+    pcaT::matrixT overflowingCenter( 3, 1 );
+    overflowingCenter << std::numeric_limits<double>::max(), -std::numeric_limits<double>::max(),
+        -std::numeric_limits<double>::max();
+    REQUIRE_THROWS_WITH( mx::improc::P4PCA::calculateCentered( result, overflowingCenter, target, { 1 }, 0, workspace ),
+                         "P4PCA temporal centering produced nonfinite values" );
+}
+
+/// Verify one caller workspace can alternate between legacy and centered P4PCA paths.
+/** This exercises both mx::improc::P4PCA::calculate() and mx::improc::P4PCA::calculateCentered(). */
+TEST_CASE( "P4PCA reuses one workspace across centered and uncentered paths", "[P4PCA][centered][workspace]" )
+{
+    pcaT::matrixT predictors( 4, 3 );
+    predictors << 1, 0, 2, 3, -1, 4, -2, 4, 1, 0, 1, -3;
+    pcaT::vectorT target( 4 );
+    target << 7, 1, 5, -2;
+
+    resultT result;
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCA::calculate( result, predictors, target, { 1, 3 }, 1e-12, workspace );
+    requireApprox( result.residuals.col( 0 ), svdResidual( predictors, target, 1 ) );
+    requireApprox( result.residuals.col( 1 ), svdResidual( predictors, target, 3 ) );
+
+    mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 3 }, 1e-12, workspace );
+    requireApprox( result.residuals.col( 0 ), centeredSvdResidual( predictors, target, 1 ) );
+    requireApprox( result.residuals.col( 1 ), centeredSvdResidual( predictors, target, 3 ) );
+
+    mx::improc::P4PCA::calculate( result, predictors, target, { 2 }, 1e-12, workspace );
+    requireApprox( result.residuals.col( 0 ), svdResidual( predictors, target, 2 ) );
 }
 
 } // namespace P4PCA_test

@@ -7,6 +7,7 @@
 #define P4Reduction_hpp
 
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <optional>
 #include <string>
@@ -19,11 +20,20 @@
 #include "ADIobservation.hpp"
 #include "P4PCA.hpp"
 #include "P4PixelGrid.hpp"
+#include "P4RotatedGrid.hpp"
 
 namespace mx
 {
 namespace improc
 {
+
+/// Coordinate frame in which P4 learns its temporal regression.
+/** \ingroup programming_library */
+enum class P4RegressionFrame : std::uint8_t
+{
+    detector, ///< Learn independent coefficient vectors at fixed detector pixels, preserving the original algorithm.
+    rotated   ///< Learn at fixed sky pixels after direct inverse-mapped sampling and temporal centering.
+};
 
 /** \cond P4Reduction_test_harness */
 class P4ReductionTestAccess;
@@ -40,21 +50,25 @@ struct P4RegionStatistics
 
     std::size_t predictorCount{ 0 };   ///< Annulus-wide predictor-column count.
 
-    int maximumDegreesOfFreedom{ 0 };  ///< `min(number of images, predictorCount)` for the annulus.
+    int maximumDegreesOfFreedom{ 0 };  ///< Structural mode limit for the selected regression frame and annulus.
 
     int minimumNumericalRank{ 0 }; ///< Minimum rank among common-mask-valid local fits, or zero when none are valid.
 
-    std::size_t validLocalFitCount{ 0 };        ///< Number of local fits accepted by the common mask.
+    std::size_t validLocalFitCount{ 0 };          ///< Number of local fits accepted by the common mask.
 
-    std::size_t maskedLocalFitCount{ 0 };       ///< Number of complete local fits rejected by the common mask.
+    std::size_t maskedLocalFitCount{ 0 };         ///< Number of complete local fits rejected by the common mask.
 
-    std::vector<std::size_t> rankInvalidCounts; ///< Rank-insufficient search pixels for each requested output plane.
+    std::size_t supportInvalidLocalFitCount{ 0 }; ///< Direct rotated fits lacking all-frame edge or mask support.
+
+    std::vector<std::size_t> rankInvalidCounts;   ///< Rank-insufficient search pixels for each requested output plane.
 };
 
 /// Target-only Pixel Prediction Post-Processing reduction orchestrator.
 /** P4 learns one in-sample temporal regression per search pixel. Predictor geometry is fixed within each annulus,
  * while numerical workspaces are private to OpenMP workers. The initial supported implementation uses float image
- * storage, all-double normal equations, and float cubic-convolution interpolation.
+ * storage, all-double normal equations, and float cubic-convolution interpolation. Detector-frame regression is the
+ * compatibility default; rotated-frame regression directly samples fixed sky coordinates from each preprocessed,
+ * unrotated detector frame.
  *
  * \tparam _realT image-storage arithmetic type
  * \tparam _derotFunctObj ADI derotation policy
@@ -78,6 +92,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Fixed float cubic-convolution P4 pixel-grid used by the initial production implementation.
     using pixelGridT = P4PixelGridf;
 
+    /// Fixed float direct sampler used by rotated-frame regression.
+    using rotatedGridT = P4RotatedGrid;
+
     /** \name P4 Configuration - Data
      * @{
      */
@@ -87,6 +104,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     std::vector<realT> m_maxRadius;     ///< Exclusive outer radii of the ordered search annuli.
 
     std::vector<realT> m_modeFractions; ///< Strictly increasing PCA fractions defining output planes.
+
+    P4RegressionFrame m_regressionFrame{ P4RegressionFrame::detector };    ///< Frame of the learned regression.
 
     realT m_orDeltaRadiusInner{ std::numeric_limits<realT>::quiet_NaN() }; ///< Inward OR radial extent in pixels.
 
@@ -154,7 +173,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     /// Apply the shared ADI final-processing lifecycle with P4 provenance.
     /** \returns 0 on success.
-     * \throws mx::exception if final processing or output fails.
+     * \throws mx::exception if the regression frame is invalid, rotated regression is paired with post-median
+     * subtraction, or final processing or output fails.
      */
     int finalProcess();
 
@@ -169,6 +189,12 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Parse an exact exclusion-policy spelling.
     static P4ExclusionPolicy parseExclusionPolicy( const std::string &value /**< [in] configuration spelling */ );
 
+    /// Convert a supported regression frame to its stable configuration spelling.
+    static std::string regressionFrameString( P4RegressionFrame frame /**< [in] supported regression frame */ );
+
+    /// Parse an exact regression-frame spelling.
+    static P4RegressionFrame parseRegressionFrame( const std::string &value /**< [in] configuration spelling */ );
+
     /// Validate configuration that is independent of loaded image dimensions.
     void validateConfiguration() const;
 
@@ -181,9 +207,11 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Convert one all-double residual only when it remains finite in image storage.
     static realT checkedResidualCast( double value /**< [in] all-double residual value */ );
 
-    /// Return `min(imageCount,predictorCount)` after checking the P4PCA integer boundary.
+    /// Return the structurally available degrees of freedom after checking the P4PCA integer boundary.
     static int checkedMaximumDegreesOfFreedom( int imageCount, /**< [in] positive temporal sample count */
-                                               std::size_t predictorCount /**< [in] predictor-column count */ );
+                                               std::size_t predictorCount, /**< [in] predictor-column count */
+                                               bool temporallyCentered = false /**< [in] whether centering removes one
+                                                                                         temporal degree of freedom */ );
 
     /// Assign one search pixel to exactly one annulus.
     static void claimOwnership( Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> &ownership,
@@ -191,7 +219,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                 const P4PixelCoordinate &coordinate, /**< [in] owned search coordinate */
                                 int region /**< [in] nonnegative annulus index */ );
 
-    /// Write one enabled image-like diagnostic with checked directory and FITS errors.
+    /// Write one enabled image-like diagnostic with P4 provenance and checked directory and FITS errors.
     template <typename dataT>
     void writeDiagnostic( const std::string &fileName, /**< [in] diagnostic basename */
                           const dataT &data /**< [in] image-like diagnostic values */ ) const;

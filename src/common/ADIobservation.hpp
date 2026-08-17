@@ -6,6 +6,9 @@
 
 #ifndef __ADIobservation_hpp__
 #define __ADIobservation_hpp__
+
+#include <cstdint>
+
 #include <mx/ioutils/fileUtils.hpp>
 
 #include "HCIobservation.hpp"
@@ -46,6 +49,14 @@ struct completeCubicFootprintTransform
 
 } // namespace detail
 /// \endcond
+
+/// Coordinate frame occupied by PSF-subtracted samples entering final ADI processing.
+/** \ingroup programming_library */
+enum class ADIDataFrame : std::uint8_t
+{
+    detector, ///< Samples remain in their original detector frames and may require derotation.
+    sky       ///< Samples are already aligned in the final sky frame and must not be derotated again.
+};
 
 /// Process an angular differential imaging (ADI) observation
 /** Angular differential imaging (ADI) uses sky rotation to differentiate real objects from
@@ -219,15 +230,16 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
     void derotate();
 
     /// Apply the shared ADI final-processing lifecycle and write any configured products.
-    /** Processing is destructive and occurs in this order: optional post-median subtraction, optional derotation,
-     * final-image combination, and output. The optional algorithm header is appended after the standard ADI cards
-     * and before either final or PSF-subtracted products are written.
+    /** Processing is destructive and occurs in this order: optional post-median subtraction, optional derotation of
+     * detector-frame samples, final-image combination, and output. Sky-frame samples always skip derotation. The
+     * optional algorithm header is appended after the standard ADI cards and before either final or PSF-subtracted
+     * products are written.
      *
      * \returns 0 on success.
      * \throws mx::exception if combination or output fails.
      */
-    int
-    finalProcess( const fitsHeaderT *algorithmHeader = nullptr /**< [in] optional algorithm-specific FITS cards */ );
+    int finalProcess( const fitsHeaderT *algorithmHeader = nullptr, /**< [in] optional algorithm-specific FITS cards */
+                      ADIDataFrame dataFrame = ADIDataFrame::detector /**< [in] frame of the input residual cubes */ );
 
     double t_fake_begin{ 0 };
     double t_fake_end{ 0 };
@@ -947,8 +959,14 @@ void ADIobservation<realT, derotFunctObj, verboseT>::derotate()
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-int ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( const fitsHeaderT *algorithmHeader )
+int ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( const fitsHeaderT *algorithmHeader,
+                                                                  ADIDataFrame dataFrame )
 {
+    if( dataFrame != ADIDataFrame::detector && dataFrame != ADIDataFrame::sky )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "unsupported ADI residual data frame" );
+    }
+
     const bool hasReductionValidity = !this->m_psfsubValidity.empty();
     if( hasReductionValidity )
     {
@@ -1019,7 +1037,7 @@ int ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( const fitsHead
         }
     }
 
-    if( m_doDerotate )
+    if( dataFrame == ADIDataFrame::detector && m_doDerotate )
     {
         std::cerr << "derotating\n";
         derotate();

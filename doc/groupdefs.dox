@@ -67,6 +67,10 @@
   * \ingroup unit_tests
   */
 
+/** \defgroup P4RotatedGrid_unit_tests P4 Rotated Grid Unit Tests
+  * \ingroup unit_tests
+  */
+
 /** \defgroup P4Reduction_unit_tests P4 Reduction Unit Tests
   * \ingroup unit_tests
   */

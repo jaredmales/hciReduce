@@ -86,6 +86,7 @@ std::string p4Configuration( const std::filesystem::path &inputDirectory,  /**< 
                   << "maxRadius=6\n"
                   << "[p4]\n"
                   << "modeFractions=0.5\n"
+                  << "regressionFrame=detector\n"
                   << "orDeltaRadiusInner=2\n"
                   << "orDeltaRadiusOuter=2\n"
                   << "orArcHalfWidth=4\n"
@@ -104,6 +105,63 @@ std::string p4Configuration( const std::filesystem::path &inputDirectory,  /**< 
                   << "directory=" << outputDirectory.string() << '\n'
                   << "fileName=p4-final.fits\n"
                   << "exactFName=true\n";
+    return configuration.str();
+}
+
+/// Construct the AF Lep comparison geometry configuration without depending on an untracked example file.
+std::string p4AfLepConfiguration( const std::filesystem::path &inputDirectory /**< [in] target FITS directory */ )
+{
+    std::ostringstream configuration;
+    configuration << "mode=normal\n"
+                  << "[input]\n"
+                  << "directory=" << inputDirectory.string() << '\n'
+                  << "prefix=pp\n"
+                  << "extension=.fits\n"
+                  << "fileList=\n"
+                  << "dateKeyword=\n"
+                  << "maskFile=\n"
+                  << "angleKeyword=POSANG\n"
+                  << "angleScale=1\n"
+                  << "angleConstant=1.6\n"
+                  << "[rdi]\n"
+                  << "directory=\n"
+                  << "prefix=\n"
+                  << "fileList=\n"
+                  << "[coadd]\n"
+                  << "method=none\n"
+                  << "[preProcess]\n"
+                  << "skip=true\n"
+                  << "meanSubMethod=none\n"
+                  << "pixelTSNormMethod=none\n"
+                  << "only=false\n"
+                  << "[adi]\n"
+                  << "postMedSub=false\n"
+                  << "[geom]\n"
+                  << "minRadius=3.5,6,8,10,12,14,16,18\n"
+                  << "maxRadius=6,8,10,12,14,16,18,20\n"
+                  << "[p4]\n"
+                  << "modeFractions=0.01,0.03,0.05,0.07,0.09,0.11,0.13,0.15,0.17,0.19,0.21,0.23,0.25,0.27,0.29\n"
+                  << "regressionFrame=detector\n"
+                  << "orDeltaRadiusInner=8\n"
+                  << "orDeltaRadiusOuter=15\n"
+                  << "orArcHalfWidth=32\n"
+                  << "orMaxHalfAngle=90\n"
+                  << "psfRadius=1.5\n"
+                  << "exclusionPolicy=sampleCenter\n"
+                  << "exclusionRadiusBuffer=0\n"
+                  << "rankTolerance=0\n"
+                  << "writeDiagnostics=false\n"
+                  << "[combine]\n"
+                  << "method=sigmaMean\n"
+                  << "weightFile=\n"
+                  << "sigmaThreshold=5\n"
+                  << "minGoodFract=0\n"
+                  << "noDerotate=false\n"
+                  << "[output]\n"
+                  << "directory=.\n"
+                  << "fileName=finim_\n"
+                  << "exactFName=false\n"
+                  << "outputPSFSub=false\n";
     return configuration.str();
 }
 
@@ -131,6 +189,7 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     REQUIRE( application.m_mode == "basic" );
     REQUIRE( application.config.m_targets.at( "mode" ).clType == mx::app::argType::Required );
     REQUIRE( application.config.m_targets.at( "p4.modeFractions" ).helpType == "vector<realT>" );
+    REQUIRE( application.config.m_targets.at( "p4.regressionFrame" ).helpType == "string" );
     REQUIRE( application.config.m_targets.at( "p4.exclusionPolicy" ).clType == mx::app::argType::Required );
 
     for( const auto &[name, target] : application.config.m_targets )
@@ -148,6 +207,7 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     REQUIRE( application.m_obs.m_minRadius == std::vector<float>{ 5 } );
     REQUIRE( application.m_obs.m_maxRadius == std::vector<float>{ 6 } );
     REQUIRE( application.m_obs.m_modeFractions == std::vector<float>{ 0.5F } );
+    REQUIRE( application.m_obs.m_regressionFrame == mx::improc::P4RegressionFrame::detector );
     REQUIRE( application.m_obs.m_exclusionPolicy == mx::improc::P4ExclusionPolicy::kernelSupport );
 
     // clang-format off
@@ -159,17 +219,16 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     // clang-format on
 }
 
-/// Verify the AF Lep/NACO comparison configuration loads its support geometry and prototype-controlled settings.
+/// Verify the AF Lep/NACO comparison configuration loads its support geometry and controlled settings.
 /** \ingroup p4Reduce_unit_tests */
 TEST_CASE( "p4Reduce AF Lep prototype configuration", "[p4Reduce][config][prototype][AF-Lep]" )
 {
-    const std::filesystem::path configPath =
-        std::filesystem::path( __FILE__ ).parent_path().parent_path().parent_path() / "examples" /
-        "p4Reduce_afLepNaco_prototype.conf";
+    TestDirectory directory;
+    const auto configPath = directory.file( "aflep-comparison.conf" );
+    writeTextFile( configPath, p4AfLepConfiguration( directory.path() ) );
 
     appHarness application;
     application.setupConfig();
-    REQUIRE( std::filesystem::is_regular_file( configPath ) );
     REQUIRE( application.config.readConfig( configPath.string() ) == 0 );
     REQUIRE( application.config.m_unusedConfigs.empty() );
     REQUIRE_NOTHROW( application.loadConfig() );
@@ -184,8 +243,7 @@ TEST_CASE( "p4Reduce AF Lep prototype configuration", "[p4Reduce][config][protot
     };
 
     REQUIRE( application.m_mode == "normal" );
-    REQUIRE( configuredValue( "input.directory" ) ==
-             "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full/cut/reg/coadd5/pp" );
+    REQUIRE( configuredValue( "input.directory" ) == directory.path().string() );
     REQUIRE( configuredValue( "input.prefix" ) == "pp" );
     REQUIRE( configuredValue( "input.fileList" ).empty() );
     REQUIRE( configuredValue( "input.dateKeyword" ).empty() );
@@ -198,6 +256,7 @@ TEST_CASE( "p4Reduce AF Lep prototype configuration", "[p4Reduce][config][protot
     REQUIRE( configuredValue( "preProcess.meanSubMethod" ) == "none" );
     REQUIRE( configuredValue( "preProcess.pixelTSNormMethod" ) == "none" );
     REQUIRE( configuredValue( "preProcess.only" ) == "false" );
+    REQUIRE( configuredValue( "p4.regressionFrame" ) == "detector" );
     REQUIRE( configuredValue( "output.fileName" ) == "finim_" );
     REQUIRE( configuredValue( "output.exactFName" ) == "false" );
 
@@ -222,13 +281,14 @@ TEST_CASE( "p4Reduce AF Lep prototype configuration", "[p4Reduce][config][protot
                                                                       0.25F,
                                                                       0.27F,
                                                                       0.29F } );
+    REQUIRE( application.m_obs.m_regressionFrame == mx::improc::P4RegressionFrame::detector );
     REQUIRE( application.m_obs.m_orDeltaRadiusInner == 8 );
-    REQUIRE( application.m_obs.m_orDeltaRadiusOuter == 30 );
+    REQUIRE( application.m_obs.m_orDeltaRadiusOuter == 15 );
     REQUIRE( application.m_obs.m_orArcHalfWidth == 32 );
     REQUIRE( application.m_obs.m_orMaxHalfAngle == 90 );
     REQUIRE( application.m_obs.m_psfRadius == 1.5F );
     REQUIRE( application.m_obs.m_exclusionPolicy == mx::improc::P4ExclusionPolicy::sampleCenter );
-    REQUIRE( application.m_obs.m_exclusionRadiusBuffer == 0.5F );
+    REQUIRE( application.m_obs.m_exclusionRadiusBuffer == 0 );
     REQUIRE( application.m_obs.m_rankTolerance == 0 );
     REQUIRE_FALSE( application.m_obs.m_writeDiagnostics );
     REQUIRE( application.m_obs.m_combineMethod == mx::improc::HCI::combine::sigmaMean );
@@ -335,14 +395,19 @@ TEST_CASE( "p4Reduce command-line precedence", "[p4Reduce][config][command-line]
     std::string configName = configPath.string();
     std::string modeOption = "--mode";
     std::string modeValue = "normal";
+    std::string frameOption = "--p4.regressionFrame";
+    std::string frameValue = "rotated";
     char *arguments[]{ invokedName.data(),
                        configOption.data(),
                        configName.data(),
                        modeOption.data(),
-                       modeValue.data() };
+                       modeValue.data(),
+                       frameOption.data(),
+                       frameValue.data() };
 
-    REQUIRE( application.main( 5, arguments ) == 0 );
+    REQUIRE( application.main( 7, arguments ) == 0 );
     REQUIRE( application.m_mode == "normal" );
+    REQUIRE( application.m_obs.m_regressionFrame == mx::improc::P4RegressionFrame::rotated );
     REQUIRE( application.m_obs.m_derotF.m_angles == std::vector<float>{ 4 } );
 }
 
@@ -429,6 +494,7 @@ TEST_CASE( "p4Reduce normal FITS end-to-end", "[p4Reduce][execute][normal][FITS]
     REQUIRE( finitePixels < static_cast<std::size_t>( output.rows() * output.cols() ) );
 
     REQUIRE( header["P4ALGOR"].String().starts_with( "P4-PCA" ) );
+    REQUIRE( header["P4 FRAME"].String().starts_with( "detector" ) );
     REQUIRE( header["P4INSAMP"].value<char>() == 1 );
     REQUIRE( header["P4RDI"].value<char>() == 0 );
     REQUIRE( header["P4MODFR"].String().starts_with( "0.5" ) );
@@ -452,6 +518,7 @@ TEST_CASE( "p4Reduce process entry behavior", "[p4Reduce][main][help][exception]
         REQUIRE( p4ReduceMain( 2, arguments ) == EXIT_SUCCESS );
         const std::string help = standardOutput.str() + errorOutput.str();
         REQUIRE( help.find( "p4.modeFractions" ) != std::string::npos );
+        REQUIRE( help.find( "p4.regressionFrame" ) != std::string::npos );
         REQUIRE( help.find( "grid." ) == std::string::npos );
         REQUIRE( help.find( "postprocess." ) == std::string::npos );
     }

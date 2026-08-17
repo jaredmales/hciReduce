@@ -25,6 +25,7 @@ set(HCIREDUCE_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_read_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/HCIobservation_RDI_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PixelGrid_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/P4RotatedGrid_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PCA_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4Reduction_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/KLIPreduction_test.cpp

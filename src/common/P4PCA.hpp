@@ -75,6 +75,22 @@ struct P4PCA
                            const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
                            double rankTolerance, /**< [in] finite nonnegative threshold relative to lambdaMax */
                            workspaceT &workspace /**< [in,out] caller-owned, non-shared LAPACK workspace */ );
+
+    /// Calculate temporally centered, mean-preserving truncated-PCA residuals.
+    /** Each predictor column and the target are centered over their T samples before fitting. The fitted centered
+     * prediction is subtracted from the original uncentered target, so every supported residual preserves the target
+     * temporal mean. Centering limits the structural degrees of freedom to min(K,T-1); requested counts above that
+     * limit are rejected even when roundoff would make the centering null eigenvalue positive. T must be at least
+     * two. On success, \p output is completely replaced. On exception it remains destructible, but its values are
+     * unspecified. The output object must not own storage aliased by either input array.
+     */
+    static void
+    calculateCentered( P4PCAResult &output,           /**< [out] residuals, mode states, and numerical rank */
+                       const matrixT &predictors,     /**< [in] finite T-by-K uncentered predictor matrix */
+                       const vectorT &target,         /**< [in] finite T-sample uncentered target time series */
+                       const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
+                       double rankTolerance,          /**< [in] finite nonnegative threshold relative to lambdaMax */
+                       workspaceT &workspace /**< [in,out] caller-owned, non-shared LAPACK workspace */ );
 };
 
 /// \cond P4PCA_test_detail

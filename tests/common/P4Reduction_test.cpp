@@ -12,6 +12,7 @@
 #include <cmath>
 #include <filesystem>
 #include <limits>
+#include <numbers>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -38,10 +39,11 @@ class P4ReductionTestAccess
     }
 
     /// Invoke the production P4PCA integer-boundary check.
-    static int checkedMaximumDegreesOfFreedom( int imageCount, /**< [in] sample count */
-                                               std::size_t predictorCount /**< [in] predictor count */ )
+    static int checkedMaximumDegreesOfFreedom( int imageCount,             /**< [in] sample count */
+                                               std::size_t predictorCount, /**< [in] predictor count */
+                                               bool temporallyCentered = false /**< [in] whether centering is used */ )
     {
-        return P4Reductionf::checkedMaximumDegreesOfFreedom( imageCount, predictorCount );
+        return P4Reductionf::checkedMaximumDegreesOfFreedom( imageCount, predictorCount, temporallyCentered );
     }
 
     /// Invoke the production unique-pixel ownership assignment.
@@ -175,6 +177,8 @@ void prepareReduction( reductionHarness &reduction, /**< [out] configured reduct
     reduction.m_exclusionPolicy = policyT::kernelSupport;
     reduction.m_exclusionRadiusBuffer = 0;
     reduction.m_rankTolerance = 1e-6;
+    reduction.m_derotF.m_angleScale = 1;
+    reduction.m_derotF.m_angles.assign( static_cast<std::size_t>( imageCount ), 0 );
     reduction.m_writeDiagnostics = false;
     reduction.m_doDerotate = false;
     reduction.m_combineMethod = mx::improc::HCI::combine::none;
@@ -216,6 +220,7 @@ void requireSameReduction( const reductionHarness &left, /**< [in] first complet
         REQUIRE( leftStatistics.minimumNumericalRank == rightStatistics.minimumNumericalRank );
         REQUIRE( leftStatistics.validLocalFitCount == rightStatistics.validLocalFitCount );
         REQUIRE( leftStatistics.maskedLocalFitCount == rightStatistics.maskedLocalFitCount );
+        REQUIRE( leftStatistics.supportInvalidLocalFitCount == rightStatistics.supportInvalidLocalFitCount );
         REQUIRE( leftStatistics.rankInvalidCounts == rightStatistics.rankInvalidCounts );
     }
     for( std::size_t output = 0; output < left.m_psfsub.size(); ++output )
@@ -274,6 +279,48 @@ struct eigenSolverReset
         mx::improc::detail::p4PCAResetEigenSolverForTesting();
     }
 };
+
+/// Sample one fixed sky coordinate directly from an unrotated detector image.
+float directRotatedSample( const reductionT::imageT &image, /**< [in] preprocessed detector-frame image */
+                           double skyRow,                   /**< [in] fixed sky-frame row coordinate */
+                           double skyColumn,                /**< [in] fixed sky-frame column coordinate */
+                           double angle /**< [in] counter-clockwise derotation angle in radians */ )
+{
+    const double xCenter = 0.5 * static_cast<double>( image.rows() - 1 );
+    const double yCenter = 0.5 * static_cast<double>( image.cols() - 1 );
+    const double cosine = std::cos( angle );
+    const double sine = std::sin( angle );
+    const double deltaRow = skyRow - xCenter;
+    const double deltaColumn = skyColumn - yCenter;
+    const double rawRow = deltaRow * cosine + deltaColumn * sine + xCenter;
+    const double rawColumn = -deltaRow * sine + deltaColumn * cosine + yCenter;
+    const int footprintRow =
+        static_cast<int>( std::floor( rawRow ) ) - static_cast<int>( mx::improc::P4PixelGridf::leftBuffer );
+    const int footprintColumn =
+        static_cast<int>( std::floor( rawColumn ) ) - static_cast<int>( mx::improc::P4PixelGridf::leftBuffer );
+    if( footprintRow < 0 || footprintColumn < 0 ||
+        footprintRow + static_cast<int>( mx::improc::P4PixelGridf::width ) > image.rows() ||
+        footprintColumn + static_cast<int>( mx::improc::P4PixelGridf::width ) > image.cols() )
+    {
+        throw std::out_of_range( "independent rotated sample crosses the detector edge" );
+    }
+
+    mx::improc::P4PixelGridf::kernelT kernel;
+    mx::improc::cubicConvolTransform<float> transform;
+    transform( kernel,
+               static_cast<float>( rawRow - std::floor( rawRow ) ),
+               static_cast<float>( rawColumn - std::floor( rawColumn ) ) );
+    float result{ 0 };
+    for( int rowOffset = 0; rowOffset < static_cast<int>( mx::improc::P4PixelGridf::width ); ++rowOffset )
+    {
+        for( int columnOffset = 0; columnOffset < static_cast<int>( mx::improc::P4PixelGridf::width ); ++columnOffset )
+        {
+            result +=
+                image( footprintRow + rowOffset, footprintColumn + columnOffset ) * kernel( rowOffset, columnOffset );
+        }
+    }
+    return result;
+}
 /** \endcond */
 
 /// Verify P4Reduction setupConfig/loadConfig expose required invalid defaults and load every supported P4 option.
@@ -285,6 +332,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_minRadius.empty() );
     REQUIRE( defaults.m_maxRadius.empty() );
     REQUIRE( defaults.m_modeFractions.empty() );
+    REQUIRE( defaults.m_regressionFrame == mx::improc::P4RegressionFrame::detector );
     REQUIRE_FALSE( defaults.m_exclusionPolicy.has_value() );
     REQUIRE( mx::math::isNan( defaults.m_orDeltaRadiusInner ) );
     REQUIRE( mx::math::isNan( defaults.m_exclusionRadiusBuffer ) );
@@ -295,6 +343,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     mx::app::appConfigurator registered;
     defaults.setupConfig( registered );
     REQUIRE( registered.m_targets.at( "p4.modeFractions" ).clType == mx::app::argType::Required );
+    REQUIRE( registered.m_targets.at( "p4.regressionFrame" ).clType == mx::app::argType::Required );
     REQUIRE( registered.m_targets.at( "p4.writeDiagnostics" ).clType == mx::app::argType::True );
     REQUIRE( registered.m_targets.at( "p4.orMaxHalfAngle" ).helpType == "float" );
     REQUIRE_NOTHROW( defaults.loadConfig( registered ) );
@@ -312,7 +361,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     readReductionConfig( configured,
                          directory.file( "p4.conf" ),
                          "[geom]\nminRadius=5,8\nmaxRadius=6,9\n"
-                         "[p4]\nmodeFractions=0.25,0.5\norDeltaRadiusInner=2\norDeltaRadiusOuter=3\n"
+                         "[p4]\nmodeFractions=0.25,0.5\nregressionFrame=rotated\n"
+                         "orDeltaRadiusInner=2\norDeltaRadiusOuter=3\n"
                          "orArcHalfWidth=4\norMaxHalfAngle=90\npsfRadius=1.5\n"
                          "exclusionPolicy=sampleCenter\nexclusionRadiusBuffer=0.5\nrankTolerance=1e-8\n"
                          "writeDiagnostics=true\ndiagnosticDirectory=" +
@@ -320,6 +370,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( configured.m_minRadius == std::vector<float>{ 5, 8 } );
     REQUIRE( configured.m_maxRadius == std::vector<float>{ 6, 9 } );
     REQUIRE( configured.m_modeFractions == std::vector<float>{ 0.25f, 0.5f } );
+    REQUIRE( configured.m_regressionFrame == mx::improc::P4RegressionFrame::rotated );
     REQUIRE( configured.m_orDeltaRadiusInner == 2 );
     REQUIRE( configured.m_orDeltaRadiusOuter == 3 );
     REQUIRE( configured.m_orArcHalfWidth == 4 );
@@ -331,6 +382,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( configured.m_writeDiagnostics );
     reductionT::fitsHeaderT configuredHeader;
     configured.appendReductionHeader( configuredHeader );
+    REQUIRE( configuredHeader["P4 FRAME"].String().starts_with( "rotated" ) );
     REQUIRE( configuredHeader["P4EXCL"].String().starts_with( "sampleCenter" ) );
     REQUIRE( configuredHeader["P4MINR"].String().find( ',' ) != std::string::npos );
 
@@ -344,6 +396,11 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE_THROWS( readReductionConfig( invalidPolicy,
                                          directory.file( "invalid-policy.conf" ),
                                          "[p4]\nexclusionPolicy=automatic\n" ) );
+
+    reductionHarness invalidFrame;
+    REQUIRE_THROWS( readReductionConfig( invalidFrame,
+                                         directory.file( "invalid-frame.conf" ),
+                                         "[p4]\nregressionFrame=materialized\n" ) );
 
     // clang-format off
 #ifdef __DOXY_ONLY__
@@ -370,6 +427,9 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
         static_cast<double>( std::numeric_limits<float>::max() ) * 2.0 ) );
     REQUIRE( mx::improc::P4ReductionTestAccess::checkedMaximumDegreesOfFreedom( 3, 8 ) == 3 );
     REQUIRE( mx::improc::P4ReductionTestAccess::checkedMaximumDegreesOfFreedom( 8, 3 ) == 3 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::checkedMaximumDegreesOfFreedom( 3, 8, true ) == 2 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::checkedMaximumDegreesOfFreedom( 8, 3, true ) == 3 );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::checkedMaximumDegreesOfFreedom( 1, 3, true ) );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::checkedMaximumDegreesOfFreedom(
         3,
         static_cast<std::size_t>( std::numeric_limits<int>::max() ) + 1 ) );
@@ -442,6 +502,238 @@ TEST_CASE( "P4 reduction exact synthetic prediction", "[P4Reduction][reduce][pre
     // clang-format on
 }
 
+/// Verify rotated P4 centers the temporal fit, preserves the uncentered target mean, and reports sky support.
+/** \ingroup P4Reduction_unit_tests */
+TEST_CASE( "P4 rotated reduction preserves temporal means", "[P4Reduction][rotated][centered][validity]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    reductionHarness reduction;
+    prepareReduction( reduction );
+    reduction.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+    reduction.m_doDerotate = true;
+    reduction.m_derotF.m_angles = { 0, 17, -11 };
+
+    REQUIRE( reduction.reduce() == 0 );
+    REQUIRE( reduction.m_realizedModes == std::vector<std::vector<int>>{ { 1 } } );
+    REQUIRE( reduction.m_regionStatistics.size() == 1 );
+    const auto &statistics = reduction.m_regionStatistics.front();
+    REQUIRE( statistics.maximumDegreesOfFreedom == 2 );
+    REQUIRE( statistics.minimumNumericalRank == 1 );
+    REQUIRE( statistics.maskedLocalFitCount == 0 );
+    REQUIRE( statistics.validLocalFitCount + statistics.supportInvalidLocalFitCount == statistics.searchPixelCount );
+
+    std::size_t validPixels{ 0 };
+    for( int column = 0; column < reduction.m_Ncols; ++column )
+    {
+        for( int row = 0; row < reduction.m_Nrows; ++row )
+        {
+            if( reduction.m_psfsubValidity[0].image( 0 )( row, column ) == 0 )
+            {
+                continue;
+            }
+            ++validPixels;
+            double temporalMean{ 0 };
+            for( int image = 0; image < reduction.m_Nims; ++image )
+            {
+                REQUIRE( reduction.m_psfsubValidity[0].image( image )( row, column ) == 1 );
+                REQUIRE( reduction.m_psfsub[0].image( image )( row, column ) == Approx( 2 ).margin( 3e-5 ) );
+                temporalMean += reduction.m_psfsub[0].image( image )( row, column );
+            }
+            REQUIRE( temporalMean / reduction.m_Nims == Approx( 2 ).margin( 3e-5 ) );
+        }
+    }
+    REQUIRE( validPixels == statistics.validLocalFitCount );
+    for( int image = 0; image < reduction.m_Nims; ++image )
+    {
+        REQUIRE( reduction.m_psfsubValidity[0].image( image ).sum() == Approx( statistics.validLocalFitCount ) );
+    }
+
+    reductionT::fitsHeaderT header;
+    reduction.appendReductionHeader( header );
+    REQUIRE( header["P4 FRAME"].String().starts_with( "rotated" ) );
+    REQUIRE( header["P4SUP"].String() == std::to_string( statistics.supportInvalidLocalFitCount ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4Reduction<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, mx::verbose::vv>
+        doxygenReduction;
+    doxygenReduction.reduce();
+#endif
+    // clang-format on
+}
+
+/// Verify the complete rotated worker against an independent direct-sampling and thin-SVD numerical oracle.
+/** \ingroup P4Reduction_unit_tests */
+TEST_CASE( "P4 rotated reduction matches an independent numerical oracle", "[P4Reduction][rotated][oracle][frame]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    reductionHarness reduction;
+    prepareReduction( reduction, 5 );
+    reduction.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+    reduction.m_exclusionPolicy = policyT::sampleCenter;
+    reduction.m_modeFractions = { 0.25F };
+    reduction.m_doDerotate = true;
+    reduction.m_derotF.m_angles = { 3.25F, 17.5F, -11.75F, 33.125F, -27.625F };
+
+    const double xCenter = 0.5 * static_cast<double>( reduction.m_Nrows - 1 );
+    const double yCenter = 0.5 * static_cast<double>( reduction.m_Ncols - 1 );
+    for( int image = 0; image < reduction.m_Nims; ++image )
+    {
+        const double time = static_cast<double>( image - 2 );
+        const double quadraticTime = time * time - 2.0;
+        const double alternatingTime = image % 2 == 0 ? -1.0 : 1.0;
+        for( int column = 0; column < reduction.m_Ncols; ++column )
+        {
+            const double centeredColumn = static_cast<double>( column ) - yCenter;
+            for( int row = 0; row < reduction.m_Nrows; ++row )
+            {
+                const double centeredRow = static_cast<double>( row ) - xCenter;
+                const double spatial = 20.0 + 0.07 * centeredRow + 0.11 * centeredColumn +
+                                       0.013 * centeredRow * centeredColumn + 0.004 * centeredRow * centeredRow -
+                                       0.006 * centeredColumn * centeredColumn;
+                const double linearCoefficient = 1.2 + 0.025 * centeredRow - 0.017 * centeredColumn;
+                const double quadraticCoefficient = 0.22 + 0.003 * centeredRow * centeredColumn;
+                const double alternatingCoefficient = 0.09 + 0.002 * centeredRow - 0.003 * centeredColumn;
+                reduction.m_tgtIms.image( image )( row, column ) =
+                    static_cast<float>( spatial + linearCoefficient * time + quadraticCoefficient * quadraticTime +
+                                        alternatingCoefficient * alternatingTime );
+            }
+        }
+    }
+
+    mx::improc::P4PixelGridf candidateGrid;
+    candidateGrid.resize( reduction.m_Nrows, reduction.m_Ncols );
+    candidateGrid.candidateRegion(
+        mx::improc::P4PixelGridRegion( 5.0, 6.0, 2.0, 2.0, 4.0, 60.0, 0.5, policyT::sampleCenter, 0.0 ) );
+
+    constexpr int targetRow = 12;
+    constexpr int targetColumn = 19;
+    std::size_t targetSearch = candidateGrid.searchPixelCount();
+    for( std::size_t search = 0; search < candidateGrid.searchPixelCount(); ++search )
+    {
+        const mx::improc::P4PixelCoordinate &coordinate = candidateGrid.searchPixel( search ).coordinate();
+        if( coordinate.row() == targetRow && coordinate.column() == targetColumn )
+        {
+            REQUIRE( targetSearch == candidateGrid.searchPixelCount() );
+            targetSearch = search;
+        }
+    }
+    REQUIRE( targetSearch < candidateGrid.searchPixelCount() );
+
+    std::vector<std::size_t> retainedCandidates;
+    for( std::size_t candidate = 0; candidate < candidateGrid.candidatePredictorCount(); ++candidate )
+    {
+        const mx::improc::P4PixelCoordinate &offset = candidateGrid.candidatePredictorOffset( candidate );
+        if( std::hypot( static_cast<double>( offset.row() ), static_cast<double>( offset.column() ) ) > 0.5 )
+        {
+            retainedCandidates.push_back( candidate );
+        }
+    }
+    REQUIRE_FALSE( retainedCandidates.empty() );
+
+    Eigen::VectorXd target( reduction.m_Nims );
+    Eigen::MatrixXd predictors( reduction.m_Nims, static_cast<Eigen::Index>( retainedCandidates.size() ) );
+    const double targetAngle =
+        std::atan2( static_cast<double>( targetColumn ) - yCenter, static_cast<double>( targetRow ) - xCenter ) -
+        0.5 * std::numbers::pi_v<double>;
+    const double targetCosine = std::cos( targetAngle );
+    const double targetSine = std::sin( targetAngle );
+    for( int image = 0; image < reduction.m_Nims; ++image )
+    {
+        const double derotationAngle =
+            static_cast<double>( reduction.m_derotF.m_angles[image] ) * std::numbers::pi_v<double> / 180.0;
+        target( image ) =
+            directRotatedSample( reduction.m_tgtIms.image( image ), targetRow, targetColumn, derotationAngle );
+        for( std::size_t predictor = 0; predictor < retainedCandidates.size(); ++predictor )
+        {
+            const mx::improc::P4PixelCoordinate &offset =
+                candidateGrid.candidatePredictorOffset( retainedCandidates[predictor] );
+            const double predictorSkyRow = static_cast<double>( targetRow ) +
+                                           static_cast<double>( offset.row() ) * targetCosine -
+                                           static_cast<double>( offset.column() ) * targetSine;
+            const double predictorSkyColumn = static_cast<double>( targetColumn ) +
+                                              static_cast<double>( offset.row() ) * targetSine +
+                                              static_cast<double>( offset.column() ) * targetCosine;
+            predictors( image, static_cast<Eigen::Index>( predictor ) ) =
+                directRotatedSample( reduction.m_tgtIms.image( image ),
+                                     predictorSkyRow,
+                                     predictorSkyColumn,
+                                     derotationAngle );
+        }
+    }
+
+    Eigen::VectorXd centeredTarget = target;
+    centeredTarget.array() -= centeredTarget.mean();
+    Eigen::MatrixXd centeredPredictors = predictors;
+    for( Eigen::Index predictor = 0; predictor < centeredPredictors.cols(); ++predictor )
+    {
+        centeredPredictors.col( predictor ).array() -= centeredPredictors.col( predictor ).mean();
+    }
+    Eigen::JacobiSVD<Eigen::MatrixXd> singularValueDecomposition( centeredPredictors, Eigen::ComputeThinU );
+    REQUIRE( singularValueDecomposition.singularValues()( 0 ) >
+             5.0 * singularValueDecomposition.singularValues()( 1 ) );
+    const Eigen::VectorXd leadingMode = singularValueDecomposition.matrixU().col( 0 );
+    Eigen::VectorXd prediction = leadingMode * leadingMode.dot( centeredTarget );
+    prediction.array() -= prediction.mean();
+    const Eigen::VectorXd expectedResidual = target - prediction;
+
+    REQUIRE( reduction.reduce() == 0 );
+    REQUIRE( reduction.m_ownership( targetRow, targetColumn ) == 0 );
+    REQUIRE( reduction.m_regionStatistics.front().predictorCount == retainedCandidates.size() );
+    REQUIRE( reduction.m_realizedModes == std::vector<std::vector<int>>{ { 1 } } );
+
+    bool accidentalDerotationChangesScience{ false };
+    bool accidentalDerotationChangesValidity{ false };
+    for( int image = 0; image < reduction.m_Nims; ++image )
+    {
+        REQUIRE( reduction.m_psfsubValidity[0].image( image )( targetRow, targetColumn ) == 1 );
+        const float actualResidual = reduction.m_psfsub[0].image( image )( targetRow, targetColumn );
+        REQUIRE( actualResidual == Approx( expectedResidual( image ) ).margin( 3e-4 ) );
+
+        reductionT::imageT sanitized = reduction.m_psfsub[0].image( image );
+        for( int column = 0; column < reduction.m_Ncols; ++column )
+        {
+            for( int row = 0; row < reduction.m_Nrows; ++row )
+            {
+                if( reduction.m_psfsubValidity[0].image( image )( row, column ) == 0 )
+                {
+                    sanitized( row, column ) = 0;
+                }
+            }
+        }
+
+        const float derotationAngle = reduction.m_derotF.derotAngle( static_cast<std::size_t>( image ) );
+        reductionT::imageT doubleRotatedScience;
+        reductionT::imageT doubleRotatedValidity;
+        mx::improc::imageRotate( doubleRotatedScience,
+                                 sanitized,
+                                 derotationAngle,
+                                 mx::improc::cubicConvolTransform<float>() );
+        mx::improc::imageRotate( doubleRotatedValidity,
+                                 reduction.m_psfsubValidity[0].image( image ),
+                                 derotationAngle,
+                                 mx::improc::detail::completeCubicFootprintTransform<float>() );
+        const bool hypotheticalValid = doubleRotatedValidity( targetRow, targetColumn ) == 1;
+        if( !hypotheticalValid )
+        {
+            doubleRotatedScience( targetRow, targetColumn ) = 0;
+        }
+        accidentalDerotationChangesValidity |= !hypotheticalValid;
+        accidentalDerotationChangesScience |=
+            std::abs( doubleRotatedScience( targetRow, targetColumn ) - actualResidual ) > 1e-3F;
+    }
+    REQUIRE( accidentalDerotationChangesValidity );
+    REQUIRE( accidentalDerotationChangesScience );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4Reduction<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, mx::verbose::vv>
+        doxygenReduction;
+    doxygenReduction.reduce();
+#endif
+    // clang-format on
+}
+
 /// Verify P4Reduction preserves an excluded central signal and rejects complete local fits touched by the common mask.
 /** \ingroup P4Reduction_unit_tests */
 TEST_CASE( "P4 reduction central exclusion and common mask", "[P4Reduction][exclusion][mask][validity]" )
@@ -481,6 +773,28 @@ TEST_CASE( "P4 reduction central exclusion and common mask", "[P4Reduction][excl
         const auto &statistics = reduction.m_regionStatistics.front();
         REQUIRE( statistics.validLocalFitCount + statistics.maskedLocalFitCount == statistics.searchPixelCount );
         REQUIRE( statistics.maskedLocalFitCount > 1 );
+        for( int image = 0; image < reduction.m_Nims; ++image )
+        {
+            REQUIRE( reduction.m_psfsubValidity[0].image( image )( 15, 20 ) == 0 );
+            REQUIRE( mx::math::isNan( reduction.m_psfsub[0].image( image )( 15, 20 ) ) );
+        }
+    }
+
+    SECTION( "rotated common mask rejects all-frame direct support without changing K" )
+    {
+        reductionHarness reduction;
+        prepareReduction( reduction );
+        reduction.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+        reduction.m_mask.resize( reduction.m_Nrows, reduction.m_Ncols );
+        reduction.m_mask.setOnes();
+        reduction.m_mask( 15, 20 ) = 0;
+
+        REQUIRE( reduction.reduce() == 0 );
+        const auto &statistics = reduction.m_regionStatistics.front();
+        REQUIRE( statistics.maskedLocalFitCount == 0 );
+        REQUIRE( statistics.supportInvalidLocalFitCount > 1 );
+        REQUIRE( statistics.validLocalFitCount + statistics.supportInvalidLocalFitCount ==
+                 statistics.searchPixelCount );
         for( int image = 0; image < reduction.m_Nims; ++image )
         {
             REQUIRE( reduction.m_psfsubValidity[0].image( image )( 15, 20 ) == 0 );
@@ -623,6 +937,23 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         invalidPolicy.m_exclusionPolicy = static_cast<policyT>( 99 );
         REQUIRE_THROWS( invalidPolicy.reduce() );
 
+        reductionHarness invalidFrame;
+        prepareReduction( invalidFrame );
+        invalidFrame.m_regressionFrame = static_cast<mx::improc::P4RegressionFrame>( 99 );
+        REQUIRE_THROWS( invalidFrame.reduce() );
+
+        reductionHarness rotatedPostMedian;
+        prepareReduction( rotatedPostMedian );
+        rotatedPostMedian.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+        rotatedPostMedian.m_postMedSub = true;
+        REQUIRE_THROWS( rotatedPostMedian.reduce() );
+
+        reductionHarness nonfiniteDerotation;
+        prepareReduction( nonfiniteDerotation );
+        nonfiniteDerotation.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+        nonfiniteDerotation.m_derotF.m_angles[1] = std::numeric_limits<float>::quiet_NaN();
+        REQUIRE_THROWS( nonfiniteDerotation.reduce() );
+
         reductionHarness invalidTolerance;
         prepareReduction( invalidTolerance );
         invalidTolerance.m_rankTolerance = 1;
@@ -645,6 +976,11 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         prepareReduction( duplicateMode );
         duplicateMode.m_modeFractions = { 0.5f, 0.6f };
         REQUIRE_THROWS( duplicateMode.reduce() );
+
+        reductionHarness oneFrameRotated;
+        prepareReduction( oneFrameRotated, 1 );
+        oneFrameRotated.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+        REQUIRE_THROWS( oneFrameRotated.reduce() );
     }
 
     SECTION( "invalid cube and mask state" )
@@ -900,6 +1236,65 @@ TEST_CASE( "P4 reduction OpenMP determinism and exception capture", "[P4Reductio
         }
     }
 
+    SECTION( "rotated regression is deterministic across worker counts" )
+    {
+        const auto prepareRotated = []( reductionHarness &reduction )
+        {
+            prepareReduction( reduction, 5 );
+            reduction.m_minRadius = { 5, 7 };
+            reduction.m_maxRadius = { 6, 8 };
+            reduction.m_modeFractions = { 0.25F, 0.5F };
+            reduction.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+            reduction.m_derotF.m_angles = { 0, 17, -11, 33, -27 };
+            reduction.m_doDerotate = true;
+            for( int image = 0; image < reduction.m_Nims; ++image )
+            {
+                for( int column = 0; column < reduction.m_Ncols; ++column )
+                {
+                    for( int row = 0; row < reduction.m_Nrows; ++row )
+                    {
+                        reduction.m_tgtIms.image( image )( row, column ) =
+                            0.02F * static_cast<float>( row * row ) + 0.03F * static_cast<float>( column ) +
+                            static_cast<float>( image + 1 ) *
+                                ( 0.1F * static_cast<float>( row ) - 0.07F * static_cast<float>( column ) ) +
+                            static_cast<float>( image % 2 ) * 0.0005F * static_cast<float>( row * column );
+                    }
+                }
+            }
+        };
+
+        reductionHarness serial;
+        prepareRotated( serial );
+        std::string serialProgress;
+        {
+            OpenMPThreadGuard threads( 1 );
+            CerrCapture capture;
+            REQUIRE( serial.reduce() == 0 );
+            serialProgress = capture.str();
+        }
+
+        reductionHarness parallel;
+        prepareRotated( parallel );
+        std::string parallelProgress;
+        {
+            OpenMPThreadGuard threads( 3 );
+            CerrCapture capture;
+            REQUIRE( parallel.reduce() == 0 );
+            parallelProgress = capture.str();
+        }
+        requireSameReduction( serial, parallel );
+
+        for( const std::string *progress : { &serialProgress, &parallelProgress } )
+        {
+            REQUIRE( progress->find( "P4 rotated geometry annulus 1 / 2 [5,6)... done:" ) != std::string::npos );
+            REQUIRE( progress->find( "P4 rotated geometry annulus 2 / 2 [7,8)... done:" ) != std::string::npos );
+            REQUIRE( progress->find( "P4 rotated annulus 1 / 2 [5,6), K=" ) != std::string::npos );
+            REQUIRE( progress->find( "P4 rotated annulus 2 / 2 [7,8), K=" ) != std::string::npos );
+            REQUIRE( progress->find( "P4 regression complete:" ) != std::string::npos );
+            REQUIRE( progress->back() == '\n' );
+        }
+    }
+
     SECTION( "worker eigensolver exception is captured and rethrown outside OpenMP" )
     {
         OpenMPThreadGuard threads( 3 );
@@ -953,18 +1348,31 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( std::filesystem::exists( directory.file( "diagnostics/p4Timing.fits" ) ) );
 
     reductionT::imageT summary;
+    reductionT::fitsHeaderT summaryHeader;
     mx::fits::fitsFile<float, mx::verbose::vv> reader;
-    REQUIRE( reader.read( summary, directory.file( "diagnostics/p4RegionSummary.fits" ).string() ) ==
+    REQUIRE( reader.read( summary, summaryHeader, directory.file( "diagnostics/p4RegionSummary.fits" ).string() ) ==
              mx::error_t::noerror );
+    REQUIRE( summaryHeader["P4 FRAME"].String().starts_with( "detector" ) );
+
+    mx::improc::eigenCube<float> diagnosticValidity;
+    reductionT::fitsHeaderT diagnosticValidityHeader;
+    REQUIRE( reader.read( diagnosticValidity,
+                          diagnosticValidityHeader,
+                          directory.file( "diagnostics/p4Validity_000.fits" ).string() ) == mx::error_t::noerror );
+    REQUIRE( diagnosticValidityHeader["P4 FRAME"].String().starts_with( "detector" ) );
+    REQUIRE( diagnosticValidity.planes() == diagnostic.m_Nims );
+    REQUIRE( diagnosticValidity.image( 0 ).isApprox( diagnostic.m_psfsubValidity[0].image( 0 ), 0 ) );
+
     REQUIRE( summary.rows() == 1 );
-    REQUIRE( summary.cols() == 10 );
-    REQUIRE( summary( 0, 6 ) + summary( 0, 7 ) == Approx( summary( 0, 2 ) ) );
-    REQUIRE( summary( 0, 8 ) == Approx( diagnostic.m_realizedModes[0][0] ) );
-    REQUIRE( summary( 0, 9 ) == Approx( diagnostic.m_regionStatistics[0].rankInvalidCounts[0] ) );
+    REQUIRE( summary.cols() == 11 );
+    REQUIRE( summary( 0, 6 ) + summary( 0, 7 ) + summary( 0, 8 ) == Approx( summary( 0, 2 ) ) );
+    REQUIRE( summary( 0, 9 ) == Approx( diagnostic.m_realizedModes[0][0] ) );
+    REQUIRE( summary( 0, 10 ) == Approx( diagnostic.m_regionStatistics[0].rankInvalidCounts[0] ) );
 
     reductionT::fitsHeaderT header;
     diagnostic.appendReductionHeader( header );
     REQUIRE( header["P4ALGOR"].String().starts_with( "P4-PCA" ) );
+    REQUIRE( header["P4 FRAME"].String().starts_with( "detector" ) );
     REQUIRE( header["P4INSAMP"].Int() == 1 );
     REQUIRE( header["P4RDI"].Int() == 0 );
     REQUIRE( header["P4EXCL"].String().starts_with( "kernelSupport" ) );
@@ -972,6 +1380,8 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( header["P4M000"].String().starts_with( "1" ) );
     REQUIRE( header["P4VALID"].String() == std::to_string( diagnostic.m_regionStatistics[0].validLocalFitCount ) );
     REQUIRE( header["P4MASK"].String() == std::to_string( diagnostic.m_regionStatistics[0].maskedLocalFitCount ) );
+    REQUIRE( header["P4SUP"].String() ==
+             std::to_string( diagnostic.m_regionStatistics[0].supportInvalidLocalFitCount ) );
     diagnostic.m_heads.resize( diagnostic.m_Nims );
     diagnostic.m_doOutputPSFSub = true;
     diagnostic.m_outputDir = directory.path().string();
@@ -983,9 +1393,11 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( reader.read( persistedScience, persistedHeader, directory.file( "p4-psf_000_00000.fits" ).string() ) ==
              mx::error_t::noerror );
     REQUIRE( persistedHeader["P4ALGOR"].String().starts_with( "P4-PCA" ) );
+    REQUIRE( persistedHeader["P4 FRAME"].String().starts_with( "detector" ) );
 
     reductionHarness atomic;
     prepareReduction( atomic );
+    atomic.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
     atomic.m_writeDiagnostics = true;
     atomic.m_diagnosticDirectory = directory.file( "atomic" ).string();
     reductionT::imageT product = reductionT::imageT::Constant( 2, 2, 1 );
@@ -993,8 +1405,22 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     product.setConstant( 2 );
     mx::improc::P4ReductionTestAccess::writeDiagnostic( atomic, "replace.fits", product );
     reductionT::imageT replaced;
-    REQUIRE( reader.read( replaced, directory.file( "atomic/replace.fits" ).string() ) == mx::error_t::noerror );
+    reductionT::fitsHeaderT replacedHeader;
+    REQUIRE( reader.read( replaced, replacedHeader, directory.file( "atomic/replace.fits" ).string() ) ==
+             mx::error_t::noerror );
     REQUIRE( replaced.isConstant( 2 ) );
+    REQUIRE( replacedHeader["P4 FRAME"].String().starts_with( "rotated" ) );
+
+    reductionHarness rotatedPostMedian;
+    prepareReduction( rotatedPostMedian );
+    rotatedPostMedian.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+    rotatedPostMedian.m_postMedSub = true;
+    REQUIRE_THROWS( rotatedPostMedian.finalProcess() );
+
+    reductionHarness invalidFrame;
+    prepareReduction( invalidFrame );
+    invalidFrame.m_regressionFrame = static_cast<mx::improc::P4RegressionFrame>( 255 );
+    REQUIRE_THROWS( invalidFrame.finalProcess() );
 
     std::filesystem::create_directory( directory.file( "atomic/occupied.fits" ) );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::writeDiagnostic( atomic, "occupied.fits", product ) );

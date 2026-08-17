@@ -6,11 +6,16 @@
 /** \addtogroup p4reduce_user_guide
  * @{
  *
- * P4 (Pixel Prediction Post-Processing) predicts one detector pixel at a time from a local annular-wedge region in
- * the same image. The complete time sequence trains one in-sample regression for each search pixel. A central
- * exclusion disk prevents the expected companion location from entering the predictor set.
+ * P4 (Pixel Prediction Post-Processing) predicts the time-variable stellar PSF and noise at one search pixel from a
+ * local annular-wedge optimization region (OR). The complete time sequence trains one in-sample regression for each
+ * search pixel. A central exclusion disk prevents the expected companion location from entering the predictor set.
+ * `p4.regressionFrame` selects between the original detector-frame regression and a temporally centered regression
+ * at fixed pixels in the derotated sky frame.
  *
- * For one search pixel, let `y` be its `T x 1` time series and let `X` contain `K` interpolated predictor-pixel time
+ * \section p4reduce_detector_regression Detector-frame regression
+ *
+ * `p4.regressionFrame=detector` is the compatibility default and preserves the original P4 algorithm. For one fixed
+ * detector search pixel, let `y` be its `T x 1` time series and let `X` contain `K` interpolated predictor-pixel time
  * series. P4 eigendecomposes the smaller of the two Gram matrices. For `T <= K` it forms the temporal Gram matrix
  *
  * \f[
@@ -23,10 +28,64 @@
  * and add no hidden centering or intercept. Mean-image subtraction and other preprocessing are controlled entirely
  * by the inherited hciReduce preprocessing configuration.
  *
- * Invalid or unsupported detector locations are carried by an explicit per-output validity cube while arithmetic is
- * in progress. Rank-insufficient output pixels are invalid rather than silently clamped to a smaller mode count.
- * Validity is propagated through post-median subtraction, derotation, and final combination before persistent invalid
- * values are materialized.
+ * The detector-frame residual cubes are derotated by the shared ADI final-processing stage before combination.
+ *
+ * \section p4reduce_rotated_regression Rotated-frame regression
+ *
+ * `p4.regressionFrame=rotated` learns a different coefficient vector at each fixed sky-frame search pixel. The OR
+ * wedge is constructed once in that sky frame. For search pixel `m`, let \f$q_{m,0}=m\f$ be the target coordinate and
+ * let \f$q_{m,k}\f$ be its `K` mapped radial/tangential predictor coordinates. For frame `t`, each fixed sky
+ * coordinate is mapped directly back into the preprocessed, unrotated detector image using the configured derotation
+ * angle:
+ *
+ * \f[
+ * p_r = C_r+(q_r-C_r)\cos\theta_t+(q_c-C_c)\sin\theta_t,
+ * \f]
+ *
+ * \f[
+ * p_c = C_c-(q_r-C_r)\sin\theta_t+(q_c-C_c)\cos\theta_t.
+ * \f]
+ *
+ * Here `C` is the geometric image center. The value
+ * \f$u_{t,m}^{(k)}=x_t[p_{t,m,k}]\f$ is evaluated with one cubic-convolution interpolation in the preprocessed,
+ * unrotated detector frame. No rotated image cube is materialized, and fractional OR coordinates are not
+ * interpolated a second time.
+ * The target `k=0` and every predictor use this same direct sampling operator.
+ *
+ * The target and each predictor column are then centered over the same `T` frames:
+ *
+ * \f[
+ * \widetilde{u}_{t,m}^{(k)} = u_{t,m}^{(k)}-
+ *     \frac{1}{T}\sum_{\tau=1}^{T}u_{\tau,m}^{(k)}.
+ * \f]
+ *
+ * With `y_m(t)=\widetilde{u}_{t,m}^{(0)}` and `D_m(t,k)=\widetilde{u}_{t,m}^{(k)}`, P4 minimizes
+ *
+ * \f[
+ *     \left\|y_m-D_m c_m\right\|_2^2
+ * \f]
+ *
+ * using the same truncated eigensolution and rank policy as detector mode. Centering removes one temporal degree of
+ * freedom, so mode fractions are realized against `min(K,T-1)`. At least two frames are required, and the structural
+ * limit remains in force even when `p4.rankTolerance=0`.
+ *
+ * The fitted quantity `D_m c_m` is the mean-zero, time-variable PSF/noise estimate. It is subtracted from the
+ * uncentered sampled target,
+ *
+ * \f[
+ *     r_{t,m}=u_{t,m}^{(0)}-(D_m c_m)_t,
+ * \f]
+ *
+ * rather than from the centered target. Consequently the residual preserves the sampled target's temporal mean.
+ * A companion that is stationary after derotation therefore does not contribute to the centered variance being
+ * minimized and is not erased by the regression mean policy. "Uncentered" here means before this internal temporal
+ * centering; inherited preprocessing has already been applied to the input cube.
+ *
+ * Invalid or rank-unsupported locations are carried by an explicit per-output validity cube while arithmetic is in
+ * progress. Rank-insufficient output pixels are invalid rather than silently clamped to a smaller mode count. In
+ * detector mode validity is propagated through derotation and combination. Rotated residuals and validity are already
+ * sky-aligned, so final processing combines them without applying a second derotation. Persistent invalid values are
+ * materialized only after final arithmetic.
  *
  * \section p4reduce_modes Application modes
  *
@@ -43,7 +102,8 @@
  * | Target | Contract |
  * |---|---|
  * | `geom.minRadius`, `geom.maxRadius` | Matching, ordered, non-overlapping full-annulus bounds. Inner radii are inclusive and outer radii are exclusive. |
- * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
+ * | `p4.regressionFrame` | `detector` (default) or `rotated`; selects the regression coordinates, centering rule, support test, and final-frame lifecycle. |
+ * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
  * | `p4.orArcHalfWidth` | Positive azimuthal half-width expressed as arc length in pixels. |
  * | `p4.orMaxHalfAngle` | Angular half-width cap strictly between 0 and 180 degrees. |
@@ -51,24 +111,49 @@
  * | `p4.exclusionPolicy` | Required `sampleCenter` or `kernelSupport` policy. |
  * | `p4.exclusionRadiusBuffer` | Explicit nonnegative amount added to `p4.psfRadius`; `0.5` reproduces the prototype's effective mask buffer. |
  * | `p4.rankTolerance` | Relative eigenvalue threshold in `[0,1)`, default `1e-12`. |
- * | `p4.writeDiagnostics` | Enable ownership, validity, canonical-region, rank, and timing FITS diagnostics. |
+ * | `p4.writeDiagnostics` | Enable ownership, validity, canonical-region, rank, and timing FITS diagnostics. Every diagnostic records the selected `HIERARCH P4 FRAME`. |
  * | `p4.diagnosticDirectory` | Destination for enabled diagnostics. |
  *
- * P4 rejects configured RDI input, overlapping annuli, any incomplete interpolation footprint, and nonfinite input as
- * hard errors. A target or predictor footprint that touches the common input mask instead marks only that local fit and
- * its output samples invalid in the per-output validity cube, and the reduction continues. `sampleCenter` reproduces
- * the prototype's center-only exclusion, while `kernelSupport` enforces the exclusion across every nominal
- * cubic-interpolation footprint.
+ * P4 rejects configured RDI input, overlapping annuli, and nonfinite target input as hard errors. In detector mode the
+ * geometry must fit its configured interpolation footprints. In rotated mode every target and predictor must have a
+ * complete direct detector-frame cubic footprint in every input frame. If any one of those footprints crosses an edge
+ * or touches a zero-valued common-mask pixel, that sky search pixel is invalid in every frame and mode plane; frames
+ * are never silently dropped from a local fit.
+ *
+ * `sampleCenter` reproduces the prototype's center-only signal exclusion. In rotated mode `kernelSupport` checks the
+ * exact detector-frame cubic footprints produced by the inverse mapping over all search pixels and frames, then removes
+ * an offending predictor column from the annulus-wide OR. Thus every retained local fit has one common `K`, while
+ * ordinary mask or edge failures invalidate only the affected search pixel.
  *
  * The rank test is the literal strict comparison `lambda > p4.rankTolerance * lambdaMax`. A zero tolerance therefore
- * accepts every eigenvalue returned as positive, including a roundoff-positive numerical null; use a nonzero relative
- * tolerance when reliable rank-deficiency classification matters.
+ * accepts every eigenvalue returned as positive, including roundoff-positive numerical nulls, except that rotated
+ * mode always enforces its structural `T-1` limit. Use a nonzero relative tolerance when reliable classification of
+ * other rank deficiencies matters.
  *
- * During geometry construction, `p4Reduce` reports each annulus together with its search-pixel and predictor counts.
- * During regression, a rate-limited `std::cerr` status line combines the active annulus's completed/total pixels,
- * measured seconds per pixel, and local ETA with cumulative completed/total pixels across all annuli. Each annulus
- * ends with an exact newline-delimited completion record, so redirected logs remain readable as well as interactive
- * terminal output.
+ * During geometry construction, `p4Reduce` reports each annulus together with its search-pixel and retained predictor
+ * counts. During regression, a rate-limited `std::cerr` status line combines the active annulus's completed/total
+ * pixels, measured seconds per pixel, and local ETA with cumulative completed/total pixels
+ * across all annuli. Each annulus ends with an exact newline-delimited completion record, so redirected logs remain
+ * readable as well as interactive terminal output.
+ *
+ * \section p4reduce_rotated_baseline Rotated mode, static baselines, and final ADI processing
+ *
+ * Mean-preserving rotated regression deliberately preserves any time-constant signal at a sky pixel. That includes a
+ * stationary companion, but it can also include a static stellar-halo or background pedestal. Two inherited,
+ * optional detector-frame preprocessing choices can reduce that baseline before rotated regression:
+ *
+ * - `preProcess.subradprof=true` subtracts a median radial profile independently from each detector image; and
+ * - `preProcess.meanSubMethod=medianImage` subtracts the temporal median detector-frame PSF.
+ *
+ * They may be combined in that order. Neither is forced by rotated mode: radial-profile subtraction can bias localized
+ * sources, while a median PSF can self-subtract a companion when the number of frames or field rotation is inadequate.
+ * Injected-source throughput should therefore be checked for the selected preprocessing. An already preprocessed
+ * sequence may use `preProcess.skip=true` only when its preprocessing provenance is known.
+ *
+ * `adi.postMedSub=true` is rejected with rotated regression because subtracting a median at a fixed sky pixel would
+ * remove the stationary signal that the mean-preserving residual is intended to retain. Rotated residuals carry an
+ * explicit sky-frame state into final processing, so they are never derotated again. `combine.noDerotate` controls only
+ * detector-frame residuals and is irrelevant to rotated mode; its default value cannot cause a double derotation.
  *
  * \section p4reduce_example Example configuration
  *
@@ -96,6 +181,7 @@
  * maxRadius=6,8,10,12,14,16,18,20
  *
  * [p4]
+ * regressionFrame=detector
  * modeFractions=0.01,0.03,0.05,0.07,0.09,0.11,0.13,0.15,0.17,0.19,0.21,0.23,0.25,0.27,0.29
  * orDeltaRadiusInner=8
  * orDeltaRadiusOuter=30
@@ -131,9 +217,9 @@
  *
  * For a new dataset, leave `preProcess.skip=false` and configure inherited preprocessing explicitly. Diagnostics do
  * not change the numerical result, but the ownership and region-summary products are useful when validating new
- * geometry. `p4Validity_*.fits` records the residual validity immediately after local fitting, in detector
- * coordinates and before post-median subtraction, derotation, or combination; it is not pixel-aligned with a
- * derotated final product.
+ * geometry. `p4Validity_*.fits` records residual validity immediately after local fitting. It is in detector
+ * coordinates for detector regression and in the final sky coordinates for rotated regression. Final products record
+ * the selection as `HIERARCH P4 FRAME = 'detector'` or `HIERARCH P4 FRAME = 'rotated'`.
  *
  * \section p4reduce_dictionary Configuration reference
  *

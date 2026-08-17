@@ -300,6 +300,11 @@ Known non-blocking ownership follow-ups:
       every executable line in the default `invalidNumber()` and `isInvalidPixel()` specializations is covered.
 
 - [~] Continue closing mxlib coverage gaps exposed by hciReduce integration tests.
+  - [ ] Cover the exact `mx::improc::eigenCube<float>::median()` specializations called by
+        `ADIobservation<float>::finalProcess()`: both the unmasked output-image overload and the validity-cube/masked
+        overload. The current mxlib LCOV trace contains only the corresponding `eigenCube<double>` median
+        specializations, so aggregate source-line coverage does not yet satisfy hciReduce's exact-call ownership
+        gate for the new detector/sky final-processing entry point.
   - [ ] Bring the exact `mx::app::appConfigurator::readConfig()` path used by the permanent p4Reduce prototype-config
         regression to 100% executable-line coverage. The current mxlib trace records 30/38 lines in this function;
         missing cases include quiet file-not-found handling, parser/allocation failures, and recognized/unrecognized

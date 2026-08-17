@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <stdexcept>
@@ -66,31 +67,12 @@ MXLAPACK_INT p4PCAEigenSolve( P4PCA::matrixT &eigenvectors, /**< [out] selected 
                                             nullptr );
 }
 
-} // namespace
-
-namespace detail
-{
-
-/// \cond P4PCA_test_detail
-void p4PCASetEigenSolverForTesting( P4PCAEigenSolverT solver )
-{
-    p4PCAEigenSolverForTesting.store( solver, std::memory_order_release );
-}
-
-void p4PCAResetEigenSolverForTesting()
-{
-    p4PCAEigenSolverForTesting.store( nullptr, std::memory_order_release );
-}
-/// \endcond
-
-} // namespace detail
-
-void P4PCA::calculate( P4PCAResult &output,
-                       const matrixT &predictors,
-                       const vectorT &target,
-                       const std::vector<int> &modes,
-                       double rankTolerance,
-                       workspaceT &workspace )
+/// Validate one P4PCA request against its path-specific structural degree-of-freedom limit.
+void p4PCAValidateInputs( const P4PCA::matrixT &predictors, /**< [in] predictor matrix to validate */
+                          const P4PCA::vectorT &target,     /**< [in] target vector to validate */
+                          const std::vector<int> &modes,    /**< [in] requested retained-mode counts */
+                          double rankTolerance,             /**< [in] relative numerical-rank threshold */
+                          int maxDOF /**< [in] path-specific structural degree-of-freedom limit */ )
 {
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
@@ -110,7 +92,6 @@ void P4PCA::calculate( P4PCAResult &output,
         throw std::invalid_argument( "P4PCA requires at least one mode count" );
     }
 
-    const int maxDOF = static_cast<int>( std::min( sampleCount, predictorCount ) );
     int previousMode{ 0 };
     for( const int mode : modes )
     {
@@ -141,10 +122,53 @@ void P4PCA::calculate( P4PCAResult &output,
     {
         throw std::invalid_argument( "P4PCA predictors and target must be finite" );
     }
+}
 
+/// Subtract each column's double-precision temporal mean in place.
+template <typename arrayT>
+void p4PCACenterColumns( arrayT &array /**< [in,out] array whose columns are centered */ )
+{
+    for( Eigen::Index column = 0; column < array.cols(); ++column )
+    {
+        double scale{ 0 };
+        for( Eigen::Index row = 0; row < array.rows(); ++row )
+        {
+            scale = std::max( scale, std::abs( array( row, column ) ) );
+        }
+
+        if( scale == 0 )
+        {
+            continue;
+        }
+
+        double scaledSum{ 0 };
+        for( Eigen::Index row = 0; row < array.rows(); ++row )
+        {
+            scaledSum += array( row, column ) / scale;
+        }
+
+        const double scaledMean = std::clamp( scaledSum / static_cast<double>( array.rows() ), -1.0, 1.0 );
+        const double mean = scale * scaledMean;
+        array.col( column ) -= mean;
+    }
+}
+
+/// Calculate one already-validated P4PCA request using its selected fit and residual targets.
+void p4PCACalculateValidated( P4PCAResult &output,                  /**< [out] completed regression result */
+                              const P4PCA::matrixT &predictors,     /**< [in] predictors used to form the fit */
+                              const P4PCA::vectorT &fitTarget,      /**< [in] target used to calculate projections */
+                              const P4PCA::vectorT &residualTarget, /**< [in] initial target for output residuals */
+                              const std::vector<int> &modes,        /**< [in] requested retained-mode counts */
+                              double rankTolerance,                 /**< [in] relative numerical-rank threshold */
+                              int maxDOF,            /**< [in] structural degree-of-freedom limit and eigenpair count */
+                              bool centerPrediction, /**< [in] enforce a zero-mean fitted prediction */
+                              P4PCA::workspaceT &workspace /**< [in,out] reusable LAPACK workspace */ )
+{
+    const Eigen::Index sampleCount = predictors.rows();
+    const Eigen::Index predictorCount = predictors.cols();
     const bool useTemporalGram = sampleCount <= predictorCount;
-    matrixT gram;
-    vectorT crossProduct;
+    P4PCA::matrixT gram;
+    P4PCA::vectorT crossProduct;
     if( useTemporalGram )
     {
         gram = ( predictors.matrix() * predictors.matrix().transpose() ).array();
@@ -152,7 +176,7 @@ void P4PCA::calculate( P4PCAResult &output,
     else
     {
         gram = ( predictors.matrix().transpose() * predictors.matrix() ).array();
-        crossProduct = ( predictors.matrix().transpose() * target.matrix() ).array();
+        crossProduct = ( predictors.matrix().transpose() * fitTarget.matrix() ).array();
     }
 
     if( !p4PCAAllFinite( gram ) || ( !useTemporalGram && !p4PCAAllFinite( crossProduct ) ) )
@@ -160,15 +184,15 @@ void P4PCA::calculate( P4PCAResult &output,
         throw std::runtime_error( "P4PCA normal equations produced nonfinite values" );
     }
 
-    matrixT eigenvectors;
-    matrixT eigenvalues;
+    P4PCA::matrixT eigenvectors;
+    P4PCA::matrixT eigenvalues;
     const MXLAPACK_INT solverStatus = p4PCAEigenSolve( eigenvectors, eigenvalues, gram, maxDOF, workspace );
     if( solverStatus != 0 )
     {
         throw std::runtime_error( "P4PCA eigensolver failed with status " + std::to_string( solverStatus ) );
     }
 
-    if( eigenvectors.rows() != maxDOF || eigenvectors.cols() != maxDOF || eigenvalues.rows() < maxDOF ||
+    if( eigenvectors.rows() != gram.rows() || eigenvectors.cols() != maxDOF || eigenvalues.rows() < maxDOF ||
         eigenvalues.cols() < 1 )
     {
         throw std::runtime_error( "P4PCA eigensolver returned invalid dimensions" );
@@ -214,19 +238,19 @@ void P4PCA::calculate( P4PCAResult &output,
     }
 
     const int largestSupportedMode = *( unsupported - 1 );
-    vectorT residual = target;
+    P4PCA::vectorT residual = residualTarget;
     std::size_t outputIndex{ 0 };
 
     for( int retainedMode = 1; retainedMode <= largestSupportedMode; ++retainedMode )
     {
         const int eigenIndex = maxDOF - retainedMode;
         const double eigenvalue = eigenvalues( eigenIndex );
-        const vectorT eigenvector = eigenvectors.col( eigenIndex );
+        const P4PCA::vectorT eigenvector = eigenvectors.col( eigenIndex );
         double coefficient{ 0 };
-        vectorT projectedMode;
+        P4PCA::vectorT projectedMode;
         if( useTemporalGram )
         {
-            coefficient = eigenvector.matrix().dot( target.matrix() );
+            coefficient = eigenvector.matrix().dot( fitTarget.matrix() );
             projectedMode = eigenvector * coefficient;
         }
         else
@@ -239,6 +263,11 @@ void P4PCA::calculate( P4PCAResult &output,
         if( !mx::math::isFinite( coefficient ) || !p4PCAAllFinite( projectedMode ) )
         {
             throw std::runtime_error( "P4PCA mode projection produced nonfinite values" );
+        }
+
+        if( centerPrediction )
+        {
+            p4PCACenterColumns( projectedMode );
         }
 
         residual -= projectedMode;
@@ -254,6 +283,76 @@ void P4PCA::calculate( P4PCAResult &output,
             ++outputIndex;
         }
     }
+}
+
+} // namespace
+
+namespace detail
+{
+
+/// \cond P4PCA_test_detail
+void p4PCASetEigenSolverForTesting( P4PCAEigenSolverT solver )
+{
+    p4PCAEigenSolverForTesting.store( solver, std::memory_order_release );
+}
+
+void p4PCAResetEigenSolverForTesting()
+{
+    p4PCAEigenSolverForTesting.store( nullptr, std::memory_order_release );
+}
+/// \endcond
+
+} // namespace detail
+
+void P4PCA::calculate( P4PCAResult &output,
+                       const matrixT &predictors,
+                       const vectorT &target,
+                       const std::vector<int> &modes,
+                       double rankTolerance,
+                       workspaceT &workspace )
+{
+    const Eigen::Index sampleCount = predictors.rows();
+    const Eigen::Index predictorCount = predictors.cols();
+    const int maxDOF = static_cast<int>( std::min( sampleCount, predictorCount ) );
+    p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
+    p4PCACalculateValidated( output, predictors, target, target, modes, rankTolerance, maxDOF, false, workspace );
+}
+
+void P4PCA::calculateCentered( P4PCAResult &output,
+                               const matrixT &predictors,
+                               const vectorT &target,
+                               const std::vector<int> &modes,
+                               double rankTolerance,
+                               workspaceT &workspace )
+{
+    const Eigen::Index sampleCount = predictors.rows();
+    const Eigen::Index predictorCount = predictors.cols();
+    if( sampleCount == 1 )
+    {
+        throw std::invalid_argument( "P4PCA centered regression requires at least two samples" );
+    }
+
+    const int maxDOF = static_cast<int>( std::min( predictorCount, sampleCount - 1 ) );
+    p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
+
+    matrixT centeredPredictors = predictors;
+    vectorT centeredTarget = target;
+    p4PCACenterColumns( centeredPredictors );
+    p4PCACenterColumns( centeredTarget );
+    if( !p4PCAAllFinite( centeredPredictors ) || !p4PCAAllFinite( centeredTarget ) )
+    {
+        throw std::runtime_error( "P4PCA temporal centering produced nonfinite values" );
+    }
+
+    p4PCACalculateValidated( output,
+                             centeredPredictors,
+                             centeredTarget,
+                             target,
+                             modes,
+                             rankTolerance,
+                             maxDOF,
+                             true,
+                             workspace );
 }
 
 } // namespace improc

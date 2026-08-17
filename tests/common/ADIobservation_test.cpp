@@ -647,6 +647,56 @@ TEST_CASE( "ADIobservation shared final processing", "[ADIobservation][finalProc
     // clang-format on
 }
 
+/// Verify ADIobservation::finalProcess derotates detector residuals but preserves already aligned sky residuals.
+/** \ingroup ADIobservation_unit_tests */
+TEST_CASE( "ADIobservation final processing data frame", "[ADIobservation][finalProcess][frame][derotate]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    const observationT::imageT input = []
+    {
+        observationT::imageT image = observationT::imageT::Zero( 9, 9 );
+        image( 2, 4 ) = 1;
+        image( 5, 6 ) = -0.25F;
+        return image;
+    }();
+
+    const auto prepare = [&input]
+    {
+        observationHarness observation;
+        observation.m_psfsub.resize( 1 );
+        observation.m_psfsub[0].resize( 9, 9, 1 );
+        observation.m_psfsub[0].image( 0 ) = input;
+        observation.m_postMedSub = false;
+        observation.m_doDerotate = true;
+        observation.m_derotF.m_angleScale = 1;
+        observation.m_derotF.m_angles = { 31 };
+        observation.m_combineMethod = mx::improc::HCI::combine::none;
+        observation.m_doWriteFinim = false;
+        observation.m_doOutputPSFSub = false;
+        return observation;
+    };
+
+    observationHarness sky = prepare();
+    REQUIRE( sky.finalProcess( nullptr, mx::improc::ADIDataFrame::sky ) == 0 );
+    REQUIRE( sky.m_psfsub[0].image( 0 ).isApprox( input, 0 ) );
+
+    observationHarness detector = prepare();
+    REQUIRE( detector.finalProcess( nullptr, mx::improc::ADIDataFrame::detector ) == 0 );
+    REQUIRE_FALSE( detector.m_psfsub[0].image( 0 ).isApprox( input ) );
+
+    observationHarness invalid = prepare();
+    REQUIRE_THROWS( invalid.finalProcess( nullptr, static_cast<mx::improc::ADIDataFrame>( 255 ) ) );
+    REQUIRE( invalid.m_psfsub[0].image( 0 ).isApprox( input, 0 ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::ADIobservation<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, mx::verbose::vv>
+        doxygenObservation;
+    doxygenObservation.finalProcess( nullptr, mx::improc::ADIDataFrame::sky );
+#endif
+    // clang-format on
+}
+
 /// Verify ADIobservation::finalProcess composes ADI and algorithm headers for both output forms without changing gates.
 /** \ingroup ADIobservation_unit_tests */
 TEST_CASE( "ADIobservation shared final output", "[ADIobservation][finalProcess][output][header]" )
