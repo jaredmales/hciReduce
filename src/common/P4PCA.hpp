@@ -47,8 +47,9 @@ struct P4PCAResult
 };
 
 /// Pure all-double principal-component regression for one P4 search pixel.
-/** This component forms the smaller of the temporal and predictor Gram matrices without centering or an intercept.
- * A caller-owned LAPACK workspace makes repeated calls efficient and permits one independent workspace per worker
+/** This component forms the smaller of the temporal and predictor Gram matrices. calculate() uses the inputs directly,
+ * while calculateCentered() centers the fit and applies the resulting coefficients to the uncentered predictors. A
+ * caller-owned LAPACK workspace makes repeated calls efficient and permits one independent workspace per worker
  * thread.
  *
  * \ingroup programming_library
@@ -76,13 +77,16 @@ struct P4PCA
                            double rankTolerance, /**< [in] finite nonnegative threshold relative to lambdaMax */
                            workspaceT &workspace /**< [in,out] caller-owned, non-shared LAPACK workspace */ );
 
-    /// Calculate temporally centered, mean-preserving truncated-PCA residuals.
-    /** Each predictor column and the target are centered over their T samples before fitting. The fitted centered
-     * prediction is subtracted from the original uncentered target, so every supported residual preserves the target
-     * temporal mean. Centering limits the structural degrees of freedom to min(K,T-1); requested counts above that
-     * limit are rejected even when roundoff would make the centering null eigenvalue positive. T must be at least
-     * two. On success, \p output is completely replaced. On exception it remains destructible, but its values are
-     * unspecified. The output object must not own storage aliased by either input array.
+    /// Calculate a temporally centered fit and apply its predictor coefficients to the uncentered data.
+    /** Each predictor column and the target are centered over their T samples when estimating the truncated-PCA
+     * coefficient vector. That vector is then applied to the original uncentered predictor matrix and subtracted from
+     * the original uncentered target. The predictor means therefore affect the residual mean even though they do not
+     * affect the fitted coefficients. Centering limits the structural degrees of freedom to min(K,T-1); requested
+     * counts above that limit are rejected even when roundoff would make the centering null eigenvalue positive. T
+     * must be at least two. The centered objective does not establish whether the applied predictor mean is a
+     * physically valid baseline; that interpretation remains the caller's responsibility. On success, \p output is
+     * completely replaced. On exception it remains destructible, but its values are unspecified. The output object
+     * must not own storage aliased by either input array.
      */
     static void
     calculateCentered( P4PCAResult &output,           /**< [out] residuals, mode states, and numerical rank */

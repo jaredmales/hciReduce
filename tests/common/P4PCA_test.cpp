@@ -57,17 +57,29 @@ arrayT centeredColumns( const arrayT &input /**< [in] values to center */ )
     return centered;
 }
 
-/// Return the direct thin-SVD mean-preserving residual for centered regression.
-pcaT::vectorT centeredSvdResidual( const pcaT::matrixT &predictors, /**< [in] uncentered predictor matrix */
-                                   const pcaT::vectorT &target,     /**< [in] uncentered target time series */
-                                   int modeCount /**< [in] number of largest centered singular modes */ )
+/// Return direct thin-SVD coefficients for a centered fit using the requested largest singular modes.
+pcaT::vectorT centeredSvdCoefficients( const pcaT::matrixT &predictors, /**< [in] uncentered predictor matrix */
+                                       const pcaT::vectorT &target,     /**< [in] uncentered target time series */
+                                       int modeCount /**< [in] number of largest centered singular modes */ )
 {
     const pcaT::matrixT centeredPredictors = centeredColumns( predictors );
     const pcaT::vectorT centeredTarget = centeredColumns( target );
     Eigen::JacobiSVD<Eigen::MatrixXd> decomposition( centeredPredictors.matrix(),
                                                      Eigen::ComputeThinU | Eigen::ComputeThinV );
-    const Eigen::MatrixXd basis = decomposition.matrixU().leftCols( modeCount );
-    return ( target.matrix() - basis * ( basis.transpose() * centeredTarget.matrix() ) ).array();
+    const Eigen::MatrixXd temporalBasis = decomposition.matrixU().leftCols( modeCount );
+    const Eigen::MatrixXd predictorBasis = decomposition.matrixV().leftCols( modeCount );
+    return ( predictorBasis * decomposition.singularValues().head( modeCount ).cwiseInverse().asDiagonal() *
+             temporalBasis.transpose() * centeredTarget.matrix() )
+        .array();
+}
+
+/// Return the direct thin-SVD residual for a centered fit applied to the uncentered predictors.
+pcaT::vectorT centeredFitUncenteredResidual( const pcaT::matrixT &predictors, /**< [in] predictor matrix */
+                                             const pcaT::vectorT &target,     /**< [in] target time series */
+                                             int modeCount /**< [in] number of largest centered singular modes */ )
+{
+    const pcaT::vectorT coefficients = centeredSvdCoefficients( predictors, target, modeCount );
+    return ( target.matrix() - predictors.matrix() * coefficients.matrix() ).array();
 }
 
 /// Determine whether an Eigen-like array contains only finite values under fast-math.
@@ -796,9 +808,10 @@ TEST_CASE( "P4PCA propagates eigensolver and invalid solver output", "[P4PCA][so
     }
 }
 
-/// Verify centered P4PCA agrees with direct SVD for predictor- and sample-limited problems.
+/// Verify centered-fit P4PCA applies its coefficients to uncentered predictor data in both Gram branches.
 /** This exercises mx::improc::P4PCA::calculateCentered() across both adaptive Gram-matrix branches. */
-TEST_CASE( "P4PCA centered regression agrees with direct SVD", "[P4PCA][centered][reference]" )
+TEST_CASE( "P4PCA centered fit with uncentered application agrees with direct SVD",
+           "[P4PCA][centered][uncentered][reference]" )
 {
     pcaT::workspaceT workspace;
 
@@ -814,8 +827,8 @@ TEST_CASE( "P4PCA centered regression agrees with direct SVD", "[P4PCA][centered
 
         REQUIRE( result.numericalRank == 3 );
         REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankSupported, statusT::rankSupported } );
-        requireApprox( result.residuals.col( 0 ), centeredSvdResidual( predictors, target, 1 ) );
-        requireApprox( result.residuals.col( 1 ), centeredSvdResidual( predictors, target, 3 ) );
+        requireApprox( result.residuals.col( 0 ), centeredFitUncenteredResidual( predictors, target, 1 ) );
+        requireApprox( result.residuals.col( 1 ), centeredFitUncenteredResidual( predictors, target, 3 ) );
     }
 
     SECTION( "K equals or exceeds T" )
@@ -831,9 +844,9 @@ TEST_CASE( "P4PCA centered regression agrees with direct SVD", "[P4PCA][centered
         REQUIRE( result.numericalRank == 3 );
         REQUIRE( result.modeStatus ==
                  std::vector<statusT>{ statusT::rankSupported, statusT::rankSupported, statusT::rankSupported } );
-        requireApprox( result.residuals.col( 0 ), centeredSvdResidual( predictors, target, 1 ) );
-        requireApprox( result.residuals.col( 1 ), centeredSvdResidual( predictors, target, 2 ) );
-        requireApprox( result.residuals.col( 2 ), centeredSvdResidual( predictors, target, 3 ) );
+        requireApprox( result.residuals.col( 0 ), centeredFitUncenteredResidual( predictors, target, 1 ) );
+        requireApprox( result.residuals.col( 1 ), centeredFitUncenteredResidual( predictors, target, 2 ) );
+        requireApprox( result.residuals.col( 2 ), centeredFitUncenteredResidual( predictors, target, 3 ) );
     }
 
     SECTION( "T equals two" )
@@ -846,11 +859,9 @@ TEST_CASE( "P4PCA centered regression agrees with direct SVD", "[P4PCA][centered
         resultT result;
         mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1 }, 0, workspace );
 
-        pcaT::vectorT expected( 2 );
-        expected.setConstant( 9 );
         REQUIRE( result.numericalRank == 1 );
         REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankSupported } );
-        requireApprox( result.residuals.col( 0 ), expected );
+        requireApprox( result.residuals.col( 0 ), centeredFitUncenteredResidual( predictors, target, 1 ) );
     }
 }
 
@@ -895,9 +906,9 @@ TEST_CASE( "P4PCA centered regression enforces structural degrees of freedom", "
     }
 }
 
-/// Verify centered P4PCA preserves the uncentered target mean and ignores constant target offsets during fitting.
-/** This locks the mean-preserving output contract of mx::improc::P4PCA::calculateCentered(). */
-TEST_CASE( "P4PCA centered regression restores the target mean", "[P4PCA][centered][mean]" )
+/// Verify centered P4PCA ignores target DC but applies the post-preprocessing predictor DC.
+/** This locks the centered-fit, uncentered-application contract of mx::improc::P4PCA::calculateCentered(). */
+TEST_CASE( "P4PCA centered fit applies uncentered predictor baselines", "[P4PCA][centered][uncentered][mean]" )
 {
     pcaT::matrixT predictors( 5, 3 );
     predictors << 13, -4, 3, 8, 0, 2, 11, -5, 4, 10, -6, -2, 8, -5, 3;
@@ -919,12 +930,41 @@ TEST_CASE( "P4PCA centered regression restores the target mean", "[P4PCA][center
         pcaT::vectorT expectedOffset( target.rows() );
         expectedOffset.setConstant( 37 );
         requireApprox( offset, expectedOffset );
-        REQUIRE( original.residuals.col( column ).mean() == Approx( target.mean() ).margin( 1e-12 ) );
-        REQUIRE( shifted.residuals.col( column ).mean() == Approx( shiftedTarget.mean() ).margin( 1e-12 ) );
+        requireApprox( original.residuals.col( column ),
+                       centeredFitUncenteredResidual( predictors, target, column + 1 ) );
+        requireApprox( shifted.residuals.col( column ),
+                       centeredFitUncenteredResidual( predictors, shiftedTarget, column + 1 ) );
+    }
+
+    pcaT::matrixT predictorShift = predictors;
+    pcaT::vectorT baseline( predictors.cols() );
+    baseline << 8, -3, 5;
+    for( Eigen::Index row = 0; row < predictorShift.rows(); ++row )
+    {
+        predictorShift.row( row ) += baseline.transpose();
+    }
+
+    resultT shiftedPredictors;
+    mx::improc::P4PCA::calculateCentered( shiftedPredictors, predictorShift, target, { 1, 2, 3 }, 1e-12, workspace );
+    REQUIRE( shiftedPredictors.numericalRank == original.numericalRank );
+    REQUIRE( shiftedPredictors.modeStatus == original.modeStatus );
+    for( Eigen::Index column = 0; column < original.residuals.cols(); ++column )
+    {
+        const pcaT::vectorT coefficients = centeredSvdCoefficients( predictors, target, column + 1 );
+        pcaT::vectorT expectedOffset( target.rows() );
+        expectedOffset.setConstant( -baseline.matrix().dot( coefficients.matrix() ) );
+        requireApprox( shiftedPredictors.residuals.col( column ) - original.residuals.col( column ), expectedOffset );
+        requireApprox( shiftedPredictors.residuals.col( column ),
+                       centeredFitUncenteredResidual( predictorShift, target, column + 1 ) );
     }
 
     pcaT::vectorT constantTarget( 5 );
     constantTarget.setConstant( 12.5 );
+    mx::improc::P4PCA::calculateCentered( shifted, predictors, constantTarget, { 1, 3 }, 1e-12, workspace );
+    requireApprox( shifted.residuals.col( 0 ), constantTarget );
+    requireApprox( shifted.residuals.col( 1 ), constantTarget );
+
+    constantTarget.setZero();
     mx::improc::P4PCA::calculateCentered( shifted, predictors, constantTarget, { 1, 3 }, 1e-12, workspace );
     requireApprox( shifted.residuals.col( 0 ), constantTarget );
     requireApprox( shifted.residuals.col( 1 ), constantTarget );
@@ -1042,8 +1082,8 @@ TEST_CASE( "P4PCA reuses one workspace across centered and uncentered paths", "[
     requireApprox( result.residuals.col( 1 ), svdResidual( predictors, target, 3 ) );
 
     mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 3 }, 1e-12, workspace );
-    requireApprox( result.residuals.col( 0 ), centeredSvdResidual( predictors, target, 1 ) );
-    requireApprox( result.residuals.col( 1 ), centeredSvdResidual( predictors, target, 3 ) );
+    requireApprox( result.residuals.col( 0 ), centeredFitUncenteredResidual( predictors, target, 1 ) );
+    requireApprox( result.residuals.col( 1 ), centeredFitUncenteredResidual( predictors, target, 3 ) );
 
     mx::improc::P4PCA::calculate( result, predictors, target, { 2 }, 1e-12, workspace );
     requireApprox( result.residuals.col( 0 ), svdResidual( predictors, target, 2 ) );

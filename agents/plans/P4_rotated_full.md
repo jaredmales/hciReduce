@@ -310,11 +310,26 @@ mean of an uncentered PSF prediction is not determined by the data term.  TSVD, 
 stopping rule selects one member of this solution family; that choice is a prior or convention, not information
 recovered from the centered residual.
 
-This explains the behavior of the current mean-preserving rotated implementation.  Subtracting
+This explains the behavior of the previous mean-preserving shortcut rotated implementation.  Subtracting
 \(HQ_mc\) from the uncentered target leaves the target mean exactly unchanged, so ordinary temporal mean combination
 cannot remove a static radial PSF pedestal.  Conversely, subtracting the raw \(Q_mc\) requires accepting and
 validating the solver's implicit choice for the unconstrained mean.  Fitting a free sky-frame intercept would also
 be unable to distinguish a stationary companion from a stationary PSF component.
+
+As of 2026-08-18 the shortcut rotated implementation adopts its raw post-preprocessing local predictor baseline as an
+intrinsic part of `HIERARCH P4 FRAME = rotated`.  That convention does not by itself settle the baseline policy for this
+full coupled model; the comparisons and acceptance gates below remain required here.
+
+The subsequent 621-frame AF Lep/NACO comparison rejected that convention scientifically.  With either per-frame
+radial-profile subtraction or detector-frame `meanImage` subtraction, the shortcut rotated output correlated above
+0.999997 with an independently reconstructed target-only sky stack; the P4-minus-target difference had only about
+0.2% of the target-stack RMS.  The detector-frame control reduced the same annular RMS to 0.220 while the rotated
+radial-profile result remained at 18.121.  This is the unconstrained residual mean above appearing in real data, not
+a rotation, rank, support, or combine-order defect.  The paired diagnosis remains informative despite the
+rapid-rotation coaddition caveat below because the detector and rotated controls used identical inputs.  Absolute
+acceptance metrics must nevertheless be repeated on corrected coadds.  The result also confirms that the full
+coupled centered objective cannot be selected merely to repair the shortcut's baseline: both formulations require a
+separately justified baseline model or prior.  No such model is approved by this result.
 
 Possible ways to make the raw mean scientifically meaningful include:
 

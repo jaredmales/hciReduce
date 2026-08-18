@@ -186,15 +186,14 @@ The equations above are left unchanged as requested; the notation below is the p
    - \(y_m-D_m c_m\), or equivalently fitting and removing an intercept, forces a zero-mean residual and would remove
      a stationary companion's mean signal.
 
-   **Decision:** estimate \(c_m\) from the centered objective and write
-   \(u^{(0)}-D_m c_m\).  In the sky-aligned frame a stationary companion is removed from the variance being minimized,
-   so the coefficients describe the time-variable PSF/noise background rather than the companion.  The resulting
-   mean-zero PSF fluctuation estimate \(D_m c_m\) is subtracted from the original, uncentered rotated target.  This
-   minimizes the requested post-rotation variance while preserving the target's temporal mean exactly.  An
-   injected-companion throughput test will lock this behavior and detect any variation introduced by interpolation,
-   incomplete coverage, or other processing.  This deliberately also preserves any time-constant PSF/background
-   component at \(m\), because the centered objective cannot distinguish that component from other constant signal;
-   removing such a baseline would require a separate, explicitly validated model.
+   **Decision (2026-08-18, superseding the mean-preserving rule):** estimate \(c_m\) from the centered objective and write
+   \(u^{(0)}-U_m c_m\).  In the sky-aligned frame a stationary companion is absent from the variance being minimized,
+   so it does not drive the coefficients.  The coefficient vector is nevertheless applied to the complete predictor
+   values after inherited preprocessing and direct rotated sampling.  The residual mean is therefore
+   \(\overline{u^{(0)}}-\bar u_m^T c_m\), not necessarily the target mean.  The adopted baseline convention is the
+   raw post-preprocessing predictor DC together with the truncated minimum-norm coefficient solution.  Target-DC and
+   predictor-DC tests lock the distinction, while injected-companion validation remains required to quantify
+   throughput rather than assuming it from centering alone.
 
 7. The same frame set must be used for the target and every predictor in one local fit.  The first implementation
    should require all \(T\) frames to have finite target values and complete target, predictor, and composite
@@ -203,9 +202,9 @@ The equations above are left unchanged as requested; the notation below is the p
    missing-frame implementation may use an explicit common valid set \(V_m\), with \(T_m=|V_m|\), but then mode
    realization and provenance must use \(\min(K,T_m-1)\).
 
-8. The mean-preserving residual also preserves any static PSF pedestal, but this can be addressed before rotation,
-   while a companion still moves through detector coordinates.  hciReduce already provides two relevant inherited
-   preprocessing operations:
+8. The uncentered predictor application uses the predictor baseline remaining after inherited preprocessing.
+   hciReduce provides two relevant operations that act before rotation, while a companion still moves through
+   detector coordinates:
 
    - `preProcess.subradprof=true` subtracts a median radial profile independently from every detector-frame image,
      removing much of the axisymmetric stellar halo while generally leaving a localized companion; and
@@ -226,20 +225,20 @@ The equations above are left unchanged as requested; the notation below is the p
   configurations and products remain unchanged.  Both `basic` and `normal` application modes continue to dispatch
   the selected P4 algorithm; this is not a new executable or application mode.
 - Record the selected definition in configuration help, the configuration dictionary, diagnostics, progress output,
-  and `HIERARCH P4 FRAME = detector|rotated` in FITS products.
+  and `HIERARCH P4 FRAME = detector|rotated` in FITS products.  The `rotated` definition includes application to the
+  uncentered predictors.
 - In `rotated` mode, temporal centering is part of the algorithm and is not an additional configurable preprocessing
   switch.  Record that fact in provenance.
 - Continue to use the inherited detector-frame preprocessing configuration.  The User's Guide should recommend
-  `preProcess.subradprof`, `preProcess.meanSubMethod=medianImage`, or both when a preserved static PSF baseline is
-  undesirable, while making clear that these are optional scientific choices with throughput consequences.  An
+  `preProcess.subradprof`, `preProcess.meanSubMethod=medianImage`, or both when the applied predictor baseline should
+  first be reduced, while making clear that these are optional scientific choices with throughput consequences.  An
   already preprocessed sequence may continue to use `preProcess.skip=true` only when its preprocessing provenance is
   known.
 - The rotated-mode science cubes are already in the final sky frame.  The final-processing lifecycle must combine
   them without applying ADI derotation a second time.  The implementation should carry an explicit data-frame state
   into shared final processing instead of relying on the user to set `combine.noDerotate` correctly.
-- Initially reject `adi.postMedSub=true` in rotated mode.  Post-median subtraction at a sky-fixed pixel can remove the
-  stationary source that the mean-preserving output rule is intended to protect.  It can be reconsidered only with a
-  documented throughput contract.
+- Initially reject `adi.postMedSub=true` in rotated mode.  It would impose a second sky-fixed baseline rule after the
+  uncentered predictor subtraction and confound its throughput contract.
 - Retain the existing annulus, optimization-region, exclusion-policy, rank-tolerance, diagnostic, combination, and
   output options.  `geom.minRadius`/`geom.maxRadius` describe the retained sky-frame output annuli in rotated mode.
 - Preserve the existing detector-frame implementation as a separate tested branch.  Do not refactor its numerical
@@ -249,19 +248,22 @@ The equations above are left unchanged as requested; the notation below is the p
 
 Checklist status: `[x]` complete, `[~]` partially complete, `[ ]` not yet complete.
 
-### Current implementation evidence (2026-08-16)
+### Current implementation evidence (2026-08-18)
 
 - The selectable CPU reference implementation is present: `detector` remains the default, while `rotated` uses
   fixed sky-frame predictors, direct inverse-mapped one-stage cubic sampling, all-frame support validation, centered
-  PCA with the \(\min(K,T-1)\) limit, and mean-preserving residuals in an explicitly sky-frame output lifecycle.
-- Focused Release verification recorded 333 assertions in 14 P4PCA test cases, 1,337 assertions in 7 P4RotatedGrid
-  test cases, and 43,599 assertions in 11 P4Reduction test cases.  The relevant ASan/UBSan test targets also passed,
+  PCA with the \(\min(K,T-1)\) limit, and uncentered predictor application in an explicitly sky-frame output
+  lifecycle.
+- Focused Release verification recorded 413 assertions in 14 P4PCA test cases, 1,337 assertions in 7 P4RotatedGrid
+  test cases, and 43,559 assertions in 11 P4Reduction test cases.  The complete Release suite passed all 21 CTests,
   and the documentation target built with only the previously known unrelated warnings.
-- A fresh `_build_fresh` `coverage` target passed all 19 CTests and generated the product-only report at 4,364/4,366
-  executable lines (99.9%) and 236/236 logical functions.  The two aggregate missed lines are pre-existing,
-  unrelated `HCIobservation` paths.
-- The focused LCOV snapshot for `P4PCA.cpp`, `P4PixelGrid.cpp`, `P4RotatedGrid.cpp`, `P4Reduction.cpp`, and the
-  changed `ADIobservation.hpp` path reports 1,741/1,741 executable lines and 159/159 logical functions.
+- A fresh `_build_fresh` `coverage` target passed all 21 CTests and generated the product-only report at 4,796/4,856
+  executable lines (98.8%) and 256/257 filtered logical functions (99.6%).  The aggregate misses are confined to
+  pre-existing `hciAnalyze.cpp` and `HCIobservation.hpp` paths.
+- The current P4 LCOV snapshot reports 1,415/1,415 executable lines across `P4PCA.cpp`, `P4PixelGrid.cpp`,
+  `P4RotatedGrid.cpp`, and `P4Reduction.cpp`; `P4PCA.cpp` itself is at 162/162 lines and 9/9 filtered logical
+  functions.  Earlier sanitizer results predate the uncentered-application change and are not counted as current
+  evidence.
 - The direct sampler agrees with analytic/image-rotation references at tested coordinates.  On a fractional-angle,
   fractional-predictor oscillatory field it differs measurably from the materialized two-stage route and has lower
   aggregate squared interpolation error, supporting the one-stage production choice.
@@ -269,9 +271,59 @@ Checklist status: `[x]` complete, `[~]` partially complete, `[ ]` not yet comple
   checks are covered.  The remaining exact-specialization gap is `eigenCube<float>::median()` for the unmasked and
   validity-cube/masked `ADIobservation<float>::finalProcess()` paths; it is recorded under `Known non-blocking
   ownership follow-ups` in `agents/plans/mxlib_cleanup.md`.
-- Scientific acceptance is still open: the preprocessing/baseline matrix, injected-source throughput and astrometry,
-  AF Lep detector-versus-rotated comparison, rejected-operator oracle, and controlled performance benchmark remain
-  to be completed.  The implementation must not be described as scientifically ready until those gates pass.
+- The AF Lep detector-versus-rotated comparison failed the scientific acceptance gate.  The implementation and its
+  numerical tests remain useful as a reference for the specified centered-fit, uncentered-application rule, but the
+  rotated variant must not be described or used as scientifically ready.  Injected-source throughput and astrometry,
+  the rejected-operator oracle, and a controlled performance benchmark also remain incomplete.
+
+### AF Lep scientific outcome (2026-08-18)
+
+The 621-frame AF Lep/NACO sequence provides a controlled comparison because `finim_0013.fits` and
+`finim_0014.fits` used the same radial-profile preprocessing, P4 geometry, mode fractions, and input frames; only
+the regression frame changed.  `finim_0015.fits` tested rotated regression after detector-frame `meanImage`
+subtraction.  In the science annulus \(8 \le r < 20\):
+
+| Product | Regression/preprocessing | RMS at the 0.25 mode fraction | Best `hciAnalyze` SNR |
+|---|---|---:|---:|
+| `finim_0013.fits` | detector / radial profile | 0.220 | 4.79 |
+| `finim_0014.fits` | rotated / radial profile | 18.121 | 2.28 |
+| `finim_0015.fits` | rotated / `meanImage` | 6.323 | 2.26 |
+
+The rotated output planes were nearly independent of mode count.  For the radial-profile case, the first and last
+planes had correlation 0.999997 and differed by only 0.046 RMS in the annulus.  Independent target-only
+reconstructions applied the same preprocessing, direct inverse-mapped cubic sampling, and iterative five-sigma mean
+without P4.  They matched the last rotated planes as follows:
+
+| Preprocessing | Target-only RMS | Rotated-P4 RMS | Correlation | Difference RMS |
+|---|---:|---:|---:|---:|
+| radial profile | 18.12296 | 18.12145 | 0.9999970 | 0.04399 |
+| `meanImage` | 6.32310 | 6.32324 | 0.9999976 | 0.01406 |
+
+This rules out rank failure, invalid support, angle sign, double derotation, preprocessing order, and final-combine
+ordering as primary causes.  The outputs are effectively the no-P4 sky-aligned target stacks: the fitted raw
+predictor correction has only about 0.2% of the target-stack RMS.  The implementation correctly minimizes
+
+\[
+    \left\|H\left(u_m^{(0)}-U_m c_m\right)\right\|_2^2,
+\]
+
+but that objective does not constrain the displayed residual mean
+
+\[
+    \overline{u_m^{(0)}}-\bar u_m^T c_m.
+\]
+
+Detector-frame `meanImage` subtraction does not make every fixed-sky time series zero mean because temporal
+averaging and frame-dependent rotation do not commute.  A free or subsequently removed sky-frame intercept would
+also remove a stationary companion, and the full coupled centered formulation has the same DC identifiability
+problem.  A future scientifically useful formulation therefore needs a separately justified stellar-baseline model
+or prior in addition to the centered dynamic predictor.  No replacement baseline rule or next implementation is
+selected by this outcome.
+
+The input sequence contains the rapid-rotation coaddition interval documented in `P4_rotated_full.md`, so these
+products are not absolute golden data and the eventual accepted model must be retested on corrected coadds.  That
+caveat does not invalidate the paired diagnosis: `finim_0013.fits` and `finim_0014.fits` use the same coadds and
+preprocessing, so their direct comparison still isolates the regression-frame change.
 
 ### Phase 0: freeze the scientific definition
 
@@ -280,8 +332,8 @@ Checklist status: `[x]` complete, `[~]` partially complete, `[ ]` not yet comple
 - [x] Use lazy/direct one-stage interpolation for production.  Map each fixed sky target/predictor coordinate through
       the inverse derotation and apply exactly one cubic interpolation in the original detector frame.  Retain a
       small materialized-two-stage oracle only for identity/cardinal/fractional comparison tests.
-- [x] Use the mean-preserving output \(u^{(0)}-D_m c_m\): fit only centered temporal fluctuations, interpret
-      \(D_m c_m\) as the variable PSF/noise estimate, and subtract it from the original uncentered rotated target.
+- [x] Use \(u^{(0)}-U_m c_m\): fit only centered temporal fluctuations, then apply the resulting coefficient vector
+      to the original post-preprocessing predictor values.
 - [x] Decide the FITS keyword names for regression frame, temporal centering, structural DOF, and residual-mean policy.
 ANSWER: we can use long keywords and rely on HIERARCH.
  - P4 FRAME = detector  or rotated are good
@@ -289,10 +341,11 @@ ANSWER: we can use long keywords and rely on HIERARCH.
  - structural DOF: We report the mode count output, not the fraction input, so I think the K-1 issue is a detail here.  Document it, but it doesn't need to be in FITS heqder
  - residual mean: I think we answered this, nothing to specify
 
-DECISION: write `HIERARCH P4 FRAME = detector|rotated`.  The selected realized mode counts remain the numerical
-provenance; temporal centering and mean-preserving subtraction are part of the documented `rotated` definition and
-do not receive redundant cards.  Mathematical correction: centering removes one temporal degree of freedom, so the
-limit is \(\min(K,T-1)\), not generally \(K-1\); if \(K<T\), centering need not reduce the predictor-limited maximum.
+SUPERSEDING DECISION (2026-08-18): continue to write `HIERARCH P4 FRAME = detector|rotated`.  The centered-fit,
+uncentered-application rule is intrinsic to the `rotated` definition and does not receive a separate compatibility
+keyword.  The selected realized mode counts remain the numerical provenance.
+Centering removes one temporal degree of freedom, so the limit is \(\min(K,T-1)\), not generally \(K-1\); if \(K<T\),
+centering need not reduce the predictor-limited maximum.
 
 - [x] Specify whether rotated mode initially requires every frame or may use a common per-pixel valid-frame subset.
       The recommendation is to require every frame for the first version.
@@ -302,12 +355,10 @@ DECISION: every target and predictor in a retained local fit must have complete 
 Any failure invalidates that output pixel for every mode plane; there is no frame dropping or per-predictor frame set
 in the initial implementation.
 
-The contracts above describe the current implementation.  The following two findings reopen only the output-mean and
-mask-validity contracts.  They are recorded for review and testing; **neither proposal is approved or implemented**,
-and the implementation phases below continue to describe the current behavior until a later explicit decision.
+The output-mean proposal below was approved and implemented on 2026-08-18.  The separate mask-validity proposal
+remains unapproved and unimplemented.
 
-- [ ] **REOPENED PROPOSAL — centered fit with an uncentered predictor subtraction (NOT IMPLEMENTED).**  Reconsider
-      the current mean-preserving residual \(u^{(0)}-D_m c_m\).  Continue to estimate \(c_m\) from
+- [x] **APPROVED — centered fit with an uncentered predictor subtraction.**  Estimate \(c_m\) from
       \[
           \underset{c_m}{\operatorname{minimize}}\;
           \left\|H\left(u_m^{(0)}-U_m c_m\right)\right\|_2^2,
@@ -324,7 +375,7 @@ and the implementation phases below continue to describe the current behavior un
           \qquad
           \widehat a_m=\overline{u_m^{(0)}}-\overline{u_m}^{\,T}c_m.
       \]
-      The proposed residual retains this fitted intercept; it is not the zero-mean residual
+      The residual retains this fitted intercept; it is not the zero-mean residual
       \(H(u_m^{(0)}-U_m c_m)\).
 
       This proposal addresses an exact invariant of the implemented rule.  Since \(D_m=HU_m\),
@@ -336,19 +387,19 @@ and the implementation phases below continue to describe the current behavior un
       such as clipping or changing validity.  The AF Lep result exposed this invariant as nearly identical output
       planes dominated by the derotated input mean.
 
-      The proposed rule also exposes a DC-level ambiguity that the centered objective cannot resolve.  Replacing a
+      This rule also exposes a DC-level ambiguity that the centered objective cannot resolve.  Replacing a
       predictor by \(U_m+\mathbf{1}b^T\) leaves \(HU_m\), the objective, and the fitted \(c_m\) unchanged, but changes
-      the proposed residual mean by \(-b^Tc_m\).  Before adoption, the predictor zero point/baseline convention and
-      its provenance must therefore be made explicit; truncated-SVD or minimum-norm selection alone does not make
-      that unobserved mean component a uniquely inferred PSF.
+      the residual mean by \(-b^Tc_m\).  The adopted convention is the raw post-preprocessing predictor zero point
+      with the truncated minimum-norm solution, intrinsic to `HIERARCH P4 FRAME = rotated`.
 
       Required acceptance tests include a dense small-problem oracle; invariance to a constant added to the target;
       an explicit predictor-DC perturbation test that demonstrates and then locks the chosen baseline convention; a
       synthetic time-variable PSF with a known nonzero mean; and injected companions spanning separation, position
       angle, contrast, field rotation, and mode count.  Report residual variance, mode-to-mode differences,
       photometric throughput, astrometric bias, and behavior with no baseline subtraction, radial-profile
-      subtraction, median-image subtraction, and their documented composition.  Do not change the output rule until
-      these tests distinguish complete PSF prediction from accidental companion or intercept subtraction.
+      subtraction, median-image subtraction, and their documented composition.  The dense oracle, target-DC,
+      predictor-DC, and nonzero-mean synthetic tests now cover the numerical rule; the injected-source matrix remains
+      a scientific acceptance gate.
 
 - [ ] **REOPENED PROPOSAL — mask-aware whole-predictor pruning (NOT IMPLEMENTED).**  Continue to require the target
       sample at sky pixel \(m\) to have finite values and complete interpolation/mask support in every one of the
@@ -368,8 +419,8 @@ and the implementation phases below continue to describe the current behavior un
       eventual global-versus-local mode policy.  The exact aggregate keywords and whether a \(K_m\) diagnostic image
       is required remain Phase 0 decisions.
 
-Phase 0 is therefore reopened for these two documented proposals.  No implementation work is authorized by their
-presence in this plan.
+Phase 0 remains reopened only for mask-aware predictor pruning.  The uncentered predictor output rule is now part of
+the implemented shortcut rotated contract.
 
 ### Phase 1: exact operator and numerical reference
 
@@ -385,9 +436,9 @@ presence in this plan.
 - [x] Extend the pure PCA seam with an explicit centered/structural-rank path.  Preserve the current uncentered API and
       its behavior.  Test \(T=1\) rejection, \(T=2\), \(K<T\), \(K\ge T\), exact and near rank deficiency,
       non-contiguous requested modes, `rankTolerance=0`, and workspace reuse while switching paths.
-- [x] Prove in tests that adding a constant to the target does not change fitted coefficients and that the selected
-      output convention restores that constant exactly.
-- [ ] Verify the centered fit and mean restoration after each supported baseline treatment: no preprocessing,
+- [x] Prove in tests that adding a constant to the target does not change fitted coefficients and passes that constant
+      through exactly; prove separately that predictor DC leaves the centered fit unchanged but changes residual DC.
+- [ ] Verify the centered fit and uncentered application after each supported baseline treatment: no preprocessing,
       per-frame radial-profile subtraction, detector-frame median-image subtraction, and their documented
       composition.
 
@@ -427,10 +478,10 @@ presence in this plan.
 - [x] Generalize shared final processing with an explicit detector-frame versus sky-frame state.  Preserve the tested
       KLIP and detector-P4 lifecycle; sky-frame P4 skips only derotation and still uses validity-aware combination,
       FITS output, diagnostics, and error propagation.
-- [x] Include the selected operator ordering, mean policy, structural DOF, realized modes/rank, validity counts, and
+- [x] Include the selected operator ordering, residual policy, structural DOF, realized modes/rank, validity counts, and
       data frame in FITS provenance and diagnostic summaries.
-      The approved compact provenance uses `HIERARCH P4 FRAME`; centering, mean preservation, and structural DOF are
-      intrinsic to the documented `rotated` definition, while realized modes/rank and validity counts remain explicit.
+      Provenance uses `HIERARCH P4 FRAME`; centering, uncentered predictor application, and structural DOF are intrinsic
+      to the documented `rotated` definition, while realized modes/rank and validity counts remain explicit.
 - [~] Extend the existing annulus-local/overall progress output to distinguish rotation preparation, rotated feature
       assembly, eigensolve/projection, and final combination.
       Rotated geometry, annulus-local, overall, and final-completion progress are present; separate feature-assembly,
@@ -438,22 +489,24 @@ presence in this plan.
 
 ### Phase 4: verification and performance gate
 
-- [~] Unit-test identity-angle equivalence on zero-mean inputs, direct reference agreement, preservation of a constant
-      sky signal, noise-variance reduction, rank/mask invalidation, no double derotation, multiple annuli/mode planes,
+- [~] Unit-test identity-angle equivalence on zero-mean inputs, direct reference agreement, target- and predictor-DC
+      behavior, noise-variance reduction, rank/mask invalidation, no double derotation, multiple annuli/mode planes,
       1-versus-multiple-thread determinism, and injected worker/solver failures.
       Direct-SVD agreement, constant preservation, rank/mask invalidation, no-double-derotation evidence, annulus/mode
       behavior, OpenMP determinism, and worker/solver failure propagation are covered.  The explicit detector-versus-
       rotated identity/zero-mean equivalence and dedicated noise-variance-reduction cases remain.
 - [ ] Add injected companions across separation, position angle, contrast, rotation coverage, and mode count.  Report
-      photometric throughput, astrometric bias, residual variance, and the validity footprint.  A centered-output
-      implementation that erases the stationary companion is a test failure.
+      photometric throughput, astrometric bias, residual variance, and the validity footprint.  Regression driven by
+      a sky-stationary companion or unacceptable subtraction through the adopted predictor baseline is a test failure.
 - [ ] Repeat the injected-companion comparison with no baseline subtraction, radial-profile subtraction,
       median-image subtraction, and both.  Measure the retained static PSF pedestal separately from companion
       throughput so the preprocessing tradeoff is visible rather than absorbed into one residual-noise metric.
-- [ ] Compare current detector P4 and the direct rotated implementation on the AF Lep dataset.  Preserve outputs
-      separately and compare finite support, per-plane correlations, aperture flux, noise, rank, and geometry—not
-      only visual appearance.  Compare the materialized two-stage and rejected shift-then-rotate realizations only
-      on controlled small synthetic cases; they are validation oracles, not production candidates.
+- [x] Compare current detector P4 and the direct rotated implementation on the AF Lep dataset.  The comparison above
+      found healthy rank and support but rejected the raw-predictor DC convention: rotated planes were nearly
+      mode-invariant, matched independently reconstructed no-P4 stacks, and had worse annular RMS and planet SNR than
+      detector P4.  This completes the comparison as a failed scientific gate, not as acceptance.  Materialized
+      two-stage and rejected shift-then-rotate realizations remain controlled-small-problem validation oracles rather
+      than production candidates.
 - [ ] Benchmark rotation preparation, direct feature sampling, centering, Gram construction, eigensolve, projection,
       and total wall time with controlled OpenMP/BLAS settings.  A small benchmark may report the materialized
       oracle's one-time cube rotation plus second-stage OR interpolation, but production acceptance is based on the
@@ -463,18 +516,20 @@ presence in this plan.
 - [~] Reach 100% executable-line and logical-function coverage for every new or changed production path, run Release,
       coverage, documentation, ASan/UBSan, and OpenMP determinism tests, and audit every newly called mxlib
       specialization against mxlib's 100% coverage gate before acceptance.
-      The changed hciReduce production set is at 100% focused line/function coverage and the named build/runtime gates
-      pass.  Acceptance remains partial because the exact float `eigenCube::median()` mxlib coverage gap is recorded
-      but unresolved, and the scientific-validation gates above have not run.
+      The changed hciReduce production set is at 100% focused line/function coverage; Release, coverage, and
+      documentation gates pass.  Acceptance remains partial because sanitizer and determinism checks have not been
+      rerun for the superseding uncentered-application rule, the exact float `eigenCube::median()` mxlib coverage gap
+      is recorded but unresolved, and the injected-source and remaining scientific-validation gates have not run.
 
 ### Phase 5: documentation and release criteria
 
 - [x] Update the P4 User's Guide and configuration dictionary with the exact equations, predictor-frame choice,
-      default, temporal-centering and mean-preservation rules, validity behavior, performance implications, CLI form,
+      default, centered-fit and uncentered-application rules, validity behavior, performance implications, CLI form,
       config-file form, type/range/default, and examples.
 - [x] Document the separate roles and exact execution order of detector-frame radial-profile/median-PSF preprocessing
       and rotated-frame temporal centering, including field-rotation and companion-throughput limitations.
 - [x] Add a migration note stating that `detector` remains the default and reproduces the current algorithm, while
       `rotated` changes the coefficient field, structural DOF, validity support, and residual statistics.
-- [ ] Treat the rotated variant as scientifically ready only after synthetic throughput tests, AF Lep comparison,
-      complete provenance, stable progress reporting, and full test/coverage/documentation gates pass.
+- [ ] Treat the rotated variant as scientifically ready only after a new baseline/output contract is selected and
+      passes synthetic throughput tests, AF Lep comparison, complete provenance, stable progress reporting, and full
+      test/coverage/documentation gates.  The current raw-predictor DC convention failed the AF Lep gate.

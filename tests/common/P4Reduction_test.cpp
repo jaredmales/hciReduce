@@ -502,9 +502,10 @@ TEST_CASE( "P4 reduction exact synthetic prediction", "[P4Reduction][reduce][pre
     // clang-format on
 }
 
-/// Verify rotated P4 centers the temporal fit, preserves the uncentered target mean, and reports sky support.
+/// Verify rotated P4 centers its fit, applies the predictor to uncentered data, and reports sky support.
 /** \ingroup P4Reduction_unit_tests */
-TEST_CASE( "P4 rotated reduction preserves temporal means", "[P4Reduction][rotated][centered][validity]" )
+TEST_CASE( "P4 rotated reduction applies uncentered predictors",
+           "[P4Reduction][rotated][centered][uncentered][validity]" )
 {
     OpenMPThreadGuard threads( 1 );
     reductionHarness reduction;
@@ -532,14 +533,11 @@ TEST_CASE( "P4 rotated reduction preserves temporal means", "[P4Reduction][rotat
                 continue;
             }
             ++validPixels;
-            double temporalMean{ 0 };
             for( int image = 0; image < reduction.m_Nims; ++image )
             {
                 REQUIRE( reduction.m_psfsubValidity[0].image( image )( row, column ) == 1 );
-                REQUIRE( reduction.m_psfsub[0].image( image )( row, column ) == Approx( 2 ).margin( 3e-5 ) );
-                temporalMean += reduction.m_psfsub[0].image( image )( row, column );
+                REQUIRE( reduction.m_psfsub[0].image( image )( row, column ) == Approx( 0 ).margin( 3e-5 ) );
             }
-            REQUIRE( temporalMean / reduction.m_Nims == Approx( 2 ).margin( 3e-5 ) );
         }
     }
     REQUIRE( validPixels == statistics.validLocalFitCount );
@@ -669,13 +667,14 @@ TEST_CASE( "P4 rotated reduction matches an independent numerical oracle", "[P4R
     {
         centeredPredictors.col( predictor ).array() -= centeredPredictors.col( predictor ).mean();
     }
-    Eigen::JacobiSVD<Eigen::MatrixXd> singularValueDecomposition( centeredPredictors, Eigen::ComputeThinU );
+    Eigen::JacobiSVD<Eigen::MatrixXd> singularValueDecomposition( centeredPredictors,
+                                                                  Eigen::ComputeThinU | Eigen::ComputeThinV );
     REQUIRE( singularValueDecomposition.singularValues()( 0 ) >
              5.0 * singularValueDecomposition.singularValues()( 1 ) );
-    const Eigen::VectorXd leadingMode = singularValueDecomposition.matrixU().col( 0 );
-    Eigen::VectorXd prediction = leadingMode * leadingMode.dot( centeredTarget );
-    prediction.array() -= prediction.mean();
-    const Eigen::VectorXd expectedResidual = target - prediction;
+    const Eigen::VectorXd leadingCoefficients = singularValueDecomposition.matrixV().col( 0 ) *
+                                                ( singularValueDecomposition.matrixU().col( 0 ).dot( centeredTarget ) /
+                                                  singularValueDecomposition.singularValues()( 0 ) );
+    const Eigen::VectorXd expectedResidual = target - predictors * leadingCoefficients;
 
     REQUIRE( reduction.reduce() == 0 );
     REQUIRE( reduction.m_ownership( targetRow, targetColumn ) == 0 );

@@ -59,27 +59,39 @@
  *     \frac{1}{T}\sum_{\tau=1}^{T}u_{\tau,m}^{(k)}.
  * \f]
  *
- * With `y_m(t)=\widetilde{u}_{t,m}^{(0)}` and `D_m(t,k)=\widetilde{u}_{t,m}^{(k)}`, P4 minimizes
+ * With `y_m(t)=\widetilde{u}_{t,m}^{(0)}` and `D_m(t,k)=\widetilde{u}_{t,m}^{(k)}`, each requested truncation minimizes
  *
  * \f[
  *     \left\|y_m-D_m c_m\right\|_2^2
  * \f]
  *
- * using the same truncated eigensolution and rank policy as detector mode. Centering removes one temporal degree of
- * freedom, so mode fractions are realized against `min(K,T-1)`. At least two frames are required, and the structural
- * limit remains in force even when `p4.rankTolerance=0`.
+ * over its retained PCA subspace, using the same truncated eigensolution and rank policy as detector mode. Centering
+ * removes one temporal degree of freedom, so mode fractions are realized against `min(K,T-1)`. At least two frames
+ * are required, and the structural limit remains in force even when `p4.rankTolerance=0`.
  *
- * The fitted quantity `D_m c_m` is the mean-zero, time-variable PSF/noise estimate. It is subtracted from the
- * uncentered sampled target,
+ * The centered matrices determine the truncated minimum-norm coefficient vector `c_m`, but that vector is applied to
+ * the original uncentered predictor matrix `U_m`. The written residual is
  *
  * \f[
- *     r_{t,m}=u_{t,m}^{(0)}-(D_m c_m)_t,
+ *     r_m=u_m^{(0)}-U_m c_m.
  * \f]
  *
- * rather than from the centered target. Consequently the residual preserves the sampled target's temporal mean.
- * A companion that is stationary after derotation therefore does not contribute to the centered variance being
- * minimized and is not erased by the regression mean policy. "Uncentered" here means before this internal temporal
- * centering; inherited preprocessing has already been applied to the input cube.
+ * With \f$H=I-\mathbf{1}\mathbf{1}^{T}/T\f$, `H r_m` minimizes the requested centered variance within the retained
+ * PCA subspace, while the residual mean is
+ * `mean(u_m^(0))-mean(U_m)c_m`. A constant added to the target does not change the fitted coefficients and passes
+ * through to the residual, but a constant added to a predictor changes the applied prediction baseline. The baseline
+ * convention is therefore the raw predictor level after inherited detector-frame preprocessing and direct rotated
+ * sampling. A sky-stationary companion does not enter the centered target used to estimate the coefficients, but its
+ * final throughput is not guaranteed solely by centering because the uncentered predictor model can change the
+ * residual DC level.
+ *
+ * \warning Rotated regression is a numerical reference and has not passed scientific acceptance. On a 621-frame
+ * AF Lep/NACO comparison, its radial-profile and detector-frame-mean-preprocessed products correlated above
+ * 0.999997 with independently reconstructed target-only sky stacks; the P4 corrections had only about 0.2 percent
+ * of the target-stack RMS. The corresponding detector-frame P4 control produced substantially lower residual noise
+ * and higher companion SNR. The centered objective does not constrain the residual mean shown by a temporal
+ * combination, and no replacement stellar-baseline rule has yet been selected. Use the default detector mode for
+ * science reductions.
  *
  * Invalid or rank-unsupported locations are carried by an explicit per-output validity cube while arithmetic is in
  * progress. Rank-insufficient output pixels are invalid rather than silently clamped to a smaller mode count. In
@@ -111,7 +123,7 @@
  * | `p4.exclusionPolicy` | Required `sampleCenter` or `kernelSupport` policy. |
  * | `p4.exclusionRadiusBuffer` | Explicit nonnegative amount added to `p4.psfRadius`; `0.5` reproduces the prototype's effective mask buffer. |
  * | `p4.rankTolerance` | Relative eigenvalue threshold in `[0,1)`, default `1e-12`. |
- * | `p4.writeDiagnostics` | Enable ownership, validity, canonical-region, rank, and timing FITS diagnostics. Every diagnostic records the selected `HIERARCH P4 FRAME`. |
+ * | `p4.writeDiagnostics` | Enable ownership, validity, canonical-region, rank, and timing FITS diagnostics. Every diagnostic records `HIERARCH P4 FRAME`. |
  * | `p4.diagnosticDirectory` | Destination for enabled diagnostics. |
  *
  * P4 rejects configured RDI input, overlapping annuli, and nonfinite target input as hard errors. In detector mode the
@@ -136,24 +148,33 @@
  * across all annuli. Each annulus ends with an exact newline-delimited completion record, so redirected logs remain
  * readable as well as interactive terminal output.
  *
- * \section p4reduce_rotated_baseline Rotated mode, static baselines, and final ADI processing
+ * \section p4reduce_rotated_baseline Rotated mode, predictor baselines, and final ADI processing
  *
- * Mean-preserving rotated regression deliberately preserves any time-constant signal at a sky pixel. That includes a
- * stationary companion, but it can also include a static stellar-halo or background pedestal. Two inherited,
- * optional detector-frame preprocessing choices can reduce that baseline before rotated regression:
+ * Rotated regression fits only temporal fluctuations, then applies those coefficients to the complete
+ * post-preprocessing predictor values. It can therefore subtract a predictor-derived static stellar-halo or
+ * background level even though that level did not affect the fit, but the centered objective neither requires nor
+ * validates that subtraction. The AF Lep/NACO acceptance comparison found that the applied predictor DC removed
+ * essentially none of the target-only sky baseline. Two inherited, optional detector-frame preprocessing choices
+ * alter this baseline convention before rotated regression:
  *
  * - `preProcess.subradprof=true` subtracts a median radial profile independently from each detector image; and
  * - `preProcess.meanSubMethod=medianImage` subtracts the temporal median detector-frame PSF.
  *
- * They may be combined in that order. Neither is forced by rotated mode: radial-profile subtraction can bias localized
- * sources, while a median PSF can self-subtract a companion when the number of frames or field rotation is inadequate.
- * Injected-source throughput should therefore be checked for the selected preprocessing. An already preprocessed
- * sequence may use `preProcess.skip=true` only when its preprocessing provenance is known.
+ * They may be combined in that order. Neither is forced by rotated mode: radial-profile subtraction can bias
+ * localized sources, while a median PSF can self-subtract a companion when the number of frames or field rotation is
+ * inadequate. Because predictor DC levels now enter the science residual, injected-source throughput and residual
+ * baselines should be checked for the selected preprocessing. An already preprocessed sequence may use
+ * `preProcess.skip=true` only when its preprocessing provenance is known.
+ * Neither preprocessing option resolves the mathematical ambiguity: detector-frame temporal averaging does not in
+ * general zero the mean of a fixed-sky time series after frame-dependent rotation. Removing a fitted sky-frame
+ * intercept would also remove a stationary companion. A scientifically accepted rotated reduction therefore needs
+ * an independently justified stellar-baseline model or prior; none is currently implemented.
  *
- * `adi.postMedSub=true` is rejected with rotated regression because subtracting a median at a fixed sky pixel would
- * remove the stationary signal that the mean-preserving residual is intended to retain. Rotated residuals carry an
- * explicit sky-frame state into final processing, so they are never derotated again. `combine.noDerotate` controls only
- * detector-frame residuals and is irrelevant to rotated mode; its default value cannot cause a double derotation.
+ * `adi.postMedSub=true` remains rejected with rotated regression because it would impose a second, separate sky-fixed
+ * baseline subtraction after the predictor policy and confound its throughput contract. Rotated residuals carry an
+ * explicit sky-frame state into final processing, so they are never derotated again. `combine.noDerotate` controls
+ * only detector-frame residuals and is irrelevant to rotated mode; its default value cannot cause a double
+ * derotation.
  *
  * \section p4reduce_example Example configuration
  *
@@ -219,7 +240,8 @@
  * not change the numerical result, but the ownership and region-summary products are useful when validating new
  * geometry. `p4Validity_*.fits` records residual validity immediately after local fitting. It is in detector
  * coordinates for detector regression and in the final sky coordinates for rotated regression. Final products record
- * the selection as `HIERARCH P4 FRAME = 'detector'` or `HIERARCH P4 FRAME = 'rotated'`.
+ * the selection as `HIERARCH P4 FRAME = 'detector'` or `HIERARCH P4 FRAME = 'rotated'`. The documented definition of
+ * rotated regression includes centered coefficient fitting and application to the uncentered predictors.
  *
  * \section p4reduce_dictionary Configuration reference
  *

@@ -124,10 +124,17 @@ void p4PCAValidateInputs( const P4PCA::matrixT &predictors, /**< [in] predictor 
     }
 }
 
-/// Subtract each column's double-precision temporal mean in place.
+/// Subtract each column's double-precision temporal mean in place and optionally return those means.
 template <typename arrayT>
-void p4PCACenterColumns( arrayT &array /**< [in,out] array whose columns are centered */ )
+void p4PCACenterColumns( arrayT &array, /**< [in,out] array whose columns are centered */
+                         P4PCA::matrixT *columnMeans = nullptr /**< [out] optional one-row array of removed means */ )
 {
+    if( columnMeans )
+    {
+        columnMeans->resize( 1, array.cols() );
+        columnMeans->setZero();
+    }
+
     for( Eigen::Index column = 0; column < array.cols(); ++column )
     {
         double scale{ 0 };
@@ -149,20 +156,25 @@ void p4PCACenterColumns( arrayT &array /**< [in,out] array whose columns are cen
 
         const double scaledMean = std::clamp( scaledSum / static_cast<double>( array.rows() ), -1.0, 1.0 );
         const double mean = scale * scaledMean;
+        if( columnMeans )
+        {
+            ( *columnMeans )( 0, column ) = mean;
+        }
         array.col( column ) -= mean;
     }
 }
 
 /// Calculate one already-validated P4PCA request using its selected fit and residual targets.
-void p4PCACalculateValidated( P4PCAResult &output,                  /**< [out] completed regression result */
-                              const P4PCA::matrixT &predictors,     /**< [in] predictors used to form the fit */
-                              const P4PCA::vectorT &fitTarget,      /**< [in] target used to calculate projections */
-                              const P4PCA::vectorT &residualTarget, /**< [in] initial target for output residuals */
-                              const std::vector<int> &modes,        /**< [in] requested retained-mode counts */
-                              double rankTolerance,                 /**< [in] relative numerical-rank threshold */
-                              int maxDOF,            /**< [in] structural degree-of-freedom limit and eigenpair count */
-                              bool centerPrediction, /**< [in] enforce a zero-mean fitted prediction */
-                              P4PCA::workspaceT &workspace /**< [in,out] reusable LAPACK workspace */ )
+void p4PCACalculateValidated(
+    P4PCAResult &output,                  /**< [out] completed regression result */
+    const P4PCA::matrixT &predictors,     /**< [in] predictors used to form the fit */
+    const P4PCA::vectorT &fitTarget,      /**< [in] target used to calculate projections */
+    const P4PCA::vectorT &residualTarget, /**< [in] initial target for output residuals */
+    const std::vector<int> &modes,        /**< [in] requested retained-mode counts */
+    double rankTolerance,                 /**< [in] relative numerical-rank threshold */
+    int maxDOF,                           /**< [in] structural degree-of-freedom limit and eigenpair count */
+    const P4PCA::matrixT *predictorMeans, /**< [in] optional means for uncentered application */
+    P4PCA::workspaceT &workspace /**< [in,out] reusable LAPACK workspace */ )
 {
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
@@ -182,6 +194,15 @@ void p4PCACalculateValidated( P4PCAResult &output,                  /**< [out] c
     if( !p4PCAAllFinite( gram ) || ( !useTemporalGram && !p4PCAAllFinite( crossProduct ) ) )
     {
         throw std::runtime_error( "P4PCA normal equations produced nonfinite values" );
+    }
+
+    P4PCA::vectorT predictorMeanProjection;
+    if( predictorMeans )
+    {
+        if( useTemporalGram )
+        {
+            predictorMeanProjection = ( predictors.matrix() * predictorMeans->matrix().transpose() ).array();
+        }
     }
 
     P4PCA::matrixT eigenvectors;
@@ -247,27 +268,38 @@ void p4PCACalculateValidated( P4PCAResult &output,                  /**< [out] c
         const double eigenvalue = eigenvalues( eigenIndex );
         const P4PCA::vectorT eigenvector = eigenvectors.col( eigenIndex );
         double coefficient{ 0 };
+        double predictionMean{ 0 };
         P4PCA::vectorT projectedMode;
         if( useTemporalGram )
         {
             coefficient = eigenvector.matrix().dot( fitTarget.matrix() );
             projectedMode = eigenvector * coefficient;
+            if( predictorMeans )
+            {
+                predictionMean =
+                    eigenvector.matrix().dot( predictorMeanProjection.matrix() ) * coefficient / eigenvalue;
+            }
         }
         else
         {
             coefficient = eigenvector.matrix().dot( crossProduct.matrix() ) / eigenvalue;
             projectedMode = ( predictors.matrix() * eigenvector.matrix() ).array();
             projectedMode *= coefficient;
+            if( predictorMeans )
+            {
+                predictionMean = ( predictorMeans->matrix() * eigenvector.matrix() )( 0, 0 ) * coefficient;
+            }
         }
 
-        if( !mx::math::isFinite( coefficient ) || !p4PCAAllFinite( projectedMode ) )
+        if( !mx::math::isFinite( coefficient ) || !mx::math::isFinite( predictionMean ) ||
+            !p4PCAAllFinite( projectedMode ) )
         {
             throw std::runtime_error( "P4PCA mode projection produced nonfinite values" );
         }
 
-        if( centerPrediction )
+        if( predictorMeans )
         {
-            p4PCACenterColumns( projectedMode );
+            projectedMode += predictionMean;
         }
 
         residual -= projectedMode;
@@ -315,7 +347,7 @@ void P4PCA::calculate( P4PCAResult &output,
     const Eigen::Index predictorCount = predictors.cols();
     const int maxDOF = static_cast<int>( std::min( sampleCount, predictorCount ) );
     p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
-    p4PCACalculateValidated( output, predictors, target, target, modes, rankTolerance, maxDOF, false, workspace );
+    p4PCACalculateValidated( output, predictors, target, target, modes, rankTolerance, maxDOF, nullptr, workspace );
 }
 
 void P4PCA::calculateCentered( P4PCAResult &output,
@@ -337,7 +369,8 @@ void P4PCA::calculateCentered( P4PCAResult &output,
 
     matrixT centeredPredictors = predictors;
     vectorT centeredTarget = target;
-    p4PCACenterColumns( centeredPredictors );
+    matrixT predictorMeans;
+    p4PCACenterColumns( centeredPredictors, &predictorMeans );
     p4PCACenterColumns( centeredTarget );
     if( !p4PCAAllFinite( centeredPredictors ) || !p4PCAAllFinite( centeredTarget ) )
     {
@@ -351,7 +384,7 @@ void P4PCA::calculateCentered( P4PCAResult &output,
                              modes,
                              rankTolerance,
                              maxDOF,
-                             true,
+                             &predictorMeans,
                              workspace );
 }
 
