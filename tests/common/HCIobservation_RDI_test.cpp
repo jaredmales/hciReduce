@@ -76,7 +76,8 @@ TEST_CASE( "HCIobservation RDI FITS ingestion", "[HCIobservation][readRDIFiles][
     auto image = indexedRDIImage( 5, 6 );
     image( 2, 2 ) = std::numeric_limits<float>::quiet_NaN();
     HCIobservationTestHarness::fitsHeaderT header;
-    header.append<float>( "RSTAMP", 4, "reference time" );
+    constexpr double referenceMJD = 55855.3121737153;
+    header.append<double>( "RSTAMP", referenceMJD, "reference time" );
     header.append<int>( "KEEP", 31, "selected value" );
     const auto path = directory.file( "reference.fits" );
     writeFitsImage( path, image, &header );
@@ -86,7 +87,7 @@ TEST_CASE( "HCIobservation RDI FITS ingestion", "[HCIobservation][readRDIFiles][
     observation.m_dateIsISO8601 = true;
     observation.m_RDIdateKeyword = "RSTAMP";
     observation.m_RDIdateIsISO8601 = false;
-    observation.m_RDIdateUnit = 2;
+    observation.m_RDIdateUnit = 1;
     observation.m_RDIkeywords = { "KEEP" };
     observation.m_skipPreProcess = true;
     observation.readRDIFiles();
@@ -99,7 +100,7 @@ TEST_CASE( "HCIobservation RDI FITS ingestion", "[HCIobservation][readRDIFiles][
     REQUIRE( observation.m_refIms.image( 0 )( 0, 0 ) == Approx( 11 ) );
     REQUIRE( observation.m_refIms.image( 0 )( 1, 1 ) == 0 );
     REQUIRE( observation.m_RDIheads[0]["KEEP"].Int() == 31 );
-    REQUIRE( observation.m_RDIimageMJD == std::vector<double>{ 8 } );
+    REQUIRE( observation.m_RDIimageMJD == std::vector<double>{ referenceMJD } );
     REQUIRE( observation.m_hookEvents == std::vector<std::string>{ "rdi-read" } );
 
     observation.m_RDIdateKeyword.clear();

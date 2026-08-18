@@ -99,14 +99,14 @@ through the detector and is typically a short arc or annular segment rather than
 complete-interpolation-support rules may reduce the admissible domain further, but they must do so explicitly and
 consistently for the entire fit.
 
-A preliminary AF Lep count, before correcting the angle anomaly discussed below, found approximately
+A preliminary AF Lep count, before regenerating the rapid-rotation interval discussed below, found approximately
 \(|S_m|=74\)--195 detector pixels.  The current per-sky-pixel annulus geometry provisionally gives 611--1,713
 predictors per detector pixel, so a local expanded fit has roughly 45,000--334,000 columns but only \(T=621\) rows.
 The full formulation still needs to define \(\mathcal K_n\) when a detector pixel in the rotation footprint crosses
 a configured annulus boundary; the quoted predictor and column counts must be repeated after that decision.  A dense
 double-precision \(Q_m\) would require about 0.22--1.66 GB for one sky pixel.  It is sparse by row, and its centered
-rank is at most \(T-1=620\), but it is extremely underdetermined.  These counts must be repeated after the derotation
-angles have been corrected.
+rank is at most \(T-1=620\), but it is extremely underdetermined.  These counts must be repeated after angle-limited
+coaddition regenerates the sequence.
 
 ## Gradient, Hessian, and normal equations
 
@@ -364,23 +364,29 @@ stability, and sensitivity to masks and angle coverage.
 - Batched temporal eigensolves, GPU acceleration, and distributed consensus are performance phases, not substitutes
   for a CPU double-precision reference.
 
-## AF Lep derotation-angle anomaly
+## AF Lep rapid-rotation coaddition interval
 
-The current AF Lep sequence is not yet a trustworthy golden dataset for this work.  The raw `POSANG` values in
-`pp_000350` through `pp_000353` are \(-216.8021^\circ\), \(-123.2917^\circ\), \(-31.14813^\circ\), and
-\(54.64996^\circ\).  After the configured \(+1.6^\circ\) offset and normalization, these become derotation angles
-near \(144.7979^\circ\), \(238.3083^\circ\), \(330.45187^\circ\), and \(56.24996^\circ\), while `pp_000349`
-and `pp_000354` give \(91.3809^\circ\) and \(90.41377^\circ\).  This is consistent with ordinary arithmetic
-averaging across an angular wrap during coaddition, but that cause must be confirmed from the pre-coadd headers.
+The current AF Lep sequence is not yet a trustworthy golden dataset for this work.  Inspection of the original
+pre-coadd headers shows that this is not merely a 0/360-degree metadata-wrap error.  Raw frames `frame_08712` through
+`frame_08810` genuinely sweep from `POSANG=-265.3555` to `+87.10643` degrees at about 3.5966 degrees per 0.2-second
+frame.  Five-second coadds 350--353 therefore span approximately 89.91, 89.91, 89.91, and 71.93 degrees.  The
+wrap-aware means are correct, but detector-frame image coaddition across those spans severely smears fixed-sky
+signals before any reduction begins.
 
-These angles change the rotation-kernel paths, inflate \(S_m\), alter overlap sparsity, and can corrupt both solver
-conditioning and a visual/scientific comparison.  Before AF Lep establishes performance or correctness:
+The hciReduce preprocessing path treats `input.angleKeyword` as angular when it is also listed in `coadd.keywords`:
+it applies `input.angleScale`, follows adjacent values across wraps, averages that continuous trajectory, and converts
+the result back to keyword units.  It now also provides default-disabled `coadd.maxAngle`, which starts a new group
+before its wrap-aware field-angle span would exceed the configured limit.  On the current 14,573-frame sequence,
+`maxAngle=1` is predicted to produce 715 coadds and leaves every exposure in the rapid interval separate; limits of
+5 and 10 degrees predict 667 and 650 coadds, respectively.
 
-1. recover the contributing pre-coadd angles;
-2. recompute each coadd angle with circular statistics or the appropriate unwrapped sequence;
-3. verify the detector-to-sky sign and convention against neighboring frames and a known source;
-4. regenerate or patch the test input with explicit provenance; and
-5. repeat the \(|S_m|\), column-count, runtime, and memory estimates above.
+The rapid interval changes the rotation-kernel paths, inflates \(S_m\), alters overlap sparsity, and can corrupt both
+solver conditioning and a visual/scientific comparison.  Before AF Lep establishes performance or correctness:
+
+1. regenerate the coadds with a scientifically approved angular-span limit;
+2. verify every output `DELTA POSANG` and the detector-to-sky sign against the contributing raw headers;
+3. propagate explicit coaddition provenance into the derived preprocessing sequence; and
+4. repeat the \(|S_m|\), column-count, runtime, and memory estimates above.
 
 ## Staged investigation plan
 

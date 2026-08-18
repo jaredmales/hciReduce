@@ -21,6 +21,7 @@
 #include <mx/mxlib.hpp>
 
 #include <mx/app/appConfigurator.hpp>
+#include <mx/math/geo.hpp>
 
 // #include <mx/mxException.hpp>
 
@@ -330,7 +331,8 @@ struct HCIobservation
      * These parameters control whether and how the images are coadded after being read.  Coadding can
      * be done up to a given number of images, and/or a given elapsed time.
      *
-     * Averages the values of given Keywords as well.
+     * Averages the values of given keywords as well.  A derived ADI observation identifies its configured angle
+     * keyword so that requested angular metadata is unwrapped before averaging.
      * @{
      */
 
@@ -350,13 +352,26 @@ struct HCIobservation
     /// Maximum elapsed time over which to coadd the images, in seconds.
     realT m_coaddMaxTime{ 0 };
 
+    /// Maximum field-angle span within one coadd, in degrees; nonpositive disables the limit.
+    realT m_coaddMaxAngle{ 0 };
+
     /// Specify FITS keywords from the input images whose values will be averaged and replaced.
+    /** The configured ADI angle keyword is averaged along its continuous, wrap-aware trajectory; all other listed
+     *  keywords use an ordinary arithmetic mean.
+     */
     std::vector<std::string> m_coaddKeywords;
+
+    /// FITS angle keyword which requires wrap-aware averaging when it is present in \ref m_coaddKeywords.
+    /** Derived ADI observations set this from their configured derotator before preprocessing. */
+    std::string m_coaddAngleKeyword;
+
+    /// Scale from units of \ref m_coaddAngleKeyword to degrees; zero disables wrap-aware averaging.
+    realT m_coaddAngleScale{ 0 };
 
     ///@}
     //-- Coadding Configuration
 
-    /** \name Pre-Processing Configuraton
+    /** \name Pre-Processing Configuration - Data
      * These options control the pre-processing masking and filtering.
      * They are performed in the following order:
      * -# mask applied (enabled by m_preProcess_mask)
@@ -445,6 +460,14 @@ struct HCIobservation
 
     /// Load this observation's state from registered configuration values.
     int loadConfig( mx::app::appConfigurator &config /**< [in] populated application configuration manager */ );
+
+    /// \name Pre-Processing Configuration
+    /** @{ */
+
+    /// Whether preprocessing is enabled and configured to stop before reduction.
+    bool preprocessingOnly() const;
+
+    ///@}
 
   protected:
     /// Load the file list (internal worker)
@@ -784,6 +807,12 @@ HCIobservation<_realT, verboseT>::HCIobservation()
 }
 
 template <typename _realT, class verboseT>
+bool HCIobservation<_realT, verboseT>::preprocessingOnly() const
+{
+    return m_preProcess_only && !m_skipPreProcess;
+}
+
+template <typename _realT, class verboseT>
 int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &config )
 {
     config.add( "input.directory",
@@ -1099,6 +1128,17 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 "float",
                 "Maximum elapsed time over which to coadd the images, in seconds." );
 
+    config.add( "coadd.maxAngle",
+                "",
+                "coadd.maxAngle",
+                mx::app::argType::Required,
+                "coadd",
+                "maxAngle",
+                false,
+                "float",
+                "Maximum field-angle span within one coadd, in degrees. Nonpositive disables this limit. "
+                "The configured input angle keyword must also be listed in coadd.keywords." );
+
     config.add( "coadd.keywords",
                 "",
                 "coadd.keywords",
@@ -1107,7 +1147,8 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 "keywords",
                 false,
                 "vector<string>",
-                "Specify FITS keywords from the input images whose values will be averaged and replaced." );
+                "Specify FITS keywords from the input images whose values will be averaged and replaced. The input "
+                "angle keyword is unwrapped before averaging; other keywords use an arithmetic mean." );
 
     config.add( "preProcess.skip",
                 "",
@@ -1423,6 +1464,7 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
 
     config( m_coaddMaxImno, "coadd.maxImno" );
     config( m_coaddMaxTime, "coadd.maxTime" );
+    config( m_coaddMaxAngle, "coadd.maxAngle" );
     config( m_coaddKeywords, "coadd.keywords" );
 
     config( m_preProcess_beforeCoadd, "preProcess.beforeCoadd" );
@@ -1899,7 +1941,7 @@ void HCIobservation<realT, verboseT>::readFiles()
         {
             for( size_t i = 0; i < m_imageMJD.size(); ++i )
             {
-                m_imageMJD[i] = m_heads[i][m_dateKeyword].template value<realT>() * m_dateUnit;
+                m_imageMJD[i] = m_heads[i][m_dateKeyword].template value<double>() * static_cast<double>( m_dateUnit );
             }
         }
     }
@@ -2210,7 +2252,8 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
         {
             for( size_t i = 0; i < m_RDIimageMJD.size(); ++i )
             {
-                m_RDIimageMJD[i] = m_RDIheads[i][m_RDIdateKeyword].template value<realT>() * m_RDIdateUnit;
+                m_RDIimageMJD[i] =
+                    m_RDIheads[i][m_RDIdateKeyword].template value<double>() * static_cast<double>( m_RDIdateUnit );
             }
         }
     }
@@ -2432,7 +2475,7 @@ void HCIobservation<_realT, verboseT>::coaddImages( HCI::coadd coaddMethod,
                                                     std::vector<fitsHeaderT> &heads,
                                                     eigenCube<realT> &ims )
 {
-    if( coaddMethod == HCI::coadd::none || ( coaddMaxImno <= 0 && coaddMaxTime <= 0 ) )
+    if( coaddMethod == HCI::coadd::none || ( coaddMaxImno <= 0 && coaddMaxTime <= 0 && m_coaddMaxAngle <= 0 ) )
     {
         return;
     }
@@ -2440,6 +2483,20 @@ void HCIobservation<_realT, verboseT>::coaddImages( HCI::coadd coaddMethod,
     if( coaddMethod != HCI::coadd::mean && coaddMethod != HCI::coadd::median )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig, "invalid image coadd method" );
+    }
+
+    if( !std::isfinite( m_coaddMaxAngle ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig, "coadd.maxAngle must be finite" );
+    }
+    const bool limitAngle = m_coaddMaxAngle > 0;
+    if( limitAngle &&
+        ( m_coaddAngleKeyword.empty() || !std::isfinite( m_coaddAngleScale ) || m_coaddAngleScale == 0 ||
+          std::find( coaddKeywords.begin(), coaddKeywords.end(), m_coaddAngleKeyword ) == coaddKeywords.end() ) )
+    {
+        throw mx::exception<verboseT>(
+            mx::error_t::invalidconfig,
+            "coadd.maxAngle requires a finite nonzero input angle scale and its keyword in coadd.keywords" );
     }
 
     const int inputImages = ims.planes();
@@ -2481,6 +2538,20 @@ void HCIobservation<_realT, verboseT>::coaddImages( HCI::coadd coaddMethod,
     for( int begin = 0; begin < inputImages; )
     {
         int end = begin + 1;
+        double scaledStartAngle = 0;
+        double previousAngle = 0;
+        double unwrappedAngle = 0;
+        double minimumAngle = 0;
+        double maximumAngle = 0;
+        if( limitAngle )
+        {
+            scaledStartAngle =
+                static_cast<double>( m_coaddAngleScale ) * heads[begin][m_coaddAngleKeyword].template value<double>();
+            previousAngle = math::angleMod<math::degreesT<double>>( scaledStartAngle );
+            unwrappedAngle = scaledStartAngle;
+            minimumAngle = scaledStartAngle;
+            maximumAngle = scaledStartAngle;
+        }
         while( end < inputImages )
         {
             if( coaddMaxImno > 0 && end - begin >= coaddMaxImno )
@@ -2495,6 +2566,25 @@ void HCIobservation<_realT, verboseT>::coaddImages( HCI::coadd coaddMethod,
                 {
                     break;
                 }
+            }
+            if( limitAngle )
+            {
+                const double currentAngle =
+                    math::angleMod<math::degreesT<double>>( static_cast<double>( m_coaddAngleScale ) *
+                                                            heads[end][m_coaddAngleKeyword].template value<double>() );
+                const double candidateAngle =
+                    unwrappedAngle + math::angleDiff<math::degreesT<double>>( previousAngle, currentAngle );
+                const double candidateMinimum = std::min( minimumAngle, candidateAngle );
+                const double candidateMaximum = std::max( maximumAngle, candidateAngle );
+                const double angleTolerance = 1e-6 * std::max( 1.0, static_cast<double>( m_coaddMaxAngle ) );
+                if( candidateMaximum - candidateMinimum - static_cast<double>( m_coaddMaxAngle ) > angleTolerance )
+                {
+                    break;
+                }
+                previousAngle = currentAngle;
+                unwrappedAngle = candidateAngle;
+                minimumAngle = candidateMinimum;
+                maximumAngle = candidateMaximum;
             }
             ++end;
         }
@@ -2557,15 +2647,40 @@ void HCIobservation<_realT, verboseT>::coaddImages( HCI::coadd coaddMethod,
         {
             const double start = heads[begin][keyword].template value<double>();
             const double finish = heads[end - 1][keyword].template value<double>();
-            double sum = 0;
-            for( int index = begin; index < end; ++index )
+
+            if( keyword == m_coaddAngleKeyword && m_coaddAngleScale != 0 )
             {
-                sum += heads[index][keyword].template value<double>();
+                const double angleScale = static_cast<double>( m_coaddAngleScale );
+                const double scaledStart = angleScale * start;
+                double previous = math::angleMod<math::degreesT<double>>( scaledStart );
+                double unwrapped = scaledStart;
+                double sum = unwrapped;
+
+                for( int index = begin + 1; index < end; ++index )
+                {
+                    const double current = math::angleMod<math::degreesT<double>>(
+                        angleScale * heads[index][keyword].template value<double>() );
+                    unwrapped += math::angleDiff<math::degreesT<double>>( previous, current );
+                    sum += unwrapped;
+                    previous = current;
+                }
+
+                header[keyword].value( sum / ( groupSize * angleScale ) );
+                header["DELTA " + keyword].value( ( unwrapped - scaledStart ) / angleScale );
             }
-            header[keyword].value( sum / groupSize );
+            else
+            {
+                double sum = 0;
+                for( int index = begin; index < end; ++index )
+                {
+                    sum += heads[index][keyword].template value<double>();
+                }
+                header[keyword].value( sum / groupSize );
+                header["DELTA " + keyword].value( finish - start );
+            }
+
             header["START " + keyword].value( start );
             header["END " + keyword].value( finish );
-            header["DELTA " + keyword].value( finish - start );
         }
 
         header.append( "IMAGES COADDED", groupSize, "number of images included in this coadd" );
@@ -2984,6 +3099,13 @@ void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> 
         return;
     }
 
+    if( m_preProcess_meanSubMethod == HCI::meanSub::none )
+    {
+        std::cerr << "WARNING: preProcess.pixelTSNormMethod=rms is enabled without preprocessing mean subtraction; "
+                     "RMS normalization will be calculated about zero. Set preProcess.meanSubMethod=meanImage or "
+                     "medianImage if centering is intended.\n";
+    }
+
     std::cerr << "normalizing pixels\n";
     const imageT *mask = preProcessMask( ims );
 
@@ -3400,11 +3522,13 @@ void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head )
     {
         head.template append<int>( "COADIMNO", m_coaddMaxImno, "max number of images in each coadd" );
         head.template append<realT>( "COADTIME", m_coaddMaxTime, "max time in each coadd" );
+        head.template append<realT>( "COADANGL", m_coaddMaxAngle, "max field-angle span in each coadd [degrees]" );
     }
     else
     {
         head.template append<int>( "COADIMNO", 0, "max number of images in each coadd" );
         head.template append<realT>( "COADTIME", 0, "max time in each coadd" );
+        head.template append<realT>( "COADANGL", 0, "max field-angle span in each coadd [degrees]" );
     }
 
     head.append( "MASKFILE", m_maskFile, "mask file" );
@@ -4046,7 +4170,8 @@ int HCIobservation<_realT,verboseT>::readPSFSub( const std::string &dir,
             {
                 for( size_t i = 0; i < m_imageMJD.size(); ++i )
                 {
-                    m_imageMJD[i] = m_heads[i][m_dateKeyword].template value<realT>() * m_dateUnit;
+                    m_imageMJD[i] =
+                        m_heads[i][m_dateKeyword].template value<double>() * static_cast<double>( m_dateUnit );
                 }
             }
         }

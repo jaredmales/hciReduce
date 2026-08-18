@@ -27,6 +27,10 @@ struct observationHarness : public observationT
     using cubeT = mx::improc::eigenCube<float>;
 
     using observationT::m_auxDataDir;
+    using observationT::m_coaddKeywords;
+    using observationT::m_coaddMaxAngle;
+    using observationT::m_coaddMaxImno;
+    using observationT::m_coaddMethod;
     using observationT::m_dateKeyword;
     using observationT::m_fileList;
     using observationT::m_filesDeleted;
@@ -170,6 +174,128 @@ TEST_CASE( "ADIobservation FITS ingestion", "[ADIobservation][readFiles][readRDI
     mx::improc::ADIobservation<float,
                                 mx::improc::ADIDerotator<float, mx::verbose::vv>,
                                 mx::verbose::vv>::readRDIFiles();
+#endif
+    // clang-format on
+}
+
+/// Verify ADIobservation applies wrap-aware coaddition to target and RDI angle metadata during preprocessing.
+/** \ingroup ADIobservation_unit_tests */
+TEST_CASE( "ADIobservation wrap-aware angle preprocessing", "[ADIobservation][coadd][angle][preprocess]" )
+{
+    TestDirectory directory;
+    observationHarness observation;
+    configureDerotator( observation.m_derotF );
+    configureDerotator( observation.m_RDIderotF );
+    observation.m_derotF.m_keywords.push_back( "SCALAR" );
+    observation.m_RDIderotF.m_keywords.push_back( "SCALAR" );
+    observation.m_dateKeyword.clear();
+    observation.m_RDIdateKeyword.clear();
+    observation.m_skipPreProcess = false;
+    observation.m_imSize = 3;
+    observation.m_coaddMethod = mx::improc::HCI::coadd::mean;
+    observation.m_coaddMaxImno = 4;
+    observation.m_coaddKeywords = { "ANGLE", "SCALAR" };
+
+    const auto writeSequence =
+        [&]( const std::string &prefix, const std::vector<float> &angles, std::vector<std::string> &files )
+    {
+        observationHarness::imageT image( 3, 3 );
+        files.clear();
+        for( size_t index = 0; index < angles.size(); ++index )
+        {
+            image.setConstant( static_cast<float>( index + 1 ) );
+            auto header = angleHeader( angles[index] );
+            header.append<float>( "SCALAR", angles[index], "ordinary scalar metadata" );
+            const auto path = directory.file( prefix + std::to_string( index ) + ".fits" );
+            writeFitsImage( path, image, &header );
+            files.push_back( path.string() );
+        }
+    };
+
+    writeSequence( "target", { 358, 359, 1, 2 }, observation.m_fileList );
+    observation.readFiles();
+
+    REQUIRE( observation.m_tgtIms.planes() == 1 );
+    REQUIRE( observation.m_derotF.m_angles.size() == 1 );
+    REQUIRE(
+        mx::math::angleDiff<mx::math::degreesT<double>>( 0, static_cast<double>( observation.m_derotF.m_angles[0] ) ) ==
+        Approx( 0 ) );
+    REQUIRE( observation.m_heads[0]["START ANGLE"].value<double>() == Approx( 358 ) );
+    REQUIRE( observation.m_heads[0]["END ANGLE"].value<double>() == Approx( 2 ) );
+    REQUIRE( observation.m_heads[0]["DELTA ANGLE"].value<double>() == Approx( 4 ) );
+    REQUIRE( observation.m_heads[0]["SCALAR"].value<double>() == Approx( 180 ) );
+    REQUIRE( observation.m_heads[0]["DELTA SCALAR"].value<double>() == Approx( -356 ) );
+
+    writeSequence( "reference", { 2, 1, 359, 358 }, observation.m_RDIfileList );
+    observation.readRDIFiles();
+
+    REQUIRE( observation.m_refIms.planes() == 1 );
+    REQUIRE( observation.m_RDIderotF.m_angles.size() == 1 );
+    REQUIRE( mx::math::angleDiff<mx::math::degreesT<double>>(
+                 0,
+                 static_cast<double>( observation.m_RDIderotF.m_angles[0] ) ) == Approx( 0 ) );
+    REQUIRE( observation.m_RDIheads[0]["START ANGLE"].value<double>() == Approx( 2 ) );
+    REQUIRE( observation.m_RDIheads[0]["END ANGLE"].value<double>() == Approx( 358 ) );
+    REQUIRE( observation.m_RDIheads[0]["DELTA ANGLE"].value<double>() == Approx( -4 ) );
+    REQUIRE( observation.m_RDIheads[0]["SCALAR"].value<double>() == Approx( 180 ) );
+    REQUIRE( observation.m_RDIheads[0]["DELTA SCALAR"].value<double>() == Approx( 356 ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::coaddImages();
+    mx::improc::ADIobservation<float,
+                               mx::improc::ADIDerotator<float, mx::verbose::vv>,
+                               mx::verbose::vv> doxygenObservation;
+    doxygenObservation.readFiles();
+    mx::improc::ADIobservation<float,
+                               mx::improc::ADIDerotator<float, mx::verbose::vv>,
+                               mx::verbose::vv> *doxygenRDIObservation = &doxygenObservation;
+    doxygenRDIObservation->readRDIFiles();
+#endif
+    // clang-format on
+}
+
+/// Verify ADIobservation preprocessing applies the configured angular coadd limit to its derotator keyword.
+/** \ingroup ADIobservation_unit_tests */
+TEST_CASE( "ADIobservation angle-limited preprocessing", "[ADIobservation][coadd][angle][limit][preprocess]" )
+{
+    TestDirectory directory;
+    observationHarness observation;
+    configureDerotator( observation.m_derotF );
+    observation.m_dateKeyword.clear();
+    observation.m_skipPreProcess = false;
+    observation.m_imSize = 3;
+    observation.m_coaddMethod = mx::improc::HCI::coadd::mean;
+    observation.m_coaddMaxImno = 20;
+    observation.m_coaddMaxAngle = 5;
+    observation.m_coaddKeywords = { "ANGLE" };
+
+    observationHarness::imageT image( 3, 3 );
+    const std::vector<float> angles{ 0, 3.6F, 7.2F };
+    for( size_t index = 0; index < angles.size(); ++index )
+    {
+        image.setConstant( static_cast<float>( index + 1 ) );
+        auto header = angleHeader( angles[index] );
+        const auto path = directory.file( "limited" + std::to_string( index ) + ".fits" );
+        writeFitsImage( path, image, &header );
+        observation.m_fileList.push_back( path.string() );
+    }
+
+    observation.readFiles();
+
+    REQUIRE( observation.m_tgtIms.planes() == 2 );
+    REQUIRE( observation.m_tgtIms.image( 0 ).isConstant( 1.5F ) );
+    REQUIRE( observation.m_tgtIms.image( 1 ).isConstant( 3 ) );
+    REQUIRE( observation.m_heads[0]["DELTA ANGLE"].value<double>() == Approx( 3.6 ) );
+    REQUIRE( observation.m_heads[0]["IMAGES COADDED"].value<int>() == 2 );
+    REQUIRE( observation.m_heads[1]["IMAGES COADDED"].value<int>() == 1 );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::ADIobservation<float,
+                                mx::improc::ADIDerotator<float, mx::verbose::vv>,
+                                mx::verbose::vv>::readFiles();
+    mx::improc::HCIobservation<float, mx::verbose::vv>::coaddImages();
 #endif
     // clang-format on
 }

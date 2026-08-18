@@ -34,10 +34,20 @@
  *
  * \section common_preprocessing Coaddition and preprocessing
  *
- * `coadd.method` controls optional temporal coaddition. The `preProcess.*` settings control masking, radial-profile
- * subtraction, azimuthal/median/Gaussian unsharp masking, mean or median image subtraction, and pixel time-series
- * normalization. Use `preProcess.skip=true` for an already preprocessed sequence. `preProcess.only=true` writes any
- * requested preprocessed products and stops before the algorithm.
+ * `coadd.method` controls optional temporal coaddition. Numeric cards listed in `coadd.keywords` use an arithmetic
+ * mean, except that the configured `input.angleKeyword` is followed continuously across 0/360-degree wraps before
+ * averaging. Consecutive angles must move by no more than 180 degrees after applying `input.angleScale`; motion of
+ * exactly 180 degrees has an unavoidable direction ambiguity. `START` and `END` retain the raw endpoint values,
+ * while `DELTA` records the accumulated wrap-aware path. The stored average can be outside the conventional range
+ * but is angle-equivalent after derotation normalization. Set `coadd.maxAngle` to a positive number of degrees to
+ * end a coadd before its wrap-aware field-angle span would exceed that limit. This requires the configured
+ * `input.angleKeyword` in `coadd.keywords`; nonpositive values disable the limit. The `preProcess.*` settings control
+ * masking, radial-profile subtraction, azimuthal/median/Gaussian unsharp masking, mean or median image subtraction,
+ * and pixel time-series normalization. RMS normalization is evaluated after the configured mean/median-image
+ * subtraction. If RMS normalization is enabled without either subtraction, it is calculated about zero and a
+ * runtime warning is emitted. Use `preProcess.skip=true` for an already preprocessed sequence.
+ * `preProcess.only=true` writes any requested preprocessed products and stops before the algorithm. Algorithm-specific
+ * geometry and mode settings are not required in this mode.
  *
  * \section common_adi ADI, fake companions, and final combination
  *

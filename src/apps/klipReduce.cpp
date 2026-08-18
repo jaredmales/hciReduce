@@ -180,6 +180,11 @@ class klipReduce : public application
             return;
         }
 
+        if( m_obs.preprocessingOnly() )
+        {
+            return;
+        }
+
         // KLIP:
 
         if( m_mode != "postprocess" )

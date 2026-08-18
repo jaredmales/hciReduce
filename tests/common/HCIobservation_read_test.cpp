@@ -210,6 +210,55 @@ TEST_CASE( "HCIobservation repeated target FITS ingestion", "[HCIobservation][re
     REQUIRE( narrow.m_imSize == 3 );
 }
 
+/// Verify HCIobservation::readFiles retains enough numeric-MJD precision for time-limited preprocessing coadds.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation numeric-MJD coadd precision", "[HCIobservation][readFiles][coadd][preprocess][date]" )
+{
+    TestDirectory directory;
+    HCIobservationTestHarness observation;
+    constexpr double initialMJD = 55855.3121737153;
+    constexpr double secondsPerDay = 86400.0;
+
+    for( int index = 0; index < 4; ++index )
+    {
+        HCIobservationTestHarness::imageT image( 2, 2 );
+        image.setConstant( static_cast<float>( index + 1 ) );
+        HCIobservationTestHarness::fitsHeaderT header;
+        header.append<double>( "DATE-OBS",
+                               initialMJD + 2.0 * static_cast<double>( index ) / secondsPerDay,
+                               "numeric MJD" );
+        const auto path = directory.file( "numeric-mjd-" + std::to_string( index ) + ".fits" );
+        writeFitsImage( path, image, &header );
+        observation.m_fileList.push_back( path.string() );
+    }
+
+    observation.m_dateKeyword = "DATE-OBS";
+    observation.m_dateIsISO8601 = false;
+    observation.m_dateUnit = 1;
+    observation.m_skipPreProcess = false;
+    observation.m_coaddMethod = mx::improc::HCI::coadd::mean;
+    observation.m_coaddMaxImno = 0;
+    observation.m_coaddMaxTime = 5;
+
+    observation.readFiles();
+
+    REQUIRE( observation.m_tgtIms.planes() == 2 );
+    REQUIRE( observation.m_tgtIms.image( 0 ).isConstant( 2 ) );
+    REQUIRE( observation.m_tgtIms.image( 1 ).isConstant( 4 ) );
+    REQUIRE( observation.m_imageMJD.size() == 2 );
+    REQUIRE( observation.m_imageMJD[0] == Approx( initialMJD + 2.0 / secondsPerDay ) );
+    REQUIRE( observation.m_imageMJD[1] == Approx( initialMJD + 6.0 / secondsPerDay ) );
+    REQUIRE( observation.m_heads[0]["IMAGES COADDED"].value<int>() == 3 );
+    REQUIRE( observation.m_heads[1]["IMAGES COADDED"].value<int>() == 1 );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::readFiles();
+    mx::improc::HCIobservation<float, mx::verbose::vv>::coaddImages();
+#endif
+    // clang-format on
+}
+
 /// Verify HCIobservation::readFiles rejects invalid deletion ranges without partially mutating the list.
 /** \ingroup HCIobservation_unit_tests */
 TEST_CASE( "HCIobservation target deletion bounds", "[HCIobservation][readFiles][validation]" )

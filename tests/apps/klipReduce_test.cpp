@@ -147,11 +147,6 @@ TEST_CASE( "klipReduce basic preprocess-only dispatch", "[klipReduce][execute][b
                        "dateKeyword=\n"
                        "angleKeyword=ANGLE\n"
                        "angleScale=1\n"
-                       "[geom]\n"
-                       "minRadius=0\n"
-                       "maxRadius=2\n"
-                       "[klip]\n"
-                       "Nmodes=1\n"
                        "[preProcess]\n"
                        "only=true\n" );
 
@@ -162,6 +157,13 @@ TEST_CASE( "klipReduce basic preprocess-only dispatch", "[klipReduce][execute][b
     char *arguments[]{ invokedName.data(), configOption.data(), configName.data() };
 
     REQUIRE( application.main( 3, arguments ) == 0 );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv> doxygenObservation;
+    doxygenObservation.preprocessingOnly();
+#endif
+    // clang-format on
 }
 
 /// Verify klipReduce registers, loads, and validates saved-product configuration.

@@ -8,6 +8,7 @@
 #include "HCIobservation_test_fixture.hpp"
 
 #include <cmath>
+#include <sstream>
 
 namespace unitTest
 {
@@ -24,6 +25,35 @@ void makeMeanSubCube( HCIobservationTestHarness::cubeT &cube )
     cube.image( 1 ) << 2, 20;
     cube.image( 2 ) << 6, 30;
 }
+
+/// Capture standard-error output and restore its stream buffer on destruction.
+class CerrCapture
+{
+  public:
+    /// Redirect standard error into an owned string buffer.
+    CerrCapture() : m_buffer(), m_original( std::cerr.rdbuf( m_buffer.rdbuf() ) )
+    {
+    }
+
+    /// Restore the original standard-error stream buffer.
+    ~CerrCapture()
+    {
+        std::cerr.rdbuf( m_original );
+    }
+
+    CerrCapture( const CerrCapture & ) = delete;
+    CerrCapture &operator=( const CerrCapture & ) = delete;
+
+    /// Return all standard-error text captured so far.
+    std::string str() const
+    {
+        return m_buffer.str();
+    }
+
+  private:
+    std::ostringstream m_buffer; ///< Captured standard-error text.
+    std::streambuf *m_original;  ///< Standard-error stream buffer restored at destruction.
+};
 } // namespace
 /// \endcond
 
@@ -87,6 +117,7 @@ TEST_CASE( "HCIobservation pixel time-series RMS normalization", "[HCIobservatio
 {
     OpenMPThreadGuard threads;
     HCIobservationTestHarness observation;
+    observation.m_preProcess_meanSubMethod = mx::improc::HCI::meanSub::meanImage;
     observation.m_preProcess_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::rms;
 
     HCIobservationTestHarness::cubeT cube( 1, 1, 2 );
@@ -127,6 +158,41 @@ TEST_CASE( "HCIobservation pixel time-series RMS normalization", "[HCIobservatio
     observation.m_preProcess_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::rms;
     cube.resize( 0, 0, 0 );
     REQUIRE_NOTHROW( observation.preProcess_pixelTSNorm( cube ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::preProcess_pixelTSNorm( cube );
+#endif
+    // clang-format on
+}
+
+/// Verify HCIobservation::preProcess_pixelTSNorm warns when RMS normalization is configured without mean subtraction.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation uncentered RMS normalization warning", "[HCIobservation][preprocess][rms][warning]" )
+{
+    OpenMPThreadGuard threads;
+    HCIobservationTestHarness observation;
+    observation.m_preProcess_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::rms;
+
+    HCIobservationTestHarness::cubeT cube( 1, 1, 2 );
+    cube.image( 0 )( 0, 0 ) = 1;
+    cube.image( 1 )( 0, 0 ) = 3;
+
+    {
+        CerrCapture capture;
+        observation.m_preProcess_meanSubMethod = mx::improc::HCI::meanSub::none;
+        observation.preProcess_pixelTSNorm( cube );
+        REQUIRE( capture.str().find( "RMS normalization will be calculated about zero" ) != std::string::npos );
+    }
+
+    cube.image( 0 )( 0, 0 ) = -1;
+    cube.image( 1 )( 0, 0 ) = 1;
+    {
+        CerrCapture capture;
+        observation.m_preProcess_meanSubMethod = mx::improc::HCI::meanSub::meanImage;
+        observation.preProcess_pixelTSNorm( cube );
+        REQUIRE( capture.str().find( "WARNING" ) == std::string::npos );
+    }
 
     // clang-format off
 #ifdef __DOXY_ONLY__

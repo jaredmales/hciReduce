@@ -21,6 +21,8 @@
  * `geom.minRadius` and `geom.maxRadius` define matching radial bounds. Optional `geom.minAngle` and
  * `geom.maxAngle` split them into wedges; omitted angle vectors mean full annuli. `klip.Nmodes` is the ordered list
  * of requested retained KL modes and therefore sets the output-cube planes.
+ * These KLIP-specific settings may be omitted when `preProcess.only=true`; that mode stops after the shared input and
+ * preprocessing pipeline.
  *
  * `adi.excludeMethod`, `adi.minDPx`, and `adi.maxDPx` control which ADI frames may enter each target's reference
  * library. `klip.includeMethod` and `klip.includeRefNum` provide explicit inclusion controls. `klip.rightReason`

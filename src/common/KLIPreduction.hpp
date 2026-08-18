@@ -991,52 +991,57 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
     t_klim = 0;
     t_psf = 0;
 
-    if( m_Nmodes.empty() )
-    {
-        throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP requires at least one mode count" );
-    }
-    if( minr.empty() || minr.size() != maxr.size() || minr.size() != minq.size() || minr.size() != maxq.size() )
-    {
-        throw mx::exception<verboseT>( mx::error_t::invalidarg,
-                                       "KLIP region vectors must be nonempty and have equal lengths" );
-    }
-    for( const int modeCount : m_Nmodes )
-    {
-        if( modeCount <= 0 )
-        {
-            throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP mode counts must be positive" );
-        }
-    }
-    for( size_t region = 0; region < minr.size(); ++region )
-    {
-        if( !math::isFinite( minr[region] ) || !math::isFinite( maxr[region] ) || !math::isFinite( minq[region] ) ||
-            !math::isFinite( maxq[region] ) || minr[region] < 0 || maxr[region] <= minr[region] )
-        {
-            throw mx::exception<verboseT>( mx::error_t::invalidarg, "invalid KLIP region geometry" );
-        }
-    }
-    if( m_padSize < 0 )
-    {
-        throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP image padding must be nonnegative" );
-    }
+    const bool preprocessingOnly = this->preprocessingOnly();
 
     this->t_begin = sys::get_curr_time();
 
-    m_minr = minr;
-    m_maxr = maxr;
-    m_minq = minq;
-    m_maxq = maxq;
-
-    m_maxNmodes = m_Nmodes[0];
-    for( size_t i = 1; i < m_Nmodes.size(); ++i )
+    if( !preprocessingOnly )
     {
-        if( m_Nmodes[i] > m_maxNmodes )
-            m_maxNmodes = m_Nmodes[i];
+        if( m_Nmodes.empty() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP requires at least one mode count" );
+        }
+        if( minr.empty() || minr.size() != maxr.size() || minr.size() != minq.size() || minr.size() != maxq.size() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                           "KLIP region vectors must be nonempty and have equal lengths" );
+        }
+        for( const int modeCount : m_Nmodes )
+        {
+            if( modeCount <= 0 )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP mode counts must be positive" );
+            }
+        }
+        for( size_t region = 0; region < minr.size(); ++region )
+        {
+            if( !math::isFinite( minr[region] ) || !math::isFinite( maxr[region] ) || !math::isFinite( minq[region] ) ||
+                !math::isFinite( maxq[region] ) || minr[region] < 0 || maxr[region] <= minr[region] )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg, "invalid KLIP region geometry" );
+            }
+        }
+        if( m_padSize < 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg, "KLIP image padding must be nonnegative" );
+        }
+
+        m_minr = minr;
+        m_maxr = maxr;
+        m_minq = minq;
+        m_maxq = maxq;
+
+        m_maxNmodes = m_Nmodes[0];
+        for( size_t i = 1; i < m_Nmodes.size(); ++i )
+        {
+            if( m_Nmodes[i] > m_maxNmodes )
+                m_maxNmodes = m_Nmodes[i];
+        }
     }
 
     std::cerr << "Beginning\n";
 
-    if( this->m_imSize == 0 )
+    if( !preprocessingOnly && this->m_imSize == 0 )
     {
         this->m_imSize = 2 * ( *std::max_element( m_maxr.begin(), m_maxr.end() ) + m_padSize );
 
@@ -1079,7 +1084,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
         throw mx::exception<verboseT>( mx::error_t::sizeerr, "reference and target image dimensions must match" );
     }
 
-    if( this->m_preProcess_only && !this->m_skipPreProcess )
+    if( preprocessingOnly )
     {
         std::cerr << "Pre-processing complete, stopping.\n";
         return 0;

@@ -308,6 +308,11 @@ Known non-blocking ownership follow-ups:
       every executable line in the default `invalidNumber()` and `isInvalidPixel()` specializations is covered.
 
 - [~] Continue closing mxlib coverage gaps exposed by hciReduce integration tests.
+  - [ ] Cover the exact `mx::improc::eigenCube<float>::mean(imageT&)` and unmasked
+        `mx::improc::eigenCube<float>::median(imageT&)` specializations called by
+        `HCIobservation<float>::coaddImages()`, including the float `imageMedian` dependency.  The current mxlib LCOV
+        trace contains only the corresponding double mean/median instantiations; the wrap-aware coadd metadata edit
+        therefore exposes an exact-call coverage gap even though the surrounding cube and metadata APIs are covered.
   - [ ] Cover the exact `mx::improc::eigenCube<float>::median()` specializations called by
         `ADIobservation<float>::finalProcess()`: both the unmasked output-image overload and the validity-cube/masked
         overload. The current mxlib LCOV trace contains only the corresponding `eigenCube<double>` median

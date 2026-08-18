@@ -1951,21 +1951,19 @@ TEST_CASE( "KLIP region validation", "[KLIPreduction][regions][validation]" )
     REQUIRE_THROWS( missingRDI.regions( 0, 2, 0, 360 ) );
 }
 
-/// Verify KLIPreduction::regions derives an image size and honors preprocess-only early completion.
+/// Verify KLIPreduction::regions honors preprocess-only completion without KLIP modes or geometry.
 /** \ingroup KLIPreduction_unit_tests */
 TEST_CASE( "KLIP region early completion", "[KLIPreduction][regions][preprocess]" )
 {
-    reductionHarness inferredSize;
-    prepareRegionReduction( inferredSize );
-    inferredSize.m_Nmodes = { 1 };
-    inferredSize.m_imSize = 0;
-    inferredSize.m_padSize = 0;
-    inferredSize.m_preProcess_only = true;
-    inferredSize.m_skipPreProcess = false;
+    reductionHarness reduction;
+    prepareRegionReduction( reduction );
+    reduction.m_Nmodes.clear();
+    reduction.m_preProcess_only = true;
+    reduction.m_skipPreProcess = false;
 
-    REQUIRE( inferredSize.regions( 0, 2, 0, 360 ) == 0 );
-    REQUIRE( inferredSize.m_imSize == 4 );
-    REQUIRE( inferredSize.m_psfsub.empty() );
+    REQUIRE( reduction.regions( {}, {}, {}, {} ) == 0 );
+    REQUIRE( reduction.m_minr.empty() );
+    REQUIRE( reduction.m_psfsub.empty() );
 }
 
 /// Verify KLIPreduction::finalProcess applies post-median subtraction, derotation, and final combination in order.

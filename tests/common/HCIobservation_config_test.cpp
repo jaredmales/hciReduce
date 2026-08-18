@@ -55,6 +55,7 @@ TEST_CASE( "HCIobservation configuration metadata", "[HCIobservation][config]" )
     REQUIRE( config.m_targets.at( "rdi.dateIsISO8601" ).clType == mx::app::argType::True );
     REQUIRE( config.m_targets.at( "input.thresholdOnly" ).clType == mx::app::argType::True );
     REQUIRE( config.m_targets.at( "input.thresholdOnly" ).helpType == "bool" );
+    REQUIRE( config.m_targets.at( "coadd.maxAngle" ).helpType == "float" );
     REQUIRE( config.m_targets.at( "preProcess.mask" ).helpType == "bool" );
     REQUIRE( config.m_targets.at( "input.maskFile" ).helpType == "string" );
     REQUIRE( config.m_targets.at( "rdi.useInputMask" ).clType == mx::app::argType::True );
@@ -74,6 +75,7 @@ TEST_CASE( "HCIobservation configuration metadata", "[HCIobservation][config]" )
     REQUIRE( observation.m_RDIdateIsISO8601 );
     REQUIRE( observation.m_RDIdateUnit == 1 );
     REQUIRE( observation.m_coaddMethod == mx::improc::HCI::coadd::none );
+    REQUIRE( observation.m_coaddMaxAngle == 0 );
     REQUIRE( observation.m_preProcess_mask );
     REQUIRE( observation.m_preProcess_azUSM_maxAz == 45 );
     REQUIRE( observation.m_preProcess_meanSubMethod == mx::improc::HCI::meanSub::none );
@@ -131,6 +133,7 @@ TEST_CASE( "HCIobservation configuration loading", "[HCIobservation][config]" )
                            "method=median\n"
                            "maxImno=3\n"
                            "maxTime=1.25\n"
+                           "maxAngle=0.75\n"
                            "keywords=ANGLE,EXPTIME\n"
                            "[preProcess]\n"
                            "skip=true\n"
@@ -191,6 +194,7 @@ TEST_CASE( "HCIobservation configuration loading", "[HCIobservation][config]" )
     REQUIRE( observation.m_coaddMethod == mx::improc::HCI::coadd::median );
     REQUIRE( observation.m_coaddMaxImno == 3 );
     REQUIRE( observation.m_coaddMaxTime == Approx( 1.25 ) );
+    REQUIRE( observation.m_coaddMaxAngle == Approx( 0.75 ) );
     REQUIRE( observation.m_coaddKeywords == std::vector<std::string>{ "ANGLE", "EXPTIME" } );
     REQUIRE( observation.m_skipPreProcess );
     REQUIRE( observation.m_preProcess_beforeCoadd );

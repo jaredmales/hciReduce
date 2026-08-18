@@ -80,6 +80,7 @@ TEST_CASE( "HCIobservation standard FITS header", "[HCIobservation][output][stdF
     observation.m_coaddMethod = mx::improc::HCI::coadd::mean;
     observation.m_coaddMaxImno = 5;
     observation.m_coaddMaxTime = 2.5F;
+    observation.m_coaddMaxAngle = 0.75F;
     observation.m_maskFile = "mask.fits";
     observation.m_preProcess_beforeCoadd = true;
     observation.m_preProcess_mask = false;
@@ -106,6 +107,7 @@ TEST_CASE( "HCIobservation standard FITS header", "[HCIobservation][output][stdF
     REQUIRE( header["COADMTHD"].String().starts_with( "mean" ) );
     REQUIRE( header["COADIMNO"].Int() == 5 );
     REQUIRE( header["COADTIME"].value<float>() == Approx( 2.5F ) );
+    REQUIRE( header["COADANGL"].value<float>() == Approx( 0.75F ) );
     REQUIRE( header["MASKFILE"].String() == "mask.fits" );
     REQUIRE( header["PREPROC BEFORE"].Int() == 1 );
     REQUIRE( header["PREPROC MASK"].Int() == 0 );
@@ -124,6 +126,7 @@ TEST_CASE( "HCIobservation standard FITS header", "[HCIobservation][output][stdF
     REQUIRE( noCoaddHeader["COADMTHD"].String() == "none" );
     REQUIRE( noCoaddHeader["COADIMNO"].Int() == 0 );
     REQUIRE( noCoaddHeader["COADTIME"].value<float>() == 0 );
+    REQUIRE( noCoaddHeader["COADANGL"].value<float>() == 0 );
 }
 
 /// Verify HCIobservation::outputPreProcessed writes rectangular target images, copied headers, and nested paths.

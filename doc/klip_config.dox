@@ -25,8 +25,8 @@
  *
  * | CLI | Config-file form | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
- * | `--geom.minRadius` | `geom.minRadius=6,8,10` | comma-separated real pixels | required | Inner radii of KLIP search regions. Pair each entry with `maxRadius`. |
- * | `--geom.maxRadius` | `geom.maxRadius=8,10,12` | matching real-pixel vector | required | Outer radii of KLIP search regions. |
+ * | `--geom.minRadius` | `geom.minRadius=6,8,10` | comma-separated real pixels | required for reduction | Inner radii of KLIP search regions. Pair each entry with `maxRadius`; omit for `preProcess.only=true`. |
+ * | `--geom.maxRadius` | `geom.maxRadius=8,10,12` | matching real-pixel vector | required for reduction | Outer radii of KLIP search regions. Pair each entry with `minRadius`; omit for `preProcess.only=true`. |
  * | `--geom.minAngle` | `geom.minAngle=0,90` | optional real-degree vector | unset | Lower angular bounds for wedges. Omit both angle vectors for complete annuli. |
  * | `--geom.maxAngle` | `geom.maxAngle=90,180` | optional matching real-degree vector | unset | Upper angular bounds for wedges. |
  * | `--geom.nWedges` | `geom.nWedges=N` | positive integer | `0` | Generates equal angular wedges and overrides explicit angle vectors; radius vectors are expanded to match the resulting regions. |
@@ -55,7 +55,7 @@
  *
  * | CLI | Config-file form | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
- * | `--klip.Nmodes` | `klip.Nmodes=1,5,10` | comma-separated positive integers | required | Requested retained KL-mode counts. The list order is the output-cube plane order. Counts beyond a realized library's available degrees of freedom use all available modes. |
+ * | `--klip.Nmodes` | `klip.Nmodes=1,5,10` | comma-separated positive integers | required for reduction | Requested retained KL-mode counts. The list order is the output-cube plane order. Counts beyond a realized library's available degrees of freedom use all available modes. Omit for `preProcess.only=true`. |
  * | `--klip.meanSubMethod` | `klip.meanSubMethod=imageMean` | `imageMean`, `imageMedian`, `meanImage`, `medianImage` | `imageMean` | Mean/median subtraction convention used while constructing the KL basis. |
  * | `--klip.pixelTSNormMethod` | `klip.pixelTSNormMethod=none` | `none`, `rms` | `none` | Per-pixel temporal normalization for the PCA library. |
  * | `--klip.pixelTSSigma` | `klip.pixelTSSigma=value` | positive real | `3` | Sigma threshold used where the selected normalization needs clipping. |

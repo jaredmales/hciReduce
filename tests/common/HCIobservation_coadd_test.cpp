@@ -85,6 +85,129 @@ TEST_CASE( "HCIobservation count-limited mean coaddition", "[HCIobservation][coa
     // clang-format on
 }
 
+/// Verify HCIobservation::coaddImages unwraps only the configured angular metadata before averaging.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation wrap-aware angle coaddition", "[HCIobservation][coadd][angle]" )
+{
+    const auto runCase =
+        []( const std::vector<double> &angles, double angleScale, double expectedAngle, double expectedAngleDelta )
+    {
+        HCIobservationTestHarness observation;
+        HCIobservationTestHarness::cubeT cube;
+        std::vector<std::string> files;
+        std::vector<double> dates;
+        std::vector<HCIobservationTestHarness::fitsHeaderT> heads;
+        std::vector<float> values;
+        std::vector<double> seconds;
+        values.reserve( angles.size() );
+        seconds.reserve( angles.size() );
+        for( size_t index = 0; index < angles.size(); ++index )
+        {
+            values.push_back( static_cast<float>( index + 1 ) );
+            seconds.push_back( static_cast<double>( index ) );
+        }
+        makeCoaddInputs( cube, files, dates, heads, values, seconds );
+
+        double scalarSum = 0;
+        for( size_t index = 0; index < angles.size(); ++index )
+        {
+            heads[index]["ANGLE"].value( angles[index] );
+            heads[index].append( "SCALAR", angles[index], "ordinary scalar metadata" );
+            scalarSum += angles[index];
+        }
+
+        observation.m_coaddAngleKeyword = "ANGLE";
+        observation.m_coaddAngleScale = static_cast<float>( angleScale );
+        observation.coaddImages( mx::improc::HCI::coadd::mean,
+                                 static_cast<int>( angles.size() ),
+                                 0,
+                                 { "ANGLE", "SCALAR" },
+                                 files,
+                                 "DATE-OBS",
+                                 dates,
+                                 heads,
+                                 cube );
+
+        REQUIRE( cube.planes() == 1 );
+        REQUIRE( heads[0]["ANGLE"].value<double>() == Approx( expectedAngle ) );
+        REQUIRE( heads[0]["START ANGLE"].value<double>() == Approx( angles.front() ) );
+        REQUIRE( heads[0]["END ANGLE"].value<double>() == Approx( angles.back() ) );
+        REQUIRE( heads[0]["DELTA ANGLE"].value<double>() == Approx( expectedAngleDelta ) );
+        REQUIRE( heads[0]["SCALAR"].value<double>() == Approx( scalarSum / angles.size() ) );
+        REQUIRE( heads[0]["DELTA SCALAR"].value<double>() == Approx( angles.back() - angles.front() ) );
+    };
+
+    runCase( { 358, 359, 1, 2 }, 1, 360, 4 );
+    runCase( { 2, 1, 359, 358 }, 1, 0, -4 );
+    runCase( { -270, -270, 89, 89 }, 1, -270.5, -1 );
+    runCase( { 10, 20, 40 }, 1, 70.0 / 3.0, 30 );
+    runCase( { 179, 179.5, 0.5, 1 }, 2, 180, 2 );
+    runCase( { -179, -179.5, -0.5, -1 }, -2, -180, -2 );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::coaddImages();
+#endif
+    // clang-format on
+}
+
+/// Verify HCIobservation::coaddImages limits each group by its wrap-aware field-angle span.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation angle-limited coaddition", "[HCIobservation][coadd][angle][limit]" )
+{
+    HCIobservationTestHarness observation;
+    HCIobservationTestHarness::cubeT cube;
+    std::vector<std::string> files;
+    std::vector<double> dates;
+    std::vector<HCIobservationTestHarness::fitsHeaderT> heads;
+
+    makeCoaddInputs( cube, files, dates, heads, { 1, 2, 3, 4 }, { 0, 1, 2, 3 } );
+    heads[0]["ANGLE"].value( 358.0 );
+    heads[1]["ANGLE"].value( 359.0 );
+    heads[2]["ANGLE"].value( 0.0 );
+    heads[3]["ANGLE"].value( 1.0 );
+    observation.m_coaddAngleKeyword = "ANGLE";
+    observation.m_coaddAngleScale = 1;
+    observation.m_coaddMaxAngle = 2;
+
+    observation.coaddImages( mx::improc::HCI::coadd::mean, 0, 0, { "ANGLE" }, files, "DATE-OBS", dates, heads, cube );
+
+    REQUIRE( cube.planes() == 2 );
+    REQUIRE( cube.image( 0 )( 0, 0 ) == Approx( 2 ) );
+    REQUIRE( cube.image( 1 )( 0, 0 ) == Approx( 4 ) );
+    REQUIRE( heads[0]["ANGLE"].value<double>() == Approx( 359 ) );
+    REQUIRE( heads[0]["DELTA ANGLE"].value<double>() == Approx( 2 ) );
+    REQUIRE( heads[0]["IMAGES COADDED"].value<int>() == 3 );
+    REQUIRE( heads[1]["ANGLE"].value<double>() == Approx( 1 ) );
+    REQUIRE( heads[1]["IMAGES COADDED"].value<int>() == 1 );
+
+    makeCoaddInputs( cube, files, dates, heads, { 1, 2, 3 }, { 0, 0.2, 0.4 } );
+    heads[0]["ANGLE"].value( 0.0 );
+    heads[1]["ANGLE"].value( 3.6 );
+    heads[2]["ANGLE"].value( 7.2 );
+    observation.m_coaddMaxAngle = 5;
+    observation.coaddImages( mx::improc::HCI::coadd::mean, 0, 0, { "ANGLE" }, files, "DATE-OBS", dates, heads, cube );
+    REQUIRE( cube.planes() == 2 );
+    REQUIRE( heads[0]["IMAGES COADDED"].value<int>() == 2 );
+    REQUIRE( heads[0]["DELTA ANGLE"].value<double>() == Approx( 3.6 ) );
+
+    makeCoaddInputs( cube, files, dates, heads, { 1, 2, 3 }, { 0, 1, 2 } );
+    heads[0]["ANGLE"].value( 0.0 );
+    heads[1]["ANGLE"].value( 4.0 );
+    heads[2]["ANGLE"].value( -4.0 );
+    observation.m_coaddMaxAngle = 5;
+    observation.coaddImages( mx::improc::HCI::coadd::mean, 0, 0, { "ANGLE" }, files, "DATE-OBS", dates, heads, cube );
+    REQUIRE( cube.planes() == 2 );
+    REQUIRE( heads[0]["IMAGES COADDED"].value<int>() == 2 );
+    REQUIRE( heads[1]["IMAGES COADDED"].value<int>() == 1 );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::coaddImages();
+#endif
+    // clang-format on
+}
+
 /// Verify HCIobservation::coaddImages includes exact time boundaries and separates larger gaps.
 /** \ingroup HCIobservation_unit_tests */
 TEST_CASE( "HCIobservation time-limited coaddition", "[HCIobservation][coadd][time]" )
@@ -224,6 +347,25 @@ TEST_CASE( "HCIobservation coadd validation", "[HCIobservation][coadd]" )
         observation.coaddImages( mx::improc::HCI::coadd::mean, 1, 0, {}, files, "DATE-OBS", dates, heads, cube ) );
 
     dates = { 60001, 60000 };
+    REQUIRE_THROWS(
+        observation.coaddImages( mx::improc::HCI::coadd::mean, 1, 0, {}, files, "DATE-OBS", dates, heads, cube ) );
+
+    makeCoaddInputs( cube, files, dates, heads, { 1, 2 }, { 0, 1 } );
+    observation.m_coaddMaxAngle = std::numeric_limits<float>::quiet_NaN();
+    REQUIRE_THROWS(
+        observation.coaddImages( mx::improc::HCI::coadd::mean, 1, 0, {}, files, "DATE-OBS", dates, heads, cube ) );
+
+    observation.m_coaddMaxAngle = 1;
+    REQUIRE_THROWS(
+        observation.coaddImages( mx::improc::HCI::coadd::mean, 1, 0, {}, files, "DATE-OBS", dates, heads, cube ) );
+
+    observation.m_coaddAngleKeyword = "ANGLE";
+    observation.m_coaddAngleScale = std::numeric_limits<float>::quiet_NaN();
+    REQUIRE_THROWS(
+        observation
+            .coaddImages( mx::improc::HCI::coadd::mean, 1, 0, { "ANGLE" }, files, "DATE-OBS", dates, heads, cube ) );
+
+    observation.m_coaddAngleScale = 1;
     REQUIRE_THROWS(
         observation.coaddImages( mx::improc::HCI::coadd::mean, 1, 0, {}, files, "DATE-OBS", dates, heads, cube ) );
 

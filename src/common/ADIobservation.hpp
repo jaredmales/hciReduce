@@ -412,6 +412,9 @@ void ADIobservation<realT, derotFunctObj, verboseT>::readFiles()
 {
     this->m_keywords.clear();
 
+    this->m_coaddAngleKeyword = m_derotF.m_angleKeyword;
+    this->m_coaddAngleScale = m_derotF.m_angleScale;
+
     if( !m_derotF.isSetup() )
     {
         throw mx::exception<verboseT>( mx::error_t::paramnotset, "Derotator is not configured." );
@@ -486,6 +489,9 @@ template <typename realT, class derotFunctObj, class verboseT>
 void ADIobservation<realT, derotFunctObj, verboseT>::readRDIFiles()
 {
     this->m_RDIkeywords.clear();
+
+    this->m_coaddAngleKeyword = m_RDIderotF.m_angleKeyword;
+    this->m_coaddAngleScale = m_RDIderotF.m_angleScale;
 
     if( !m_RDIderotF.isSetup() )
     {

@@ -23,7 +23,10 @@ struct HCIobservationTestHarness : public mx::improc::HCIobservation<float, mx::
     using cubeT = mx::improc::eigenCube<float>;
 
     using baseT::load_fileList;
+    using baseT::m_coaddAngleKeyword;
+    using baseT::m_coaddAngleScale;
     using baseT::m_coaddKeywords;
+    using baseT::m_coaddMaxAngle;
     using baseT::m_coaddMaxImno;
     using baseT::m_coaddMaxTime;
     using baseT::m_coaddMethod;

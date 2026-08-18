@@ -40,7 +40,7 @@
  * | `--input.qualityFile` | `input.qualityFile=quality.txt` | string | unset | Two-column `filename number` table used for frame-quality selection. |
  * | `--input.qualityThreshold` | `input.qualityThreshold=value` | real scalar; `<=0` disables thresholding | `0` | Threshold applied to the quality-table values. |
  * | `--input.thresholdOnly` | `input.thresholdOnly=true` | bool | `false` | Prints the selected filenames after quality filtering and stops before reduction. |
- * | `--input.dateKeyword` | `input.dateKeyword=DATE-OBS` | FITS keyword string; empty disables date reading | `DATE-OBS` | Date keyword for timing, coaddition, and time-based selection. |
+ * | `--input.dateKeyword` | `input.dateKeyword=DATE-OBS` | FITS keyword string; empty disables date reading | `DATE-OBS` | Date keyword for timing, coaddition, and time-based selection. Numeric timestamps are read at double precision even when the image pixel type is float. |
  * | `--input.dateIsISO8601` | `input.dateIsISO8601=true` | bool | `true` | Interpret the date keyword as ISO-8601 rather than a numeric time. |
  * | `--input.dateUnit` | `input.dateUnit=value` | positive real conversion to Julian days | `1` | Converts a non-ISO numeric date to Julian days; e.g. seconds-to-days. |
  * | `-S`, `--input.imSize` | `input.imSize=0` | integer; `0` means uncut | `0` | Maximum detector size to read; use `0` for the complete image. |
@@ -68,7 +68,8 @@
  * | `--coadd.method` | `coadd.method=none` | `none`, `median`, or `mean` | `none` | Enables temporal coaddition. |
  * | `--coadd.maxImno` | `coadd.maxImno=N` | positive integer | `0` | Maximum number of consecutive images in one coadd. |
  * | `--coadd.maxTime` | `coadd.maxTime=seconds` | positive real seconds | `0` | Maximum elapsed time represented by one coadd. |
- * | `--coadd.keywords` | `coadd.keywords=KEY1,KEY2` | comma-separated FITS keyword list | empty | Values of these header keywords are averaged and replaced in coadded products. |
+ * | `--coadd.maxAngle` | `coadd.maxAngle=degrees` | positive real degrees; `<=0` disables | `0` | Maximum wrap-aware field-angle span represented by one coadd. The next frame starts a new group when adding it would exceed the limit. Requires `input.angleKeyword` to be present in `coadd.keywords` and a finite, nonzero `input.angleScale`. |
+ * | `--coadd.keywords` | `coadd.keywords=KEY1,KEY2` | comma-separated FITS keyword list | empty | Values of these header keywords are averaged and replaced in coadded products. When the list contains `input.angleKeyword`, consecutive values are unwrapped after applying `input.angleScale` before averaging; adjacent scaled motion must not exceed 180 degrees. Its `START` and `END` cards remain raw, while `DELTA` records the accumulated path. Other cards use an arithmetic mean. |
  *
  * \section common_preprocess_dictionary Preprocessing
  *
@@ -88,16 +89,16 @@
  * | `--preProcess.medianUSM_fwhm` | `preProcess.medianUSM_fwhm=pixels` | nonzero integer enables | `0` | Median unsharp-mask kernel FWHM. |
  * | `--preProcess.gaussUSM_fwhm` | `preProcess.gaussUSM_fwhm=pixels` | nonzero real enables | `0` | Gaussian unsharp-mask kernel FWHM. |
  * | `--preProcess.meanSubMethod` | `preProcess.meanSubMethod=none` | `none`, `meanImage`, `medianImage` | `none` | Image-level subtraction during preprocessing. |
- * | `--preProcess.pixelTSNormMethod` | `preProcess.pixelTSNormMethod=none` | `none`, `rms` | `none` | Per-pixel temporal normalization. `rms` is a true RMS normalization. `rmsSigmaClipped` is registered for compatibility but is not implemented and is rejected. |
+ * | `--preProcess.pixelTSNormMethod` | `preProcess.pixelTSNormMethod=none` | `none`, `rms` | `none` | Per-pixel temporal normalization, applied after `meanSubMethod`. `rms` divides by the population RMS about zero; with `meanImage` this equals the population standard deviation. If no mean/median-image subtraction is configured, a runtime warning notes that normalization is about zero. `rmsSigmaClipped` is registered for compatibility but is not implemented and is rejected. |
  * | `--preProcess.pixelTSSigma` | `preProcess.pixelTSSigma=value` | positive real | `3` | Reserved sigma threshold for the currently unavailable sigma-clipped normalization. |
  * | `--preProcess.outputPrefix` | `preProcess.outputPrefix=/path/prefix` | full output prefix | unset | Writes preprocessed images when nonempty. |
- * | `--preProcess.only` | `preProcess.only=true` | bool | `false` | Stop after preprocessing and any requested preprocessed output. |
+ * | `--preProcess.only` | `preProcess.only=true` | bool | `false` | Stop after preprocessing and any requested preprocessed output. Algorithm geometry and mode options are not required. |
  *
  * \section common_adi_dictionary ADI, artificial companions, and combination
  *
  * | CLI | Config-file form | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
- * | `--input.angleKeyword` | `input.angleKeyword=POSANG` | FITS keyword string | unset | Per-frame detector angle used for ADI derotation. |
+ * | `--input.angleKeyword` | `input.angleKeyword=POSANG` | FITS keyword string | unset | Per-frame detector angle used for ADI derotation. Include it in `coadd.keywords` when coadding so its mean and delta are calculated across angular wraps. |
  * | `--input.angleScale`, `--input.angleConstant` | `input.angleScale=1`, `input.angleConstant=0` | real scalars | `1`, `0` | Derotation angle is `scale * keyword + constant`, in degrees. |
  * | `--adi.postMedSub` | `adi.postMedSub=true` | bool | `false` | Subtract a temporal median immediately before derotation. |
  * | `--fake.method` | `fake.method=single` | `single` or `list` | `single` | Artificial-companion injection mode. |
