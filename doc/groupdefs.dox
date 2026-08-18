@@ -17,6 +17,11 @@
   * \ingroup user_guide
   */
 
+/** \defgroup hcianalyze_user_guide hciAnalyze
+  * User guide for the post-reduction SNR measurement application.
+  * \ingroup user_guide
+  */
+
 /** \defgroup programming_guide Programming
   * Library architecture, extension points, tests, and verification for developers.
   */
@@ -80,6 +85,10 @@
   */
 
 /** \defgroup p4Reduce_unit_tests p4Reduce Application Unit Tests
+  * \ingroup unit_tests
+  */
+
+/** \defgroup hciAnalyze_unit_tests hciAnalyze Application Unit Tests
   * \ingroup unit_tests
   */
 

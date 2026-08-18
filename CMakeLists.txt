@@ -108,6 +108,8 @@ if(Doxygen_FOUND)
                 ${CMAKE_SOURCE_DIR}/doc/klip_config.dox
                 ${CMAKE_SOURCE_DIR}/doc/p4.dox
                 ${CMAKE_SOURCE_DIR}/doc/p4_config.dox
+                ${CMAKE_SOURCE_DIR}/doc/hciAnalyze.dox
+                ${CMAKE_SOURCE_DIR}/doc/hciAnalyze_config.dox
                 ${CMAKE_SOURCE_DIR}/doc/programming.dox
                 ${CMAKE_SOURCE_DIR}/doc/bibliography.dox
                 ${CMAKE_SOURCE_DIR}/doc/testing.dox

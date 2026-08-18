@@ -51,6 +51,12 @@ target_sources(klipReduce PRIVATE "apps/klipReduce.cpp")
 
 target_include_directories(klipReduce PUBLIC "${PROJECT_SOURCE_DIR}")
 
+# this is the "hciAnalyze" target
+add_executable(hciAnalyze)
+target_sources(hciAnalyze PRIVATE "apps/hciAnalyze.cpp")
+
+target_include_directories(hciAnalyze PUBLIC "${PROJECT_SOURCE_DIR}")
+
 # this is the "p4Reduce" target
 add_executable(p4Reduce)
 target_sources(p4Reduce PRIVATE "apps/p4Reduce.cpp")
@@ -62,20 +68,22 @@ target_link_libraries(hcireduce-shared PUBLIC PkgConfig::MXLIB)
 target_link_libraries(hcireduce-static PUBLIC PkgConfig::MXLIB)
 
 target_link_libraries(klipReduce PUBLIC hcireduce-shared)
+target_link_libraries(hciAnalyze PUBLIC hcireduce-shared)
 target_link_libraries(p4Reduce PUBLIC hcireduce-shared)
 
 # Keep installed executables paired with the libhcireduce from the same prefix.
-set_target_properties(klipReduce p4Reduce PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
+set_target_properties(klipReduce hciAnalyze p4Reduce PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 
 if(TARGET hcireduce-coverage-options)
     target_link_libraries(objlib PUBLIC hcireduce-coverage-options)
     target_link_libraries(hcireduce-shared PUBLIC hcireduce-coverage-options)
     target_link_libraries(hcireduce-static PUBLIC hcireduce-coverage-options)
     target_link_libraries(klipReduce PUBLIC hcireduce-coverage-options)
+    target_link_libraries(hciAnalyze PUBLIC hcireduce-coverage-options)
     target_link_libraries(p4Reduce PUBLIC hcireduce-coverage-options)
 endif()
 
 install(TARGETS hcireduce-shared DESTINATION lib)
 install(TARGETS hcireduce-static DESTINATION lib)
 install(FILES ${libheaders} DESTINATION include/hcireduce)
-install(TARGETS klipReduce p4Reduce)
+install(TARGETS klipReduce hciAnalyze p4Reduce)

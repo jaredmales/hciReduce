@@ -1,0 +1,47 @@
+/** \file hciAnalyze_config.dox
+ * \brief Configuration dictionary for hciAnalyze.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup hcianalyze_user_guide
+ * @{
+ *
+ * \page hcianalyze_configuration_dictionary hciAnalyze configuration dictionary
+ *
+ * Long options use `--dotted.key value`; the config-file column shows the equivalent sectioned assignment.
+ *
+ * \section hcianalyze_input Input and signal geometry
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `-f`, `--file` | `file=/path/product.fits` | readable FITS image or cube | required | PSF-subtracted product to analyze. |
+ * | `--planet.sep` | `planet.sep=10,20` | nonnegative real-pixel vector | unset | Direct signal separations. Pair every value with `planet.PA`. |
+ * | `--planet.PA` | `planet.PA=0,90` | finite degree vector | unset | Direct PAs east of north: north is up and east is left. |
+ * | `--planet.R` | `planet.R=8` | one nonnegative real or one per signal | `10` | Signal exclusion radius or radii. |
+ * | `--fake.sep` | `fake.sep=10,20` | nonnegative real-pixel vector | FITS keyword | Explicit fake separations; pair with `fake.PA`. |
+ * | `--fake.PA` | `fake.PA=0,90` | finite degree vector | FITS keyword | Explicit fake PAs, east of north. |
+ * | `--fake.contrast` | `fake.contrast=1e-4,1e-5` | one finite real per fake | FITS keyword | Fake contrasts included in output. |
+ * | `--fake.R` | `fake.R=8` | one nonnegative real or one per fake | `10` | Fake exclusion radius or radii. |
+ *
+ * Do not mix explicit `planet` and `fake` settings. With neither group supplied, the FITS header must provide all of
+ * `FAKESEP`, `FAKEPA`, and `FAKECONT`, encoded as comma-separated lists. Direct planets intentionally do not require
+ * contrast metadata.
+ *
+ * \section hcianalyze_snr SNR and filtering
+ *
+ * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--snr.minRad` | `snr.minRad=pixels` | finite real | `0` | Inner radial-noise bound. A non-positive value uses the minimum `REGMINR` or `P4MINR` header value. |
+ * | `--snr.maxRad` | `snr.maxRad=pixels` | finite real | `0` | Outer radial-noise bound. A non-positive value uses the maximum `REGMAXR` or `P4MAXR` header value. |
+ * | `--snr.apertureR` | `snr.apertureR=pixels` | positive real | `2` | Radius of the aperture used to extract the reported `snr` value. |
+ * | `--filter.hpfGaussFW` | `filter.hpfGaussFW=pixels` | finite real | `0` | High-pass Gaussian unsharp-mask FWHM; non-positive disables it. |
+ * | `--filter.lpfGaussFW` | `filter.lpfGaussFW=pixels` | finite real | `0` | Low-pass Gaussian smoothing FWHM; non-positive disables it. |
+ * | `-d`, `--diagnostics` | `diagnostics=true` | bool | `false` | Print resolved geometry, filters, invalid-pixel counts, and SNR values to standard error. |
+ *
+ * When both filters are enabled, high-pass filtering runs before low-pass smoothing. The reported `snr` is the
+ * aperture maximum inside `snr.apertureR`; `planet.R` or `fake.R` only excludes the signal from the noise estimate.
+ * hciAnalyze always writes or replaces the full SNR cube beside the input as `<input-stem>_snr<input-extension>`.
+ * Its header records the resolved signal geometry, the resolved SNR annulus and aperture, and both filter FWHMs.
+ *
+ * @}
+ */

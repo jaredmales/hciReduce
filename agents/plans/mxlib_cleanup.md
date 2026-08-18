@@ -282,6 +282,14 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Restore 100% executable-line coverage in the current mxlib LCOV trace for the exact image-analysis helpers used
+      by `hciAnalyze`: `mx::improc::filterImage`/`gaussKernel` (`imageFilters.hpp`, currently 340/360 lines),
+      `stddevImageCube` and `zeroNaNCube` (`imageUtils.hpp`, 58/65), and `parseStringVector`
+      (`stringUtils.hpp`, 22/29). Add focused mxlib behavioral tests for each uncovered call path, regenerate the
+      report, and only then mark this integration gate complete. `maskCircle`, `fitsFile`, `fitsHeader`, and
+      `fitsHeaderCard` each have 100% executable-line coverage in the current report; `maskCircle` remains at 92.9%
+      function coverage and should be checked alongside the new tests.
+
 - [x] Bring `mx::improc::cutImageRegion()` and `mx::improc::insertImageRegion()` to 100% executable-line coverage.
       Commit `b3635f4` adds indexed cut/insert tests covering automatic allocation, caller-owned storage, Eigen views,
       preserved linear order, and empty regions. The final trace records `imageMasks.hpp` at 95/95 executable lines

@@ -1,0 +1,53 @@
+/** \file hciAnalyze.dox
+ * \brief User's guide for hciAnalyze.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup hcianalyze_user_guide
+ * @{
+ *
+ * `hciAnalyze` measures aperture signal-to-noise ratios in a final PSF-subtracted FITS image or cube. It is intended
+ * for a single final product rather than running a reduction or aggregating a grid of reductions. One result row is
+ * printed for each image plane and configured signal.
+ *
+ * \section hcianalyze_coordinates Signal coordinates
+ *
+ * Signals use separation in pixels and position angle (PA) in degrees east of north. The output image is displayed
+ * with north up and east left: PA 0 degrees is up, and PA +90 degrees is left. For an image centre
+ * `(xCenter, yCenter)`, hciAnalyze uses
+ *
+ * \f[
+ * x=xCenter-sep\sin(PA),\qquad y=yCenter+sep\cos(PA).
+ * \f]
+ *
+ * Set `planet.sep` and `planet.PA` to measure known signals directly. Alternatively, hciAnalyze accepts
+ * `FAKESEP`, `FAKEPA`, and `FAKECONT` from its FITS header, or an explicit `fake` configuration group. Explicit
+ * `planet` values take precedence over fake metadata. Every configured signal is excluded from the radial noise
+ * estimate using `planet.R` or `fake.R`; omit that setting to use the 10-pixel default.
+ *
+ * \section hcianalyze_measurement SNR measurement
+ *
+ * Invalid FITS pixels are excluded before filtering and noise estimation. Optional Gaussian high-pass unsharp masking
+ * is applied first, followed by optional Gaussian low-pass smoothing. The radial standard-deviation profile is then
+ * calculated in the configured annulus after excluding invalid pixels and every signal mask. The reported SNR is
+ * the maximum value inside `snr.apertureR` centered on the signal.
+ *
+ * `snr.minRad` and `snr.maxRad` override the radial annulus. If either is non-positive, hciAnalyze derives it from
+ * the extrema of `REGMINR`/`REGMAXR` or `P4MINR`/`P4MAXR` in the FITS header. This requires the applicable keyword to
+ * be present. `NMODES`, `FRACT NMODES`, or `P4MODFR`, when present and aligned with cube planes, labels result rows
+ * but does not affect the calculation.
+ *
+ * \section hcianalyze_output Output
+ *
+ * The first output line names these whitespace-separated columns:
+ * `plane mode signal separation position_angle contrast snr`. `snr` is the maximum inside `snr.apertureR`. A missing
+ * mode label or contrast is represented as `nan`. hciAnalyze always writes or replaces the full SNR FITS cube next to
+ * the input as `<input-stem>_snr<input-extension>`. Its FITS header records the resolved SNR annulus and aperture,
+ * filter FWHMs, and the resolved signal separation, PA, exclusion radius, and x/y coordinates. Set
+ * `diagnostics=true` or pass `--diagnostics` to print the resolved annulus, filters, signal coordinates,
+ * invalid-pixel counts, and SNR measurements to standard error.
+ *
+ * See the \ref hcianalyze_configuration_dictionary "hciAnalyze configuration dictionary" for all options.
+ *
+ * @}
+ */
