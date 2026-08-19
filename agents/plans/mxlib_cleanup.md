@@ -282,6 +282,12 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Regenerate mxlib's current LCOV report and verify 100% executable-line coverage for the exact mxlib APIs called
+      by `P4Reduction::regions()` after the multi-image detector-frame extension: `math::angleDiff`, `math::isFinite`,
+      `sys::get_curr_time`, and `ipc::ompLoopWatcher`. The checked mxlib source tree contains the coverage scripts but
+      no current LCOV trace/report artifact, so this gate could not be verified in hciReduce. Add focused mxlib tests
+      for any API below 100%, regenerate the report, and record the resulting line counts here.
+
 - [ ] Restore 100% executable-line coverage in the current mxlib LCOV trace for the exact image-analysis helpers used
       by `hciAnalyze`: `zeroNaNCube` (`imageUtils.hpp`, currently 58/65 executable lines) and `parseStringVector`
       (`stringUtils.hpp`, 22/29). Add focused mxlib behavioral tests for the uncovered `zeroNaNCube` branches and

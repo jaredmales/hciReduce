@@ -42,12 +42,16 @@
  * | CLI | Config-file form | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--p4.regressionFrame` | `p4.regressionFrame=rotated` | `detector` or `rotated` | `detector` | Coordinate frame of the local regression. `detector` preserves the original uncentered algorithm; `rotated` uses direct sky-aligned sampling, a centered fit, and uncentered predictor application. |
+ * | `--p4.numberImages` | `p4.numberImages=1` | nonnegative integer | `0` | For detector-frame regression, append the nearest qualifying earlier and later image blocks to each predictor row. Each side must rotate by at least one `p4.psfRadius` at the annulus inner radius; targets lacking every requested neighbor are omitted. Values greater than zero are invalid with `regressionFrame=rotated`. |
  * | `--p4.modeFractions` | `p4.modeFractions=0.01,0.03,...` | finite, strictly increasing values in `(0,1]` | required | Requested PCA fractions. Each becomes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
  * | `--p4.orDeltaRadiusInner` | `p4.orDeltaRadiusInner=pixels` | positive real pixels | required | Inward radial extent of the local annular predictor wedge. |
  * | `--p4.orDeltaRadiusOuter` | `p4.orDeltaRadiusOuter=pixels` | positive real pixels | required | Outward radial extent of that wedge. |
  * | `--p4.orArcHalfWidth` | `p4.orArcHalfWidth=pixels` | nonnegative real arc length | required | Azimuthal half-width of the predictor wedge, expressed as arc length at the region radius; `0` uses only `orMaxHalfAngle`. |
  * | `--p4.orMaxHalfAngle` | `p4.orMaxHalfAngle=degrees` | real degrees in `(0,180]` | required | Cap on the predictor wedge's angular half-width; `180` permits the full 360-degree annulus. |
  * | `--p4.rankTolerance` | `p4.rankTolerance=1e-12` | real in `[0,1)` | `1e-12` | Relative rank criterion: a mode is retained only when `lambda > tolerance * lambdaMax`. `0` accepts all positive returned eigenvalues, including roundoff-positive nulls. |
+ *
+ * For a positive `p4.numberImages`, `T` is the number of retained central targets in that annulus after endpoint
+ * truncation, and `K` is the original OR predictor count multiplied by `1 + 2 * p4.numberImages`.
  *
  * Detector mode regresses one fixed detector-pixel time series on its local OR without implicit centering or an
  * intercept. Rotated mode constructs one fixed sky-frame OR, maps its target and predictor coordinates directly back

@@ -333,6 +333,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_maxRadius.empty() );
     REQUIRE( defaults.m_modeFractions.empty() );
     REQUIRE( defaults.m_regressionFrame == mx::improc::P4RegressionFrame::detector );
+    REQUIRE( defaults.m_numberImages == 0 );
     REQUIRE_FALSE( defaults.m_exclusionPolicy.has_value() );
     REQUIRE( mx::math::isNan( defaults.m_orDeltaRadiusInner ) );
     REQUIRE( mx::math::isNan( defaults.m_exclusionRadiusBuffer ) );
@@ -344,6 +345,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     defaults.setupConfig( registered );
     REQUIRE( registered.m_targets.at( "p4.modeFractions" ).clType == mx::app::argType::Required );
     REQUIRE( registered.m_targets.at( "p4.regressionFrame" ).clType == mx::app::argType::Required );
+    REQUIRE( registered.m_targets.at( "p4.numberImages" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.writeDiagnostics" ).clType == mx::app::argType::True );
     REQUIRE( registered.m_targets.at( "p4.orMaxHalfAngle" ).helpType == "float" );
     REQUIRE_NOTHROW( defaults.loadConfig( registered ) );
@@ -371,6 +373,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( configured.m_maxRadius == std::vector<float>{ 6, 9 } );
     REQUIRE( configured.m_modeFractions == std::vector<float>{ 0.25f, 0.5f } );
     REQUIRE( configured.m_regressionFrame == mx::improc::P4RegressionFrame::rotated );
+    REQUIRE( configured.m_numberImages == 0 );
     REQUIRE( configured.m_orDeltaRadiusInner == 2 );
     REQUIRE( configured.m_orDeltaRadiusOuter == 3 );
     REQUIRE( configured.m_orArcHalfWidth == 4 );
@@ -500,6 +503,48 @@ TEST_CASE( "P4 reduction exact synthetic prediction", "[P4Reduction][reduce][pre
     doxygenReduction.regions( { 5 }, { 6 } );
 #endif
     // clang-format on
+}
+
+/// Verify detector-frame P4 selects nearest qualifying temporal images without wrapping past dataset boundaries.
+/** This exercises P4Reduction::reduce() with multi-image detector predictors. */
+/** \ingroup P4Reduction_unit_tests */
+TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][detector][temporal]" )
+{
+    SECTION( "one neighbor per direction supports decreasing rotation" )
+    {
+        OpenMPThreadGuard threads( 1 );
+        reductionHarness reduction;
+        prepareReduction( reduction, 5 );
+        reduction.m_numberImages = 1;
+        reduction.m_derotF.m_angles = { 40, 30, 20, 10, 0 };
+
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_temporalSelections ==
+                 std::vector<std::vector<std::vector<int>>>{ { { 1, 0, 2 }, { 2, 1, 3 }, { 3, 2, 4 } } } );
+        REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 3 );
+        REQUIRE( reduction.m_regionStatistics[0].predictorCount % 3 == 0 );
+
+        for( int image = 0; image < reduction.m_Nims; ++image )
+        {
+            const bool expectedValid = image > 0 && image < reduction.m_Nims - 1;
+            REQUIRE( reduction.m_psfsubValidity[0].image( image ).maxCoeff() == ( expectedValid ? 1 : 0 ) );
+        }
+    }
+
+    SECTION( "multiple neighbors per direction worsen endpoint truncation" )
+    {
+        OpenMPThreadGuard threads( 1 );
+        reductionHarness reduction;
+        prepareReduction( reduction, 7 );
+        reduction.m_numberImages = 2;
+        reduction.m_derotF.m_angles = { 0, 10, 20, 30, 40, 50, 60 };
+
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_temporalSelections == std::vector<std::vector<std::vector<int>>>{
+                                                       { { 2, 1, 0, 3, 4 }, { 3, 2, 1, 4, 5 }, { 4, 3, 2, 5, 6 } } } );
+        REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 3 );
+        REQUIRE( reduction.m_regionStatistics[0].predictorCount % 5 == 0 );
+    }
 }
 
 /// Verify rotated P4 centers its fit, applies the predictor to uncentered data, and reports sky support.
@@ -942,11 +987,24 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         invalidFrame.m_regressionFrame = static_cast<mx::improc::P4RegressionFrame>( 99 );
         REQUIRE_THROWS( invalidFrame.reduce() );
 
+        reductionHarness negativeNumberImages;
+        prepareReduction( negativeNumberImages );
+        negativeNumberImages.m_numberImages = -1;
+        REQUIRE_THROWS( negativeNumberImages.reduce() );
+
         reductionHarness rotatedPostMedian;
         prepareReduction( rotatedPostMedian );
         rotatedPostMedian.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
         rotatedPostMedian.m_postMedSub = true;
         REQUIRE_THROWS( rotatedPostMedian.reduce() );
+
+        reductionHarness rotatedMultiImage;
+        prepareReduction( rotatedMultiImage );
+        rotatedMultiImage.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+        rotatedMultiImage.m_numberImages = 1;
+        REQUIRE_THROWS_WITH(
+            rotatedMultiImage.reduce(),
+            Catch::Matchers::Contains( "p4.numberImages is supported only for detector-frame P4 regression" ) );
 
         reductionHarness nonfiniteDerotation;
         prepareReduction( nonfiniteDerotation );
@@ -1352,6 +1410,7 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     requireSameReduction( baseline, diagnostic );
     REQUIRE( std::filesystem::exists( directory.file( "diagnostics/p4Ownership.fits" ) ) );
     REQUIRE( std::filesystem::exists( directory.file( "diagnostics/p4Validity_000.fits" ) ) );
+    REQUIRE( std::filesystem::exists( directory.file( "diagnostics/p4TemporalSelection_000.fits" ) ) );
     REQUIRE( std::filesystem::exists( directory.file( "diagnostics/p4CanonicalOR_000.fits" ) ) );
     REQUIRE( std::filesystem::exists( directory.file( "diagnostics/p4RegionSummary.fits" ) ) );
     REQUIRE( std::filesystem::exists( directory.file( "diagnostics/p4Timing.fits" ) ) );
@@ -1373,10 +1432,10 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( diagnosticValidity.image( 0 ).isApprox( diagnostic.m_psfsubValidity[0].image( 0 ), 0 ) );
 
     REQUIRE( summary.rows() == 1 );
-    REQUIRE( summary.cols() == 11 );
-    REQUIRE( summary( 0, 6 ) + summary( 0, 7 ) + summary( 0, 8 ) == Approx( summary( 0, 2 ) ) );
-    REQUIRE( summary( 0, 9 ) == Approx( diagnostic.m_realizedModes[0][0] ) );
-    REQUIRE( summary( 0, 10 ) == Approx( diagnostic.m_regionStatistics[0].rankInvalidCounts[0] ) );
+    REQUIRE( summary.cols() == 12 );
+    REQUIRE( summary( 0, 7 ) + summary( 0, 8 ) + summary( 0, 9 ) == Approx( summary( 0, 2 ) ) );
+    REQUIRE( summary( 0, 10 ) == Approx( diagnostic.m_realizedModes[0][0] ) );
+    REQUIRE( summary( 0, 11 ) == Approx( diagnostic.m_regionStatistics[0].rankInvalidCounts[0] ) );
 
     reductionT::fitsHeaderT header;
     diagnostic.appendReductionHeader( header );
@@ -1384,6 +1443,7 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( header["P4 FRAME"].String().starts_with( "detector" ) );
     REQUIRE( header["P4INSAMP"].Int() == 1 );
     REQUIRE( header["P4RDI"].Int() == 0 );
+    REQUIRE( header["P4NIMGS"].Int() == 0 );
     REQUIRE( header["P4EXCL"].String().starts_with( "kernelSupport" ) );
     REQUIRE( header["P4MODFR"].String().starts_with( "0.5" ) );
     REQUIRE( header["P4M000"].String().starts_with( "1" ) );

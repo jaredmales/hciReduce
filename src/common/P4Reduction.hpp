@@ -48,6 +48,8 @@ struct P4RegionStatistics
 {
     std::size_t searchPixelCount{ 0 }; ///< Number of owned search pixels in the annulus.
 
+    std::size_t targetImageCount{ 0 }; ///< Number of central target-image rows retained for the annulus.
+
     std::size_t predictorCount{ 0 };   ///< Annulus-wide predictor-column count.
 
     int maximumDegreesOfFreedom{ 0 };  ///< Structural mode limit for the selected regression frame and annulus.
@@ -105,7 +107,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     std::vector<realT> m_modeFractions; ///< Strictly increasing PCA fractions defining output planes.
 
-    P4RegressionFrame m_regressionFrame{ P4RegressionFrame::detector };    ///< Frame of the learned regression.
+    P4RegressionFrame m_regressionFrame{ P4RegressionFrame::detector }; ///< Frame of the learned regression.
+
+    int m_numberImages{ 0 }; ///< Qualifying earlier and later images appended to each detector-frame predictor row.
 
     realT m_orDeltaRadiusInner{ std::numeric_limits<realT>::quiet_NaN() }; ///< Inward OR radial extent in pixels.
 
@@ -138,6 +142,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     std::vector<std::vector<int>> m_realizedModes;      ///< Retained mode counts indexed by annulus then output plane.
 
     std::vector<P4RegionStatistics> m_regionStatistics; ///< Per-annulus geometry, rank, and invalidity summaries.
+
+    std::vector<std::vector<std::vector<int>>> m_temporalSelections;
+    ///< Per-annulus central and neighboring target-image indices used in detector-frame predictor rows.
 
     Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> m_ownership; ///< Owning annulus index, or -1 outside support.
 

@@ -87,6 +87,7 @@ std::string p4Configuration( const std::filesystem::path &inputDirectory,  /**< 
                   << "[p4]\n"
                   << "modeFractions=0.5\n"
                   << "regressionFrame=detector\n"
+                  << "numberImages=0\n"
                   << "orDeltaRadiusInner=2\n"
                   << "orDeltaRadiusOuter=2\n"
                   << "orArcHalfWidth=4\n"
@@ -190,6 +191,7 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     REQUIRE( application.config.m_targets.at( "mode" ).clType == mx::app::argType::Required );
     REQUIRE( application.config.m_targets.at( "p4.modeFractions" ).helpType == "vector<realT>" );
     REQUIRE( application.config.m_targets.at( "p4.regressionFrame" ).helpType == "string" );
+    REQUIRE( application.config.m_targets.at( "p4.numberImages" ).helpType == "int" );
     REQUIRE( application.config.m_targets.at( "p4.exclusionPolicy" ).clType == mx::app::argType::Required );
 
     for( const auto &[name, target] : application.config.m_targets )
@@ -208,6 +210,7 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     REQUIRE( application.m_obs.m_maxRadius == std::vector<float>{ 6 } );
     REQUIRE( application.m_obs.m_modeFractions == std::vector<float>{ 0.5F } );
     REQUIRE( application.m_obs.m_regressionFrame == mx::improc::P4RegressionFrame::detector );
+    REQUIRE( application.m_obs.m_numberImages == 0 );
     REQUIRE( application.m_obs.m_exclusionPolicy == mx::improc::P4ExclusionPolicy::kernelSupport );
 
     // clang-format off

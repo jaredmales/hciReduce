@@ -28,6 +28,14 @@
  * and add no hidden centering or intercept. Mean-image subtraction and other preprocessing are controlled entirely
  * by the inherited hciReduce preprocessing configuration.
  *
+ * With the compatibility default `p4.numberImages=0`, each predictor row contains only the `K` OR pixels from its
+ * central image. A positive `p4.numberImages=N` appends `N` nearest qualifying earlier-image blocks and `N` nearest
+ * qualifying later-image blocks, producing `K(1 + 2N)` predictor columns. A neighbor qualifies when its wrapped
+ * field-rotation displacement is at least one `p4.psfRadius` at that annulus's inner search radius. Selection never
+ * wraps around the input-cube endpoints; a central image that lacks all requested neighbors is omitted from that
+ * annulus's fit and remains invalid in the residual cube. This detector-only extension is rejected for
+ * `p4.regressionFrame=rotated`.
+ *
  * The detector-frame residual cubes are derotated by the shared ADI final-processing stage before combination.
  *
  * \section p4reduce_rotated_regression Rotated-frame regression
@@ -115,6 +123,7 @@
  * |---|---|
  * | `geom.minRadius`, `geom.maxRadius` | Matching, ordered, non-overlapping full-annulus bounds. Inner radii are inclusive and outer radii are exclusive. |
  * | `p4.regressionFrame` | `detector` (default) or `rotated`; selects the regression coordinates, centering rule, support test, and final-frame lifecycle. |
+ * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames added to each predictor row; `0` is the compatibility default and positive values are invalid in rotated mode. |
  * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
  * | `p4.orArcHalfWidth` | Nonnegative azimuthal half-width expressed as arc length in pixels; `0` uses only `p4.orMaxHalfAngle`. |
@@ -203,6 +212,7 @@
  *
  * [p4]
  * regressionFrame=detector
+ * numberImages=1
  * modeFractions=0.01,0.03,0.05,0.07,0.09,0.11,0.13,0.15,0.17,0.19,0.21,0.23,0.25,0.27,0.29
  * orDeltaRadiusInner=8
  * orDeltaRadiusOuter=30
