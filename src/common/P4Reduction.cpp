@@ -119,14 +119,21 @@ std::vector<std::vector<int>> p4TemporalSelections( const std::vector<double> &d
 bool p4TemporalSelectionSupportsModes( const std::vector<std::vector<int>> &selections,
                                        /**< [in] retained central targets and their temporal predictor images */
                                        std::size_t basePredictorCount, /**< [in] same-image OR predictor count */
+                                       std::size_t temporalPredictorCount,
+                                       /**< [in] physical-PSF predictor pixels per neighboring image */
                                        const std::vector<float> &modeFractions /**< [in] requested PCA fractions */ )
 {
     if( selections.empty() || selections.front().empty() ||
-        basePredictorCount > std::numeric_limits<std::size_t>::max() / selections.front().size() )
+        selections.front().size() - 1 > std::numeric_limits<std::size_t>::max() / temporalPredictorCount )
     {
         return false;
     }
-    const std::size_t predictorCount = basePredictorCount * selections.front().size();
+    const std::size_t neighborPredictorCount = temporalPredictorCount * ( selections.front().size() - 1 );
+    if( basePredictorCount > std::numeric_limits<std::size_t>::max() - neighborPredictorCount )
+    {
+        return false;
+    }
+    const std::size_t predictorCount = basePredictorCount + neighborPredictorCount;
     if( predictorCount > static_cast<std::size_t>( std::numeric_limits<int>::max() ) ||
         selections.size() > static_cast<std::size_t>( std::numeric_limits<int>::max() ) )
     {
@@ -155,6 +162,8 @@ p4TemporalSelectionWithFallback( const std::vector<double> &derotationAngles,
                                  double requestedPsfRadius,      /**< [in] configured physical PSF radius in pixels */
                                  int numberImages,               /**< [in] requested qualifying images per side */
                                  std::size_t basePredictorCount, /**< [in] same-image OR predictor count */
+                                 std::size_t temporalPredictorCount,
+                                 /**< [in] physical-PSF predictor pixels per neighboring image */
                                  const std::vector<float> &modeFractions /**< [in] requested PCA fractions */ )
 {
     std::vector<double> candidateRadii{ requestedPsfRadius };
@@ -178,12 +187,51 @@ p4TemporalSelectionWithFallback( const std::vector<double> &derotationAngles,
     {
         std::vector<std::vector<int>> selections =
             p4TemporalSelections( derotationAngles, meanRadius, radius, numberImages );
-        if( p4TemporalSelectionSupportsModes( selections, basePredictorCount, modeFractions ) )
+        if( p4TemporalSelectionSupportsModes( selections, basePredictorCount, temporalPredictorCount, modeFractions ) )
         {
             return { radius, std::move( selections ) };
         }
     }
     return { 0, {} };
+}
+
+/// Enumerate direct detector-pixel offsets inside the physical temporal PSF predictor disk.
+std::vector<P4PixelCoordinate> p4TemporalPredictorOffsets( double psfRadius /**< [in] physical PSF radius in pixels */ )
+{
+    const int maximumOffset = static_cast<int>( std::ceil( psfRadius ) );
+    std::vector<P4PixelCoordinate> offsets;
+    for( int row = -maximumOffset; row <= maximumOffset; ++row )
+    {
+        for( int column = -maximumOffset; column <= maximumOffset; ++column )
+        {
+            if( std::hypot( static_cast<double>( row ), static_cast<double>( column ) ) <= psfRadius )
+            {
+                offsets.emplace_back( row, column );
+            }
+        }
+    }
+    return offsets;
+}
+
+/// Report whether every direct temporal PSF predictor pixel is inside the image and common mask.
+bool p4TemporalPredictorsValid( const P4PixelCoordinate &searchCoordinate,
+                                /**< [in] central search-pixel coordinate */
+                                const std::vector<P4PixelCoordinate> &offsets,
+                                /**< [in] physical temporal PSF predictor offsets */
+                                int rows,    /**< [in] detector-image row count */
+                                int columns, /**< [in] detector-image column count */
+                                const P4PixelGridf::imageT *mask /**< [in] optional common mask */ )
+{
+    for( const P4PixelCoordinate &offset : offsets )
+    {
+        const int row = searchCoordinate.row() + offset.row();
+        const int column = searchCoordinate.column() + offset.column();
+        if( row < 0 || row >= rows || column < 0 || column >= columns || ( mask && ( *mask )( row, column ) == 0 ) )
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 /** \cond P4ProgressOutput */
@@ -876,6 +924,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_ownership.setConstant( -1 );
 
     const imageT *mask = this->m_mask.size() == 0 ? nullptr : &this->m_mask;
+    const std::vector<P4PixelCoordinate> temporalPredictorOffsets = p4TemporalPredictorOffsets( m_psfRadius );
     std::vector<double> derotationAngles;
     if( m_regressionFrame == P4RegressionFrame::rotated || m_numberImages > 0 )
     {
@@ -954,9 +1003,10 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                     0.5 * ( static_cast<double>( m_minRadius[region] ) + static_cast<double>( m_maxRadius[region] ) );
                 auto selection = p4TemporalSelectionWithFallback( derotationAngles,
                                                                   meanRadius,
-                                                                  m_psfRadius,
+                                                                  2 * static_cast<double>( m_psfRadius ),
                                                                   m_numberImages,
                                                                   basePredictorCount,
+                                                                  temporalPredictorOffsets.size(),
                                                                   m_modeFractions );
                 temporalPsfRadius = selection.first;
                 m_temporalSelections[region] = std::move( selection.second );
@@ -979,13 +1029,19 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             }
         }
         const std::size_t targetImageCount = m_temporalSelections[region].size();
-        const std::size_t imageFactor = m_temporalSelections[region].front().size();
-        if( basePredictorCount > std::numeric_limits<std::size_t>::max() / imageFactor )
+        const std::size_t temporalImageCount = m_temporalSelections[region].front().size() - 1;
+        if( temporalImageCount > std::numeric_limits<std::size_t>::max() / temporalPredictorOffsets.size() )
         {
             throw mx::exception<verboseT>( mx::error_t::sizeerr,
                                            "P4 multi-image predictor count exceeds size_t range" );
         }
-        const std::size_t predictorCount = basePredictorCount * imageFactor;
+        const std::size_t temporalPredictorCount = temporalImageCount * temporalPredictorOffsets.size();
+        if( basePredictorCount > std::numeric_limits<std::size_t>::max() - temporalPredictorCount )
+        {
+            throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                           "P4 multi-image predictor count exceeds size_t range" );
+        }
+        const std::size_t predictorCount = basePredictorCount + temporalPredictorCount;
         std::cerr << "done: " << searchPixelCount << " search pixels, K=" << predictorCount << '\n';
 
         const int maximumDegreesOfFreedom =
@@ -1024,7 +1080,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         P4RegionStatistics &statistics = m_regionStatistics[region];
         statistics.searchPixelCount = searchPixelCount;
         statistics.targetImageCount = targetImageCount;
-        statistics.temporalNumberImages = static_cast<int>( ( imageFactor - 1 ) / 2 );
+        statistics.temporalNumberImages = static_cast<int>( temporalImageCount / 2 );
         statistics.temporalPsfRadius = temporalPsfRadius;
         statistics.predictorCount = predictorCount;
         statistics.maximumDegreesOfFreedom = maximumDegreesOfFreedom;
@@ -1062,6 +1118,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         const std::size_t searchPixelCount = m_regionStatistics[region].searchPixelCount;
         const std::vector<std::vector<int>> &temporalSelections = m_temporalSelections[region];
         const std::size_t targetImageCount = temporalSelections.size();
+        const bool usesTemporalPredictors = m_regionStatistics[region].temporalNumberImages > 0;
         const std::size_t predictorCount = m_regionStatistics[region].predictorCount;
         const std::vector<int> &modes = m_realizedModes[region];
         progressOutput.beginRegion( region,
@@ -1107,7 +1164,15 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                     {
                         const bool searchValid =
                             rotated ? rotatedGrid.searchPixel( search ).valid() : grid.searchPixel( search ).valid();
-                        if( !searchValid )
+                        const P4PixelCoordinate &coordinate = rotated ? rotatedGrid.searchPixel( search ).coordinate()
+                                                                      : grid.searchPixel( search ).coordinate();
+                        const bool temporalPredictorsValid =
+                            !usesTemporalPredictors || p4TemporalPredictorsValid( coordinate,
+                                                                                  temporalPredictorOffsets,
+                                                                                  this->m_Nrows,
+                                                                                  this->m_Ncols,
+                                                                                  mask );
+                        if( !searchValid || !temporalPredictorsValid )
                         {
                             if( rotated )
                             {
@@ -1120,9 +1185,6 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                         }
                         else
                         {
-                            const P4PixelCoordinate &coordinate = rotated
-                                                                      ? rotatedGrid.searchPixel( search ).coordinate()
-                                                                      : grid.searchPixel( search ).coordinate();
                             const int row = coordinate.row();
                             const int column = coordinate.column();
                             if( rotated )
@@ -1154,15 +1216,27 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                     const int centralImage = selection[0];
                                     target( static_cast<Eigen::Index>( targetIndex ) ) =
                                         static_cast<double>( this->m_tgtIms.image( centralImage )( row, column ) );
-                                    for( std::size_t source = 0; source < selection.size(); ++source )
+                                    for( std::size_t predictor = 0; predictor < basePredictorCount; ++predictor )
+                                    {
+                                        predictors( static_cast<Eigen::Index>( targetIndex ), predictor ) =
+                                            checkedPredictorPromotion(
+                                                grid.sample( this->m_tgtIms.image( centralImage ),
+                                                             search,
+                                                             predictor ) );
+                                    }
+                                    for( std::size_t source = 1; source < selection.size(); ++source )
                                     {
                                         const int image = selection[source];
-                                        for( std::size_t predictor = 0; predictor < basePredictorCount; ++predictor )
+                                        for( std::size_t predictor = 0; predictor < temporalPredictorOffsets.size();
+                                             ++predictor )
                                         {
                                             predictors( static_cast<Eigen::Index>( targetIndex ),
-                                                        source * basePredictorCount + predictor ) =
-                                                checkedPredictorPromotion(
-                                                    grid.sample( this->m_tgtIms.image( image ), search, predictor ) );
+                                                        basePredictorCount +
+                                                            ( source - 1 ) * temporalPredictorOffsets.size() +
+                                                            predictor ) =
+                                                checkedPredictorPromotion( this->m_tgtIms.image( image )(
+                                                    row + temporalPredictorOffsets[predictor].row(),
+                                                    column + temporalPredictorOffsets[predictor].column() ) );
                                         }
                                     }
                                 }

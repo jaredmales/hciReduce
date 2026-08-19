@@ -516,7 +516,7 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
         reductionHarness reduction;
         prepareReduction( reduction, 5 );
         reduction.m_numberImages = 1;
-        reduction.m_derotF.m_angles = { 40, 30, 20, 10, 0 };
+        reduction.m_derotF.m_angles = { 80, 60, 40, 20, 0 };
 
         REQUIRE( reduction.reduce() == 0 );
         REQUIRE( reduction.m_temporalSelections ==
@@ -524,8 +524,8 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
                      { { 0, 1, 2 }, { 1, 0, 2 }, { 2, 1, 3 }, { 3, 2, 4 }, { 4, 3, 2 } } } );
         REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 5 );
         REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 1 );
-        REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius == Approx( reduction.m_psfRadius ) );
-        REQUIRE( reduction.m_regionStatistics[0].predictorCount % 3 == 0 );
+        REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius == Approx( 2 * reduction.m_psfRadius ) );
+        REQUIRE( reduction.m_regionStatistics[0].predictorCount == 19 );
 
         for( int image = 0; image < reduction.m_Nims; ++image )
         {
@@ -539,7 +539,7 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
         reductionHarness reduction;
         prepareReduction( reduction, 7 );
         reduction.m_numberImages = 2;
-        reduction.m_derotF.m_angles = { 0, 10, 20, 30, 40, 50, 60 };
+        reduction.m_derotF.m_angles = { 0, 20, 40, 60, 80, 100, 120 };
 
         REQUIRE( reduction.reduce() == 0 );
         REQUIRE( reduction.m_temporalSelections[0].front() == std::vector<int>{ 0, 1, 2, 3, 4 } );
@@ -547,7 +547,7 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
         REQUIRE( reduction.m_temporalSelections[0].back() == std::vector<int>{ 6, 5, 4, 3, 2 } );
         REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 7 );
         REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 2 );
-        REQUIRE( reduction.m_regionStatistics[0].predictorCount % 5 == 0 );
+        REQUIRE( reduction.m_regionStatistics[0].predictorCount == 21 );
     }
 
     SECTION( "unattainable radius degrades to the largest structurally usable value" )
@@ -561,7 +561,7 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
         REQUIRE( reduction.reduce() == 0 );
         REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 1 );
         REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius > 0 );
-        REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius < reduction.m_psfRadius );
+        REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius < 2 * reduction.m_psfRadius );
         REQUIRE( reduction.m_regionStatistics[0].targetImageCount >= 2 );
     }
 

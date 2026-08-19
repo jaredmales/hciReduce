@@ -30,12 +30,14 @@
  *
  * With the compatibility default `p4.numberImages=0`, each predictor row contains only the `K` OR pixels from its
  * central image. A positive `p4.numberImages=N` appends `N` nearest qualifying earlier-image blocks and `N` nearest
- * qualifying later-image blocks, producing `K(1 + 2N)` predictor columns. At a cube endpoint, missing neighbors on
- * one temporal side are replaced by additional qualifying images from the available side, preserving both predictor
- * width and integration time. A neighbor qualifies when its wrapped field-rotation displacement is at least one
- * `p4.psfRadius` at that annulus's mean search radius. If the requested radius cannot retain a structurally valid
- * PCA sample set, P4 uses the largest positive radius that does; if no positive radius works, that annulus gracefully
- * reverts to same-image predictors. This detector-only extension is rejected for `p4.regressionFrame=rotated`.
+ * qualifying later-image blocks. The central block retains its `K_OR` OR pixels, while each neighbor contributes
+ * only the `K_PSF` direct detector pixels inside `p4.psfRadius`, for `K_OR + 2N K_PSF` columns. At a cube endpoint,
+ * missing neighbors on one temporal side are replaced by additional qualifying images from the available side,
+ * preserving both predictor width and integration time. A neighbor qualifies when its wrapped field-rotation
+ * displacement is at least `2 * p4.psfRadius` at that annulus's mean search radius, keeping the neighbor's physical
+ * PSF disk free of companion signal. If the requested radius cannot retain a structurally valid PCA sample set, P4
+ * uses the largest positive radius that does; if no positive radius works, that annulus gracefully reverts to
+ * same-image predictors. This detector-only extension is rejected for `p4.regressionFrame=rotated`.
  *
  * The detector-frame residual cubes are derotated by the shared ADI final-processing stage before combination.
  *

@@ -17,7 +17,7 @@ Ok let's degrade gracefully rather than fail.  Switch to basing rotation amount 
 
 2. After the target cube and derotation angles are available, build a deterministic temporal-neighbor selection for
    each central target image.  For a search annulus whose mean radius is `r`, require a field-rotation displacement
-   of at least one physical `p4.psfRadius`, i.e. `abs(angleDiff) * r >= p4.psfRadius` (with angles in radians), using
+   of at least two physical `p4.psfRadius`, i.e. `abs(angleDiff) * r >= 2 * p4.psfRadius` (with angles in radians), using
    the existing wrapped angular-difference utility.
    Scan independently backward and forward in input-image order; on each side retain the nearest `p4.numberImages`
    frames satisfying that threshold.  Use the absolute angle difference so the two temporal directions work whether
@@ -31,11 +31,10 @@ Ok let's degrade gracefully rather than fail.  Switch to basing rotation amount 
    is evaluated at each annulus's mean radius, the effective temporal radius may differ by annulus.
 
 4. Extend the detector-frame regression assembly in `P4Reduction::regions()` so that each usable central-image row
-   contains its original `K` OR-pixel predictors plus `K` predictors for every selected earlier and later image, for
-   a total of `K * (1 + 2 * p4.numberImages)` columns.  Keep the response as the central image's search-pixel value.
-   Feed the compacted usable-target rows to the existing PCA path, then scatter residuals only to their original
-   central-image planes.  Recompute structural degrees of freedom and realized mode limits using the compacted row
-   count and expanded predictor count.
+   contains its original OR-pixel predictors plus only the pixels within physical `p4.psfRadius` for every selected
+   earlier and later image. Keep the response as the central image's search-pixel value. Feed the usable-target rows
+   to the existing PCA path, then scatter residuals to their original central-image planes. Recompute structural
+   degrees of freedom and realized mode limits using the resulting predictor count.
 
 5. Keep rotated-frame behavior explicitly unchanged for this increment.  Reject the unsupported configuration
    `p4.regressionFrame=rotated` with `p4.numberImages > 0` during validation; document that explicit contract rather
