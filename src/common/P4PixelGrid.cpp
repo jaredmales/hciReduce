@@ -320,8 +320,8 @@ void P4PixelGrid<transformT>::regionImpl( const P4PixelGridRegion &configuration
     }
 
     if( configuration.optimizationDeltaRadiusInner <= 0 || configuration.optimizationDeltaRadiusOuter <= 0 ||
-        configuration.optimizationArcHalfWidth <= 0 || configuration.optimizationMaxHalfAngle <= 0 ||
-        configuration.optimizationMaxHalfAngle >= 180 || configuration.psfRadius <= 0 ||
+        configuration.optimizationArcHalfWidth < 0 || configuration.optimizationMaxHalfAngle <= 0 ||
+        configuration.optimizationMaxHalfAngle > 180 || configuration.psfRadius <= 0 ||
         configuration.exclusionRadiusBuffer < 0 )
     {
         throw std::invalid_argument( "P4PixelGrid optimization and exclusion values are outside their valid ranges" );
@@ -397,9 +397,13 @@ void P4PixelGrid<transformT>::regionImpl( const P4PixelGridRegion &configuration
         throw std::invalid_argument( "P4PixelGrid optimization annulus contains no possible pixels" );
     }
 
-    double optimizationHalfAngle =
-        configuration.optimizationArcHalfWidth / ( 2.0 * std::numbers::pi_v<double> * regionMiddleRadius ) * 360.0;
-    optimizationHalfAngle = std::min( optimizationHalfAngle, configuration.optimizationMaxHalfAngle );
+    double optimizationHalfAngle = configuration.optimizationMaxHalfAngle;
+    if( configuration.optimizationArcHalfWidth > 0 )
+    {
+        optimizationHalfAngle =
+            configuration.optimizationArcHalfWidth / ( 2.0 * std::numbers::pi_v<double> * regionMiddleRadius ) * 360.0;
+        optimizationHalfAngle = std::min( optimizationHalfAngle, configuration.optimizationMaxHalfAngle );
+    }
     const double angularTolerance = 16.0 * std::numeric_limits<double>::epsilon() *
                                     std::max( { 1.0, std::abs( canonicalAngle ), optimizationHalfAngle } );
 

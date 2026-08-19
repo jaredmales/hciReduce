@@ -916,10 +916,11 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
 
     SECTION( "invalid optimization geometry and policy" )
     {
-        reductionHarness invalidAngle;
-        prepareReduction( invalidAngle );
-        invalidAngle.m_orMaxHalfAngle = 180;
-        REQUIRE_THROWS( invalidAngle.reduce() );
+        reductionHarness fullAnnulus;
+        prepareReduction( fullAnnulus );
+        fullAnnulus.m_orArcHalfWidth = 0;
+        fullAnnulus.m_orMaxHalfAngle = 180;
+        REQUIRE_NOTHROW( fullAnnulus.reduce() );
 
         reductionHarness invalidBuffer;
         prepareReduction( invalidBuffer );
@@ -1135,6 +1136,15 @@ TEST_CASE( "P4 reduction input lifecycle", "[P4Reduction][input][RDI][finite][pr
         reduction.m_psfsubValidity.resize( 1 );
         reduction.m_preProcess_only = true;
         reduction.m_skipPreProcess = false;
+        reduction.m_minRadius.clear();
+        reduction.m_maxRadius.clear();
+        reduction.m_modeFractions.clear();
+        reduction.m_orDeltaRadiusInner = std::numeric_limits<float>::quiet_NaN();
+        reduction.m_orDeltaRadiusOuter = std::numeric_limits<float>::quiet_NaN();
+        reduction.m_orArcHalfWidth = std::numeric_limits<float>::quiet_NaN();
+        reduction.m_orMaxHalfAngle = std::numeric_limits<float>::quiet_NaN();
+        reduction.m_psfRadius = std::numeric_limits<float>::quiet_NaN();
+        reduction.m_exclusionPolicy.reset();
         REQUIRE( reduction.reduce() == 0 );
         REQUIRE( reduction.m_psfsub.empty() );
         REQUIRE( reduction.m_psfsubValidity.empty() );

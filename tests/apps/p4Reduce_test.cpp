@@ -443,6 +443,39 @@ TEST_CASE( "p4Reduce basic preprocess-only dispatch", "[p4Reduce][execute][basic
     // clang-format on
 }
 
+/// Verify p4Reduce preprocessing-only execution does not require P4 reduction geometry.
+/** ingroup p4Reduce_unit_tests */
+TEST_CASE( "p4Reduce preprocess-only without P4 geometry", "[p4Reduce][execute][preprocess][geometry]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    writeTarget( directory.file( "target_000.fits" ), 1, 12 );
+
+    const auto configPath = directory.file( "preprocess-only.conf" );
+    writeTextFile( configPath,
+                   "[input]\n"
+                   "directory=" +
+                       directory.path().string() +
+                       "\n"
+                       "prefix=target_\n"
+                       "extension=.fits\n"
+                       "dateKeyword=\n"
+                       "angleKeyword=ANGLE\n"
+                       "angleScale=1\n"
+                       "angleConstant=0\n"
+                       "[preProcess]\n"
+                       "only=true\n" );
+
+    appHarness application;
+    std::string invokedName = "p4Reduce-test";
+    std::string configOption = "--config";
+    std::string configName = configPath.string();
+    char *arguments[]{ invokedName.data(), configOption.data(), configName.data() };
+
+    REQUIRE( application.main( 3, arguments ) == 0 );
+    REQUIRE( application.m_obs.m_psfsub.empty() );
+}
+
 /// Verify p4Reduce normal mode performs a real-FITS P4 reduction, derotation, combination, header, and output
 /// round-trip.
 /** \ingroup p4Reduce_unit_tests */

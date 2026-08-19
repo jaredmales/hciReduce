@@ -59,10 +59,11 @@ struct P4PixelGridRegion
                        double searchOuterRadius,            /**< [in] exclusive search-annulus outer radius */
                        double optimizationDeltaRadiusInner, /**< [in] inward optimization-wedge radial extent */
                        double optimizationDeltaRadiusOuter, /**< [in] outward optimization-wedge radial extent */
-                       double optimizationArcHalfWidth,     /**< [in] azimuthal half-width as arc length in pixels */
-                       double optimizationMaxHalfAngle,     /**< [in] maximum azimuthal half-angle in degrees */
-                       double psfRadius,                    /**< [in] physical central exclusion radius */
-                       P4ExclusionPolicy exclusionPolicy,   /**< [in] required central-exclusion rule */
+                       double optimizationArcHalfWidth,     /**< [in] azimuthal half-width as arc length in pixels; zero
+                                                               uses only the angular cap */
+                       double optimizationMaxHalfAngle, /**< [in] maximum azimuthal half-angle in degrees in (0,180] */
+                       double psfRadius,                /**< [in] physical central exclusion radius */
+                       P4ExclusionPolicy exclusionPolicy, /**< [in] required central-exclusion rule */
                        double exclusionRadiusBuffer /**< [in] explicit comparison buffer added to \p psfRadius */ );
 
     double searchInnerRadius;            ///< Inclusive search-annulus inner radius in pixels.
@@ -73,9 +74,10 @@ struct P4PixelGridRegion
 
     double optimizationDeltaRadiusOuter; ///< Outward optimization-wedge radial extent in pixels.
 
-    double optimizationArcHalfWidth;     ///< Optimization-wedge azimuthal half-width as arc length in pixels.
+    double optimizationArcHalfWidth;     ///< Optimization-wedge azimuthal half-width as arc length in pixels; zero uses
+                                         ///< only the angular cap.
 
-    double optimizationMaxHalfAngle;     ///< Maximum optimization-wedge half-angle in degrees.
+    double optimizationMaxHalfAngle;     ///< Maximum optimization-wedge half-angle in degrees, up to 180.
 
     double psfRadius;                    ///< Physical central signal-exclusion radius in pixels.
 

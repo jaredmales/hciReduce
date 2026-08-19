@@ -178,24 +178,40 @@ TEST_CASE( "hciAnalyze SNR annulus validation", "[hciAnalyze][header][annulus]" 
     REQUIRE( maximum == Approx( 4 ) );
 }
 
-/// Verify hciAnalyze applies requested Gaussian high- and low-pass filters to every cube plane.
+/// Verify hciAnalyze applies Gaussian filters to every cube plane, including partial edge kernels.
 /** \ingroup hciAnalyze_unit_tests */
 TEST_CASE( "hciAnalyze Gaussian filtering", "[hciAnalyze][filter]" )
 {
     appHarness application;
     hciAnalyze::cubeT cube( 15, 15, 1 );
+    hciAnalyze::cubeT invalidMask( 15, 15, 1 );
+    invalidMask.setZero();
     cube.setZero();
     cube.image( 0 )( 7, 7 ) = 1;
 
-    application.filterCube( cube, 2, 0 );
+    application.filterCube( cube, invalidMask, 2, 0 );
     REQUIRE( cube.image( 0 )( 7, 7 ) < 1 );
     REQUIRE( cube.image( 0 )( 7, 7 ) > 0 );
 
     cube.setZero();
     cube.image( 0 )( 7, 7 ) = 1;
-    application.filterCube( cube, 0, 2 );
+    application.filterCube( cube, invalidMask, 0, 2 );
     REQUIRE( cube.image( 0 )( 7, 7 ) < 1 );
     REQUIRE( cube.image( 0 )( 7, 7 ) > 0 );
+
+    cube.image( 0 ).setConstant( 1 );
+    application.filterCube( cube, invalidMask, 0, 2 );
+    REQUIRE( cube.image( 0 )( 0, 0 ) == Approx( 1 ) );
+    REQUIRE( cube.image( 0 )( 0, 7 ) == Approx( 1 ) );
+    REQUIRE( cube.image( 0 )( 7, 0 ) == Approx( 1 ) );
+    REQUIRE( cube.image( 0 )( 14, 14 ) == Approx( 1 ) );
+
+    cube.image( 0 ).setConstant( 1 );
+    cube.image( 0 )( 7, 7 ) = 0;
+    invalidMask.image( 0 )( 7, 7 ) = 1;
+    application.filterCube( cube, invalidMask, 0, 2 );
+    REQUIRE( cube.image( 0 )( 7, 6 ) == Approx( 1 ) );
+    REQUIRE( cube.image( 0 )( 7, 7 ) == 0 );
 }
 
 /// Verify hciAnalyze reports the maximum inside snr.apertureR while excluding invalid input pixels.

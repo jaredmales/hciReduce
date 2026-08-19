@@ -38,8 +38,10 @@
  * | `--filter.lpfGaussFW` | `filter.lpfGaussFW=pixels` | finite real | `0` | Low-pass Gaussian smoothing FWHM; non-positive disables it. |
  * | `-d`, `--diagnostics` | `diagnostics=true` | bool | `false` | Print resolved geometry, filters, invalid-pixel counts, and SNR values to standard error. |
  *
- * When both filters are enabled, high-pass filtering runs before low-pass smoothing. The reported `snr` is the
- * aperture maximum inside `snr.apertureR`; `planet.R` or `fake.R` only excludes the signal from the noise estimate.
+ * When both filters are enabled, high-pass filtering runs before low-pass smoothing. At image edges and beside invalid
+ * input samples, the filters use partial valid in-bounds Gaussian kernels and renormalize by their retained weights.
+ * The reported `snr` is the aperture maximum inside `snr.apertureR`; `planet.R` or `fake.R` only excludes the signal
+ * from the noise estimate.
  * hciAnalyze always writes or replaces the full SNR cube beside the input as `<input-stem>_snr<input-extension>`.
  * Its header records the resolved signal geometry, the resolved SNR annulus and aperture, and both filter FWHMs.
  *

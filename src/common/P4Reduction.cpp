@@ -295,15 +295,16 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "float",
                 "Positive outward radial extent of the local predictor wedge" );
-    config.add( "p4.orArcHalfWidth",
-                "",
-                "p4.orArcHalfWidth",
-                mx::app::argType::Required,
-                "p4",
-                "orArcHalfWidth",
-                false,
-                "float",
-                "Positive predictor-wedge azimuthal half-width as arc length in pixels" );
+    config.add(
+        "p4.orArcHalfWidth",
+        "",
+        "p4.orArcHalfWidth",
+        mx::app::argType::Required,
+        "p4",
+        "orArcHalfWidth",
+        false,
+        "float",
+        "Nonnegative predictor-wedge azimuthal half-width as arc length in pixels; zero uses only orMaxHalfAngle" );
     config.add( "p4.orMaxHalfAngle",
                 "",
                 "p4.orMaxHalfAngle",
@@ -312,7 +313,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 "orMaxHalfAngle",
                 false,
                 "float",
-                "Predictor-wedge angular half-width cap in the exclusive range (0,180) degrees" );
+                "Predictor-wedge angular half-width cap in the range (0,180] degrees" );
     config.add( "p4.psfRadius",
                 "",
                 "p4.psfRadius",
@@ -520,8 +521,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
             throw mx::exception<verboseT>( mx::error_t::invalidconfig, "P4 geometry values must be finite" );
         }
     }
-    if( m_orDeltaRadiusInner <= 0 || m_orDeltaRadiusOuter <= 0 || m_orArcHalfWidth <= 0 || m_orMaxHalfAngle <= 0 ||
-        m_orMaxHalfAngle >= 180 || m_psfRadius <= 0 || m_exclusionRadiusBuffer < 0 )
+    if( m_orDeltaRadiusInner <= 0 || m_orDeltaRadiusOuter <= 0 || m_orArcHalfWidth < 0 || m_orMaxHalfAngle <= 0 ||
+        m_orMaxHalfAngle > 180 || m_psfRadius <= 0 || m_exclusionRadiusBuffer < 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig, "P4 geometry values are outside valid ranges" );
     }
@@ -636,7 +637,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::claimOwnership(
 template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::reduce()
 {
-    validateConfiguration();
+    if( !( this->m_preProcess_only && !this->m_skipPreProcess ) )
+    {
+        validateConfiguration();
+    }
     if( !this->m_RDIfileList.empty() || !this->m_RDIfileListFile.empty() || !this->m_RDIdirectory.empty() ||
         !this->m_RDIprefix.empty() || this->m_refIms.planes() != 0 )
     {
@@ -660,7 +664,10 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
 {
     m_minRadius = minimumRadii;
     m_maxRadius = maximumRadii;
-    validateConfiguration();
+    if( !( this->m_preProcess_only && !this->m_skipPreProcess ) )
+    {
+        validateConfiguration();
+    }
 
     if( !this->m_RDIfileList.empty() || !this->m_RDIfileListFile.empty() || !this->m_RDIdirectory.empty() ||
         !this->m_RDIprefix.empty() || this->m_refIms.planes() != 0 )

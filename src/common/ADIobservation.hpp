@@ -226,7 +226,7 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
     /// Construct the per-image rotated mask cube and write its auxiliary angle and FITS products.
     virtual void makeMaskCube();
 
-    /// De-rotate the PSF subtracted images
+    /// De-rotate PSF-subtracted images and mark incomplete interpolation footprints invalid.
     void derotate();
 
     /// Apply the shared ADI final-processing lifecycle and write any configured products.
@@ -897,6 +897,8 @@ void ADIobservation<realT, derotFunctObj, verboseT>::derotate()
 #pragma omp parallel
             {
                 imageT rotim;
+                imageT sourceValidity;
+                imageT rotatedValidity;
                 realT derot;
 
 #pragma omp for
@@ -906,6 +908,23 @@ void ADIobservation<realT, derotFunctObj, verboseT>::derotate()
                     if( derot != 0 )
                     {
                         imageRotate( rotim, this->m_psfsub[n].image( i ), derot, cubicConvolTransform<realT>() );
+
+                        sourceValidity.resize( this->m_psfsub[n].rows(), this->m_psfsub[n].cols() );
+                        sourceValidity.setOnes();
+                        imageRotate( rotatedValidity,
+                                     sourceValidity,
+                                     derot,
+                                     detail::completeCubicFootprintTransform<realT>() );
+                        for( int row = 0; row < rotatedValidity.rows(); ++row )
+                        {
+                            for( int column = 0; column < rotatedValidity.cols(); ++column )
+                            {
+                                if( rotatedValidity( row, column ) != 1 )
+                                {
+                                    rotim( row, column ) = invalidNumber<realT>();
+                                }
+                            }
+                        }
                         this->m_psfsub[n].image( i ) = rotim;
                     }
                 }
@@ -949,7 +968,7 @@ void ADIobservation<realT, derotFunctObj, verboseT>::derotate()
                             else
                             {
                                 rotatedValidity( row, column ) = 0;
-                                rotim( row, column ) = 0;
+                                rotim( row, column ) = invalidNumber<realT>();
                             }
                         }
                     }

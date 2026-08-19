@@ -503,7 +503,7 @@ TEST_CASE( "ADIobservation mask and image derotation", "[ADIobservation][makeMas
     observation.derotate();
     REQUIRE( observation.m_psfsub[0].image( 0 ).isApprox( unrotated ) );
     REQUIRE_FALSE( observation.m_psfsub[0].image( 1 ).isApprox( unrotated ) );
-    REQUIRE( observation.m_psfsub[0].image( 1 ).isFinite().all() );
+    REQUIRE( mx::improc::isInvalidPixel( observation.m_psfsub[0].image( 1 )( 0, 0 ) ) );
 
     observation.m_mask.resize( 6, 7 );
     REQUIRE_THROWS( observation.makeMaskCube() );
@@ -545,7 +545,7 @@ TEST_CASE( "ADIobservation complete-footprint validity derotation", "[ADIobserva
             observation.derotate();
 
             REQUIRE( observation.m_psfsubValidity[0].image( 0 )( 4, 4 ) == 0 );
-            REQUIRE( observation.m_psfsub[0].image( 0 )( 4, 4 ) == 0 );
+            REQUIRE( mx::improc::isInvalidPixel( observation.m_psfsub[0].image( 0 )( 4, 4 ) ) );
         }
     }
 
@@ -571,7 +571,14 @@ TEST_CASE( "ADIobservation complete-footprint validity derotation", "[ADIobserva
         {
             REQUIRE( ( complete.m_psfsubValidity[0].image( 0 )( row, column ) == 0 ||
                        complete.m_psfsubValidity[0].image( 0 )( row, column ) == 1 ) );
-            REQUIRE( mx::math::isFinite( complete.m_psfsub[0].image( 0 )( row, column ) ) );
+            if( complete.m_psfsubValidity[0].image( 0 )( row, column ) == 0 )
+            {
+                REQUIRE( mx::improc::isInvalidPixel( complete.m_psfsub[0].image( 0 )( row, column ) ) );
+            }
+            else
+            {
+                REQUIRE( mx::math::isFinite( complete.m_psfsub[0].image( 0 )( row, column ) ) );
+            }
         }
     }
 
@@ -611,7 +618,7 @@ TEST_CASE( "ADIobservation complete-footprint validity derotation", "[ADIobserva
             fractional.derotate();
 
             REQUIRE( fractional.m_psfsubValidity[0].image( 0 )( outputRow, outputColumn ) == 0 );
-            REQUIRE( fractional.m_psfsub[0].image( 0 )( outputRow, outputColumn ) == 0 );
+            REQUIRE( mx::improc::isInvalidPixel( fractional.m_psfsub[0].image( 0 )( outputRow, outputColumn ) ) );
         }
     }
 

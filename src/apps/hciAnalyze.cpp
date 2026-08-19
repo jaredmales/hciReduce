@@ -12,6 +12,7 @@
 #include <limits>
 #include <numbers>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -129,9 +130,10 @@ class hciAnalyze : public mx::app::application
     /// Determine the SNR annulus from configuration and FITS header metadata.
     std::pair<realT, realT> snrAnnulus( fitsHeaderT &header /**< [in] input FITS header */ ) const;
 
-    /// Apply one Gaussian high-pass or low-pass filter to every cube plane.
-    void filterCube( cubeT &cube,        /**< [in,out] image cube to filter */
-                     realT highPassFwhm, /**< [in] high-pass FWHM, non-positive disables */
+    /// Apply mask-aware Gaussian high-pass and low-pass filters to every cube plane.
+    void filterCube( cubeT &cube,              /**< [in,out] image cube to filter */
+                     const cubeT &invalidMask, /**< [in] non-zero marks samples excluded from every kernel */
+                     realT highPassFwhm,       /**< [in] high-pass FWHM, non-positive disables */
                      realT lowPassFwhm /**< [in] low-pass FWHM, non-positive disables */ ) const;
 
     /// Measure all resolved signals in an already-read FITS cube.
@@ -550,21 +552,69 @@ std::pair<hciAnalyze::realT, hciAnalyze::realT> hciAnalyze::snrAnnulus( fitsHead
     return { minRadius, maxRadius };
 }
 
-void hciAnalyze::filterCube( cubeT &cube, realT highPassFwhm, realT lowPassFwhm ) const
+void hciAnalyze::filterCube( cubeT &cube, const cubeT &invalidMask, realT highPassFwhm, realT lowPassFwhm ) const
 {
+    auto filterMasked = [&invalidMask]( imageT &filtered, const imageT &image, const auto &kernel, int plane )
+    {
+        typename std::remove_cvref_t<decltype( kernel )>::arrayT kernelArray;
+        // gaussKernel::setKernel is position-independent and always succeeds.
+        kernel.setKernel( 0, 0, kernelArray );
+
+        const int rowRadius = ( kernelArray.rows() - 1 ) / 2;
+        const int columnRadius = ( kernelArray.cols() - 1 ) / 2;
+        filtered.resize( image.rows(), image.cols() );
+        filtered.setZero();
+
+        // clang-format off
+        #pragma omp parallel for // clang-format on
+        for( int row = 0; row < image.rows(); ++row )
+        {
+            for( int column = 0; column < image.cols(); ++column )
+            {
+                if( invalidMask.image( plane )( row, column ) != 0 )
+                {
+                    continue;
+                }
+
+                realT weightedSum{ 0 };
+                realT normalization{ 0 };
+                for( int kernelRow = 0; kernelRow < kernelArray.rows(); ++kernelRow )
+                {
+                    const int imageRow = row + kernelRow - rowRadius;
+                    if( imageRow < 0 || imageRow >= image.rows() )
+                    {
+                        continue;
+                    }
+                    for( int kernelColumn = 0; kernelColumn < kernelArray.cols(); ++kernelColumn )
+                    {
+                        const int imageColumn = column + kernelColumn - columnRadius;
+                        if( imageColumn < 0 || imageColumn >= image.cols() ||
+                            invalidMask.image( plane )( imageRow, imageColumn ) != 0 )
+                        {
+                            continue;
+                        }
+                        const realT weight = kernelArray( kernelRow, kernelColumn );
+                        weightedSum += weight * image( imageRow, imageColumn );
+                        normalization += weight;
+                    }
+                }
+                filtered( row, column ) = normalization > 0 ? weightedSum / normalization : 0;
+            }
+        }
+    };
+
     for( int plane = 0; plane < cube.planes(); ++plane )
     {
         imageT filtered;
         if( highPassFwhm > 0 )
         {
-            mx::improc::filterImage( filtered,
-                                     cube.image( plane ),
-                                     mx::improc::gaussKernel<imageT, 2>( highPassFwhm ) );
-            cube.image( plane ) -= filtered;
+            const imageT input = cube.image( plane );
+            filterMasked( filtered, input, mx::improc::gaussKernel<imageT, 2>( highPassFwhm ), plane );
+            cube.image( plane ) = input - filtered;
         }
         if( lowPassFwhm > 0 )
         {
-            mx::improc::filterImage( filtered, cube.image( plane ), mx::improc::gaussKernel<imageT, 4>( lowPassFwhm ) );
+            filterMasked( filtered, cube.image( plane ), mx::improc::gaussKernel<imageT, 4>( lowPassFwhm ), plane );
             cube.image( plane ) = filtered;
         }
     }
@@ -575,7 +625,7 @@ void hciAnalyze::analyzeCube( cubeT &cube, fitsHeaderT &header )
     const auto [minRadius, maxRadius] = snrAnnulus( header );
     cubeT invalidMask;
     mx::improc::zeroNaNCube( cube, &invalidMask );
-    filterCube( cube, m_highPassFwhm, m_lowPassFwhm );
+    filterCube( cube, invalidMask, m_highPassFwhm, m_lowPassFwhm );
 
     imageT signalMask( cube.rows(), cube.cols() );
     signalMask.setOnes();

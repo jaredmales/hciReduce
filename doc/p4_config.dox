@@ -28,6 +28,9 @@
  * | `--geom.minRadius` | `geom.minRadius=3.5,6,8` | strictly ordered real pixels | required | Inclusive inner radii of P4 search annuli. |
  * | `--geom.maxRadius` | `geom.maxRadius=6,8,10` | matching ordered real-pixel vector | required | Exclusive outer radii. Annuli may not overlap. |
  *
+ * Both geometry vectors and every P4 model setting may be omitted when `preProcess.only=true`; that mode stops after
+ * shared preprocessing and never constructs P4 regions.
+ *
  * Detector mode rejects geometry whose mapped predictor interpolation footprint crosses an image edge. Rotated mode
  * instead tests the direct detector-frame target and predictor footprints over every input frame and invalidates a
  * local sky-pixel fit when any required footprint is incomplete. To retain science over `[r0,r1)`, calculate halo
@@ -42,8 +45,8 @@
  * | `--p4.modeFractions` | `p4.modeFractions=0.01,0.03,...` | finite, strictly increasing values in `(0,1]` | required | Requested PCA fractions. Each becomes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
  * | `--p4.orDeltaRadiusInner` | `p4.orDeltaRadiusInner=pixels` | positive real pixels | required | Inward radial extent of the local annular predictor wedge. |
  * | `--p4.orDeltaRadiusOuter` | `p4.orDeltaRadiusOuter=pixels` | positive real pixels | required | Outward radial extent of that wedge. |
- * | `--p4.orArcHalfWidth` | `p4.orArcHalfWidth=pixels` | positive real arc length | required | Azimuthal half-width of the predictor wedge, expressed as arc length at the region radius. |
- * | `--p4.orMaxHalfAngle` | `p4.orMaxHalfAngle=degrees` | real degrees strictly in `(0,180)` | required | Cap on the predictor wedge's angular half-width. |
+ * | `--p4.orArcHalfWidth` | `p4.orArcHalfWidth=pixels` | nonnegative real arc length | required | Azimuthal half-width of the predictor wedge, expressed as arc length at the region radius; `0` uses only `orMaxHalfAngle`. |
+ * | `--p4.orMaxHalfAngle` | `p4.orMaxHalfAngle=degrees` | real degrees in `(0,180]` | required | Cap on the predictor wedge's angular half-width; `180` permits the full 360-degree annulus. |
  * | `--p4.rankTolerance` | `p4.rankTolerance=1e-12` | real in `[0,1)` | `1e-12` | Relative rank criterion: a mode is retained only when `lambda > tolerance * lambdaMax`. `0` accepts all positive returned eigenvalues, including roundoff-positive nulls. |
  *
  * Detector mode regresses one fixed detector-pixel time series on its local OR without implicit centering or an

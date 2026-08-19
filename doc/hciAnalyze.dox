@@ -27,8 +27,10 @@
  *
  * \section hcianalyze_measurement SNR measurement
  *
- * Invalid FITS pixels are excluded before filtering and noise estimation. Optional Gaussian high-pass unsharp masking
- * is applied first, followed by optional Gaussian low-pass smoothing. The radial standard-deviation profile is then
+ * Invalid FITS pixels are excluded from filtering and noise estimation. Optional Gaussian high-pass unsharp masking
+ * is applied first, followed by optional Gaussian low-pass smoothing. At image edges and beside invalid samples, each
+ * Gaussian uses its available valid in-bounds footprint and renormalizes by the retained kernel weight, rather than
+ * rejecting pixels without full kernel support. The radial standard-deviation profile is then
  * calculated in the configured annulus after excluding invalid pixels and every signal mask. The reported SNR is
  * the maximum value inside `snr.apertureR` centered on the signal.
  *

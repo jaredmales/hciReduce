@@ -111,9 +111,11 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     realT m_orDeltaRadiusOuter{ std::numeric_limits<realT>::quiet_NaN() }; ///< Outward OR radial extent in pixels.
 
-    realT m_orArcHalfWidth{ std::numeric_limits<realT>::quiet_NaN() };     ///< OR azimuthal half-width in pixels.
+    realT m_orArcHalfWidth{ std::numeric_limits<realT>::quiet_NaN() }; ///< OR azimuthal half-width in pixels; zero uses
+                                                                       ///< only the angular cap.
 
-    realT m_orMaxHalfAngle{ std::numeric_limits<realT>::quiet_NaN() };     ///< OR angular half-width cap in degrees.
+    realT m_orMaxHalfAngle{
+        std::numeric_limits<realT>::quiet_NaN() };                ///< OR angular half-width cap in degrees, up to 180.
 
     realT m_psfRadius{ std::numeric_limits<realT>::quiet_NaN() }; ///< Physical signal-exclusion radius in pixels.
 

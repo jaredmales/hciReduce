@@ -117,8 +117,8 @@
  * | `p4.regressionFrame` | `detector` (default) or `rotated`; selects the regression coordinates, centering rule, support test, and final-frame lifecycle. |
  * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
- * | `p4.orArcHalfWidth` | Positive azimuthal half-width expressed as arc length in pixels. |
- * | `p4.orMaxHalfAngle` | Angular half-width cap strictly between 0 and 180 degrees. |
+ * | `p4.orArcHalfWidth` | Nonnegative azimuthal half-width expressed as arc length in pixels; `0` uses only `p4.orMaxHalfAngle`. |
+ * | `p4.orMaxHalfAngle` | Angular half-width cap in `(0,180]` degrees; `180` permits the full 360-degree annulus. |
  * | `p4.psfRadius` | Positive physical radius of the central signal-exclusion disk, in pixels. |
  * | `p4.exclusionPolicy` | Required `sampleCenter` or `kernelSupport` policy. |
  * | `p4.exclusionRadiusBuffer` | Explicit nonnegative amount added to `p4.psfRadius`; `0.5` reproduces the prototype's effective mask buffer. |

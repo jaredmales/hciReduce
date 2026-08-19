@@ -697,13 +697,11 @@ TEST_CASE( "P4PixelGrid rejects invalid region configurations", "[P4PixelGrid][v
                        std::invalid_argument );
     REQUIRE_THROWS_AS( grid.region( regionT( 2, 3, 1, 0, 1, 30, 0.5, policyT::sampleCenter, 0 ), nullptr ),
                        std::invalid_argument );
-    REQUIRE_THROWS_AS( grid.region( regionT( 2, 3, 1, 1, 0, 30, 0.5, policyT::sampleCenter, 0 ), nullptr ),
+    REQUIRE_THROWS_AS( grid.region( regionT( 2, 3, 1, 1, -1, 30, 0.5, policyT::sampleCenter, 0 ), nullptr ),
                        std::invalid_argument );
     REQUIRE_THROWS_AS( grid.region( regionT( 2, 3, 1, 1, 1, 0, 0.5, policyT::sampleCenter, 0 ), nullptr ),
                        std::invalid_argument );
     REQUIRE_THROWS_AS( grid.region( regionT( 2, 3, 1, 1, 1, 181, 0.5, policyT::sampleCenter, 0 ), nullptr ),
-                       std::invalid_argument );
-    REQUIRE_THROWS_AS( grid.region( regionT( 2, 3, 1, 1, 1, 180, 0.5, policyT::sampleCenter, 0 ), nullptr ),
                        std::invalid_argument );
     REQUIRE_THROWS_AS( grid.region( regionT( 2, 3, 1, 1, 1, 30, 0, policyT::sampleCenter, 0 ), nullptr ),
                        std::invalid_argument );
@@ -767,6 +765,16 @@ TEST_CASE( "P4PixelGrid rejects invalid region configurations", "[P4PixelGrid][v
     REQUIRE( grid.searchPixelCount() == oldSearchCount );
     REQUIRE( grid.predictorCount() == oldPredictorCount );
     REQUIRE( grid.regionConfiguration().searchInnerRadius == 5.0 );
+
+    mx::improc::P4PixelGridf angleOnly;
+    angleOnly.resize( 41, 43, 20.0, 21.0 );
+    REQUIRE_NOTHROW( angleOnly.region( regionT( 2, 3, 1, 1, 0, 45, 0.5, policyT::sampleCenter, 0 ), nullptr ) );
+    REQUIRE( angleOnly.predictorCount() > 0 );
+
+    mx::improc::P4PixelGridf fullAnnulus;
+    fullAnnulus.resize( 41, 43, 20.0, 21.0 );
+    REQUIRE_NOTHROW( fullAnnulus.region( regionT( 2, 3, 1, 1, 0, 180, 0.5, policyT::sampleCenter, 0 ), nullptr ) );
+    REQUIRE( fullAnnulus.predictorCount() > angleOnly.predictorCount() );
 
     mx::improc::P4PixelGridf small;
     small.resize( 15, 15 );
