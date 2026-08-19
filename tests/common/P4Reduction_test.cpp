@@ -522,6 +522,8 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
         REQUIRE( reduction.m_temporalSelections ==
                  std::vector<std::vector<std::vector<int>>>{ { { 1, 0, 2 }, { 2, 1, 3 }, { 3, 2, 4 } } } );
         REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 3 );
+        REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 1 );
+        REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius == Approx( reduction.m_psfRadius ) );
         REQUIRE( reduction.m_regionStatistics[0].predictorCount % 3 == 0 );
 
         for( int image = 0; image < reduction.m_Nims; ++image )
@@ -543,7 +545,36 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
         REQUIRE( reduction.m_temporalSelections == std::vector<std::vector<std::vector<int>>>{
                                                        { { 2, 1, 0, 3, 4 }, { 3, 2, 1, 4, 5 }, { 4, 3, 2, 5, 6 } } } );
         REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 3 );
+        REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 2 );
         REQUIRE( reduction.m_regionStatistics[0].predictorCount % 5 == 0 );
+    }
+
+    SECTION( "unattainable radius degrades to the largest structurally usable value" )
+    {
+        OpenMPThreadGuard threads( 1 );
+        reductionHarness reduction;
+        prepareReduction( reduction, 5 );
+        reduction.m_numberImages = 1;
+        reduction.m_derotF.m_angles = { 0, 2, 4, 6, 8 };
+
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 1 );
+        REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius > 0 );
+        REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius < reduction.m_psfRadius );
+        REQUIRE( reduction.m_regionStatistics[0].targetImageCount >= 2 );
+    }
+
+    SECTION( "zero usable rotation reverts the annulus to same-image predictors" )
+    {
+        OpenMPThreadGuard threads( 1 );
+        reductionHarness reduction;
+        prepareReduction( reduction, 5 );
+        reduction.m_numberImages = 1;
+
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 0 );
+        REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius == 0 );
+        REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 5 );
     }
 }
 
@@ -1432,10 +1463,10 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( diagnosticValidity.image( 0 ).isApprox( diagnostic.m_psfsubValidity[0].image( 0 ), 0 ) );
 
     REQUIRE( summary.rows() == 1 );
-    REQUIRE( summary.cols() == 12 );
-    REQUIRE( summary( 0, 7 ) + summary( 0, 8 ) + summary( 0, 9 ) == Approx( summary( 0, 2 ) ) );
-    REQUIRE( summary( 0, 10 ) == Approx( diagnostic.m_realizedModes[0][0] ) );
-    REQUIRE( summary( 0, 11 ) == Approx( diagnostic.m_regionStatistics[0].rankInvalidCounts[0] ) );
+    REQUIRE( summary.cols() == 14 );
+    REQUIRE( summary( 0, 9 ) + summary( 0, 10 ) + summary( 0, 11 ) == Approx( summary( 0, 2 ) ) );
+    REQUIRE( summary( 0, 12 ) == Approx( diagnostic.m_realizedModes[0][0] ) );
+    REQUIRE( summary( 0, 13 ) == Approx( diagnostic.m_regionStatistics[0].rankInvalidCounts[0] ) );
 
     reductionT::fitsHeaderT header;
     diagnostic.appendReductionHeader( header );

@@ -50,6 +50,10 @@ struct P4RegionStatistics
 
     std::size_t targetImageCount{ 0 }; ///< Number of central target-image rows retained for the annulus.
 
+    int temporalNumberImages{ 0 };     ///< Qualifying earlier and later predictor images retained per central target.
+
+    double temporalPsfRadius{ 0 };     ///< Effective temporal exclusion radius in pixels at the mean annulus radius.
+
     std::size_t predictorCount{ 0 };   ///< Annulus-wide predictor-column count.
 
     int maximumDegreesOfFreedom{ 0 };  ///< Structural mode limit for the selected regression frame and annulus.

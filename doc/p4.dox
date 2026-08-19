@@ -31,10 +31,10 @@
  * With the compatibility default `p4.numberImages=0`, each predictor row contains only the `K` OR pixels from its
  * central image. A positive `p4.numberImages=N` appends `N` nearest qualifying earlier-image blocks and `N` nearest
  * qualifying later-image blocks, producing `K(1 + 2N)` predictor columns. A neighbor qualifies when its wrapped
- * field-rotation displacement is at least one `p4.psfRadius` at that annulus's inner search radius. Selection never
- * wraps around the input-cube endpoints; a central image that lacks all requested neighbors is omitted from that
- * annulus's fit and remains invalid in the residual cube. This detector-only extension is rejected for
- * `p4.regressionFrame=rotated`.
+ * field-rotation displacement is at least one `p4.psfRadius` at that annulus's mean search radius. Selection never
+ * wraps around the input-cube endpoints. If the requested radius cannot retain a structurally valid PCA sample set,
+ * P4 uses the largest positive radius that does; if no positive radius works, that annulus gracefully reverts to
+ * same-image predictors. This detector-only extension is rejected for `p4.regressionFrame=rotated`.
  *
  * The detector-frame residual cubes are derotated by the shared ADI final-processing stage before combination.
  *
