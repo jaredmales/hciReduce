@@ -72,9 +72,9 @@ std::vector<std::vector<int>> p4TemporalSelections( const std::vector<double> &d
     std::vector<std::vector<int>> selections;
     for( std::size_t central = 0; central < derotationAngles.size(); ++central )
     {
-        std::vector<int> selection{ static_cast<int>( central ) };
-        for( std::size_t candidate = central;
-             candidate-- > 0 && selection.size() <= static_cast<std::size_t>( numberImages ); )
+        std::vector<int> earlier;
+        std::vector<int> later;
+        for( std::size_t candidate = central; candidate-- > 0; )
         {
             const double displacement =
                 std::abs( mx::math::angleDiff<mx::math::radiansT<double>>( derotationAngles[candidate],
@@ -82,30 +82,35 @@ std::vector<std::vector<int>> p4TemporalSelections( const std::vector<double> &d
                 minimumRadius;
             if( displacement >= psfRadius )
             {
-                selection.push_back( static_cast<int>( candidate ) );
+                earlier.push_back( static_cast<int>( candidate ) );
             }
         }
-        if( selection.size() != static_cast<std::size_t>( numberImages + 1 ) )
+        for( std::size_t candidate = central + 1; candidate < derotationAngles.size(); ++candidate )
+        {
+            const double displacement =
+                std::abs( mx::math::angleDiff<mx::math::radiansT<double>>( derotationAngles[candidate],
+                                                                           derotationAngles[central] ) ) *
+                minimumRadius;
+            if( displacement >= psfRadius )
+            {
+                later.push_back( static_cast<int>( candidate ) );
+            }
+        }
+        const std::size_t requiredPerSide = static_cast<std::size_t>( numberImages );
+        const std::size_t earlierCount = std::min( earlier.size(), requiredPerSide );
+        const std::size_t laterCount = std::min( later.size(), requiredPerSide );
+        const std::size_t requiredTotal = 2 * requiredPerSide;
+        const std::size_t additionalEarlier =
+            std::min( earlier.size() - earlierCount, requiredTotal - earlierCount - laterCount );
+        const std::size_t additionalLater = requiredTotal - earlierCount - laterCount - additionalEarlier;
+        if( additionalLater > later.size() - laterCount )
         {
             continue;
         }
-        for( std::size_t candidate = central + 1;
-             candidate < derotationAngles.size() && selection.size() <= static_cast<std::size_t>( 2 * numberImages );
-             ++candidate )
-        {
-            const double displacement =
-                std::abs( mx::math::angleDiff<mx::math::radiansT<double>>( derotationAngles[candidate],
-                                                                           derotationAngles[central] ) ) *
-                minimumRadius;
-            if( displacement >= psfRadius )
-            {
-                selection.push_back( static_cast<int>( candidate ) );
-            }
-        }
-        if( selection.size() == static_cast<std::size_t>( 2 * numberImages + 1 ) )
-        {
-            selections.push_back( std::move( selection ) );
-        }
+        std::vector<int> selection{ static_cast<int>( central ) };
+        selection.insert( selection.end(), earlier.begin(), earlier.begin() + earlierCount + additionalEarlier );
+        selection.insert( selection.end(), later.begin(), later.begin() + laterCount + additionalLater );
+        selections.push_back( std::move( selection ) );
     }
     return selections;
 }

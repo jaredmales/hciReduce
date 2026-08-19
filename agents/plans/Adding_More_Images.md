@@ -23,12 +23,12 @@ Ok let's degrade gracefully rather than fail.  Switch to basing rotation amount 
    frames satisfying that threshold.  Use the absolute angle difference so the two temporal directions work whether
    the sequence's parallactic angle rises or falls.  Do not wrap around either end of the cube.
 
-3. Treat a central image as usable in an annulus only when it has all requested qualifying earlier and later
-   neighbors.  Omit other central images from the local PCA samples and leave their residual/validity output pixels
-   invalid. If the requested radius leaves no structurally valid PCA sample set, lower it to the greatest positive
-   radius that does. If no positive radius works (including close-in annuli with no meaningful rotation), fall back to
-   `numberImages=0` for that annulus. Because the threshold is evaluated at each annulus's mean radius, the usable
-   target set and effective temporal radius may differ by annulus.
+3. Build a fixed-width predictor for every central image: use up to the requested number of qualifying neighbors on
+   each temporal side, then replace a missing side at a dataset endpoint with additional qualifying images from the
+   available side. If fewer than the required total number of neighbors exist, lower the requested radius to the
+   greatest positive radius that gives a structurally valid PCA sample set. If no positive radius works (including
+   close-in annuli with no meaningful rotation), fall back to `numberImages=0` for that annulus. Because the threshold
+   is evaluated at each annulus's mean radius, the effective temporal radius may differ by annulus.
 
 4. Extend the detector-frame regression assembly in `P4Reduction::regions()` so that each usable central-image row
    contains its original `K` OR-pixel predictors plus `K` predictors for every selected earlier and later image, for
@@ -48,7 +48,7 @@ Ok let's degrade gracefully rather than fail.  Switch to basing rotation amount 
 
 7. Add Catch2 coverage at the P4-reduction and application levels for: the default `0` compatibility path; option
    registration, loading, and invalid values; increasing and decreasing angle sequences; exact threshold inclusion;
-   nearest qualifying selection; `N > 1`; endpoint truncation without wraparound; per-annulus mean-radius behavior;
-   reduced effective-radius and same-image fallback paths; residual placement/invalidity for dropped targets;
+   nearest qualifying selection; `N > 1`; one-sided endpoint replacement without wraparound; per-annulus mean-radius
+   behavior; reduced effective-radius and same-image fallback paths; residual placement/validity for every target;
    expanded predictor count and mode limits; output provenance; and rejection of the unsupported rotated-frame
    combination. Update user-facing P4 documentation and example configuration with a nonzero usage example.

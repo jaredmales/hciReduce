@@ -505,7 +505,7 @@ TEST_CASE( "P4 reduction exact synthetic prediction", "[P4Reduction][reduce][pre
     // clang-format on
 }
 
-/// Verify detector-frame P4 selects nearest qualifying temporal images without wrapping past dataset boundaries.
+/// Verify detector-frame P4 uses nearest qualifying temporal images with one-sided endpoint replacement.
 /** This exercises P4Reduction::reduce() with multi-image detector predictors. */
 /** \ingroup P4Reduction_unit_tests */
 TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][detector][temporal]" )
@@ -520,16 +520,16 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
 
         REQUIRE( reduction.reduce() == 0 );
         REQUIRE( reduction.m_temporalSelections ==
-                 std::vector<std::vector<std::vector<int>>>{ { { 1, 0, 2 }, { 2, 1, 3 }, { 3, 2, 4 } } } );
-        REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 3 );
+                 std::vector<std::vector<std::vector<int>>>{
+                     { { 0, 1, 2 }, { 1, 0, 2 }, { 2, 1, 3 }, { 3, 2, 4 }, { 4, 3, 2 } } } );
+        REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 5 );
         REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 1 );
         REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius == Approx( reduction.m_psfRadius ) );
         REQUIRE( reduction.m_regionStatistics[0].predictorCount % 3 == 0 );
 
         for( int image = 0; image < reduction.m_Nims; ++image )
         {
-            const bool expectedValid = image > 0 && image < reduction.m_Nims - 1;
-            REQUIRE( reduction.m_psfsubValidity[0].image( image ).maxCoeff() == ( expectedValid ? 1 : 0 ) );
+            REQUIRE( reduction.m_psfsubValidity[0].image( image ).maxCoeff() == 1 );
         }
     }
 
@@ -542,9 +542,10 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
         reduction.m_derotF.m_angles = { 0, 10, 20, 30, 40, 50, 60 };
 
         REQUIRE( reduction.reduce() == 0 );
-        REQUIRE( reduction.m_temporalSelections == std::vector<std::vector<std::vector<int>>>{
-                                                       { { 2, 1, 0, 3, 4 }, { 3, 2, 1, 4, 5 }, { 4, 3, 2, 5, 6 } } } );
-        REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 3 );
+        REQUIRE( reduction.m_temporalSelections[0].front() == std::vector<int>{ 0, 1, 2, 3, 4 } );
+        REQUIRE( reduction.m_temporalSelections[0].at( 2 ) == std::vector<int>{ 2, 1, 0, 3, 4 } );
+        REQUIRE( reduction.m_temporalSelections[0].back() == std::vector<int>{ 6, 5, 4, 3, 2 } );
+        REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 7 );
         REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 2 );
         REQUIRE( reduction.m_regionStatistics[0].predictorCount % 5 == 0 );
     }
@@ -553,9 +554,9 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
     {
         OpenMPThreadGuard threads( 1 );
         reductionHarness reduction;
-        prepareReduction( reduction, 5 );
+        prepareReduction( reduction, 4 );
         reduction.m_numberImages = 1;
-        reduction.m_derotF.m_angles = { 0, 2, 4, 6, 8 };
+        reduction.m_derotF.m_angles = { 0, 2, 4, 6 };
 
         REQUIRE( reduction.reduce() == 0 );
         REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 1 );
