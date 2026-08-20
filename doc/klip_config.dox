@@ -17,6 +17,7 @@
  * | CLI | Config-file form | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--mode` | `mode=basic` | `basic`, `normal`, `postprocess` | `basic` | `basic` and `normal` run a configured KLIP reduction. `postprocess` reads saved residual products and reapplies final-stage processing. |
+ * | `--showTiming` | `showTiming=true` | bool | `false` | Print the completed KLIP reduction timing report to standard output. It is ignored by `postprocess`. |
  * | `--postprocess.directory` | `postprocess.directory=/path` | readable directory | unset | Location of saved PSF-subtracted FITS products for `postprocess`. |
  * | `--postprocess.prefix` | `postprocess.prefix=psfsub_` | literal string | unset | Saved-product filename prefix. |
  * | `--postprocess.extension` | `postprocess.extension=.fits` | literal extension | `.fits` | Saved-product filename extension. |

@@ -23,6 +23,8 @@ class p4Reduce : public mx::app::application
   protected:
     std::string m_mode{ "basic" };  ///< Execution mode: basic or normal.
 
+    bool m_showTiming{ false };     ///< Whether to print the completed reduction timing report.
+
     mx::improc::P4Reductionf m_obs; ///< Configured P4 observation and reduction state.
 
   public:
@@ -48,6 +50,16 @@ class p4Reduce : public mx::app::application
                     "string",
                     "The mode of operation: basic or normal (exact aliases; default basic)" );
 
+        config.add( "showTiming",
+                    "",
+                    "showTiming",
+                    mx::app::argType::True,
+                    "",
+                    "showTiming",
+                    false,
+                    "bool",
+                    "print the completed reduction timing report to standard output" );
+
         m_obs.setupConfig( config );
     }
 
@@ -56,6 +68,7 @@ class p4Reduce : public mx::app::application
     {
         m_obs.loadConfig( config );
         config( m_mode, "mode" );
+        config( m_showTiming, "showTiming" );
 
         bool unusedPrinted{ false };
         for( const auto &[name, target] : config.m_targets )
@@ -114,7 +127,12 @@ class p4Reduce : public mx::app::application
      */
     int execute() override
     {
-        return m_obs.reduce();
+        const int result = m_obs.reduce();
+        if( result == 0 && m_showTiming )
+        {
+            m_obs.dump_times();
+        }
+        return result;
     }
 };
 

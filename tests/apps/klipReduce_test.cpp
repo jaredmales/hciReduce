@@ -30,6 +30,7 @@ struct appHarness : public appT
     using appT::m_postprocessDirectory;
     using appT::m_postprocessExtension;
     using appT::m_postprocessPrefix;
+    using appT::m_showTiming;
     using appT::setConfigPathCL;
     using appT::setupConfig;
 };
@@ -177,6 +178,7 @@ TEST_CASE( "klipReduce postprocess configuration", "[klipReduce][config][postpro
     REQUIRE( application.config.m_targets.at( "postprocess.directory" ).clType == mx::app::argType::Required );
     REQUIRE( application.config.m_targets.at( "postprocess.prefix" ).helpType == "string" );
     REQUIRE( application.config.m_targets.at( "postprocess.extension" ).helpType == "string" );
+    REQUIRE( application.config.m_targets.at( "showTiming" ).helpType == "bool" );
     REQUIRE( application.config.m_targets.at( "mode" ).helpExplanation.find( "grid" ) == std::string::npos );
     bool hasGridTarget = false;
     for( const auto &[name, target] : application.config.m_targets )
@@ -189,6 +191,7 @@ TEST_CASE( "klipReduce postprocess configuration", "[klipReduce][config][postpro
     const auto configPath = directory.file( "postprocess.conf" );
     writeTextFile( configPath,
                    "mode=postprocess\n"
+                   "showTiming=true\n"
                    "[postprocess]\n"
                    "directory=" +
                        directory.path().string() +
@@ -202,6 +205,7 @@ TEST_CASE( "klipReduce postprocess configuration", "[klipReduce][config][postpro
     REQUIRE( application.m_postprocessDirectory == directory.path().string() );
     REQUIRE( application.m_postprocessPrefix == "saved" );
     REQUIRE( application.m_postprocessExtension == ".fit" );
+    REQUIRE( application.m_showTiming );
     REQUIRE_NOTHROW( application.checkConfig() );
 
     application.m_postprocessPrefix.clear();

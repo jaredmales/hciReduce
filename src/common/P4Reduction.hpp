@@ -180,6 +180,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     int regions( const std::vector<realT> &minimumRadii, /**< [in] inclusive ordered inner radii */
                  const std::vector<realT> &maximumRadii /**< [in] exclusive ordered outer radii */ );
 
+    /// Print the current reduction-stage timing summary.
+    void dump_times() const;
+
     /// Append complete P4 configuration and realized reduction outcomes to a FITS header.
     void appendReductionHeader( fitsHeaderT &head /**< [in,out] header receiving P4 provenance */ ) const;
 

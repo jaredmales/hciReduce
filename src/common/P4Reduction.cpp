@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdio>
 #include <exception>
 #include <filesystem>
 #include <functional>
@@ -1459,6 +1460,40 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     const int result = finalProcess();
     this->t_end = mx::sys::get_curr_time();
     return result;
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+void P4Reduction<realT, derotFunctObj, verboseT>::dump_times() const
+{
+    const double workerSeconds = m_timing.samplingWorkerSeconds + m_timing.gramWorkerSeconds +
+                                 m_timing.eigensolveWorkerSeconds + m_timing.projectionWorkerSeconds;
+    const auto percentage = [workerSeconds]( double seconds )
+    { return workerSeconds > 0 ? seconds / workerSeconds * 100 : 0; };
+
+    printf( "P4 reduction times: \n" );
+    printf( "  Total time: %f sec\n", this->t_end - this->t_begin );
+    printf( "    Loading: %f sec\n", this->t_load_end - this->t_load_begin );
+    printf( "    Fake Injection: %f sec\n", this->t_fake_end - this->t_fake_begin );
+    printf( "    Coadding: %f sec\n", this->t_coadd_end - this->t_coadd_begin );
+    printf( "    Preprocessing: %f sec\n", this->t_preproc_end - this->t_preproc_begin );
+    printf( "      Az USM: %f sec\n", this->t_azusm_end - this->t_azusm_begin );
+    printf( "      Gauss USM: %f sec\n", this->t_gaussusm_end - this->t_gaussusm_begin );
+    printf( "    P4 algorithm: %f elapsed real sec\n", m_timing.regressionElapsedSeconds );
+    printf( "      Geometry %f elapsed real sec\n", m_timing.geometryElapsedSeconds );
+    printf( "      Sampling %f worker sec (%f%%)\n",
+            m_timing.samplingWorkerSeconds,
+            percentage( m_timing.samplingWorkerSeconds ) );
+    printf( "      Gram construction %f worker sec (%f%%)\n",
+            m_timing.gramWorkerSeconds,
+            percentage( m_timing.gramWorkerSeconds ) );
+    printf( "      EigenDecomposition %f worker sec (%f%%)\n",
+            m_timing.eigensolveWorkerSeconds,
+            percentage( m_timing.eigensolveWorkerSeconds ) );
+    printf( "      Projection/residual %f worker sec (%f%%)\n",
+            m_timing.projectionWorkerSeconds,
+            percentage( m_timing.projectionWorkerSeconds ) );
+    printf( "    Derotation: %f sec\n", this->t_derotate_end - this->t_derotate_begin );
+    printf( "    Combination: %f sec\n", this->t_combo_end - this->t_combo_begin );
 }
 
 template <typename realT, class derotFunctObj, class verboseT>

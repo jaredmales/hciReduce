@@ -1305,8 +1305,6 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
 
     this->t_end = sys::get_curr_time();
 
-    dump_times();
-
     return 0;
 }
 

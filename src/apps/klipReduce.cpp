@@ -13,7 +13,7 @@ using namespace mx::app;
 #include "../common/KLIPreduction.hpp"
 using namespace mx::improc;
 
-//#include <libgen.h>
+// #include <libgen.h>
 
 /// A program to run the KLIP pipeline
 /**
@@ -35,6 +35,8 @@ class klipReduce : public application
     std::string m_postprocessDirectory;            ///< Directory containing saved PSF-subtracted products.
     std::string m_postprocessPrefix;               ///< Literal prefix of saved PSF-subtracted products.
     std::string m_postprocessExtension{ ".fits" }; ///< Literal extension of saved PSF-subtracted products.
+
+    bool m_showTiming{ false };                    ///< Whether to print the completed reduction timing report.
 
     KLIPreduction<realT, ADIDerotator<realT, verboseT>, evCalcT, verboseT> m_obs;
 
@@ -95,6 +97,16 @@ class klipReduce : public application
                     "string",
                     "Literal extension of saved PSF-subtracted FITS products (default: .fits)" );
 
+        config.add( "showTiming",
+                    "",
+                    "showTiming",
+                    argType::True,
+                    "",
+                    "showTiming",
+                    false,
+                    "bool",
+                    "print the completed reduction timing report to standard output" );
+
         m_obs.setupConfig( config );
     }
 
@@ -113,6 +125,7 @@ class klipReduce : public application
         config( m_postprocessDirectory, "postprocess.directory" );
         config( m_postprocessPrefix, "postprocess.prefix" );
         config( m_postprocessExtension, "postprocess.extension" );
+        config( m_showTiming, "showTiming" );
 
         // This checks for unused config options, printing the banner only once no matter how many there are.
         // This will catch both bad options, and options we aren't actually using (debugging).
@@ -282,7 +295,13 @@ class klipReduce : public application
             m_obs.load_RDIfileList();
             //}
 
-            return m_obs.regions( m_obs.m_minRadius, m_obs.m_maxRadius, m_obs.m_minAngle, m_obs.m_maxAngle );
+            const int result =
+                m_obs.regions( m_obs.m_minRadius, m_obs.m_maxRadius, m_obs.m_minAngle, m_obs.m_maxAngle );
+            if( result == 0 && m_showTiming )
+            {
+                m_obs.dump_times();
+            }
+            return result;
         }
     }
 };
@@ -302,10 +321,10 @@ int main( int argc, char **argv )
     catch( const std::exception &e )
     {
         std::vector<std::string> whats;
-        mx::unwind_exceptions(whats, e);
+        mx::unwind_exceptions( whats, e );
 
-        mx::print_exceptions(whats, std::format("{}: exception(s) encountered during execution", argv0));
-        std::cerr << std::format("\nTo get help try: {} -h\n\n", argv0);
+        mx::print_exceptions( whats, std::format( "{}: exception(s) encountered during execution", argv0 ) );
+        std::cerr << std::format( "\nTo get help try: {} -h\n\n", argv0 );
         return -1;
     }
 

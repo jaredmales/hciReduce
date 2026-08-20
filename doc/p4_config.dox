@@ -18,6 +18,7 @@
  * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
  * | `--mode` | `mode=basic` | — | `basic` or `normal` | `basic` | Exact aliases for one configured, target-only P4 reduction. |
+ * | `--showTiming` | `showTiming=true` | — | bool | `false` | Print the completed P4 reduction timing report to standard output. |
  *
  * `p4Reduce` currently rejects RDI configuration and does not provide saved-product `postprocess`. Its external grid
  * scheduling is deliberately not an application mode: run separate fully specified configurations instead.

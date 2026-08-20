@@ -31,6 +31,7 @@ struct appHarness : public appT
     using appT::loadConfig;
     using appT::m_mode;
     using appT::m_obs;
+    using appT::m_showTiming;
     using appT::setupConfig;
 };
 
@@ -189,6 +190,7 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
 
     REQUIRE( application.m_mode == "basic" );
     REQUIRE( application.config.m_targets.at( "mode" ).clType == mx::app::argType::Required );
+    REQUIRE( application.config.m_targets.at( "showTiming" ).helpType == "bool" );
     REQUIRE( application.config.m_targets.at( "p4.modeFractions" ).helpType == "vector<realT>" );
     REQUIRE( application.config.m_targets.at( "p4.regressionFrame" ).helpType == "string" );
     REQUIRE( application.config.m_targets.at( "p4.numberImages" ).helpType == "int" );
@@ -202,10 +204,13 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     }
 
     const auto configPath = directory.file( "normal.conf" );
-    writeTextFile( configPath, p4Configuration( directory.path(), directory.file( "output" ), "normal", true ) );
+    writeTextFile( configPath,
+                   "showTiming=true\n" +
+                       p4Configuration( directory.path(), directory.file( "output" ), "normal", true ) );
     REQUIRE( application.config.readConfig( configPath.string() ) == 0 );
     REQUIRE_NOTHROW( application.loadConfig() );
     REQUIRE( application.m_mode == "normal" );
+    REQUIRE( application.m_showTiming );
     REQUIRE( application.m_obs.m_minRadius == std::vector<float>{ 5 } );
     REQUIRE( application.m_obs.m_maxRadius == std::vector<float>{ 6 } );
     REQUIRE( application.m_obs.m_modeFractions == std::vector<float>{ 0.5F } );
