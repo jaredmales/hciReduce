@@ -710,8 +710,9 @@ P4PixelGrid<transformT>::interpolation( std::size_t searchIndex, std::size_t pre
 }
 
 template <typename transformT>
-typename P4PixelGrid<transformT>::realT
-P4PixelGrid<transformT>::sample( const imageT &image, std::size_t searchIndex, std::size_t predictorIndex ) const
+typename P4PixelGrid<transformT>::realT P4PixelGrid<transformT>::sample( const Eigen::Ref<const imageT> &image,
+                                                                         std::size_t searchIndex,
+                                                                         std::size_t predictorIndex ) const
 {
     if( image.rows() != m_rows || image.cols() != m_columns )
     {

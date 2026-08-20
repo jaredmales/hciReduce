@@ -528,6 +528,9 @@ TEST_CASE( "P4PixelGrid samples constant and linear images", "[P4PixelGrid][samp
         }
     }
 
+    Eigen::Map<gridT::imageT> mappedRamp( ramp.data(), ramp.rows(), ramp.cols() );
+    REQUIRE( grid.sample( mappedRamp, searchIndices.front(), 0 ) == grid.sample( ramp, searchIndices.front(), 0 ) );
+
     gridT::imageT wrongSize( 40, 43 );
     REQUIRE_THROWS_AS( grid.sample( wrongSize, 0, 0 ), std::invalid_argument );
     REQUIRE_THROWS_AS( grid.sample( constant, grid.searchPixelCount(), 0 ), std::out_of_range );

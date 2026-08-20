@@ -318,8 +318,8 @@ class P4PixelGrid
     /// Sample one mapped predictor from an image.
     /** Sampling an invalid local fit is rejected so a masked detector value cannot be consumed accidentally.
      */
-    realT sample( const imageT &image,     /**< [in] image matching the configured grid dimensions */
-                  std::size_t searchIndex, /**< [in] zero-based valid search-pixel index */
+    realT sample( const Eigen::Ref<const imageT> &image, /**< [in] image view matching the configured grid dimensions */
+                  std::size_t searchIndex,               /**< [in] zero-based valid search-pixel index */
                   std::size_t predictorIndex /**< [in] zero-based predictor index */ ) const;
 
   private:
