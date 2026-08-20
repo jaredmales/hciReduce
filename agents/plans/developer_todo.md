@@ -1,6 +1,6 @@
 # ToDo
 
-This is a list of to-do items maintained by developers.  As we move through each we'll create a separate plan document for the complicated ones.  Agents should not edit this file unless directed.
+This is a list of to-do items maintained by developers.  As we move through each we'll create a separate plan document for the complicated ones.  Agents should not edit this file unless directed, except to mark [x] for complete and add the commit(s) that correspond(s) to that work
 
 ## Doc Update:
 [] under user-guide, clicking on "Common Configuration and Workflow" closes the TOC drop down for User's Guide.  I think that means it is marked as the main page or equivalent for User's Guide.  Fix this behavior.  If needed have the main page just be title or another TOC.
