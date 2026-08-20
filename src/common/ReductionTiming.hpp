@@ -19,19 +19,23 @@ namespace improc
  */
 struct ReductionTiming
 {
-    double geometryElapsedSeconds{ 0 };   ///< Elapsed serial geometry/setup time in seconds.
+    double geometryElapsedSeconds{ 0 };         ///< Elapsed serial geometry/setup time in seconds.
 
-    double regressionElapsedSeconds{ 0 }; ///< Elapsed algorithm-worker phase time in seconds.
+    double regressionElapsedSeconds{ 0 };       ///< Elapsed algorithm-worker phase time in seconds.
 
-    double samplingWorkerSeconds{ 0 };    ///< Aggregate worker time used to assemble local input matrices.
+    double samplingWorkerSeconds{ 0 };          ///< Aggregate worker time used to assemble local input matrices.
 
-    double gramWorkerSeconds{ 0 };        ///< Aggregate worker time used to form normal-equation Gram matrices.
+    double sameImageSamplingWorkerSeconds{ 0 }; ///< Aggregate worker time for same-image target and OR sampling.
 
-    double eigensolveWorkerSeconds{ 0 };  ///< Aggregate worker time spent in eigensolvers and rank selection.
+    double temporalSamplingWorkerSeconds{ 0 };  ///< Aggregate worker time for additional-image PSF-disk sampling.
 
-    double modeWorkerSeconds{ 0 };        ///< Aggregate worker time used to construct modal bases.
+    double gramWorkerSeconds{ 0 };              ///< Aggregate worker time used to form normal-equation Gram matrices.
 
-    double projectionWorkerSeconds{ 0 };  ///< Aggregate worker time used to apply modes and construct residuals.
+    double eigensolveWorkerSeconds{ 0 };        ///< Aggregate worker time spent in eigensolvers and rank selection.
+
+    double modeWorkerSeconds{ 0 };              ///< Aggregate worker time used to construct modal bases.
+
+    double projectionWorkerSeconds{ 0 };        ///< Aggregate worker time used to apply modes and construct residuals.
 
     /// Reset every timing value to zero before a new reduction.
     void reset()
@@ -39,6 +43,8 @@ struct ReductionTiming
         geometryElapsedSeconds = 0;
         regressionElapsedSeconds = 0;
         samplingWorkerSeconds = 0;
+        sameImageSamplingWorkerSeconds = 0;
+        temporalSamplingWorkerSeconds = 0;
         gramWorkerSeconds = 0;
         eigensolveWorkerSeconds = 0;
         modeWorkerSeconds = 0;

@@ -143,10 +143,10 @@
  * rotated regression. Final and PSF-subtracted FITS products record the selection as the long keyword
  * `HIERARCH P4 FRAME = 'detector'` or `HIERARCH P4 FRAME = 'rotated'`. Temporal centering for coefficient fitting and
  * application to the uncentered predictors are intrinsic to the documented `rotated` definition.
- * `p4Timing.fits` schema 2 has one row, in seconds: geometry elapsed, regression elapsed, and aggregate OpenMP-worker
- * sampling, Gram-construction, eigensolve/rank-selection, and projection/residual time. Worker totals can exceed
- * elapsed time when the local fits run concurrently; `HIERARCH P4 TIMING SCHEMA` and `HIERARCH P4 TIMING COLUMNS`
- * define the persisted layout.
+ * `p4Timing.fits` schema 3 has one row, in seconds: geometry elapsed, regression elapsed, total sampling, same-image
+ * target/OR sampling, additional-image PSF-disk sampling, Gram-construction, eigensolve/rank-selection, and
+ * projection/residual aggregate OpenMP-worker time. Worker totals can exceed elapsed time when local fits run
+ * concurrently; `HIERARCH P4 TIMING SCHEMA` and `HIERARCH P4 TIMING COLUMNS` define the persisted layout.
  *
  * @}
  */

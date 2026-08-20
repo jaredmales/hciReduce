@@ -23,9 +23,11 @@ Completed in `c06172f` (`Improve outputs, P4 headers, and user guide navigation`
 
 ## P4 Profiling
 
-[] added timing measurements for various steps as is done in klipReduce.  Consider a more resuable common design for this than the globals in klipReduce.
+[x] added timing measurements for various steps as is done in klipReduce.  Consider a more resuable common design for this than the globals in klipReduce.
 
 Implementation plan: `agents/plans/p4_profiling.md`.
+
+Completed in `2407edc` (`Add shared P4 and KLIP timing`) and `178ab0f` (`added showTiming flag`).
 
 ## P4 Memory Management
 

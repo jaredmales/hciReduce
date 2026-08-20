@@ -1475,14 +1475,17 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( reader.read( timing, timingHeader, directory.file( "diagnostics/p4Timing.fits" ).string() ) ==
              mx::error_t::noerror );
     REQUIRE( timing.rows() == 1 );
-    REQUIRE( timing.cols() == 6 );
-    REQUIRE( timingHeader["P4 TIMING SCHEMA"].Int() == 2 );
+    REQUIRE( timing.cols() == 8 );
+    REQUIRE( timingHeader["P4 TIMING SCHEMA"].Int() == 3 );
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().starts_with( "geometryElapsed" ) );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "sameImageSamplingWorker" ) != std::string::npos );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "temporalSamplingWorker" ) != std::string::npos );
     for( Eigen::Index column = 0; column < timing.cols(); ++column )
     {
         REQUIRE( std::isfinite( timing( 0, column ) ) );
         REQUIRE( timing( 0, column ) >= 0 );
     }
+    REQUIRE( timing( 0, 2 ) == Approx( timing( 0, 3 ) + timing( 0, 4 ) ).margin( 1e-6 ) );
 
     reductionT::fitsHeaderT header;
     diagnostic.appendReductionHeader( header );

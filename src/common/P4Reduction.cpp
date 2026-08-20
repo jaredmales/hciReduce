@@ -1152,6 +1152,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             int threadMinimumRank{ std::numeric_limits<int>::max() };
             std::vector<std::size_t> threadRankInvalid( modes.size(), 0 );
             double threadSamplingSeconds{ 0 };
+            double threadSameImageSamplingSeconds{ 0 };
+            double threadTemporalSamplingSeconds{ 0 };
             double threadGramSeconds{ 0 };
             double threadEigensolveSeconds{ 0 };
             double threadProjectionSeconds{ 0 };
@@ -1189,11 +1191,13 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                         }
                         else
                         {
-                            const double samplingBegin = omp_get_wtime();
+                            double sameImageSamplingSeconds{ 0 };
+                            double temporalSamplingSeconds{ 0 };
                             const int row = coordinate.row();
                             const int column = coordinate.column();
                             if( rotated )
                             {
+                                const double sameImageSamplingBegin = omp_get_wtime();
                                 for( std::size_t targetIndex = 0; targetIndex < targetImageCount; ++targetIndex )
                                 {
                                     const int image = temporalSelections[targetIndex][0];
@@ -1211,6 +1215,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                                              predictor ) );
                                     }
                                 }
+                                sameImageSamplingSeconds += omp_get_wtime() - sameImageSamplingBegin;
                             }
                             else
                             {
@@ -1219,6 +1224,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                 {
                                     const std::vector<int> &selection = temporalSelections[targetIndex];
                                     const int centralImage = selection[0];
+                                    const double sameImageSamplingBegin = omp_get_wtime();
                                     target( static_cast<Eigen::Index>( targetIndex ) ) =
                                         static_cast<double>( this->m_tgtIms.image( centralImage )( row, column ) );
                                     for( std::size_t predictor = 0; predictor < basePredictorCount; ++predictor )
@@ -1229,6 +1235,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                              search,
                                                              predictor ) );
                                     }
+                                    sameImageSamplingSeconds += omp_get_wtime() - sameImageSamplingBegin;
+
+                                    const double temporalSamplingBegin = omp_get_wtime();
                                     for( std::size_t source = 1; source < selection.size(); ++source )
                                     {
                                         const int image = selection[source];
@@ -1244,10 +1253,13 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                     column + temporalPredictorOffsets[predictor].column() ) );
                                         }
                                     }
+                                    temporalSamplingSeconds += omp_get_wtime() - temporalSamplingBegin;
                                 }
                             }
 
-                            threadSamplingSeconds += omp_get_wtime() - samplingBegin;
+                            threadSamplingSeconds += sameImageSamplingSeconds + temporalSamplingSeconds;
+                            threadSameImageSamplingSeconds += sameImageSamplingSeconds;
+                            threadTemporalSamplingSeconds += temporalSamplingSeconds;
                             P4PCATiming pcaTiming;
 
                             if( rotated )
@@ -1326,6 +1338,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                     rankInvalidCounts[output] += threadRankInvalid[output];
                 }
                 m_timing.samplingWorkerSeconds += threadSamplingSeconds;
+                m_timing.sameImageSamplingWorkerSeconds += threadSameImageSamplingSeconds;
+                m_timing.temporalSamplingWorkerSeconds += threadTemporalSamplingSeconds;
                 m_timing.gramWorkerSeconds += threadGramSeconds;
                 m_timing.eigensolveWorkerSeconds += threadEigensolveSeconds;
                 m_timing.projectionWorkerSeconds += threadProjectionSeconds;
@@ -1442,16 +1456,19 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
         writeDiagnostic( "p4RegionSummary.fits", summary );
 
-        imageT timing( 1, 6 );
+        imageT timing( 1, 8 );
         timing << static_cast<realT>( m_timing.geometryElapsedSeconds ),
             static_cast<realT>( m_timing.regressionElapsedSeconds ),
-            static_cast<realT>( m_timing.samplingWorkerSeconds ), static_cast<realT>( m_timing.gramWorkerSeconds ),
-            static_cast<realT>( m_timing.eigensolveWorkerSeconds ),
+            static_cast<realT>( m_timing.samplingWorkerSeconds ),
+            static_cast<realT>( m_timing.sameImageSamplingWorkerSeconds ),
+            static_cast<realT>( m_timing.temporalSamplingWorkerSeconds ),
+            static_cast<realT>( m_timing.gramWorkerSeconds ), static_cast<realT>( m_timing.eigensolveWorkerSeconds ),
             static_cast<realT>( m_timing.projectionWorkerSeconds );
         fitsHeaderT timingHeader;
-        timingHeader.template append<int>( "P4 TIMING SCHEMA", 2, "P4 timing diagnostic schema version" );
+        timingHeader.template append<int>( "P4 TIMING SCHEMA", 3, "P4 timing diagnostic schema version" );
         timingHeader.template append<std::string>( "P4 TIMING COLUMNS",
-                                                   "geometryElapsed,regressionElapsed,samplingWorker,gramWorker,"
+                                                   "geometryElapsed,regressionElapsed,samplingWorker,"
+                                                   "sameImageSamplingWorker,temporalSamplingWorker,gramWorker,"
                                                    "eigensolveWorker,projectionWorker",
                                                    "P4 timing columns in seconds" );
         writeDiagnostic( "p4Timing.fits", timing, &timingHeader );
@@ -1483,6 +1500,14 @@ void P4Reduction<realT, derotFunctObj, verboseT>::dump_times() const
     printf( "      Sampling %f worker sec (%f%%)\n",
             m_timing.samplingWorkerSeconds,
             percentage( m_timing.samplingWorkerSeconds ) );
+    const auto samplingPercentage = [this]( double seconds )
+    { return m_timing.samplingWorkerSeconds > 0 ? seconds / m_timing.samplingWorkerSeconds * 100 : 0; };
+    printf( "        Same-image target/OR %f worker sec (%f%% of sampling)\n",
+            m_timing.sameImageSamplingWorkerSeconds,
+            samplingPercentage( m_timing.sameImageSamplingWorkerSeconds ) );
+    printf( "        Additional-image PSF disk %f worker sec (%f%% of sampling)\n",
+            m_timing.temporalSamplingWorkerSeconds,
+            samplingPercentage( m_timing.temporalSamplingWorkerSeconds ) );
     printf( "      Gram construction %f worker sec (%f%%)\n",
             m_timing.gramWorkerSeconds,
             percentage( m_timing.gramWorkerSeconds ) );

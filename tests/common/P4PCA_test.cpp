@@ -299,16 +299,20 @@ TEST_CASE( "ReductionTiming resets all measurements", "[P4PCA][timing]" )
     timing.geometryElapsedSeconds = 1;
     timing.regressionElapsedSeconds = 2;
     timing.samplingWorkerSeconds = 3;
-    timing.gramWorkerSeconds = 4;
-    timing.eigensolveWorkerSeconds = 5;
-    timing.modeWorkerSeconds = 6;
-    timing.projectionWorkerSeconds = 7;
+    timing.sameImageSamplingWorkerSeconds = 4;
+    timing.temporalSamplingWorkerSeconds = 5;
+    timing.gramWorkerSeconds = 6;
+    timing.eigensolveWorkerSeconds = 7;
+    timing.modeWorkerSeconds = 8;
+    timing.projectionWorkerSeconds = 9;
 
     timing.reset();
 
     REQUIRE( timing.geometryElapsedSeconds == 0 );
     REQUIRE( timing.regressionElapsedSeconds == 0 );
     REQUIRE( timing.samplingWorkerSeconds == 0 );
+    REQUIRE( timing.sameImageSamplingWorkerSeconds == 0 );
+    REQUIRE( timing.temporalSamplingWorkerSeconds == 0 );
     REQUIRE( timing.gramWorkerSeconds == 0 );
     REQUIRE( timing.eigensolveWorkerSeconds == 0 );
     REQUIRE( timing.modeWorkerSeconds == 0 );
