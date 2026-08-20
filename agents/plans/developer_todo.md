@@ -31,6 +31,8 @@ Completed in `2407edc` (`Add shared P4 and KLIP timing`) and `178ab0f` (`added s
 
 ## P4 Memory Management
 
+Implementation plan: `agents/plans/p4_memory_management_optimization.md`.
+
 [] consider whether we can save on needed memory.  Assume that pre-processing is done and written out to disk.  Then we could load only the pixels needed for the annulus, or even a subset, being calculated into memory at a time.  For very large data sets this could be impactful.
 
 [] provide automatic reduction in number of threads given available resources.  I.e. if we can support all cores for the current annulus, we drop the number of threads.
