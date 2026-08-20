@@ -25,7 +25,8 @@ string(SUBSTRING "${_hcireduce_navtree_contents}" ${_hcireduce_navtree_index_sta
 set(_hcireduce_navtree_data [=[var NAVTREE =
 [
   [ "hciReduce", "index.html", [
-    [ "User's Guide", "group__user__guide.html", [
+    [ "User's Guide", "introduction.html", [
+      [ "Introduction", "introduction.html", null ],
       [ "Common Configuration and Workflow", "group__common__user__guide.html", null ],
       [ "klipReduce", "group__klipreduce__user__guide.html", null ],
       [ "p4Reduce", "group__p4reduce__user__guide.html", null ]
@@ -107,6 +108,18 @@ foreach(_hcireduce_navtree_index_file IN LISTS _hcireduce_navtree_indexes)
     string(REGEX REPLACE "(:)\\[0,1\\]" "\\1[1]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
     string(REGEX REPLACE "(:)\\[0,0," "\\1[0," _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
     string(REGEX REPLACE "(:)\\[0,0\\]" "\\1[0]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+
+    # The custom User's Guide has a standalone Introduction before Doxygen's
+    # three user-guide groups. Preserve each page's selected node after adding
+    # that child; otherwise links select the preceding sibling.
+    string(REGEX REPLACE "(\\\"introduction\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,0]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__common__user__guide\\.html\\\":)\\[0\\]" "\\1[0,1]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__klipreduce__user__guide\\.html\\\":)\\[0,1\\]" "\\1[0,2]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__p4reduce__user__guide\\.html\\\":)\\[0,2\\]" "\\1[0,3]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
 
     file(WRITE "${_hcireduce_navtree_index_file}" "${_hcireduce_navtree_index_contents}")
 endforeach()

@@ -386,8 +386,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     reductionT::fitsHeaderT configuredHeader;
     configured.appendReductionHeader( configuredHeader );
     REQUIRE( configuredHeader["P4 FRAME"].String().starts_with( "rotated" ) );
-    REQUIRE( configuredHeader["P4EXCL"].String().starts_with( "sampleCenter" ) );
-    REQUIRE( configuredHeader["P4MINR"].String().find( ',' ) != std::string::npos );
+    REQUIRE( configuredHeader["P4 EXCLUSION POLICY"].String().starts_with( "sampleCenter" ) );
+    REQUIRE( configuredHeader["P4 MIN RADIUS"].String().find( ',' ) != std::string::npos );
 
     reductionHarness kernelPolicy;
     readReductionConfig( kernelPolicy,
@@ -626,7 +626,8 @@ TEST_CASE( "P4 rotated reduction applies uncentered predictors",
     reductionT::fitsHeaderT header;
     reduction.appendReductionHeader( header );
     REQUIRE( header["P4 FRAME"].String().starts_with( "rotated" ) );
-    REQUIRE( header["P4SUP"].String() == std::to_string( statistics.supportInvalidLocalFitCount ) );
+    REQUIRE( header["P4 SUPPORT INVALID FIT COUNT"].String() ==
+             std::to_string( statistics.supportInvalidLocalFitCount ) );
 
     // clang-format off
 #ifdef __DOXY_ONLY__
@@ -1471,17 +1472,19 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
 
     reductionT::fitsHeaderT header;
     diagnostic.appendReductionHeader( header );
-    REQUIRE( header["P4ALGOR"].String().starts_with( "P4-PCA" ) );
+    REQUIRE( header["P4 ALGORITHM"].String().starts_with( "P4-PCA" ) );
     REQUIRE( header["P4 FRAME"].String().starts_with( "detector" ) );
-    REQUIRE( header["P4INSAMP"].Int() == 1 );
-    REQUIRE( header["P4RDI"].Int() == 0 );
-    REQUIRE( header["P4NIMGS"].Int() == 0 );
-    REQUIRE( header["P4EXCL"].String().starts_with( "kernelSupport" ) );
-    REQUIRE( header["P4MODFR"].String().starts_with( "0.5" ) );
-    REQUIRE( header["P4M000"].String().starts_with( "1" ) );
-    REQUIRE( header["P4VALID"].String() == std::to_string( diagnostic.m_regionStatistics[0].validLocalFitCount ) );
-    REQUIRE( header["P4MASK"].String() == std::to_string( diagnostic.m_regionStatistics[0].maskedLocalFitCount ) );
-    REQUIRE( header["P4SUP"].String() ==
+    REQUIRE( header["P4 IN SAMPLE"].Int() == 1 );
+    REQUIRE( header["P4 RDI"].Int() == 0 );
+    REQUIRE( header["P4 NUMBER IMAGES"].Int() == 0 );
+    REQUIRE( header["P4 EXCLUSION POLICY"].String().starts_with( "kernelSupport" ) );
+    REQUIRE( header["P4 MODE FRACTIONS"].String().starts_with( "0.5" ) );
+    REQUIRE( header["P4 REALIZED MODES 000"].String().starts_with( "1" ) );
+    REQUIRE( header["P4 VALID FIT COUNT"].String() ==
+             std::to_string( diagnostic.m_regionStatistics[0].validLocalFitCount ) );
+    REQUIRE( header["P4 MASK INVALID FIT COUNT"].String() ==
+             std::to_string( diagnostic.m_regionStatistics[0].maskedLocalFitCount ) );
+    REQUIRE( header["P4 SUPPORT INVALID FIT COUNT"].String() ==
              std::to_string( diagnostic.m_regionStatistics[0].supportInvalidLocalFitCount ) );
     diagnostic.m_heads.resize( diagnostic.m_Nims );
     diagnostic.m_doOutputPSFSub = true;
@@ -1493,7 +1496,7 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     reductionT::fitsHeaderT persistedHeader;
     REQUIRE( reader.read( persistedScience, persistedHeader, directory.file( "p4-psf_000_00000.fits" ).string() ) ==
              mx::error_t::noerror );
-    REQUIRE( persistedHeader["P4ALGOR"].String().starts_with( "P4-PCA" ) );
+    REQUIRE( persistedHeader["P4 ALGORITHM"].String().starts_with( "P4-PCA" ) );
     REQUIRE( persistedHeader["P4 FRAME"].String().starts_with( "detector" ) );
 
     reductionHarness atomic;
@@ -1538,14 +1541,13 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE_THROWS(
         mx::improc::P4ReductionTestAccess::writeDiagnostic( unavailableDirectory, "product.fits", product ) );
 
-    reductionHarness unavailableParent;
-    prepareReduction( unavailableParent );
-    unavailableParent.m_writeDiagnostics = true;
-    unavailableParent.m_diagnosticDirectory = ".";
-    REQUIRE_THROWS(
-        mx::improc::P4ReductionTestAccess::writeDiagnostic( unavailableParent,
-                                                            directory.file( "missing/parent/product.fits" ).string(),
-                                                            product ) );
+    reductionHarness nestedParent;
+    prepareReduction( nestedParent );
+    nestedParent.m_writeDiagnostics = true;
+    nestedParent.m_diagnosticDirectory = ".";
+    const std::string nestedProduct = directory.file( "missing/parent/product.fits" ).string();
+    REQUIRE_NOTHROW( mx::improc::P4ReductionTestAccess::writeDiagnostic( nestedParent, nestedProduct, product ) );
+    REQUIRE( std::filesystem::exists( nestedProduct ) );
 
     reductionHarness disabledWriter;
     prepareReduction( disabledWriter );

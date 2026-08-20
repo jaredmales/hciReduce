@@ -10,23 +10,24 @@
  *
  * This dictionary adds P4 settings to the shared \ref common_configuration_dictionary
  * "common configuration dictionary". Long options use `--dotted.key value`; the config-file column shows the
- * equivalent sectioned assignment.
+ * equivalent sectioned assignment. The FITS-keyword column names the card written to final and saved
+ * PSF-subtracted products. Keys containing spaces are emitted automatically as `HIERARCH` cards.
  *
  * \section p4_app_dictionary Application mode and scope
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
- * |---|---|---|---|---|
- * | `--mode` | `mode=basic` | `basic` or `normal` | `basic` | Exact aliases for one configured, target-only P4 reduction. |
+ * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--mode` | `mode=basic` | — | `basic` or `normal` | `basic` | Exact aliases for one configured, target-only P4 reduction. |
  *
  * `p4Reduce` currently rejects RDI configuration and does not provide saved-product `postprocess`. Its external grid
  * scheduling is deliberately not an application mode: run separate fully specified configurations instead.
  *
  * \section p4_geometry_dictionary Search annuli and output support
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
- * |---|---|---|---|---|
- * | `--geom.minRadius` | `geom.minRadius=3.5,6,8` | strictly ordered real pixels | required | Inclusive inner radii of P4 search annuli. |
- * | `--geom.maxRadius` | `geom.maxRadius=6,8,10` | matching ordered real-pixel vector | required | Exclusive outer radii. Annuli may not overlap. |
+ * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--geom.minRadius` | `geom.minRadius=3.5,6,8` | `HIERARCH P4 MIN RADIUS` | strictly ordered real pixels | required | Inclusive inner radii of P4 search annuli. |
+ * | `--geom.maxRadius` | `geom.maxRadius=6,8,10` | `HIERARCH P4 MAX RADIUS` | matching ordered real-pixel vector | required | Exclusive outer radii. Annuli may not overlap. |
  *
  * Both geometry vectors and every P4 model setting may be omitted when `preProcess.only=true`; that mode stops after
  * shared preprocessing and never constructs P4 regions.
@@ -39,16 +40,16 @@
  *
  * \section p4_model_dictionary Predictor region and PCA modes
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
- * |---|---|---|---|---|
- * | `--p4.regressionFrame` | `p4.regressionFrame=rotated` | `detector` or `rotated` | `detector` | Coordinate frame of the local regression. `detector` preserves the original uncentered algorithm; `rotated` uses direct sky-aligned sampling, a centered fit, and uncentered predictor application. |
- * | `--p4.numberImages` | `p4.numberImages=1` | nonnegative integer | `0` | For detector-frame regression, append `N` nearest qualifying earlier and `N` nearest qualifying later physical-PSF-disk blocks to each predictor row. At endpoints, extra qualifying images from the available side replace missing blocks. Each side must rotate by at least `2 * p4.psfRadius` at the annulus mean radius. P4 lowers an unattainable request to the greatest positive structurally usable radius, or uses same-image predictors when none exists. Values greater than zero are invalid with `regressionFrame=rotated`. |
- * | `--p4.modeFractions` | `p4.modeFractions=0.01,0.03,...` | finite, strictly increasing values in `(0,1]` | required | Requested PCA fractions. Each becomes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
- * | `--p4.orDeltaRadiusInner` | `p4.orDeltaRadiusInner=pixels` | positive real pixels | required | Inward radial extent of the local annular predictor wedge. |
- * | `--p4.orDeltaRadiusOuter` | `p4.orDeltaRadiusOuter=pixels` | positive real pixels | required | Outward radial extent of that wedge. |
- * | `--p4.orArcHalfWidth` | `p4.orArcHalfWidth=pixels` | nonnegative real arc length | required | Azimuthal half-width of the predictor wedge, expressed as arc length at the region radius; `0` uses only `orMaxHalfAngle`. |
- * | `--p4.orMaxHalfAngle` | `p4.orMaxHalfAngle=degrees` | real degrees in `(0,180]` | required | Cap on the predictor wedge's angular half-width; `180` permits the full 360-degree annulus. |
- * | `--p4.rankTolerance` | `p4.rankTolerance=1e-12` | real in `[0,1)` | `1e-12` | Relative rank criterion: a mode is retained only when `lambda > tolerance * lambdaMax`. `0` accepts all positive returned eigenvalues, including roundoff-positive nulls. |
+ * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--p4.regressionFrame` | `p4.regressionFrame=rotated` | `HIERARCH P4 FRAME` | `detector` or `rotated` | `detector` | Coordinate frame of the local regression. `detector` preserves the original uncentered algorithm; `rotated` uses direct sky-aligned sampling, a centered fit, and uncentered predictor application. |
+ * | `--p4.numberImages` | `p4.numberImages=1` | `HIERARCH P4 NUMBER IMAGES` | nonnegative integer | `0` | For detector-frame regression, append `N` nearest qualifying earlier and `N` nearest qualifying later physical-PSF-disk blocks to each predictor row. At endpoints, extra qualifying images from the available side replace missing blocks. Each side must rotate by at least `2 * p4.psfRadius` at the annulus mean radius. P4 lowers an unattainable request to the greatest positive structurally usable radius, or uses same-image predictors when none exists. Values greater than zero are invalid with `regressionFrame=rotated`. |
+ * | `--p4.modeFractions` | `p4.modeFractions=0.01,0.03,...` | `HIERARCH P4 MODE FRACTIONS` | finite, strictly increasing values in `(0,1]` | required | Requested PCA fractions. Each becomes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
+ * | `--p4.orDeltaRadiusInner` | `p4.orDeltaRadiusInner=pixels` | `HIERARCH P4 OR DELTA RADIUS INNER` | positive real pixels | required | Inward radial extent of the local annular predictor wedge. |
+ * | `--p4.orDeltaRadiusOuter` | `p4.orDeltaRadiusOuter=pixels` | `HIERARCH P4 OR DELTA RADIUS OUTER` | positive real pixels | required | Outward radial extent of that wedge. |
+ * | `--p4.orArcHalfWidth` | `p4.orArcHalfWidth=pixels` | `HIERARCH P4 OR ARC HALF WIDTH` | nonnegative real arc length | required | Azimuthal half-width of the predictor wedge, expressed as arc length at the region radius; `0` uses only `orMaxHalfAngle`. |
+ * | `--p4.orMaxHalfAngle` | `p4.orMaxHalfAngle=degrees` | `HIERARCH P4 OR MAX HALF ANGLE` | real degrees in `(0,180]` | required | Cap on the predictor wedge's angular half-width; `180` permits the full 360-degree annulus. |
+ * | `--p4.rankTolerance` | `p4.rankTolerance=1e-12` | `HIERARCH P4 RANK TOLERANCE` | real in `[0,1)` | `1e-12` | Relative rank criterion: a mode is retained only when `lambda > tolerance * lambdaMax`. `0` accepts all positive returned eigenvalues, including roundoff-positive nulls. |
  *
  * For a positive `p4.numberImages`, `T` is the number of retained central targets in that annulus after temporal
  * neighbor selection, and `K` is the original OR predictor count plus `2 * p4.numberImages` physical-PSF-disk blocks.
@@ -75,11 +76,11 @@
  *
  * \section p4_exclusion_dictionary Signal exclusion
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
- * |---|---|---|---|---|
- * | `--p4.psfRadius` | `p4.psfRadius=pixels` | positive real pixels | required | Physical central radius excluded from predictors. |
- * | `--p4.exclusionRadiusBuffer` | `p4.exclusionRadiusBuffer=0.5` | nonnegative real pixels | required | Explicit additional radius applied to the physical exclusion. `0.5` reproduces the prototype's effective buffer. |
- * | `--p4.exclusionPolicy` | `p4.exclusionPolicy=sampleCenter` | `sampleCenter` or `kernelSupport` | required | Defines how the buffered exclusion is tested. |
+ * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--p4.psfRadius` | `p4.psfRadius=pixels` | `HIERARCH P4 PSF RADIUS` | positive real pixels | required | Physical central radius excluded from predictors. |
+ * | `--p4.exclusionRadiusBuffer` | `p4.exclusionRadiusBuffer=0.5` | `HIERARCH P4 EXCLUSION RADIUS BUFFER` | nonnegative real pixels | required | Explicit additional radius applied to the physical exclusion. `0.5` reproduces the prototype's effective buffer. |
+ * | `--p4.exclusionPolicy` | `p4.exclusionPolicy=sampleCenter` | `HIERARCH P4 EXCLUSION POLICY` | `sampleCenter` or `kernelSupport` | required | Defines how the buffered exclusion is tested. |
  *
  * `sampleCenter` rejects a predictor sample when its interpolated sample center lies inside the buffered disk. It is the
  * closest match to the prototype's center-only mask. `kernelSupport` rejects a predictor column when any pixel in its
@@ -130,10 +131,10 @@
  *
  * \section p4_diagnostics_dictionary Diagnostics and progress
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
- * |---|---|---|---|---|
- * | `--p4.writeDiagnostics` | `p4.writeDiagnostics=true` | bool | `false` | Writes ownership, validity, canonical-region, rank, timing, and summary FITS diagnostics. Every diagnostic carries `HIERARCH P4 FRAME` provenance. |
- * | `--p4.diagnosticDirectory` | `p4.diagnosticDirectory=/path` | writable directory; required when diagnostics are enabled | `.` | Destination for P4 diagnostic products. |
+ * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--p4.writeDiagnostics` | `p4.writeDiagnostics=true` | `HIERARCH P4 WRITE DIAGNOSTICS` | bool | `false` | Writes ownership, validity, canonical-region, rank, timing, and summary FITS diagnostics. Every diagnostic carries `HIERARCH P4 FRAME` provenance. |
+ * | `--p4.diagnosticDirectory` | `p4.diagnosticDirectory=/path` | — | writable directory; required when diagnostics are enabled | `.` | Destination for P4 diagnostic products; missing parent directories are created automatically. |
  *
  * Geometry construction reports each annulus's search-pixel and retained predictor count. Regression status reports
  * the active annulus, completed/total local fits, rate, local ETA, and cumulative overall progress to

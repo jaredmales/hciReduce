@@ -393,6 +393,9 @@ TEST_CASE( "KLIP diagnostic output gate", "[KLIPreduction][diagnostics]" )
     REQUIRE_THROWS( reduction.writeDiagnostic( "cv.fits", image ) );
 
     reduction.m_diagnosticDirectory = ".";
+    const std::string nestedDiagnostic = directory.file( "implicit/nested/cv.fits" ).string();
+    REQUIRE_NOTHROW( reduction.writeDiagnostic( nestedDiagnostic, image ) );
+    REQUIRE( std::filesystem::exists( nestedDiagnostic ) );
     REQUIRE_THROWS( reduction.writeDiagnostic( directory.path().string(), image ) );
 }
 

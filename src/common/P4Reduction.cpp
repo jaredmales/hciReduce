@@ -1439,14 +1439,19 @@ void P4Reduction<realT, derotFunctObj, verboseT>::writeDiagnostic( const std::st
     }
 
     std::string path = fileName;
-    if( m_diagnosticDirectory != "." )
+    if( !m_diagnosticDirectory.empty() && m_diagnosticDirectory != "." )
     {
-        const mx::error_t directoryResult = mx::ioutils::createDirectories( m_diagnosticDirectory );
+        path = m_diagnosticDirectory + "/" + fileName;
+    }
+
+    const std::string outputParent = mx::ioutils::parentPath( path );
+    if( !outputParent.empty() )
+    {
+        const mx::error_t directoryResult = mx::ioutils::createDirectories( outputParent );
         if( directoryResult != mx::error_t::noerror )
         {
-            throw mx::exception<verboseT>( directoryResult, "could not create P4 diagnostic directory" );
+            throw mx::exception<verboseT>( directoryResult, "could not create P4 diagnostic output directory" );
         }
-        path = m_diagnosticDirectory + "/" + fileName;
     }
 
     static std::atomic<unsigned long long> diagnosticSequence{ 0 };
@@ -1481,25 +1486,27 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
     head.append( "", fits::fitsCommentType(), "P4 reduction parameters:" );
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
-    head.template append<std::string>( "P4ALGOR", "P4-PCA", "pixel prediction algorithm" );
+    head.template append<std::string>( "P4 ALGORITHM", "P4-PCA", "pixel prediction algorithm" );
     head.template append<std::string>( "P4 FRAME", regressionFrameString( m_regressionFrame ), "regression frame" );
-    head.template append<int>( "P4INSAMP", 1, "in-sample temporal regression" );
-    head.template append<int>( "P4RDI", 0, "target-only ADI implementation" );
-    head.template append<int>( "P4NIMGS", m_numberImages, "qualifying earlier and later predictor images" );
-    head.template append<std::string>( "P4MODFR", p4Join( m_modeFractions ), "ordered output mode fractions" );
-    head.template append<std::string>( "P4MINR", p4Join( m_minRadius ), "search-annulus inner radii" );
-    head.template append<std::string>( "P4MAXR", p4Join( m_maxRadius ), "search-annulus outer radii" );
-    head.template append<realT>( "P4DRIN", m_orDeltaRadiusInner, "OR inward radial extent" );
-    head.template append<realT>( "P4DROUT", m_orDeltaRadiusOuter, "OR outward radial extent" );
-    head.template append<realT>( "P4ARCHW", m_orArcHalfWidth, "OR arc half-width" );
-    head.template append<realT>( "P4MAXHA", m_orMaxHalfAngle, "OR maximum half-angle" );
-    head.template append<realT>( "P4PSFR", m_psfRadius, "physical PSF exclusion radius" );
-    head.template append<std::string>( "P4EXCL",
+    head.template append<int>( "P4 IN SAMPLE", 1, "in-sample temporal regression" );
+    head.template append<int>( "P4 RDI", 0, "target-only ADI implementation" );
+    head.template append<int>( "P4 NUMBER IMAGES", m_numberImages, "qualifying earlier and later predictor images" );
+    head.template append<std::string>( "P4 MODE FRACTIONS",
+                                       p4Join( m_modeFractions ),
+                                       "ordered output mode fractions" );
+    head.template append<std::string>( "P4 MIN RADIUS", p4Join( m_minRadius ), "search-annulus inner radii" );
+    head.template append<std::string>( "P4 MAX RADIUS", p4Join( m_maxRadius ), "search-annulus outer radii" );
+    head.template append<realT>( "P4 OR DELTA RADIUS INNER", m_orDeltaRadiusInner, "OR inward radial extent" );
+    head.template append<realT>( "P4 OR DELTA RADIUS OUTER", m_orDeltaRadiusOuter, "OR outward radial extent" );
+    head.template append<realT>( "P4 OR ARC HALF WIDTH", m_orArcHalfWidth, "OR arc half-width" );
+    head.template append<realT>( "P4 OR MAX HALF ANGLE", m_orMaxHalfAngle, "OR maximum half-angle" );
+    head.template append<realT>( "P4 PSF RADIUS", m_psfRadius, "physical PSF exclusion radius" );
+    head.template append<std::string>( "P4 EXCLUSION POLICY",
                                        m_exclusionPolicy ? exclusionPolicyString( *m_exclusionPolicy ) : "invalid",
                                        "exclusion policy" );
-    head.template append<realT>( "P4EXBUF", m_exclusionRadiusBuffer, "exclusion-radius buffer" );
-    head.template append<double>( "P4RKTOL", m_rankTolerance, "relative rank threshold" );
-    head.template append<int>( "P4DIAG", m_writeDiagnostics ? 1 : 0, "diagnostics enabled" );
+    head.template append<realT>( "P4 EXCLUSION RADIUS BUFFER", m_exclusionRadiusBuffer, "exclusion-radius buffer" );
+    head.template append<double>( "P4 RANK TOLERANCE", m_rankTolerance, "relative rank threshold" );
+    head.template append<int>( "P4 WRITE DIAGNOSTICS", m_writeDiagnostics ? 1 : 0, "diagnostics enabled" );
 
     std::vector<std::size_t> predictorCounts;
     std::vector<int> degreesOfFreedom;
@@ -1534,26 +1541,32 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
         maskedCounts.push_back( statistics.maskedLocalFitCount );
         supportInvalidCounts.push_back( statistics.supportInvalidLocalFitCount );
     }
-    head.template append<std::string>( "P4K", p4Join( predictorCounts ), "predictor counts by annulus" );
-    head.template append<std::string>( "P4DOF", p4Join( degreesOfFreedom ), "maximum DOF by annulus" );
-    head.template append<std::string>( "P4RANK", p4Join( minimumRanks ), "minimum numerical rank by annulus" );
-    head.template append<std::string>( "P4SRCH", p4Join( searchCounts ), "search pixels by annulus" );
-    head.template append<std::string>( "P4TGT", p4Join( targetImageCounts ), "retained target images by annulus" );
-    head.template append<std::string>( "P4TNIMG",
+    head.template append<std::string>( "P4 PREDICTOR COUNT", p4Join( predictorCounts ), "predictor counts by annulus" );
+    head.template append<std::string>( "P4 MAX DOF", p4Join( degreesOfFreedom ), "maximum DOF by annulus" );
+    head.template append<std::string>( "P4 MINIMUM RANK", p4Join( minimumRanks ), "minimum numerical rank by annulus" );
+    head.template append<std::string>( "P4 SEARCH PIXEL COUNT", p4Join( searchCounts ), "search pixels by annulus" );
+    head.template append<std::string>( "P4 TARGET IMAGE COUNT",
+                                       p4Join( targetImageCounts ),
+                                       "retained target images by annulus" );
+    head.template append<std::string>( "P4 TEMPORAL NUMBER IMAGES",
                                        p4Join( temporalImageCounts ),
                                        "effective temporal images by annulus" );
-    head.template append<std::string>( "P4TPSFR",
+    head.template append<std::string>( "P4 TEMPORAL PSF RADIUS",
                                        p4Join( temporalPsfRadii ),
                                        "effective temporal PSF radii by annulus" );
-    head.template append<std::string>( "P4VALID", p4Join( validCounts ), "valid local fits by annulus" );
-    head.template append<std::string>( "P4MASK", p4Join( maskedCounts ), "detector-grid mask-invalid fits" );
-    head.template append<std::string>( "P4SUP", p4Join( supportInvalidCounts ), "direct support-invalid fits" );
+    head.template append<std::string>( "P4 VALID FIT COUNT", p4Join( validCounts ), "valid local fits by annulus" );
+    head.template append<std::string>( "P4 MASK INVALID FIT COUNT",
+                                       p4Join( maskedCounts ),
+                                       "detector-grid mask-invalid fits" );
+    head.template append<std::string>( "P4 SUPPORT INVALID FIT COUNT",
+                                       p4Join( supportInvalidCounts ),
+                                       "direct support-invalid fits" );
     for( std::size_t region = 0; region < m_realizedModes.size(); ++region )
     {
-        head.template append<std::string>( "P4M" + p4Index( region ),
+        head.template append<std::string>( "P4 REALIZED MODES " + p4Index( region ),
                                            p4Join( m_realizedModes[region] ),
                                            "realized modes for one annulus" );
-        head.template append<std::string>( "P4I" + p4Index( region ),
+        head.template append<std::string>( "P4 RANK INVALID COUNT " + p4Index( region ),
                                            p4Join( m_regionStatistics[region].rankInvalidCounts ),
                                            "rank-invalid pixels by output plane" );
     }

@@ -165,8 +165,8 @@ TEST_CASE( "hciAnalyze SNR annulus validation", "[hciAnalyze][header][annulus]" 
     hciAnalyze::fitsHeaderT header;
     REQUIRE_THROWS( application.snrAnnulus( header ) );
 
-    header.append<std::string>( "P4MINR", "2,4", "P4 region minima" );
-    header.append<std::string>( "P4MAXR", "5,7", "P4 region maxima" );
+    header.append<std::string>( "P4 MIN RADIUS", "2,4", "P4 region minima" );
+    header.append<std::string>( "P4 MAX RADIUS", "5,7", "P4 region maxima" );
     const auto [p4Minimum, p4Maximum] = application.snrAnnulus( header );
     REQUIRE( p4Minimum == Approx( 2 ) );
     REQUIRE( p4Maximum == Approx( 7 ) );

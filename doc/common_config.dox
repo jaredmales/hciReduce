@@ -116,7 +116,7 @@
  *
  * | CLI | Config-file form | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
- * | `--output.directory` | `output.directory=/path` | writable directory | unset | Destination for final products. |
+ * | `--output.directory` | `output.directory=/path` | writable directory | unset | Destination for final products. Missing directories are created automatically. |
  * | `--output.fileName` | `output.fileName=finim_` | literal string | `finim_` | Prefix when `exactFName=false`; hciReduce appends the next unused `0000`-style suffix and `.fits`. |
  * | `--output.exactFName` | `output.exactFName=true` | bool | `false` | Treat `output.fileName` as the complete literal filename, with no suffix or extension appended. |
  * | `--output.outputPSFSub` | `output.outputPSFSub=true` | bool | `false` | Also write the PSF-subtracted residual cube. |

@@ -242,7 +242,7 @@ void hciAnalyze::setupConfig()
                 "minRad",
                 false,
                 "float",
-                "inner SNR annulus radius in pixels; non-positive uses REGMINR or P4MINR" );
+                "inner SNR annulus radius in pixels; non-positive uses REGMINR or P4 MIN RADIUS" );
     config.add( "snr.maxRad",
                 "",
                 "snr.maxRad",
@@ -251,7 +251,7 @@ void hciAnalyze::setupConfig()
                 "maxRad",
                 false,
                 "float",
-                "outer SNR annulus radius in pixels; non-positive uses REGMAXR or P4MAXR" );
+                "outer SNR annulus radius in pixels; non-positive uses REGMAXR or P4 MAX RADIUS" );
     config.add( "snr.apertureR",
                 "",
                 "snr.apertureR",
@@ -521,25 +521,29 @@ std::pair<hciAnalyze::realT, hciAnalyze::realT> hciAnalyze::snrAnnulus( fitsHead
     realT maxRadius = m_snrMaxRadius;
     if( minRadius <= 0 )
     {
-        const std::vector<realT> regionMinima =
-            header.count( "REGMINR" ) ? headerVector( header, "REGMINR" ) : headerVector( header, "P4MINR" );
+        const std::vector<realT> regionMinima = header.count( "REGMINR" ) ? headerVector( header, "REGMINR" )
+                                                : header.count( "P4 MIN RADIUS" )
+                                                    ? headerVector( header, "P4 MIN RADIUS" )
+                                                    : headerVector( header, "P4MINR" );
         if( regionMinima.empty() )
         {
             throw mx::exception<mx::verbose::vv>(
                 mx::error_t::invalidconfig,
-                "snr.minRad is required when neither REGMINR nor P4MINR is in the FITS header" );
+                "snr.minRad is required when neither REGMINR nor P4 MIN RADIUS is in the FITS header" );
         }
         minRadius = *std::min_element( regionMinima.begin(), regionMinima.end() );
     }
     if( maxRadius <= 0 )
     {
-        const std::vector<realT> regionMaxima =
-            header.count( "REGMAXR" ) ? headerVector( header, "REGMAXR" ) : headerVector( header, "P4MAXR" );
+        const std::vector<realT> regionMaxima = header.count( "REGMAXR" ) ? headerVector( header, "REGMAXR" )
+                                                : header.count( "P4 MAX RADIUS" )
+                                                    ? headerVector( header, "P4 MAX RADIUS" )
+                                                    : headerVector( header, "P4MAXR" );
         if( regionMaxima.empty() )
         {
             throw mx::exception<mx::verbose::vv>(
                 mx::error_t::invalidconfig,
-                "snr.maxRad is required when neither REGMAXR nor P4MAXR is in the FITS header" );
+                "snr.maxRad is required when neither REGMAXR nor P4 MAX RADIUS is in the FITS header" );
         }
         maxRadius = *std::max_element( regionMaxima.begin(), regionMaxima.end() );
     }
@@ -651,9 +655,10 @@ void hciAnalyze::analyzeCube( cubeT &cube, fitsHeaderT &header )
     mx::improc::zeroNaNCube( snrCube );
     const std::filesystem::path snrMapPath = writeSNRMap( snrCube, header, minRadius, maxRadius );
 
-    const std::vector<realT> modes = header.count( "NMODES" )         ? headerVector( header, "NMODES" )
-                                     : header.count( "FRACT NMODES" ) ? headerVector( header, "FRACT NMODES" )
-                                                                      : headerVector( header, "P4MODFR" );
+    const std::vector<realT> modes = header.count( "NMODES" )              ? headerVector( header, "NMODES" )
+                                     : header.count( "FRACT NMODES" )      ? headerVector( header, "FRACT NMODES" )
+                                     : header.count( "P4 MODE FRACTIONS" ) ? headerVector( header, "P4 MODE FRACTIONS" )
+                                                                           : headerVector( header, "P4MODFR" );
     m_results.clear();
     m_results.reserve( static_cast<size_t>( cube.planes() ) * m_signals.size() );
     for( int plane = 0; plane < cube.planes(); ++plane )

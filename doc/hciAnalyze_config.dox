@@ -31,8 +31,8 @@
  *
  * | CLI | Config-file form | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
- * | `--snr.minRad` | `snr.minRad=pixels` | finite real | `0` | Inner radial-noise bound. A non-positive value uses the minimum `REGMINR` or `P4MINR` header value. |
- * | `--snr.maxRad` | `snr.maxRad=pixels` | finite real | `0` | Outer radial-noise bound. A non-positive value uses the maximum `REGMAXR` or `P4MAXR` header value. |
+ * | `--snr.minRad` | `snr.minRad=pixels` | finite real | `0` | Inner radial-noise bound. A non-positive value uses the minimum `REGMINR` or `HIERARCH P4 MIN RADIUS` header value. |
+ * | `--snr.maxRad` | `snr.maxRad=pixels` | finite real | `0` | Outer radial-noise bound. A non-positive value uses the maximum `REGMAXR` or `HIERARCH P4 MAX RADIUS` header value. |
  * | `--snr.apertureR` | `snr.apertureR=pixels` | positive real | `2` | Radius of the aperture used to extract the reported `snr` value. |
  * | `--filter.hpfGaussFW` | `filter.hpfGaussFW=pixels` | finite real | `0` | High-pass Gaussian unsharp-mask FWHM; non-positive disables it. |
  * | `--filter.lpfGaussFW` | `filter.lpfGaussFW=pixels` | finite real | `0` | Low-pass Gaussian smoothing FWHM; non-positive disables it. |

@@ -35,8 +35,9 @@
  * the maximum value inside `snr.apertureR` centered on the signal.
  *
  * `snr.minRad` and `snr.maxRad` override the radial annulus. If either is non-positive, hciAnalyze derives it from
- * the extrema of `REGMINR`/`REGMAXR` or `P4MINR`/`P4MAXR` in the FITS header. This requires the applicable keyword to
- * be present. `NMODES`, `FRACT NMODES`, or `P4MODFR`, when present and aligned with cube planes, labels result rows
+ * the extrema of `REGMINR`/`REGMAXR` or `HIERARCH P4 MIN RADIUS`/`HIERARCH P4 MAX RADIUS` in the FITS header. This
+ * requires the applicable keyword to be present. `NMODES`, `FRACT NMODES`, or `HIERARCH P4 MODE FRACTIONS`, when
+ * present and aligned with cube planes, labels result rows
  * but does not affect the calculation.
  *
  * \section hcianalyze_output Output

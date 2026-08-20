@@ -731,12 +731,17 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writeDiagnostic( co
     std::string path = fileName;
     if( !m_diagnosticDirectory.empty() && m_diagnosticDirectory != "." )
     {
-        const mx::error_t result = ioutils::createDirectories( m_diagnosticDirectory );
+        path = m_diagnosticDirectory + "/" + fileName;
+    }
+
+    const std::string outputParent = ioutils::parentPath( path );
+    if( !outputParent.empty() )
+    {
+        const mx::error_t result = ioutils::createDirectories( outputParent );
         if( result != mx::error_t::noerror )
         {
-            throw mx::exception<verboseT>( result, "could not create KLIP diagnostic directory" );
+            throw mx::exception<verboseT>( result, "could not create KLIP diagnostic output directory" );
         }
-        path = m_diagnosticDirectory + "/" + fileName;
     }
 
     fits::fitsFile<typename dataT::Scalar, verboseT> writer;

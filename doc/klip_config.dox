@@ -71,7 +71,7 @@
  * | CLI | Config-file form | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--klip.writeDiagnostics` | `klip.writeDiagnostics=true` | bool | `false` | Write intermediate region, covariance, and library-selection FITS diagnostics. |
- * | `--klip.diagnosticDirectory` | `klip.diagnosticDirectory=/path` | writable directory | `.` | Destination for enabled KLIP diagnostics. |
+ * | `--klip.diagnosticDirectory` | `klip.diagnosticDirectory=/path` | writable directory | `.` | Destination for enabled KLIP diagnostics. Missing parent directories are created automatically. |
  *
  * Diagnostics are for audit and tuning; they do not change the calculated residuals. In particular, the covariance
  * diagnostic retains the historical reference-frame covariance representation.

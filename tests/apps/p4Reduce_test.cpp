@@ -529,13 +529,13 @@ TEST_CASE( "p4Reduce normal FITS end-to-end", "[p4Reduce][execute][normal][FITS]
     REQUIRE( finitePixels > 0 );
     REQUIRE( finitePixels < static_cast<std::size_t>( output.rows() * output.cols() ) );
 
-    REQUIRE( header["P4ALGOR"].String().starts_with( "P4-PCA" ) );
+    REQUIRE( header["P4 ALGORITHM"].String().starts_with( "P4-PCA" ) );
     REQUIRE( header["P4 FRAME"].String().starts_with( "detector" ) );
-    REQUIRE( header["P4INSAMP"].value<char>() == 1 );
-    REQUIRE( header["P4RDI"].value<char>() == 0 );
-    REQUIRE( header["P4MODFR"].String().starts_with( "0.5" ) );
-    REQUIRE_FALSE( header["P4K"].String().empty() );
-    REQUIRE( header["P4M000"].String().starts_with( "1" ) );
+    REQUIRE( header["P4 IN SAMPLE"].value<char>() == 1 );
+    REQUIRE( header["P4 RDI"].value<char>() == 0 );
+    REQUIRE( header["P4 MODE FRACTIONS"].String().starts_with( "0.5" ) );
+    REQUIRE_FALSE( header["P4 PREDICTOR COUNT"].String().empty() );
+    REQUIRE( header["P4 REALIZED MODES 000"].String().starts_with( "1" ) );
     REQUIRE( header["COMBINATION METHOD"].String().starts_with( "mean" ) );
 }
 

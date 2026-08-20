@@ -61,7 +61,8 @@
  *
  * `output.directory` selects the destination. With `output.exactFName=false`, `output.fileName` is a literal prefix
  * and hciReduce appends the next unused four-digit sequence number and `.fits`; with `true`, it is the exact output
- * filename. `output.outputPSFSub=true` additionally writes the residual-image cube. FITS headers record the
+ * filename. `output.outputPSFSub=true` additionally writes the residual-image cube. Missing output directories,
+ * including parent directories implied by an output filename or diagnostic path, are created automatically. FITS headers record the
  * configured algorithm and final-processing provenance.
  *
  * @}

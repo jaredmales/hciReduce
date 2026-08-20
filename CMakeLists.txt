@@ -102,6 +102,7 @@ if(Doxygen_FOUND)
                 ${CMAKE_SOURCE_DIR}/doc/hcireduce.bib
                 ${CMAKE_SOURCE_DIR}/doc/main.dox
                 ${CMAKE_SOURCE_DIR}/doc/groupdefs.dox
+                ${CMAKE_SOURCE_DIR}/doc/introduction.dox
                 ${CMAKE_SOURCE_DIR}/doc/common.dox
                 ${CMAKE_SOURCE_DIR}/doc/common_config.dox
                 ${CMAKE_SOURCE_DIR}/doc/klip.dox
