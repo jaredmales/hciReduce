@@ -3,21 +3,29 @@
 This is a list of to-do items maintained by developers.  As we move through each we'll create a separate plan document for the complicated ones.  Agents should not edit this file unless directed, except to mark [x] for complete and add the commit(s) that correspond(s) to that work
 
 ## Doc Update:
-[] under user-guide, clicking on "Common Configuration and Workflow" closes the TOC drop down for User's Guide.  I think that means it is marked as the main page or equivalent for User's Guide.  Fix this behavior.  If needed have the main page just be title or another TOC.
+[x] under user-guide, clicking on "Common Configuration and Workflow" closes the TOC drop down for User's Guide.  I think that means it is marked as the main page or equivalent for User's Guide.  Fix this behavior.  If needed have the main page just be title or another TOC.
 
-[]  Add a placeholder Introduction page before "Common Configuration...".  It can be empty for now.
+[x]  Add a placeholder Introduction page before "Common Configuration...".  It can be empty for now.
+
+Completed in `c06172f` (`Improve outputs, P4 headers, and user guide navigation`).
 
 ## FITS Updates:
-[] change FITS keywords to exploit HIERARCH (happens automatically) to make them more expressive and more closely match the config settings.  E.g. P4DRIN should be P4 OR DELTA RADIUS INNER
+[x] change FITS keywords to exploit HIERARCH (happens automatically) to make them more expressive and more closely match the config settings.  E.g. P4DRIN should be P4 OR DELTA RADIUS INNER
 
-[] Add the FITS keywords to the config tables as a column, i.e. to document the mapping from config to header
+[x] Add the FITS keywords to the config tables as a column, i.e. to document the mapping from config to header
+
+Completed in `c06172f` (`Improve outputs, P4 headers, and user guide navigation`).
 
 ## Output Directories
-[] make sure we automatically create any output directories 
+[x] make sure we automatically create any output directories
+
+Completed in `c06172f` (`Improve outputs, P4 headers, and user guide navigation`).
 
 ## P4 Profiling
 
 [] added timing measurements for various steps as is done in klipReduce.  Consider a more resuable common design for this than the globals in klipReduce.
+
+Implementation plan: `agents/plans/p4_profiling.md`.
 
 ## P4 Memory Management
 
