@@ -877,8 +877,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_regionStatistics.clear();
     m_temporalSelections.clear();
     m_ownership.resize( 0, 0 );
-    m_geometrySeconds = 0;
-    m_regressionSeconds = 0;
+    m_timing.reset();
 
     if( !this->m_filesRead )
     {
@@ -1086,7 +1085,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         statistics.maximumDegreesOfFreedom = maximumDegreesOfFreedom;
         statistics.rankInvalidCounts.assign( m_modeFractions.size(), 0 );
     }
-    m_geometrySeconds = omp_get_wtime() - geometryBegin;
+    m_timing.geometryElapsedSeconds = omp_get_wtime() - geometryBegin;
 
     std::size_t totalSearchPixels{ 0 };
     for( const P4RegionStatistics &statistics : m_regionStatistics )
@@ -1151,6 +1150,10 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             std::size_t threadSupportInvalid{ 0 };
             int threadMinimumRank{ std::numeric_limits<int>::max() };
             std::vector<std::size_t> threadRankInvalid( modes.size(), 0 );
+            double threadSamplingSeconds{ 0 };
+            double threadGramSeconds{ 0 };
+            double threadEigensolveSeconds{ 0 };
+            double threadProjectionSeconds{ 0 };
 
             // clang-format off
 #pragma omp for schedule(static)
@@ -1185,6 +1188,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                         }
                         else
                         {
+                            const double samplingBegin = omp_get_wtime();
                             const int row = coordinate.row();
                             const int column = coordinate.column();
                             if( rotated )
@@ -1242,6 +1246,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                 }
                             }
 
+                            threadSamplingSeconds += omp_get_wtime() - samplingBegin;
+                            P4PCATiming pcaTiming;
+
                             if( rotated )
                             {
                                 P4PCA::calculateCentered( result,
@@ -1249,15 +1256,26 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                           target,
                                                           modes,
                                                           m_rankTolerance,
-                                                          workspace );
+                                                          workspace,
+                                                          &pcaTiming );
                             }
                             else
                             {
-                                P4PCA::calculate( result, predictors, target, modes, m_rankTolerance, workspace );
+                                P4PCA::calculate( result,
+                                                  predictors,
+                                                  target,
+                                                  modes,
+                                                  m_rankTolerance,
+                                                  workspace,
+                                                  &pcaTiming );
                             }
+                            threadGramSeconds += pcaTiming.gramWorkerSeconds;
+                            threadEigensolveSeconds += pcaTiming.eigensolveWorkerSeconds;
+                            threadProjectionSeconds += pcaTiming.projectionWorkerSeconds;
                             ++threadValid;
                             threadMinimumRank = std::min( threadMinimumRank, result.numericalRank );
 
+                            const double residualApplyBegin = omp_get_wtime();
                             for( std::size_t output = 0; output < modes.size(); ++output )
                             {
                                 if( result.modeStatus[output] == P4PCAModeStatus::rankInsufficient )
@@ -1274,6 +1292,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                     this->m_psfsubValidity[output].image( image )( row, column ) = 1;
                                 }
                             }
+                            threadProjectionSeconds += omp_get_wtime() - residualApplyBegin;
                         }
                         progressWatcher.incrementAndOutputStatus();
                     }
@@ -1305,6 +1324,10 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                 {
                     rankInvalidCounts[output] += threadRankInvalid[output];
                 }
+                m_timing.samplingWorkerSeconds += threadSamplingSeconds;
+                m_timing.gramWorkerSeconds += threadGramSeconds;
+                m_timing.eigensolveWorkerSeconds += threadEigensolveSeconds;
+                m_timing.projectionWorkerSeconds += threadProjectionSeconds;
             }
         }
 
@@ -1342,8 +1365,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             }
         }
     }
-    m_regressionSeconds = omp_get_wtime() - regressionBegin;
-    progressOutput.completeReduction( m_regressionSeconds );
+    m_timing.regressionElapsedSeconds = omp_get_wtime() - regressionBegin;
+    progressOutput.completeReduction( m_timing.regressionElapsedSeconds );
 
     if( m_writeDiagnostics )
     {
@@ -1418,9 +1441,19 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
         writeDiagnostic( "p4RegionSummary.fits", summary );
 
-        imageT timing( 1, 2 );
-        timing << static_cast<realT>( m_geometrySeconds ), static_cast<realT>( m_regressionSeconds );
-        writeDiagnostic( "p4Timing.fits", timing );
+        imageT timing( 1, 6 );
+        timing << static_cast<realT>( m_timing.geometryElapsedSeconds ),
+            static_cast<realT>( m_timing.regressionElapsedSeconds ),
+            static_cast<realT>( m_timing.samplingWorkerSeconds ), static_cast<realT>( m_timing.gramWorkerSeconds ),
+            static_cast<realT>( m_timing.eigensolveWorkerSeconds ),
+            static_cast<realT>( m_timing.projectionWorkerSeconds );
+        fitsHeaderT timingHeader;
+        timingHeader.template append<int>( "P4 TIMING SCHEMA", 2, "P4 timing diagnostic schema version" );
+        timingHeader.template append<std::string>( "P4 TIMING COLUMNS",
+                                                   "geometryElapsed,regressionElapsed,samplingWorker,gramWorker,"
+                                                   "eigensolveWorker,projectionWorker",
+                                                   "P4 timing columns in seconds" );
+        writeDiagnostic( "p4Timing.fits", timing, &timingHeader );
     }
 
     const int result = finalProcess();
@@ -1431,7 +1464,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
 template <typename realT, class derotFunctObj, class verboseT>
 template <typename dataT>
 void P4Reduction<realT, derotFunctObj, verboseT>::writeDiagnostic( const std::string &fileName,
-                                                                   const dataT &data ) const
+                                                                   const dataT &data,
+                                                                   const fitsHeaderT *additionalHeader ) const
 {
     if( !m_writeDiagnostics )
     {
@@ -1459,6 +1493,11 @@ void P4Reduction<realT, derotFunctObj, verboseT>::writeDiagnostic( const std::st
         path + ".tmp." + std::to_string( diagnosticSequence.fetch_add( 1, std::memory_order_relaxed ) );
     fitsHeaderT diagnosticHeader;
     appendReductionHeader( diagnosticHeader );
+    if( additionalHeader )
+    {
+        fitsHeaderT additionalCopy = *additionalHeader;
+        diagnosticHeader.append( additionalCopy );
+    }
     mx::fits::fitsFile<typename dataT::Scalar, verboseT> writer;
     const mx::error_t writeResult = writer.write( temporaryPath, data, diagnosticHeader );
     if( writeResult != mx::error_t::noerror )

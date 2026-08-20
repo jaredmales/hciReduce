@@ -9,6 +9,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstddef>
+#include <chrono>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -174,13 +175,22 @@ void p4PCACalculateValidated(
     double rankTolerance,                 /**< [in] relative numerical-rank threshold */
     int maxDOF,                           /**< [in] structural degree-of-freedom limit and eigenpair count */
     const P4PCA::matrixT *predictorMeans, /**< [in] optional means for uncentered application */
-    P4PCA::workspaceT &workspace /**< [in,out] reusable LAPACK workspace */ )
+    P4PCA::workspaceT &workspace,         /**< [in,out] reusable LAPACK workspace */
+    P4PCATiming *timing /**< [out] optional per-call worker timing */ )
 {
+    if( timing )
+    {
+        *timing = P4PCATiming{};
+    }
+
+    const auto secondsSince = []( const std::chrono::steady_clock::time_point &start )
+    { return std::chrono::duration<double>( std::chrono::steady_clock::now() - start ).count(); };
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
     const bool useTemporalGram = sampleCount <= predictorCount;
     P4PCA::matrixT gram;
     P4PCA::vectorT crossProduct;
+    const auto gramStart = std::chrono::steady_clock::now();
     if( useTemporalGram )
     {
         gram = ( predictors.matrix() * predictors.matrix().transpose() ).array();
@@ -189,6 +199,10 @@ void p4PCACalculateValidated(
     {
         gram = ( predictors.matrix().transpose() * predictors.matrix() ).array();
         crossProduct = ( predictors.matrix().transpose() * fitTarget.matrix() ).array();
+    }
+    if( timing )
+    {
+        timing->gramWorkerSeconds = secondsSince( gramStart );
     }
 
     if( !p4PCAAllFinite( gram ) || ( !useTemporalGram && !p4PCAAllFinite( crossProduct ) ) )
@@ -207,6 +221,7 @@ void p4PCACalculateValidated(
 
     P4PCA::matrixT eigenvectors;
     P4PCA::matrixT eigenvalues;
+    const auto eigensolveStart = std::chrono::steady_clock::now();
     const MXLAPACK_INT solverStatus = p4PCAEigenSolve( eigenvectors, eigenvalues, gram, maxDOF, workspace );
     if( solverStatus != 0 )
     {
@@ -246,6 +261,10 @@ void p4PCACalculateValidated(
             }
         }
     }
+    if( timing )
+    {
+        timing->eigensolveWorkerSeconds = secondsSince( eigensolveStart );
+    }
 
     output.residuals.resize( sampleCount, modes.size() );
     output.residuals.setConstant( std::numeric_limits<double>::quiet_NaN() );
@@ -259,6 +278,7 @@ void p4PCACalculateValidated(
     }
 
     const int largestSupportedMode = *( unsupported - 1 );
+    const auto projectionStart = std::chrono::steady_clock::now();
     P4PCA::vectorT residual = residualTarget;
     std::size_t outputIndex{ 0 };
 
@@ -315,6 +335,10 @@ void p4PCACalculateValidated(
             ++outputIndex;
         }
     }
+    if( timing )
+    {
+        timing->projectionWorkerSeconds = secondsSince( projectionStart );
+    }
 }
 
 } // namespace
@@ -341,13 +365,23 @@ void P4PCA::calculate( P4PCAResult &output,
                        const vectorT &target,
                        const std::vector<int> &modes,
                        double rankTolerance,
-                       workspaceT &workspace )
+                       workspaceT &workspace,
+                       P4PCATiming *timing )
 {
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
     const int maxDOF = static_cast<int>( std::min( sampleCount, predictorCount ) );
     p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
-    p4PCACalculateValidated( output, predictors, target, target, modes, rankTolerance, maxDOF, nullptr, workspace );
+    p4PCACalculateValidated( output,
+                             predictors,
+                             target,
+                             target,
+                             modes,
+                             rankTolerance,
+                             maxDOF,
+                             nullptr,
+                             workspace,
+                             timing );
 }
 
 void P4PCA::calculateCentered( P4PCAResult &output,
@@ -355,7 +389,8 @@ void P4PCA::calculateCentered( P4PCAResult &output,
                                const vectorT &target,
                                const std::vector<int> &modes,
                                double rankTolerance,
-                               workspaceT &workspace )
+                               workspaceT &workspace,
+                               P4PCATiming *timing )
 {
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
@@ -385,7 +420,8 @@ void P4PCA::calculateCentered( P4PCAResult &output,
                              rankTolerance,
                              maxDOF,
                              &predictorMeans,
-                             workspace );
+                             workspace,
+                             timing );
 }
 
 } // namespace improc

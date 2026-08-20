@@ -282,6 +282,12 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Bring the exact `mx::math::calcEigenVecs<double>()` path used by `P4PCA` to 100% executable-line coverage.
+      The current mxlib LCOV trace at `_build/coverage_filtered.info` records `include/math/eigenLapack.hpp` at
+      312/477 executable lines (65.4%), so it does not meet the hciReduce integration gate for P4's Gram-matrix
+      eigensolve. Add focused real-symmetric double-precision success and failure-path tests for the `syevrMem<double>`
+      overload, regenerate the trace, and record the exact result here.
+
 - [ ] Regenerate mxlib's current LCOV report and verify 100% executable-line coverage for the exact mxlib APIs called
       by `P4Reduction::regions()` after the multi-image detector-frame extension: `math::angleDiff`, `math::isFinite`,
       `sys::get_curr_time`, and `ipc::ompLoopWatcher`. The checked mxlib source tree contains the coverage scripts but

@@ -19,6 +19,7 @@
 #include "ADIDerotator.hpp"
 #include "ADIobservation.hpp"
 #include "P4PCA.hpp"
+#include "ReductionTiming.hpp"
 #include "P4PixelGrid.hpp"
 #include "P4RotatedGrid.hpp"
 
@@ -152,9 +153,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> m_ownership; ///< Owning annulus index, or -1 outside support.
 
-    double m_geometrySeconds{ 0 };                                 ///< Elapsed serial geometry-construction time.
-
-    double m_regressionSeconds{ 0 };                               ///< Elapsed parallel local-regression time.
+    ReductionTiming m_timing; ///< Instance-owned elapsed and aggregate-worker timing record for the current reduction.
 
     /// @}
 
@@ -234,8 +233,10 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     /// Write one enabled image-like diagnostic with P4 provenance and checked directory and FITS errors.
     template <typename dataT>
-    void writeDiagnostic( const std::string &fileName, /**< [in] diagnostic basename */
-                          const dataT &data /**< [in] image-like diagnostic values */ ) const;
+    void writeDiagnostic(
+        const std::string &fileName, /**< [in] diagnostic basename */
+        const dataT &data,           /**< [in] image-like diagnostic values */
+        const fitsHeaderT *additionalHeader = nullptr /**< [in] optional diagnostic-specific cards */ ) const;
 };
 
 /// Supported production P4 reduction specialization.

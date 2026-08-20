@@ -6,6 +6,7 @@
 #include "../catch2/catch.hpp"
 
 #include "src/common/P4PCA.hpp"
+#include "src/common/ReductionTiming.hpp"
 
 #include <cmath>
 #include <limits>
@@ -19,8 +20,10 @@ namespace P4PCA_test
 
 /** \cond P4PCA_test_harness */
 using pcaT = mx::improc::P4PCA;
+using reductionTimingT = mx::improc::ReductionTiming;
 using resultT = mx::improc::P4PCAResult;
 using statusT = mx::improc::P4PCAModeStatus;
+using timingT = mx::improc::P4PCATiming;
 
 /// Compare two Eigen-like vectors coefficient by coefficient.
 template <typename actualT, typename expectedT>
@@ -263,6 +266,53 @@ TEST_CASE( "P4PCA computes exact truncated residuals", "[P4PCA][regression]" )
     requireApprox( result.residuals.col( 0 ), oneMode );
     requireApprox( result.residuals.col( 1 ), twoModes );
     REQUIRE( result.residuals.col( 1 ).matrix().norm() <= result.residuals.col( 0 ).matrix().norm() );
+}
+
+/// Verify P4PCA reports finite nonnegative timing components without changing its numerical result.
+/** \ingroup P4PCA_unit_tests */
+TEST_CASE( "P4PCA reports numerical-stage timing", "[P4PCA][timing]" )
+{
+    pcaT::matrixT predictors( 3, 2 );
+    predictors << 1, 0, 0, 2, 0, 0;
+    pcaT::vectorT target( 3 );
+    target << 3, 5, 7;
+
+    resultT result;
+    pcaT::workspaceT workspace;
+    timingT timing{ -1, -1, -1 };
+    pcaT::calculate( result, predictors, target, { 1, 2 }, 1e-12, workspace, &timing );
+
+    REQUIRE( result.numericalRank == 2 );
+    REQUIRE( std::isfinite( timing.gramWorkerSeconds ) );
+    REQUIRE( std::isfinite( timing.eigensolveWorkerSeconds ) );
+    REQUIRE( std::isfinite( timing.projectionWorkerSeconds ) );
+    REQUIRE( timing.gramWorkerSeconds >= 0 );
+    REQUIRE( timing.eigensolveWorkerSeconds >= 0 );
+    REQUIRE( timing.projectionWorkerSeconds >= 0 );
+}
+
+/// Verify ReductionTiming clears both elapsed and aggregate-worker measurements between reductions.
+/** \ingroup P4PCA_unit_tests */
+TEST_CASE( "ReductionTiming resets all measurements", "[P4PCA][timing]" )
+{
+    reductionTimingT timing;
+    timing.geometryElapsedSeconds = 1;
+    timing.regressionElapsedSeconds = 2;
+    timing.samplingWorkerSeconds = 3;
+    timing.gramWorkerSeconds = 4;
+    timing.eigensolveWorkerSeconds = 5;
+    timing.modeWorkerSeconds = 6;
+    timing.projectionWorkerSeconds = 7;
+
+    timing.reset();
+
+    REQUIRE( timing.geometryElapsedSeconds == 0 );
+    REQUIRE( timing.regressionElapsedSeconds == 0 );
+    REQUIRE( timing.samplingWorkerSeconds == 0 );
+    REQUIRE( timing.gramWorkerSeconds == 0 );
+    REQUIRE( timing.eigensolveWorkerSeconds == 0 );
+    REQUIRE( timing.modeWorkerSeconds == 0 );
+    REQUIRE( timing.projectionWorkerSeconds == 0 );
 }
 
 /// Verify P4PCA sends the smaller shape-dependent Gram matrix to its eigensolver seam.

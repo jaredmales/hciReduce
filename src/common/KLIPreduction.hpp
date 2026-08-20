@@ -30,6 +30,7 @@
 using namespace mx::sigproc;
 
 #include "ADIobservation.hpp"
+#include "ReductionTiming.hpp"
 
 namespace mx
 {
@@ -365,20 +366,16 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                        const std::string &prefix,    /**< [in] literal filename prefix */
                        const std::string &extension = ".fits" /**< [in] literal filename extension */ );
 
-    /// Wall-clock start of the complete multi-region KLIP calculation.
-    double t_worker_begin{ 0 };
+  private:
+    /// Instance-owned KLIP algorithm timing record for the current reduction.
+    ReductionTiming m_algorithmTiming;
 
-    /// Wall-clock end of the complete multi-region KLIP calculation.
-    double t_worker_end{ 0 };
-
-    /// Sum of per-solve eigendecomposition times; excludes Gram construction and reference selection.
-    double t_eigenv{ 0 };
-
-    /// Sum of per-solve spatial-mode construction times.
-    double t_klim{ 0 };
-
-    /// Sum of per-target projection and subtraction times.
-    double t_psf{ 0 };
+  public:
+    /// Return the current instance-owned KLIP algorithm timing snapshot.
+    const ReductionTiming &algorithmTiming() const
+    {
+        return m_algorithmTiming;
+    }
 
     /// Print the current reduction-stage timing summary.
     void dump_times()
@@ -391,11 +388,20 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         printf( "    Preprocessing: %f sec\n", this->t_preproc_end - this->t_preproc_begin );
         printf( "      Az USM: %f sec\n", this->t_azusm_end - this->t_azusm_begin );
         printf( "      Gauss USM: %f sec\n", this->t_gaussusm_end - this->t_gaussusm_begin );
-        printf( "    KLIP algorithm: %f elapsed real sec\n", this->t_worker_end - this->t_worker_begin );
-        double klip_cpu = this->t_eigenv + this->t_klim + this->t_psf;
-        printf( "      EigenDecomposition %f cpu sec (%f%%)\n", this->t_eigenv, this->t_eigenv / klip_cpu * 100 );
-        printf( "      KL image calc %f cpu sec (%f%%)\n", this->t_klim, this->t_klim / klip_cpu * 100 );
-        printf( "      PSF calc/sub %f cpu sec (%f%%)\n", this->t_psf, this->t_psf / klip_cpu * 100 );
+        printf( "    KLIP algorithm: %f elapsed real sec\n", m_algorithmTiming.regressionElapsedSeconds );
+        const double klipWorker = m_algorithmTiming.eigensolveWorkerSeconds + m_algorithmTiming.modeWorkerSeconds +
+                                  m_algorithmTiming.projectionWorkerSeconds;
+        const auto percentage = [klipWorker]( double seconds )
+        { return klipWorker > 0 ? seconds / klipWorker * 100 : 0; };
+        printf( "      EigenDecomposition %f cpu sec (%f%%)\n",
+                m_algorithmTiming.eigensolveWorkerSeconds,
+                percentage( m_algorithmTiming.eigensolveWorkerSeconds ) );
+        printf( "      KL image calc %f cpu sec (%f%%)\n",
+                m_algorithmTiming.modeWorkerSeconds,
+                percentage( m_algorithmTiming.modeWorkerSeconds ) );
+        printf( "      PSF calc/sub %f cpu sec (%f%%)\n",
+                m_algorithmTiming.projectionWorkerSeconds,
+                percentage( m_algorithmTiming.projectionWorkerSeconds ) );
         printf( "    Derotation: %f sec\n", this->t_derotate_end - this->t_derotate_begin );
         printf( "    Combination: %f sec\n", this->t_combo_end - this->t_combo_begin );
     }
@@ -990,11 +996,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
                                                                      const std::vector<realT> &minq,
                                                                      const std::vector<realT> &maxq )
 {
-    t_worker_begin = 0;
-    t_worker_end = 0;
-    t_eigenv = 0;
-    t_klim = 0;
-    t_psf = 0;
+    m_algorithmTiming.reset();
 
     const bool preprocessingOnly = this->preprocessingOnly();
 
@@ -1125,7 +1127,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
     std::cerr << "processing " << minr.size() << " regions\n";
 
     //******** For each region do this:
-    t_worker_begin = sys::get_curr_time();
+    const double workerBegin = sys::get_curr_time();
     for( size_t regno = 0; regno < minr.size(); ++regno )
     {
         std::cerr << "  region " << regno + 1 << ": " << m_minr[regno] << "-" << m_maxr[regno] << " pixels, ";
@@ -1295,7 +1297,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
         m_excludeMethod = configuredExcludeMethod;
         m_excludeMethodMax = configuredExcludeMethodMax;
     }
-    t_worker_end = sys::get_curr_time();
+    m_algorithmTiming.regressionElapsedSeconds = sys::get_curr_time() - workerBegin;
 
     writeDiagnostic( "imsIncluded.fits", m_imsIncluded );
 
@@ -1705,8 +1707,8 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
             writeDiagnostic( "projMatrr.fits", master_projMat );
         }
 
-        t_eigenv += teigenv;
-        t_klim += tklim;
+        m_algorithmTiming.eigensolveWorkerSeconds += teigenv;
+        m_algorithmTiming.modeWorkerSeconds += tklim;
     }
 
     const imageT &sharedMasterKlims = master_klims;
@@ -1858,9 +1860,9 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         } // for imno
     } // openmp parrallel
 
-    t_eigenv += parallelEigenSeconds;
-    t_klim += parallelModeSeconds;
-    t_psf += parallelPsfSeconds;
+    m_algorithmTiming.eigensolveWorkerSeconds += parallelEigenSeconds;
+    m_algorithmTiming.modeWorkerSeconds += parallelModeSeconds;
+    m_algorithmTiming.projectionWorkerSeconds += parallelPsfSeconds;
     if( workerException != nullptr )
     {
         std::rethrow_exception( workerException );

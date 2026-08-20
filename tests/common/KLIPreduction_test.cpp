@@ -1409,12 +1409,12 @@ TEST_CASE( "KLIP worker adaptive master basis", "[KLIPreduction][worker][basis][
 
     for( const reductionHarness *result : { &serial, &parallel } )
     {
-        REQUIRE( std::isfinite( result->t_eigenv ) );
-        REQUIRE( std::isfinite( result->t_klim ) );
-        REQUIRE( std::isfinite( result->t_psf ) );
-        REQUIRE( result->t_eigenv >= 0 );
-        REQUIRE( result->t_klim >= 0 );
-        REQUIRE( result->t_psf >= 0 );
+        REQUIRE( std::isfinite( result->algorithmTiming().eigensolveWorkerSeconds ) );
+        REQUIRE( std::isfinite( result->algorithmTiming().modeWorkerSeconds ) );
+        REQUIRE( std::isfinite( result->algorithmTiming().projectionWorkerSeconds ) );
+        REQUIRE( result->algorithmTiming().eigensolveWorkerSeconds >= 0 );
+        REQUIRE( result->algorithmTiming().modeWorkerSeconds >= 0 );
+        REQUIRE( result->algorithmTiming().projectionWorkerSeconds >= 0 );
     }
 
     reductionHarness diagnostic;
@@ -1520,12 +1520,12 @@ TEST_CASE( "KLIP worker adaptive selected RDI basis", "[KLIPreduction][worker][b
     }
     for( const reductionHarness *result : { &serial, &parallel } )
     {
-        REQUIRE( std::isfinite( result->t_eigenv ) );
-        REQUIRE( std::isfinite( result->t_klim ) );
-        REQUIRE( std::isfinite( result->t_psf ) );
-        REQUIRE( result->t_eigenv >= 0 );
-        REQUIRE( result->t_klim >= 0 );
-        REQUIRE( result->t_psf >= 0 );
+        REQUIRE( std::isfinite( result->algorithmTiming().eigensolveWorkerSeconds ) );
+        REQUIRE( std::isfinite( result->algorithmTiming().modeWorkerSeconds ) );
+        REQUIRE( std::isfinite( result->algorithmTiming().projectionWorkerSeconds ) );
+        REQUIRE( result->algorithmTiming().eigensolveWorkerSeconds >= 0 );
+        REQUIRE( result->algorithmTiming().modeWorkerSeconds >= 0 );
+        REQUIRE( result->algorithmTiming().projectionWorkerSeconds >= 0 );
     }
 }
 
@@ -1566,10 +1566,10 @@ TEST_CASE( "KLIP worker adaptive right-reason basis", "[KLIPreduction][worker][b
     requireApprox( serial.m_psfsub[0].cube(), inputMatrix );
     requireApprox( parallel.m_psfsub[0].cube(), inputMatrix );
     requireApprox( serial.m_psfsub[0].cube(), parallel.m_psfsub[0].cube() );
-    REQUIRE( std::isfinite( serial.t_psf ) );
-    REQUIRE( std::isfinite( parallel.t_psf ) );
-    REQUIRE( serial.t_psf >= 0 );
-    REQUIRE( parallel.t_psf >= 0 );
+    REQUIRE( std::isfinite( serial.algorithmTiming().projectionWorkerSeconds ) );
+    REQUIRE( std::isfinite( parallel.algorithmTiming().projectionWorkerSeconds ) );
+    REQUIRE( serial.algorithmTiming().projectionWorkerSeconds >= 0 );
+    REQUIRE( parallel.algorithmTiming().projectionWorkerSeconds >= 0 );
 }
 
 /// Verify KLIPreduction::worker safely rethrows a per-target empty-library failure after its OpenMP region.

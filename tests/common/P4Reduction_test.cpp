@@ -1470,6 +1470,20 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( summary( 0, 12 ) == Approx( diagnostic.m_realizedModes[0][0] ) );
     REQUIRE( summary( 0, 13 ) == Approx( diagnostic.m_regionStatistics[0].rankInvalidCounts[0] ) );
 
+    reductionT::imageT timing;
+    reductionT::fitsHeaderT timingHeader;
+    REQUIRE( reader.read( timing, timingHeader, directory.file( "diagnostics/p4Timing.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( timing.rows() == 1 );
+    REQUIRE( timing.cols() == 6 );
+    REQUIRE( timingHeader["P4 TIMING SCHEMA"].Int() == 2 );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().starts_with( "geometryElapsed" ) );
+    for( Eigen::Index column = 0; column < timing.cols(); ++column )
+    {
+        REQUIRE( std::isfinite( timing( 0, column ) ) );
+        REQUIRE( timing( 0, column ) >= 0 );
+    }
+
     reductionT::fitsHeaderT header;
     diagnostic.appendReductionHeader( header );
     REQUIRE( header["P4 ALGORITHM"].String().starts_with( "P4-PCA" ) );

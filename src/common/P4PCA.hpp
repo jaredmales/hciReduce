@@ -46,6 +46,17 @@ struct P4PCAResult
     int numericalRank{ 0 };
 };
 
+/// Per-call aggregate-worker timing values for the numerical P4 PCA core.
+/** \ingroup programming_library */
+struct P4PCATiming
+{
+    double gramWorkerSeconds{ 0 };       ///< Time to form the selected normal equations.
+
+    double eigensolveWorkerSeconds{ 0 }; ///< Time in the eigensolver and rank selection.
+
+    double projectionWorkerSeconds{ 0 }; ///< Time to project modes and construct residuals.
+};
+
 /// Pure all-double principal-component regression for one P4 search pixel.
 /** This component forms the smaller of the temporal and predictor Gram matrices. calculate() uses the inputs directly,
  * while calculateCentered() centers the fit and applies the resulting coefficients to the uncentered predictors. A
@@ -74,8 +85,9 @@ struct P4PCA
                            const matrixT &predictors,     /**< [in] finite T-by-K local predictor matrix */
                            const vectorT &target,         /**< [in] finite T-sample target time series */
                            const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
-                           double rankTolerance, /**< [in] finite nonnegative threshold relative to lambdaMax */
-                           workspaceT &workspace /**< [in,out] caller-owned, non-shared LAPACK workspace */ );
+                           double rankTolerance,  /**< [in] finite nonnegative threshold relative to lambdaMax */
+                           workspaceT &workspace, /**< [in,out] caller-owned, non-shared LAPACK workspace */
+                           P4PCATiming *timing = nullptr /**< [out] optional per-call worker timing */ );
 
     /// Calculate a temporally centered fit and apply its predictor coefficients to the uncentered data.
     /** Each predictor column and the target are centered over their T samples when estimating the truncated-PCA
@@ -94,7 +106,8 @@ struct P4PCA
                        const vectorT &target,         /**< [in] finite T-sample uncentered target time series */
                        const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
                        double rankTolerance,          /**< [in] finite nonnegative threshold relative to lambdaMax */
-                       workspaceT &workspace /**< [in,out] caller-owned, non-shared LAPACK workspace */ );
+                       workspaceT &workspace,         /**< [in,out] caller-owned, non-shared LAPACK workspace */
+                       P4PCATiming *timing = nullptr /**< [out] optional per-call worker timing */ );
 };
 
 /// \cond P4PCA_test_detail
