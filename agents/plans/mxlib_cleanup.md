@@ -282,17 +282,19 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
-- [ ] Bring the exact `mx::math::calcEigenVecs<double>()` path used by `P4PCA` to 100% executable-line coverage.
-      The current mxlib LCOV trace at `_build/coverage_filtered.info` records `include/math/eigenLapack.hpp` at
-      312/477 executable lines (65.4%), so it does not meet the hciReduce integration gate for P4's Gram-matrix
-      eigensolve. Add focused real-symmetric double-precision success and failure-path tests for the `syevrMem<double>`
-      overload, regenerate the trace, and record the exact result here.
+- [x] Replace P4PCA's unnecessary `calcEigenVecs<double>()` conversion/copy wrapper with its underlying
+      `mx::math::eigenSYEVR()` call on the already-double Gram matrix. The current mxlib LCOV trace records all 60/60
+      executable lines in the exact reusable-`syevrMem<double>` API, while the P4 numerical and complete local FITS
+      regressions remain equivalent. This also removes the wrapper's retained duplicate Gram and eigenvector arrays
+      from every P4 worker.
 
-- [ ] Regenerate mxlib's current LCOV report and verify 100% executable-line coverage for the exact mxlib APIs called
+- [x] Regenerate mxlib's current LCOV report and verify 100% executable-line coverage for the exact mxlib APIs called
       by `P4Reduction::regions()` after the multi-image detector-frame extension: `math::angleDiff`, `math::isFinite`,
-      `sys::get_curr_time`, and `ipc::ompLoopWatcher`. The checked mxlib source tree contains the coverage scripts but
-      no current LCOV trace/report artifact, so this gate could not be verified in hciReduce. Add focused mxlib tests
-      for any API below 100%, regenerate the report, and record the resulting line counts here.
+      `sys::get_curr_time`, `ipc::ompLoopWatcher`, and the float `eigenCube` allocation/image operations. The current
+      `_build/coverage.info` trace records the exact angle helpers at 100% (including `angleDiff` at 7/7), time header
+      and implementation at 30/30 and 140/140, `ompLoopWatcher.hpp` at 69/69, `eigenCube.hpp` at 185/185, and the
+      `isFinite`/exception paths at 100%. The configuration and FITS-header APIs touched by the same memory-management
+      change are also already recorded at 100% in their manifest-enforced traces.
 
 - [ ] Restore 100% executable-line coverage in the current mxlib LCOV trace for the exact image-analysis helpers used
       by `hciAnalyze`: `zeroNaNCube` (`imageUtils.hpp`, currently 58/65 executable lines) and `parseStringVector`

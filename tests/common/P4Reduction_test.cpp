@@ -46,6 +46,23 @@ class P4ReductionTestAccess
         return P4Reductionf::checkedMaximumDegreesOfFreedom( imageCount, predictorCount, temporallyCentered );
     }
 
+    /// Invoke the production conservative one-worker memory estimate.
+    static std::size_t estimatedWorkerBytes( std::size_t targetImageCount, /**< [in] temporal sample count */
+                                             std::size_t predictorCount,   /**< [in] predictor-column count */
+                                             std::size_t modeCount /**< [in] residual-column count */ )
+    {
+        return P4Reductionf::estimatedWorkerBytes( targetImageCount, predictorCount, modeCount );
+    }
+
+    /// Invoke the production budget-to-worker-count selection.
+    static int memoryLimitedWorkerCount( int requestedWorkers,        /**< [in] requested maximum */
+                                         std::size_t budgetBytes,     /**< [in] future-allocation budget */
+                                         std::size_t persistentBytes, /**< [in] retained future allocation */
+                                         std::size_t workerBytes /**< [in] private allocation per worker */ )
+    {
+        return P4Reductionf::memoryLimitedWorkerCount( requestedWorkers, budgetBytes, persistentBytes, workerBytes );
+    }
+
     /// Invoke the production unique-pixel ownership assignment.
     static void claimOwnership( Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> &ownership,
                                 /**< [in,out] ownership image */
@@ -217,6 +234,7 @@ void requireSameReduction( const reductionHarness &left, /**< [in] first complet
         REQUIRE( leftStatistics.searchPixelCount == rightStatistics.searchPixelCount );
         REQUIRE( leftStatistics.predictorCount == rightStatistics.predictorCount );
         REQUIRE( leftStatistics.maximumDegreesOfFreedom == rightStatistics.maximumDegreesOfFreedom );
+        REQUIRE( leftStatistics.estimatedWorkerBytes == rightStatistics.estimatedWorkerBytes );
         REQUIRE( leftStatistics.minimumNumericalRank == rightStatistics.minimumNumericalRank );
         REQUIRE( leftStatistics.validLocalFitCount == rightStatistics.validLocalFitCount );
         REQUIRE( leftStatistics.maskedLocalFitCount == rightStatistics.maskedLocalFitCount );
@@ -338,6 +356,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( mx::math::isNan( defaults.m_orDeltaRadiusInner ) );
     REQUIRE( mx::math::isNan( defaults.m_exclusionRadiusBuffer ) );
     REQUIRE( defaults.m_rankTolerance == Approx( 1e-12 ) );
+    REQUIRE( defaults.m_memoryFraction == Approx( 0.8 ) );
     REQUIRE_FALSE( defaults.m_writeDiagnostics );
     REQUIRE( defaults.m_diagnosticDirectory == "." );
 
@@ -346,6 +365,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.modeFractions" ).clType == mx::app::argType::Required );
     REQUIRE( registered.m_targets.at( "p4.regressionFrame" ).clType == mx::app::argType::Required );
     REQUIRE( registered.m_targets.at( "p4.numberImages" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "p4.memoryFraction" ).helpType == "double" );
     REQUIRE( registered.m_targets.at( "p4.writeDiagnostics" ).clType == mx::app::argType::True );
     REQUIRE( registered.m_targets.at( "p4.orMaxHalfAngle" ).helpType == "float" );
     REQUIRE_NOTHROW( defaults.loadConfig( registered ) );
@@ -367,6 +387,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
                          "orDeltaRadiusInner=2\norDeltaRadiusOuter=3\n"
                          "orArcHalfWidth=4\norMaxHalfAngle=90\npsfRadius=1.5\n"
                          "exclusionPolicy=sampleCenter\nexclusionRadiusBuffer=0.5\nrankTolerance=1e-8\n"
+                         "memoryFraction=0.65\n"
                          "writeDiagnostics=true\ndiagnosticDirectory=" +
                              directory.file( "diagnostics" ).string() + "\n" );
     REQUIRE( configured.m_minRadius == std::vector<float>{ 5, 8 } );
@@ -382,6 +403,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( configured.m_exclusionPolicy == policyT::sampleCenter );
     REQUIRE( configured.m_exclusionRadiusBuffer == 0.5f );
     REQUIRE( configured.m_rankTolerance == Approx( 1e-8 ) );
+    REQUIRE( configured.m_memoryFraction == Approx( 0.65 ) );
     REQUIRE( configured.m_writeDiagnostics );
     reductionT::fitsHeaderT configuredHeader;
     configured.appendReductionHeader( configuredHeader );
@@ -436,6 +458,15 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::checkedMaximumDegreesOfFreedom(
         3,
         static_cast<std::size_t>( std::numeric_limits<int>::max() ) + 1 ) );
+    const std::size_t smallWorkerBytes = mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 3, 8, 2 );
+    const std::size_t largeWorkerBytes = mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 30, 80, 2 );
+    REQUIRE( smallWorkerBytes >= 1024 * 1024 );
+    REQUIRE( largeWorkerBytes > smallWorkerBytes );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 0, 8, 2 ) );
+    REQUIRE( mx::improc::P4ReductionTestAccess::memoryLimitedWorkerCount( 8, 1000, 100, 200 ) == 4 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::memoryLimitedWorkerCount( 3, 1000, 100, 200 ) == 3 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::memoryLimitedWorkerCount( 8, 100, 100, 200 ) == 0 );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::memoryLimitedWorkerCount( 0, 1000, 100, 200 ) );
 
     Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> ownership =
         Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic>::Constant( 2, 2, -1 );
@@ -455,6 +486,12 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
     mx::improc::P4Reduction<float,
                             mx::improc::ADIDerotator<float, mx::verbose::vv>,
                             mx::verbose::vv>::checkedMaximumDegreesOfFreedom( 1, 1 );
+    mx::improc::P4Reduction<float,
+                            mx::improc::ADIDerotator<float, mx::verbose::vv>,
+                            mx::verbose::vv>::estimatedWorkerBytes( 1, 1, 1 );
+    mx::improc::P4Reduction<float,
+                            mx::improc::ADIDerotator<float, mx::verbose::vv>,
+                            mx::verbose::vv>::memoryLimitedWorkerCount( 1, 1, 0, 1 );
     mx::improc::P4Reduction<float,
                             mx::improc::ADIDerotator<float, mx::verbose::vv>,
                             mx::verbose::vv>::claimOwnership( ownership, coordinate, 0 );
@@ -503,6 +540,66 @@ TEST_CASE( "P4 reduction exact synthetic prediction", "[P4Reduction][reduce][pre
     doxygenReduction.regions( { 5 }, { 6 } );
 #endif
     // clang-format on
+}
+
+/// Verify compact combined finalization matches retained-cube combination and releases full-frame intermediates.
+/** This compares the compact path in P4Reduction::reduce() with HCIobservation::combineFinim() applied to the
+ * retained residual and validity cubes from the same production reduction.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 compact finalization matches retained residual cubes", "[P4Reduction][memory][combine][validity]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    reductionHarness retained;
+    prepareReduction( retained, 5 );
+    retained.m_modeFractions = { 0.2F, 0.4F };
+    retained.m_numberImages = 1;
+    retained.m_derotF.m_angles = { 0, 20, 40, 60, 80 };
+    REQUIRE( retained.reduce() == 0 );
+    REQUIRE( retained.m_psfsub.size() == 2 );
+    REQUIRE( retained.m_psfsubValidity.size() == 2 );
+
+    retained.m_combineMethod = mx::improc::HCI::combine::mean;
+    retained.combineFinim();
+    const mx::improc::eigenCube<float> expected = retained.m_finim;
+
+    reductionHarness compact;
+    prepareReduction( compact, 5 );
+    compact.m_modeFractions = { 0.2F, 0.4F };
+    compact.m_numberImages = 1;
+    compact.m_derotF.m_angles = retained.m_derotF.m_angles;
+    compact.m_combineMethod = mx::improc::HCI::combine::mean;
+    REQUIRE( compact.reduce() == 0 );
+    REQUIRE( compact.m_psfsub.empty() );
+    REQUIRE( compact.m_psfsubValidity.empty() );
+    REQUIRE( compact.m_compactResidualBytes > 0 );
+    REQUIRE( compact.m_materializationBytes ==
+             static_cast<std::size_t>( 2 * compact.m_Nrows * compact.m_Ncols * compact.m_Nims * sizeof( float ) ) );
+    REQUIRE( compact.m_regionStatistics.front().maximumWorkerCount == 1 );
+    REQUIRE( compact.m_regionStatistics.front().effectiveWorkerCount == 1 );
+    REQUIRE( compact.m_regionStatistics.front().estimatedWorkerBytes > 0 );
+    REQUIRE( compact.m_finim.rows() == expected.rows() );
+    REQUIRE( compact.m_finim.cols() == expected.cols() );
+    REQUIRE( compact.m_finim.planes() == expected.planes() );
+    for( int output = 0; output < expected.planes(); ++output )
+    {
+        for( int column = 0; column < expected.cols(); ++column )
+        {
+            for( int row = 0; row < expected.rows(); ++row )
+            {
+                const float expectedValue = expected.image( output )( row, column );
+                const float actualValue = compact.m_finim.image( output )( row, column );
+                if( mx::math::isNan( expectedValue ) )
+                {
+                    REQUIRE( mx::math::isNan( actualValue ) );
+                }
+                else
+                {
+                    REQUIRE( actualValue == Approx( expectedValue ).margin( 1e-6 ) );
+                }
+            }
+        }
+    }
 }
 
 /// Verify detector-frame P4 uses nearest qualifying temporal images with one-sided endpoint replacement.
@@ -1049,6 +1146,18 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         prepareReduction( invalidTolerance );
         invalidTolerance.m_rankTolerance = 1;
         REQUIRE_THROWS( invalidTolerance.reduce() );
+
+        reductionHarness disabledMemoryLimit;
+        prepareReduction( disabledMemoryLimit );
+        disabledMemoryLimit.m_memoryFraction = 0;
+        REQUIRE_NOTHROW( disabledMemoryLimit.reduce() );
+        REQUIRE( disabledMemoryLimit.m_availableMemoryBytes == 0 );
+        REQUIRE( disabledMemoryLimit.m_memoryBudgetBytes == 0 );
+
+        reductionHarness invalidMemoryFraction;
+        prepareReduction( invalidMemoryFraction );
+        invalidMemoryFraction.m_memoryFraction = 1.1;
+        REQUIRE_THROWS( invalidMemoryFraction.reduce() );
     }
 
     SECTION( "invalid fractions and realized mode collisions" )
@@ -1465,10 +1574,13 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( diagnosticValidity.image( 0 ).isApprox( diagnostic.m_psfsubValidity[0].image( 0 ), 0 ) );
 
     REQUIRE( summary.rows() == 1 );
-    REQUIRE( summary.cols() == 14 );
+    REQUIRE( summary.cols() == 17 );
     REQUIRE( summary( 0, 9 ) + summary( 0, 10 ) + summary( 0, 11 ) == Approx( summary( 0, 2 ) ) );
     REQUIRE( summary( 0, 12 ) == Approx( diagnostic.m_realizedModes[0][0] ) );
     REQUIRE( summary( 0, 13 ) == Approx( diagnostic.m_regionStatistics[0].rankInvalidCounts[0] ) );
+    REQUIRE( summary( 0, 14 ) == Approx( diagnostic.m_regionStatistics[0].estimatedWorkerBytes ) );
+    REQUIRE( summary( 0, 15 ) == Approx( diagnostic.m_regionStatistics[0].maximumWorkerCount ) );
+    REQUIRE( summary( 0, 16 ) == Approx( diagnostic.m_regionStatistics[0].effectiveWorkerCount ) );
 
     reductionT::imageT timing;
     reductionT::fitsHeaderT timingHeader;
@@ -1494,6 +1606,11 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( header["P4 IN SAMPLE"].Int() == 1 );
     REQUIRE( header["P4 RDI"].Int() == 0 );
     REQUIRE( header["P4 NUMBER IMAGES"].Int() == 0 );
+    REQUIRE( header["P4 MEMORY FRACTION"].Double() == Approx( diagnostic.m_memoryFraction ) );
+    REQUIRE( header["P4 WORKER BYTES"].String() ==
+             std::to_string( diagnostic.m_regionStatistics[0].estimatedWorkerBytes ) );
+    REQUIRE( header["P4 EFFECTIVE WORKERS"].String() ==
+             std::to_string( diagnostic.m_regionStatistics[0].effectiveWorkerCount ) );
     REQUIRE( header["P4 EXCLUSION POLICY"].String().starts_with( "kernelSupport" ) );
     REQUIRE( header["P4 MODE FRACTIONS"].String().starts_with( "0.5" ) );
     REQUIRE( header["P4 REALIZED MODES 000"].String().starts_with( "1" ) );

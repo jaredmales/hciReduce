@@ -194,6 +194,7 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     REQUIRE( application.config.m_targets.at( "p4.modeFractions" ).helpType == "vector<realT>" );
     REQUIRE( application.config.m_targets.at( "p4.regressionFrame" ).helpType == "string" );
     REQUIRE( application.config.m_targets.at( "p4.numberImages" ).helpType == "int" );
+    REQUIRE( application.config.m_targets.at( "p4.memoryFraction" ).helpType == "double" );
     REQUIRE( application.config.m_targets.at( "p4.exclusionPolicy" ).clType == mx::app::argType::Required );
 
     for( const auto &[name, target] : application.config.m_targets )
@@ -216,6 +217,7 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     REQUIRE( application.m_obs.m_modeFractions == std::vector<float>{ 0.5F } );
     REQUIRE( application.m_obs.m_regressionFrame == mx::improc::P4RegressionFrame::detector );
     REQUIRE( application.m_obs.m_numberImages == 0 );
+    REQUIRE( application.m_obs.m_memoryFraction == Approx( 0.8 ) );
     REQUIRE( application.m_obs.m_exclusionPolicy == mx::improc::P4ExclusionPolicy::kernelSupport );
 
     // clang-format off
@@ -509,7 +511,8 @@ TEST_CASE( "p4Reduce normal FITS end-to-end", "[p4Reduce][execute][normal][FITS]
     REQUIRE( application.m_mode == "normal" );
     REQUIRE( application.m_obs.m_derotF.m_angles == std::vector<float>{ 0, 17, -11 } );
     REQUIRE( application.m_obs.m_realizedModes == std::vector<std::vector<int>>{ { 1 } } );
-    REQUIRE( application.m_obs.m_psfsubValidity.size() == 1 );
+    REQUIRE( application.m_obs.m_psfsub.empty() );
+    REQUIRE( application.m_obs.m_psfsubValidity.empty() );
 
     mx::improc::eigenCube<float> output;
     mx::fits::fitsHeader<mx::verbose::vv> header;

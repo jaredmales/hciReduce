@@ -75,6 +75,19 @@
  * double precision, and applies the same truncated rank policy in both regression frames. The Gram choice is not a
  * configurable backend.
  *
+ * \section p4_memory_dictionary Memory and worker management
+ *
+ * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--p4.memoryFraction` | `p4.memoryFraction=0.8` | `HIERARCH P4 MEMORY FRACTION` | real in `[0,1]` | `0.8` | Fraction of Linux `MemAvailable` usable by future P4 allocations. P4 reduces each annulus's worker count when its compact retained storage plus estimated private workspaces would exceed this budget. `0` disables automatic discovery and limiting. |
+ *
+ * With a configured final combination and `output.outputPSFSub=false`, residuals are retained only for owned search
+ * pixels. One full science/validity cube pair is materialized for each output mode, finalized, and released before the
+ * next pair is allocated. `combine.method=none` and `output.outputPSFSub=true` retain the full residual and validity
+ * cubes because those products are explicitly requested. P4 records the available-memory snapshot, selected budget,
+ * compact-storage and materialization estimates, per-annulus worker estimate, maximum worker count, and effective
+ * worker count in `HIERARCH P4 ...` FITS cards. `OMP_NUM_THREADS` remains a valid upper limit and is never increased.
+ *
  * \section p4_exclusion_dictionary Signal exclusion
  *
  * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
@@ -137,8 +150,9 @@
  * | `--p4.writeDiagnostics` | `p4.writeDiagnostics=true` | `HIERARCH P4 WRITE DIAGNOSTICS` | bool | `false` | Writes ownership, validity, canonical-region, rank, timing, and summary FITS diagnostics. Every diagnostic carries `HIERARCH P4 FRAME` provenance. |
  * | `--p4.diagnosticDirectory` | `p4.diagnosticDirectory=/path` | — | writable directory; required when diagnostics are enabled | `.` | Destination for P4 diagnostic products; missing parent directories are created automatically. |
  *
- * Geometry construction reports each annulus's search-pixel and retained predictor count. Regression status reports
- * the active annulus, completed/total local fits, rate, local ETA, and cumulative overall progress to
+ * Geometry construction reports each annulus's search-pixel and retained predictor count. A memory line then reports
+ * its estimated private MiB per worker and effective/pre-limit worker counts. Regression status reports the active
+ * annulus, completed/total local fits, rate, local ETA, and cumulative overall progress to
  * standard error. `p4Validity_*.fits` is in detector coordinates for detector regression and in sky coordinates for
  * rotated regression. Final and PSF-subtracted FITS products record the selection as the long keyword
  * `HIERARCH P4 FRAME = 'detector'` or `HIERARCH P4 FRAME = 'rotated'`. Temporal centering for coefficient fitting and

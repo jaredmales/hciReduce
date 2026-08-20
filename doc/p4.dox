@@ -135,6 +135,7 @@
  * | `p4.exclusionPolicy` | Required `sampleCenter` or `kernelSupport` policy. |
  * | `p4.exclusionRadiusBuffer` | Explicit nonnegative amount added to `p4.psfRadius`; `0.5` reproduces the prototype's effective mask buffer. |
  * | `p4.rankTolerance` | Relative eigenvalue threshold in `[0,1)`, default `1e-12`. |
+ * | `p4.memoryFraction` | Fraction of Linux `MemAvailable` reserved for future P4 allocations, default `0.8`; `0` disables automatic worker limiting. |
  * | `p4.writeDiagnostics` | Enable ownership, validity, canonical-region, rank, and timing FITS diagnostics. Every diagnostic records `HIERARCH P4 FRAME`. |
  * | `p4.diagnosticDirectory` | Destination for enabled diagnostics. |
  *
@@ -153,6 +154,23 @@
  * accepts every eigenvalue returned as positive, including roundoff-positive numerical nulls, except that rotated
  * mode always enforces its structural `T-1` limit. Use a nonzero relative tolerance when reliable classification of
  * other rank deficiencies matters.
+ *
+ * \section p4reduce_memory Memory-bounded execution
+ *
+ * When a final combination is requested and `output.outputPSFSub=false`, P4 retains regression residuals only at the
+ * owned search pixels. It materializes one full residual cube and one full validity cube at a time, runs the ordinary
+ * post-median, derotation, and combination lifecycle for that output mode, retains the combined two-dimensional
+ * plane, then releases the temporary cubes before processing the next mode. The final FITS plane order and numerical
+ * values are unchanged. `combine.method=none` retains all full residual cubes because they are then the requested
+ * result; `output.outputPSFSub=true` also uses the retained-cube path so every per-frame product remains available.
+ *
+ * P4 estimates private PCA workspace from each annulus's temporal sample count, predictor count, and requested output
+ * count. With the default `p4.memoryFraction=0.8`, Linux `MemAvailable` supplies a future-allocation budget. P4 first
+ * verifies that compact residuals and one materialized output pair fit, then caps that annulus's OpenMP worker count
+ * so its compact storage plus the estimated concurrent workspaces remain inside the budget. A lower
+ * `OMP_NUM_THREADS` value is always respected. The selected and pre-limit worker counts and the per-worker estimate
+ * are printed before regression and recorded in the FITS header. If Linux memory discovery is unavailable, P4 emits
+ * a warning and retains the OpenMP maximum. Set `p4.memoryFraction=0` to request that behavior explicitly.
  *
  * During geometry construction, `p4Reduce` reports each annulus together with its search-pixel and retained predictor
  * counts. During regression, a rate-limited `std::cerr` status line combines the active annulus's completed/total
@@ -225,6 +243,7 @@
  * exclusionPolicy=sampleCenter
  * exclusionRadiusBuffer=0.5
  * rankTolerance=1e-12
+ * memoryFraction=0.8
  * writeDiagnostics=false
  * diagnosticDirectory=./p4-diagnostics
  *

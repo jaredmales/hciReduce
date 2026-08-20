@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <exception>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -399,6 +400,28 @@ class P4ProgressOutput
 
 /** \endcond */
 
+/// Read Linux MemAvailable in bytes, or report that automatic discovery is unavailable.
+std::optional<std::size_t> p4AvailableMemoryBytes()
+{
+    std::ifstream memoryInformation( "/proc/meminfo" );
+    std::string key;
+    std::uint64_t valueKiB{ 0 };
+    std::string unit;
+    while( memoryInformation >> key >> valueKiB >> unit )
+    {
+        if( key != "MemAvailable:" )
+        {
+            continue;
+        }
+        if( unit != "kB" || valueKiB > std::numeric_limits<std::size_t>::max() / 1024 )
+        {
+            return std::nullopt;
+        }
+        return static_cast<std::size_t>( valueKiB ) * 1024;
+    }
+    return std::nullopt;
+}
+
 } // namespace
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -533,6 +556,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "double",
                 "Relative numerical-rank threshold in [0,1), default 1e-12" );
+    config.add( "p4.memoryFraction",
+                "",
+                "p4.memoryFraction",
+                mx::app::argType::Required,
+                "p4",
+                "memoryFraction",
+                false,
+                "double",
+                "Fraction of Linux MemAvailable usable by future P4 allocations in [0,1]; zero disables limiting" );
     config.add( "p4.writeDiagnostics",
                 "",
                 "p4.writeDiagnostics",
@@ -608,6 +640,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
 
     config( m_exclusionRadiusBuffer, "p4.exclusionRadiusBuffer" );
     config( m_rankTolerance, "p4.rankTolerance" );
+    config( m_memoryFraction, "p4.memoryFraction" );
     config( m_writeDiagnostics, "p4.writeDiagnostics" );
     config( m_diagnosticDirectory, "p4.diagnosticDirectory" );
 }
@@ -725,6 +758,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.rankTolerance must be finite and in [0,1)" );
     }
+    if( !mx::math::isFinite( m_memoryFraction ) || m_memoryFraction < 0 || m_memoryFraction > 1 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.memoryFraction must be finite and in [0,1]" );
+    }
     if( m_writeDiagnostics && m_diagnosticDirectory.empty() )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
@@ -819,6 +856,49 @@ int P4Reduction<realT, derotFunctObj, verboseT>::checkedMaximumDegreesOfFreedom(
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+std::size_t P4Reduction<realT, derotFunctObj, verboseT>::estimatedWorkerBytes( std::size_t targetImageCount,
+                                                                               std::size_t predictorCount,
+                                                                               std::size_t modeCount )
+{
+    if( targetImageCount == 0 || predictorCount == 0 || modeCount == 0 )
+    {
+        throw std::invalid_argument( "P4 worker dimensions must be positive" );
+    }
+    const long double targets = static_cast<long double>( targetImageCount );
+    const long double predictors = static_cast<long double>( predictorCount );
+    const long double modes = static_cast<long double>( modeCount );
+    const long double dimension = std::min( targets, predictors );
+    const long double doubleValues = targets * predictors + targets * modes + 2 * dimension * dimension + 5 * targets +
+                                     2 * predictors + 70 * dimension;
+    constexpr long double safetyFactor = 1.25L;
+    constexpr std::size_t fixedMargin = 1024 * 1024;
+    const long double estimated = safetyFactor * sizeof( double ) * doubleValues + fixedMargin;
+    if( estimated > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) )
+    {
+        throw std::overflow_error( "P4 worker memory estimate exceeds size_t range" );
+    }
+    return static_cast<std::size_t>( std::ceil( estimated ) );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+int P4Reduction<realT, derotFunctObj, verboseT>::memoryLimitedWorkerCount( int requestedWorkers,
+                                                                           std::size_t budgetBytes,
+                                                                           std::size_t persistentBytes,
+                                                                           std::size_t workerBytes )
+{
+    if( requestedWorkers <= 0 || workerBytes == 0 )
+    {
+        throw std::invalid_argument( "P4 worker-count inputs must be positive" );
+    }
+    if( budgetBytes <= persistentBytes )
+    {
+        return 0;
+    }
+    const std::size_t supportedWorkers = ( budgetBytes - persistentBytes ) / workerBytes;
+    return static_cast<int>( std::min<std::size_t>( static_cast<std::size_t>( requestedWorkers ), supportedWorkers ) );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::claimOwnership(
     Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> &ownership, const P4PixelCoordinate &coordinate, int region )
 {
@@ -878,6 +958,10 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_regionStatistics.clear();
     m_temporalSelections.clear();
     m_ownership.resize( 0, 0 );
+    m_availableMemoryBytes = 0;
+    m_memoryBudgetBytes = 0;
+    m_compactResidualBytes = 0;
+    m_materializationBytes = 0;
     m_timing.reset();
 
     if( !this->m_filesRead )
@@ -1094,14 +1178,150 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         totalSearchPixels += statistics.searchPixelCount;
     }
 
-    this->m_psfsub.resize( m_modeFractions.size() );
-    this->m_psfsubValidity.resize( m_modeFractions.size() );
-    for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+    const bool compactFinalization = this->m_combineMethod != HCI::combine::none && !this->m_doOutputPSFSub;
+    using compactResidualT = Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic>;
+    using compactValidityT = Eigen::Array<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>;
+    std::vector<compactResidualT> compactResiduals;
+    std::vector<compactValidityT> compactValidity;
+
+    const auto configureMemoryBudget = [&]()
     {
-        this->m_psfsub[output].resize( this->m_Nrows, this->m_Ncols, this->m_Nims );
-        this->m_psfsub[output].setZero();
-        this->m_psfsubValidity[output].resize( this->m_Nrows, this->m_Ncols, this->m_Nims );
-        this->m_psfsubValidity[output].setZero();
+        if( m_memoryFraction == 0 )
+        {
+            return;
+        }
+        const std::optional<std::size_t> availableMemory = p4AvailableMemoryBytes();
+        if( !availableMemory )
+        {
+            std::cerr << "WARNING: P4 could not read Linux MemAvailable; automatic worker limiting is disabled\n";
+            return;
+        }
+        m_availableMemoryBytes = *availableMemory;
+        m_memoryBudgetBytes = static_cast<std::size_t>(
+            std::floor( static_cast<long double>( m_memoryFraction ) * m_availableMemoryBytes ) );
+        if( m_memoryBudgetBytes == 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::allocerr,
+                                           "p4.memoryFraction selects a zero-byte automatic memory budget" );
+        }
+    };
+
+    if( compactFinalization )
+    {
+        for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
+        {
+            const P4RegionStatistics &statistics = m_regionStatistics[region];
+            if( statistics.searchPixelCount > std::numeric_limits<std::size_t>::max() / m_modeFractions.size() )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 compact residual dimensions overflow" );
+            }
+            const std::size_t compactColumnCount = statistics.searchPixelCount * m_modeFractions.size();
+            if( compactColumnCount > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) ||
+                statistics.targetImageCount > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) ||
+                ( compactColumnCount != 0 && statistics.targetImageCount > std::numeric_limits<std::size_t>::max() /
+                                                                               compactColumnCount / sizeof( realT ) ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 compact residual dimensions overflow" );
+            }
+            const std::size_t residualBytes = statistics.targetImageCount * compactColumnCount * sizeof( realT );
+            const std::size_t validityBytes = compactColumnCount * sizeof( std::uint8_t );
+            if( residualBytes > std::numeric_limits<std::size_t>::max() - validityBytes ||
+                m_compactResidualBytes > std::numeric_limits<std::size_t>::max() - residualBytes - validityBytes )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 compact residual byte count overflow" );
+            }
+            m_compactResidualBytes += residualBytes + validityBytes;
+        }
+
+        const long double materializationBytes = 2.0L * static_cast<long double>( this->m_Nrows ) *
+                                                 static_cast<long double>( this->m_Ncols ) *
+                                                 static_cast<long double>( this->m_Nims ) * sizeof( realT );
+        if( materializationBytes > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 materialization byte count overflow" );
+        }
+        m_materializationBytes = static_cast<std::size_t>( materializationBytes );
+
+        configureMemoryBudget();
+        if( m_memoryBudgetBytes != 0 && ( m_compactResidualBytes > m_memoryBudgetBytes ||
+                                          m_materializationBytes > m_memoryBudgetBytes - m_compactResidualBytes ) )
+        {
+            throw mx::exception<verboseT>(
+                mx::error_t::allocerr,
+                "P4 compact residuals and one output materialization exceed the automatic memory budget; "
+                "increase p4.memoryFraction, reduce the frame count, or set p4.memoryFraction=0 to disable the "
+                "automatic budget" );
+        }
+
+        compactResiduals.resize( m_regionStatistics.size() );
+        compactValidity.resize( m_regionStatistics.size() );
+        for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
+        {
+            const P4RegionStatistics &statistics = m_regionStatistics[region];
+            const std::size_t compactColumnCount = statistics.searchPixelCount * m_modeFractions.size();
+            compactResiduals[region].resize( static_cast<Eigen::Index>( statistics.targetImageCount ),
+                                             static_cast<Eigen::Index>( compactColumnCount ) );
+            compactValidity[region].resize( static_cast<Eigen::Index>( statistics.searchPixelCount ),
+                                            static_cast<Eigen::Index>( m_modeFractions.size() ) );
+            compactValidity[region].setZero();
+        }
+    }
+    else
+    {
+        this->m_psfsub.resize( m_modeFractions.size() );
+        this->m_psfsubValidity.resize( m_modeFractions.size() );
+        for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+        {
+            this->m_psfsub[output].resize( this->m_Nrows, this->m_Ncols, this->m_Nims );
+            this->m_psfsub[output].setZero();
+            this->m_psfsubValidity[output].resize( this->m_Nrows, this->m_Ncols, this->m_Nims );
+            this->m_psfsubValidity[output].setZero();
+        }
+        configureMemoryBudget();
+    }
+
+    constexpr double bytesPerGiB = 1024.0 * 1024.0 * 1024.0;
+    if( m_memoryBudgetBytes != 0 )
+    {
+        std::cerr << "P4 memory policy: " << static_cast<double>( m_availableMemoryBytes ) / bytesPerGiB
+                  << " GiB available, " << static_cast<double>( m_memoryBudgetBytes ) / bytesPerGiB << " GiB budget, "
+                  << static_cast<double>( m_compactResidualBytes ) / bytesPerGiB << " GiB compact residuals, "
+                  << static_cast<double>( m_materializationBytes ) / bytesPerGiB << " GiB output materialization\n";
+    }
+    else if( m_memoryFraction == 0 )
+    {
+        std::cerr << "P4 memory policy: automatic worker limiting disabled by p4.memoryFraction=0\n";
+    }
+
+    for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
+    {
+        P4RegionStatistics &statistics = m_regionStatistics[region];
+        statistics.estimatedWorkerBytes =
+            estimatedWorkerBytes( statistics.targetImageCount, statistics.predictorCount, m_modeFractions.size() );
+        statistics.maximumWorkerCount =
+            std::max( 1,
+                      std::min( omp_get_max_threads(),
+                                static_cast<int>( std::min<std::size_t>(
+                                    statistics.searchPixelCount,
+                                    static_cast<std::size_t>( std::numeric_limits<int>::max() ) ) ) ) );
+        statistics.effectiveWorkerCount = statistics.maximumWorkerCount;
+        if( m_memoryBudgetBytes != 0 )
+        {
+            statistics.effectiveWorkerCount = memoryLimitedWorkerCount( statistics.maximumWorkerCount,
+                                                                        m_memoryBudgetBytes,
+                                                                        m_compactResidualBytes,
+                                                                        statistics.estimatedWorkerBytes );
+            if( statistics.effectiveWorkerCount == 0 )
+            {
+                throw mx::exception<verboseT>(
+                    mx::error_t::allocerr,
+                    "one P4 worker does not fit the automatic memory budget; increase p4.memoryFraction, reduce the "
+                    "frame or predictor count, or set p4.memoryFraction=0 to disable the automatic budget" );
+            }
+        }
+        std::cerr << "P4 memory annulus " << region + 1 << " / " << m_regionStatistics.size() << ": worker estimate "
+                  << static_cast<double>( statistics.estimatedWorkerBytes ) / ( 1024.0 * 1024.0 ) << " MiB, workers "
+                  << statistics.effectiveWorkerCount << " / " << statistics.maximumWorkerCount << '\n';
     }
 
     const double regressionBegin = omp_get_wtime();
@@ -1121,6 +1341,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         const bool usesTemporalPredictors = m_regionStatistics[region].temporalNumberImages > 0;
         const std::size_t predictorCount = m_regionStatistics[region].predictorCount;
         const std::vector<int> &modes = m_realizedModes[region];
+        const int effectiveWorkerCount = m_regionStatistics[region].effectiveWorkerCount;
         progressOutput.beginRegion( region,
                                     searchPixelCount,
                                     predictorCount,
@@ -1138,7 +1359,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         std::vector<std::size_t> rankInvalidCounts( modes.size(), 0 );
 
         // clang-format off
-#pragma omp parallel
+#pragma omp parallel num_threads(effectiveWorkerCount)
         // clang-format on
         {
             P4PCA::workspaceT workspace;
@@ -1264,13 +1485,13 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
 
                             if( rotated )
                             {
-                                P4PCA::calculateCentered( result,
-                                                          predictors,
-                                                          target,
-                                                          modes,
-                                                          m_rankTolerance,
-                                                          workspace,
-                                                          &pcaTiming );
+                                P4PCA::calculateCenteredInPlace( result,
+                                                                 predictors,
+                                                                 target,
+                                                                 modes,
+                                                                 m_rankTolerance,
+                                                                 workspace,
+                                                                 &pcaTiming );
                             }
                             else
                             {
@@ -1296,13 +1517,28 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                     ++threadRankInvalid[output];
                                     continue;
                                 }
+                                const Eigen::Index compactColumn =
+                                    static_cast<Eigen::Index>( search * modes.size() + output );
                                 for( std::size_t targetIndex = 0; targetIndex < targetImageCount; ++targetIndex )
                                 {
                                     const int image = temporalSelections[targetIndex][0];
                                     const realT residual = checkedResidualCast(
                                         result.residuals( static_cast<Eigen::Index>( targetIndex ), output ) );
-                                    this->m_psfsub[output].image( image )( row, column ) = residual;
-                                    this->m_psfsubValidity[output].image( image )( row, column ) = 1;
+                                    if( compactFinalization )
+                                    {
+                                        compactResiduals[region]( static_cast<Eigen::Index>( targetIndex ),
+                                                                  compactColumn ) = residual;
+                                    }
+                                    else
+                                    {
+                                        this->m_psfsub[output].image( image )( row, column ) = residual;
+                                        this->m_psfsubValidity[output].image( image )( row, column ) = 1;
+                                    }
+                                }
+                                if( compactFinalization )
+                                {
+                                    compactValidity[region]( static_cast<Eigen::Index>( search ),
+                                                             static_cast<Eigen::Index>( output ) ) = 1;
                                 }
                             }
                             threadProjectionSeconds += omp_get_wtime() - residualApplyBegin;
@@ -1431,7 +1667,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
 
         imageT summary( static_cast<Eigen::Index>( m_regionStatistics.size() ),
-                        static_cast<Eigen::Index>( 12 + 2 * m_modeFractions.size() ) );
+                        static_cast<Eigen::Index>( 15 + 2 * m_modeFractions.size() ) );
         for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
         {
             const P4RegionStatistics &statistics = m_regionStatistics[region];
@@ -1453,6 +1689,10 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                 summary( region, 12 + m_modeFractions.size() + output ) =
                     static_cast<realT>( statistics.rankInvalidCounts[output] );
             }
+            const std::size_t workerColumn = 12 + 2 * m_modeFractions.size();
+            summary( region, workerColumn ) = static_cast<realT>( statistics.estimatedWorkerBytes );
+            summary( region, workerColumn + 1 ) = static_cast<realT>( statistics.maximumWorkerCount );
+            summary( region, workerColumn + 2 ) = static_cast<realT>( statistics.effectiveWorkerCount );
         }
         writeDiagnostic( "p4RegionSummary.fits", summary );
 
@@ -1474,7 +1714,101 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         writeDiagnostic( "p4Timing.fits", timing, &timingHeader );
     }
 
-    const int result = finalProcess();
+    if( !compactFinalization )
+    {
+        const int result = finalProcess();
+        this->t_end = mx::sys::get_curr_time();
+        return result;
+    }
+
+    eigenCube<realT> combinedImages;
+    combinedImages.resize( this->m_Nrows, this->m_Ncols, static_cast<int>( m_modeFractions.size() ) );
+    const int configuredWriteFinim = this->m_doWriteFinim;
+    const bool configuredOutputPSFSub = this->m_doOutputPSFSub;
+    this->m_doWriteFinim = false;
+    this->m_doOutputPSFSub = false;
+    double derotationSeconds{ 0 };
+    double combinationSeconds{ 0 };
+    int result{ 0 };
+    try
+    {
+        for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+        {
+            this->m_psfsub.resize( 1 );
+            this->m_psfsubValidity.resize( 1 );
+            this->m_psfsub[0].resize( this->m_Nrows, this->m_Ncols, this->m_Nims );
+            this->m_psfsub[0].setZero();
+            this->m_psfsubValidity[0].resize( this->m_Nrows, this->m_Ncols, this->m_Nims );
+            this->m_psfsubValidity[0].setZero();
+
+            for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
+            {
+                const std::size_t searchPixelCount = m_regionStatistics[region].searchPixelCount;
+                const std::vector<std::vector<int>> &temporalSelections = m_temporalSelections[region];
+                for( std::size_t search = 0; search < searchPixelCount; ++search )
+                {
+                    if( compactValidity[region]( static_cast<Eigen::Index>( search ),
+                                                 static_cast<Eigen::Index>( output ) ) == 0 )
+                    {
+                        continue;
+                    }
+                    const P4PixelCoordinate &coordinate = m_regressionFrame == P4RegressionFrame::detector
+                                                              ? grids[region].searchPixel( search ).coordinate()
+                                                              : rotatedGrids[region].searchPixel( search ).coordinate();
+                    const Eigen::Index compactColumn =
+                        static_cast<Eigen::Index>( search * m_modeFractions.size() + output );
+                    for( std::size_t targetIndex = 0; targetIndex < temporalSelections.size(); ++targetIndex )
+                    {
+                        const int image = temporalSelections[targetIndex][0];
+                        this->m_psfsub[0].image( image )( coordinate.row(), coordinate.column() ) =
+                            compactResiduals[region]( static_cast<Eigen::Index>( targetIndex ), compactColumn );
+                        this->m_psfsubValidity[0].image( image )( coordinate.row(), coordinate.column() ) = 1;
+                    }
+                }
+            }
+
+            if( m_writeDiagnostics )
+            {
+                writeDiagnostic( "p4Validity_" + p4Index( output ) + ".fits", this->m_psfsubValidity[0] );
+            }
+
+            result = finalProcess();
+            if( result != 0 )
+            {
+                break;
+            }
+            derotationSeconds += this->t_derotate_end - this->t_derotate_begin;
+            combinationSeconds += this->t_combo_end - this->t_combo_begin;
+            combinedImages.image( static_cast<int>( output ) ) = this->m_finim.image( 0 );
+            this->m_psfsub.clear();
+            this->m_psfsubValidity.clear();
+        }
+    }
+    catch( ... )
+    {
+        this->m_doWriteFinim = configuredWriteFinim;
+        this->m_doOutputPSFSub = configuredOutputPSFSub;
+        throw;
+    }
+    this->m_doWriteFinim = configuredWriteFinim;
+    this->m_doOutputPSFSub = configuredOutputPSFSub;
+    if( result == 0 )
+    {
+        this->m_finim = std::move( combinedImages );
+        const double timingReference = mx::sys::get_curr_time();
+        this->t_derotate_begin = timingReference;
+        this->t_derotate_end = timingReference + derotationSeconds;
+        this->t_combo_begin = timingReference;
+        this->t_combo_end = timingReference + combinationSeconds;
+        if( configuredWriteFinim )
+        {
+            std::cerr << "writing\n";
+            fitsHeaderT finalHeader;
+            this->stdFitsHeader( &finalHeader );
+            appendReductionHeader( finalHeader );
+            this->writeFinim( &finalHeader );
+        }
+    }
     this->t_end = mx::sys::get_curr_time();
     return result;
 }
@@ -1605,6 +1939,19 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
                                        "exclusion policy" );
     head.template append<realT>( "P4 EXCLUSION RADIUS BUFFER", m_exclusionRadiusBuffer, "exclusion-radius buffer" );
     head.template append<double>( "P4 RANK TOLERANCE", m_rankTolerance, "relative rank threshold" );
+    head.template append<double>( "P4 MEMORY FRACTION", m_memoryFraction, "available-memory budget fraction" );
+    head.template append<std::string>( "P4 AVAILABLE MEMORY BYTES",
+                                       std::to_string( m_availableMemoryBytes ),
+                                       "available-memory snapshot" );
+    head.template append<std::string>( "P4 MEMORY BUDGET BYTES",
+                                       std::to_string( m_memoryBudgetBytes ),
+                                       "future-allocation budget" );
+    head.template append<std::string>( "P4 COMPACT RESIDUAL BYTES",
+                                       std::to_string( m_compactResidualBytes ),
+                                       "compact residual estimate" );
+    head.template append<std::string>( "P4 MATERIALIZATION BYTES",
+                                       std::to_string( m_materializationBytes ),
+                                       "one output-pair estimate" );
     head.template append<int>( "P4 WRITE DIAGNOSTICS", m_writeDiagnostics ? 1 : 0, "diagnostics enabled" );
 
     std::vector<std::size_t> predictorCounts;
@@ -1614,6 +1961,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     std::vector<std::size_t> targetImageCounts;
     std::vector<int> temporalImageCounts;
     std::vector<double> temporalPsfRadii;
+    std::vector<std::size_t> workerBytes;
+    std::vector<int> maximumWorkerCounts;
+    std::vector<int> effectiveWorkerCounts;
     std::vector<std::size_t> validCounts;
     std::vector<std::size_t> maskedCounts;
     std::vector<std::size_t> supportInvalidCounts;
@@ -1624,6 +1974,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     targetImageCounts.reserve( m_regionStatistics.size() );
     temporalImageCounts.reserve( m_regionStatistics.size() );
     temporalPsfRadii.reserve( m_regionStatistics.size() );
+    workerBytes.reserve( m_regionStatistics.size() );
+    maximumWorkerCounts.reserve( m_regionStatistics.size() );
+    effectiveWorkerCounts.reserve( m_regionStatistics.size() );
     validCounts.reserve( m_regionStatistics.size() );
     maskedCounts.reserve( m_regionStatistics.size() );
     supportInvalidCounts.reserve( m_regionStatistics.size() );
@@ -1636,6 +1989,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
         targetImageCounts.push_back( statistics.targetImageCount );
         temporalImageCounts.push_back( statistics.temporalNumberImages );
         temporalPsfRadii.push_back( statistics.temporalPsfRadius );
+        workerBytes.push_back( statistics.estimatedWorkerBytes );
+        maximumWorkerCounts.push_back( statistics.maximumWorkerCount );
+        effectiveWorkerCounts.push_back( statistics.effectiveWorkerCount );
         validCounts.push_back( statistics.validLocalFitCount );
         maskedCounts.push_back( statistics.maskedLocalFitCount );
         supportInvalidCounts.push_back( statistics.supportInvalidLocalFitCount );
@@ -1653,6 +2009,13 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.template append<std::string>( "P4 TEMPORAL PSF RADIUS",
                                        p4Join( temporalPsfRadii ),
                                        "effective temporal PSF radii by annulus" );
+    head.template append<std::string>( "P4 WORKER BYTES", p4Join( workerBytes ), "worker estimates by annulus" );
+    head.template append<std::string>( "P4 MAXIMUM WORKERS",
+                                       p4Join( maximumWorkerCounts ),
+                                       "worker maxima before memory limiting" );
+    head.template append<std::string>( "P4 EFFECTIVE WORKERS",
+                                       p4Join( effectiveWorkerCounts ),
+                                       "selected workers by annulus" );
     head.template append<std::string>( "P4 VALID FIT COUNT", p4Join( validCounts ), "valid local fits by annulus" );
     head.template append<std::string>( "P4 MASK INVALID FIT COUNT",
                                        p4Join( maskedCounts ),

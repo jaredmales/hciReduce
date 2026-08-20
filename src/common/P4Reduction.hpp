@@ -59,6 +59,12 @@ struct P4RegionStatistics
 
     int maximumDegreesOfFreedom{ 0 };  ///< Structural mode limit for the selected regression frame and annulus.
 
+    std::size_t estimatedWorkerBytes{ 0 }; ///< Conservative peak private allocation for one regression worker.
+
+    int maximumWorkerCount{ 0 };           ///< OpenMP/search-pixel worker maximum before memory limiting.
+
+    int effectiveWorkerCount{ 0 };         ///< Worker count selected after applying the configured memory policy.
+
     int minimumNumericalRank{ 0 }; ///< Minimum rank among common-mask-valid local fits, or zero when none are valid.
 
     std::size_t validLocalFitCount{ 0 };          ///< Number of local fits accepted by the common mask.
@@ -132,7 +138,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     realT m_exclusionRadiusBuffer{ std::numeric_limits<realT>::quiet_NaN() }; ///< Added exclusion-radius buffer.
 
-    double m_rankTolerance{ 1e-12 };          ///< Relative numerical-rank threshold in `[0,1)`.
+    double m_rankTolerance{ 1e-12 }; ///< Relative numerical-rank threshold in `[0,1)`.
+
+    double m_memoryFraction{ 0.8 };  ///< Fraction of available memory P4 may reserve; zero disables automatic limiting.
 
     bool m_writeDiagnostics{ false };         ///< Whether checked P4 diagnostic FITS products are written.
 
@@ -152,6 +160,14 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     ///< Per-annulus central and neighboring target-image indices used in detector-frame predictor rows.
 
     Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> m_ownership; ///< Owning annulus index, or -1 outside support.
+
+    std::size_t m_availableMemoryBytes{ 0 }; ///< Linux available-memory snapshot, or zero when unavailable/disabled.
+
+    std::size_t m_memoryBudgetBytes{ 0 };    ///< Bytes selected from available memory for future P4 allocations.
+
+    std::size_t m_compactResidualBytes{ 0 }; ///< Estimated bytes retained by compact residual and validity arrays.
+
+    std::size_t m_materializationBytes{ 0 }; ///< Estimated bytes in one full residual/validity materialization pair.
 
     ReductionTiming m_timing; ///< Instance-owned elapsed and aggregate-worker timing record for the current reduction.
 
@@ -227,6 +243,17 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                                std::size_t predictorCount, /**< [in] predictor-column count */
                                                bool temporallyCentered = false /**< [in] whether centering removes one
                                                                                          temporal degree of freedom */ );
+
+    /// Conservatively estimate the peak private allocation for one P4 regression worker.
+    static std::size_t estimatedWorkerBytes( std::size_t targetImageCount, /**< [in] temporal sample count */
+                                             std::size_t predictorCount,   /**< [in] predictor-column count */
+                                             std::size_t modeCount /**< [in] requested residual-column count */ );
+
+    /// Select the number of workers that fit after persistent future allocations.
+    static int memoryLimitedWorkerCount( int requestedWorkers,    /**< [in] positive OpenMP/search-pixel maximum */
+                                         std::size_t budgetBytes, /**< [in] bytes available for future P4 allocations */
+                                         std::size_t persistentBytes, /**< [in] bytes retained while workers run */
+                                         std::size_t workerBytes /**< [in] conservative private bytes per worker */ );
 
     /// Assign one search pixel to exactly one annulus.
     static void claimOwnership( Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> &ownership,

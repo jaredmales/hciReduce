@@ -108,6 +108,21 @@ struct P4PCA
                        double rankTolerance,          /**< [in] finite nonnegative threshold relative to lambdaMax */
                        workspaceT &workspace,         /**< [in,out] caller-owned, non-shared LAPACK workspace */
                        P4PCATiming *timing = nullptr /**< [out] optional per-call worker timing */ );
+
+    /// Calculate a centered fit while reusing the caller's predictor matrix as centering workspace.
+    /** This is numerically equivalent to calculateCentered(), including applying the fitted coefficients to the
+     * uncentered predictors. On return or after a post-validation exception, \p predictors no longer contains its
+     * original values. The target remains unchanged. This destructive form avoids one complete T-by-K allocation for
+     * callers that refill their predictor matrix before its next use.
+     */
+    static void calculateCenteredInPlace(
+        P4PCAResult &output,           /**< [out] residuals, mode states, and numerical rank */
+        matrixT &predictors,           /**< [in,out] finite T-by-K predictors, replaced by centered values */
+        const vectorT &target,         /**< [in] finite T-sample uncentered target time series */
+        const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
+        double rankTolerance,          /**< [in] finite nonnegative threshold relative to lambdaMax */
+        workspaceT &workspace,         /**< [in,out] caller-owned, non-shared LAPACK workspace */
+        P4PCATiming *timing = nullptr /**< [out] optional per-call worker timing */ );
 };
 
 /// \cond P4PCA_test_detail

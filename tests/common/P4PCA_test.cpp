@@ -919,6 +919,39 @@ TEST_CASE( "P4PCA centered fit with uncentered application agrees with direct SV
     }
 }
 
+/// Verify destructive centered P4PCA matches the preserving API and reuses predictor storage.
+/** This directly compares mx::improc::P4PCA::calculateCenteredInPlace() with
+ * mx::improc::P4PCA::calculateCentered().
+ */
+TEST_CASE( "P4PCA in-place centered fit preserves results", "[P4PCA][centered][memory]" )
+{
+    pcaT::matrixT predictors( 5, 3 );
+    predictors << 1, 8, -2, 2, 4, 1, 4, 3, 7, -1, 2, 5, 3, -2, 0;
+    const pcaT::matrixT expectedCentered = centeredColumns( predictors );
+    pcaT::matrixT inPlacePredictors = predictors;
+    pcaT::vectorT target( 5 );
+    target << 9, 4, 8, -1, 5;
+    const pcaT::vectorT originalTarget = target;
+
+    resultT preservingResult;
+    resultT inPlaceResult;
+    pcaT::workspaceT preservingWorkspace;
+    pcaT::workspaceT inPlaceWorkspace;
+    mx::improc::P4PCA::calculateCentered( preservingResult, predictors, target, { 1, 3 }, 1e-12, preservingWorkspace );
+    mx::improc::P4PCA::calculateCenteredInPlace( inPlaceResult,
+                                                 inPlacePredictors,
+                                                 target,
+                                                 { 1, 3 },
+                                                 1e-12,
+                                                 inPlaceWorkspace );
+
+    REQUIRE( inPlaceResult.numericalRank == preservingResult.numericalRank );
+    REQUIRE( inPlaceResult.modeStatus == preservingResult.modeStatus );
+    requireApprox( inPlaceResult.residuals, preservingResult.residuals );
+    requireApprox( inPlacePredictors, expectedCentered );
+    requireApprox( target, originalTarget );
+}
+
 /// Verify centered P4PCA uses min(K,T-1) eigenpairs and the corresponding smaller Gram matrix.
 /** This directly exercises mx::improc::P4PCA::calculateCentered() structural-rank dispatch. */
 TEST_CASE( "P4PCA centered regression enforces structural degrees of freedom", "[P4PCA][centered][rank][solver]" )

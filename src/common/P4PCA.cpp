@@ -58,14 +58,14 @@ MXLAPACK_INT p4PCAEigenSolve( P4PCA::matrixT &eigenvectors, /**< [out] selected 
         return testSolver( eigenvectors, eigenvalues, covariance, modeCount, workspace );
     }
 
-    return mx::math::calcEigenVecs<double>( eigenvectors,
-                                            eigenvalues,
-                                            covariance,
-                                            modeCount,
-                                            false,
-                                            false,
-                                            &workspace,
-                                            nullptr );
+    const int dimension = static_cast<int>( covariance.rows() );
+    return mx::math::eigenSYEVR( eigenvectors,
+                                 eigenvalues,
+                                 covariance,
+                                 dimension - modeCount,
+                                 dimension,
+                                 'L',
+                                 &workspace );
 }
 
 /// Validate one P4PCA request against its path-specific structural degree-of-freedom limit.
@@ -392,6 +392,18 @@ void P4PCA::calculateCentered( P4PCAResult &output,
                                workspaceT &workspace,
                                P4PCATiming *timing )
 {
+    matrixT centeredPredictors = predictors;
+    calculateCenteredInPlace( output, centeredPredictors, target, modes, rankTolerance, workspace, timing );
+}
+
+void P4PCA::calculateCenteredInPlace( P4PCAResult &output,
+                                      matrixT &predictors,
+                                      const vectorT &target,
+                                      const std::vector<int> &modes,
+                                      double rankTolerance,
+                                      workspaceT &workspace,
+                                      P4PCATiming *timing )
+{
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
     if( sampleCount == 1 )
@@ -402,18 +414,17 @@ void P4PCA::calculateCentered( P4PCAResult &output,
     const int maxDOF = static_cast<int>( std::min( predictorCount, sampleCount - 1 ) );
     p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
 
-    matrixT centeredPredictors = predictors;
     vectorT centeredTarget = target;
     matrixT predictorMeans;
-    p4PCACenterColumns( centeredPredictors, &predictorMeans );
+    p4PCACenterColumns( predictors, &predictorMeans );
     p4PCACenterColumns( centeredTarget );
-    if( !p4PCAAllFinite( centeredPredictors ) || !p4PCAAllFinite( centeredTarget ) )
+    if( !p4PCAAllFinite( predictors ) || !p4PCAAllFinite( centeredTarget ) )
     {
         throw std::runtime_error( "P4PCA temporal centering produced nonfinite values" );
     }
 
     p4PCACalculateValidated( output,
-                             centeredPredictors,
+                             predictors,
                              centeredTarget,
                              target,
                              modes,
