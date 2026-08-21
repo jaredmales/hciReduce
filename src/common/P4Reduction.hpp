@@ -327,8 +327,10 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                 int region /**< [in] nonnegative annulus index */ );
 
     /// Reconstruct, optionally persist, and optionally filter the final-frame PSF field one mode at a time.
-    void processPSFProducts( const std::vector<pixelGridT> &grids
-                             /**< [in] retained detector-frame annulus geometry */ );
+    void processPSFProducts(
+        const std::vector<pixelGridT> &grids, /**< [in] retained detector-frame annulus geometry */
+        const std::string &finalImagePath,    /**< [in] resolved path supplying filter naming and provenance */
+        const fitsHeaderT &finalHeader /**< [in] ADI and P4 cards mirrored from the ordinary final image */ );
 
     /// Write one enabled image-like diagnostic with P4 provenance and checked directory and FITS errors.
     template <typename dataT>

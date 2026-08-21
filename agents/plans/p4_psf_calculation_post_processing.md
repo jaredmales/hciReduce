@@ -222,7 +222,7 @@ configured:
 | `p4.outputPSFModels` | Write the compact spatially variable PSF products in addition to any in-process filtering. |
 | `p4.psfFilter` | Apply the spatially variable PSF filter to the final science cube; default `false`. |
 | `p4.psfFilterMinGoodFract` | Minimum usable fraction of the full odd-sized filter stamp; default `1`. |
-| `p4.psfOutputPrefix` | Prefix for PSF-model and filtered-image products inside the common output directory. |
+| `p4.psfOutputPrefix` | Prefix for compact PSF-model products and their manifest inside the common output directory. |
 
 The names and grouping should be finalized during implementation review rather than overloading `fake.fileName` or
 `p4.psfRadius`. The physical exclusion radius and the forward-model stamp size are different quantities.
@@ -238,6 +238,10 @@ The recommended compact persisted schema is:
 Writing one mode at a time avoids retaining the complete `M * S * A` final field. The ordinary `finim` remains the
 unfiltered P4 product. Filtering should first write a distinct, clearly named cube so science and filtered products
 can be compared; replacing the in-memory/output `finim` can be considered only as a separate explicit option.
+Implemented filter products derive their names from the resolved ordinary final-image path, insert the product role
+before its shared four-digit sequence (or before the extension for an exact name), and mirror the complete final-image
+FITS header before appending product-specific P4 provenance. Compact model products continue to use
+`p4.psfOutputPrefix`.
 
 ## Work sequence
 
@@ -365,6 +369,11 @@ can be compared; replacing the in-memory/output `finim` can be considered only a
   disabled and enabled-but-nonreplacing runs.
 - [x] For every edited function containing mxlib calls, verify all directly called APIs in the current mxlib LCOV
   report. Record any gap under `Known non-blocking ownership follow-ups` in `agents/plans/mxlib_cleanup.md`.
+
+The 2026-08-21 filtered-header/naming follow-up rechecked the current mxlib LCOV report. The exact executable lines for
+`getSequentialFilename`, `parentPath`, and `createDirectories` are covered, while the called FITS file/header,
+`ompLoopWatcher`, finite-check, and time-utility implementation files have 100% executable-line coverage. No new mxlib
+ownership follow-up is required.
 
 ## Acceptance criteria
 

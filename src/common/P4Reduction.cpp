@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <exception>
@@ -19,6 +20,7 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -37,6 +39,53 @@ namespace improc
 
 namespace
 {
+
+/// Derive a filter-product path from the resolved final-image path.
+std::string p4FilterProductPath( const std::string &finalImagePath, /**< [in] resolved final-image output path */
+                                 const std::string &role, /**< [in] filename role inserted before the sequence */
+                                 bool sequential /**< [in] whether the final image uses a four-digit sequence */ )
+{
+    const std::filesystem::path finalPath( finalImagePath );
+    std::string fileName = finalPath.filename().string();
+    if( fileName.empty() || role.empty() )
+    {
+        throw std::invalid_argument( "P4 filter-product naming requires a final-image filename and role" );
+    }
+
+    if( sequential )
+    {
+        constexpr std::size_t sequenceDigits = 4;
+        constexpr std::string_view extension = ".fits";
+        if( fileName.size() < sequenceDigits + extension.size() || !fileName.ends_with( extension ) )
+        {
+            throw std::invalid_argument( "P4 sequential final-image path does not match the expected FITS naming" );
+        }
+        const std::size_t sequenceBegin = fileName.size() - extension.size() - sequenceDigits;
+        for( std::size_t index = sequenceBegin; index < sequenceBegin + sequenceDigits; ++index )
+        {
+            if( !std::isdigit( static_cast<unsigned char>( fileName[index] ) ) )
+            {
+                throw std::invalid_argument( "P4 sequential final-image path does not end in four digits" );
+            }
+        }
+        if( sequenceBegin > 0 && !std::isalnum( static_cast<unsigned char>( fileName[sequenceBegin - 1] ) ) )
+        {
+            fileName.insert( sequenceBegin, role + fileName.substr( sequenceBegin - 1, 1 ) );
+        }
+        else
+        {
+            fileName.insert( sequenceBegin, "_" + role + "_" );
+        }
+    }
+    else
+    {
+        const std::filesystem::path filePath( fileName );
+        const std::string extension = filePath.extension().string();
+        fileName = filePath.stem().string() + "_" + role + extension;
+    }
+
+    return ( finalPath.parent_path() / fileName ).string();
+}
 
 /// Join a vector into a stable comma-delimited FITS value.
 template <typename valueT>
@@ -2115,13 +2164,18 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         writeDiagnostic( "p4Timing.fits", timing, &timingHeader );
     };
 
+    fitsHeaderT finalHeader;
+    this->stdFitsHeader( &finalHeader );
+    appendReductionHeader( finalHeader );
+    const std::string finalImagePath = this->finalImageOutputPath();
+
     if( !compactFinalization )
     {
         const int result = finalProcess();
         if( result == 0 && processPSF )
         {
             const double reconstructionBegin = omp_get_wtime();
-            processPSFProducts( grids );
+            processPSFProducts( grids, finalImagePath, finalHeader );
             m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
         }
         writeTimingDiagnostic();
@@ -2220,17 +2274,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         if( processPSF )
         {
             const double reconstructionBegin = omp_get_wtime();
-            processPSFProducts( grids );
+            processPSFProducts( grids, finalImagePath, finalHeader );
             m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
         }
         writeTimingDiagnostic();
         if( configuredWriteFinim )
         {
             std::cerr << "writing\n";
-            fitsHeaderT finalHeader;
-            this->stdFitsHeader( &finalHeader );
-            appendReductionHeader( finalHeader );
-            this->writeFinim( &finalHeader );
+            this->writeFinimAtPath( finalImagePath, &finalHeader );
         }
     }
     else
@@ -2242,7 +2293,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std::vector<pixelGridT> &grids )
+void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std::vector<pixelGridT> &grids,
+                                                                      const std::string &finalImagePath,
+                                                                      const fitsHeaderT &finalHeader )
 {
     if( grids.size() != m_regionStatistics.size() || m_localPSFModels.size() != grids.size() ||
         m_localPSFValidity.size() != grids.size() )
@@ -2255,6 +2308,11 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr,
                                        "P4 PSF filtering requires the complete combined final-image cube" );
+    }
+    if( m_psfFilter && finalImagePath.empty() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                       "P4 PSF filtering requires a resolved final-image output path" );
     }
 
     std::size_t searchPixelCount{ 0 };
@@ -2407,8 +2465,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
     const auto productHeader = [&]( const std::string &product, std::size_t output )
     {
         fitsHeaderT header;
-        this->stdFitsHeader( &header );
-        appendReductionHeader( header );
+        fitsHeaderT finalHeaderCopy( finalHeader );
+        this->finalImageHeader( header, &finalHeaderCopy );
         header.template append<int>( "P4 PSF PRODUCT SCHEMA", m_psfFilter ? 2 : 1, "frozen-model PSF product schema" );
         header.template append<std::string>( "P4 PSF PRODUCT", product, "compact PSF product role" );
         header.template append<std::string>( "P4 PSF TEMPLATE", m_psfFile, "post-preprocessing centered template" );
@@ -2466,6 +2524,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
         header.template append<std::string>( "P4 PSF FILTER SOURCE OUTPUT NAME",
                                              this->m_finimName,
                                              "configured final-image output name" );
+        header.template append<std::string>( "P4 PSF FILTER SOURCE PATH",
+                                             finalImagePath,
+                                             "resolved final-image output path" );
         header.template append<int>( "P4 PSF FILTER SOURCE EXACT NAME",
                                      this->m_exactFinimName ? 1 : 0,
                                      "final-image exact-name policy" );
@@ -2682,13 +2743,21 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
     if( m_psfFilter )
     {
         fitsHeaderT filteredHeader = productHeader( "FILTERED", m_modeFractions.size() );
-        writeProduct( productPath( "filtered.fits" ), filtered, filteredHeader );
+        writeProduct( p4FilterProductPath( finalImagePath, "filtered", !this->m_exactFinimName ),
+                      filtered,
+                      filteredHeader );
         fitsHeaderT normalizationHeader = productHeader( "FILTER_NORMALIZATION", m_modeFractions.size() );
-        writeProduct( productPath( "filter_normalization.fits" ), filterNormalization, normalizationHeader );
+        writeProduct( p4FilterProductPath( finalImagePath, "filter_normalization", !this->m_exactFinimName ),
+                      filterNormalization,
+                      normalizationHeader );
         fitsHeaderT supportHeader = productHeader( "FILTER_SUPPORT", m_modeFractions.size() );
-        writeProduct( productPath( "filter_support.fits" ), filterSupport, supportHeader );
+        writeProduct( p4FilterProductPath( finalImagePath, "filter_support", !this->m_exactFinimName ),
+                      filterSupport,
+                      supportHeader );
         fitsHeaderT filterValidityHeader = productHeader( "FILTER_VALIDITY", m_modeFractions.size() );
-        writeProduct( productPath( "filter_validity.fits" ), filterValidity, filterValidityHeader );
+        writeProduct( p4FilterProductPath( finalImagePath, "filter_validity", !this->m_exactFinimName ),
+                      filterValidity,
+                      filterValidityHeader );
     }
 
     completion( 0, 0 ) = 1;

@@ -99,13 +99,15 @@
  * pixel. A result is valid only when the denominator is positive and `p4.psfFilterMinGoodFract` does not exceed
  * \f$|V_q|/W^2\f$. Invalid amplitudes remain NaN rather than becoming zero.
  *
- * Filtering writes `<prefix>filtered.fits`, `<prefix>filter_normalization.fits`,
- * `<prefix>filter_support.fits`, and `<prefix>filter_validity.fits` as full-image cubes in ordinary P4 mode order.
- * These respectively contain \f$\widehat a\f$, the retained \f$\sum H^2\f$ denominator, \f$|V_q|/W^2\f$, and exact
- * zero/one validity. Product schema 2 records the source as the current final-image cube, the equation, response and
- * template conventions, minimum support, mode mapping, and memory estimate. `p4.outputPSFModels` may remain false;
- * in that case no coordinate or compact model products are written. The ordinary `finim` is unchanged in either
- * case.
+ * Filtering writes `finim_filtered_NNNN.fits`, `finim_filter_normalization_NNNN.fits`,
+ * `finim_filter_support_NNNN.fits`, and `finim_filter_validity_NNNN.fits` for the default final-image prefix. The
+ * products use the resolved ordinary final-image prefix and sequence number, and contain full-image cubes in ordinary
+ * P4 mode order. With an exact final-image name, each role is inserted before its extension. These respectively
+ * contain \f$\widehat a\f$, the retained \f$\sum H^2\f$ denominator, \f$|V_q|/W^2\f$, and exact zero/one validity.
+ * Each product mirrors the complete ordinary final-image FITS header, then adds schema-2 cards recording the source
+ * path, equation, response and template conventions, minimum support, mode mapping, and memory estimate.
+ * `p4.outputPSFModels` may remain false; in that case no coordinate or compact model products are written. The
+ * ordinary `finim` is unchanged in either case.
  *
  * \section p4reduce_rotated_regression Rotated-frame regression
  *
@@ -203,7 +205,7 @@
  * | `p4.outputPSFModels` | Write the compact combined spatially variable PSF field; default `false`. |
  * | `p4.psfFilter` | Write the signed normalized spatially variable filter products without replacing the ordinary final image; default `false`. |
  * | `p4.psfFilterMinGoodFract` | Minimum usable fraction of the full local stamp in `[0,1]`; default `1`. |
- * | `p4.psfOutputPrefix` | Product prefix in the common output directory; default `p4PSF_`. |
+ * | `p4.psfOutputPrefix` | Compact model/manifest prefix in the common output directory; default `p4PSF_`. |
  * | `p4.exclusionPolicy` | Required `sampleCenter` or `kernelSupport` policy. |
  * | `p4.exclusionRadiusBuffer` | Explicit nonnegative amount added to `p4.psfRadius`; `0.5` reproduces the prototype's effective mask buffer. |
  * | `p4.rankTolerance` | Relative eigenvalue threshold in `[0,1)`, default `1e-12`. |

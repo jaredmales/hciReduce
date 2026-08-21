@@ -274,9 +274,14 @@ TEST_CASE( "HCIobservation final-image output", "[HCIobservation][output][writeF
 
     HCIobservationTestHarness::fitsHeaderT additional;
     additional.append<int>( "EXTRA", 77, "additional output card" );
+    const auto firstPath = directory.file( "nested/final/combined_0000.fits" );
+    REQUIRE( observation.finalImageOutputPath() == firstPath.string() );
+    HCIobservationTestHarness::fitsHeaderT constructedHeader;
+    observation.finalImageHeader( constructedHeader, &additional );
+    REQUIRE( constructedHeader["COMBINATION METHOD"].String().starts_with( "mean" ) );
+    REQUIRE( constructedHeader["EXTRA"].Int() == 77 );
     observation.writeFinim( &additional );
 
-    const auto firstPath = directory.file( "nested/final/combined_0000.fits" );
     REQUIRE( std::filesystem::exists( firstPath ) );
     HCIobservationTestHarness::cubeT cube;
     HCIobservationTestHarness::fitsHeaderT header;
@@ -294,6 +299,10 @@ TEST_CASE( "HCIobservation final-image output", "[HCIobservation][output][writeF
 
     observation.writeFinim();
     REQUIRE( std::filesystem::exists( directory.file( "nested/final/combined_0001.fits" ) ) );
+
+    const auto resolvedPath = directory.file( "nested/final/resolved-product.fits" );
+    observation.writeFinimAtPath( resolvedPath.string(), &additional );
+    REQUIRE( std::filesystem::exists( resolvedPath ) );
 
     observation.m_exactFinimName = true;
     observation.m_finimName = "exact-product.bin";

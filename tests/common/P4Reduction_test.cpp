@@ -147,9 +147,11 @@ struct reductionHarness : public reductionT
     using reductionT::m_doDerotate;
     using reductionT::m_doOutputPSFSub;
     using reductionT::m_doWriteFinim;
+    using reductionT::m_exactFinimName;
     using reductionT::m_fileList;
     using reductionT::m_filesRead;
     using reductionT::m_finim;
+    using reductionT::m_finimName;
     using reductionT::m_heads;
     using reductionT::m_imSize;
     using reductionT::m_mask;
@@ -774,6 +776,8 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     reduction.m_psfFilterMinGoodFract = 0.4F;
     reduction.m_psfOutputPrefix = "field_";
     reduction.m_outputDir = directory.file( "nested/products" ).string();
+    reduction.m_finimName = "finim_";
+    reduction.m_doWriteFinim = true;
     reduction.m_combineMethod = mx::improc::HCI::combine::mean;
     reduction.m_writeDiagnostics = true;
     reduction.m_diagnosticDirectory = directory.file( "field-diagnostics" ).string();
@@ -805,14 +809,18 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     const std::filesystem::path manifestPath = directory.file( "nested/products/field_manifest.fits" );
     const std::filesystem::path modelPath = directory.file( "nested/products/field_model_0000.fits" );
     const std::filesystem::path validityPath = directory.file( "nested/products/field_validity_0000.fits" );
-    const std::filesystem::path filteredPath = directory.file( "nested/products/field_filtered.fits" );
-    const std::filesystem::path normalizationPath = directory.file( "nested/products/field_filter_normalization.fits" );
-    const std::filesystem::path supportPath = directory.file( "nested/products/field_filter_support.fits" );
-    const std::filesystem::path filterValidityPath = directory.file( "nested/products/field_filter_validity.fits" );
+    const std::filesystem::path finalImagePath = directory.file( "nested/products/finim_0000.fits" );
+    const std::filesystem::path filteredPath = directory.file( "nested/products/finim_filtered_0000.fits" );
+    const std::filesystem::path normalizationPath =
+        directory.file( "nested/products/finim_filter_normalization_0000.fits" );
+    const std::filesystem::path supportPath = directory.file( "nested/products/finim_filter_support_0000.fits" );
+    const std::filesystem::path filterValidityPath =
+        directory.file( "nested/products/finim_filter_validity_0000.fits" );
     REQUIRE( std::filesystem::exists( coordinatePath ) );
     REQUIRE( std::filesystem::exists( manifestPath ) );
     REQUIRE( std::filesystem::exists( modelPath ) );
     REQUIRE( std::filesystem::exists( validityPath ) );
+    REQUIRE( std::filesystem::exists( finalImagePath ) );
     REQUIRE( std::filesystem::exists( filteredPath ) );
     REQUIRE( std::filesystem::exists( normalizationPath ) );
     REQUIRE( std::filesystem::exists( supportPath ) );
@@ -864,6 +872,9 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     reductionT::fitsHeaderT normalizationHeader;
     reductionT::fitsHeaderT supportHeader;
     reductionT::fitsHeaderT filterValidityHeader;
+    reductionT::fitsHeaderT finalImageHeader;
+    reductionT::imageT writtenFinalImage;
+    REQUIRE( reader.read( writtenFinalImage, finalImageHeader, finalImagePath.string() ) == mx::error_t::noerror );
     REQUIRE( reader.read( filtered, filteredHeader, filteredPath.string() ) == mx::error_t::noerror );
     REQUIRE( reader.read( normalization, normalizationHeader, normalizationPath.string() ) == mx::error_t::noerror );
     REQUIRE( reader.read( support, supportHeader, supportPath.string() ) == mx::error_t::noerror );
@@ -885,6 +896,13 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( filteredHeader["P4 PSF FILTER EQUATION"].String().find( "SUM(H*I)" ) != std::string::npos );
     REQUIRE( filteredHeader["P4 PSF FILTER SOURCE"].String().starts_with( "CURRENT_FINAL_IMAGE" ) );
     REQUIRE( filteredHeader["P4 PSF FILTER SOURCE OUTPUT NAME"].String().starts_with( reduction.m_finimName ) );
+    REQUIRE( filteredHeader["P4 PSF FILTER SOURCE PATH"].String().starts_with( finalImagePath.string() ) );
+    REQUIRE( filteredHeader["NUMIMS"].value<int>() == finalImageHeader["NUMIMS"].value<int>() );
+    REQUIRE( filteredHeader["POSTMEDS"].value<int>() == finalImageHeader["POSTMEDS"].value<int>() );
+    REQUIRE( filteredHeader["COMBINATION METHOD"].String() == finalImageHeader["COMBINATION METHOD"].String() );
+    REQUIRE( filteredHeader["MIN GOOD FRACTION"].value<float>() ==
+             finalImageHeader["MIN GOOD FRACTION"].value<float>() );
+    REQUIRE( filteredHeader["P4 MODE FRACTIONS"].String() == finalImageHeader["P4 MODE FRACTIONS"].String() );
     REQUIRE( normalizationHeader["P4 PSF PRODUCT"].String().starts_with( "FILTER_NORMALIZATION" ) );
     REQUIRE( supportHeader["P4 PSF PRODUCT"].String().starts_with( "FILTER_SUPPORT" ) );
     REQUIRE( filterValidityHeader["P4 PSF PRODUCT"].String().starts_with( "FILTER_VALIDITY" ) );
@@ -932,9 +950,11 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     filterOnly.m_psfFilterMinGoodFract = 0.4F;
     filterOnly.m_psfOutputPrefix = "filterOnly_";
     filterOnly.m_outputDir = directory.file( "filter-only" ).string();
+    filterOnly.m_finimName = "science.fits";
+    filterOnly.m_exactFinimName = true;
     filterOnly.m_combineMethod = mx::improc::HCI::combine::mean;
     REQUIRE( filterOnly.reduce() == 0 );
-    REQUIRE( std::filesystem::exists( directory.file( "filter-only/filterOnly_filtered.fits" ) ) );
+    REQUIRE( std::filesystem::exists( directory.file( "filter-only/science_filtered.fits" ) ) );
     REQUIRE( std::filesystem::exists( directory.file( "filter-only/filterOnly_manifest.fits" ) ) );
     REQUIRE_FALSE( std::filesystem::exists( directory.file( "filter-only/filterOnly_coordinates.fits" ) ) );
     REQUIRE_FALSE( std::filesystem::exists( directory.file( "filter-only/filterOnly_model_0000.fits" ) ) );

@@ -757,9 +757,23 @@ struct HCIobservation
                                                              have cards appended to it. */
     );
 
+    /// Resolve the exact or next sequential final-image output path without writing it.
+    std::string finalImageOutputPath() const;
+
+    /// Construct the complete FITS header used for a final combined image.
+    void finalImageHeader(
+        fitsHeaderT &head, /**< [in,out] header receiving the complete final-image cards */
+        fitsHeaderT *addHead = nullptr /**< [in] optional algorithm-specific cards appended to the header */ );
+
     /// Write the final combined image cube to its exact or next sequential output path.
     /** \throws mx::exception if the cube is empty or an output operation fails. */
     void writeFinim( fitsHeaderT *addHead = 0 );
+
+    /// Write the final combined image cube to an already-resolved output path.
+    /** \throws mx::exception if the cube is empty or an output operation fails. */
+    void writeFinimAtPath(
+        const std::string &fname, /**< [in] exact output path, including the desired extension */
+        fitsHeaderT *addHead = nullptr /**< [in] optional algorithm-specific cards appended to the header */ );
 
     /// Write every PSF-subtracted reduction/image and the optional combination-weight sidecar.
     /** \throws mx::exception if the input sizes are inconsistent or an output operation fails. */
@@ -3562,13 +3576,8 @@ void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head )
 }
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
+std::string HCIobservation<_realT, verboseT>::finalImageOutputPath() const
 {
-    if( m_finim.rows() <= 0 || m_finim.cols() <= 0 || m_finim.planes() <= 0 )
-    {
-        throw mx::exception<verboseT>( mx::error_t::sizeerr, "the final image cube is empty" );
-    }
-
     std::string fname = m_finimName;
 
     if( !m_outputDir.empty() )
@@ -3576,23 +3585,17 @@ void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
         fname = m_outputDir + "/" + fname;
     }
 
-    const std::string outputParent = ioutils::parentPath( fname );
-    if( !outputParent.empty() )
-    {
-        const mx::error_t result = ioutils::createDirectories( outputParent );
-        if( result != mx::error_t::noerror )
-        {
-            throw mx::exception<verboseT>( result, "creating the final-image output directory" );
-        }
-    }
-
     if( !m_exactFinimName )
     {
         fname = ioutils::getSequentialFilename( fname, ".fits" );
     }
 
-    fitsHeaderT head;
+    return fname;
+}
 
+template <typename _realT, class verboseT>
+void HCIobservation<_realT, verboseT>::finalImageHeader( fitsHeaderT &head, fitsHeaderT *addHead )
+{
     // Add HCIobservation standard header:
     stdFitsHeader( head );
 
@@ -3614,6 +3617,38 @@ void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
     }
 
     fits::fitsHeaderGitStatus( head, "mxlib_uncomp", MXLIB_UNCOMP_CURRENT_SHA1, MXLIB_UNCOMP_REPO_MODIFIED );
+}
+
+template <typename _realT, class verboseT>
+void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
+{
+    writeFinimAtPath( finalImageOutputPath(), addHead );
+}
+
+template <typename _realT, class verboseT>
+void HCIobservation<_realT, verboseT>::writeFinimAtPath( const std::string &fname, fitsHeaderT *addHead )
+{
+    if( m_finim.rows() <= 0 || m_finim.cols() <= 0 || m_finim.planes() <= 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "the final image cube is empty" );
+    }
+    if( fname.empty() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg, "the final-image output path is empty" );
+    }
+
+    const std::string outputParent = ioutils::parentPath( fname );
+    if( !outputParent.empty() )
+    {
+        const mx::error_t result = ioutils::createDirectories( outputParent );
+        if( result != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( result, "creating the final-image output directory" );
+        }
+    }
+
+    fitsHeaderT head;
+    finalImageHeader( head, addHead );
 
     fitsFileT f;
 
@@ -3624,7 +3659,7 @@ void HCIobservation<_realT, verboseT>::writeFinim( fitsHeaderT *addHead )
     }
 
     std::cerr << "Final image written to: " << fname << "\n";
-} // void HCIobservation<_realT,verboseT>::writeFinim(fitsHeaderT * addHead)
+} // void HCIobservation<_realT,verboseT>::writeFinimAtPath(const std::string &, fitsHeaderT *)
 
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::outputPSFSub( fitsHeaderT *addHead )

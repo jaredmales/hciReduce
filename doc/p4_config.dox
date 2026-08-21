@@ -100,7 +100,7 @@
  * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final `combine.method`. |
  * | `--p4.psfFilter` | `p4.psfFilter=true` | `HIERARCH P4 PSF FILTER` (PSF products) | bool | `false` | Apply the signed, normalized spatially variable PSF filter and write separate full-image products. Requires `psfFile`, an odd `psfStampSize`, and a final `combine.method`; it does not require `outputPSFModels=true`. |
  * | `--p4.psfFilterMinGoodFract` | `p4.psfFilterMinGoodFract=0.8` | `HIERARCH P4 PSF FILTER MIN GOOD FRACTION` (PSF products) | real in `[0,1]` | `1` | Minimum fraction of the full stamp area having valid PSF samples and finite in-bounds science samples. Values below the threshold have explicit zero filter validity and NaN filtered amplitude. |
- * | `--p4.psfOutputPrefix` | `p4.psfOutputPrefix=p4PSF_` | — | nonempty path prefix | `p4PSF_` | Product prefix inside `output.directory`; parent directories are created automatically. |
+ * | `--p4.psfOutputPrefix` | `p4.psfOutputPrefix=p4PSF_` | — | nonempty path prefix | `p4PSF_` | Compact model/manifest prefix inside `output.directory`; parent directories are created automatically. Filter cubes instead follow the ordinary final-image name and sequence. |
  *
  * For example, enable PSF reconstruction in a configuration file with literal sectioned syntax:
  *
@@ -127,17 +127,22 @@
  * - `<prefix>validity_NNNN.fits`, an `S x 1` exact zero/one source-center validity image for each mode; and
  * - `<prefix>manifest.fits`, a one-element completion product.
  *
- * With `psfFilter=true`, it additionally receives four full-frame cubes in the ordinary P4 mode order:
+ * With `psfFilter=true`, it additionally receives four full-frame cubes in the ordinary P4 mode order. Their names
+ * follow the resolved ordinary final-image name and share its sequence number. For the default `finim_` prefix these
+ * are:
  *
- * - `<prefix>filtered.fits`, containing `sum(H*I)/sum(H*H)` where the local fit is valid;
- * - `<prefix>filter_normalization.fits`, containing the retained `sum(H*H)` denominator;
- * - `<prefix>filter_support.fits`, containing the usable-sample count divided by the full stamp area; and
- * - `<prefix>filter_validity.fits`, containing exact zero/one filter validity.
+ * - `finim_filtered_NNNN.fits`, containing `sum(H*I)/sum(H*H)` where the local fit is valid;
+ * - `finim_filter_normalization_NNNN.fits`, containing the retained `sum(H*H)` denominator;
+ * - `finim_filter_support_NNNN.fits`, containing the usable-sample count divided by the full stamp area; and
+ * - `finim_filter_validity_NNNN.fits`, containing exact zero/one filter validity.
  *
  * Filtering is independent of model persistence: `psfFilter=true, outputPSFModels=false` writes the four filtered
  * products and manifest without writing coordinate, model, or model-validity products. The ordinary final image is
- * never replaced. An odd filter stamp is required because its geometric center then maps exactly to the integer
- * output coordinate; even response stamps remain valid when only `outputPSFModels` is enabled.
+ * never replaced. Each filtered product mirrors the complete ordinary final-image FITS header and adds its P4 PSF
+ * role, filter, and source-path provenance. With `output.exactFName=true`, the role is inserted before the configured
+ * filename extension instead of a sequence number. An odd filter stamp is required because its geometric center then
+ * maps exactly to the integer output coordinate; even response stamps remain valid when only `outputPSFModels` is
+ * enabled.
  *
  * Plane `s` in every model cube belongs to row `s` of the coordinate image. Individual unsupported stamp samples are
  * NaN in the model cube even when the source center is valid. Every file is published by a temporary-file rename.
