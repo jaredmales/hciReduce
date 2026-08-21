@@ -33,9 +33,13 @@ Completed in `2407edc` (`Add shared P4 and KLIP timing`) and `178ab0f` (`added s
 
 Implementation plan: `agents/plans/p4_memory_management_optimization.md`.
 
-[] consider whether we can save on needed memory.  Assume that pre-processing is done and written out to disk.  Then we could load only the pixels needed for the annulus, or even a subset, being calculated into memory at a time.  For very large data sets this could be impactful.
+[x] consider whether we can save on needed memory.  Assume that pre-processing is done and written out to disk.  Then we could load only the pixels needed for the annulus, or even a subset, being calculated into memory at a time.  For very large data sets this could be impactful.
 
-[] provide automatic reduction in number of threads given available resources.  I.e. if we can support all cores for the current annulus, we drop the number of threads.
+[x] provide automatic reduction in number of threads given available resources.  I.e. if we can support all cores for the current annulus, we drop the number of threads.
+
+Completed in `2590b15` (`Avoid P4 sampling image copies`), `284111f` (`Add bounded P4 memory management`), and
+`33e3af9` (`Aggregate P4 finalization progress`). Remaining optional input-cube streaming and residual-product
+streaming are recorded as deferred work in `agents/plans/p4_memory_management_optimization.md`.
 
 ## P4 PSF calculation and Post-Processing
 [] add PSF calculation in P4.  For each output pixel, we calculate the predicted output PSF.  This is done by projecting the modal basis for each input pixel onto the PSF, then rotating and stacking.  To be efficient we'll need to calculate the input-pixel PSFs as we go, store them in a compact form (i.e only a small postage stamp of say 10x10 pixels), possibly writing them to disk.  These will be cubes for the modes. Once processing is done we'll create a PSF for each output pixel by selecting and rotating each of the input-pixel PSFs and coadding the same way.
