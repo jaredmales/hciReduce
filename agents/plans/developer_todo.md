@@ -46,6 +46,10 @@ streaming are recorded as deferred work in `agents/plans/p4_memory_management_op
 
 [] Once we have PSF calculation, we'll then filter the output image with that spatially variable PSF.  That is, we'll replace each output pixel by the value of that pixel after convolution with the PSF that goes with that pixel.
 
+## Evaluate extend of double vs float in P4.
+
+[] In P4 double precision is carried through to more than just matrix decomposition.  We should evaluate if there are performance gains for switching to float for more of the algorithm.
+
 ## P4 Pixel Local Processing 
 
 Fake planet injection in P4 will exploit the pixel locality of P4 processing.  That is, only a subset of pixels need to be processed to produce a given output pixel.  This subset is the fractional pixel in each input image that rotates to the position of the ouput pixel, plus its interpolation support.  
