@@ -90,6 +90,14 @@ class P4ReductionTestAccess
                                                      localStampColumns );
     }
 
+    /// Invoke the production exact four-cube PSF-filter byte calculation.
+    static std::size_t psfFilterBytes( int rows,    /**< [in] final-image rows */
+                                       int columns, /**< [in] final-image columns */
+                                       std::size_t modeCount /**< [in] final-image mode count */ )
+    {
+        return P4Reductionf::psfFilterBytes( rows, columns, modeCount );
+    }
+
     /// Invoke the production budget-to-worker-count selection.
     static int memoryLimitedWorkerCount( int requestedWorkers,        /**< [in] requested maximum */
                                          std::size_t budgetBytes,     /**< [in] future-allocation budget */
@@ -396,6 +404,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_psfFile.empty() );
     REQUIRE( defaults.m_psfStampSize == 0 );
     REQUIRE_FALSE( defaults.m_outputPSFModels );
+    REQUIRE_FALSE( defaults.m_psfFilter );
+    REQUIRE( defaults.m_psfFilterMinGoodFract == 1 );
     REQUIRE( defaults.m_psfOutputPrefix == "p4PSF_" );
     REQUIRE_FALSE( defaults.m_writeDiagnostics );
     REQUIRE( defaults.m_diagnosticDirectory == "." );
@@ -408,6 +418,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.psfFile" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::True );
+    REQUIRE( registered.m_targets.at( "p4.psfFilter" ).clType == mx::app::argType::True );
+    REQUIRE( registered.m_targets.at( "p4.psfFilterMinGoodFract" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "p4.psfOutputPrefix" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.memoryFraction" ).helpType == "double" );
     REQUIRE( registered.m_targets.at( "p4.writeDiagnostics" ).clType == mx::app::argType::True );
@@ -464,11 +476,13 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     reductionHarness psfConfiguration;
     readReductionConfig( psfConfiguration,
                          directory.file( "psf.conf" ),
-                         "[p4]\npsfFile=template.fits\npsfStampSize=12\n"
-                         "outputPSFModels=true\npsfOutputPrefix=field_\n" );
+                         "[p4]\npsfFile=template.fits\npsfStampSize=11\n"
+                         "outputPSFModels=true\npsfFilter=true\npsfFilterMinGoodFract=0.75\npsfOutputPrefix=field_\n" );
     REQUIRE( psfConfiguration.m_psfFile == "template.fits" );
-    REQUIRE( psfConfiguration.m_psfStampSize == 12 );
+    REQUIRE( psfConfiguration.m_psfStampSize == 11 );
     REQUIRE( psfConfiguration.m_outputPSFModels );
+    REQUIRE( psfConfiguration.m_psfFilter );
+    REQUIRE( psfConfiguration.m_psfFilterMinGoodFract == Approx( 0.75 ) );
     REQUIRE( psfConfiguration.m_psfOutputPrefix == "field_" );
 
     reductionHarness invalidPolicy;
@@ -534,6 +548,8 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFBytes( 0, 3, 9, 10 ) );
     REQUIRE( mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 20, 7, 5, 9, 10 ) > 20 * 25 * sizeof( float ) );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 0, 7, 5, 9, 10 ) );
+    REQUIRE( mx::improc::P4ReductionTestAccess::psfFilterBytes( 20, 30, 4 ) == 4 * 20 * 30 * 4 * sizeof( float ) );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::psfFilterBytes( 0, 30, 4 ) );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 0, 8, 2 ) );
     REQUIRE( mx::improc::P4ReductionTestAccess::memoryLimitedWorkerCount( 8, 1000, 100, 200 ) == 4 );
     REQUIRE( mx::improc::P4ReductionTestAccess::memoryLimitedWorkerCount( 3, 1000, 100, 200 ) == 3 );
@@ -711,12 +727,14 @@ TEST_CASE( "P4 reduction captures opt-in local PSF models", "[P4Reduction][PSF][
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "psfWorker" ) != std::string::npos );
 }
 
-/// Verify opt-in final PSF fields are written with deterministic coordinate and validity products.
+/// Verify opt-in final PSF fields and normalized filtered products are written without changing the science image.
 /** This exercises mx::improc::P4Reduction::reduce() through
- * mx::improc::P4PSFReconstructor::reconstructCombined() and the transactional FITS publication path.
+ * mx::improc::P4PSFReconstructor::reconstructCombined(), mx::improc::P4PSFFilter::calculate(), and the transactional
+ * FITS publication path.
  * \ingroup P4Reduction_unit_tests
  */
-TEST_CASE( "P4 reduction writes compact final PSF fields", "[P4Reduction][PSF][output][integration]" )
+TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
+           "[P4Reduction][PSF][filter][output][integration]" )
 {
     OpenMPThreadGuard threads( 1 );
     TestDirectory directory;
@@ -752,6 +770,8 @@ TEST_CASE( "P4 reduction writes compact final PSF fields", "[P4Reduction][PSF][o
     reduction.m_psfFile = psfPath.string();
     reduction.m_psfStampSize = 3;
     reduction.m_outputPSFModels = true;
+    reduction.m_psfFilter = true;
+    reduction.m_psfFilterMinGoodFract = 0.4F;
     reduction.m_psfOutputPrefix = "field_";
     reduction.m_outputDir = directory.file( "nested/products" ).string();
     reduction.m_combineMethod = mx::improc::HCI::combine::mean;
@@ -785,10 +805,18 @@ TEST_CASE( "P4 reduction writes compact final PSF fields", "[P4Reduction][PSF][o
     const std::filesystem::path manifestPath = directory.file( "nested/products/field_manifest.fits" );
     const std::filesystem::path modelPath = directory.file( "nested/products/field_model_0000.fits" );
     const std::filesystem::path validityPath = directory.file( "nested/products/field_validity_0000.fits" );
+    const std::filesystem::path filteredPath = directory.file( "nested/products/field_filtered.fits" );
+    const std::filesystem::path normalizationPath = directory.file( "nested/products/field_filter_normalization.fits" );
+    const std::filesystem::path supportPath = directory.file( "nested/products/field_filter_support.fits" );
+    const std::filesystem::path filterValidityPath = directory.file( "nested/products/field_filter_validity.fits" );
     REQUIRE( std::filesystem::exists( coordinatePath ) );
     REQUIRE( std::filesystem::exists( manifestPath ) );
     REQUIRE( std::filesystem::exists( modelPath ) );
     REQUIRE( std::filesystem::exists( validityPath ) );
+    REQUIRE( std::filesystem::exists( filteredPath ) );
+    REQUIRE( std::filesystem::exists( normalizationPath ) );
+    REQUIRE( std::filesystem::exists( supportPath ) );
+    REQUIRE( std::filesystem::exists( filterValidityPath ) );
 
     mx::fits::fitsFile<float, mx::verbose::vv> reader;
     reductionT::imageT manifest;
@@ -811,7 +839,7 @@ TEST_CASE( "P4 reduction writes compact final PSF fields", "[P4Reduction][PSF][o
     REQUIRE( models.rows() == 3 );
     REQUIRE( models.cols() == 3 );
     REQUIRE( models.planes() == coordinates.rows() );
-    REQUIRE( modelHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 1 );
+    REQUIRE( modelHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 2 );
     REQUIRE( modelHeader["P4 PSF PRODUCT"].String().starts_with( "MODEL" ) );
     REQUIRE( modelHeader["P4 PSF TEMPLATE"].String().find( "template.fits" ) != std::string::npos );
     REQUIRE( modelHeader["P4 PSF TEMPLATE ROWS"].value<int>() == 9 );
@@ -828,6 +856,59 @@ TEST_CASE( "P4 reduction writes compact final PSF fields", "[P4Reduction][PSF][o
     REQUIRE( validity.cols() == 1 );
     REQUIRE( validity.sum() > 0 );
     REQUIRE( validityHeader["P4 PSF PRODUCT"].String().starts_with( "VALIDITY" ) );
+    mx::improc::eigenCube<float> filtered;
+    mx::improc::eigenCube<float> normalization;
+    mx::improc::eigenCube<float> support;
+    mx::improc::eigenCube<float> filterValidity;
+    reductionT::fitsHeaderT filteredHeader;
+    reductionT::fitsHeaderT normalizationHeader;
+    reductionT::fitsHeaderT supportHeader;
+    reductionT::fitsHeaderT filterValidityHeader;
+    REQUIRE( reader.read( filtered, filteredHeader, filteredPath.string() ) == mx::error_t::noerror );
+    REQUIRE( reader.read( normalization, normalizationHeader, normalizationPath.string() ) == mx::error_t::noerror );
+    REQUIRE( reader.read( support, supportHeader, supportPath.string() ) == mx::error_t::noerror );
+    REQUIRE( reader.read( filterValidity, filterValidityHeader, filterValidityPath.string() ) == mx::error_t::noerror );
+    REQUIRE( filtered.rows() == reduction.m_Nrows );
+    REQUIRE( filtered.cols() == reduction.m_Ncols );
+    REQUIRE( filtered.planes() == static_cast<int>( reduction.m_modeFractions.size() ) );
+    REQUIRE( normalization.rows() == filtered.rows() );
+    REQUIRE( normalization.cols() == filtered.cols() );
+    REQUIRE( normalization.planes() == filtered.planes() );
+    REQUIRE( support.rows() == filtered.rows() );
+    REQUIRE( support.cols() == filtered.cols() );
+    REQUIRE( support.planes() == filtered.planes() );
+    REQUIRE( filterValidity.rows() == filtered.rows() );
+    REQUIRE( filterValidity.cols() == filtered.cols() );
+    REQUIRE( filterValidity.planes() == filtered.planes() );
+    REQUIRE( filteredHeader["P4 PSF PRODUCT"].String().starts_with( "FILTERED" ) );
+    REQUIRE( filteredHeader["P4 PSF FILTER"].value<int>() == 1 );
+    REQUIRE( filteredHeader["P4 PSF FILTER EQUATION"].String().find( "SUM(H*I)" ) != std::string::npos );
+    REQUIRE( filteredHeader["P4 PSF FILTER SOURCE"].String().starts_with( "CURRENT_FINAL_IMAGE" ) );
+    REQUIRE( filteredHeader["P4 PSF FILTER SOURCE OUTPUT NAME"].String().starts_with( reduction.m_finimName ) );
+    REQUIRE( normalizationHeader["P4 PSF PRODUCT"].String().starts_with( "FILTER_NORMALIZATION" ) );
+    REQUIRE( supportHeader["P4 PSF PRODUCT"].String().starts_with( "FILTER_SUPPORT" ) );
+    REQUIRE( filterValidityHeader["P4 PSF PRODUCT"].String().starts_with( "FILTER_VALIDITY" ) );
+    std::size_t validFilterSamples{ 0 };
+    for( int output = 0; output < filterValidity.planes(); ++output )
+    {
+        for( int column = 0; column < filterValidity.cols(); ++column )
+        {
+            for( int row = 0; row < filterValidity.rows(); ++row )
+            {
+                if( filterValidity.image( output )( row, column ) == 0 )
+                {
+                    continue;
+                }
+                ++validFilterSamples;
+                REQUIRE( mx::math::isFinite( filtered.image( output )( row, column ) ) );
+                REQUIRE( normalization.image( output )( row, column ) > 0 );
+                REQUIRE( support.image( output )( row, column ) >= reduction.m_psfFilterMinGoodFract );
+            }
+        }
+    }
+    REQUIRE( validFilterSamples > 0 );
+    REQUIRE( reduction.m_psfFilterBytes == 4 * static_cast<std::size_t>( reduction.m_Nrows ) * reduction.m_Ncols *
+                                               reduction.m_modeFractions.size() * sizeof( float ) );
     REQUIRE( reduction.m_psfReconstructionBytes > 0 );
     REQUIRE( reduction.m_timing.psfReconstructionElapsedSeconds >= 0 );
 
@@ -839,6 +920,46 @@ TEST_CASE( "P4 reduction writes compact final PSF fields", "[P4Reduction][PSF][o
     REQUIRE( timing.cols() == 10 );
     REQUIRE( timingHeader["P4 TIMING SCHEMA"].value<int>() == 5 );
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "psfReconstructionElapsed" ) != std::string::npos );
+
+    reductionHarness filterOnly;
+    prepareReduction( filterOnly, 3, 31, 31 );
+    filterOnly.m_minRadius = { 5 };
+    filterOnly.m_maxRadius = { 10 };
+    filterOnly.m_memoryFraction = 0;
+    filterOnly.m_psfFile = psfPath.string();
+    filterOnly.m_psfStampSize = 3;
+    filterOnly.m_psfFilter = true;
+    filterOnly.m_psfFilterMinGoodFract = 0.4F;
+    filterOnly.m_psfOutputPrefix = "filterOnly_";
+    filterOnly.m_outputDir = directory.file( "filter-only" ).string();
+    filterOnly.m_combineMethod = mx::improc::HCI::combine::mean;
+    REQUIRE( filterOnly.reduce() == 0 );
+    REQUIRE( std::filesystem::exists( directory.file( "filter-only/filterOnly_filtered.fits" ) ) );
+    REQUIRE( std::filesystem::exists( directory.file( "filter-only/filterOnly_manifest.fits" ) ) );
+    REQUIRE_FALSE( std::filesystem::exists( directory.file( "filter-only/filterOnly_coordinates.fits" ) ) );
+    REQUIRE_FALSE( std::filesystem::exists( directory.file( "filter-only/filterOnly_model_0000.fits" ) ) );
+    REQUIRE( filterOnly.m_finim.rows() == baseline.m_finim.rows() );
+    REQUIRE( filterOnly.m_finim.cols() == baseline.m_finim.cols() );
+    REQUIRE( filterOnly.m_finim.planes() == baseline.m_finim.planes() );
+    for( int output = 0; output < baseline.m_finim.planes(); ++output )
+    {
+        for( int column = 0; column < baseline.m_finim.cols(); ++column )
+        {
+            for( int row = 0; row < baseline.m_finim.rows(); ++row )
+            {
+                const float expected = baseline.m_finim.image( output )( row, column );
+                const float actual = filterOnly.m_finim.image( output )( row, column );
+                if( mx::math::isNan( expected ) )
+                {
+                    REQUIRE( mx::math::isNan( actual ) );
+                }
+                else
+                {
+                    REQUIRE( actual == expected );
+                }
+            }
+        }
+    }
 }
 
 /// Verify compact combined finalization matches retained-cube combination and releases full-frame intermediates.
@@ -1526,6 +1647,29 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         outputWithoutPrefix.m_psfOutputPrefix.clear();
         outputWithoutPrefix.m_combineMethod = mx::improc::HCI::combine::mean;
         REQUIRE_THROWS_WITH( outputWithoutPrefix.reduce(), Catch::Matchers::Contains( "must not be empty" ) );
+
+        reductionHarness filterWithoutTemplate;
+        prepareReduction( filterWithoutTemplate );
+        filterWithoutTemplate.m_psfFilter = true;
+        filterWithoutTemplate.m_combineMethod = mx::improc::HCI::combine::mean;
+        REQUIRE_THROWS_WITH( filterWithoutTemplate.reduce(), Catch::Matchers::Contains( "requires p4.psfFile" ) );
+
+        reductionHarness evenFilterStamp;
+        prepareReduction( evenFilterStamp );
+        evenFilterStamp.m_psfFile = "unused.fits";
+        evenFilterStamp.m_psfStampSize = 4;
+        evenFilterStamp.m_psfFilter = true;
+        evenFilterStamp.m_combineMethod = mx::improc::HCI::combine::mean;
+        REQUIRE_THROWS_WITH( evenFilterStamp.reduce(), Catch::Matchers::Contains( "requires an odd" ) );
+
+        reductionHarness invalidFilterSupport;
+        prepareReduction( invalidFilterSupport );
+        invalidFilterSupport.m_psfFile = "unused.fits";
+        invalidFilterSupport.m_psfStampSize = 3;
+        invalidFilterSupport.m_psfFilter = true;
+        invalidFilterSupport.m_psfFilterMinGoodFract = 1.1F;
+        invalidFilterSupport.m_combineMethod = mx::improc::HCI::combine::mean;
+        REQUIRE_THROWS_WITH( invalidFilterSupport.reduce(), Catch::Matchers::Contains( "must be finite and in [0,1]" ) );
     }
 
     SECTION( "invalid fractions and realized mode collisions" )

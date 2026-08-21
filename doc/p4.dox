@@ -77,11 +77,35 @@
  * When `p4.outputPSFModels=true`, P4 writes a deterministic coordinate image, one response cube and one source-center
  * validity image per output mode, and a completion manifest under `p4.psfOutputPrefix` in the common output directory.
  * A response cube is `W x W x S`, where `W=p4.psfStampSize` and plane `s` maps to row `s` of the coordinate image.
- * Unsupported individual response samples are NaN. Every product records schema version 1, product role, template
- * identity/stage/normalization, `FROZEN_SIGNED`, combination policy, stamp and internal support geometry, storage
- * estimates, source count, and mode identity where applicable. Consumers must accept a set only when
+ * Unsupported individual response samples are NaN. Model-only sets use schema version 1; enabling filtering uses
+ * schema version 2 for the complete set. Every product records its role, template identity/stage/normalization,
+ * `FROZEN_SIGNED`, combination policy, stamp and internal support geometry, storage estimates, source count, and mode
+ * identity where applicable. Consumers must accept a set only when
  * `p4PSF_manifest.fits` (with the configured prefix substituted) contains both data value `1` and
  * `HIERARCH P4 PSF COMPLETE = 1`.
+ *
+ * With `p4.psfFilter=true`, the final signed response at output coordinate \f$q\f$ is applied directly to the
+ * corresponding final science neighborhood without constructing a dense space-variant convolution matrix:
+ *
+ * \f[
+ *   \widehat a(q) =
+ *   \frac{\sum_{\delta \in V_q} H_q(\delta) I(q+\delta)}
+ *        {\sum_{\delta \in V_q} H_q(\delta)^2}.
+ * \f]
+ *
+ * Here \f$V_q\f$ contains response-valid samples whose science coordinates are in bounds and finite. The signed
+ * numerator preserves negative subtraction lobes; the denominator normalizes the result to an amplitude relative to
+ * the stored PSF-template scale. Filtering requires an odd stamp so every response sample maps to an integer science
+ * pixel. A result is valid only when the denominator is positive and `p4.psfFilterMinGoodFract` does not exceed
+ * \f$|V_q|/W^2\f$. Invalid amplitudes remain NaN rather than becoming zero.
+ *
+ * Filtering writes `<prefix>filtered.fits`, `<prefix>filter_normalization.fits`,
+ * `<prefix>filter_support.fits`, and `<prefix>filter_validity.fits` as full-image cubes in ordinary P4 mode order.
+ * These respectively contain \f$\widehat a\f$, the retained \f$\sum H^2\f$ denominator, \f$|V_q|/W^2\f$, and exact
+ * zero/one validity. Product schema 2 records the source as the current final-image cube, the equation, response and
+ * template conventions, minimum support, mode mapping, and memory estimate. `p4.outputPSFModels` may remain false;
+ * in that case no coordinate or compact model products are written. The ordinary `finim` is unchanged in either
+ * case.
  *
  * \section p4reduce_rotated_regression Rotated-frame regression
  *
@@ -177,6 +201,8 @@
  * | `p4.psfFile` | Optional centered, finite PSF template at the post-preprocessing P4 input stage; enables detector-frame frozen-model calculation. |
  * | `p4.psfStampSize` | Positive square final response-stamp size required with `p4.psfFile`; odd and even sizes use geometric centers. |
  * | `p4.outputPSFModels` | Write the compact combined spatially variable PSF field; default `false`. |
+ * | `p4.psfFilter` | Write the signed normalized spatially variable filter products without replacing the ordinary final image; default `false`. |
+ * | `p4.psfFilterMinGoodFract` | Minimum usable fraction of the full local stamp in `[0,1]`; default `1`. |
  * | `p4.psfOutputPrefix` | Product prefix in the common output directory; default `p4PSF_`. |
  * | `p4.exclusionPolicy` | Required `sampleCenter` or `kernelSupport` policy. |
  * | `p4.exclusionRadiusBuffer` | Explicit nonnegative amount added to `p4.psfRadius`; `0.5` reproduces the prototype's effective mask buffer. |
@@ -218,8 +244,9 @@
  * are printed before regression and recorded in the FITS header. If Linux memory discovery is unavailable, P4 emits
  * a warning and retains the OpenMP maximum. Set `p4.memoryFraction=0` to request that behavior explicitly.
  * Frozen-model runs add the retained local response, prepared template, one output-mode field, coordinate/index
- * maps, and bounded per-worker frame-stamp scratch to these checks. Final reconstruction independently lowers its
- * worker count when necessary and never increases the `OMP_NUM_THREADS` limit.
+ * maps, and bounded per-worker frame-stamp scratch to these checks. Filtering additionally accounts for its four
+ * full-frame output cubes. Final reconstruction independently lowers its worker count when necessary and never
+ * increases the `OMP_NUM_THREADS` limit.
  *
  * During geometry construction, `p4Reduce` reports each annulus together with its search-pixel and retained predictor
  * counts. During regression, a rate-limited `std::cerr` status line combines the active annulus's completed/total

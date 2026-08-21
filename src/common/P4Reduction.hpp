@@ -20,6 +20,7 @@
 #include "ADIobservation.hpp"
 #include "P4PCA.hpp"
 #include "P4PixelGrid.hpp"
+#include "P4PSFFilter.hpp"
 #include "P4PSFModel.hpp"
 #include "P4PSFReconstructor.hpp"
 #include "P4RotatedGrid.hpp"
@@ -139,11 +140,15 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     realT m_psfRadius{ std::numeric_limits<realT>::quiet_NaN() }; ///< Physical signal-exclusion radius in pixels.
 
-    std::string m_psfFile;           ///< Optional post-preprocessing PSF template enabling frozen-model calculation.
+    std::string m_psfFile;              ///< Optional post-preprocessing PSF template enabling frozen-model calculation.
 
-    int m_psfStampSize{ 0 };         ///< Square frozen-model PSF stamp size; required when `m_psfFile` is set.
+    int m_psfStampSize{ 0 };            ///< Square frozen-model PSF stamp size; required when `m_psfFile` is set.
 
-    bool m_outputPSFModels{ false }; ///< Whether to reconstruct and write compact final-frame PSF fields.
+    bool m_outputPSFModels{ false };    ///< Whether to reconstruct and write compact final-frame PSF fields.
+
+    bool m_psfFilter{ false };          ///< Whether to apply the spatially variable normalized PSF filter.
+
+    realT m_psfFilterMinGoodFract{ 1 }; ///< Minimum usable local-stamp fraction required by PSF filtering.
 
     std::string m_psfOutputPrefix{ "p4PSF_" }; ///< Prefix for compact PSF products in the common output directory.
 
@@ -201,6 +206,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     std::size_t m_psfModelBytes{ 0 };          ///< Bytes retained by the shared precomputed PSF-template model.
 
     std::size_t m_psfReconstructionBytes{ 0 }; ///< Conservative peak scratch for one final PSF mode.
+
+    std::size_t m_psfFilterBytes{ 0 }; ///< Bytes retained by filtered, normalization, support, and validity cubes.
 
     ReductionTiming m_timing; ///< Instance-owned elapsed and aggregate-worker timing record for the current reduction.
 
@@ -302,6 +309,11 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                                int localStampRows,           /**< [in] support-padded local rows */
                                                int localStampColumns /**< [in] support-padded local columns */ );
 
+    /// Return the exact retained byte count for the four full-frame PSF-filter products.
+    static std::size_t psfFilterBytes( int rows,    /**< [in] positive final-image rows */
+                                       int columns, /**< [in] positive final-image columns */
+                                       std::size_t modeCount /**< [in] positive final-image mode count */ );
+
     /// Select the number of workers that fit after persistent future allocations.
     static int memoryLimitedWorkerCount( int requestedWorkers,    /**< [in] positive OpenMP/search-pixel maximum */
                                          std::size_t budgetBytes, /**< [in] bytes available for future P4 allocations */
@@ -314,8 +326,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                 const P4PixelCoordinate &coordinate, /**< [in] owned search coordinate */
                                 int region /**< [in] nonnegative annulus index */ );
 
-    /// Reconstruct and write the configured compact final-frame PSF field one mode at a time.
-    void outputPSFModels( const std::vector<pixelGridT> &grids /**< [in] retained detector-frame annulus geometry */ );
+    /// Reconstruct, optionally persist, and optionally filter the final-frame PSF field one mode at a time.
+    void processPSFProducts( const std::vector<pixelGridT> &grids
+                             /**< [in] retained detector-frame annulus geometry */ );
 
     /// Write one enabled image-like diagnostic with P4 provenance and checked directory and FITS errors.
     template <typename dataT>

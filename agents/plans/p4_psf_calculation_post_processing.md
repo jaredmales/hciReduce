@@ -198,6 +198,12 @@ about 1.90 seconds of wall time. The larger internal stamp fixes the interpolati
 also confirms that local-response calculation is the first performance target once the full-field algorithm is
 correct.
 
+The initial `+4` radial-support rule was subsequently shown to be conservative. Exact enumeration of the composed
+four-by-four PSF-shift and derotation footprints over arbitrary subpixel phase gives a minimum 22-by-22 local response
+for an 11-by-11 output stamp and an even template, or 23-by-23 for an odd template. The parity-aware production bound
+now uses those exact dimensions; the historical timing and memory measurements above remain measurements of the
+earlier 26-by-26 implementation.
+
 A broader four-annulus `[6,14)` output run used 96 frames, an 11-by-11 final stamp, three modes, and 20 workers. It
 reconstructed `S=504` final positions in 0.262 seconds after a 13.568-second regression. Local response storage was
 0.003809 GiB, maximum RSS was 372,580 KiB, and each 248-KiB mode cube had 25,936 finite samples. Exact source-center
@@ -215,6 +221,7 @@ configured:
 | `p4.psfStampSize` | Positive square stamp width. Both odd and even sizes are allowed; the center is the geometric `(size-1)/2` coordinate. |
 | `p4.outputPSFModels` | Write the compact spatially variable PSF products in addition to any in-process filtering. |
 | `p4.psfFilter` | Apply the spatially variable PSF filter to the final science cube; default `false`. |
+| `p4.psfFilterMinGoodFract` | Minimum usable fraction of the full odd-sized filter stamp; default `1`. |
 | `p4.psfOutputPrefix` | Prefix for PSF-model and filtered-image products inside the common output directory. |
 
 The names and grouping should be finalized during implementation review rather than overloading `fake.fileName` or
@@ -326,7 +333,7 @@ can be compared; replacing the in-memory/output `finim` can be considered only a
 
 ### 8. Add spatially variable PSF filtering
 
-- [ ] Define the filter mathematically before naming the output. The recommended flux-estimator form at output pixel
+- [x] Define the filter mathematically before naming the output. The implemented flux-estimator form at output pixel
   `q` is the validity-weighted local matched filter
 
   ```text
@@ -336,11 +343,11 @@ can be compared; replacing the in-memory/output `finim` can be considered only a
 
   with an optional raw-correlation diagnostic. The denominator and edge/invalid support must be reported rather than
   silently absorbed.
-- [ ] Apply one compact local PSF to the corresponding final-image neighborhood without constructing a dense
+- [x] Apply one compact local PSF to the corresponding final-image neighborhood without constructing a dense
   space-variant convolution matrix. Process modes and output tiles independently.
-- [ ] Define a minimum usable PSF fraction and output validity at image/annulus boundaries. Do not replace invalid
+- [x] Define a minimum usable PSF fraction and output validity at image/annulus boundaries. Do not replace invalid
   filtered pixels with zero.
-- [ ] Write the filtered cube separately with the source final-image identity, PSF schema/version, normalization,
+- [x] Write the filtered cube separately with the source final-image identity, PSF schema/version, normalization,
   support fraction, and mode mapping. Preserve the original final image by default.
 - [ ] Validate filter response, localization, and detection ranking with isolated synthetic sources, multiple
   contrasts, neighboring sources, and noise-only data. Compare against full fake injection and refitting to determine
@@ -348,9 +355,9 @@ can be compared; replacing the in-memory/output `finim` can be considered only a
 
 ### 9. Documentation, provenance, and coverage
 
-- [ ] Add the accepted configuration to `doc/p4_config.dox` and the frozen-model equations, limitations, product
+- [x] Add the accepted configuration to `doc/p4_config.dox` and the frozen-model equations, limitations, product
   schema, and filtering definition to `doc/p4.dox`.
-- [ ] Add expressive FITS provenance cards for the template, template stage, stamp geometry, PSF schema, frozen-model
+- [x] Add expressive FITS provenance cards for the template, template stage, stamp geometry, PSF schema, frozen-model
   convention, combination policy, temporal-image support, filter normalization, and validity thresholds.
 - [ ] Add application-level real-FITS tests proving that the feature is opt-in, output directories are created, errors
   are actionable, and disabled runs retain their existing data and headers.

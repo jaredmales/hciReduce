@@ -556,6 +556,24 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "bool",
                 "Reconstruct and write compact final-frame frozen-model PSF products" );
+    config.add( "p4.psfFilter",
+                "",
+                "p4.psfFilter",
+                mx::app::argType::True,
+                "p4",
+                "psfFilter",
+                false,
+                "bool",
+                "Apply the spatially variable normalized PSF filter and write separate full-image products" );
+    config.add( "p4.psfFilterMinGoodFract",
+                "",
+                "p4.psfFilterMinGoodFract",
+                mx::app::argType::Required,
+                "p4",
+                "psfFilterMinGoodFract",
+                false,
+                "float",
+                "Minimum usable local-stamp fraction for PSF filtering in [0,1]; default 1" );
     config.add( "p4.psfOutputPrefix",
                 "",
                 "p4.psfOutputPrefix",
@@ -653,6 +671,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( m_psfFile, "p4.psfFile" );
     config( m_psfStampSize, "p4.psfStampSize" );
     config( m_outputPSFModels, "p4.outputPSFModels" );
+    config( m_psfFilter, "p4.psfFilter" );
+    config( m_psfFilterMinGoodFract, "p4.psfFilterMinGoodFract" );
     config( m_psfOutputPrefix, "p4.psfOutputPrefix" );
 
     std::string policy;
@@ -783,21 +803,34 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
                                            "p4.psfFile is not yet supported with adi.postMedSub=true" );
         }
     }
-    if( m_outputPSFModels )
+    if( m_outputPSFModels || m_psfFilter )
     {
         if( m_psfFile.empty() )
         {
-            throw mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.outputPSFModels requires p4.psfFile" );
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "P4 PSF output or filtering requires p4.psfFile" );
         }
         if( m_psfOutputPrefix.empty() )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfOutputPrefix must not be empty when PSF output is enabled" );
+                                           "p4.psfOutputPrefix must not be empty when PSF products are enabled" );
         }
         if( this->m_combineMethod == HCI::combine::none )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.outputPSFModels requires a final combination method" );
+                                           "P4 PSF output or filtering requires a final combination method" );
+        }
+    }
+    if( !mx::math::isFinite( m_psfFilterMinGoodFract ) || m_psfFilterMinGoodFract < 0 || m_psfFilterMinGoodFract > 1 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "p4.psfFilterMinGoodFract must be finite and in [0,1]" );
+    }
+    if( m_psfFilter )
+    {
+        if( m_psfStampSize % 2 == 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.psfFilter requires an odd p4.psfStampSize" );
         }
     }
 
@@ -1036,6 +1069,22 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::psfReconstructionBytes(
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+std::size_t P4Reduction<realT, derotFunctObj, verboseT>::psfFilterBytes( int rows, int columns, std::size_t modeCount )
+{
+    if( rows <= 0 || columns <= 0 || modeCount == 0 )
+    {
+        throw std::invalid_argument( "P4 PSF filter dimensions must be positive" );
+    }
+    const long double bytes = 4.0L * static_cast<long double>( rows ) * static_cast<long double>( columns ) *
+                              static_cast<long double>( modeCount ) * sizeof( realT );
+    if( bytes > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) )
+    {
+        throw std::overflow_error( "P4 PSF filter byte count exceeds size_t range" );
+    }
+    return static_cast<std::size_t>( bytes );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::memoryLimitedWorkerCount( int requestedWorkers,
                                                                            std::size_t budgetBytes,
                                                                            std::size_t persistentBytes,
@@ -1126,6 +1175,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_localPSFBytes = 0;
     m_psfModelBytes = 0;
     m_psfReconstructionBytes = 0;
+    m_psfFilterBytes = 0;
     m_timing.reset();
 
     if( !this->m_filesRead )
@@ -1163,6 +1213,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     }
 
     const bool calculatePSF = !m_psfFile.empty();
+    const bool processPSF = m_outputPSFModels || m_psfFilter;
     std::optional<P4PSFModel> psfModel;
     if( calculatePSF )
     {
@@ -1395,13 +1446,22 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             }
             m_localPSFBytes += regionBytes;
         }
-        if( m_outputPSFModels )
+        if( processPSF )
         {
             m_psfReconstructionBytes = psfReconstructionBytes( totalSearchPixels,
                                                                static_cast<std::size_t>( this->m_Nims ),
                                                                m_psfStampSize,
                                                                m_localPSFRows,
                                                                m_localPSFColumns );
+            if( m_psfFilter )
+            {
+                m_psfFilterBytes = psfFilterBytes( this->m_Nrows, this->m_Ncols, m_modeFractions.size() );
+                if( m_psfReconstructionBytes > std::numeric_limits<std::size_t>::max() - m_psfFilterBytes )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 PSF output byte count overflow" );
+                }
+                m_psfReconstructionBytes += m_psfFilterBytes;
+            }
         }
     }
 
@@ -1559,7 +1619,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         {
             std::cerr << ", " << static_cast<double>( m_localPSFBytes ) / bytesPerGiB << " GiB local PSFs, "
                       << static_cast<double>( m_psfModelBytes ) / bytesPerGiB << " GiB PSF template model";
-            if( m_outputPSFModels )
+            if( processPSF )
             {
                 std::cerr << ", " << static_cast<double>( m_psfReconstructionBytes ) / bytesPerGiB
                           << " GiB PSF reconstruction scratch";
@@ -1940,13 +2000,6 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_timing.regressionElapsedSeconds = omp_get_wtime() - regressionBegin;
     progressOutput.completeReduction( m_timing.regressionElapsedSeconds );
 
-    if( m_outputPSFModels )
-    {
-        const double reconstructionBegin = omp_get_wtime();
-        outputPSFModels( grids );
-        m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
-    }
-
     if( m_writeDiagnostics )
     {
         const imageT ownershipDiagnostic = m_ownership.template cast<realT>();
@@ -2023,8 +2076,15 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             summary( region, workerColumn + 2 ) = static_cast<realT>( statistics.effectiveWorkerCount );
         }
         writeDiagnostic( "p4RegionSummary.fits", summary );
+    }
 
-        imageT timing( 1, m_outputPSFModels ? 10 : ( calculatePSF ? 9 : 8 ) );
+    const auto writeTimingDiagnostic = [&]()
+    {
+        if( !m_writeDiagnostics )
+        {
+            return;
+        }
+        imageT timing( 1, processPSF ? 10 : ( calculatePSF ? 9 : 8 ) );
         timing( 0, 0 ) = static_cast<realT>( m_timing.geometryElapsedSeconds );
         timing( 0, 1 ) = static_cast<realT>( m_timing.regressionElapsedSeconds );
         timing( 0, 2 ) = static_cast<realT>( m_timing.samplingWorkerSeconds );
@@ -2037,28 +2097,34 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         {
             timing( 0, 8 ) = static_cast<realT>( m_timing.psfWorkerSeconds );
         }
-        if( m_outputPSFModels )
+        if( processPSF )
         {
             timing( 0, 9 ) = static_cast<realT>( m_timing.psfReconstructionElapsedSeconds );
         }
         fitsHeaderT timingHeader;
         timingHeader.template append<int>( "P4 TIMING SCHEMA",
-                                           m_outputPSFModels ? 5 : ( calculatePSF ? 4 : 3 ),
+                                           processPSF ? 5 : ( calculatePSF ? 4 : 3 ),
                                            "P4 timing diagnostic schema version" );
-        timingHeader.template append<std::string>(
-            "P4 TIMING COLUMNS",
-            "geometryElapsed,regressionElapsed,samplingWorker,"
-            "sameImageSamplingWorker,temporalSamplingWorker,gramWorker,"
-            "eigensolveWorker,projectionWorker" +
-                std::string( calculatePSF ? ",psfWorker" : "" ) +
-                std::string( m_outputPSFModels ? ",psfReconstructionElapsed" : "" ),
-            "P4 timing columns in seconds" );
+        timingHeader.template append<std::string>( "P4 TIMING COLUMNS",
+                                                   "geometryElapsed,regressionElapsed,samplingWorker,"
+                                                   "sameImageSamplingWorker,temporalSamplingWorker,gramWorker,"
+                                                   "eigensolveWorker,projectionWorker" +
+                                                       std::string( calculatePSF ? ",psfWorker" : "" ) +
+                                                       std::string( processPSF ? ",psfReconstructionElapsed" : "" ),
+                                                   "P4 timing columns in seconds" );
         writeDiagnostic( "p4Timing.fits", timing, &timingHeader );
-    }
+    };
 
     if( !compactFinalization )
     {
         const int result = finalProcess();
+        if( result == 0 && processPSF )
+        {
+            const double reconstructionBegin = omp_get_wtime();
+            processPSFProducts( grids );
+            m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
+        }
+        writeTimingDiagnostic();
         this->t_end = mx::sys::get_curr_time();
         return result;
     }
@@ -2151,6 +2217,13 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         this->t_derotate_end = timingReference + derotationSeconds;
         this->t_combo_begin = timingReference;
         this->t_combo_end = timingReference + combinationSeconds;
+        if( processPSF )
+        {
+            const double reconstructionBegin = omp_get_wtime();
+            processPSFProducts( grids );
+            m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
+        }
+        writeTimingDiagnostic();
         if( configuredWriteFinim )
         {
             std::cerr << "writing\n";
@@ -2160,18 +2233,28 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             this->writeFinim( &finalHeader );
         }
     }
+    else
+    {
+        writeTimingDiagnostic();
+    }
     this->t_end = mx::sys::get_curr_time();
     return result;
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-void P4Reduction<realT, derotFunctObj, verboseT>::outputPSFModels( const std::vector<pixelGridT> &grids )
+void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std::vector<pixelGridT> &grids )
 {
     if( grids.size() != m_regionStatistics.size() || m_localPSFModels.size() != grids.size() ||
         m_localPSFValidity.size() != grids.size() )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr,
                                        "P4 local PSF state does not match detector-region geometry" );
+    }
+    if( m_psfFilter && ( this->m_finim.rows() != this->m_Nrows || this->m_finim.cols() != this->m_Ncols ||
+                         this->m_finim.planes() != static_cast<int>( m_modeFractions.size() ) ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "P4 PSF filtering requires the complete combined final-image cube" );
     }
 
     std::size_t searchPixelCount{ 0 };
@@ -2326,7 +2409,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::outputPSFModels( const std::ve
         fitsHeaderT header;
         this->stdFitsHeader( &header );
         appendReductionHeader( header );
-        header.template append<int>( "P4 PSF PRODUCT SCHEMA", 1, "compact final frozen-model PSF schema" );
+        header.template append<int>( "P4 PSF PRODUCT SCHEMA", m_psfFilter ? 2 : 1, "frozen-model PSF product schema" );
         header.template append<std::string>( "P4 PSF PRODUCT", product, "compact PSF product role" );
         header.template append<std::string>( "P4 PSF TEMPLATE", m_psfFile, "post-preprocessing centered template" );
         header.template append<std::string>( "P4 PSF TEMPLATE STAGE", "P4_INPUT", "template processing stage" );
@@ -2365,7 +2448,27 @@ void P4Reduction<realT, derotFunctObj, verboseT>::outputPSFModels( const std::ve
                                              "retained compact local PSF bytes" );
         header.template append<std::string>( "P4 PSF RECONSTRUCTION BYTES",
                                              std::to_string( m_psfReconstructionBytes ),
-                                             "estimated one-mode reconstruction scratch" );
+                                             "estimated PSF-product peak scratch" );
+        header.template append<int>( "P4 PSF MODEL OUTPUT", m_outputPSFModels ? 1 : 0, "compact models enabled" );
+        header.template append<int>( "P4 PSF FILTER", m_psfFilter ? 1 : 0, "normalized filtering enabled" );
+        header.template append<realT>( "P4 PSF FILTER MIN GOOD FRACTION",
+                                       m_psfFilterMinGoodFract,
+                                       "minimum usable stamp fraction" );
+        header.template append<std::string>( "P4 PSF FILTER BYTES",
+                                             std::to_string( m_psfFilterBytes ),
+                                             "retained filter-product bytes" );
+        header.template append<std::string>( "P4 PSF FILTER EQUATION",
+                                             "SUM(H*I)/SUM(H*H)",
+                                             "signed normalized local filter" );
+        header.template append<std::string>( "P4 PSF FILTER SOURCE",
+                                             "CURRENT_FINAL_IMAGE",
+                                             "source final-image identity" );
+        header.template append<std::string>( "P4 PSF FILTER SOURCE OUTPUT NAME",
+                                             this->m_finimName,
+                                             "configured final-image output name" );
+        header.template append<int>( "P4 PSF FILTER SOURCE EXACT NAME",
+                                     this->m_exactFinimName ? 1 : 0,
+                                     "final-image exact-name policy" );
         header.template append<std::string>( "P4 PSF SOURCE COUNT",
                                              std::to_string( searchPixelCount ),
                                              "coordinate-indexed source positions" );
@@ -2388,11 +2491,31 @@ void P4Reduction<realT, derotFunctObj, verboseT>::outputPSFModels( const std::ve
     incompleteHeader.template append<int>( "P4 PSF COMPLETE", 0, "complete product set available" );
     writeProduct( productPath( "manifest.fits" ), completion, incompleteHeader );
 
-    fitsHeaderT coordinateHeader = productHeader( "COORDINATES", m_modeFractions.size() );
-    coordinateHeader.template append<std::string>( "P4 PSF COORDINATE COLUMNS",
-                                                   "row,column,region,regionSearch",
-                                                   "coordinate image columns" );
-    writeProduct( productPath( "coordinates.fits" ), coordinates, coordinateHeader );
+    if( m_outputPSFModels )
+    {
+        fitsHeaderT coordinateHeader = productHeader( "COORDINATES", m_modeFractions.size() );
+        coordinateHeader.template append<std::string>( "P4 PSF COORDINATE COLUMNS",
+                                                       "row,column,region,regionSearch",
+                                                       "coordinate image columns" );
+        writeProduct( productPath( "coordinates.fits" ), coordinates, coordinateHeader );
+    }
+
+    eigenCube<realT> filtered;
+    eigenCube<realT> filterNormalization;
+    eigenCube<realT> filterSupport;
+    eigenCube<realT> filterValidity;
+    if( m_psfFilter )
+    {
+        const int outputCount = static_cast<int>( m_modeFractions.size() );
+        filtered.resize( this->m_Nrows, this->m_Ncols, outputCount );
+        filterNormalization.resize( this->m_Nrows, this->m_Ncols, outputCount );
+        filterSupport.resize( this->m_Nrows, this->m_Ncols, outputCount );
+        filterValidity.resize( this->m_Nrows, this->m_Ncols, outputCount );
+        filtered.cube().setConstant( invalidNumber<realT>() );
+        filterNormalization.cube().setConstant( invalidNumber<realT>() );
+        filterSupport.cube().setConstant( invalidNumber<realT>() );
+        filterValidity.setZero();
+    }
 
     const Eigen::Index localPixels =
         static_cast<Eigen::Index>( m_localPSFRows ) * static_cast<Eigen::Index>( m_localPSFColumns );
@@ -2416,9 +2539,13 @@ void P4Reduction<realT, derotFunctObj, verboseT>::outputPSFModels( const std::ve
         }
 
         eigenCube<realT> finalModels;
-        finalModels.resize( m_psfStampSize, m_psfStampSize, static_cast<int>( searchPixelCount ) );
-        imageT finalValidity( static_cast<Eigen::Index>( searchPixelCount ), 1 );
-        finalValidity.setZero();
+        imageT finalValidity;
+        if( m_outputPSFModels )
+        {
+            finalModels.resize( m_psfStampSize, m_psfStampSize, static_cast<int>( searchPixelCount ) );
+            finalValidity.resize( static_cast<Eigen::Index>( searchPixelCount ), 1 );
+            finalValidity.setZero();
+        }
         std::atomic<bool> reconstructionFailed{ false };
         std::exception_ptr reconstructionException;
         // clang-format off
@@ -2458,31 +2585,60 @@ void P4Reduction<realT, derotFunctObj, verboseT>::outputPSFModels( const std::ve
                                                        this->m_comboWeights,
                                                        this->m_sigmaThreshold,
                                                        this->m_minGoodFract );
-                    centerReconstructor.reconstructCombined( centerCombined,
-                                                             centerValidity,
-                                                             localModels,
-                                                             localValidity,
-                                                             searchIndex,
-                                                             0,
-                                                             sourceRow,
-                                                             sourceColumn,
-                                                             derotationAngles,
-                                                             this->m_combineMethod,
-                                                             this->m_comboWeights,
-                                                             this->m_sigmaThreshold,
-                                                             this->m_minGoodFract );
-                    finalValidity( static_cast<Eigen::Index>( source ), 0 ) = centerValidity( 0, 0 );
-                    for( int column = 0; column < combined.cols(); ++column )
+                    const int imageRow = static_cast<int>( sourceRow );
+                    const int imageColumn = static_cast<int>( sourceColumn );
+                    if( m_psfFilter )
                     {
-                        for( int row = 0; row < combined.rows(); ++row )
+                        const P4PSFFilterResult filterResult = P4PSFFilter::calculate( this->m_finim.image( output ),
+                                                                                       combined,
+                                                                                       combinedValidity,
+                                                                                       imageRow,
+                                                                                       imageColumn,
+                                                                                       m_psfFilterMinGoodFract );
+                        filterSupport.image( static_cast<int>( output ) )( imageRow, imageColumn ) =
+                            static_cast<realT>( filterResult.supportFraction );
+                        if( mx::math::isFinite( filterResult.normalization ) && filterResult.normalization >= 0 &&
+                            filterResult.normalization <= std::numeric_limits<realT>::max() )
                         {
-                            if( combinedValidity( row, column ) == 0 )
-                            {
-                                combined( row, column ) = invalidNumber<realT>();
-                            }
+                            filterNormalization.image( static_cast<int>( output ) )( imageRow, imageColumn ) =
+                                static_cast<realT>( filterResult.normalization );
+                        }
+                        if( filterResult.valid && mx::math::isFinite( filterResult.amplitude ) &&
+                            std::abs( filterResult.amplitude ) <= std::numeric_limits<realT>::max() )
+                        {
+                            filtered.image( static_cast<int>( output ) )( imageRow, imageColumn ) =
+                                static_cast<realT>( filterResult.amplitude );
+                            filterValidity.image( static_cast<int>( output ) )( imageRow, imageColumn ) = 1;
                         }
                     }
-                    finalModels.image( static_cast<int>( source ) ) = combined;
+                    if( m_outputPSFModels )
+                    {
+                        centerReconstructor.reconstructCombined( centerCombined,
+                                                                 centerValidity,
+                                                                 localModels,
+                                                                 localValidity,
+                                                                 searchIndex,
+                                                                 0,
+                                                                 sourceRow,
+                                                                 sourceColumn,
+                                                                 derotationAngles,
+                                                                 this->m_combineMethod,
+                                                                 this->m_comboWeights,
+                                                                 this->m_sigmaThreshold,
+                                                                 this->m_minGoodFract );
+                        finalValidity( static_cast<Eigen::Index>( source ), 0 ) = centerValidity( 0, 0 );
+                        for( int column = 0; column < combined.cols(); ++column )
+                        {
+                            for( int row = 0; row < combined.rows(); ++row )
+                            {
+                                if( combinedValidity( row, column ) == 0 )
+                                {
+                                    combined( row, column ) = invalidNumber<realT>();
+                                }
+                            }
+                        }
+                        finalModels.image( static_cast<int>( source ) ) = combined;
+                    }
                 }
                 catch( ... )
                 {
@@ -2513,11 +2669,26 @@ void P4Reduction<realT, derotFunctObj, verboseT>::outputPSFModels( const std::ve
             }
         }
 
-        fitsHeaderT modelHeader = productHeader( "MODEL", output );
-        modelHeader.template append<std::string>( "P4 PSF PLANE ORDER", "COORDINATES", "plane mapping product" );
-        writeProduct( productPath( "model_" + p4Index( output, 4 ) + ".fits" ), finalModels, modelHeader );
-        fitsHeaderT validityHeader = productHeader( "VALIDITY", output );
-        writeProduct( productPath( "validity_" + p4Index( output, 4 ) + ".fits" ), finalValidity, validityHeader );
+        if( m_outputPSFModels )
+        {
+            fitsHeaderT modelHeader = productHeader( "MODEL", output );
+            modelHeader.template append<std::string>( "P4 PSF PLANE ORDER", "COORDINATES", "plane mapping product" );
+            writeProduct( productPath( "model_" + p4Index( output, 4 ) + ".fits" ), finalModels, modelHeader );
+            fitsHeaderT validityHeader = productHeader( "VALIDITY", output );
+            writeProduct( productPath( "validity_" + p4Index( output, 4 ) + ".fits" ), finalValidity, validityHeader );
+        }
+    }
+
+    if( m_psfFilter )
+    {
+        fitsHeaderT filteredHeader = productHeader( "FILTERED", m_modeFractions.size() );
+        writeProduct( productPath( "filtered.fits" ), filtered, filteredHeader );
+        fitsHeaderT normalizationHeader = productHeader( "FILTER_NORMALIZATION", m_modeFractions.size() );
+        writeProduct( productPath( "filter_normalization.fits" ), filterNormalization, normalizationHeader );
+        fitsHeaderT supportHeader = productHeader( "FILTER_SUPPORT", m_modeFractions.size() );
+        writeProduct( productPath( "filter_support.fits" ), filterSupport, supportHeader );
+        fitsHeaderT filterValidityHeader = productHeader( "FILTER_VALIDITY", m_modeFractions.size() );
+        writeProduct( productPath( "filter_validity.fits" ), filterValidity, filterValidityHeader );
     }
 
     completion( 0, 0 ) = 1;
@@ -2571,9 +2742,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::dump_times() const
                 m_timing.psfWorkerSeconds,
                 percentage( m_timing.psfWorkerSeconds ) );
     }
-    if( m_outputPSFModels )
+    if( m_outputPSFModels || m_psfFilter )
     {
-        printf( "      PSF field reconstruction %f elapsed real sec\n", m_timing.psfReconstructionElapsedSeconds );
+        printf( "      PSF field reconstruction/filtering %f elapsed real sec\n",
+                m_timing.psfReconstructionElapsedSeconds );
     }
     printf( "    Derotation: %f sec\n", this->t_derotate_end - this->t_derotate_begin );
     printf( "    Combination: %f sec\n", this->t_combo_end - this->t_combo_begin );
