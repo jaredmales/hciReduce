@@ -136,6 +136,14 @@ The compact stamp-field reconstruction must match this oracle. This test determi
 rotation, fractional shift, and detector-field interpolation order without relying on an informal convolution
 argument.
 
+The first nonzero-rotation oracle exposed an additional sampling-phase constraint: an odd local response stamp cannot
+represent an even-centered template on the template's native integer sample phase (and vice versa). The retained
+local response dimensions therefore preserve the corresponding template row/column parity and include enough radial
+padding for both cubic footprints at any rotation. With mixed template parity (15-by-16), mixed local parity
+(17-by-18), an asymmetric PSF, spatially varying coefficients, and a 0.23-radian rotation, the compact reconstruction
+matched direct full-detector injection to about `6e-7` absolute float precision. The production reconstructor now
+composes the two cubic footprints explicitly and propagates invalid local models instead of interpreting them as zero.
+
 ### Memory and output scale
 
 Let `S` be the number of owned P4 search pixels, `K` the predictor count, `M` the requested output count, and `A` the
@@ -169,6 +177,33 @@ Focused unit tests must remain self-contained and use synthetic asymmetric templ
 remote real-data integration/oracle comparisons and should be supplied through configuration rather than embedded as
 an absolute production default.
 
+### Initial implementation measurement
+
+The first coefficient-and-local-stamp implementation was measured on 2026-08-21 with the 96-frame, one-annulus
+`working/p4Reduce_afLepNaco_profile_local.conf` configuration, 20 OpenMP workers, one OpenBLAS thread, the AF Lep PSF
+above, an 11-by-11 stamp, and three output modes. The PSF-enabled run retained 0.130 MiB of local stamps, 0.258 MiB
+of prepared template state, estimated 2.034 MiB per worker, and reached 311,968 KiB maximum RSS. The disabled run
+estimated 1.995 MiB per worker and reached 311,732 KiB maximum RSS. On this small case the PSF work added about
+0.40 seconds of wall time; its 6.11 aggregate worker seconds were 91.6% of the regression worker total. Both the
+enabled and disabled runs completed successfully after rebuilding the application against the changed library ABI.
+
+This result does not justify temporary products for the frame-independent local state: the retained model is tiny
+relative to the science cube and materialization. Final-field reconstruction and the temporal-image extension still
+need their own peak-memory measurements before the no-temporary-file decision can be generalized.
+
+After enforcing phase parity and rotation-safe support, the same local run used 26-by-26 internal response stamps.
+It retained 0.743 MiB of local responses, estimated 2.036 MiB per worker, and reached 312,284 KiB maximum RSS versus
+311,636 KiB for a contemporaneous disabled run. Local-PSF calculation took 26.43 aggregate worker seconds and added
+about 1.90 seconds of wall time. The larger internal stamp fixes the interpolation error at a modest memory cost, but
+also confirms that local-response calculation is the first performance target once the full-field algorithm is
+correct.
+
+A broader four-annulus `[6,14)` output run used 96 frames, an 11-by-11 final stamp, three modes, and 20 workers. It
+reconstructed `S=504` final positions in 0.262 seconds after a 13.568-second regression. Local response storage was
+0.003809 GiB, maximum RSS was 372,580 KiB, and each 248-KiB mode cube had 25,936 finite samples. Exact source-center
+validity was 292 of 504 positions in every mode. The omitted inner/outer calculation halo accounts for the remaining
+invalid positions and confirms that a narrow isolated annulus cannot provide complete derotation-footprint support.
+
 ## Proposed configuration and products
 
 Use opt-in P4-specific configuration so all existing controls and outputs remain unchanged when no PSF template is
@@ -201,42 +236,42 @@ can be compared; replacing the in-memory/output `finim` can be considered only a
 
 ### 1. Lock the frozen-model numerical seam
 
-- [ ] Add an optional coefficient result to `P4PCA` without changing the allocation or arithmetic path when it is not
+- [x] Add an optional coefficient result to `P4PCA` without changing the allocation or arithmetic path when it is not
   requested. Preserve mode order and use the existing rank status for unsupported coefficient columns.
-- [ ] Accumulate predictor coefficients in the existing retained-mode loop for both temporal- and predictor-Gram
+- [x] Accumulate predictor coefficients in the existing retained-mode loop for both temporal- and predictor-Gram
   branches. Do not form a dense `K * K` pseudoinverse or projector.
-- [ ] Cover uncentered, centered, temporal-Gram, predictor-Gram, rank-insufficient, zero-rank, and eigensolver-failure
+- [x] Cover uncentered, centered, temporal-Gram, predictor-Gram, rank-insufficient, zero-rank, and eigensolver-failure
   cases. Verify `X * beta_m == y - residual_m` at accepted all-double tolerances, including centered fitting applied to
   the original uncentered predictors.
-- [ ] Measure the opt-in `K * M` worker allocation and update `estimatedWorkerBytes()` and the memory-policy report
+- [x] Measure the opt-in `K * M` worker allocation and update `estimatedWorkerBytes()` and the memory-policy report
   before integrating stamps.
 
 ### 2. Define and test the local PSF operator
 
-- [ ] Implement a pure numerical/geometry component that accepts a centered PSF template, one search pixel's exact
+- [x] Implement a pure numerical/geometry component that accepts a centered PSF template, one search pixel's exact
   predictor geometry, one supported coefficient vector, and a requested stamp grid.
-- [ ] Evaluate fractional predictor locations with the same cubic-convolution convention used by P4 sampling. Define
+- [x] Evaluate fractional predictor locations with the same cubic-convolution convention used by P4 sampling. Define
   and test row/column sign, geometric centers for odd and even templates/stamps, boundary support, and zero padding.
-- [ ] Build a brute-force detector-image oracle by shifting/injecting the template, sampling it through
+- [x] Build a brute-force detector-image oracle by shifting/injecting the template, sampling it through
   `P4PixelGrid`, and applying the same frozen coefficients. Compare every stamp element to the compact operator.
-- [ ] Add an AF Lep/NACO integration case using `psf_reg_median.fits` at its stored normalization and geometric center;
+- [x] Add an AF Lep/NACO integration case using `psf_reg_median.fits` at its stored normalization and geometric center;
   record a content checksum with the test result so a changed external reference is not mistaken for a regression.
-- [ ] Require finite template values and checked dimensions. Reject a requested stamp whose required template support
+- [x] Require finite template values and checked dimensions. Reject a requested stamp whose required template support
   cannot be evaluated under the selected padding contract.
-- [ ] Initially implement and validate the frame-independent `numberImages=0` path; keep positive `numberImages` an
+- [x] Initially implement and validate the frame-independent `numberImages=0` path; keep positive `numberImages` an
   explicit rejection until the streamed temporal path below is complete.
 
 ### 3. Capture local models during detector-frame regression
 
-- [ ] Enable analytic PSF calculation only for detector-frame P4 in the first implementation. Rotated-frame P4 remains
+- [x] Enable analytic PSF calculation only for detector-frame P4 in the first implementation. Rotated-frame P4 remains
   a numerical reference and should reject this option until its forward-model and final-frame meaning are separately
   accepted.
-- [ ] For every valid, rank-supported search pixel, calculate compact local stamps while `beta` is resident and write
+- [x] For every valid, rank-supported search pixel, calculate compact local stamps while `beta` is resident and write
   them into the annulus's deterministic owned-pixel storage. Invalid/rank-insufficient modes receive explicit
   validity rather than zero-valued PSFs.
-- [ ] Preserve annulus ownership and non-overlap rules. Do not retain a stamp for pixels that cannot contribute to a
+- [x] Preserve annulus ownership and non-overlap rules. Do not retain a stamp for pixels that cannot contribute to a
   valid science output.
-- [ ] Add local-stamp storage and scratch to checked memory calculations. Allow a configured run to fail before
+- [x] Add local-stamp storage and scratch to checked memory calculations. Allow a configured run to fail before
   regression if compact residuals, one residual materialization, local PSF state, and one worker cannot fit.
 - [ ] If local stamps plus residuals become material, write completed annulus/model blocks to a versioned temporary or
   final FITS product and release them. Use explicit completion metadata so interrupted products are not treated as
@@ -244,25 +279,25 @@ can be compared; replacing the in-memory/output `finim` can be considered only a
 
 ### 4. Reconstruct one final sky-pixel PSF exactly
 
-- [ ] Implement the small direct frozen-injection oracle first for a few frames, pixels, and one mode.
-- [ ] Construct the compact reconstruction using the exact inverse derotation coordinates, cubic footprint weights,
+- [x] Implement the small direct frozen-injection oracle first for a few frames, pixels, and one mode.
+- [x] Construct the compact reconstruction using the exact inverse derotation coordinates, cubic footprint weights,
   local-stamp coordinate rotation, science validity, and combination weights.
-- [ ] Match the oracle for zero and nonzero angles, integer and fractional inverse coordinates, mask/annulus boundaries,
+- [x] Match the oracle for zero and nonzero angles, integer and fractional inverse coordinates, mask/annulus boundaries,
   weighted and unweighted means, odd/even image sizes, and odd/even stamp sizes.
-- [ ] Define final PSF validity from the same `combine.minGoodFract` and effective frame support as the corresponding
+- [x] Define final PSF validity from the same `combine.minGoodFract` and effective frame support as the corresponding
   science output pixel. Do not treat an invalid local model as a zero response.
-- [ ] Validate source positions at multiple radii and position angles so a transpose or sign error cannot pass a
+- [x] Validate source positions at multiple radii and position angles so a transpose or sign error cannot pass a
   symmetric on-axis test.
 
 ### 5. Generate the complete compact spatially variable PSF field
 
-- [ ] Process one P4 mode and a bounded tile of final output positions at a time. Retain at most the local input-model
+- [x] Process one P4 mode and a bounded tile of final output positions at a time. Retain at most the local input-model
   store, one output PSF tile/mode, and bounded frame scratch.
-- [ ] Parallelize over independent final output positions or tiles only after a serial oracle match. Respect the P4
+- [x] Parallelize over independent final output positions or tiles only after a serial oracle match. Respect the P4
   memory budget and prevent nested BLAS/OpenMP oversubscription.
-- [ ] Write the compact mode cube, coordinate mapping, validity, and complete provenance transactionally. Verify that
+- [x] Write the compact mode cube, coordinate mapping, validity, and complete provenance transactionally. Verify that
   plane ordering is deterministic across worker counts.
-- [ ] Add PSF timing and storage estimates to the high-level timing report only after measuring meaningful stages;
+- [x] Add PSF timing and storage estimates to the high-level timing report only after measuring meaningful stages;
   version the timing diagnostic if its persisted columns change.
 
 ### 6. Support `p4.numberImages>0` without frame-count storage
@@ -280,13 +315,13 @@ can be compared; replacing the in-memory/output `finim` can be considered only a
 
 ### 7. Apply the configured combination approximation
 
-- [ ] Route propagated per-frame PSF samples through the configured mean, weighted mean, median, or sigma-clipped mean
+- [x] Route propagated per-frame PSF samples through the configured mean, weighted mean, median, or sigma-clipped mean
   implementation with the same validity, weights, sigma threshold, and `combine.minGoodFract` settings.
-- [ ] For active `sigmaMean`, calculate clipping from the propagated PSF samples themselves. Do not retain or reuse the
+- [x] For active `sigmaMean`, calculate clipping from the propagated PSF samples themselves. Do not retain or reuse the
   science residual's clip membership.
-- [ ] Document median and active-sigma results as filter-template approximations justified by the individual-frame
+- [x] Document median and active-sigma results as filter-template approximations justified by the individual-frame
   noise-dominated regime, not as finite-amplitude-independent photometric responses.
-- [ ] Keep `adi.postMedSub=true` rejected until its separate detector-frame temporal operation is explicitly accepted
+- [x] Keep `adi.postMedSub=true` rejected until its separate detector-frame temporal operation is explicitly accepted
   under a comparable filtering approximation.
 
 ### 8. Add spatially variable PSF filtering
@@ -319,9 +354,9 @@ can be compared; replacing the in-memory/output `finim` can be considered only a
   convention, combination policy, temporal-image support, filter normalization, and validity thresholds.
 - [ ] Add application-level real-FITS tests proving that the feature is opt-in, output directories are created, errors
   are actionable, and disabled runs retain their existing data and headers.
-- [ ] Run the complete P4, shared ADI/HCI, application, and documentation suites. Compare final science products from
+- [x] Run the complete P4, shared ADI/HCI, application, and documentation suites. Compare final science products from
   disabled and enabled-but-nonreplacing runs.
-- [ ] For every edited function containing mxlib calls, verify all directly called APIs in the current mxlib LCOV
+- [x] For every edited function containing mxlib calls, verify all directly called APIs in the current mxlib LCOV
   report. Record any gap under `Known non-blocking ownership follow-ups` in `agents/plans/mxlib_cleanup.md`.
 
 ## Acceptance criteria

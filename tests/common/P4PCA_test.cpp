@@ -48,6 +48,18 @@ pcaT::vectorT svdResidual( const pcaT::matrixT &predictors, /**< [in] predictor 
     return ( target.matrix() - basis * ( basis.transpose() * target.matrix() ) ).array();
 }
 
+/// Return direct thin-SVD predictor coefficients using the requested largest singular modes.
+pcaT::vectorT svdCoefficients( const pcaT::matrixT &predictors, /**< [in] predictor matrix */
+                               const pcaT::vectorT &target,     /**< [in] target time series */
+                               int modeCount /**< [in] number of largest singular modes */ )
+{
+    Eigen::JacobiSVD<Eigen::MatrixXd> decomposition( predictors.matrix(), Eigen::ComputeThinU | Eigen::ComputeThinV );
+    return ( decomposition.matrixV().leftCols( modeCount ) *
+             decomposition.singularValues().head( modeCount ).cwiseInverse().asDiagonal() *
+             decomposition.matrixU().leftCols( modeCount ).transpose() * target.matrix() )
+        .array();
+}
+
 /// Return a copy with each column's temporal mean removed.
 template <typename arrayT>
 arrayT centeredColumns( const arrayT &input /**< [in] values to center */ )
@@ -268,6 +280,86 @@ TEST_CASE( "P4PCA computes exact truncated residuals", "[P4PCA][regression]" )
     REQUIRE( result.residuals.col( 1 ).matrix().norm() <= result.residuals.col( 0 ).matrix().norm() );
 }
 
+/// Verify P4PCA optionally returns the exact predictor coefficients in both adaptive Gram branches.
+/** This exercises mx::improc::P4PCA::calculate() with and without its optional coefficient output. */
+TEST_CASE( "P4PCA returns optional predictor coefficients", "[P4PCA][regression][coefficients]" )
+{
+    SECTION( "predictor Gram" )
+    {
+        pcaT::matrixT predictors( 5, 3 );
+        predictors << 1, 0, 2, 0, 2, -1, 3, 1, 0, -2, 0, 1, 0.5, -1, 4;
+        pcaT::vectorT target( 5 );
+        target << 3, 5, -1, 7, 2;
+
+        resultT result;
+        resultT resultWithoutCoefficients;
+        pcaT::matrixT coefficients;
+        pcaT::workspaceT workspace;
+        pcaT::workspaceT workspaceWithoutCoefficients;
+        pcaT::calculate( result, predictors, target, { 1, 3 }, 1e-12, workspace, nullptr, &coefficients );
+        pcaT::calculate( resultWithoutCoefficients, predictors, target, { 1, 3 }, 1e-12, workspaceWithoutCoefficients );
+
+        REQUIRE( coefficients.rows() == predictors.cols() );
+        REQUIRE( coefficients.cols() == 2 );
+        REQUIRE( ( result.residuals == resultWithoutCoefficients.residuals ).all() );
+        requireApprox( coefficients.col( 0 ), svdCoefficients( predictors, target, 1 ) );
+        requireApprox( coefficients.col( 1 ), svdCoefficients( predictors, target, 3 ) );
+        requireApprox( ( target.matrix() - predictors.matrix() * coefficients.col( 0 ).matrix() ).array(),
+                       result.residuals.col( 0 ) );
+        requireApprox( ( target.matrix() - predictors.matrix() * coefficients.col( 1 ).matrix() ).array(),
+                       result.residuals.col( 1 ) );
+    }
+
+    SECTION( "temporal Gram" )
+    {
+        pcaT::matrixT predictors( 3, 5 );
+        predictors << 3, 0.2, 0, 1, -0.5, 0.1, 2, 0.4, -0.3, 0.8, 0, -0.2, 1, 0.7, 2;
+        pcaT::vectorT target( 3 );
+        target << 5, -1, 2;
+
+        resultT result;
+        resultT resultWithoutCoefficients;
+        pcaT::matrixT coefficients;
+        pcaT::workspaceT workspace;
+        pcaT::workspaceT workspaceWithoutCoefficients;
+        pcaT::calculate( result, predictors, target, { 1, 2, 3 }, 1e-12, workspace, nullptr, &coefficients );
+        pcaT::calculate( resultWithoutCoefficients,
+                         predictors,
+                         target,
+                         { 1, 2, 3 },
+                         1e-12,
+                         workspaceWithoutCoefficients );
+
+        REQUIRE( coefficients.rows() == predictors.cols() );
+        REQUIRE( coefficients.cols() == 3 );
+        REQUIRE( ( result.residuals == resultWithoutCoefficients.residuals ).all() );
+        for( Eigen::Index output = 0; output < coefficients.cols(); ++output )
+        {
+            requireApprox( coefficients.col( output ), svdCoefficients( predictors, target, output + 1 ) );
+            requireApprox( ( target.matrix() - predictors.matrix() * coefficients.col( output ).matrix() ).array(),
+                           result.residuals.col( output ) );
+        }
+    }
+
+    SECTION( "disabled output remains untouched" )
+    {
+        pcaT::matrixT predictors( 3, 2 );
+        predictors << 1, 0, 0, 2, 0, 0;
+        pcaT::vectorT target( 3 );
+        target << 3, 5, 7;
+        pcaT::matrixT coefficients( 1, 1 );
+        coefficients( 0, 0 ) = 42;
+
+        resultT result;
+        pcaT::workspaceT workspace;
+        pcaT::calculate( result, predictors, target, { 1, 2 }, 1e-12, workspace );
+
+        REQUIRE( coefficients.rows() == 1 );
+        REQUIRE( coefficients.cols() == 1 );
+        REQUIRE( coefficients( 0, 0 ) == 42 );
+    }
+}
+
 /// Verify P4PCA reports finite nonnegative timing components without changing its numerical result.
 /** \ingroup P4PCA_unit_tests */
 TEST_CASE( "P4PCA reports numerical-stage timing", "[P4PCA][timing]" )
@@ -305,6 +397,7 @@ TEST_CASE( "ReductionTiming resets all measurements", "[P4PCA][timing]" )
     timing.eigensolveWorkerSeconds = 7;
     timing.modeWorkerSeconds = 8;
     timing.projectionWorkerSeconds = 9;
+    timing.psfWorkerSeconds = 10;
 
     timing.reset();
 
@@ -317,6 +410,7 @@ TEST_CASE( "ReductionTiming resets all measurements", "[P4PCA][timing]" )
     REQUIRE( timing.eigensolveWorkerSeconds == 0 );
     REQUIRE( timing.modeWorkerSeconds == 0 );
     REQUIRE( timing.projectionWorkerSeconds == 0 );
+    REQUIRE( timing.psfWorkerSeconds == 0 );
 }
 
 /// Verify P4PCA sends the smaller shape-dependent Gram matrix to its eigensolver seam.
@@ -792,9 +886,11 @@ TEST_CASE( "P4PCA propagates eigensolver and invalid solver output", "[P4PCA][so
 
     SECTION( "solver status" )
     {
+        pcaT::matrixT coefficients;
         solverReset reset( fakeSolverBehavior::failure );
-        REQUIRE_THROWS_WITH( mx::improc::P4PCA::calculate( result, predictors, target, { 1 }, 0, workspace ),
-                             "P4PCA eigensolver failed with status 37" );
+        REQUIRE_THROWS_WITH(
+            mx::improc::P4PCA::calculate( result, predictors, target, { 1 }, 0, workspace, nullptr, &coefficients ),
+            "P4PCA eigensolver failed with status 37" );
         REQUIRE( solverCalls == 1 );
     }
 
@@ -877,12 +973,26 @@ TEST_CASE( "P4PCA centered fit with uncentered application agrees with direct SV
         target << 9, 4, 8, -1, 5;
 
         resultT result;
-        mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 3 }, 1e-12, workspace );
+        pcaT::matrixT coefficients;
+        mx::improc::P4PCA::calculateCentered( result,
+                                              predictors,
+                                              target,
+                                              { 1, 3 },
+                                              1e-12,
+                                              workspace,
+                                              nullptr,
+                                              &coefficients );
 
         REQUIRE( result.numericalRank == 3 );
         REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankSupported, statusT::rankSupported } );
         requireApprox( result.residuals.col( 0 ), centeredFitUncenteredResidual( predictors, target, 1 ) );
         requireApprox( result.residuals.col( 1 ), centeredFitUncenteredResidual( predictors, target, 3 ) );
+        requireApprox( coefficients.col( 0 ), centeredSvdCoefficients( predictors, target, 1 ) );
+        requireApprox( coefficients.col( 1 ), centeredSvdCoefficients( predictors, target, 3 ) );
+        requireApprox( ( target.matrix() - predictors.matrix() * coefficients.col( 0 ).matrix() ).array(),
+                       result.residuals.col( 0 ) );
+        requireApprox( ( target.matrix() - predictors.matrix() * coefficients.col( 1 ).matrix() ).array(),
+                       result.residuals.col( 1 ) );
     }
 
     SECTION( "K equals or exceeds T" )
@@ -893,7 +1003,15 @@ TEST_CASE( "P4PCA centered fit with uncentered application agrees with direct SV
         target << 11, 3, 8, -2;
 
         resultT result;
-        mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 2, 3 }, 0, workspace );
+        pcaT::matrixT coefficients;
+        mx::improc::P4PCA::calculateCentered( result,
+                                              predictors,
+                                              target,
+                                              { 1, 2, 3 },
+                                              0,
+                                              workspace,
+                                              nullptr,
+                                              &coefficients );
 
         REQUIRE( result.numericalRank == 3 );
         REQUIRE( result.modeStatus ==
@@ -901,6 +1019,12 @@ TEST_CASE( "P4PCA centered fit with uncentered application agrees with direct SV
         requireApprox( result.residuals.col( 0 ), centeredFitUncenteredResidual( predictors, target, 1 ) );
         requireApprox( result.residuals.col( 1 ), centeredFitUncenteredResidual( predictors, target, 2 ) );
         requireApprox( result.residuals.col( 2 ), centeredFitUncenteredResidual( predictors, target, 3 ) );
+        for( Eigen::Index output = 0; output < coefficients.cols(); ++output )
+        {
+            requireApprox( coefficients.col( output ), centeredSvdCoefficients( predictors, target, output + 1 ) );
+            requireApprox( ( target.matrix() - predictors.matrix() * coefficients.col( output ).matrix() ).array(),
+                           result.residuals.col( output ) );
+        }
     }
 
     SECTION( "T equals two" )
@@ -1084,13 +1208,24 @@ TEST_CASE( "P4PCA centered regression reports only supported numerical rank", "[
         target << 4, -2, 7, 1;
 
         resultT result;
-        mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 2, 3 }, 1e-10, workspace );
+        pcaT::matrixT coefficients;
+        mx::improc::P4PCA::calculateCentered( result,
+                                              predictors,
+                                              target,
+                                              { 1, 2, 3 },
+                                              1e-10,
+                                              workspace,
+                                              nullptr,
+                                              &coefficients );
         REQUIRE( result.numericalRank == 1 );
         REQUIRE( result.modeStatus ==
                  std::vector<statusT>{ statusT::rankSupported, statusT::rankInsufficient, statusT::rankInsufficient } );
         REQUIRE( allFinite( result.residuals.col( 0 ) ) );
         REQUIRE( allNan( result.residuals.col( 1 ) ) );
         REQUIRE( allNan( result.residuals.col( 2 ) ) );
+        REQUIRE( allFinite( coefficients.col( 0 ) ) );
+        REQUIRE( allNan( coefficients.col( 1 ) ) );
+        REQUIRE( allNan( coefficients.col( 2 ) ) );
     }
 
     SECTION( "constant predictors have zero centered rank" )
@@ -1101,10 +1236,21 @@ TEST_CASE( "P4PCA centered regression reports only supported numerical rank", "[
         target << 4, -2, 7;
 
         resultT result;
-        mx::improc::P4PCA::calculateCentered( result, predictors, target, { 1, 2 }, 0, workspace );
+        pcaT::matrixT coefficients;
+        mx::improc::P4PCA::calculateCentered( result,
+                                              predictors,
+                                              target,
+                                              { 1, 2 },
+                                              0,
+                                              workspace,
+                                              nullptr,
+                                              &coefficients );
         REQUIRE( result.numericalRank == 0 );
         REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankInsufficient, statusT::rankInsufficient } );
         REQUIRE( allNan( result.residuals ) );
+        REQUIRE( coefficients.rows() == predictors.cols() );
+        REQUIRE( coefficients.cols() == 2 );
+        REQUIRE( allNan( coefficients ) );
     }
 }
 

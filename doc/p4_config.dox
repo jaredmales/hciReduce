@@ -12,6 +12,8 @@
  * "common configuration dictionary". Long options use `--dotted.key value`; the config-file column shows the
  * equivalent sectioned assignment. The FITS-keyword column names the card written to final and saved
  * PSF-subtracted products. Keys containing spaces are emitted automatically as `HIERARCH` cards.
+ * Analytic-PSF settings are intentionally absent from the ordinary science header; their provenance is recorded only
+ * in the opt-in PSF products described below.
  *
  * \section p4_app_dictionary Application mode and scope
  *
@@ -88,6 +90,35 @@
  * compact-storage and materialization estimates, per-annulus worker estimate, maximum worker count, and effective
  * worker count in `HIERARCH P4 ...` FITS cards. `OMP_NUM_THREADS` remains a valid upper limit and is never increased.
  *
+ * \section p4_psf_dictionary Frozen-model PSF calculation and output
+ *
+ * | CLI | Config-file form | PSF-product FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--p4.psfFile` | `p4.psfFile=/path/template.fits` | `HIERARCH P4 PSF TEMPLATE` | readable, finite two-dimensional FITS image | unset | Centered PSF template at the same post-preprocessing stage as the P4 input. Setting the path enables local frozen-model response calculation without changing the science products. The stored normalization is preserved. |
+ * | `--p4.psfStampSize` | `p4.psfStampSize=11` | `HIERARCH P4 PSF STAMP SIZE` | positive integer | `0` | Row and column size of each final square response stamp. Both odd and even sizes use geometric centers. Required when `psfFile` is set. |
+ * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final `combine.method`. |
+ * | `--p4.psfOutputPrefix` | `p4.psfOutputPrefix=p4PSF_` | — | nonempty path prefix | `p4PSF_` | Product prefix inside `output.directory`; parent directories are created automatically. |
+ *
+ * The initial implementation accepts `p4.psfFile` only with `p4.regressionFrame=detector`,
+ * `p4.numberImages=0`, and `adi.postMedSub=false`. Unsupported combinations are rejected before regression. The
+ * template is sampled with zero exterior padding, but the retained local response is enlarged as needed to preserve
+ * odd/even sampling phase and support arbitrary derotation angles. Local and reconstruction storage is included in
+ * the P4 memory-policy checks. Final reconstruction workers are reduced when their bounded frame-stamp scratch would
+ * exceed the configured budget.
+ *
+ * With `outputPSFModels=true`, the common output directory receives:
+ *
+ * - `<prefix>coordinates.fits`, an `S x 4` image whose columns are `row,column,region,regionSearch`;
+ * - `<prefix>model_NNNN.fits`, a `psfStampSize x psfStampSize x S` cube for each zero-based mode index;
+ * - `<prefix>validity_NNNN.fits`, an `S x 1` exact zero/one source-center validity image for each mode; and
+ * - `<prefix>manifest.fits`, a one-element completion product.
+ *
+ * Plane `s` in every model cube belongs to row `s` of the coordinate image. Individual unsupported stamp samples are
+ * NaN in the model cube even when the source center is valid. Every file is published by a temporary-file rename.
+ * The manifest is first published with `HIERARCH P4 PSF COMPLETE = 0` and is replaced with value `1` only after the
+ * complete configured product set has been written. Consumers must require value `1`, use the manifest's mode count,
+ * and ignore stale extra files left by an earlier run with more modes.
+ *
  * \section p4_exclusion_dictionary Signal exclusion
  *
  * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
@@ -159,8 +190,10 @@
  * application to the uncentered predictors are intrinsic to the documented `rotated` definition.
  * `p4Timing.fits` schema 3 has one row, in seconds: geometry elapsed, regression elapsed, total sampling, same-image
  * target/OR sampling, additional-image PSF-disk sampling, Gram-construction, eigensolve/rank-selection, and
- * projection/residual aggregate OpenMP-worker time. Worker totals can exceed elapsed time when local fits run
- * concurrently; `HIERARCH P4 TIMING SCHEMA` and `HIERARCH P4 TIMING COLUMNS` define the persisted layout.
+ * projection/residual aggregate OpenMP-worker time. Schema 4 appends aggregate local-PSF worker time when
+ * `p4.psfFile` is set. Schema 5 appends elapsed final-field reconstruction time when `p4.outputPSFModels=true`.
+ * Worker totals can exceed elapsed time when local fits run concurrently; `HIERARCH P4 TIMING SCHEMA` and
+ * `HIERARCH P4 TIMING COLUMNS` define the persisted layout.
  *
  * @}
  */

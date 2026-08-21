@@ -47,11 +47,47 @@ class P4ReductionTestAccess
     }
 
     /// Invoke the production conservative one-worker memory estimate.
-    static std::size_t estimatedWorkerBytes( std::size_t targetImageCount, /**< [in] temporal sample count */
-                                             std::size_t predictorCount,   /**< [in] predictor-column count */
-                                             std::size_t modeCount /**< [in] residual-column count */ )
+    static std::size_t estimatedWorkerBytes( std::size_t targetImageCount,     /**< [in] temporal sample count */
+                                             std::size_t predictorCount,       /**< [in] predictor-column count */
+                                             std::size_t modeCount,            /**< [in] residual-column count */
+                                             bool includeCoefficients = false, /**< [in] include coefficient output */
+                                             std::size_t psfStampPixels = 0 /**< [in] float PSF scratch */ )
     {
-        return P4Reductionf::estimatedWorkerBytes( targetImageCount, predictorCount, modeCount );
+        return P4Reductionf::estimatedWorkerBytes( targetImageCount,
+                                                   predictorCount,
+                                                   modeCount,
+                                                   includeCoefficients,
+                                                   psfStampPixels );
+    }
+
+    /// Invoke the production phase-matched local-model dimension calculation.
+    static int localPSFModelDimension( int outputStampSize, /**< [in] square final-stamp size */
+                                       int templateDimension /**< [in] template rows or columns */ )
+    {
+        return P4Reductionf::localPSFModelDimension( outputStampSize, templateDimension );
+    }
+
+    /// Invoke the production exact compact local-PSF byte calculation.
+    static std::size_t localPSFBytes( std::size_t searchPixelCount, /**< [in] search-pixel count */
+                                      std::size_t modeCount,        /**< [in] output-mode count */
+                                      int stampRows,                /**< [in] local-stamp rows */
+                                      int stampColumns /**< [in] local-stamp columns */ )
+    {
+        return P4Reductionf::localPSFBytes( searchPixelCount, modeCount, stampRows, stampColumns );
+    }
+
+    /// Invoke the production one-mode final PSF reconstruction byte calculation.
+    static std::size_t psfReconstructionBytes( std::size_t searchPixelCount, /**< [in] output-position count */
+                                               std::size_t targetImageCount, /**< [in] target-frame count */
+                                               int outputStampSize,          /**< [in] final-stamp size */
+                                               int localStampRows,           /**< [in] local-stamp rows */
+                                               int localStampColumns /**< [in] local-stamp columns */ )
+    {
+        return P4Reductionf::psfReconstructionBytes( searchPixelCount,
+                                                     targetImageCount,
+                                                     outputStampSize,
+                                                     localStampRows,
+                                                     localStampColumns );
     }
 
     /// Invoke the production budget-to-worker-count selection.
@@ -357,6 +393,10 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( mx::math::isNan( defaults.m_exclusionRadiusBuffer ) );
     REQUIRE( defaults.m_rankTolerance == Approx( 1e-12 ) );
     REQUIRE( defaults.m_memoryFraction == Approx( 0.8 ) );
+    REQUIRE( defaults.m_psfFile.empty() );
+    REQUIRE( defaults.m_psfStampSize == 0 );
+    REQUIRE_FALSE( defaults.m_outputPSFModels );
+    REQUIRE( defaults.m_psfOutputPrefix == "p4PSF_" );
     REQUIRE_FALSE( defaults.m_writeDiagnostics );
     REQUIRE( defaults.m_diagnosticDirectory == "." );
 
@@ -365,6 +405,10 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.modeFractions" ).clType == mx::app::argType::Required );
     REQUIRE( registered.m_targets.at( "p4.regressionFrame" ).clType == mx::app::argType::Required );
     REQUIRE( registered.m_targets.at( "p4.numberImages" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "p4.psfFile" ).helpType == "string" );
+    REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::True );
+    REQUIRE( registered.m_targets.at( "p4.psfOutputPrefix" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.memoryFraction" ).helpType == "double" );
     REQUIRE( registered.m_targets.at( "p4.writeDiagnostics" ).clType == mx::app::argType::True );
     REQUIRE( registered.m_targets.at( "p4.orMaxHalfAngle" ).helpType == "float" );
@@ -417,6 +461,16 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
                          "[p4]\nexclusionPolicy=kernelSupport\n" );
     REQUIRE( kernelPolicy.m_exclusionPolicy == policyT::kernelSupport );
 
+    reductionHarness psfConfiguration;
+    readReductionConfig( psfConfiguration,
+                         directory.file( "psf.conf" ),
+                         "[p4]\npsfFile=template.fits\npsfStampSize=12\n"
+                         "outputPSFModels=true\npsfOutputPrefix=field_\n" );
+    REQUIRE( psfConfiguration.m_psfFile == "template.fits" );
+    REQUIRE( psfConfiguration.m_psfStampSize == 12 );
+    REQUIRE( psfConfiguration.m_outputPSFModels );
+    REQUIRE( psfConfiguration.m_psfOutputPrefix == "field_" );
+
     reductionHarness invalidPolicy;
     REQUIRE_THROWS( readReductionConfig( invalidPolicy,
                                          directory.file( "invalid-policy.conf" ),
@@ -460,8 +514,21 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
         static_cast<std::size_t>( std::numeric_limits<int>::max() ) + 1 ) );
     const std::size_t smallWorkerBytes = mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 3, 8, 2 );
     const std::size_t largeWorkerBytes = mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 30, 80, 2 );
+    const std::size_t coefficientWorkerBytes =
+        mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 30, 80, 2, true );
+    const std::size_t psfWorkerBytes = mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 30, 80, 2, true, 100 );
     REQUIRE( smallWorkerBytes >= 1024 * 1024 );
     REQUIRE( largeWorkerBytes > smallWorkerBytes );
+    REQUIRE( coefficientWorkerBytes > largeWorkerBytes );
+    REQUIRE( psfWorkerBytes > coefficientWorkerBytes );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 11, 256 ) == 26 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 11, 255 ) == 25 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 4, 10 ) == 16 );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 0, 10 ) );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFBytes( 20, 3, 9, 10 ) == 20 * 3 * ( 90 * 4 + 1 ) );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFBytes( 0, 3, 9, 10 ) );
+    REQUIRE( mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 20, 7, 5, 9, 10 ) > 20 * 25 * sizeof( float ) );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 0, 7, 5, 9, 10 ) );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 0, 8, 2 ) );
     REQUIRE( mx::improc::P4ReductionTestAccess::memoryLimitedWorkerCount( 8, 1000, 100, 200 ) == 4 );
     REQUIRE( mx::improc::P4ReductionTestAccess::memoryLimitedWorkerCount( 3, 1000, 100, 200 ) == 3 );
@@ -540,6 +607,233 @@ TEST_CASE( "P4 reduction exact synthetic prediction", "[P4Reduction][reduce][pre
     doxygenReduction.regions( { 5 }, { 6 } );
 #endif
     // clang-format on
+}
+
+/// Verify opt-in frozen-model calculation captures compact local stamps without changing science residuals.
+/** This exercises mx::improc::P4Reduction::reduce(), mx::improc::P4PCA::calculate(), and
+ * mx::improc::P4PSFModel::calculateLocalResponse() through the detector-frame integration path.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 reduction captures opt-in local PSF models", "[P4Reduction][PSF][integration][memory]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    reductionT::imageT psfTemplate( 9, 10 );
+    for( int column = 0; column < psfTemplate.cols(); ++column )
+    {
+        for( int row = 0; row < psfTemplate.rows(); ++row )
+        {
+            const double deltaRow = static_cast<double>( row ) - 4.0;
+            const double deltaColumn = static_cast<double>( column ) - 4.5;
+            psfTemplate( row, column ) =
+                static_cast<float>( std::exp( -0.2 * deltaRow * deltaRow - 0.1 * deltaColumn * deltaColumn ) *
+                                    ( 1 + 0.02 * deltaRow - 0.03 * deltaColumn ) );
+        }
+    }
+    mx::fits::fitsFile<float, mx::verbose::vv> writer;
+    const std::filesystem::path psfPath = directory.file( "template.fits" );
+    REQUIRE( writer.write( psfPath.string(), psfTemplate ) == mx::error_t::noerror );
+
+    reductionHarness baseline;
+    prepareReduction( baseline );
+    baseline.m_memoryFraction = 0;
+    REQUIRE( baseline.reduce() == 0 );
+
+    reductionHarness modeled;
+    prepareReduction( modeled );
+    modeled.m_memoryFraction = 0;
+    modeled.m_psfFile = psfPath.string();
+    modeled.m_psfStampSize = 4;
+    modeled.m_writeDiagnostics = true;
+    modeled.m_diagnosticDirectory = directory.file( "local-diagnostics" ).string();
+    REQUIRE( modeled.reduce() == 0 );
+
+    REQUIRE( modeled.m_psfsub.size() == baseline.m_psfsub.size() );
+    for( std::size_t output = 0; output < modeled.m_psfsub.size(); ++output )
+    {
+        for( int image = 0; image < modeled.m_psfsub[output].planes(); ++image )
+        {
+            REQUIRE(
+                ( modeled.m_psfsubValidity[output].image( image ) == baseline.m_psfsubValidity[output].image( image ) )
+                    .all() );
+            for( int column = 0; column < modeled.m_psfsub[output].cols(); ++column )
+            {
+                for( int row = 0; row < modeled.m_psfsub[output].rows(); ++row )
+                {
+                    const float modeledValue = modeled.m_psfsub[output].image( image )( row, column );
+                    const float baselineValue = baseline.m_psfsub[output].image( image )( row, column );
+                    if( mx::improc::isInvalidPixel( baselineValue ) )
+                    {
+                        REQUIRE( mx::improc::isInvalidPixel( modeledValue ) );
+                    }
+                    else
+                    {
+                        REQUIRE( modeledValue == baselineValue );
+                    }
+                }
+            }
+        }
+    }
+
+    REQUIRE( modeled.m_localPSFModels.size() == 1 );
+    REQUIRE( modeled.m_localPSFValidity.size() == 1 );
+    REQUIRE( modeled.m_localPSFRows == 15 );
+    REQUIRE( modeled.m_localPSFColumns == 16 );
+    REQUIRE( modeled.m_localPSFModels[0].rows() == 240 );
+    REQUIRE( modeled.m_localPSFModels[0].cols() ==
+             static_cast<Eigen::Index>( modeled.m_regionStatistics[0].searchPixelCount ) );
+    REQUIRE( modeled.m_localPSFValidity[0].sum() ==
+             static_cast<double>( modeled.m_regionStatistics[0].validLocalFitCount ) );
+    REQUIRE( modeled.m_localPSFModels[0].abs().sum() > 0 );
+    REQUIRE( modeled.m_localPSFBytes ==
+             modeled.m_regionStatistics[0].searchPixelCount * static_cast<std::size_t>( 240 * sizeof( float ) + 1 ) );
+    REQUIRE( modeled.m_psfModelBytes > static_cast<std::size_t>( psfTemplate.size() ) * sizeof( float ) );
+    REQUIRE( modeled.m_regionStatistics[0].estimatedWorkerBytes > baseline.m_regionStatistics[0].estimatedWorkerBytes );
+    REQUIRE( modeled.m_timing.psfWorkerSeconds >= 0 );
+
+    reductionT::fitsHeaderT header;
+    modeled.appendReductionHeader( header );
+    REQUIRE( header.count( "P4 PSF TEMPLATE" ) == 0 );
+    REQUIRE( header.count( "P4 PSF STAMP SIZE" ) == 0 );
+
+    reductionT::imageT timing;
+    reductionT::fitsHeaderT timingHeader;
+    REQUIRE( writer.read( timing, timingHeader, directory.file( "local-diagnostics/p4Timing.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( timing.rows() == 1 );
+    REQUIRE( timing.cols() == 9 );
+    REQUIRE( timingHeader["P4 TIMING SCHEMA"].value<int>() == 4 );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "psfWorker" ) != std::string::npos );
+}
+
+/// Verify opt-in final PSF fields are written with deterministic coordinate and validity products.
+/** This exercises mx::improc::P4Reduction::reduce() through
+ * mx::improc::P4PSFReconstructor::reconstructCombined() and the transactional FITS publication path.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 reduction writes compact final PSF fields", "[P4Reduction][PSF][output][integration]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    reductionT::imageT psfTemplate( 9, 10 );
+    for( int column = 0; column < psfTemplate.cols(); ++column )
+    {
+        for( int row = 0; row < psfTemplate.rows(); ++row )
+        {
+            const double deltaRow = static_cast<double>( row ) - 4.0;
+            const double deltaColumn = static_cast<double>( column ) - 4.5;
+            psfTemplate( row, column ) =
+                static_cast<float>( std::exp( -0.2 * deltaRow * deltaRow - 0.1 * deltaColumn * deltaColumn ) *
+                                    ( 1 + 0.02 * deltaRow - 0.03 * deltaColumn ) );
+        }
+    }
+    mx::fits::fitsFile<float, mx::verbose::vv> writer;
+    const std::filesystem::path psfPath = directory.file( "template.fits" );
+    REQUIRE( writer.write( psfPath.string(), psfTemplate ) == mx::error_t::noerror );
+
+    reductionHarness baseline;
+    prepareReduction( baseline, 3, 31, 31 );
+    baseline.m_minRadius = { 5 };
+    baseline.m_maxRadius = { 10 };
+    baseline.m_memoryFraction = 0;
+    baseline.m_combineMethod = mx::improc::HCI::combine::mean;
+    REQUIRE( baseline.reduce() == 0 );
+
+    reductionHarness reduction;
+    prepareReduction( reduction, 3, 31, 31 );
+    reduction.m_minRadius = { 5 };
+    reduction.m_maxRadius = { 10 };
+    reduction.m_memoryFraction = 0;
+    reduction.m_psfFile = psfPath.string();
+    reduction.m_psfStampSize = 3;
+    reduction.m_outputPSFModels = true;
+    reduction.m_psfOutputPrefix = "field_";
+    reduction.m_outputDir = directory.file( "nested/products" ).string();
+    reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+    reduction.m_writeDiagnostics = true;
+    reduction.m_diagnosticDirectory = directory.file( "field-diagnostics" ).string();
+    REQUIRE( reduction.reduce() == 0 );
+    REQUIRE( reduction.m_finim.rows() == baseline.m_finim.rows() );
+    REQUIRE( reduction.m_finim.cols() == baseline.m_finim.cols() );
+    REQUIRE( reduction.m_finim.planes() == baseline.m_finim.planes() );
+    for( int output = 0; output < baseline.m_finim.planes(); ++output )
+    {
+        for( int column = 0; column < baseline.m_finim.cols(); ++column )
+        {
+            for( int row = 0; row < baseline.m_finim.rows(); ++row )
+            {
+                const float expected = baseline.m_finim.image( output )( row, column );
+                const float actual = reduction.m_finim.image( output )( row, column );
+                if( mx::math::isNan( expected ) )
+                {
+                    REQUIRE( mx::math::isNan( actual ) );
+                }
+                else
+                {
+                    REQUIRE( actual == expected );
+                }
+            }
+        }
+    }
+
+    const std::filesystem::path coordinatePath = directory.file( "nested/products/field_coordinates.fits" );
+    const std::filesystem::path manifestPath = directory.file( "nested/products/field_manifest.fits" );
+    const std::filesystem::path modelPath = directory.file( "nested/products/field_model_0000.fits" );
+    const std::filesystem::path validityPath = directory.file( "nested/products/field_validity_0000.fits" );
+    REQUIRE( std::filesystem::exists( coordinatePath ) );
+    REQUIRE( std::filesystem::exists( manifestPath ) );
+    REQUIRE( std::filesystem::exists( modelPath ) );
+    REQUIRE( std::filesystem::exists( validityPath ) );
+
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+    reductionT::imageT manifest;
+    reductionT::fitsHeaderT manifestHeader;
+    REQUIRE( reader.read( manifest, manifestHeader, manifestPath.string() ) == mx::error_t::noerror );
+    REQUIRE( manifest( 0, 0 ) == 1 );
+    REQUIRE( manifestHeader["P4 PSF COMPLETE"].value<int>() == 1 );
+    REQUIRE( manifestHeader["P4 PSF MODE COUNT"].value<int>() == 1 );
+
+    reductionT::imageT coordinates;
+    reductionT::fitsHeaderT coordinateHeader;
+    REQUIRE( reader.read( coordinates, coordinateHeader, coordinatePath.string() ) == mx::error_t::noerror );
+    REQUIRE( coordinates.rows() == static_cast<Eigen::Index>( reduction.m_regionStatistics[0].searchPixelCount ) );
+    REQUIRE( coordinates.cols() == 4 );
+    REQUIRE( coordinateHeader["P4 PSF PRODUCT"].String().starts_with( "COORDINATES" ) );
+
+    mx::improc::eigenCube<float> models;
+    reductionT::fitsHeaderT modelHeader;
+    REQUIRE( reader.read( models, modelHeader, modelPath.string() ) == mx::error_t::noerror );
+    REQUIRE( models.rows() == 3 );
+    REQUIRE( models.cols() == 3 );
+    REQUIRE( models.planes() == coordinates.rows() );
+    REQUIRE( modelHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 1 );
+    REQUIRE( modelHeader["P4 PSF PRODUCT"].String().starts_with( "MODEL" ) );
+    REQUIRE( modelHeader["P4 PSF TEMPLATE"].String().find( "template.fits" ) != std::string::npos );
+    REQUIRE( modelHeader["P4 PSF TEMPLATE ROWS"].value<int>() == 9 );
+    REQUIRE( modelHeader["P4 PSF TEMPLATE COLUMNS"].value<int>() == 10 );
+    REQUIRE( modelHeader["P4 PSF TEMPLATE CENTER ROW"].value<double>() == Approx( 4.0 ) );
+    REQUIRE( modelHeader["P4 PSF TEMPLATE CENTER COLUMN"].value<double>() == Approx( 4.5 ) );
+    REQUIRE( modelHeader["P4 PSF RESPONSE"].String().starts_with( "FROZEN_SIGNED" ) );
+    REQUIRE( modelHeader["P4 PSF MODE INDEX"].value<int>() == 0 );
+
+    reductionT::imageT validity;
+    reductionT::fitsHeaderT validityHeader;
+    REQUIRE( reader.read( validity, validityHeader, validityPath.string() ) == mx::error_t::noerror );
+    REQUIRE( validity.rows() == coordinates.rows() );
+    REQUIRE( validity.cols() == 1 );
+    REQUIRE( validity.sum() > 0 );
+    REQUIRE( validityHeader["P4 PSF PRODUCT"].String().starts_with( "VALIDITY" ) );
+    REQUIRE( reduction.m_psfReconstructionBytes > 0 );
+    REQUIRE( reduction.m_timing.psfReconstructionElapsedSeconds >= 0 );
+
+    reductionT::imageT timing;
+    reductionT::fitsHeaderT timingHeader;
+    REQUIRE( reader.read( timing, timingHeader, directory.file( "field-diagnostics/p4Timing.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( timing.rows() == 1 );
+    REQUIRE( timing.cols() == 10 );
+    REQUIRE( timingHeader["P4 TIMING SCHEMA"].value<int>() == 5 );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "psfReconstructionElapsed" ) != std::string::npos );
 }
 
 /// Verify compact combined finalization matches retained-cube combination and releases full-frame intermediates.
@@ -1171,6 +1465,62 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         prepareReduction( invalidMemoryFraction );
         invalidMemoryFraction.m_memoryFraction = 1.1;
         REQUIRE_THROWS( invalidMemoryFraction.reduce() );
+    }
+
+    SECTION( "unsupported or incomplete PSF configuration" )
+    {
+        reductionHarness missingStamp;
+        prepareReduction( missingStamp );
+        missingStamp.m_psfFile = "missing.fits";
+        REQUIRE_THROWS_WITH( missingStamp.reduce(), Catch::Matchers::Contains( "p4.psfStampSize must be positive" ) );
+
+        reductionHarness missingFile;
+        prepareReduction( missingFile );
+        missingFile.m_psfFile = "missing.fits";
+        missingFile.m_psfStampSize = 3;
+        REQUIRE_THROWS_WITH( missingFile.reduce(), Catch::Matchers::Contains( "could not initialize the P4 PSF" ) );
+
+        reductionHarness rotated;
+        prepareReduction( rotated );
+        rotated.m_psfFile = "unused.fits";
+        rotated.m_psfStampSize = 3;
+        rotated.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+        REQUIRE_THROWS_WITH( rotated.reduce(), Catch::Matchers::Contains( "only for detector-frame P4" ) );
+
+        reductionHarness temporal;
+        prepareReduction( temporal, 6 );
+        temporal.m_psfFile = "unused.fits";
+        temporal.m_psfStampSize = 3;
+        temporal.m_numberImages = 1;
+        REQUIRE_THROWS_WITH( temporal.reduce(), Catch::Matchers::Contains( "positive p4.numberImages" ) );
+
+        reductionHarness postMedian;
+        prepareReduction( postMedian );
+        postMedian.m_psfFile = "unused.fits";
+        postMedian.m_psfStampSize = 3;
+        postMedian.m_postMedSub = true;
+        REQUIRE_THROWS_WITH( postMedian.reduce(), Catch::Matchers::Contains( "adi.postMedSub=true" ) );
+
+        reductionHarness outputWithoutTemplate;
+        prepareReduction( outputWithoutTemplate );
+        outputWithoutTemplate.m_outputPSFModels = true;
+        REQUIRE_THROWS_WITH( outputWithoutTemplate.reduce(), Catch::Matchers::Contains( "requires p4.psfFile" ) );
+
+        reductionHarness outputWithoutCombination;
+        prepareReduction( outputWithoutCombination );
+        outputWithoutCombination.m_psfFile = "unused.fits";
+        outputWithoutCombination.m_psfStampSize = 3;
+        outputWithoutCombination.m_outputPSFModels = true;
+        REQUIRE_THROWS_WITH( outputWithoutCombination.reduce(), Catch::Matchers::Contains( "combination method" ) );
+
+        reductionHarness outputWithoutPrefix;
+        prepareReduction( outputWithoutPrefix );
+        outputWithoutPrefix.m_psfFile = "unused.fits";
+        outputWithoutPrefix.m_psfStampSize = 3;
+        outputWithoutPrefix.m_outputPSFModels = true;
+        outputWithoutPrefix.m_psfOutputPrefix.clear();
+        outputWithoutPrefix.m_combineMethod = mx::improc::HCI::combine::mean;
+        REQUIRE_THROWS_WITH( outputWithoutPrefix.reduce(), Catch::Matchers::Contains( "must not be empty" ) );
     }
 
     SECTION( "invalid fractions and realized mode collisions" )

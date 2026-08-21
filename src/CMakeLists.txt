@@ -13,6 +13,8 @@ set(libheaders common/HCI.hpp
                common/P4PixelGrid.hpp
                common/P4RotatedGrid.hpp
                common/P4PCA.hpp
+               common/P4PSFModel.hpp
+               common/P4PSFReconstructor.hpp
                common/P4Reduction.hpp
                common/KLIPreduction.hpp )
 
@@ -22,6 +24,8 @@ set(libsource common/HCIobservation.cpp
               common/P4PixelGrid.cpp
               common/P4RotatedGrid.cpp
               common/P4PCA.cpp
+              common/P4PSFModel.cpp
+              common/P4PSFReconstructor.cpp
               common/P4Reduction.cpp
               common/KLIPreduction.cpp )
 

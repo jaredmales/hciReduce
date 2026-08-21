@@ -41,6 +41,48 @@
  *
  * The detector-frame residual cubes are derotated by the shared ADI final-processing stage before combination.
  *
+ * \section p4reduce_frozen_psf Frozen-model PSF responses
+ *
+ * Setting `p4.psfFile` enables an analytic response calculation for the detector-frame, same-image-predictor
+ * algorithm. Let `F_s(p)` denote the configured centered PSF template sampled at detector coordinate `p` for a unit
+ * source centered at `s`, and let `S_k` be the exact cubic sampling operator for predictor `k`. For search coordinate
+ * `q` and one supported truncated-PCA coefficient vector `beta_m`, the local signed response is
+ *
+ * \f[
+ *   G_{q,m}(s) = F_s(q) - \sum_{k=1}^{K} \beta_{q,m,k}\, S_k[F_s].
+ * \f]
+ *
+ * `beta_m` is the truncated minimum-norm pseudoinverse solution already used by the science regression. It is
+ * accumulated while retained eigenmodes are available; no dense pseudoinverse is formed. The template calculation
+ * and predictor sampling use float values, while coefficient formation retains P4's current double-precision PCA
+ * arithmetic. Invalid and rank-unsupported fits have explicit zero validity and are never interpreted as a zero PSF.
+ *
+ * The response is `FROZEN_SIGNED`: it is the signed output of the fitted linear predictor with the coefficients held
+ * fixed. The template's stored scale is preserved; no peak or integral normalization and no preprocessing are applied
+ * to the template. The configured template must therefore represent the post-preprocessing P4 input stage. This is a
+ * local filter template, not a calibrated throughput measurement: refitting after finite fake injection can change
+ * the coefficients and is deliberately outside this linearized contract.
+ *
+ * Detector-local responses are retained at every owned search coordinate. Final-frame reconstruction maps each sky
+ * stamp sample through the exact inverse derotation, composes the same cubic footprints used by science derotation
+ * and local sampling, and combines its bounded frame stack with the configured science estimator, weights, sigma
+ * threshold, minimum-good fraction, and response validity. Mean and weighted-mean responses are linear frozen-model
+ * products. Median and actively sigma-clipped products are useful filter-template approximations evaluated from the
+ * propagated response samples themselves; they are not finite-amplitude-independent photometric transfer functions.
+ *
+ * The first implementation intentionally rejects `p4.regressionFrame=rotated`, positive `p4.numberImages`, and
+ * `adi.postMedSub=true` when a PSF template is configured. A complete final PSF field additionally requires a final
+ * combination method; `combine.method=none` does not define one combined response.
+ *
+ * When `p4.outputPSFModels=true`, P4 writes a deterministic coordinate image, one response cube and one source-center
+ * validity image per output mode, and a completion manifest under `p4.psfOutputPrefix` in the common output directory.
+ * A response cube is `W x W x S`, where `W=p4.psfStampSize` and plane `s` maps to row `s` of the coordinate image.
+ * Unsupported individual response samples are NaN. Every product records schema version 1, product role, template
+ * identity/stage/normalization, `FROZEN_SIGNED`, combination policy, stamp and internal support geometry, storage
+ * estimates, source count, and mode identity where applicable. Consumers must accept a set only when
+ * `p4PSF_manifest.fits` (with the configured prefix substituted) contains both data value `1` and
+ * `HIERARCH P4 PSF COMPLETE = 1`.
+ *
  * \section p4reduce_rotated_regression Rotated-frame regression
  *
  * `p4.regressionFrame=rotated` learns a different coefficient vector at each fixed sky-frame search pixel. The OR
@@ -132,6 +174,10 @@
  * | `p4.orArcHalfWidth` | Nonnegative azimuthal half-width expressed as arc length in pixels; `0` uses only `p4.orMaxHalfAngle`. |
  * | `p4.orMaxHalfAngle` | Angular half-width cap in `(0,180]` degrees; `180` permits the full 360-degree annulus. |
  * | `p4.psfRadius` | Positive physical radius of the central signal-exclusion disk, in pixels. |
+ * | `p4.psfFile` | Optional centered, finite PSF template at the post-preprocessing P4 input stage; enables detector-frame frozen-model calculation. |
+ * | `p4.psfStampSize` | Positive square final response-stamp size required with `p4.psfFile`; odd and even sizes use geometric centers. |
+ * | `p4.outputPSFModels` | Write the compact combined spatially variable PSF field; default `false`. |
+ * | `p4.psfOutputPrefix` | Product prefix in the common output directory; default `p4PSF_`. |
  * | `p4.exclusionPolicy` | Required `sampleCenter` or `kernelSupport` policy. |
  * | `p4.exclusionRadiusBuffer` | Explicit nonnegative amount added to `p4.psfRadius`; `0.5` reproduces the prototype's effective mask buffer. |
  * | `p4.rankTolerance` | Relative eigenvalue threshold in `[0,1)`, default `1e-12`. |
@@ -171,6 +217,9 @@
  * `OMP_NUM_THREADS` value is always respected. The selected and pre-limit worker counts and the per-worker estimate
  * are printed before regression and recorded in the FITS header. If Linux memory discovery is unavailable, P4 emits
  * a warning and retains the OpenMP maximum. Set `p4.memoryFraction=0` to request that behavior explicitly.
+ * Frozen-model runs add the retained local response, prepared template, one output-mode field, coordinate/index
+ * maps, and bounded per-worker frame-stamp scratch to these checks. Final reconstruction independently lowers its
+ * worker count when necessary and never increases the `OMP_NUM_THREADS` limit.
  *
  * During geometry construction, `p4Reduce` reports each annulus together with its search-pixel and retained predictor
  * counts. During regression, a rate-limited `std::cerr` status line combines the active annulus's completed/total

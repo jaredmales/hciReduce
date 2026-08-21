@@ -176,7 +176,8 @@ void p4PCACalculateValidated(
     int maxDOF,                           /**< [in] structural degree-of-freedom limit and eigenpair count */
     const P4PCA::matrixT *predictorMeans, /**< [in] optional means for uncentered application */
     P4PCA::workspaceT &workspace,         /**< [in,out] reusable LAPACK workspace */
-    P4PCATiming *timing /**< [out] optional per-call worker timing */ )
+    P4PCATiming *timing,                  /**< [out] optional per-call worker timing */
+    P4PCA::matrixT *coefficients /**< [out] optional predictor-space coefficient vectors */ )
 {
     if( timing )
     {
@@ -270,6 +271,11 @@ void p4PCACalculateValidated(
     output.residuals.setConstant( std::numeric_limits<double>::quiet_NaN() );
     output.modeStatus.assign( modes.size(), P4PCAModeStatus::rankInsufficient );
     output.numericalRank = numericalRank;
+    if( coefficients )
+    {
+        coefficients->resize( predictorCount, modes.size() );
+        coefficients->setConstant( std::numeric_limits<double>::quiet_NaN() );
+    }
 
     const auto unsupported = std::upper_bound( modes.begin(), modes.end(), numericalRank );
     if( unsupported == modes.begin() )
@@ -280,6 +286,17 @@ void p4PCACalculateValidated(
     const int largestSupportedMode = *( unsupported - 1 );
     const auto projectionStart = std::chrono::steady_clock::now();
     P4PCA::vectorT residual = residualTarget;
+    P4PCA::vectorT accumulatedCoefficients;
+    P4PCA::vectorT coefficientUpdate;
+    if( coefficients )
+    {
+        accumulatedCoefficients.resize( predictorCount );
+        accumulatedCoefficients.setZero();
+        if( useTemporalGram )
+        {
+            coefficientUpdate.resize( predictorCount );
+        }
+    }
     std::size_t outputIndex{ 0 };
 
     for( int retainedMode = 1; retainedMode <= largestSupportedMode; ++retainedMode )
@@ -294,6 +311,12 @@ void p4PCACalculateValidated(
         {
             coefficient = eigenvector.matrix().dot( fitTarget.matrix() );
             projectedMode = eigenvector * coefficient;
+            if( coefficients )
+            {
+                coefficientUpdate = ( predictors.matrix().transpose() * eigenvector.matrix() ).array();
+                coefficientUpdate *= coefficient / eigenvalue;
+                accumulatedCoefficients += coefficientUpdate;
+            }
             if( predictorMeans )
             {
                 predictionMean =
@@ -305,6 +328,10 @@ void p4PCACalculateValidated(
             coefficient = eigenvector.matrix().dot( crossProduct.matrix() ) / eigenvalue;
             projectedMode = ( predictors.matrix() * eigenvector.matrix() ).array();
             projectedMode *= coefficient;
+            if( coefficients )
+            {
+                accumulatedCoefficients += eigenvector * coefficient;
+            }
             if( predictorMeans )
             {
                 predictionMean = ( predictorMeans->matrix() * eigenvector.matrix() )( 0, 0 ) * coefficient;
@@ -312,7 +339,7 @@ void p4PCACalculateValidated(
         }
 
         if( !mx::math::isFinite( coefficient ) || !mx::math::isFinite( predictionMean ) ||
-            !p4PCAAllFinite( projectedMode ) )
+            !p4PCAAllFinite( projectedMode ) || ( coefficients && !p4PCAAllFinite( accumulatedCoefficients ) ) )
         {
             throw std::runtime_error( "P4PCA mode projection produced nonfinite values" );
         }
@@ -332,6 +359,10 @@ void p4PCACalculateValidated(
         {
             output.residuals.col( outputIndex ) = residual;
             output.modeStatus[outputIndex] = P4PCAModeStatus::rankSupported;
+            if( coefficients )
+            {
+                coefficients->col( outputIndex ) = accumulatedCoefficients;
+            }
             ++outputIndex;
         }
     }
@@ -366,7 +397,8 @@ void P4PCA::calculate( P4PCAResult &output,
                        const std::vector<int> &modes,
                        double rankTolerance,
                        workspaceT &workspace,
-                       P4PCATiming *timing )
+                       P4PCATiming *timing,
+                       matrixT *coefficients )
 {
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
@@ -381,7 +413,8 @@ void P4PCA::calculate( P4PCAResult &output,
                              maxDOF,
                              nullptr,
                              workspace,
-                             timing );
+                             timing,
+                             coefficients );
 }
 
 void P4PCA::calculateCentered( P4PCAResult &output,
@@ -390,10 +423,18 @@ void P4PCA::calculateCentered( P4PCAResult &output,
                                const std::vector<int> &modes,
                                double rankTolerance,
                                workspaceT &workspace,
-                               P4PCATiming *timing )
+                               P4PCATiming *timing,
+                               matrixT *coefficients )
 {
     matrixT centeredPredictors = predictors;
-    calculateCenteredInPlace( output, centeredPredictors, target, modes, rankTolerance, workspace, timing );
+    calculateCenteredInPlace( output,
+                              centeredPredictors,
+                              target,
+                              modes,
+                              rankTolerance,
+                              workspace,
+                              timing,
+                              coefficients );
 }
 
 void P4PCA::calculateCenteredInPlace( P4PCAResult &output,
@@ -402,7 +443,8 @@ void P4PCA::calculateCenteredInPlace( P4PCAResult &output,
                                       const std::vector<int> &modes,
                                       double rankTolerance,
                                       workspaceT &workspace,
-                                      P4PCATiming *timing )
+                                      P4PCATiming *timing,
+                                      matrixT *coefficients )
 {
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
@@ -432,7 +474,8 @@ void P4PCA::calculateCenteredInPlace( P4PCAResult &output,
                              maxDOF,
                              &predictorMeans,
                              workspace,
-                             timing );
+                             timing,
+                             coefficients );
 }
 
 } // namespace improc

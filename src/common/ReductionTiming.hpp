@@ -37,6 +37,10 @@ struct ReductionTiming
 
     double projectionWorkerSeconds{ 0 };        ///< Aggregate worker time used to apply modes and construct residuals.
 
+    double psfWorkerSeconds{ 0 }; ///< Aggregate worker time used to construct compact frozen-model PSF stamps.
+
+    double psfReconstructionElapsedSeconds{ 0 }; ///< Elapsed final spatially variable PSF reconstruction time.
+
     /// Reset every timing value to zero before a new reduction.
     void reset()
     {
@@ -49,6 +53,8 @@ struct ReductionTiming
         eigensolveWorkerSeconds = 0;
         modeWorkerSeconds = 0;
         projectionWorkerSeconds = 0;
+        psfWorkerSeconds = 0;
+        psfReconstructionElapsedSeconds = 0;
     }
 };
 

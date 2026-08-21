@@ -68,6 +68,14 @@
   * \ingroup unit_tests
   */
 
+/** \defgroup P4PSFModel_unit_tests P4 Local PSF Model Unit Tests
+  * \ingroup unit_tests
+  */
+
+/** \defgroup P4PSFReconstructor_unit_tests P4 PSF Reconstructor Unit Tests
+  * \ingroup unit_tests
+  */
+
 /** \defgroup P4PixelGrid_unit_tests P4 Pixel Grid Unit Tests
   * \ingroup unit_tests
   */

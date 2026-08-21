@@ -19,9 +19,11 @@
 #include "ADIDerotator.hpp"
 #include "ADIobservation.hpp"
 #include "P4PCA.hpp"
-#include "ReductionTiming.hpp"
 #include "P4PixelGrid.hpp"
+#include "P4PSFModel.hpp"
+#include "P4PSFReconstructor.hpp"
 #include "P4RotatedGrid.hpp"
+#include "ReductionTiming.hpp"
 
 namespace mx
 {
@@ -102,6 +104,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Inherited two-dimensional image type.
     using imageT = typename ADIobservation<realT, _derotFunctObj, verboseT>::imageT;
 
+    /// Compact local-PSF validity storage type.
+    using psfValidityT = Eigen::Array<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>;
+
     /// Fixed float cubic-convolution P4 pixel-grid used by the initial production implementation.
     using pixelGridT = P4PixelGridf;
 
@@ -134,7 +139,15 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     realT m_psfRadius{ std::numeric_limits<realT>::quiet_NaN() }; ///< Physical signal-exclusion radius in pixels.
 
-    std::optional<P4ExclusionPolicy> m_exclusionPolicy;           ///< Explicit central signal-exclusion policy.
+    std::string m_psfFile;           ///< Optional post-preprocessing PSF template enabling frozen-model calculation.
+
+    int m_psfStampSize{ 0 };         ///< Square frozen-model PSF stamp size; required when `m_psfFile` is set.
+
+    bool m_outputPSFModels{ false }; ///< Whether to reconstruct and write compact final-frame PSF fields.
+
+    std::string m_psfOutputPrefix{ "p4PSF_" }; ///< Prefix for compact PSF products in the common output directory.
+
+    std::optional<P4ExclusionPolicy> m_exclusionPolicy; ///< Explicit central signal-exclusion policy.
 
     realT m_exclusionRadiusBuffer{ std::numeric_limits<realT>::quiet_NaN() }; ///< Added exclusion-radius buffer.
 
@@ -159,15 +172,35 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     std::vector<std::vector<std::vector<int>>> m_temporalSelections;
     ///< Per-annulus central and neighboring target-image indices used in detector-frame predictor rows.
 
+    std::vector<imageT> m_localPSFModels;
+    ///< Compact local stamps by annulus; rows are column-major stamp pixels and columns are search-major modes.
+
+    std::vector<psfValidityT> m_localPSFValidity;
+    ///< Rank and geometry validity by annulus, search pixel, and requested output mode.
+
+    int m_localPSFRows{ 0 };       ///< Phase-matched, support-padded local response row count.
+
+    int m_localPSFColumns{ 0 };    ///< Phase-matched, support-padded local response column count.
+
+    int m_psfTemplateRows{ 0 };    ///< Configured PSF-template row count used by the current reduction.
+
+    int m_psfTemplateColumns{ 0 }; ///< Configured PSF-template column count used by the current reduction.
+
     Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> m_ownership; ///< Owning annulus index, or -1 outside support.
 
-    std::size_t m_availableMemoryBytes{ 0 }; ///< Linux available-memory snapshot, or zero when unavailable/disabled.
+    std::size_t m_availableMemoryBytes{ 0 };   ///< Linux available-memory snapshot, or zero when unavailable/disabled.
 
-    std::size_t m_memoryBudgetBytes{ 0 };    ///< Bytes selected from available memory for future P4 allocations.
+    std::size_t m_memoryBudgetBytes{ 0 };      ///< Bytes selected from available memory for future P4 allocations.
 
-    std::size_t m_compactResidualBytes{ 0 }; ///< Estimated bytes retained by compact residual and validity arrays.
+    std::size_t m_compactResidualBytes{ 0 };   ///< Estimated bytes retained by compact residual and validity arrays.
 
-    std::size_t m_materializationBytes{ 0 }; ///< Estimated bytes in one full residual/validity materialization pair.
+    std::size_t m_materializationBytes{ 0 };   ///< Estimated bytes in one full residual/validity materialization pair.
+
+    std::size_t m_localPSFBytes{ 0 };          ///< Bytes retained by opt-in compact local PSF stamps and validity.
+
+    std::size_t m_psfModelBytes{ 0 };          ///< Bytes retained by the shared precomputed PSF-template model.
+
+    std::size_t m_psfReconstructionBytes{ 0 }; ///< Conservative peak scratch for one final PSF mode.
 
     ReductionTiming m_timing; ///< Instance-owned elapsed and aggregate-worker timing record for the current reduction.
 
@@ -247,7 +280,27 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Conservatively estimate the peak private allocation for one P4 regression worker.
     static std::size_t estimatedWorkerBytes( std::size_t targetImageCount, /**< [in] temporal sample count */
                                              std::size_t predictorCount,   /**< [in] predictor-column count */
-                                             std::size_t modeCount /**< [in] requested residual-column count */ );
+                                             std::size_t modeCount,        /**< [in] requested residual-column count */
+                                             bool includeCoefficients = false, /**< [in] include optional K-by-mode
+                                                                                          coefficient output */
+                                             std::size_t psfStampPixels = 0 /**< [in] optional float PSF scratch */ );
+
+    /// Return the phase-matched local-model dimension needed for final-stamp reconstruction.
+    static int localPSFModelDimension( int outputStampSize, /**< [in] positive square final-stamp size */
+                                       int templateDimension /**< [in] positive template rows or columns */ );
+
+    /// Return the exact retained byte count for one compact local-PSF annulus.
+    static std::size_t localPSFBytes( std::size_t searchPixelCount, /**< [in] owned search-pixel count */
+                                      std::size_t modeCount,        /**< [in] requested output-mode count */
+                                      int stampRows,                /**< [in] positive local-stamp row count */
+                                      int stampColumns /**< [in] positive local-stamp column count */ );
+
+    /// Conservatively estimate peak scratch used to reconstruct and persist one final PSF mode.
+    static std::size_t psfReconstructionBytes( std::size_t searchPixelCount, /**< [in] owned output positions */
+                                               std::size_t targetImageCount, /**< [in] target-frame count */
+                                               int outputStampSize,          /**< [in] square final-stamp size */
+                                               int localStampRows,           /**< [in] support-padded local rows */
+                                               int localStampColumns /**< [in] support-padded local columns */ );
 
     /// Select the number of workers that fit after persistent future allocations.
     static int memoryLimitedWorkerCount( int requestedWorkers,    /**< [in] positive OpenMP/search-pixel maximum */
@@ -260,6 +313,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                 /**< [in,out] ownership image initialized to -1 */
                                 const P4PixelCoordinate &coordinate, /**< [in] owned search coordinate */
                                 int region /**< [in] nonnegative annulus index */ );
+
+    /// Reconstruct and write the configured compact final-frame PSF field one mode at a time.
+    void outputPSFModels( const std::vector<pixelGridT> &grids /**< [in] retained detector-frame annulus geometry */ );
 
     /// Write one enabled image-like diagnostic with P4 provenance and checked directory and FITS errors.
     template <typename dataT>

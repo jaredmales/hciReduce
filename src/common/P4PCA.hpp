@@ -79,7 +79,9 @@ struct P4PCA
     /// Calculate truncated-PCA residual time series for ordered retained-mode counts.
     /** On success, \p output is completely replaced. On exception it remains destructible, but its values are
      * unspecified. Requested counts above numerical rank produce complete quiet-NaN columns and do not invalidate
-     * lower-count columns. The output object must not own storage aliased by either input array.
+     * lower-count columns. When requested, \p coefficients receives one predictor-space coefficient vector per mode
+     * count; rank-insufficient columns are quiet NaNs. The output objects must not own storage aliased by either input
+     * array.
      */
     static void calculate( P4PCAResult &output,           /**< [out] residuals, mode states, and numerical rank */
                            const matrixT &predictors,     /**< [in] finite T-by-K local predictor matrix */
@@ -87,7 +89,8 @@ struct P4PCA
                            const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
                            double rankTolerance,  /**< [in] finite nonnegative threshold relative to lambdaMax */
                            workspaceT &workspace, /**< [in,out] caller-owned, non-shared LAPACK workspace */
-                           P4PCATiming *timing = nullptr /**< [out] optional per-call worker timing */ );
+                           P4PCATiming *timing = nullptr, /**< [out] optional per-call worker timing */
+                           matrixT *coefficients = nullptr /**< [out] optional K-by-mode predictor coefficients */ );
 
     /// Calculate a temporally centered fit and apply its predictor coefficients to the uncentered data.
     /** Each predictor column and the target are centered over their T samples when estimating the truncated-PCA
@@ -98,7 +101,8 @@ struct P4PCA
      * must be at least two. The centered objective does not establish whether the applied predictor mean is a
      * physically valid baseline; that interpretation remains the caller's responsibility. On success, \p output is
      * completely replaced. On exception it remains destructible, but its values are unspecified. The output object
-     * must not own storage aliased by either input array.
+     * must not own storage aliased by either input array. When requested, \p coefficients receives the centered-fit
+     * coefficient vectors applied to the original uncentered predictors.
      */
     static void
     calculateCentered( P4PCAResult &output,           /**< [out] residuals, mode states, and numerical rank */
@@ -107,7 +111,8 @@ struct P4PCA
                        const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
                        double rankTolerance,          /**< [in] finite nonnegative threshold relative to lambdaMax */
                        workspaceT &workspace,         /**< [in,out] caller-owned, non-shared LAPACK workspace */
-                       P4PCATiming *timing = nullptr /**< [out] optional per-call worker timing */ );
+                       P4PCATiming *timing = nullptr, /**< [out] optional per-call worker timing */
+                       matrixT *coefficients = nullptr /**< [out] optional K-by-mode predictor coefficients */ );
 
     /// Calculate a centered fit while reusing the caller's predictor matrix as centering workspace.
     /** This is numerically equivalent to calculateCentered(), including applying the fitted coefficients to the
@@ -122,7 +127,8 @@ struct P4PCA
         const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
         double rankTolerance,          /**< [in] finite nonnegative threshold relative to lambdaMax */
         workspaceT &workspace,         /**< [in,out] caller-owned, non-shared LAPACK workspace */
-        P4PCATiming *timing = nullptr /**< [out] optional per-call worker timing */ );
+        P4PCATiming *timing = nullptr, /**< [out] optional per-call worker timing */
+        matrixT *coefficients = nullptr /**< [out] optional K-by-mode predictor coefficients */ );
 };
 
 /// \cond P4PCA_test_detail
