@@ -15,13 +15,19 @@
  * \section common_config_syntax Configuration and command-line syntax
  *
  * Every setting has a dotted command-line spelling, for example
- * `--input.directory /data/sequence`. In a configuration file, write either the dotted assignment
- * `input.directory=/data/sequence` or the equivalent sectioned form:
+ * `--input.directory /data/sequence`. Configuration files do not accept that dotted spelling: place the bare key
+ * under its named section instead:
  *
  * \code{.ini}
  * [input]
  * directory=/data/sequence
  * \endcode
+ *
+ * The dictionaries use compact `section.key=value` shorthand in their key/value columns so each setting fits on one
+ * table row. That shorthand identifies the section and key; it is not literal configuration-file syntax. For
+ * example, the table entry `input.directory=/data/sequence` means the sectioned assignment above. Keys without a dot,
+ * such as `mode`, belong before any section. `klipReduce` and `p4Reduce` reject unrecognized keys instead of continuing
+ * with an unintended default.
  *
  * Command-line values override configuration-file values. `-c path` / `--config path` selects a configuration file;
  * `--help` prints the complete live option list and defaults. Boolean values are `true` or `false`. Lists are
@@ -29,7 +35,7 @@
  *
  * \section common_input_dictionary Input target sequence
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `-D`, `--input.directory` | `input.directory=/path` | string; readable directory | unset | Directory searched for target FITS files. |
  * | `-P`, `--input.prefix` | `input.prefix=prefix` | string; may be empty | empty | Filename prefix. An empty prefix considers every matching file. |
@@ -51,7 +57,7 @@
  * `klipReduce` can read a Reference Differential Imaging library. `p4Reduce` rejects every nonempty RDI setting.
  * The RDI files use the same discovery and quality semantics as the target sequence.
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--rdi.directory`, `--rdi.prefix`, `--rdi.extension` | `rdi.directory=...` etc. | strings | unset, empty, `.fits` | Reference-library discovery. Empty prefix selects all matching files. |
  * | `--rdi.fileList` | `rdi.fileList=files.txt` | text-file path | unset | Explicit reference list; entries are relative to `rdi.directory` when it is set. |
@@ -63,7 +69,7 @@
  *
  * \section common_coadd_dictionary Temporal coaddition
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--coadd.method` | `coadd.method=none` | `none`, `median`, or `mean` | `none` | Enables temporal coaddition. |
  * | `--coadd.maxImno` | `coadd.maxImno=N` | positive integer | `0` | Maximum number of consecutive images in one coadd. |
@@ -76,7 +82,7 @@
  * Preprocessing can be applied before or after coaddition. `preProcess.only` is useful for creating a reproducible
  * preprocessed input set; point a later reduction at that set and use `preProcess.skip=true`.
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--preProcess.skip` | `preProcess.skip=true` | bool | `false` | Skip all preprocessing, for already prepared input. |
  * | `--preProcess.beforeCoadd` | `preProcess.beforeCoadd=true` | bool | `false` | Run preprocessing before, rather than after, temporal coaddition. |
@@ -96,7 +102,7 @@
  *
  * \section common_adi_dictionary ADI, artificial companions, and combination
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--input.angleKeyword` | `input.angleKeyword=POSANG` | FITS keyword string | unset | Per-frame detector angle used for ADI derotation. Include it in `coadd.keywords` when coadding so its mean and delta are calculated across angular wraps. |
  * | `--input.angleScale`, `--input.angleConstant` | `input.angleScale=1`, `input.angleConstant=0` | real scalars | `1`, `0` | Derotation angle is `scale * keyword + constant`, in degrees. |
@@ -114,7 +120,7 @@
  *
  * \section common_output_dictionary Output products
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--output.directory` | `output.directory=/path` | writable directory | unset | Destination for final products. Missing directories are created automatically. |
  * | `--output.fileName` | `output.fileName=finim_` | literal string | `finim_` | Prefix when `exactFName=false`; hciReduce appends the next unused `0000`-style suffix and `.fits`. |

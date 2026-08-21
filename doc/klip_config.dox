@@ -9,12 +9,18 @@
  * \page klip_configuration_dictionary klipReduce configuration dictionary
  *
  * This dictionary adds KLIP settings to the shared \ref common_configuration_dictionary
- * "common configuration dictionary". Long options use `--dotted.key value`; the config-file column shows the
- * equivalent sectioned assignment.
+ * "common configuration dictionary". Long options use `--dotted.key value`; configuration files require a bare key
+ * under `[section]`, as described in the shared dictionary. The key/value columns use dotted shorthand only to keep
+ * the tables compact. For example, `klip.Nmodes=1,5,10` means:
+ *
+ * \code{.ini}
+ * [klip]
+ * Nmodes=1,5,10
+ * \endcode
  *
  * \section klip_app_dictionary Application modes and postprocessing
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--mode` | `mode=basic` | `basic`, `normal`, `postprocess` | `basic` | `basic` and `normal` run a configured KLIP reduction. `postprocess` reads saved residual products and reapplies final-stage processing. |
  * | `--showTiming` | `showTiming=true` | bool | `false` | Print the completed KLIP reduction timing report to standard output. It is ignored by `postprocess`. |
@@ -24,7 +30,7 @@
  *
  * \section klip_geometry_dictionary Search geometry
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--geom.minRadius` | `geom.minRadius=6,8,10` | comma-separated real pixels | required for reduction | Inner radii of KLIP search regions. Pair each entry with `maxRadius`; omit for `preProcess.only=true`. |
  * | `--geom.maxRadius` | `geom.maxRadius=8,10,12` | matching real-pixel vector | required for reduction | Outer radii of KLIP search regions. Pair each entry with `minRadius`; omit for `preProcess.only=true`. |
@@ -40,7 +46,7 @@
  * A target frame's library first applies the minimum and maximum ADI exclusions, then the configured inclusion rule.
  * The realized number of references can vary by target, especially with RDI or angle/time exclusions.
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--adi.excludeMethod` | `adi.excludeMethod=none` | `none`, `pixel`, `angle`, `imno` | `none` | Quantity used for the minimum exclusion around a target frame. |
  * | `--adi.minDPx` | `adi.minDPx=value` | nonnegative real | `0` | Minimum difference at the inner edge of the region, interpreted by `excludeMethod`. |
@@ -54,7 +60,7 @@
  *
  * \section klip_pca_dictionary KL basis and residual products
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--klip.Nmodes` | `klip.Nmodes=1,5,10` | comma-separated positive integers | required for reduction | Requested retained KL-mode counts. The list order is the output-cube plane order. Counts beyond a realized library's available degrees of freedom use all available modes. Omit for `preProcess.only=true`. |
  * | `--klip.meanSubMethod` | `klip.meanSubMethod=imageMean` | `imageMean`, `imageMedian`, `meanImage`, `medianImage` | `imageMean` | Mean/median subtraction convention used while constructing the KL basis. |
@@ -69,7 +75,7 @@
  *
  * \section klip_diagnostics_dictionary Diagnostics
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--klip.writeDiagnostics` | `klip.writeDiagnostics=true` | bool | `false` | Write intermediate region, covariance, and library-selection FITS diagnostics. |
  * | `--klip.diagnosticDirectory` | `klip.diagnosticDirectory=/path` | writable directory | `.` | Destination for enabled KLIP diagnostics. Missing parent directories are created automatically. |

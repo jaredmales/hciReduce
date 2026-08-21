@@ -116,7 +116,7 @@ class klipReduce : public application
         config.get<std::string>( m_configPathCL, "config" );
     }
 
-    /// Load application and reduction configuration values.
+    /// Load application and reduction configuration values and reject unrecognized inputs.
     void loadConfig()
     {
         m_obs.loadConfig( config );
@@ -145,32 +145,52 @@ class klipReduce : public application
             }
         }
 
+        bool invalidInput = false;
         unusedPrinted = false;
         if( config.m_unusedConfigs.size() > 0 )
         {
             if( !unusedPrinted )
             {
                 std::cerr << "****************************************************\n";
-                std::cerr << "WARNING: unrecognized config options:\n";
+                std::cerr << "ERROR: unrecognized config options:\n";
                 unusedPrinted = true;
             }
 
             for( auto it = config.m_unusedConfigs.begin(); it != config.m_unusedConfigs.end(); ++it )
             {
-                std::cerr << "   " << it->second.name;
-                if( config.m_sources )
+                std::cerr << "   ";
+                if( it->second.keyword.empty() )
+                {
+                    std::cerr << it->second.name;
+                }
+                else
+                {
+                    if( !it->second.section.empty() )
+                    {
+                        std::cerr << it->second.section << '.';
+                    }
+                    std::cerr << it->second.keyword;
+                }
+                if( config.m_sources && !it->second.sources.empty() )
                     std::cerr << " [" << it->second.sources[0] << "]\n";
                 else
                     std::cerr << "\n";
             }
 
             std::cerr << "****************************************************\n";
+            invalidInput = true;
         }
 
         if( config.nonOptions.size() > 0 )
         {
             std::cerr << "****************************************************\n";
-            std::cerr << "WARNING: unrecognized command line arguments\n";
+            std::cerr << "ERROR: unrecognized command line arguments\n";
+            invalidInput = true;
+        }
+
+        if( invalidInput )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig, "unrecognized klipReduce configuration input" );
         }
     }
 

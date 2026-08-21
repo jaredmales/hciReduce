@@ -312,7 +312,7 @@ TEST_CASE( "p4Reduce AF Lep prototype configuration", "[p4Reduce][config][protot
     REQUIRE_FALSE( application.m_obs.m_doOutputPSFSub );
 }
 
-/// Verify p4Reduce reports unused targets, unknown values, source locations, and positional command-line inputs.
+/// Verify p4Reduce reports unused targets and rejects unknown values and positional command-line inputs.
 /** \ingroup p4Reduce_unit_tests */
 TEST_CASE( "p4Reduce configuration diagnostics", "[p4Reduce][config][diagnostics]" )
 {
@@ -336,7 +336,7 @@ TEST_CASE( "p4Reduce configuration diagnostics", "[p4Reduce][config][diagnostics
         application.config.nonOptions = { "unexpected" };
 
         StreamCapture errors( std::cerr );
-        REQUIRE_NOTHROW( application.loadConfig() );
+        REQUIRE_THROWS( application.loadConfig() );
         const std::string output = errors.str();
         REQUIRE( output.find( "unused.target" ) != std::string::npos );
         REQUIRE( output.find( "unknown.sourced [unknown.conf]" ) != std::string::npos );
@@ -356,10 +356,28 @@ TEST_CASE( "p4Reduce configuration diagnostics", "[p4Reduce][config][diagnostics
         application.config.m_unusedConfigs[unknown.name] = unknown;
 
         StreamCapture errors( std::cerr );
-        REQUIRE_NOTHROW( application.loadConfig() );
+        REQUIRE_THROWS( application.loadConfig() );
         const std::string output = errors.str();
         REQUIRE( output.find( "unknown.target" ) != std::string::npos );
         REQUIRE( output.find( "must-not-print.conf" ) == std::string::npos );
+    }
+
+    SECTION( "dotted config-file key" )
+    {
+        TestDirectory directory;
+        const auto configPath = directory.file( "dotted.conf" );
+        writeTextFile( configPath, "p4.psfFile=/tmp/ignored.fits\n" );
+
+        appHarness application;
+        application.setupConfig();
+        REQUIRE( application.config.readConfig( configPath.string() ) == 0 );
+        REQUIRE_FALSE( application.config.m_unusedConfigs.empty() );
+
+        StreamCapture errors( std::cerr );
+        REQUIRE_THROWS( application.loadConfig() );
+        const std::string output = errors.str();
+        REQUIRE( output.find( "p4.psfFile" ) != std::string::npos );
+        REQUIRE( output.find( configPath.string() ) != std::string::npos );
     }
 }
 

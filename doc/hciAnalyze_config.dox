@@ -8,11 +8,12 @@
  *
  * \page hcianalyze_configuration_dictionary hciAnalyze configuration dictionary
  *
- * Long options use `--dotted.key value`; the config-file column shows the equivalent sectioned assignment.
+ * Long options use `--dotted.key value`; configuration files require a bare key under `[section]`, as described in
+ * the shared configuration dictionary. The key/value columns use dotted shorthand only to keep the tables compact.
  *
  * \section hcianalyze_input Input and signal geometry
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `-f`, `--file` | `file=/path/product.fits` | readable FITS image or cube | required | PSF-subtracted product to analyze. |
  * | `--planet.sep` | `planet.sep=10,20` | nonnegative real-pixel vector | unset | Direct signal separations. Pair every value with `planet.PA`. |
@@ -29,7 +30,7 @@
  *
  * \section hcianalyze_snr SNR and filtering
  *
- * | CLI | Config-file form | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--snr.minRad` | `snr.minRad=pixels` | finite real | `0` | Inner radial-noise bound. A non-positive value uses the minimum `REGMINR` or `HIERARCH P4 MIN RADIUS` header value. |
  * | `--snr.maxRad` | `snr.maxRad=pixels` | finite real | `0` | Outer radial-noise bound. A non-positive value uses the maximum `REGMAXR` or `HIERARCH P4 MAX RADIUS` header value. |

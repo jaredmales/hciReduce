@@ -70,7 +70,7 @@ TEST_CASE( "klipReduce command-line configuration path", "[klipReduce][config][c
     REQUIRE( application.m_configPathCL == "/tmp/klipReduce-test.conf" );
 }
 
-/// Verify klipReduce diagnoses unused targets, unknown configuration entries, and positional arguments while loading.
+/// Verify klipReduce reports unused targets and rejects unknown configuration entries and positional arguments.
 /** \ingroup klipReduce_unit_tests */
 TEST_CASE( "klipReduce configuration diagnostics", "[klipReduce][config][diagnostics]" )
 {
@@ -89,7 +89,7 @@ TEST_CASE( "klipReduce configuration diagnostics", "[klipReduce][config][diagnos
         application.config.m_unusedConfigs[unknownTarget.name] = unknownTarget;
         application.config.nonOptions = { "unexpected" };
 
-        REQUIRE_NOTHROW( application.loadConfig() );
+        REQUIRE_THROWS( application.loadConfig() );
         REQUIRE( application.config.m_targets.at( "unused.target" ).used == false );
     }
 
@@ -103,7 +103,20 @@ TEST_CASE( "klipReduce configuration diagnostics", "[klipReduce][config][diagnos
         unknownTarget.name = "unknown.target";
         application.config.m_unusedConfigs[unknownTarget.name] = unknownTarget;
 
-        REQUIRE_NOTHROW( application.loadConfig() );
+        REQUIRE_THROWS( application.loadConfig() );
+    }
+
+    SECTION( "dotted config-file key" )
+    {
+        TestDirectory directory;
+        const auto configPath = directory.file( "dotted.conf" );
+        writeTextFile( configPath, "klip.Nmodes=1,2\n" );
+
+        appHarness application;
+        application.setupConfig();
+        REQUIRE( application.config.readConfig( configPath.string() ) == 0 );
+        REQUIRE_FALSE( application.config.m_unusedConfigs.empty() );
+        REQUIRE_THROWS( application.loadConfig() );
     }
 }
 

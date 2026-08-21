@@ -63,7 +63,7 @@ class p4Reduce : public mx::app::application
         m_obs.setupConfig( config );
     }
 
-    /// Load application and P4 reduction configuration values and report unused inputs.
+    /// Load application and P4 reduction configuration values and reject unrecognized inputs.
     void loadConfig() override
     {
         m_obs.loadConfig( config );
@@ -87,13 +87,26 @@ class p4Reduce : public mx::app::application
             std::cerr << "   " << name << '\n';
         }
 
+        bool invalidInput{ false };
         if( !config.m_unusedConfigs.empty() )
         {
             std::cerr << "****************************************************\n";
-            std::cerr << "WARNING: unrecognized config options:\n";
+            std::cerr << "ERROR: unrecognized config options:\n";
             for( const auto &[name, target] : config.m_unusedConfigs )
             {
-                std::cerr << "   " << name;
+                std::cerr << "   ";
+                if( target.keyword.empty() )
+                {
+                    std::cerr << name;
+                }
+                else
+                {
+                    if( !target.section.empty() )
+                    {
+                        std::cerr << target.section << '.';
+                    }
+                    std::cerr << target.keyword;
+                }
                 if( config.m_sources && !target.sources.empty() )
                 {
                     std::cerr << " [" << target.sources.front() << ']';
@@ -101,12 +114,20 @@ class p4Reduce : public mx::app::application
                 std::cerr << '\n';
             }
             std::cerr << "****************************************************\n";
+            invalidInput = true;
         }
 
         if( !config.nonOptions.empty() )
         {
             std::cerr << "****************************************************\n";
-            std::cerr << "WARNING: unrecognized command line arguments\n";
+            std::cerr << "ERROR: unrecognized command line arguments\n";
+            invalidInput = true;
+        }
+
+        if( invalidInput )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "unrecognized p4Reduce configuration input" );
         }
     }
 

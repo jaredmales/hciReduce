@@ -9,15 +9,16 @@
  * \page p4_configuration_dictionary p4Reduce configuration dictionary
  *
  * This dictionary adds P4 settings to the shared \ref common_configuration_dictionary
- * "common configuration dictionary". Long options use `--dotted.key value`; the config-file column shows the
- * equivalent sectioned assignment. The FITS-keyword column names the card written to final and saved
+ * "common configuration dictionary". Long options use `--dotted.key value`; configuration files require a bare key
+ * under `[section]`, as described in the shared dictionary. The key/value columns use dotted shorthand only to keep
+ * the tables compact. The FITS-keyword column names the card written to final and saved
  * PSF-subtracted products. Keys containing spaces are emitted automatically as `HIERARCH` cards.
  * Analytic-PSF settings are intentionally absent from the ordinary science header; their provenance is recorded only
  * in the opt-in PSF products described below.
  *
  * \section p4_app_dictionary Application mode and scope
  *
- * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
  * | `--mode` | `mode=basic` | — | `basic` or `normal` | `basic` | Exact aliases for one configured, target-only P4 reduction. |
  * | `--showTiming` | `showTiming=true` | — | bool | `false` | Print the completed P4 reduction timing report to standard output. |
@@ -27,7 +28,7 @@
  *
  * \section p4_geometry_dictionary Search annuli and output support
  *
- * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
  * | `--geom.minRadius` | `geom.minRadius=3.5,6,8` | `HIERARCH P4 MIN RADIUS` | strictly ordered real pixels | required | Inclusive inner radii of P4 search annuli. |
  * | `--geom.maxRadius` | `geom.maxRadius=6,8,10` | `HIERARCH P4 MAX RADIUS` | matching ordered real-pixel vector | required | Exclusive outer radii. Annuli may not overlap. |
@@ -43,7 +44,7 @@
  *
  * \section p4_model_dictionary Predictor region and PCA modes
  *
- * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
  * | `--p4.regressionFrame` | `p4.regressionFrame=rotated` | `HIERARCH P4 FRAME` | `detector` or `rotated` | `detector` | Coordinate frame of the local regression. `detector` preserves the original uncentered algorithm; `rotated` uses direct sky-aligned sampling, a centered fit, and uncentered predictor application. |
  * | `--p4.numberImages` | `p4.numberImages=1` | `HIERARCH P4 NUMBER IMAGES` | nonnegative integer | `0` | For detector-frame regression, append `N` nearest qualifying earlier and `N` nearest qualifying later physical-PSF-disk blocks to each predictor row. At endpoints, extra qualifying images from the available side replace missing blocks. Each side must rotate by at least `2 * p4.psfRadius` at the annulus mean radius. P4 lowers an unattainable request to the greatest positive structurally usable radius, or uses same-image predictors when none exists. Values greater than zero are invalid with `regressionFrame=rotated`. |
@@ -79,7 +80,7 @@
  *
  * \section p4_memory_dictionary Memory and worker management
  *
- * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
  * | `--p4.memoryFraction` | `p4.memoryFraction=0.8` | `HIERARCH P4 MEMORY FRACTION` | real in `[0,1]` | `0.8` | Fraction of Linux `MemAvailable` usable by future P4 allocations. P4 reduces each annulus's worker count when its compact retained storage plus estimated private workspaces would exceed this budget. `0` disables automatic discovery and limiting. |
  *
@@ -92,12 +93,21 @@
  *
  * \section p4_psf_dictionary Frozen-model PSF calculation and output
  *
- * | CLI | Config-file form | PSF-product FITS keyword | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | PSF-product FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
  * | `--p4.psfFile` | `p4.psfFile=/path/template.fits` | `HIERARCH P4 PSF TEMPLATE` | readable, finite two-dimensional FITS image | unset | Centered PSF template at the same post-preprocessing stage as the P4 input. Setting the path enables local frozen-model response calculation without changing the science products. The stored normalization is preserved. |
  * | `--p4.psfStampSize` | `p4.psfStampSize=11` | `HIERARCH P4 PSF STAMP SIZE` | positive integer | `0` | Row and column size of each final square response stamp. Both odd and even sizes use geometric centers. Required when `psfFile` is set. |
  * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final `combine.method`. |
  * | `--p4.psfOutputPrefix` | `p4.psfOutputPrefix=p4PSF_` | — | nonempty path prefix | `p4PSF_` | Product prefix inside `output.directory`; parent directories are created automatically. |
+ *
+ * For example, enable PSF reconstruction in a configuration file with literal sectioned syntax:
+ *
+ * \code{.ini}
+ * [p4]
+ * psfFile=/path/template.fits
+ * psfStampSize=11
+ * outputPSFModels=true
+ * \endcode
  *
  * The initial implementation accepts `p4.psfFile` only with `p4.regressionFrame=detector`,
  * `p4.numberImages=0`, and `adi.postMedSub=false`. Unsupported combinations are rejected before regression. The
@@ -121,7 +131,7 @@
  *
  * \section p4_exclusion_dictionary Signal exclusion
  *
- * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
  * | `--p4.psfRadius` | `p4.psfRadius=pixels` | `HIERARCH P4 PSF RADIUS` | positive real pixels | required | Physical central radius excluded from predictors. |
  * | `--p4.exclusionRadiusBuffer` | `p4.exclusionRadiusBuffer=0.5` | `HIERARCH P4 EXCLUSION RADIUS BUFFER` | nonnegative real pixels | required | Explicit additional radius applied to the physical exclusion. `0.5` reproduces the prototype's effective buffer. |
@@ -176,7 +186,7 @@
  *
  * \section p4_diagnostics_dictionary Diagnostics and progress
  *
- * | CLI | Config-file form | FITS keyword | Type and limits | Default | Meaning |
+ * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
  * | `--p4.writeDiagnostics` | `p4.writeDiagnostics=true` | `HIERARCH P4 WRITE DIAGNOSTICS` | bool | `false` | Writes ownership, validity, canonical-region, rank, timing, and summary FITS diagnostics. Every diagnostic carries `HIERARCH P4 FRAME` provenance. |
  * | `--p4.diagnosticDirectory` | `p4.diagnosticDirectory=/path` | — | writable directory; required when diagnostics are enabled | `.` | Destination for P4 diagnostic products; missing parent directories are created automatically. |

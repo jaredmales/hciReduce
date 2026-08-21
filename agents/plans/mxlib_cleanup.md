@@ -333,9 +333,9 @@ Known non-blocking ownership follow-ups:
         specializations, so aggregate source-line coverage does not yet satisfy hciReduce's exact-call ownership
         gate for the new detector/sky final-processing entry point.
   - [ ] Bring the exact `mx::app::appConfigurator::readConfig()` path used by the permanent p4Reduce prototype-config
-        regression to 100% executable-line coverage. The current mxlib trace records 30/38 lines in this function;
-        missing cases include quiet file-not-found handling, parser/allocation failures, and recognized/unrecognized
-        source tracking.
+        regression and the p4Reduce/klipReduce malformed dotted-key regressions to 100% executable-line coverage. The
+        current mxlib trace records 30/38 lines in this function; missing cases include quiet file-not-found handling,
+        parser/allocation failures, and recognized/unrecognized source tracking.
   - [x] Repair the P4 annulus pixel-buffer path.
     - [x] Forward the documented `pixbuf` argument from `annulusCoords` and `annulusIndices` to
       `annulusCoordsWorker`.
