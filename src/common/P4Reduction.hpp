@@ -207,7 +207,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
      * \throws mx::exception if the regression frame is invalid, rotated regression is paired with post-median
      * subtraction, or final processing or output fails.
      */
-    int finalProcess();
+    int finalProcess( bool reportProgress = true /**< [in] whether to report final-processing stages to stderr */ );
 
   private:
     /** \cond P4Reduction_test_harness */

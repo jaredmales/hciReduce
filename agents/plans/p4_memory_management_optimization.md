@@ -217,6 +217,20 @@ OpenMP region with `num_threads(effectiveWorkers)`. A lower `OMP_NUM_THREADS` va
 policy; unavailable Linux discovery warns and leaves the OpenMP maximum unchanged. The local validation selected all
 five requested workers with a 1.99 MiB estimate per worker.
 
+### Full remote validation (2026-08-21)
+
+The compact implementation completed the AF Lep reduction with more than 8,000 images at 0.2-second coadds, 256 by
+256 pixels, 14 annuli, and 2,828 owned search pixels. At regression start it reported 99.3809 GiB available, a
+79.5047 GiB automatic budget, 1.24867 GiB of compact residuals, and a 3.99512 GiB one-mode materialization. The
+largest per-worker estimate was 657.726 MiB, so all 48 permitted workers fit and no automatic reduction was needed.
+P4 regression took 14,700.7 seconds and the complete reduction took 14,934.4 seconds. This validates that the bounded
+path can process the finer-coadd data set that motivated the work. The 0.2-second science product had lower SNR than
+the one-second product, so one-second coadds remain preferable for that data independently of memory feasibility.
+
+Because bounded finalization applies the shared ADI lifecycle once per output mode, its original progress reporting
+printed `derotating` and `combining` repeatedly. The lifecycle now supports suppressing per-call progress, and compact
+P4 reports each aggregate stage once while retaining per-mode processing and accumulated timing.
+
 ## Constraints
 
 - Preserve the current detector-frame interpolation values and predictor-column ordering bit-for-bit where practical;

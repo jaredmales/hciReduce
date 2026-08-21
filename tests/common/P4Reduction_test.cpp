@@ -555,6 +555,7 @@ TEST_CASE( "P4 compact finalization matches retained residual cubes", "[P4Reduct
     retained.m_modeFractions = { 0.2F, 0.4F };
     retained.m_numberImages = 1;
     retained.m_derotF.m_angles = { 0, 20, 40, 60, 80 };
+    retained.m_doDerotate = true;
     REQUIRE( retained.reduce() == 0 );
     REQUIRE( retained.m_psfsub.size() == 2 );
     REQUIRE( retained.m_psfsubValidity.size() == 2 );
@@ -568,8 +569,20 @@ TEST_CASE( "P4 compact finalization matches retained residual cubes", "[P4Reduct
     compact.m_modeFractions = { 0.2F, 0.4F };
     compact.m_numberImages = 1;
     compact.m_derotF.m_angles = retained.m_derotF.m_angles;
+    compact.m_doDerotate = true;
     compact.m_combineMethod = mx::improc::HCI::combine::mean;
-    REQUIRE( compact.reduce() == 0 );
+    std::string compactProgress;
+    {
+        CerrCapture capture;
+        REQUIRE( compact.reduce() == 0 );
+        compactProgress = capture.str();
+    }
+    const std::size_t derotatingPosition = compactProgress.find( "derotating\n" );
+    REQUIRE( derotatingPosition != std::string::npos );
+    REQUIRE( compactProgress.find( "derotating\n", derotatingPosition + 1 ) == std::string::npos );
+    const std::size_t combiningPosition = compactProgress.find( "combining\n" );
+    REQUIRE( combiningPosition != std::string::npos );
+    REQUIRE( compactProgress.find( "combining\n", combiningPosition + 1 ) == std::string::npos );
     REQUIRE( compact.m_psfsub.empty() );
     REQUIRE( compact.m_psfsubValidity.empty() );
     REQUIRE( compact.m_compactResidualBytes > 0 );

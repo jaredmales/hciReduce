@@ -1730,6 +1730,15 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     double derotationSeconds{ 0 };
     double combinationSeconds{ 0 };
     int result{ 0 };
+    if( this->m_postMedSub )
+    {
+        std::cerr << "Subtracting medians in post\n";
+    }
+    if( m_regressionFrame == P4RegressionFrame::detector && this->m_doDerotate )
+    {
+        std::cerr << "derotating\n";
+    }
+    std::cerr << "combining\n";
     try
     {
         for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
@@ -1772,7 +1781,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                 writeDiagnostic( "p4Validity_" + p4Index( output ) + ".fits", this->m_psfsubValidity[0] );
             }
 
-            result = finalProcess();
+            result = finalProcess( false );
             if( result != 0 )
             {
                 break;
@@ -2035,7 +2044,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess()
+int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess( bool reportProgress )
 {
     static_cast<void>( regressionFrameString( m_regressionFrame ) );
     if( m_regressionFrame == P4RegressionFrame::rotated && this->m_postMedSub )
@@ -2053,7 +2062,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess()
     }
     const ADIDataFrame dataFrame =
         m_regressionFrame == P4RegressionFrame::rotated ? ADIDataFrame::sky : ADIDataFrame::detector;
-    return this->ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( algorithmHeaderPointer, dataFrame );
+    return this->ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( algorithmHeaderPointer,
+                                                                               dataFrame,
+                                                                               reportProgress );
 }
 
 template struct P4Reduction<float, ADIDerotator<float, verbose::vv>, verbose::vv>;

@@ -239,7 +239,8 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
      * \throws mx::exception if combination or output fails.
      */
     int finalProcess( const fitsHeaderT *algorithmHeader = nullptr, /**< [in] optional algorithm-specific FITS cards */
-                      ADIDataFrame dataFrame = ADIDataFrame::detector /**< [in] frame of the input residual cubes */ );
+                      ADIDataFrame dataFrame = ADIDataFrame::detector, /**< [in] frame of the input residual cubes */
+                      bool reportProgress = true /**< [in] whether to report final-processing stages to stderr */ );
 
     double t_fake_begin{ 0 };
     double t_fake_end{ 0 };
@@ -985,7 +986,8 @@ void ADIobservation<realT, derotFunctObj, verboseT>::derotate()
 
 template <typename realT, class derotFunctObj, class verboseT>
 int ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( const fitsHeaderT *algorithmHeader,
-                                                                  ADIDataFrame dataFrame )
+                                                                  ADIDataFrame dataFrame,
+                                                                  bool reportProgress )
 {
     if( dataFrame != ADIDataFrame::detector && dataFrame != ADIDataFrame::sky )
     {
@@ -1000,7 +1002,10 @@ int ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( const fitsHead
 
     if( m_postMedSub )
     {
-        std::cerr << "Subtracting medians in post\n";
+        if( reportProgress )
+        {
+            std::cerr << "Subtracting medians in post\n";
+        }
 
         for( size_t n = 0; n < this->m_psfsub.size(); ++n )
         {
@@ -1064,13 +1069,19 @@ int ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( const fitsHead
 
     if( dataFrame == ADIDataFrame::detector && m_doDerotate )
     {
-        std::cerr << "derotating\n";
+        if( reportProgress )
+        {
+            std::cerr << "derotating\n";
+        }
         derotate();
     }
 
     if( this->m_combineMethod != HCI::combine::none )
     {
-        std::cerr << "combining\n";
+        if( reportProgress )
+        {
+            std::cerr << "combining\n";
+        }
         this->combineFinim();
     }
 
@@ -1081,7 +1092,10 @@ int ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( const fitsHead
 
     if( this->m_doWriteFinim == true || this->m_doOutputPSFSub == true )
     {
-        std::cerr << "writing\n";
+        if( reportProgress )
+        {
+            std::cerr << "writing\n";
+        }
 
         fitsHeaderT head;
         stdFitsHeader( &head );
