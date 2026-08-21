@@ -973,23 +973,17 @@ int P4Reduction<realT, derotFunctObj, verboseT>::localPSFModelDimension( int out
         throw std::invalid_argument( "P4 PSF output and template dimensions must be positive" );
     }
     const long double outputHalfExtent = 0.5L * static_cast<long double>( outputStampSize - 1 );
-    const long double requiredHalfExtent = std::sqrt( 2.0L ) * outputHalfExtent + 4.0L;
-    const long double radius = std::ceil( requiredHalfExtent );
-    const long double dimension = 2.0L * radius + 1.0L;
+    const long double rotatedHalfExtent = std::sqrt( 2.0L ) * outputHalfExtent;
+
+    // Reconstruction composes one four-sample PSF-shift footprint with one four-sample derotation footprint. The
+    // phase-matched exact bound differs by half a sample for integer- and half-integer-centered local grids.
+    const long double dimension = templateDimension % 2 == 0 ? 2.0L * std::floor( rotatedHalfExtent + 0.5L ) + 8.0L
+                                                             : 2.0L * std::floor( rotatedHalfExtent ) + 9.0L;
     if( dimension > static_cast<long double>( std::numeric_limits<int>::max() ) )
     {
         throw std::overflow_error( "P4 local PSF dimension exceeds int range" );
     }
-    int checkedDimension = static_cast<int>( dimension );
-    if( checkedDimension % 2 != templateDimension % 2 )
-    {
-        if( checkedDimension == std::numeric_limits<int>::max() )
-        {
-            throw std::overflow_error( "P4 local PSF dimension exceeds int range" );
-        }
-        ++checkedDimension;
-    }
-    return checkedDimension;
+    return static_cast<int>( dimension );
 }
 
 template <typename realT, class derotFunctObj, class verboseT>

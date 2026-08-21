@@ -521,10 +521,15 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
     REQUIRE( largeWorkerBytes > smallWorkerBytes );
     REQUIRE( coefficientWorkerBytes > largeWorkerBytes );
     REQUIRE( psfWorkerBytes > coefficientWorkerBytes );
-    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 11, 256 ) == 26 );
-    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 11, 255 ) == 25 );
-    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 4, 10 ) == 16 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 11, 256 ) == 22 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 11, 255 ) == 23 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 4, 10 ) == 12 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 4, 11 ) == 13 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 1, 10 ) == 8 );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 1, 11 ) == 9 );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 0, 10 ) );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 10, 0 ) );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFModelDimension( std::numeric_limits<int>::max(), 10 ) );
     REQUIRE( mx::improc::P4ReductionTestAccess::localPSFBytes( 20, 3, 9, 10 ) == 20 * 3 * ( 90 * 4 + 1 ) );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFBytes( 0, 3, 9, 10 ) );
     REQUIRE( mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 20, 7, 5, 9, 10 ) > 20 * 25 * sizeof( float ) );
@@ -677,16 +682,16 @@ TEST_CASE( "P4 reduction captures opt-in local PSF models", "[P4Reduction][PSF][
 
     REQUIRE( modeled.m_localPSFModels.size() == 1 );
     REQUIRE( modeled.m_localPSFValidity.size() == 1 );
-    REQUIRE( modeled.m_localPSFRows == 15 );
-    REQUIRE( modeled.m_localPSFColumns == 16 );
-    REQUIRE( modeled.m_localPSFModels[0].rows() == 240 );
+    REQUIRE( modeled.m_localPSFRows == 13 );
+    REQUIRE( modeled.m_localPSFColumns == 12 );
+    REQUIRE( modeled.m_localPSFModels[0].rows() == 156 );
     REQUIRE( modeled.m_localPSFModels[0].cols() ==
              static_cast<Eigen::Index>( modeled.m_regionStatistics[0].searchPixelCount ) );
     REQUIRE( modeled.m_localPSFValidity[0].sum() ==
              static_cast<double>( modeled.m_regionStatistics[0].validLocalFitCount ) );
     REQUIRE( modeled.m_localPSFModels[0].abs().sum() > 0 );
     REQUIRE( modeled.m_localPSFBytes ==
-             modeled.m_regionStatistics[0].searchPixelCount * static_cast<std::size_t>( 240 * sizeof( float ) + 1 ) );
+             modeled.m_regionStatistics[0].searchPixelCount * static_cast<std::size_t>( 156 * sizeof( float ) + 1 ) );
     REQUIRE( modeled.m_psfModelBytes > static_cast<std::size_t>( psfTemplate.size() ) * sizeof( float ) );
     REQUIRE( modeled.m_regionStatistics[0].estimatedWorkerBytes > baseline.m_regionStatistics[0].estimatedWorkerBytes );
     REQUIRE( modeled.m_timing.psfWorkerSeconds >= 0 );
