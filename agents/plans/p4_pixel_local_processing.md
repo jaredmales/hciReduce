@@ -349,13 +349,31 @@ hciReduce unless a second consumer establishes a stable public interface.
 
 ### 7. Measure and connect a negative-companion optimizer
 
-- [ ] On the small local configuration, record unique detector fits, requested sparse samples, wall time, worker time,
+- [x] On the small local configuration, record unique detector fits, requested sparse samples, wall time, worker time,
   and peak RSS relative to a complete rerun.
 - [ ] Repeat on the remote 1-second-coadd dataset and confirm repeated trials reuse loaded/preprocessed state.
-- [ ] Define the optimizer's merit function, fitting aperture, selected P4 mode or joint-mode rule, parameter bounds,
+- [x] Define the optimizer's merit function, fitting aperture, selected P4 mode or joint-mode rule, parameter bounds,
   convergence rule, and uncertainty method in a separate plan.
 - [ ] Use the fitted negative source in one complete reduction, regenerate the spatially variable P4 PSF/filter, and
   determine whether the response-normalization trough and filtered ring remain in the signal-free state.
+
+The separate optimizer plan is `agents/plans/p4_negative_companion_optimization.md`. The authoritative real-data
+configuration is the ignored working file `working/roc/p4Reduce_afLepNaco_pl.conf`, which reads the 621 already-
+preprocessed coadd5 `pp` images. A turnaround comparison retained 96 of those images, all 19 configured annuli, three
+mode fractions, and four OpenMP workers. It measured 6.030045 seconds and 987,556 KiB peak RSS for the complete field
+versus 2.278965 seconds and 940,372 KiB for an 11-pixel finite-amplitude local trial. The local path reduced 5,024
+complete detector fits to 256 unique fits and 482,304 complete residual rows to 20,803 requested sparse samples. It
+was about 2.65 times faster end to end and 3.00 times faster in the P4 algorithm; the loaded input cube dominated both
+peak-memory measurements.
+
+The real 621-frame `finim_0038.fits` trial used 487 unique fits, 131,180 sparse samples, and 31,806,752 bytes of sparse
+geometry. Every pixel in every 11-by-11 mode plane was valid, and the negative response aligned with the continuous
+source coordinate without an odd-crop center shift. Its console timing and peak RSS were not captured.
+
+Local repeat-state tests now exercise an A-to-B-to-A contrast sequence on one `P4Reduction` instance. The repeated A
+result agrees within `1e-6`, B changes the result, and the loaded cube is unchanged. A file-backed lifecycle test also
+confirms that a second reduction call does not invoke the input post-read hook again. The remote one-second-coadd
+timing and one-process optimizer loop remain the outstanding second checkpoint.
 
 ## Deferred broader influence products
 

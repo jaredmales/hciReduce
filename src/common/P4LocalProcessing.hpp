@@ -223,7 +223,7 @@ class P4TrialSource
                     const std::vector<double> &angles, /**< [in] one finite derotation angle per target frame */
                     double separation,                 /**< [in] finite nonnegative sky separation in pixels */
                     double positionAngle,              /**< [in] finite PA in degrees east of north */
-                    double contrast,                   /**< [in] finite nonzero trial contrast */
+                    double contrast,                   /**< [in] finite trial contrast, including zero */
                     const std::vector<float> &scales /**< [in] one finite per-frame flux scale */ );
 
     /// Report whether a successful configuration is available.

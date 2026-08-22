@@ -72,6 +72,10 @@
   * \ingroup unit_tests
   */
 
+/** \defgroup P4NegativeOptimizer_unit_tests P4 Negative-Companion Optimizer Unit Tests
+  * \ingroup unit_tests
+  */
+
 /** \defgroup P4PSFModel_unit_tests P4 Local PSF Model Unit Tests
   * \ingroup unit_tests
   */

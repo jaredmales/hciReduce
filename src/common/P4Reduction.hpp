@@ -80,6 +80,45 @@ struct P4RegionStatistics
     std::vector<std::size_t> rankInvalidCounts;   ///< Rank-insufficient search pixels for each requested output plane.
 };
 
+/// One finite-amplitude pixel-local trial evaluated against the pristine target cube.
+/** \ingroup programming_library */
+struct P4LocalTrial
+{
+    double separation{ 0 };    ///< Nonnegative sky separation in pixels.
+
+    double positionAngle{ 0 }; ///< Position angle in degrees east of north.
+
+    double contrast{ 0 };      ///< Signed source contrast, including zero for the unperturbed baseline.
+};
+
+/// Owning result of one finite-amplitude pixel-local P4 evaluation.
+/** \tparam realT local residual and validity storage type
+ * \ingroup programming_library
+ */
+template <typename realT>
+struct P4LocalEvaluation
+{
+    eigenCube<realT> residual;          ///< Combined local residual cube in configured mode order.
+
+    eigenCube<realT> validity;          ///< Nonzero combined local validity cube matching `residual`.
+
+    int originRow{ 0 };                 ///< Full-image row occupied by local element `(0,0)`.
+
+    int originColumn{ 0 };              ///< Full-image column occupied by local element `(0,0)`.
+
+    double sourceRow{ 0 };              ///< Continuous full-image trial-source row.
+
+    double sourceColumn{ 0 };           ///< Continuous full-image trial-source column.
+
+    std::size_t searchCount{ 0 };       ///< Unique detector regressions evaluated by the local path.
+
+    std::size_t sparseSampleCount{ 0 }; ///< Requested detector-pixel/frame residual pairs.
+
+    double elapsedSeconds{ 0 };         ///< Total elapsed time for this evaluation.
+
+    ReductionTiming timing;             ///< Detailed algorithm timing for this evaluation.
+};
+
 /// Target-only Pixel Prediction Post-Processing reduction orchestrator.
 /** P4 learns one in-sample temporal regression per search pixel. Predictor geometry is fixed within each annulus,
  * while numerical workspaces are private to OpenMP workers. The initial supported implementation uses float image
@@ -250,6 +289,15 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
      * \throws mx::exception for invalid configuration, data, geometry, numerical, diagnostic, or output state.
      */
     int reduce();
+
+    /// Evaluate one local trial without writing intermediate products or changing the configured trial tuple.
+    /** The returned cubes own their storage and remain valid after later evaluations. The pristine loaded target cube,
+     * file selection, headers, angles, configured fake tuple, and output controls are preserved.
+     *
+     * \returns an owning local residual, validity, coordinate, count, and timing result
+     * \throws mx::exception for invalid local configuration, input, geometry, or numerical state
+     */
+    P4LocalEvaluation<realT> evaluateLocal( const P4LocalTrial &trial /**< [in] replacement single local trial */ );
 
     /// Run explicit ordered search-annulus radii through P4 and the shared ADI final lifecycle.
     /** The supplied vectors replace the configured `geom.minRadius` and `geom.maxRadius` values.

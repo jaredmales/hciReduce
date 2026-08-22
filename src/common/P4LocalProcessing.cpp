@@ -482,7 +482,7 @@ void P4TrialSource::configure( const imageT &sourceTemplate,
         throw std::invalid_argument( "P4 local trial source dimensions and frame vectors must be nonempty" );
     }
     if( !p4LocalFinite( separation ) || separation < 0 || !p4LocalFinite( positionAngle ) ||
-        !p4LocalFinite( contrast ) || contrast == 0 || !std::all_of( angles.begin(), angles.end(), p4LocalFinite ) )
+        !p4LocalFinite( contrast ) || !std::all_of( angles.begin(), angles.end(), p4LocalFinite ) )
     {
         throw std::invalid_argument( "P4 local trial position and contrast must be finite and valid" );
     }

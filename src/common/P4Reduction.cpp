@@ -878,11 +878,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
                                            "fake.contrast value" );
         }
         if( !mx::math::isFinite( this->m_fakeSep[0] ) || this->m_fakeSep[0] < 0 ||
-            !mx::math::isFinite( this->m_fakePA[0] ) || !mx::math::isFinite( this->m_fakeContrast[0] ) ||
-            this->m_fakeContrast[0] == 0 )
+            !mx::math::isFinite( this->m_fakePA[0] ) || !mx::math::isFinite( this->m_fakeContrast[0] ) )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "local fake separation, PA, and nonzero contrast must be finite" );
+                                           "local fake separation, PA, and contrast must be finite" );
         }
         if( !m_psfFile.empty() || m_outputPSFModels || m_psfFilter )
         {
@@ -1938,6 +1937,70 @@ int P4Reduction<realT, derotFunctObj, verboseT>::reduce()
         }
     }
     return regions( m_minRadius, m_maxRadius );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+P4LocalEvaluation<realT> P4Reduction<realT, derotFunctObj, verboseT>::evaluateLocal( const P4LocalTrial &trial )
+{
+    if( m_localStampSize <= 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "P4 local evaluation requires positive p4.localStampSize" );
+    }
+    if( !mx::math::isFinite( trial.separation ) || trial.separation < 0 || !mx::math::isFinite( trial.positionAngle ) ||
+        !mx::math::isFinite( trial.contrast ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                       "P4 local trial separation, PA, and contrast must be finite and valid" );
+    }
+
+    const std::vector<realT> configuredSeparation = this->m_fakeSep;
+    const std::vector<realT> configuredPositionAngle = this->m_fakePA;
+    const std::vector<realT> configuredContrast = this->m_fakeContrast;
+    const int configuredWriteFinal = this->m_doWriteFinim;
+    const bool configuredWriteDiagnostics = m_writeDiagnostics;
+    this->m_fakeSep = { static_cast<realT>( trial.separation ) };
+    this->m_fakePA = { static_cast<realT>( trial.positionAngle ) };
+    this->m_fakeContrast = { static_cast<realT>( trial.contrast ) };
+    this->m_doWriteFinim = false;
+    m_writeDiagnostics = false;
+
+    try
+    {
+        const int result = reduce();
+        if( result != 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::exception,
+                                           "P4 local evaluation returned a nonzero reduction status" );
+        }
+        P4LocalEvaluation<realT> evaluation;
+        evaluation.residual = this->m_finim;
+        evaluation.validity = m_localFinalValidity;
+        evaluation.originRow = m_localOriginRow;
+        evaluation.originColumn = m_localOriginColumn;
+        evaluation.sourceRow = m_localSourceRow;
+        evaluation.sourceColumn = m_localSourceColumn;
+        evaluation.searchCount = m_localSearchCount;
+        evaluation.sparseSampleCount = m_localSparseSampleCount;
+        evaluation.elapsedSeconds = this->t_end - this->t_begin;
+        evaluation.timing = m_timing;
+
+        this->m_fakeSep = configuredSeparation;
+        this->m_fakePA = configuredPositionAngle;
+        this->m_fakeContrast = configuredContrast;
+        this->m_doWriteFinim = configuredWriteFinal;
+        m_writeDiagnostics = configuredWriteDiagnostics;
+        return evaluation;
+    }
+    catch( ... )
+    {
+        this->m_fakeSep = configuredSeparation;
+        this->m_fakePA = configuredPositionAngle;
+        this->m_fakeContrast = configuredContrast;
+        this->m_doWriteFinim = configuredWriteFinal;
+        m_writeDiagnostics = configuredWriteDiagnostics;
+        throw;
+    }
 }
 
 template <typename realT, class derotFunctObj, class verboseT>

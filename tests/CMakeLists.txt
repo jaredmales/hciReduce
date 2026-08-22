@@ -29,6 +29,7 @@ set(HCIREDUCE_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4RotatedGrid_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PCA_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4LocalProcessing_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/P4NegativeOptimizer_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PSFFilter_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PSFModel_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PSFReconstructor_test.cpp

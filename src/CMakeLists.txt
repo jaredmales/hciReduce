@@ -14,6 +14,7 @@ set(libheaders common/HCI.hpp
                common/P4RotatedGrid.hpp
                common/P4PCA.hpp
                common/P4LocalProcessing.hpp
+               common/P4NegativeOptimizer.hpp
                common/P4PSFFilter.hpp
                common/P4PSFModel.hpp
                common/P4PSFReconstructor.hpp
@@ -27,6 +28,7 @@ set(libsource common/HCIobservation.cpp
               common/P4RotatedGrid.cpp
               common/P4PCA.cpp
               common/P4LocalProcessing.cpp
+              common/P4NegativeOptimizer.cpp
               common/P4PSFFilter.cpp
               common/P4PSFModel.cpp
               common/P4PSFReconstructor.cpp

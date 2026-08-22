@@ -3,15 +3,23 @@
  * \author Jared R. Males
  */
 
+#include <algorithm>
+#include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <format>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
 
 #include <mx/app/application.hpp>
+#include <mx/ioutils/fits/fitsFile.hpp>
 
 #include "../common/ADIDerotator.hpp"
+#include "../common/P4NegativeOptimizer.hpp"
 #include "../common/P4Reduction.hpp"
 
 /// Command-line application for Pixel Prediction Post-Processing.
@@ -26,6 +34,256 @@ class p4Reduce : public mx::app::application
     bool m_showTiming{ false };     ///< Whether to print the completed reduction timing report.
 
     mx::improc::P4Reductionf m_obs; ///< Configured P4 observation and reduction state.
+
+    /** \name P4 Negative-Companion Optimization - Data
+     * @{
+     */
+
+    bool m_optimizeEnabled{ false };            ///< Whether to run contrast-only local negative-companion optimization.
+
+    double m_optimizeModeFraction{ 0.15 };      ///< Exact configured P4 mode fraction used by the merit function.
+
+    double m_optimizeApertureRadius{ 0 };       ///< Merit radius; zero selects twice `p4.psfRadius`.
+
+    bool m_optimizeFitPosition{ false };        ///< Reserved joint-position switch; rejected by milestone one.
+
+    double m_optimizeContrastLower{ -0.05 };    ///< Inclusive lower signed contrast bound.
+
+    double m_optimizeContrastUpper{ 0 };        ///< Inclusive upper signed contrast bound.
+
+    std::size_t m_optimizeMaxEvaluations{ 64 }; ///< Maximum number of distinct local P4 calls.
+
+    std::size_t m_optimizeValidationSamples{ 21 };       ///< Uniform dense validation-grid size.
+
+    double m_optimizeParameterTolerance{ 1e-5 };         ///< Absolute contrast convergence tolerance.
+
+    double m_optimizeMeritTolerance{ 1e-6 };             ///< Relative dense-grid merit agreement tolerance.
+
+    double m_optimizePositionBound{ 1 };                 ///< Reserved Cartesian position bound in pixels.
+
+    std::size_t m_optimizeUncertaintyBlocks{ 8 };        ///< Reserved contiguous jackknife block count.
+
+    std::string m_optimizeOutputPrefix{ "p4Negative_" }; ///< Prefix for optimizer products in output.directory.
+
+    /// @}
+
+    /// Return the exact configured output-plane index selected by the optimizer.
+    std::size_t optimizerModeIndex() const
+    {
+        for( std::size_t index = 0; index < m_obs.m_modeFractions.size(); ++index )
+        {
+            const double fraction = static_cast<double>( m_obs.m_modeFractions[index] );
+            const double tolerance = 8 * static_cast<double>( std::numeric_limits<float>::epsilon() ) *
+                                     std::max( { 1.0, std::abs( fraction ), std::abs( m_optimizeModeFraction ) } );
+            if( std::abs( fraction - m_optimizeModeFraction ) <= tolerance )
+            {
+                return index;
+            }
+        }
+        throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                              "p4Optimize.modeFraction is not a configured p4.modeFractions entry" );
+    }
+
+    /// Return the configured or PSF-radius-derived optimizer aperture radius.
+    double optimizerApertureRadius() const
+    {
+        return m_optimizeApertureRadius > 0 ? m_optimizeApertureRadius : 2 * static_cast<double>( m_obs.m_psfRadius );
+    }
+
+    /// Append optimizer configuration and outcome provenance to one FITS header.
+    void appendOptimizerHeader(
+        mx::improc::P4Reductionf::fitsHeaderT &header,          /**< [in,out] header receiving optimizer cards */
+        const mx::improc::P4ContrastOptimizationResult &result, /**< [in] completed optimizer outcome */
+        double apertureRadius /**< [in] effective merit-aperture radius */ ) const
+    {
+        header.append<int>( "P4 OPTIMIZER", 1, "contrast-only negative-companion optimizer enabled" );
+        header.append<double>( "P4 OPT MODE FRACTION", m_optimizeModeFraction, "optimized P4 mode fraction" );
+        header.append<double>( "P4 OPT APERTURE RADIUS", apertureRadius, "uniform L2 aperture radius [pixels]" );
+        header.append<double>( "P4 OPT CONTRAST LOWER", m_optimizeContrastLower, "lower contrast bound" );
+        header.append<double>( "P4 OPT CONTRAST UPPER", m_optimizeContrastUpper, "upper contrast bound" );
+        header.append<double>( "P4 OPT BEST CONTRAST", result.bestContrast, "best evaluated signed contrast" );
+        header.append<double>( "P4 OPT BEST MERIT", result.bestMerit, "best aperture mean-square residual" );
+        header.append<int>( "P4 OPT CONVERGED", result.converged ? 1 : 0, "bounded minimizer convergence" );
+        header.append<int>( "P4 OPT DENSE AGREEMENT", result.denseAgreement ? 1 : 0, "dense-grid basin agreement" );
+        header.append<unsigned long long>( "P4 OPT EVALUATIONS",
+                                           static_cast<unsigned long long>( result.evaluationCount ),
+                                           "distinct local evaluations" );
+        header.append<std::string>( "P4 OPT STATUS", result.status, "optimizer completion status" );
+    }
+
+    /// Write the summary, merit table, best local FITS products, and converged configuration fragment.
+    void writeOptimizerOutputs(
+        const mx::improc::P4ContrastOptimizationResult &result, /**< [in] completed optimizer outcome */
+        const mx::improc::P4LocalTrial &initialTrial,           /**< [in] configured initial trial */
+        double apertureRadius /**< [in] effective merit-aperture radius */ )
+    {
+        namespace fs = std::filesystem;
+        const fs::path outputDirectory = m_obs.m_outputDir.empty() ? fs::path( "." ) : fs::path( m_obs.m_outputDir );
+        const fs::path prefixPath = outputDirectory / m_optimizeOutputPrefix;
+        std::error_code directoryError;
+        fs::create_directories( prefixPath.parent_path(), directoryError );
+        if( directoryError )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::fileoerr,
+                                                  "could not create P4 optimizer output directory: " +
+                                                      directoryError.message() );
+        }
+
+        const fs::path meritPath( prefixPath.string() + "merit.csv" );
+        std::ofstream meritStream( meritPath );
+        if( !meritStream )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::fileoerr,
+                                                  "could not open P4 optimizer merit table " + meritPath.string() );
+        }
+        meritStream << "evaluation,stage,contrast,merit,elapsed_seconds\n" << std::setprecision( 17 );
+        for( std::size_t index = 0; index < result.samples.size(); ++index )
+        {
+            const auto &sample = result.samples[index];
+            meritStream << index << ',' << ( sample.denseValidation ? "dense" : "brent" ) << ',' << sample.contrast
+                        << ',' << sample.merit << ',' << sample.elapsedSeconds << '\n';
+        }
+        meritStream.close();
+        if( !meritStream )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::fileoerr,
+                                                  "could not write P4 optimizer merit table " + meritPath.string() );
+        }
+
+        const fs::path summaryPath( prefixPath.string() + "summary.yaml" );
+        std::ofstream summaryStream( summaryPath );
+        if( !summaryStream )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::fileoerr,
+                                                  "could not open P4 optimizer summary " + summaryPath.string() );
+        }
+        summaryStream << std::setprecision( 17 ) << "p4NegativeOptimization:\n"
+                      << "  status: \"" << result.status << "\"\n"
+                      << "  converged: " << ( result.converged ? "true" : "false" ) << "\n"
+                      << "  denseAgreement: " << ( result.denseAgreement ? "true" : "false" ) << "\n"
+                      << "  initial:\n"
+                      << "    separation: " << initialTrial.separation << "\n"
+                      << "    positionAngle: " << initialTrial.positionAngle << "\n"
+                      << "    contrast: " << initialTrial.contrast << "\n"
+                      << "  fitted:\n"
+                      << "    separation: " << initialTrial.separation << "\n"
+                      << "    positionAngle: " << initialTrial.positionAngle << "\n"
+                      << "    contrast: " << result.bestContrast << "\n"
+                      << "  modeFraction: " << m_optimizeModeFraction << "\n"
+                      << "  apertureRadius: " << apertureRadius << "\n"
+                      << "  contrastBounds: [" << m_optimizeContrastLower << ", " << m_optimizeContrastUpper << "]\n"
+                      << "  evaluationCount: " << result.evaluationCount << "\n"
+                      << "  bestMerit: " << result.bestMerit << "\n"
+                      << "  evaluationElapsedSeconds: " << result.evaluationElapsedSeconds << "\n"
+                      << "  timing:\n"
+                      << "    geometryElapsedSeconds: " << result.timing.geometryElapsedSeconds << "\n"
+                      << "    regressionElapsedSeconds: " << result.timing.regressionElapsedSeconds << "\n"
+                      << "    samplingWorkerSeconds: " << result.timing.samplingWorkerSeconds << "\n"
+                      << "    gramWorkerSeconds: " << result.timing.gramWorkerSeconds << "\n"
+                      << "    eigensolveWorkerSeconds: " << result.timing.eigensolveWorkerSeconds << "\n"
+                      << "    projectionWorkerSeconds: " << result.timing.projectionWorkerSeconds << "\n";
+        summaryStream.close();
+        if( !summaryStream )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::fileoerr,
+                                                  "could not write P4 optimizer summary " + summaryPath.string() );
+        }
+
+        m_obs.m_fakeSep = { static_cast<float>( initialTrial.separation ) };
+        m_obs.m_fakePA = { static_cast<float>( initialTrial.positionAngle ) };
+        m_obs.m_fakeContrast = { static_cast<float>( result.bestContrast ) };
+        m_obs.m_finim = result.bestEvaluation.residual;
+        m_obs.m_localFinalValidity = result.bestEvaluation.validity;
+
+        mx::improc::P4Reductionf::fitsHeaderT optimizerHeader;
+        m_obs.appendReductionHeader( optimizerHeader );
+        appendOptimizerHeader( optimizerHeader, result, apertureRadius );
+        optimizerHeader.append<std::string>( "P4 PRODUCT ROLE", "LOCAL_RESIDUAL", "P4 product role" );
+        const fs::path residualPath( prefixPath.string() + "best.fits" );
+        m_obs.writeFinimAtPath( residualPath.string(), &optimizerHeader );
+
+        mx::improc::P4Reductionf::fitsHeaderT validityAdditional;
+        m_obs.appendReductionHeader( validityAdditional );
+        appendOptimizerHeader( validityAdditional, result, apertureRadius );
+        validityAdditional.append<std::string>( "P4 PRODUCT ROLE", "LOCAL_VALIDITY", "P4 product role" );
+        mx::improc::P4Reductionf::fitsHeaderT validityHeader;
+        m_obs.finalImageHeader( validityHeader, &validityAdditional );
+        const fs::path validityPath( prefixPath.string() + "best_validity.fits" );
+        mx::fits::fitsFile<float, mx::verbose::vv> writer;
+        const mx::error_t validityResult =
+            writer.write( validityPath.string(), m_obs.m_localFinalValidity, validityHeader );
+        if( validityResult != mx::error_t::noerror )
+        {
+            throw mx::exception<mx::verbose::vv>( validityResult,
+                                                  "could not write P4 optimizer validity " + validityPath.string() );
+        }
+        std::cerr << "P4 optimizer validity written to: " << validityPath.string() << '\n';
+
+        if( result.converged && result.denseAgreement )
+        {
+            const fs::path configurationPath( prefixPath.string() + "best.conf" );
+            std::ofstream configurationStream( configurationPath );
+            if( !configurationStream )
+            {
+                throw mx::exception<mx::verbose::vv>( mx::error_t::fileoerr,
+                                                      "could not open P4 optimizer configuration fragment " +
+                                                          configurationPath.string() );
+            }
+            configurationStream << std::setprecision( 17 ) << "[fake]\n"
+                                << "sep=" << initialTrial.separation << '\n'
+                                << "PA=" << initialTrial.positionAngle << '\n'
+                                << "contrast=" << result.bestContrast << '\n';
+            configurationStream.close();
+            if( !configurationStream )
+            {
+                throw mx::exception<mx::verbose::vv>( mx::error_t::fileoerr,
+                                                      "could not write P4 optimizer configuration fragment " +
+                                                          configurationPath.string() );
+            }
+        }
+    }
+
+    /// Execute the opt-in contrast-only optimizer and persist only its final products.
+    int executeOptimizer()
+    {
+        const std::size_t modeIndex = optimizerModeIndex();
+        const double apertureRadius = optimizerApertureRadius();
+        const mx::improc::P4LocalTrial initialTrial{ static_cast<double>( m_obs.m_fakeSep[0] ),
+                                                     static_cast<double>( m_obs.m_fakePA[0] ),
+                                                     static_cast<double>( m_obs.m_fakeContrast[0] ) };
+        mx::improc::P4ContrastOptimizerConfig optimizerConfiguration;
+        optimizerConfiguration.contrastLower = m_optimizeContrastLower;
+        optimizerConfiguration.contrastUpper = m_optimizeContrastUpper;
+        optimizerConfiguration.maxEvaluations = m_optimizeMaxEvaluations;
+        optimizerConfiguration.validationSamples = m_optimizeValidationSamples;
+        optimizerConfiguration.parameterTolerance = m_optimizeParameterTolerance;
+        optimizerConfiguration.meritTolerance = m_optimizeMeritTolerance;
+
+        const auto evaluate = [this, &initialTrial]( double contrast )
+        {
+            mx::improc::P4LocalTrial trial = initialTrial;
+            trial.contrast = contrast;
+            return m_obs.evaluateLocal( trial );
+        };
+        const mx::improc::P4ContrastOptimizationResult result =
+            mx::improc::optimizeP4Contrast( optimizerConfiguration, evaluate, modeIndex, apertureRadius );
+        writeOptimizerOutputs( result, initialTrial, apertureRadius );
+        std::cout << std::setprecision( 10 ) << "P4 negative-companion optimization: " << result.status
+                  << ", contrast=" << result.bestContrast << ", merit=" << result.bestMerit
+                  << ", evaluations=" << result.evaluationCount << '\n';
+        if( m_showTiming )
+        {
+            std::cout << "P4 optimizer times:\n"
+                      << "  Local evaluations: " << result.evaluationElapsedSeconds << " elapsed sec\n"
+                      << "    Geometry: " << result.timing.geometryElapsedSeconds << " elapsed sec\n"
+                      << "    P4 algorithm: " << result.timing.regressionElapsedSeconds << " elapsed sec\n"
+                      << "      Sampling: " << result.timing.samplingWorkerSeconds << " worker sec\n"
+                      << "      Gram construction: " << result.timing.gramWorkerSeconds << " worker sec\n"
+                      << "      EigenDecomposition: " << result.timing.eigensolveWorkerSeconds << " worker sec\n"
+                      << "      Projection/residual: " << result.timing.projectionWorkerSeconds << " worker sec\n";
+        }
+        return result.converged && result.denseAgreement ? 0 : EXIT_FAILURE;
+    }
 
   public:
     /// Construct the application with its standard configuration paths.
@@ -60,6 +318,124 @@ class p4Reduce : public mx::app::application
                     "bool",
                     "print the completed reduction timing report to standard output" );
 
+        config.add( "p4Optimize.enabled",
+                    "",
+                    "p4Optimize.enabled",
+                    mx::app::argType::True,
+                    "p4Optimize",
+                    "enabled",
+                    false,
+                    "bool",
+                    "run bounded contrast-only optimization through the P4 local path" );
+        config.add( "p4Optimize.modeFraction",
+                    "",
+                    "p4Optimize.modeFraction",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "modeFraction",
+                    false,
+                    "double",
+                    "exact configured P4 mode fraction used by the optimizer; default 0.15" );
+        config.add( "p4Optimize.apertureRadius",
+                    "",
+                    "p4Optimize.apertureRadius",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "apertureRadius",
+                    false,
+                    "double",
+                    "positive L2 aperture radius; zero selects twice p4.psfRadius" );
+        config.add( "p4Optimize.fitPosition",
+                    "",
+                    "p4Optimize.fitPosition",
+                    mx::app::argType::True,
+                    "p4Optimize",
+                    "fitPosition",
+                    false,
+                    "bool",
+                    "fit position as well as contrast; reserved and currently rejected" );
+        config.add( "p4Optimize.contrastLower",
+                    "",
+                    "p4Optimize.contrastLower",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "contrastLower",
+                    false,
+                    "double",
+                    "inclusive lower signed contrast bound; default -0.05" );
+        config.add( "p4Optimize.contrastUpper",
+                    "",
+                    "p4Optimize.contrastUpper",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "contrastUpper",
+                    false,
+                    "double",
+                    "inclusive nonpositive upper signed contrast bound; default 0" );
+        config.add( "p4Optimize.maxEvaluations",
+                    "",
+                    "p4Optimize.maxEvaluations",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "maxEvaluations",
+                    false,
+                    "size_t",
+                    "maximum distinct local P4 calls; default 64" );
+        config.add( "p4Optimize.validationSamples",
+                    "",
+                    "p4Optimize.validationSamples",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "validationSamples",
+                    false,
+                    "size_t",
+                    "number of uniform dense-grid validation samples; default 21" );
+        config.add( "p4Optimize.parameterTolerance",
+                    "",
+                    "p4Optimize.parameterTolerance",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "parameterTolerance",
+                    false,
+                    "double",
+                    "absolute contrast convergence tolerance; default 1e-5" );
+        config.add( "p4Optimize.meritTolerance",
+                    "",
+                    "p4Optimize.meritTolerance",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "meritTolerance",
+                    false,
+                    "double",
+                    "relative dense-grid merit agreement tolerance; default 1e-6" );
+        config.add( "p4Optimize.positionBound",
+                    "",
+                    "p4Optimize.positionBound",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "positionBound",
+                    false,
+                    "double",
+                    "reserved Cartesian position bound in pixels; default 1" );
+        config.add( "p4Optimize.uncertaintyBlocks",
+                    "",
+                    "p4Optimize.uncertaintyBlocks",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "uncertaintyBlocks",
+                    false,
+                    "size_t",
+                    "reserved contiguous jackknife block count; default 8" );
+        config.add( "p4Optimize.outputPrefix",
+                    "",
+                    "p4Optimize.outputPrefix",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "outputPrefix",
+                    false,
+                    "string",
+                    "optimizer product prefix inside output.directory; default p4Negative_" );
+
         m_obs.setupConfig( config );
     }
 
@@ -69,6 +445,19 @@ class p4Reduce : public mx::app::application
         m_obs.loadConfig( config );
         config( m_mode, "mode" );
         config( m_showTiming, "showTiming" );
+        config( m_optimizeEnabled, "p4Optimize.enabled" );
+        config( m_optimizeModeFraction, "p4Optimize.modeFraction" );
+        config( m_optimizeApertureRadius, "p4Optimize.apertureRadius" );
+        config( m_optimizeFitPosition, "p4Optimize.fitPosition" );
+        config( m_optimizeContrastLower, "p4Optimize.contrastLower" );
+        config( m_optimizeContrastUpper, "p4Optimize.contrastUpper" );
+        config( m_optimizeMaxEvaluations, "p4Optimize.maxEvaluations" );
+        config( m_optimizeValidationSamples, "p4Optimize.validationSamples" );
+        config( m_optimizeParameterTolerance, "p4Optimize.parameterTolerance" );
+        config( m_optimizeMeritTolerance, "p4Optimize.meritTolerance" );
+        config( m_optimizePositionBound, "p4Optimize.positionBound" );
+        config( m_optimizeUncertaintyBlocks, "p4Optimize.uncertaintyBlocks" );
+        config( m_optimizeOutputPrefix, "p4Optimize.outputPrefix" );
 
         bool unusedPrinted{ false };
         for( const auto &[name, target] : config.m_targets )
@@ -140,6 +529,59 @@ class p4Reduce : public mx::app::application
                                                   "invalid p4Reduce mode: " + m_mode +
                                                       "; supported modes are basic and normal" );
         }
+        if( !m_optimizeEnabled )
+        {
+            return;
+        }
+        if( m_optimizeFitPosition )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "p4Optimize.fitPosition is not implemented in contrast-only mode" );
+        }
+        if( m_obs.m_localStampSize <= 0 )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "p4Optimize.enabled requires positive p4.localStampSize" );
+        }
+        if( m_obs.m_regressionFrame != mx::improc::P4RegressionFrame::detector )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "p4Optimize.enabled supports detector-frame P4 only" );
+        }
+        if( m_obs.m_fakeSep.size() != 1 || m_obs.m_fakePA.size() != 1 || m_obs.m_fakeContrast.size() != 1 )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "p4Optimize.enabled requires one configured fake trial" );
+        }
+        if( !mx::math::isFinite( m_optimizeContrastLower ) || !mx::math::isFinite( m_optimizeContrastUpper ) ||
+            m_optimizeContrastLower >= m_optimizeContrastUpper || m_optimizeContrastUpper > 0 )
+        {
+            throw mx::exception<mx::verbose::vv>(
+                mx::error_t::invalidconfig,
+                "p4Optimize contrast bounds must be finite, ordered, and nonpositive" );
+        }
+        const double initialContrast = static_cast<double>( m_obs.m_fakeContrast[0] );
+        if( initialContrast < m_optimizeContrastLower || initialContrast > m_optimizeContrastUpper )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "configured fake.contrast is outside p4Optimize contrast bounds" );
+        }
+        if( m_optimizeValidationSamples < 3 || m_optimizeMaxEvaluations < m_optimizeValidationSamples + 3 )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "p4Optimize.maxEvaluations cannot contain the dense scan" );
+        }
+        if( !mx::math::isFinite( m_optimizeParameterTolerance ) || m_optimizeParameterTolerance <= 0 ||
+            !mx::math::isFinite( m_optimizeMeritTolerance ) || m_optimizeMeritTolerance < 0 ||
+            !mx::math::isFinite( optimizerApertureRadius() ) || optimizerApertureRadius() <= 0 ||
+            !mx::math::isFinite( m_optimizePositionBound ) || m_optimizePositionBound < 0 ||
+            m_optimizeUncertaintyBlocks < 2 || m_optimizeOutputPrefix.empty() ||
+            std::filesystem::path( m_optimizeOutputPrefix ).is_absolute() )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "one or more p4Optimize controls are invalid" );
+        }
+        static_cast<void>( optimizerModeIndex() );
     }
 
     /// Execute one fully configured P4 reduction.
@@ -148,6 +590,10 @@ class p4Reduce : public mx::app::application
      */
     int execute() override
     {
+        if( m_optimizeEnabled )
+        {
+            return executeOptimizer();
+        }
         const int result = m_obs.reduce();
         if( result == 0 && m_showTiming )
         {

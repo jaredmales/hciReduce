@@ -182,12 +182,15 @@ struct reductionHarness : public reductionT
     using reductionT::m_skipPreProcess;
     using reductionT::m_tgtIms;
 
-    bool m_postReadCalled{ false }; ///< Whether inherited input loading reached the post-read hook.
+    bool m_postReadCalled{ false };   ///< Whether inherited input loading reached the post-read hook.
+
+    std::size_t m_postReadCount{ 0 }; ///< Number of times inherited input loading reached the post-read hook.
 
     /// Suppress dataset-specific post-read behavior in in-memory tests.
     void postReadFiles() override
     {
         m_postReadCalled = true;
+        ++m_postReadCount;
     }
 };
 
@@ -805,6 +808,74 @@ TEST_CASE( "P4 pixel-local finite-amplitude refit matches full reduction",
         }
     }
     REQUIRE( validSamples > 0 );
+
+    const auto pristineLocalTarget = local.m_tgtIms;
+    const auto firstLocalResidual = local.m_finim;
+    const auto firstLocalValidity = local.m_localFinalValidity;
+    const std::vector<float> configuredContrast = local.m_fakeContrast;
+    mx::improc::P4LocalTrial trial{ separation, positionAngle, 0.5 * contrast };
+    const auto secondEvaluation = local.evaluateLocal( trial );
+    REQUIRE( local.m_fakeContrast == configuredContrast );
+    REQUIRE( local.m_doWriteFinim == 1 );
+    REQUIRE_FALSE( std::filesystem::exists( directory.file( "local-products/finim_0001.fits" ) ) );
+    bool trialChanged{ false };
+    for( int image = 0; image < imageCount; ++image )
+    {
+        REQUIRE( local.m_tgtIms.image( image ).isApprox( pristineLocalTarget.image( image ), 0 ) );
+    }
+    for( int output = 0; output < local.m_finim.planes(); ++output )
+    {
+        for( int stampColumn = 0; stampColumn < stampSize; ++stampColumn )
+        {
+            for( int stampRow = 0; stampRow < stampSize; ++stampRow )
+            {
+                if( firstLocalValidity.image( output )( stampRow, stampColumn ) > 0.5F &&
+                    secondEvaluation.validity.image( output )( stampRow, stampColumn ) > 0.5F &&
+                    std::abs( firstLocalResidual.image( output )( stampRow, stampColumn ) -
+                              secondEvaluation.residual.image( output )( stampRow, stampColumn ) ) > 1e-5F )
+                {
+                    trialChanged = true;
+                }
+            }
+        }
+    }
+    REQUIRE( trialChanged );
+
+    trial.contrast = contrast;
+    const auto repeatedEvaluation = local.evaluateLocal( trial );
+    REQUIRE( local.m_fakeContrast == configuredContrast );
+    REQUIRE( local.m_doWriteFinim == 1 );
+    for( int image = 0; image < imageCount; ++image )
+    {
+        REQUIRE( local.m_tgtIms.image( image ).isApprox( pristineLocalTarget.image( image ), 0 ) );
+    }
+    for( int output = 0; output < local.m_finim.planes(); ++output )
+    {
+        REQUIRE( repeatedEvaluation.validity.image( output ).isApprox( firstLocalValidity.image( output ), 0 ) );
+        for( int stampColumn = 0; stampColumn < stampSize; ++stampColumn )
+        {
+            for( int stampRow = 0; stampRow < stampSize; ++stampRow )
+            {
+                if( firstLocalValidity.image( output )( stampRow, stampColumn ) > 0.5F )
+                {
+                    REQUIRE( repeatedEvaluation.residual.image( output )( stampRow, stampColumn ) ==
+                             Approx( firstLocalResidual.image( output )( stampRow, stampColumn ) ).margin( 1e-6 ) );
+                }
+                else
+                {
+                    REQUIRE( mx::math::isNan( repeatedEvaluation.residual.image( output )( stampRow, stampColumn ) ) );
+                }
+            }
+        }
+    }
+    local.m_doWriteFinim = false;
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4Reductionf doxygenReduction;
+    doxygenReduction.evaluateLocal( mx::improc::P4LocalTrial{} );
+#endif
+    // clang-format on
 
     reductionHarness signalFree;
     prepare( signalFree );
@@ -1914,7 +1985,8 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         invalidFilterSupport.m_psfFilter = true;
         invalidFilterSupport.m_psfFilterMinGoodFract = 1.1F;
         invalidFilterSupport.m_combineMethod = mx::improc::HCI::combine::mean;
-        REQUIRE_THROWS_WITH( invalidFilterSupport.reduce(), Catch::Matchers::Contains( "must be finite and in [0,1]" ) );
+        REQUIRE_THROWS_WITH( invalidFilterSupport.reduce(),
+                             Catch::Matchers::Contains( "must be finite and in [0,1]" ) );
     }
 
     SECTION( "invalid fractions and realized mode collisions" )
@@ -2051,7 +2123,16 @@ TEST_CASE( "P4 reduction input lifecycle", "[P4Reduction][input][RDI][finite][pr
         REQUIRE( reduction.reduce() == 0 );
         REQUIRE( reduction.m_fileList.size() == 3 );
         REQUIRE( reduction.m_postReadCalled );
+        REQUIRE( reduction.m_postReadCount == 1 );
         REQUIRE( reduction.m_psfsub.size() == 1 );
+
+        const auto pristineTarget = reduction.m_tgtIms;
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_postReadCount == 1 );
+        for( int imageIndex = 0; imageIndex < reduction.m_Nims; ++imageIndex )
+        {
+            REQUIRE( reduction.m_tgtIms.image( imageIndex ).isApprox( pristineTarget.image( imageIndex ), 0 ) );
+        }
     }
 
     SECTION( "strict input policy rejects pristine nonfinite FITS data" )

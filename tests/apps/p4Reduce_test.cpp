@@ -9,6 +9,7 @@
 
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <sstream>
 #include <string>
 
@@ -31,6 +32,19 @@ struct appHarness : public appT
     using appT::loadConfig;
     using appT::m_mode;
     using appT::m_obs;
+    using appT::m_optimizeApertureRadius;
+    using appT::m_optimizeContrastLower;
+    using appT::m_optimizeContrastUpper;
+    using appT::m_optimizeEnabled;
+    using appT::m_optimizeFitPosition;
+    using appT::m_optimizeMaxEvaluations;
+    using appT::m_optimizeMeritTolerance;
+    using appT::m_optimizeModeFraction;
+    using appT::m_optimizeOutputPrefix;
+    using appT::m_optimizeParameterTolerance;
+    using appT::m_optimizePositionBound;
+    using appT::m_optimizeUncertaintyBlocks;
+    using appT::m_optimizeValidationSamples;
     using appT::m_showTiming;
     using appT::setupConfig;
 };
@@ -178,6 +192,13 @@ void writeTarget( const std::filesystem::path &path, /**< [in] output FITS path 
     header.append<float>( "ANGLE", angle, "test parallactic angle" );
     writeFitsImage( path, image, &header );
 }
+
+/// Read one complete text file for output-product assertions.
+std::string readTextFile( const std::filesystem::path &path /**< [in] text file path */ )
+{
+    std::ifstream stream( path );
+    return { std::istreambuf_iterator<char>( stream ), std::istreambuf_iterator<char>() };
+}
 /// \endcond
 
 /// Verify p4Reduce registers and loads application and reduction configuration without grid or postprocess targets.
@@ -189,8 +210,19 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     application.setupConfig();
 
     REQUIRE( application.m_mode == "basic" );
+    REQUIRE_FALSE( application.m_optimizeEnabled );
+    REQUIRE( application.m_optimizeModeFraction == Approx( 0.15 ) );
+    REQUIRE( application.m_optimizeApertureRadius == 0 );
+    REQUIRE( application.m_optimizeContrastLower == Approx( -0.05 ) );
+    REQUIRE( application.m_optimizeContrastUpper == 0 );
+    REQUIRE( application.m_optimizeMaxEvaluations == 64 );
+    REQUIRE( application.m_optimizeValidationSamples == 21 );
+    REQUIRE( application.m_optimizeOutputPrefix == "p4Negative_" );
     REQUIRE( application.config.m_targets.at( "mode" ).clType == mx::app::argType::Required );
     REQUIRE( application.config.m_targets.at( "showTiming" ).helpType == "bool" );
+    REQUIRE( application.config.m_targets.at( "p4Optimize.enabled" ).helpType == "bool" );
+    REQUIRE( application.config.m_targets.at( "p4Optimize.modeFraction" ).helpType == "double" );
+    REQUIRE( application.config.m_targets.at( "p4Optimize.validationSamples" ).helpType == "size_t" );
     REQUIRE( application.config.m_targets.at( "p4.modeFractions" ).helpType == "vector<realT>" );
     REQUIRE( application.config.m_targets.at( "p4.regressionFrame" ).helpType == "string" );
     REQUIRE( application.config.m_targets.at( "p4.numberImages" ).helpType == "int" );
@@ -406,6 +438,51 @@ TEST_CASE( "p4Reduce mode validation", "[p4Reduce][config][mode]" )
     // clang-format on
 }
 
+/// Verify p4Reduce accepts only the implemented contrast-only optimizer contract.
+/** \ingroup p4Reduce_unit_tests */
+TEST_CASE( "p4Reduce optimizer configuration validation", "[p4Reduce][config][optimizer][validation]" )
+{
+    const auto prepareOptimizer = []( appHarness &application )
+    {
+        application.m_optimizeEnabled = true;
+        application.m_optimizeModeFraction = 0.15;
+        application.m_optimizeApertureRadius = 5;
+        application.m_optimizeContrastLower = -0.05;
+        application.m_optimizeContrastUpper = 0;
+        application.m_obs.m_localStampSize = 11;
+        application.m_obs.m_regressionFrame = mx::improc::P4RegressionFrame::detector;
+        application.m_obs.m_modeFractions = { 0.05F, 0.15F };
+        application.m_obs.m_psfRadius = 2.5F;
+        application.m_obs.m_fakeSep = { 12.7F };
+        application.m_obs.m_fakePA = { 260.1F };
+        application.m_obs.m_fakeContrast = { -0.025F };
+    };
+
+    appHarness valid;
+    prepareOptimizer( valid );
+    REQUIRE_NOTHROW( valid.checkConfig() );
+
+    appHarness position;
+    prepareOptimizer( position );
+    position.m_optimizeFitPosition = true;
+    REQUIRE_THROWS( position.checkConfig() );
+
+    appHarness missingMode;
+    prepareOptimizer( missingMode );
+    missingMode.m_optimizeModeFraction = 0.14;
+    REQUIRE_THROWS( missingMode.checkConfig() );
+
+    appHarness outsideBounds;
+    prepareOptimizer( outsideBounds );
+    outsideBounds.m_obs.m_fakeContrast = { -0.1F };
+    REQUIRE_THROWS( outsideBounds.checkConfig() );
+
+    appHarness insufficientBudget;
+    prepareOptimizer( insufficientBudget );
+    insufficientBudget.m_optimizeMaxEvaluations = insufficientBudget.m_optimizeValidationSamples + 2;
+    REQUIRE_THROWS( insufficientBudget.checkConfig() );
+}
+
 /// Verify command-line P4 values override values loaded from the selected configuration file.
 /** \ingroup p4Reduce_unit_tests */
 TEST_CASE( "p4Reduce command-line precedence", "[p4Reduce][config][command-line][precedence]" )
@@ -563,6 +640,97 @@ TEST_CASE( "p4Reduce normal FITS end-to-end", "[p4Reduce][execute][normal][FITS]
     REQUIRE_FALSE( header["P4 PREDICTOR COUNT"].String().empty() );
     REQUIRE( header["P4 REALIZED MODES 000"].String().starts_with( "1" ) );
     REQUIRE( header["COMBINATION METHOD"].String().starts_with( "mean" ) );
+}
+
+/// Verify p4Reduce runs an opt-in contrast search in memory and writes only named final optimizer products.
+/** This exercises p4Reduce::execute(), mx::improc::optimizeP4Contrast(), and
+ * mx::improc::P4Reduction::evaluateLocal() through the real FITS-backed application path.
+ * \ingroup p4Reduce_unit_tests
+ */
+TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][local][FITS][output]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    writeTarget( directory.file( "target_000.fits" ), 1, -5 );
+    writeTarget( directory.file( "target_001.fits" ), 2, 0 );
+    writeTarget( directory.file( "target_002.fits" ), 3, 6 );
+
+    HCIobservationTestHarness::imageT source = HCIobservationTestHarness::imageT::Zero( 31, 31 );
+    source( 15, 15 ) = 1;
+    const auto sourcePath = directory.file( "source.fits" );
+    writeFitsImage( sourcePath, source );
+
+    const auto outputDirectory = directory.file( "optimizer-output" );
+    const auto configPath = directory.file( "optimizer.conf" );
+    writeTextFile( configPath,
+                   p4Configuration( directory.path(), outputDirectory, "normal", false ) +
+                       "[preProcess]\n"
+                       "skip=true\n"
+                       "[p4]\n"
+                       "localStampSize=5\n"
+                       "[fake]\n"
+                       "method=single\n"
+                       "fileName=" +
+                       sourcePath.string() +
+                       "\n"
+                       "sep=5.4\n"
+                       "PA=35\n"
+                       "contrast=-0.005\n"
+                       "[p4Optimize]\n"
+                       "enabled=true\n"
+                       "modeFraction=0.5\n"
+                       "apertureRadius=0.5\n"
+                       "contrastLower=-0.01\n"
+                       "contrastUpper=0\n"
+                       "validationSamples=5\n"
+                       "maxEvaluations=24\n"
+                       "parameterTolerance=1e-4\n"
+                       "meritTolerance=1e-6\n"
+                       "outputPrefix=trial_\n" );
+
+    appHarness application;
+    std::string invokedName = "p4Reduce-test";
+    std::string configOption = "--config";
+    std::string configName = configPath.string();
+    char *arguments[]{ invokedName.data(), configOption.data(), configName.data() };
+    REQUIRE( application.main( 3, arguments ) == 0 );
+    REQUIRE( application.m_optimizeEnabled );
+    REQUIRE( application.m_obs.m_fakeContrast.size() == 1 );
+
+    const auto residualPath = outputDirectory / "trial_best.fits";
+    const auto validityPath = outputDirectory / "trial_best_validity.fits";
+    const auto meritPath = outputDirectory / "trial_merit.csv";
+    const auto summaryPath = outputDirectory / "trial_summary.yaml";
+    const auto bestConfigPath = outputDirectory / "trial_best.conf";
+    REQUIRE( std::filesystem::exists( residualPath ) );
+    REQUIRE( std::filesystem::exists( validityPath ) );
+    REQUIRE( std::filesystem::exists( meritPath ) );
+    REQUIRE( std::filesystem::exists( summaryPath ) );
+    REQUIRE( std::filesystem::exists( bestConfigPath ) );
+    REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "p4-final.fits" ) );
+
+    mx::improc::eigenCube<float> residual;
+    mx::fits::fitsHeader<mx::verbose::vv> header;
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+    REQUIRE( reader.read( residual, header, residualPath.string() ) == mx::error_t::noerror );
+    REQUIRE( residual.rows() == 5 );
+    REQUIRE( residual.cols() == 5 );
+    REQUIRE( residual.planes() == 1 );
+    REQUIRE( header["P4 OPTIMIZER"].value<int>() == 1 );
+    REQUIRE( header["P4 OPT CONVERGED"].value<int>() == 1 );
+    REQUIRE( header["P4 OPT DENSE AGREEMENT"].value<int>() == 1 );
+    REQUIRE( header["P4 PRODUCT ROLE"].String().starts_with( "LOCAL_RESIDUAL" ) );
+
+    const std::string meritTable = readTextFile( meritPath );
+    REQUIRE( meritTable.starts_with( "evaluation,stage,contrast,merit,elapsed_seconds\n" ) );
+    REQUIRE( meritTable.find( ",dense," ) != std::string::npos );
+    REQUIRE( meritTable.find( ",brent," ) != std::string::npos );
+    const std::string summary = readTextFile( summaryPath );
+    REQUIRE( summary.find( "converged: true" ) != std::string::npos );
+    REQUIRE( summary.find( "denseAgreement: true" ) != std::string::npos );
+    const std::string bestConfiguration = readTextFile( bestConfigPath );
+    REQUIRE( bestConfiguration.starts_with( "[fake]\n" ) );
+    REQUIRE( bestConfiguration.find( "sep=5.400000095" ) != std::string::npos );
 }
 
 /// Verify p4ReduceMain reports a nested configured-run failure and treats command-line help as success.

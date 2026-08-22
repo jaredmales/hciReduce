@@ -96,7 +96,7 @@
  *
  * A positive `p4.localStampSize` replaces the complete output-field calculation with one exact local trial. The
  * trial uses the existing `fake.fileName`, `fake.sep`, `fake.PA`, `fake.contrast`, and optional
- * `fake.scaleFileName` settings. Exactly one separation, PA, and nonzero contrast must be supplied, and
+ * `fake.scaleFileName` settings. Exactly one separation, PA, and finite contrast must be supplied, and
  * `fake.method=single` is required. Unlike frozen-model PSF calculation, the trial perturbation is added to the
  * target and every same-image or positive-`numberImages` predictor sample before the ordinary P4 eigensolve. Each
  * detector regression used by the local sky stamp is therefore refit at the configured finite amplitude.
@@ -142,6 +142,58 @@
  *   --fake.fileName=/path/post-preprocess-psf.fits \
  *   --fake.sep=13 --fake.PA=100 --fake.contrast=-0.001
  * \endcode
+ *
+ * \section p4_optimizer_dictionary Contrast-only negative-companion optimization
+ *
+ * The optional `[p4Optimize]` layer repeatedly calls the exact finite-amplitude local path against one pristine,
+ * already-loaded target cube. Separation and PA remain fixed at the single configured `[fake]` tuple. A deterministic
+ * bounded Brent search minimizes the uniform mean-square residual for one selected P4 mode inside a circular aperture
+ * centered on the continuous source coordinate. A uniform dense contrast grid is always evaluated first and the
+ * bounded result must remain in that sampled basin.
+ *
+ * | CLI | Config key/value shorthand | Best-product FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--p4Optimize.enabled` | `p4Optimize.enabled=true` | `HIERARCH P4 OPTIMIZER` | bool | `false` | Run contrast-only optimization instead of one ordinary reduction. Requires the pixel-local contract above. |
+ * | `--p4Optimize.modeFraction` | `p4Optimize.modeFraction=0.15` | `HIERARCH P4 OPT MODE FRACTION` | exact member of `p4.modeFractions` | `0.15` | Single output plane used by the scalar merit. A nearest plane is never selected silently. |
+ * | `--p4Optimize.apertureRadius` | `p4Optimize.apertureRadius=5` | `HIERARCH P4 OPT APERTURE RADIUS` | nonnegative real pixels | `0` | Uniform-L2 aperture radius. Zero selects `2*p4.psfRadius`; the complete aperture must fit inside the local stamp and every included pixel must be valid. |
+ * | `--p4Optimize.fitPosition` | `p4Optimize.fitPosition=false` | — | bool | `false` | Reserved joint astrometry switch. `true` is rejected by the contrast-only milestone. |
+ * | `--p4Optimize.contrastLower` | `p4Optimize.contrastLower=-0.05` | `HIERARCH P4 OPT CONTRAST LOWER` | finite real | `-0.05` | Inclusive signed lower contrast bound. |
+ * | `--p4Optimize.contrastUpper` | `p4Optimize.contrastUpper=0` | `HIERARCH P4 OPT CONTRAST UPPER` | finite real, greater than lower and at most zero | `0` | Inclusive signed upper contrast bound. The configured initial `fake.contrast` must lie inside both bounds. |
+ * | `--p4Optimize.maxEvaluations` | `p4Optimize.maxEvaluations=64` | `HIERARCH P4 OPT EVALUATIONS` | integer at least `validationSamples+3` | `64` | Hard limit on distinct local P4 calls. Cached contrasts do not consume the budget twice. |
+ * | `--p4Optimize.validationSamples` | `p4Optimize.validationSamples=21` | — | integer at least 3 | `21` | Uniform dense-grid size, including both bounds. |
+ * | `--p4Optimize.parameterTolerance` | `p4Optimize.parameterTolerance=1e-5` | — | positive finite real | `1e-5` | Absolute contrast-width convergence tolerance. |
+ * | `--p4Optimize.meritTolerance` | `p4Optimize.meritTolerance=1e-6` | — | nonnegative finite real | `1e-6` | Relative merit allowance in the dense-basin agreement check. |
+ * | `--p4Optimize.positionBound` | `p4Optimize.positionBound=1` | — | nonnegative finite real pixels | `1` | Reserved Cartesian position bound for the later joint fit. |
+ * | `--p4Optimize.uncertaintyBlocks` | `p4Optimize.uncertaintyBlocks=8` | — | integer at least 2 | `8` | Reserved contiguous jackknife block count for the later uncertainty stage. |
+ * | `--p4Optimize.outputPrefix` | `p4Optimize.outputPrefix=p4Negative_` | — | nonempty relative prefix | `p4Negative_` | Product prefix inside `output.directory`; parent directories are created automatically. |
+ *
+ * Intermediate trials disable both ordinary final-image output and P4 diagnostics. At completion the common output
+ * directory receives `<prefix>merit.csv`, `<prefix>summary.yaml`, `<prefix>best.fits`, and
+ * `<prefix>best_validity.fits`. The two FITS cubes own only the best local result and contain ordinary HCI/P4 cards,
+ * the selected mode, aperture, bounds, best contrast and merit, evaluation count, convergence, dense agreement, and
+ * product role. A converged result also writes `<prefix>best.conf`, containing the fitted `[fake]` tuple. An exhausted
+ * or dense-disagreeing search still records its best finite evaluation and explicit failure status, but does not
+ * write the configuration fragment and returns failure from `p4Reduce`.
+ *
+ * For the AF Lep 11-pixel local setup, add:
+ *
+ * \code{.ini}
+ * [p4Optimize]
+ * enabled=true
+ * modeFraction=0.15
+ * apertureRadius=5
+ * contrastLower=-0.05
+ * contrastUpper=0
+ * maxEvaluations=64
+ * validationSamples=21
+ * parameterTolerance=1e-5
+ * meritTolerance=1e-6
+ * outputPrefix=p4Negative_
+ * \endcode
+ *
+ * The existing `fake.sep` and `fake.PA` remain the fixed location. Set the existing `fake.contrast` to any finite
+ * initial value inside `[-0.05,0]`; it is recorded for provenance but the required dense scan supplies the numerical
+ * starting basin.
  *
  * \section p4_psf_dictionary Frozen-model PSF calculation and output
  *
