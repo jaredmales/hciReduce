@@ -60,6 +60,13 @@ sparse residual samples. Its local geometry retained 31,806,752 bytes, all 121 o
 and the negative response aligned with the continuous source coordinate. The user observed that run to be very fast;
 its console wall-time and peak-RSS values were not captured and remain an integration measurement.
 
+The first real-data contrast-only optimizer run completed 26 evaluations in 109.125764 seconds of accumulated local
+evaluation time, or 4.197 seconds per evaluation. Its 21-point dense scan placed the minimum at -0.005 with merit
+0.104920010; Brent refinement converged at contrast -0.004117980077 with merit 0.09685237217. The unperturbed
+contrast-zero merit was 0.2726269414, so the fitted negative source reduced the selected-mode aperture merit by
+64.5%. The summary, merit CSV, 11-by-11-by-15 best residual/validity cubes, FITS provenance, and fitted configuration
+fragment agreed with the console result.
+
 ## Optimizer boundary
 
 ### Milestone 1: contrast only
@@ -78,14 +85,18 @@ reported minimum to agree with the sampled basin. The grid is a validation produ
 
 ### Milestone 2: position and contrast
 
-After contrast-only validation, fit two local sky offsets and a nonnegative source amplitude, injecting the negative
-of that amplitude. Cartesian sky offsets are the internal parameters so PA wrap and the singularity at zero
-separation do not affect the optimizer. Convert the fitted coordinate back to separation and PA for configuration
-and FITS provenance.
+The implemented full optimizer fits two local sky offsets and signed negative contrast. Cartesian sky offsets are the
+internal parameters, so PA wrap and the singularity at zero separation do not affect the search. The exact conversion
+uses `row=separation*sin(-PA)` and `column=separation*cos(-PA)` and converts the fitted coordinate back to separation
+and PA for configuration and FITS provenance, preserving the `0.5*(N-1)` center convention used by local processing.
 
-Use a bounded derivative-free method such as Powell direction-set minimization or a bounded simplex. For every trial
-position, rebuild the sparse output dependencies needed by that position. Reuse the loaded cube and all geometry
-that is independent of position. Seed the joint fit with the contrast-only solution.
+A bounded three-dimensional Nelder-Mead simplex is seeded by the contrast-only result. Every trial reflects back into
+the inclusive square Cartesian bounds and signed contrast interval. Position changes rebuild the sparse output
+dependencies while repeated reductions reuse the loaded pristine target cube. The optimizer reserves a second
+dense+Brent contrast fit at the selected position, so the published photometry and dense-basin check apply at the
+fitted astrometry rather than only at the initial position. A combined absolute/relative merit tolerance uses
+`meritTolerance*max(1,abs(merit))`, avoiding impossible relative convergence when a synthetic or signal-free merit is
+near zero.
 
 ## Merit function
 
@@ -131,20 +142,24 @@ uncertaintyBlocks=8
 outputPrefix=p4Negative_
 ```
 
+For the joint milestone set `fitPosition=true`, retain `positionBound=1`, and raise `maxEvaluations` to 192. With 21
+validation samples the checked mathematical minimum is 78, but that leaves only four simplex vertices and is not a
+useful convergence budget.
+
 Proposed meanings:
 
 | Target | Contract |
 |---|---|
-| `enabled` | False preserves the ordinary one-shot `p4Reduce` path; true runs contrast-only optimization. |
+| `enabled` | False preserves the ordinary one-shot `p4Reduce` path; true runs the selected optimizer mode. |
 | `modeFraction` | Exact member of `p4.modeFractions` used for optimization. |
 | `apertureRadius` | Positive circular merit radius in pixels; default `2*p4.psfRadius`. |
 | `fitPosition` | False for contrast-only milestone; true enables two Cartesian sky offsets plus contrast. |
 | `contrastLower`, `contrastUpper` | Finite ordered signed bounds with `lower < upper <= 0`. |
-| `maxEvaluations` | Hard upper bound on local P4 calls, excluding optional uncertainty resamples. |
-| `parameterTolerance` | Absolute contrast tolerance for milestone 1; position-pixel tolerance for milestone 2. |
-| `meritTolerance` | Relative numerical allowance used when confirming agreement with the dense sampled basin. |
+| `maxEvaluations` | Hard upper bound on local P4 calls, excluding optional uncertainty resamples. Joint mode requires at least `2*(validationSamples+16)+4`; 192 is recommended for 21 validation samples. |
+| `parameterTolerance` | Absolute contrast tolerance for milestone 1 and both contrast/position-pixel simplex diameters for milestone 2. |
+| `meritTolerance` | Combined absolute/relative numerical allowance used for simplex convergence and dense-basin agreement. |
 | `validationSamples` | Uniform bounded contrast samples, including both endpoints, used to validate the fitted basin. |
-| `positionBound` | Nonnegative Cartesian offset bound in pixels around the initial configured source. |
+| `positionBound` | Positive symmetric per-coordinate offset bound in pixels around the initial configured source when `fitPosition=true`. |
 | `uncertaintyBlocks` | Number of contiguous time blocks used by the optional delete-one-block jackknife. |
 | `outputPrefix` | Prefix for the summary, sampled merit curve, and best local products. |
 
@@ -182,7 +197,7 @@ Write no FITS product per optimizer evaluation. At completion write:
 
 - a machine-readable summary containing the initial and fitted trial, selected mode, aperture, bounds, convergence
   status, evaluation count, final merit, timing totals, and software provenance;
-- a sampled contrast/merit table sufficient to reproduce the one-dimensional fit;
+- a sampled merit table sufficient to reproduce the contrast fit or joint seed/simplex/final-validation sequence;
 - the best local residual and validity FITS cubes using the existing local headers plus optimizer provenance; and
 - a configuration fragment containing the fitted negative source for the final complete reduction.
 
@@ -224,7 +239,7 @@ From that complete signal-free reduction:
 5. [x] Implement bounded contrast minimization and dense-grid validation.
 6. [x] Add summary/table/best-local outputs with complete provenance.
 7. Benchmark repeated in-process evaluations on the remote 1-second-coadd dataset.
-8. Add joint Cartesian position/contrast fitting.
+8. [x] Add joint Cartesian position/contrast fitting.
 9. Add delete-one-block jackknife uncertainty.
 10. Add the one-shot complete-field post-preprocessing injection and perform the signal-free PSF/filter comparison.
 

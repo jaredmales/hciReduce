@@ -84,7 +84,9 @@ class StreamCapture
 std::string p4Configuration( const std::filesystem::path &inputDirectory,  /**< [in] target FITS directory */
                              const std::filesystem::path &outputDirectory, /**< [in] final-product directory */
                              const std::string &mode,                      /**< [in] basic or normal */
-                             bool preprocessOnly /**< [in] whether to stop after preprocessing */ )
+                             bool preprocessOnly,                    /**< [in] whether to stop after preprocessing */
+                             const std::string &minimumRadius = "5", /**< [in] single-annulus inner radius */
+                             const std::string &maximumRadius = "6" /**< [in] single-annulus outer radius */ )
 {
     std::ostringstream configuration;
     configuration << "mode=" << mode << '\n'
@@ -97,8 +99,8 @@ std::string p4Configuration( const std::filesystem::path &inputDirectory,  /**< 
                   << "angleScale=1\n"
                   << "angleConstant=0\n"
                   << "[geom]\n"
-                  << "minRadius=5\n"
-                  << "maxRadius=6\n"
+                  << "minRadius=" << minimumRadius << '\n'
+                  << "maxRadius=" << maximumRadius << '\n'
                   << "[p4]\n"
                   << "modeFractions=0.5\n"
                   << "regressionFrame=detector\n"
@@ -438,7 +440,7 @@ TEST_CASE( "p4Reduce mode validation", "[p4Reduce][config][mode]" )
     // clang-format on
 }
 
-/// Verify p4Reduce accepts only the implemented contrast-only optimizer contract.
+/// Verify p4Reduce accepts the implemented contrast-only and joint optimizer contracts.
 /** \ingroup p4Reduce_unit_tests */
 TEST_CASE( "p4Reduce optimizer configuration validation", "[p4Reduce][config][optimizer][validation]" )
 {
@@ -465,7 +467,29 @@ TEST_CASE( "p4Reduce optimizer configuration validation", "[p4Reduce][config][op
     appHarness position;
     prepareOptimizer( position );
     position.m_optimizeFitPosition = true;
-    REQUIRE_THROWS( position.checkConfig() );
+    position.m_optimizeMaxEvaluations =
+        mx::improc::p4PositionContrastMinimumEvaluations( position.m_optimizeValidationSamples );
+    REQUIRE_NOTHROW( position.checkConfig() );
+
+    appHarness zeroPositionBound;
+    prepareOptimizer( zeroPositionBound );
+    zeroPositionBound.m_optimizeFitPosition = true;
+    zeroPositionBound.m_optimizePositionBound = 0;
+    zeroPositionBound.m_optimizeMaxEvaluations =
+        mx::improc::p4PositionContrastMinimumEvaluations( zeroPositionBound.m_optimizeValidationSamples );
+    REQUIRE_THROWS( zeroPositionBound.checkConfig() );
+
+    appHarness insufficientJointBudget;
+    prepareOptimizer( insufficientJointBudget );
+    insufficientJointBudget.m_optimizeFitPosition = true;
+    insufficientJointBudget.m_optimizeMaxEvaluations =
+        mx::improc::p4PositionContrastMinimumEvaluations( insufficientJointBudget.m_optimizeValidationSamples ) - 1;
+    REQUIRE_THROWS( insufficientJointBudget.checkConfig() );
+
+    appHarness oversizedAperture;
+    prepareOptimizer( oversizedAperture );
+    oversizedAperture.m_optimizeApertureRadius = 5.1;
+    REQUIRE_THROWS( oversizedAperture.checkConfig() );
 
     appHarness missingMode;
     prepareOptimizer( missingMode );
@@ -731,6 +755,106 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
     const std::string bestConfiguration = readTextFile( bestConfigPath );
     REQUIRE( bestConfiguration.starts_with( "[fake]\n" ) );
     REQUIRE( bestConfiguration.find( "sep=5.400000095" ) != std::string::npos );
+}
+
+/// Verify p4Reduce executes full position/contrast optimization and persists fitted astrometric provenance.
+/** This exercises p4Reduce::execute(), mx::improc::optimizeP4PositionContrast(), and
+ * mx::improc::P4Reduction::evaluateLocal() through the real FITS-backed application path.
+ * \ingroup p4Reduce_unit_tests
+ */
+TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][position][local][FITS][output]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    writeTarget( directory.file( "target_000.fits" ), 1, -5 );
+    writeTarget( directory.file( "target_001.fits" ), 2, 0 );
+    writeTarget( directory.file( "target_002.fits" ), 3, 6 );
+
+    HCIobservationTestHarness::imageT source = HCIobservationTestHarness::imageT::Zero( 31, 31 );
+    source( 15, 15 ) = 1;
+    const auto sourcePath = directory.file( "source.fits" );
+    writeFitsImage( sourcePath, source );
+
+    const auto outputDirectory = directory.file( "joint-output" );
+    const auto configPath = directory.file( "joint.conf" );
+    writeTextFile( configPath,
+                   p4Configuration( directory.path(), outputDirectory, "normal", false, "3", "8" ) +
+                       "[preProcess]\n"
+                       "skip=true\n"
+                       "[p4]\n"
+                       "localStampSize=5\n"
+                       "[fake]\n"
+                       "method=single\n"
+                       "fileName=" +
+                       sourcePath.string() +
+                       "\n"
+                       "sep=5.4\n"
+                       "PA=35\n"
+                       "contrast=-0.005\n"
+                       "[p4Optimize]\n"
+                       "enabled=true\n"
+                       "fitPosition=true\n"
+                       "positionBound=0.25\n"
+                       "modeFraction=0.5\n"
+                       "apertureRadius=1\n"
+                       "contrastLower=-0.01\n"
+                       "contrastUpper=0\n"
+                       "validationSamples=5\n"
+                       "maxEvaluations=120\n"
+                       "parameterTolerance=0.05\n"
+                       "meritTolerance=1e-6\n"
+                       "outputPrefix=joint_\n" );
+
+    appHarness application;
+    std::string invokedName = "p4Reduce-test";
+    std::string configOption = "--config";
+    std::string configName = configPath.string();
+    char *arguments[]{ invokedName.data(), configOption.data(), configName.data() };
+    REQUIRE( application.main( 3, arguments ) == 0 );
+    REQUIRE( application.m_optimizeFitPosition );
+
+    const auto residualPath = outputDirectory / "joint_best.fits";
+    const auto meritPath = outputDirectory / "joint_merit.csv";
+    const auto summaryPath = outputDirectory / "joint_summary.yaml";
+    const auto bestConfigPath = outputDirectory / "joint_best.conf";
+    REQUIRE( std::filesystem::exists( residualPath ) );
+    REQUIRE( std::filesystem::exists( outputDirectory / "joint_best_validity.fits" ) );
+    REQUIRE( std::filesystem::exists( meritPath ) );
+    REQUIRE( std::filesystem::exists( summaryPath ) );
+    REQUIRE( std::filesystem::exists( bestConfigPath ) );
+    REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "p4-final.fits" ) );
+
+    mx::improc::eigenCube<float> residual;
+    mx::fits::fitsHeader<mx::verbose::vv> header;
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+    REQUIRE( reader.read( residual, header, residualPath.string() ) == mx::error_t::noerror );
+    REQUIRE( header["P4 OPT FIT POSITION"].value<int>() == 1 );
+    REQUIRE( header["P4 OPT POSITION CONVERGED"].value<int>() == 1 );
+    REQUIRE( header["P4 OPT CONTRAST CONVERGED"].value<int>() == 1 );
+    REQUIRE( std::abs( header["P4 OPT BEST ROW DELTA"].value<double>() ) <= 0.25 );
+    REQUIRE( std::abs( header["P4 OPT BEST COLUMN DELTA"].value<double>() ) <= 0.25 );
+    REQUIRE( header["P4 OPT BEST SEPARATION"].value<double>() > 0 );
+    REQUIRE( header["P4 OPT BEST PA"].value<double>() >= 0 );
+    const mx::improc::P4LocalTrial fittedTrial{ header["P4 OPT BEST SEPARATION"].value<double>(),
+                                                header["P4 OPT BEST PA"].value<double>(),
+                                                header["P4 OPT BEST CONTRAST"].value<double>() };
+    const auto fittedOffset = mx::improc::p4TrialCartesianOffset( fittedTrial );
+    REQUIRE( header["P4 LOCAL SOURCE ROW"].value<double>() == Approx( 15 + fittedOffset.row ).margin( 1e-5 ) );
+    REQUIRE( header["P4 LOCAL SOURCE COLUMN"].value<double>() == Approx( 15 + fittedOffset.column ).margin( 1e-5 ) );
+
+    const std::string meritTable = readTextFile( meritPath );
+    REQUIRE( meritTable.starts_with(
+        "evaluation,stage,row_delta,column_delta,separation,position_angle,contrast,merit,elapsed_seconds\n" ) );
+    REQUIRE( meritTable.find( ",seed-dense," ) != std::string::npos );
+    REQUIRE( meritTable.find( ",simplex," ) != std::string::npos );
+    REQUIRE( meritTable.find( ",final-dense," ) != std::string::npos );
+    const std::string summary = readTextFile( summaryPath );
+    REQUIRE( summary.find( "fitPosition: true" ) != std::string::npos );
+    REQUIRE( summary.find( "positionConverged: true" ) != std::string::npos );
+    REQUIRE( summary.find( "contrastConverged: true" ) != std::string::npos );
+    const std::string bestConfiguration = readTextFile( bestConfigPath );
+    REQUIRE( bestConfiguration.find( "sep=" ) != std::string::npos );
+    REQUIRE( bestConfiguration.find( "PA=" ) != std::string::npos );
 }
 
 /// Verify p4ReduceMain reports a nested configured-run failure and treats command-line help as success.

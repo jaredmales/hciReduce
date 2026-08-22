@@ -1,5 +1,5 @@
 /** \file P4NegativeOptimizer_test.cpp
- * \brief Tests contrast-only negative-companion optimization for pixel-local P4 products.
+ * \brief Tests negative-companion optimization for pixel-local P4 products.
  * \author Jared R. Males
  */
 
@@ -7,6 +7,7 @@
 
 #include "src/common/P4NegativeOptimizer.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -84,6 +85,74 @@ TEST_CASE( "P4 bounded contrast optimizer", "[P4NegativeOptimizer][Brent][dense]
     }
 }
 
+/// Verify the polar/Cartesian conversions preserve the P4 center and position-angle convention.
+/** \ingroup P4NegativeOptimizer_unit_tests */
+TEST_CASE( "P4 optimizer Cartesian coordinates", "[P4NegativeOptimizer][coordinates][center]" )
+{
+    const mx::improc::P4LocalTrial initial{ 12.7, 260.1, -0.004 };
+    const auto offset = mx::improc::p4TrialCartesianOffset( initial );
+    const auto roundTrip = mx::improc::p4CartesianOffsetTrial( offset, initial.contrast );
+    REQUIRE( roundTrip.separation == Approx( initial.separation ).epsilon( 1e-12 ) );
+    REQUIRE( roundTrip.positionAngle == Approx( initial.positionAngle ).epsilon( 1e-12 ) );
+    REQUIRE( roundTrip.contrast == initial.contrast );
+
+    const auto north = mx::improc::p4TrialCartesianOffset( { 5, 0, 0 } );
+    REQUIRE( north.row == Approx( 0 ).margin( 1e-15 ) );
+    REQUIRE( north.column == Approx( 5 ) );
+    const auto east = mx::improc::p4TrialCartesianOffset( { 5, 90, 0 } );
+    REQUIRE( east.row == Approx( -5 ) );
+    REQUIRE( east.column == Approx( 0 ).margin( 1e-15 ) );
+}
+
+/// Verify the full optimizer recovers a bounded Cartesian position and contrast on a smooth synthetic merit.
+/** \ingroup P4NegativeOptimizer_unit_tests */
+TEST_CASE( "P4 joint position contrast optimizer", "[P4NegativeOptimizer][position][contrast][simplex][dense]" )
+{
+    const mx::improc::P4LocalTrial initial{ 10, 0, -0.02 };
+    const auto initialOffset = mx::improc::p4TrialCartesianOffset( initial );
+    constexpr double expectedRowDelta = -0.22;
+    constexpr double expectedColumnDelta = 0.31;
+    constexpr double expectedContrast = -0.0123;
+
+    mx::improc::P4ContrastOptimizerConfig configuration;
+    configuration.contrastLower = -0.05;
+    configuration.contrastUpper = 0;
+    configuration.validationSamples = 7;
+    configuration.maxEvaluations = 192;
+    configuration.parameterTolerance = 1e-4;
+    configuration.meritTolerance = 1e-5;
+
+    const auto evaluate = [=]( const mx::improc::P4LocalTrial &trial )
+    {
+        const auto offset = mx::improc::p4TrialCartesianOffset( trial );
+        const double rowError = offset.row - initialOffset.row - expectedRowDelta;
+        const double columnError = offset.column - initialOffset.column - expectedColumnDelta;
+        const double contrastError = ( trial.contrast - expectedContrast ) / 0.01;
+        const double objective =
+            0.05 + rowError * rowError + 1.5 * columnError * columnError + contrastError * contrastError;
+        return constantEvaluation( std::sqrt( objective ) );
+    };
+    const auto result = mx::improc::optimizeP4PositionContrast( configuration, initial, 1, evaluate, 0, 1 );
+    REQUIRE( result.converged );
+    REQUIRE( result.positionConverged );
+    REQUIRE( result.contrastConverged );
+    REQUIRE( result.denseAgreement );
+    REQUIRE( result.status == "converged" );
+    REQUIRE( result.bestRowDelta == Approx( expectedRowDelta ).margin( 5e-4 ) );
+    REQUIRE( result.bestColumnDelta == Approx( expectedColumnDelta ).margin( 5e-4 ) );
+    REQUIRE( result.bestTrial.contrast == Approx( expectedContrast ).margin( 2e-5 ) );
+    REQUIRE( result.bestMerit == Approx( 0.05 ).margin( 1e-6 ) );
+    REQUIRE( result.evaluationCount == result.samples.size() );
+    REQUIRE( result.evaluationCount <= configuration.maxEvaluations );
+    REQUIRE( result.evaluationCount >= mx::improc::p4PositionContrastMinimumEvaluations( 7 ) - 4 );
+    REQUIRE( std::any_of( result.samples.begin(),
+                          result.samples.end(),
+                          []( const auto &sample ) { return sample.stage == "simplex"; } ) );
+    REQUIRE( std::any_of( result.samples.begin(),
+                          result.samples.end(),
+                          []( const auto &sample ) { return sample.stage == "final-dense"; } ) );
+}
+
 /// Verify optimizeP4Contrast rejects inconsistent bounds, scan budgets, tolerances, and callbacks.
 /** \ingroup P4NegativeOptimizer_unit_tests */
 TEST_CASE( "P4 contrast optimizer validation", "[P4NegativeOptimizer][validation][budget]" )
@@ -104,6 +173,16 @@ TEST_CASE( "P4 contrast optimizer validation", "[P4NegativeOptimizer][validation
     REQUIRE_THROWS( mx::improc::optimizeP4Contrast( configuration, evaluate, 0, 1 ) );
     configuration = {};
     REQUIRE_THROWS( mx::improc::optimizeP4Contrast( configuration, {}, 0, 1 ) );
+
+    const mx::improc::P4LocalTrial initial{ 5, 20, -0.01 };
+    const auto jointEvaluate = []( const mx::improc::P4LocalTrial &trial )
+    { return constantEvaluation( trial.contrast ); };
+    configuration = {};
+    configuration.maxEvaluations =
+        mx::improc::p4PositionContrastMinimumEvaluations( configuration.validationSamples ) - 1;
+    REQUIRE_THROWS( mx::improc::optimizeP4PositionContrast( configuration, initial, 1, jointEvaluate, 0, 1 ) );
+    configuration.maxEvaluations = mx::improc::p4PositionContrastMinimumEvaluations( configuration.validationSamples );
+    REQUIRE_THROWS( mx::improc::optimizeP4PositionContrast( configuration, initial, 0, jointEvaluate, 0, 1 ) );
 }
 
 } // namespace P4NegativeOptimizer_test
