@@ -55,7 +55,9 @@ class p4Reduce : public mx::app::application
 
     std::size_t m_optimizeValidationSamples{ 21 }; ///< Uniform dense validation-grid size.
 
-    double m_optimizeParameterTolerance{ 1e-5 };   ///< Absolute contrast and Cartesian convergence tolerance.
+    double m_optimizeParameterTolerance{ 1e-5 };   ///< Absolute contrast convergence tolerance.
+
+    double m_optimizePositionTolerance{ 1e-3 };    ///< Absolute Cartesian convergence tolerance in pixels.
 
     double m_optimizeMeritTolerance{ 1e-6 };       ///< Combined absolute/relative merit tolerance.
 
@@ -119,15 +121,29 @@ class p4Reduce : public mx::app::application
         bool contrastConverged,                        /**< [in] final contrast-search convergence */
         double rowDelta,                               /**< [in] fitted Cartesian row displacement */
         double columnDelta,                            /**< [in] fitted Cartesian column displacement */
-        double apertureRadius /**< [in] effective merit-aperture radius */ ) const
+        double apertureRadius,                         /**< [in] effective merit-aperture radius */
+        double apertureRow,                            /**< [in] fixed full-image aperture-center row */
+        double apertureColumn /**< [in] fixed full-image aperture-center column */ ) const
     {
         header.append<int>( "P4 OPTIMIZER", 1, "negative-companion optimizer enabled" );
         header.append<int>( "P4 OPT FIT POSITION", fitPosition ? 1 : 0, "joint Cartesian astrometry enabled" );
         header.append<double>( "P4 OPT MODE FRACTION", m_optimizeModeFraction, "optimized P4 mode fraction" );
         header.append<double>( "P4 OPT APERTURE RADIUS", apertureRadius, "uniform L2 aperture radius [pixels]" );
+        header.append<std::string>( "P4 OPT APERTURE FRAME", "FIXED_INITIAL_SKY", "merit-aperture convention" );
+        header.append<double>( "P4 OPT APERTURE CENTER ROW", apertureRow, "fixed aperture-center row [pixels]" );
+        header.append<double>( "P4 OPT APERTURE CENTER COLUMN",
+                               apertureColumn,
+                               "fixed aperture-center column [pixels]" );
         header.append<double>( "P4 OPT CONTRAST LOWER", m_optimizeContrastLower, "lower contrast bound" );
         header.append<double>( "P4 OPT CONTRAST UPPER", m_optimizeContrastUpper, "upper contrast bound" );
+        header.append<double>( "P4 OPT CONTRAST TOLERANCE",
+                               m_optimizeParameterTolerance,
+                               "contrast convergence tolerance" );
         header.append<double>( "P4 OPT POSITION BOUND", m_optimizePositionBound, "Cartesian position bound [pixels]" );
+        header.append<double>( "P4 OPT POSITION TOLERANCE",
+                               m_optimizePositionTolerance,
+                               "Cartesian convergence tolerance [pixels]" );
+        header.append<double>( "P4 OPT MERIT TOLERANCE", m_optimizeMeritTolerance, "merit convergence tolerance" );
         header.append<double>( "P4 OPT BEST SEPARATION", bestTrial.separation, "fitted separation [pixels]" );
         header.append<double>( "P4 OPT BEST PA", bestTrial.positionAngle, "fitted position angle [degrees]" );
         header.append<double>( "P4 OPT BEST ROW DELTA", rowDelta, "fitted Cartesian row displacement [pixels]" );
@@ -159,6 +175,8 @@ class p4Reduce : public mx::app::application
                                 double rowDelta,        /**< [in] fitted Cartesian row displacement */
                                 double columnDelta,     /**< [in] fitted Cartesian column displacement */
                                 double apertureRadius,  /**< [in] effective merit-aperture radius */
+                                double apertureRow,     /**< [in] fixed full-image aperture-center row */
+                                double apertureColumn,  /**< [in] fixed full-image aperture-center column */
                                 const std::filesystem::path &prefixPath /**< [in] complete optimizer product prefix */ )
     {
         namespace fs = std::filesystem;
@@ -189,7 +207,13 @@ class p4Reduce : public mx::app::application
                       << "    columnDelta: " << columnDelta << "\n"
                       << "  modeFraction: " << m_optimizeModeFraction << "\n"
                       << "  apertureRadius: " << apertureRadius << "\n"
+                      << "  apertureFrame: \"fixed-initial-sky\"\n"
+                      << "  apertureCenterRow: " << apertureRow << "\n"
+                      << "  apertureCenterColumn: " << apertureColumn << "\n"
                       << "  positionBound: " << m_optimizePositionBound << "\n"
+                      << "  positionTolerance: " << m_optimizePositionTolerance << "\n"
+                      << "  contrastTolerance: " << m_optimizeParameterTolerance << "\n"
+                      << "  meritTolerance: " << m_optimizeMeritTolerance << "\n"
                       << "  contrastBounds: [" << m_optimizeContrastLower << ", " << m_optimizeContrastUpper << "]\n"
                       << "  evaluationCount: " << result.evaluationCount << "\n"
                       << "  bestMerit: " << result.bestMerit << "\n"
@@ -224,7 +248,9 @@ class p4Reduce : public mx::app::application
                                contrastConverged,
                                rowDelta,
                                columnDelta,
-                               apertureRadius );
+                               apertureRadius,
+                               apertureRow,
+                               apertureColumn );
         optimizerHeader.append<std::string>( "P4 PRODUCT ROLE", "LOCAL_RESIDUAL", "P4 product role" );
         const fs::path residualPath( prefixPath.string() + "best.fits" );
         m_obs.writeFinimAtPath( residualPath.string(), &optimizerHeader );
@@ -239,7 +265,9 @@ class p4Reduce : public mx::app::application
                                contrastConverged,
                                rowDelta,
                                columnDelta,
-                               apertureRadius );
+                               apertureRadius,
+                               apertureRow,
+                               apertureColumn );
         validityAdditional.append<std::string>( "P4 PRODUCT ROLE", "LOCAL_VALIDITY", "P4 product role" );
         mx::improc::P4Reductionf::fitsHeaderT validityHeader;
         m_obs.finalImageHeader( validityHeader, &validityAdditional );
@@ -317,6 +345,8 @@ class p4Reduce : public mx::app::application
                                     0,
                                     0,
                                     apertureRadius,
+                                    result.bestEvaluation.sourceRow,
+                                    result.bestEvaluation.sourceColumn,
                                     prefixPath );
     }
 
@@ -360,6 +390,8 @@ class p4Reduce : public mx::app::application
                                     result.bestRowDelta,
                                     result.bestColumnDelta,
                                     apertureRadius,
+                                    result.apertureRow,
+                                    result.apertureColumn,
                                     prefixPath );
     }
 
@@ -392,6 +424,7 @@ class p4Reduce : public mx::app::application
         optimizerConfiguration.maxEvaluations = m_optimizeMaxEvaluations;
         optimizerConfiguration.validationSamples = m_optimizeValidationSamples;
         optimizerConfiguration.parameterTolerance = m_optimizeParameterTolerance;
+        optimizerConfiguration.positionTolerance = m_optimizePositionTolerance;
         optimizerConfiguration.meritTolerance = m_optimizeMeritTolerance;
 
         if( m_optimizeFitPosition )
@@ -549,7 +582,16 @@ class p4Reduce : public mx::app::application
                     "parameterTolerance",
                     false,
                     "double",
-                    "absolute contrast and Cartesian-pixel convergence tolerance; default 1e-5" );
+                    "absolute contrast convergence tolerance; default 1e-5" );
+        config.add( "p4Optimize.positionTolerance",
+                    "",
+                    "p4Optimize.positionTolerance",
+                    mx::app::argType::Required,
+                    "p4Optimize",
+                    "positionTolerance",
+                    false,
+                    "double",
+                    "absolute Cartesian-pixel convergence tolerance; default 1e-3" );
         config.add( "p4Optimize.meritTolerance",
                     "",
                     "p4Optimize.meritTolerance",
@@ -605,6 +647,7 @@ class p4Reduce : public mx::app::application
         config( m_optimizeMaxEvaluations, "p4Optimize.maxEvaluations" );
         config( m_optimizeValidationSamples, "p4Optimize.validationSamples" );
         config( m_optimizeParameterTolerance, "p4Optimize.parameterTolerance" );
+        config( m_optimizePositionTolerance, "p4Optimize.positionTolerance" );
         config( m_optimizeMeritTolerance, "p4Optimize.meritTolerance" );
         config( m_optimizePositionBound, "p4Optimize.positionBound" );
         config( m_optimizeUncertaintyBlocks, "p4Optimize.uncertaintyBlocks" );
@@ -726,6 +769,8 @@ class p4Reduce : public mx::app::application
                 "joint p4Optimize requires positive positionBound and enough evaluations for both contrast scans" );
         }
         if( !mx::math::isFinite( m_optimizeParameterTolerance ) || m_optimizeParameterTolerance <= 0 ||
+            ( m_optimizeFitPosition &&
+              ( !mx::math::isFinite( m_optimizePositionTolerance ) || m_optimizePositionTolerance <= 0 ) ) ||
             !mx::math::isFinite( m_optimizeMeritTolerance ) || m_optimizeMeritTolerance < 0 ||
             !mx::math::isFinite( optimizerApertureRadius() ) || optimizerApertureRadius() <= 0 ||
             !mx::math::isFinite( m_optimizePositionBound ) || m_optimizePositionBound < 0 ||
@@ -735,11 +780,12 @@ class p4Reduce : public mx::app::application
             throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
                                                   "one or more p4Optimize controls are invalid" );
         }
-        if( optimizerApertureRadius() > static_cast<double>( m_obs.m_localStampSize / 2 ) )
+        const double positionSupport = m_optimizeFitPosition ? m_optimizePositionBound : 0;
+        if( optimizerApertureRadius() + positionSupport > static_cast<double>( m_obs.m_localStampSize / 2 ) )
         {
             throw mx::exception<mx::verbose::vv>(
                 mx::error_t::invalidconfig,
-                "p4Optimize.apertureRadius cannot remain fully supported inside p4.localStampSize" );
+                "p4.localStampSize half-width must be at least p4Optimize.apertureRadius plus positionBound" );
         }
         static_cast<void>( optimizerModeIndex() );
     }

@@ -245,11 +245,11 @@
  * | `p4.writeDiagnostics` | Enable ownership, validity, canonical-region, rank, and timing FITS diagnostics. Every diagnostic records `HIERARCH P4 FRAME`. |
  * | `p4.diagnosticDirectory` | Destination for enabled diagnostics. |
  * | `p4Optimize.enabled` | Opt into bounded negative-companion optimization through the pixel-local path; default `false`. |
- * | `p4Optimize.modeFraction`, `p4Optimize.apertureRadius` | Select one exact P4 plane and its continuous-coordinate uniform-L2 merit aperture. |
+ * | `p4Optimize.modeFraction`, `p4Optimize.apertureRadius` | Select one exact P4 plane and a uniform-L2 aperture fixed on the initial continuous sky coordinate. |
  * | `p4Optimize.fitPosition`, `p4Optimize.positionBound` | Enable joint Cartesian astrometry/contrast fitting and bound each displacement around the initial source. |
  * | `p4Optimize.contrastLower`, `p4Optimize.contrastUpper` | Inclusive signed nonpositive contrast bounds containing the configured initial `fake.contrast`. |
  * | `p4Optimize.maxEvaluations`, `p4Optimize.validationSamples` | Limit distinct local evaluations and size the required dense validation scan. |
- * | `p4Optimize.parameterTolerance`, `p4Optimize.meritTolerance` | Control bounded contrast/simplex convergence and dense-basin agreement. |
+ * | `p4Optimize.parameterTolerance`, `p4Optimize.positionTolerance`, `p4Optimize.meritTolerance` | Independently control contrast, Cartesian-position, and merit convergence. |
  * | `p4Optimize.outputPrefix` | Prefix for the optimizer summary, merit table, best local FITS cubes, and converged `[fake]` fragment. |
  *
  * P4 rejects configured RDI input, overlapping annuli, and nonfinite target input as hard errors. In detector mode the

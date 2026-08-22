@@ -32,7 +32,9 @@ struct P4ContrastOptimizerConfig
 
     double parameterTolerance{ 1e-5 };   ///< Absolute contrast tolerance for bounded minimization.
 
-    double meritTolerance{ 1e-6 };       ///< Relative merit tolerance used for dense-basin agreement.
+    double positionTolerance{ 1e-3 };    ///< Absolute Cartesian position tolerance in pixels for joint fitting.
+
+    double meritTolerance{ 1e-6 };       ///< Combined absolute/relative merit convergence tolerance.
 };
 
 /// One evaluated contrast and its aperture merit.
@@ -117,6 +119,10 @@ struct P4PositionContrastOptimizationResult
 
     double bestColumnDelta{ 0 };          ///< Fitted Cartesian column displacement from the initial trial.
 
+    double apertureRow{ 0 };              ///< Fixed full-image merit-aperture row at the initial trial.
+
+    double apertureColumn{ 0 };           ///< Fixed full-image merit-aperture column at the initial trial.
+
     double bestMerit{ 0 };                ///< Merit at `bestTrial`.
 
     std::size_t evaluationCount{ 0 };     ///< Number of distinct local P4 calls across all stages.
@@ -170,6 +176,19 @@ double p4LocalL2Merit( const P4LocalEvaluation<float> &evaluation, /**< [in] own
                        std::size_t modeIndex,                      /**< [in] selected output-plane index */
                        double apertureRadius /**< [in] positive aperture radius in pixels */ );
 
+/// Calculate uniform mean-square residual merit inside a fixed full-image aperture.
+/** The explicit center keeps the sampled sky pixels invariant when the trial source moves. Every included pixel
+ * center must be present in the local stamp and have a finite residual and nonzero validity.
+ *
+ * \returns the finite mean-square residual merit
+ * \throws std::invalid_argument for invalid dimensions, mode, aperture, support, validity, or numeric values
+ */
+double p4LocalL2Merit( const P4LocalEvaluation<float> &evaluation, /**< [in] owning local P4 result */
+                       std::size_t modeIndex,                      /**< [in] selected output-plane index */
+                       double apertureRadius,                      /**< [in] positive aperture radius in pixels */
+                       double apertureRow,                         /**< [in] fixed full-image aperture-center row */
+                       double apertureColumn /**< [in] fixed full-image aperture-center column */ );
+
 /// Minimize one bounded signed contrast and validate it against a dense scan.
 /** The dense grid is evaluated first. A Brent search then refines the sampled basin while retaining the best finite
  * evaluation. Cached contrasts never consume the evaluation budget twice.
@@ -185,10 +204,27 @@ P4ContrastOptimizationResult optimizeP4Contrast(
     std::size_t modeIndex, /**< [in] selected output-plane index */
     double apertureRadius /**< [in] positive merit-aperture radius in pixels */ );
 
+/// Minimize one bounded signed contrast using a fixed full-image merit aperture.
+/** This variant preserves identical sky-pixel support across a surrounding joint position search.
+ *
+ * \returns the best evaluation and convergence diagnostics
+ * \throws std::invalid_argument for an invalid optimizer or aperture contract
+ * \throws std::runtime_error when the evaluation budget cannot complete the required dense scan
+ */
+P4ContrastOptimizationResult optimizeP4Contrast(
+    const P4ContrastOptimizerConfig &configuration, /**< [in] validated search bounds and stopping controls */
+    const std::function<P4LocalEvaluation<float>( double )> &evaluate,
+    /**< [in] callback evaluating one signed contrast */
+    std::size_t modeIndex, /**< [in] selected output-plane index */
+    double apertureRadius, /**< [in] positive merit-aperture radius in pixels */
+    double apertureRow,    /**< [in] fixed full-image aperture-center row */
+    double apertureColumn /**< [in] fixed full-image aperture-center column */ );
+
 /// Jointly optimize bounded Cartesian position and signed contrast.
-/** A fixed-position contrast fit seeds a bounded three-dimensional Nelder-Mead search. A second dense+Brent
- * contrast fit at the selected position provides the final photometric result and dense-basin validation. Cartesian
- * position bounds form a square centered on the configured initial trial.
+/** A fixed-position contrast fit seeds a bounded three-dimensional Nelder-Mead search. Every stage measures the same
+ * full-image aperture centered on the initial trial. A second dense+Brent contrast fit at the selected position
+ * provides the final photometric result and dense-basin validation. Cartesian position bounds form a square centered
+ * on the configured initial trial.
  *
  * \returns the best joint trial, owning local products, and convergence diagnostics
  * \throws std::invalid_argument for an invalid joint optimizer contract

@@ -136,7 +136,11 @@ std::size_t p4PositionContrastMinimumEvaluations( std::size_t validationSamples 
     return 2 * ( validationSamples + p4ContrastRefinementReserve ) + simplexVertices;
 }
 
-double p4LocalL2Merit( const P4LocalEvaluation<float> &evaluation, std::size_t modeIndex, double apertureRadius )
+double p4LocalL2Merit( const P4LocalEvaluation<float> &evaluation,
+                       std::size_t modeIndex,
+                       double apertureRadius,
+                       double apertureRow,
+                       double apertureColumn )
 {
     if( evaluation.residual.rows() <= 0 || evaluation.residual.cols() <= 0 || evaluation.residual.planes() <= 0 ||
         evaluation.validity.rows() != evaluation.residual.rows() ||
@@ -154,12 +158,13 @@ double p4LocalL2Merit( const P4LocalEvaluation<float> &evaluation, std::size_t m
         throw std::invalid_argument( "P4 local merit aperture radius must be finite and positive" );
     }
 
-    const double sourceRow = evaluation.sourceRow - static_cast<double>( evaluation.originRow );
-    const double sourceColumn = evaluation.sourceColumn - static_cast<double>( evaluation.originColumn );
-    if( !p4OptimizerFinite( sourceRow ) || !p4OptimizerFinite( sourceColumn ) || sourceRow - apertureRadius < -0.5 ||
-        sourceRow + apertureRadius > static_cast<double>( evaluation.residual.rows() ) - 0.5 ||
-        sourceColumn - apertureRadius < -0.5 ||
-        sourceColumn + apertureRadius > static_cast<double>( evaluation.residual.cols() ) - 0.5 )
+    const double localApertureRow = apertureRow - static_cast<double>( evaluation.originRow );
+    const double localApertureColumn = apertureColumn - static_cast<double>( evaluation.originColumn );
+    if( !p4OptimizerFinite( localApertureRow ) || !p4OptimizerFinite( localApertureColumn ) ||
+        localApertureRow - apertureRadius < -0.5 ||
+        localApertureRow + apertureRadius > static_cast<double>( evaluation.residual.rows() ) - 0.5 ||
+        localApertureColumn - apertureRadius < -0.5 ||
+        localApertureColumn + apertureRadius > static_cast<double>( evaluation.residual.cols() ) - 0.5 )
     {
         throw std::invalid_argument( "P4 local merit aperture crosses the local stamp edge" );
     }
@@ -173,8 +178,8 @@ double p4LocalL2Merit( const P4LocalEvaluation<float> &evaluation, std::size_t m
     {
         for( int row = 0; row < residual.rows(); ++row )
         {
-            const double rowOffset = static_cast<double>( row ) - sourceRow;
-            const double columnOffset = static_cast<double>( column ) - sourceColumn;
+            const double rowOffset = static_cast<double>( evaluation.originRow + row ) - apertureRow;
+            const double columnOffset = static_cast<double>( evaluation.originColumn + column ) - apertureColumn;
             if( rowOffset * rowOffset + columnOffset * columnOffset > radiusSquared )
             {
                 continue;
@@ -200,10 +205,22 @@ double p4LocalL2Merit( const P4LocalEvaluation<float> &evaluation, std::size_t m
     return merit;
 }
 
-P4ContrastOptimizationResult optimizeP4Contrast( const P4ContrastOptimizerConfig &configuration,
-                                                 const std::function<P4LocalEvaluation<float>( double )> &evaluate,
-                                                 std::size_t modeIndex,
-                                                 double apertureRadius )
+double p4LocalL2Merit( const P4LocalEvaluation<float> &evaluation, std::size_t modeIndex, double apertureRadius )
+{
+    return p4LocalL2Merit( evaluation, modeIndex, apertureRadius, evaluation.sourceRow, evaluation.sourceColumn );
+}
+
+namespace
+{
+
+/// Implement contrast minimization with either evaluation-centered or fixed full-image aperture support.
+P4ContrastOptimizationResult optimizeP4ContrastImpl( const P4ContrastOptimizerConfig &configuration,
+                                                     const std::function<P4LocalEvaluation<float>( double )> &evaluate,
+                                                     std::size_t modeIndex,
+                                                     double apertureRadius,
+                                                     bool fixedAperture,
+                                                     double apertureRow,
+                                                     double apertureColumn )
 {
     if( !evaluate || !p4OptimizerFinite( configuration.contrastLower ) ||
         !p4OptimizerFinite( configuration.contrastUpper ) ||
@@ -238,7 +255,9 @@ P4ContrastOptimizationResult optimizeP4Contrast( const P4ContrastOptimizerConfig
         }
         P4CachedContrastEvaluation entry;
         entry.evaluation = evaluate( contrast );
-        entry.merit = p4LocalL2Merit( entry.evaluation, modeIndex, apertureRadius );
+        entry.merit = fixedAperture
+                          ? p4LocalL2Merit( entry.evaluation, modeIndex, apertureRadius, apertureRow, apertureColumn )
+                          : p4LocalL2Merit( entry.evaluation, modeIndex, apertureRadius );
         auto inserted = cache.emplace( contrast, std::move( entry ) );
         result.samples.push_back(
             { contrast, inserted.first->second.merit, dense, inserted.first->second.evaluation.elapsedSeconds } );
@@ -398,6 +417,36 @@ P4ContrastOptimizationResult optimizeP4Contrast( const P4ContrastOptimizerConfig
     return result;
 }
 
+} // namespace
+
+P4ContrastOptimizationResult optimizeP4Contrast( const P4ContrastOptimizerConfig &configuration,
+                                                 const std::function<P4LocalEvaluation<float>( double )> &evaluate,
+                                                 std::size_t modeIndex,
+                                                 double apertureRadius )
+{
+    return optimizeP4ContrastImpl( configuration, evaluate, modeIndex, apertureRadius, false, 0, 0 );
+}
+
+P4ContrastOptimizationResult optimizeP4Contrast( const P4ContrastOptimizerConfig &configuration,
+                                                 const std::function<P4LocalEvaluation<float>( double )> &evaluate,
+                                                 std::size_t modeIndex,
+                                                 double apertureRadius,
+                                                 double apertureRow,
+                                                 double apertureColumn )
+{
+    if( !p4OptimizerFinite( apertureRow ) || !p4OptimizerFinite( apertureColumn ) )
+    {
+        throw std::invalid_argument( "P4 fixed merit-aperture coordinates must be finite" );
+    }
+    return optimizeP4ContrastImpl( configuration,
+                                   evaluate,
+                                   modeIndex,
+                                   apertureRadius,
+                                   true,
+                                   apertureRow,
+                                   apertureColumn );
+}
+
 P4PositionContrastOptimizationResult
 optimizeP4PositionContrast( const P4ContrastOptimizerConfig &configuration,
                             const P4LocalTrial &initialTrial,
@@ -410,9 +459,10 @@ optimizeP4PositionContrast( const P4ContrastOptimizerConfig &configuration,
     if( !evaluate || !p4OptimizerFinite( initialTrial.contrast ) ||
         initialTrial.contrast < configuration.contrastLower || initialTrial.contrast > configuration.contrastUpper ||
         !p4OptimizerFinite( positionBound ) || positionBound <= 0 ||
+        !p4OptimizerFinite( configuration.positionTolerance ) || configuration.positionTolerance <= 0 ||
         configuration.maxEvaluations < p4PositionContrastMinimumEvaluations( configuration.validationSamples ) )
     {
-        throw std::invalid_argument( "P4 joint optimizer requires a valid trial, positive position bound, and "
+        throw std::invalid_argument( "P4 joint optimizer requires a valid trial, positive position controls, and "
                                      "sufficient total evaluation budget" );
     }
 
@@ -431,6 +481,8 @@ optimizeP4PositionContrast( const P4ContrastOptimizerConfig &configuration,
     P4PositionContrastOptimizationResult result;
     result.bestTrial = initialTrial;
     result.bestTrial.contrast = seed.bestContrast;
+    result.apertureRow = seed.bestEvaluation.sourceRow;
+    result.apertureColumn = seed.bestEvaluation.sourceColumn;
     result.bestMerit = seed.bestMerit;
     result.evaluationCount = seed.evaluationCount;
     result.evaluationElapsedSeconds = seed.evaluationElapsedSeconds;
@@ -488,7 +540,8 @@ optimizeP4PositionContrast( const P4ContrastOptimizerConfig &configuration,
         vertex.trial =
             p4CartesianOffsetTrial( { initialOffset.row + point[0], initialOffset.column + point[1] }, point[2] );
         vertex.evaluation = evaluate( vertex.trial );
-        vertex.merit = p4LocalL2Merit( vertex.evaluation, modeIndex, apertureRadius );
+        vertex.merit =
+            p4LocalL2Merit( vertex.evaluation, modeIndex, apertureRadius, result.apertureRow, result.apertureColumn );
         auto inserted = cache.emplace( point, std::move( vertex ) );
         const P4JointVertex &stored = inserted.first->second;
         result.samples.push_back(
@@ -508,7 +561,7 @@ optimizeP4PositionContrast( const P4ContrastOptimizerConfig &configuration,
     };
 
     const double positionStep =
-        std::min( positionBound, std::max( 0.25 * positionBound, 16 * configuration.parameterTolerance ) );
+        std::min( positionBound, std::max( 0.25 * positionBound, 16 * configuration.positionTolerance ) );
     const double contrastRange = configuration.contrastUpper - configuration.contrastLower;
     const double contrastStep =
         std::min( contrastRange, std::max( 0.1 * contrastRange, 16 * configuration.parameterTolerance ) );
@@ -547,7 +600,7 @@ optimizeP4PositionContrast( const P4ContrastOptimizerConfig &configuration,
             }
             const double meritScale = std::max( std::abs( simplex[0].merit ), 1.0 );
             const double meritSpread = simplex.back().merit - simplex.front().merit;
-            if( positionDiameter <= configuration.parameterTolerance &&
+            if( positionDiameter <= configuration.positionTolerance &&
                 contrastDiameter <= configuration.parameterTolerance &&
                 meritSpread <= configuration.meritTolerance * meritScale )
             {
@@ -626,8 +679,12 @@ optimizeP4PositionContrast( const P4ContrastOptimizerConfig &configuration,
     finalContrastConfiguration.maxEvaluations = configuration.maxEvaluations - result.evaluationCount;
     const auto evaluateFinalContrast = [&evaluate, &fittedOffset]( double contrast )
     { return evaluate( p4CartesianOffsetTrial( fittedOffset, contrast ) ); };
-    const P4ContrastOptimizationResult finalContrast =
-        optimizeP4Contrast( finalContrastConfiguration, evaluateFinalContrast, modeIndex, apertureRadius );
+    const P4ContrastOptimizationResult finalContrast = optimizeP4Contrast( finalContrastConfiguration,
+                                                                           evaluateFinalContrast,
+                                                                           modeIndex,
+                                                                           apertureRadius,
+                                                                           result.apertureRow,
+                                                                           result.apertureColumn );
     for( const P4ContrastMeritSample &sample : finalContrast.samples )
     {
         const P4LocalTrial trial = p4CartesianOffsetTrial( fittedOffset, sample.contrast );

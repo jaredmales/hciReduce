@@ -67,6 +67,15 @@ contrast-zero merit was 0.2726269414, so the fitted negative source reduced the 
 64.5%. The summary, merit CSV, 11-by-11-by-15 best residual/validity cubes, FITS provenance, and fitted configuration
 fragment agreed with the console result.
 
+The first real-data joint run used a 192-evaluation budget and finished 181 distinct evaluations: 26 seed-contrast,
+129 simplex, and 26 final-contrast calls. It reported separation 12.4508435 pixels, PA 261.3958089 degrees, contrast
+-0.004552707737, and merit 0.07414968197, but did not satisfy position convergence. The merit history diagnosed a
+hard-aperture discontinuity rather than a simple lack of budget: nearby trials alternated between 79-pixel merit
+near 0.07415 and 80-pixel merit near 0.07967. The selected point placed full-image pixel `(135,127)` only
+0.000004 pixel outside the radius-5 aperture. The moving aperture had therefore allowed the optimizer to improve its
+score by excluding a boundary pixel. Joint fitting now fixes the aperture on the initial continuous sky coordinate,
+records that center in its products, and uses a separate practical Cartesian tolerance.
+
 ## Optimizer boundary
 
 ### Milestone 1: contrast only
@@ -96,7 +105,8 @@ dependencies while repeated reductions reuse the loaded pristine target cube. Th
 dense+Brent contrast fit at the selected position, so the published photometry and dense-basin check apply at the
 fitted astrometry rather than only at the initial position. A combined absolute/relative merit tolerance uses
 `meritTolerance*max(1,abs(merit))`, avoiding impossible relative convergence when a synthetic or signal-free merit is
-near zero.
+near zero. `positionTolerance` independently controls the Cartesian simplex diameter; `parameterTolerance` remains
+the contrast-width tolerance.
 
 ## Merit function
 
@@ -106,15 +116,17 @@ The initial merit for selected output plane `m` is the mean squared valid residu
 J(theta) = sum_i valid_i * w_i * R_m(theta, i)^2 / sum_i valid_i * w_i.
 ```
 
-Here `theta` is the current trial, `R_m` is the combined local residual, and the aperture is centered on the
-continuous trial coordinate rather than the nearest integer stamp pixel. A pixel is included by its full-image
-center distance from that continuous coordinate. Reject a trial if the aperture extends outside the local stamp or
-if any required validity is absent; do not reinterpret invalid samples as zero.
+Here `theta` is the current trial and `R_m` is the combined local residual. The aperture is centered on the initial
+configured continuous sky coordinate rather than the nearest integer stamp pixel or the moving trial coordinate. A
+pixel is included by its full-image center distance from that fixed coordinate, so every trial uses identical sky
+pixels. Reject a trial if the fixed aperture extends outside its local stamp or if any required validity is absent;
+do not reinterpret invalid samples as zero.
 
 Start with uniform weights and an aperture radius of `2*p4.psfRadius`. For the AF Lep configuration this is five
-pixels and contains the negative core plus the visible P4 response lobes in the 11-pixel stamp. Noise weights or an
-L1/Huber merit can be added only as explicit alternatives with injection-recovery tests; they must not silently
-change the baseline definition.
+pixels. An 11-pixel stamp supports contrast-only optimization; a one-pixel joint position bound requires at least a
+13-pixel stamp so the same aperture remains present throughout the search. Noise weights or an L1/Huber merit can be
+added only as explicit alternatives with injection-recovery tests; they must not silently change the baseline
+definition.
 
 Use exactly one configured P4 mode fraction initially. Highly correlated mode planes are not independent
 measurements, so summing them without a covariance model would give a misleading merit and uncertainty. Report the
@@ -135,6 +147,7 @@ contrastLower=-0.05
 contrastUpper=0
 maxEvaluations=64
 parameterTolerance=1e-5
+positionTolerance=0.001
 meritTolerance=1e-6
 validationSamples=21
 positionBound=1
@@ -142,9 +155,9 @@ uncertaintyBlocks=8
 outputPrefix=p4Negative_
 ```
 
-For the joint milestone set `fitPosition=true`, retain `positionBound=1`, and raise `maxEvaluations` to 192. With 21
-validation samples the checked mathematical minimum is 78, but that leaves only four simplex vertices and is not a
-useful convergence budget.
+For the joint milestone set `fitPosition=true`, retain `positionBound=1`, set `p4.localStampSize=13`, and raise
+`maxEvaluations` to 192. With 21 validation samples the checked mathematical minimum is 78, but that leaves only four
+simplex vertices and is not a useful convergence budget.
 
 Proposed meanings:
 
@@ -156,7 +169,8 @@ Proposed meanings:
 | `fitPosition` | False for contrast-only milestone; true enables two Cartesian sky offsets plus contrast. |
 | `contrastLower`, `contrastUpper` | Finite ordered signed bounds with `lower < upper <= 0`. |
 | `maxEvaluations` | Hard upper bound on local P4 calls, excluding optional uncertainty resamples. Joint mode requires at least `2*(validationSamples+16)+4`; 192 is recommended for 21 validation samples. |
-| `parameterTolerance` | Absolute contrast tolerance for milestone 1 and both contrast/position-pixel simplex diameters for milestone 2. |
+| `parameterTolerance` | Absolute contrast-width tolerance for both contrast stages and the simplex contrast coordinate. |
+| `positionTolerance` | Absolute Cartesian simplex-diameter tolerance in pixels for milestone 2; default `0.001`. |
 | `meritTolerance` | Combined absolute/relative numerical allowance used for simplex convergence and dense-basin agreement. |
 | `validationSamples` | Uniform bounded contrast samples, including both endpoints, used to validate the fitted basin. |
 | `positionBound` | Positive symmetric per-coordinate offset bound in pixels around the initial configured source when `fitPosition=true`. |

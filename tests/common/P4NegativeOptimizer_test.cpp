@@ -53,6 +53,30 @@ TEST_CASE( "P4 local optimizer aperture merit", "[P4NegativeOptimizer][merit][va
     REQUIRE_THROWS( mx::improc::p4LocalL2Merit( evaluation, 0, 5.3 ) );
 }
 
+/// Verify an explicit full-image aperture retains identical sky pixels as the trial source and stamp origin move.
+/** \ingroup P4NegativeOptimizer_unit_tests */
+TEST_CASE( "P4 fixed sky aperture merit", "[P4NegativeOptimizer][merit][position][aperture]" )
+{
+    auto evaluation = constantEvaluation( 2, 13 );
+    evaluation.originRow = 100;
+    evaluation.originColumn = 100;
+    evaluation.sourceRow = 106.1;
+    evaluation.sourceColumn = 106;
+    evaluation.residual.image( 0 )( 1, 6 ) = 10;
+
+    constexpr double expectedFixedMerit = 420.0 / 81.0;
+    REQUIRE( mx::improc::p4LocalL2Merit( evaluation, 0, 5 ) == Approx( 4 ) );
+    REQUIRE( mx::improc::p4LocalL2Merit( evaluation, 0, 5, 106, 106 ) == Approx( expectedFixedMerit ) );
+
+    auto shifted = constantEvaluation( 2, 13 );
+    shifted.originRow = 101;
+    shifted.originColumn = 101;
+    shifted.sourceRow = 105.8;
+    shifted.sourceColumn = 106.2;
+    shifted.residual.image( 0 )( 0, 5 ) = 10;
+    REQUIRE( mx::improc::p4LocalL2Merit( shifted, 0, 5, 106, 106 ) == Approx( expectedFixedMerit ) );
+}
+
 /// Verify optimizeP4Contrast finds a bounded quadratic minimum and preserves dense-scan diagnostics.
 /** \ingroup P4NegativeOptimizer_unit_tests */
 TEST_CASE( "P4 bounded contrast optimizer", "[P4NegativeOptimizer][Brent][dense][timing]" )
@@ -110,9 +134,11 @@ TEST_CASE( "P4 joint position contrast optimizer", "[P4NegativeOptimizer][positi
 {
     const mx::improc::P4LocalTrial initial{ 10, 0, -0.02 };
     const auto initialOffset = mx::improc::p4TrialCartesianOffset( initial );
-    constexpr double expectedRowDelta = -0.22;
+    constexpr double expectedRowDelta = 0.22;
     constexpr double expectedColumnDelta = 0.31;
     constexpr double expectedContrast = -0.0123;
+    constexpr double apertureRow = 100;
+    constexpr double apertureColumn = 100;
 
     mx::improc::P4ContrastOptimizerConfig configuration;
     configuration.contrastLower = -0.05;
@@ -120,6 +146,7 @@ TEST_CASE( "P4 joint position contrast optimizer", "[P4NegativeOptimizer][positi
     configuration.validationSamples = 7;
     configuration.maxEvaluations = 192;
     configuration.parameterTolerance = 1e-4;
+    configuration.positionTolerance = 1e-4;
     configuration.meritTolerance = 1e-5;
 
     const auto evaluate = [=]( const mx::improc::P4LocalTrial &trial )
@@ -130,9 +157,18 @@ TEST_CASE( "P4 joint position contrast optimizer", "[P4NegativeOptimizer][positi
         const double contrastError = ( trial.contrast - expectedContrast ) / 0.01;
         const double objective =
             0.05 + rowError * rowError + 1.5 * columnError * columnError + contrastError * contrastError;
-        return constantEvaluation( std::sqrt( objective ) );
+        auto evaluation = constantEvaluation( std::sqrt( objective ), 13 );
+        evaluation.sourceRow = apertureRow + offset.row - initialOffset.row;
+        evaluation.sourceColumn = apertureColumn + offset.column - initialOffset.column;
+        evaluation.originRow = static_cast<int>( std::floor( evaluation.sourceRow + 0.5 ) ) - 6;
+        evaluation.originColumn = static_cast<int>( std::floor( evaluation.sourceColumn + 0.5 ) ) - 6;
+        const int boundaryRow = static_cast<int>( apertureRow - 5 ) - evaluation.originRow;
+        const int boundaryColumn = static_cast<int>( apertureColumn ) - evaluation.originColumn;
+        evaluation.residual.image( 0 )( boundaryRow, boundaryColumn ) =
+            static_cast<float>( std::sqrt( objective + 4 ) );
+        return evaluation;
     };
-    const auto result = mx::improc::optimizeP4PositionContrast( configuration, initial, 1, evaluate, 0, 1 );
+    const auto result = mx::improc::optimizeP4PositionContrast( configuration, initial, 1, evaluate, 0, 5 );
     REQUIRE( result.converged );
     REQUIRE( result.positionConverged );
     REQUIRE( result.contrastConverged );
@@ -141,7 +177,9 @@ TEST_CASE( "P4 joint position contrast optimizer", "[P4NegativeOptimizer][positi
     REQUIRE( result.bestRowDelta == Approx( expectedRowDelta ).margin( 5e-4 ) );
     REQUIRE( result.bestColumnDelta == Approx( expectedColumnDelta ).margin( 5e-4 ) );
     REQUIRE( result.bestTrial.contrast == Approx( expectedContrast ).margin( 2e-5 ) );
-    REQUIRE( result.bestMerit == Approx( 0.05 ).margin( 1e-6 ) );
+    REQUIRE( result.apertureRow == apertureRow );
+    REQUIRE( result.apertureColumn == apertureColumn );
+    REQUIRE( result.bestMerit == Approx( 0.05 + 4.0 / 81.0 ).margin( 1e-6 ) );
     REQUIRE( result.evaluationCount == result.samples.size() );
     REQUIRE( result.evaluationCount <= configuration.maxEvaluations );
     REQUIRE( result.evaluationCount >= mx::improc::p4PositionContrastMinimumEvaluations( 7 ) - 4 );
@@ -183,6 +221,8 @@ TEST_CASE( "P4 contrast optimizer validation", "[P4NegativeOptimizer][validation
     REQUIRE_THROWS( mx::improc::optimizeP4PositionContrast( configuration, initial, 1, jointEvaluate, 0, 1 ) );
     configuration.maxEvaluations = mx::improc::p4PositionContrastMinimumEvaluations( configuration.validationSamples );
     REQUIRE_THROWS( mx::improc::optimizeP4PositionContrast( configuration, initial, 0, jointEvaluate, 0, 1 ) );
+    configuration.positionTolerance = 0;
+    REQUIRE_THROWS( mx::improc::optimizeP4PositionContrast( configuration, initial, 1, jointEvaluate, 0, 1 ) );
 }
 
 } // namespace P4NegativeOptimizer_test

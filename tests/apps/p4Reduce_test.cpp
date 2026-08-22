@@ -43,6 +43,7 @@ struct appHarness : public appT
     using appT::m_optimizeOutputPrefix;
     using appT::m_optimizeParameterTolerance;
     using appT::m_optimizePositionBound;
+    using appT::m_optimizePositionTolerance;
     using appT::m_optimizeUncertaintyBlocks;
     using appT::m_optimizeValidationSamples;
     using appT::m_showTiming;
@@ -219,11 +220,14 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     REQUIRE( application.m_optimizeContrastUpper == 0 );
     REQUIRE( application.m_optimizeMaxEvaluations == 64 );
     REQUIRE( application.m_optimizeValidationSamples == 21 );
+    REQUIRE( application.m_optimizeParameterTolerance == Approx( 1e-5 ) );
+    REQUIRE( application.m_optimizePositionTolerance == Approx( 1e-3 ) );
     REQUIRE( application.m_optimizeOutputPrefix == "p4Negative_" );
     REQUIRE( application.config.m_targets.at( "mode" ).clType == mx::app::argType::Required );
     REQUIRE( application.config.m_targets.at( "showTiming" ).helpType == "bool" );
     REQUIRE( application.config.m_targets.at( "p4Optimize.enabled" ).helpType == "bool" );
     REQUIRE( application.config.m_targets.at( "p4Optimize.modeFraction" ).helpType == "double" );
+    REQUIRE( application.config.m_targets.at( "p4Optimize.positionTolerance" ).helpType == "double" );
     REQUIRE( application.config.m_targets.at( "p4Optimize.validationSamples" ).helpType == "size_t" );
     REQUIRE( application.config.m_targets.at( "p4.modeFractions" ).helpType == "vector<realT>" );
     REQUIRE( application.config.m_targets.at( "p4.regressionFrame" ).helpType == "string" );
@@ -467,13 +471,22 @@ TEST_CASE( "p4Reduce optimizer configuration validation", "[p4Reduce][config][op
     appHarness position;
     prepareOptimizer( position );
     position.m_optimizeFitPosition = true;
+    position.m_obs.m_localStampSize = 13;
     position.m_optimizeMaxEvaluations =
         mx::improc::p4PositionContrastMinimumEvaluations( position.m_optimizeValidationSamples );
     REQUIRE_NOTHROW( position.checkConfig() );
 
+    appHarness undersizedPositionStamp;
+    prepareOptimizer( undersizedPositionStamp );
+    undersizedPositionStamp.m_optimizeFitPosition = true;
+    undersizedPositionStamp.m_optimizeMaxEvaluations =
+        mx::improc::p4PositionContrastMinimumEvaluations( undersizedPositionStamp.m_optimizeValidationSamples );
+    REQUIRE_THROWS( undersizedPositionStamp.checkConfig() );
+
     appHarness zeroPositionBound;
     prepareOptimizer( zeroPositionBound );
     zeroPositionBound.m_optimizeFitPosition = true;
+    zeroPositionBound.m_obs.m_localStampSize = 13;
     zeroPositionBound.m_optimizePositionBound = 0;
     zeroPositionBound.m_optimizeMaxEvaluations =
         mx::improc::p4PositionContrastMinimumEvaluations( zeroPositionBound.m_optimizeValidationSamples );
@@ -482,9 +495,19 @@ TEST_CASE( "p4Reduce optimizer configuration validation", "[p4Reduce][config][op
     appHarness insufficientJointBudget;
     prepareOptimizer( insufficientJointBudget );
     insufficientJointBudget.m_optimizeFitPosition = true;
+    insufficientJointBudget.m_obs.m_localStampSize = 13;
     insufficientJointBudget.m_optimizeMaxEvaluations =
         mx::improc::p4PositionContrastMinimumEvaluations( insufficientJointBudget.m_optimizeValidationSamples ) - 1;
     REQUIRE_THROWS( insufficientJointBudget.checkConfig() );
+
+    appHarness invalidPositionTolerance;
+    prepareOptimizer( invalidPositionTolerance );
+    invalidPositionTolerance.m_optimizeFitPosition = true;
+    invalidPositionTolerance.m_obs.m_localStampSize = 13;
+    invalidPositionTolerance.m_optimizePositionTolerance = 0;
+    invalidPositionTolerance.m_optimizeMaxEvaluations =
+        mx::improc::p4PositionContrastMinimumEvaluations( invalidPositionTolerance.m_optimizeValidationSamples );
+    REQUIRE_THROWS( invalidPositionTolerance.checkConfig() );
 
     appHarness oversizedAperture;
     prepareOptimizer( oversizedAperture );
@@ -802,6 +825,7 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
                        "validationSamples=5\n"
                        "maxEvaluations=120\n"
                        "parameterTolerance=0.05\n"
+                       "positionTolerance=0.25\n"
                        "meritTolerance=1e-6\n"
                        "outputPrefix=joint_\n" );
 
@@ -831,6 +855,8 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
     REQUIRE( header["P4 OPT FIT POSITION"].value<int>() == 1 );
     REQUIRE( header["P4 OPT POSITION CONVERGED"].value<int>() == 1 );
     REQUIRE( header["P4 OPT CONTRAST CONVERGED"].value<int>() == 1 );
+    REQUIRE( header["P4 OPT APERTURE FRAME"].String().starts_with( "FIXED_INITIAL_SKY" ) );
+    REQUIRE( header["P4 OPT POSITION TOLERANCE"].value<double>() == Approx( 0.25 ) );
     REQUIRE( std::abs( header["P4 OPT BEST ROW DELTA"].value<double>() ) <= 0.25 );
     REQUIRE( std::abs( header["P4 OPT BEST COLUMN DELTA"].value<double>() ) <= 0.25 );
     REQUIRE( header["P4 OPT BEST SEPARATION"].value<double>() > 0 );
@@ -839,8 +865,12 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
                                                 header["P4 OPT BEST PA"].value<double>(),
                                                 header["P4 OPT BEST CONTRAST"].value<double>() };
     const auto fittedOffset = mx::improc::p4TrialCartesianOffset( fittedTrial );
+    const auto initialOffset = mx::improc::p4TrialCartesianOffset( { 5.4, 35, -0.005 } );
     REQUIRE( header["P4 LOCAL SOURCE ROW"].value<double>() == Approx( 15 + fittedOffset.row ).margin( 1e-5 ) );
     REQUIRE( header["P4 LOCAL SOURCE COLUMN"].value<double>() == Approx( 15 + fittedOffset.column ).margin( 1e-5 ) );
+    REQUIRE( header["P4 OPT APERTURE CENTER ROW"].value<double>() == Approx( 15 + initialOffset.row ).margin( 1e-5 ) );
+    REQUIRE( header["P4 OPT APERTURE CENTER COLUMN"].value<double>() ==
+             Approx( 15 + initialOffset.column ).margin( 1e-5 ) );
 
     const std::string meritTable = readTextFile( meritPath );
     REQUIRE( meritTable.starts_with(
@@ -852,6 +882,8 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
     REQUIRE( summary.find( "fitPosition: true" ) != std::string::npos );
     REQUIRE( summary.find( "positionConverged: true" ) != std::string::npos );
     REQUIRE( summary.find( "contrastConverged: true" ) != std::string::npos );
+    REQUIRE( summary.find( "apertureFrame: \"fixed-initial-sky\"" ) != std::string::npos );
+    REQUIRE( summary.find( "positionTolerance: 0.25" ) != std::string::npos );
     const std::string bestConfiguration = readTextFile( bestConfigPath );
     REQUIRE( bestConfiguration.find( "sep=" ) != std::string::npos );
     REQUIRE( bestConfiguration.find( "PA=" ) != std::string::npos );
