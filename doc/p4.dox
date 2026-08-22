@@ -41,6 +41,37 @@
  *
  * The detector-frame residual cubes are derotated by the shared ADI final-processing stage before combination.
  *
+ * \section p4reduce_local Pixel-local finite-amplitude trials
+ *
+ * `p4.localStampSize=W>0` evaluates one trial companion without processing the rest of the output field. It is an
+ * exact finite-amplitude refit, not a frozen-coefficient response. For every detector search pixel needed by the
+ * requested sky stamp and every temporal row, the configured trial perturbation `D_t` changes both sides of the
+ * regression:
+ *
+ * \f[
+ *   y'_p(t)=I_t(p)+D_t(p), \qquad
+ *   X'_p(t,k)=S_{p,k}[I_t]+S_{p,k}[D_t].
+ * \f]
+ *
+ * The ordinary P4 eigensolve is then repeated. Positive `p4.numberImages` is supported: direct physical-PSF-disk
+ * predictors receive the perturbation from their selected physical frame. Every unique detector search pixel is fit
+ * once with its complete configured time sequence, but only residual rows needed by the local derotation footprints
+ * are retained. Cubic footprints are unioned over the complete field rotation, so the number of fitted detector
+ * pixels is generally larger than `W*W` but much smaller than a complete output field.
+ *
+ * The source center is never quantized. Full images and the source template use the geometric center
+ * `0.5*(N-1)` in each axis. The odd result lattice is merely anchored at the nearest integer pixel, while FITS
+ * provenance records both that integer origin and the continuous source coordinate. When an odd `W` is used with
+ * even detector/template dimensions, the internal centered template crop expands to `W+1`; cropping the template to
+ * odd width would move its half-pixel center and is deliberately not done.
+ *
+ * The initial command-line path requires already-preprocessed inputs (`preProcess.skip=true`) and interprets the
+ * existing single `[fake]` template as a perturbation at the P4-input stage. It supports detector regression,
+ * derotation, and the ordinary mean, median, weighted-mean, or sigma-clipped final combination, while rejecting
+ * rotated regression, post-median subtraction, per-frame PSF-subtracted output, and frozen-model PSF products. The
+ * standard final-image name contains the local residual cube, and a neighboring `local_validity` FITS cube records
+ * exact combined validity. See \ref p4_local_dictionary for the complete configuration and naming contract.
+ *
  * \section p4reduce_frozen_psf Frozen-model PSF responses
  *
  * Setting `p4.psfFile` enables an analytic response calculation for the detector-frame, same-image-predictor
@@ -195,6 +226,7 @@
  * | `geom.minRadius`, `geom.maxRadius` | Matching, ordered, non-overlapping full-annulus bounds. Inner radii are inclusive and outer radii are exclusive. |
  * | `p4.regressionFrame` | `detector` (default) or `rotated`; selects the regression coordinates, centering rule, support test, and final-frame lifecycle. |
  * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames added to each predictor row; `0` is the compatibility default and positive values are invalid in rotated mode. |
+ * | `p4.localStampSize` | Zero for a complete reduction, or a positive odd sky-stamp width for one finite-amplitude local refit using the `[fake]` settings. |
  * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
  * | `p4.orArcHalfWidth` | Nonnegative azimuthal half-width expressed as arc length in pixels; `0` uses only `p4.orMaxHalfAngle`. |

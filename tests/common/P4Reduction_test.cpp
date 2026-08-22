@@ -148,6 +148,12 @@ struct reductionHarness : public reductionT
     using reductionT::m_doOutputPSFSub;
     using reductionT::m_doWriteFinim;
     using reductionT::m_exactFinimName;
+    using reductionT::m_fakeContrast;
+    using reductionT::m_fakeFileName;
+    using reductionT::m_fakeMethod;
+    using reductionT::m_fakePA;
+    using reductionT::m_fakeScaleFileName;
+    using reductionT::m_fakeSep;
     using reductionT::m_fileList;
     using reductionT::m_filesRead;
     using reductionT::m_finim;
@@ -409,6 +415,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE_FALSE( defaults.m_psfFilter );
     REQUIRE( defaults.m_psfFilterMinGoodFract == 1 );
     REQUIRE( defaults.m_psfOutputPrefix == "p4PSF_" );
+    REQUIRE( defaults.m_localStampSize == 0 );
     REQUIRE_FALSE( defaults.m_writeDiagnostics );
     REQUIRE( defaults.m_diagnosticDirectory == "." );
 
@@ -423,6 +430,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.psfFilter" ).clType == mx::app::argType::True );
     REQUIRE( registered.m_targets.at( "p4.psfFilterMinGoodFract" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "p4.psfOutputPrefix" ).helpType == "string" );
+    REQUIRE( registered.m_targets.at( "p4.localStampSize" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.memoryFraction" ).helpType == "double" );
     REQUIRE( registered.m_targets.at( "p4.writeDiagnostics" ).clType == mx::app::argType::True );
     REQUIRE( registered.m_targets.at( "p4.orMaxHalfAngle" ).helpType == "float" );
@@ -445,7 +453,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
                          "orDeltaRadiusInner=2\norDeltaRadiusOuter=3\n"
                          "orArcHalfWidth=4\norMaxHalfAngle=90\npsfRadius=1.5\n"
                          "exclusionPolicy=sampleCenter\nexclusionRadiusBuffer=0.5\nrankTolerance=1e-8\n"
-                         "memoryFraction=0.65\n"
+                         "memoryFraction=0.65\nlocalStampSize=0\n"
                          "writeDiagnostics=true\ndiagnosticDirectory=" +
                              directory.file( "diagnostics" ).string() + "\n" );
     REQUIRE( configured.m_minRadius == std::vector<float>{ 5, 8 } );
@@ -462,6 +470,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( configured.m_exclusionRadiusBuffer == 0.5f );
     REQUIRE( configured.m_rankTolerance == Approx( 1e-8 ) );
     REQUIRE( configured.m_memoryFraction == Approx( 0.65 ) );
+    REQUIRE( configured.m_localStampSize == 0 );
     REQUIRE( configured.m_writeDiagnostics );
     reductionT::fitsHeaderT configuredHeader;
     configured.appendReductionHeader( configuredHeader );
@@ -630,6 +639,222 @@ TEST_CASE( "P4 reduction exact synthetic prediction", "[P4Reduction][reduce][pre
     doxygenReduction.regions( { 5 }, { 6 } );
 #endif
     // clang-format on
+}
+
+/// Verify P4Reduction's finite-amplitude local path matches a crop from an independently materialized full rerun.
+/** This exercises mx::improc::P4Reduction::reduce(), including the shared detector fit, sparse derotation, fractional
+ * source center, phase-preserving even template crop, and final combination.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 pixel-local finite-amplitude refit matches full reduction",
+           "[P4Reduction][local][integration][phase][equivalence]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    constexpr int imageCount = 7;
+    constexpr int rows = 32;
+    constexpr int columns = 32;
+    constexpr int stampSize = 5;
+    constexpr float separation = 6.4F;
+    constexpr float positionAngle = 37.0F;
+    constexpr float contrast = -0.35F;
+    const std::vector<float> angles{ -0.25F, -0.13F, -0.03F, 0.08F, 0.19F, 0.31F, 0.42F };
+
+    reductionT::imageT sourceTemplate = reductionT::imageT::Zero( 8, 8 );
+    for( int column = 1; column < 7; ++column )
+    {
+        for( int row = 1; row < 7; ++row )
+        {
+            const double deltaRow = static_cast<double>( row ) - 3.5;
+            const double deltaColumn = static_cast<double>( column ) - 3.5;
+            sourceTemplate( row, column ) =
+                static_cast<float>( std::exp( -0.35 * deltaRow * deltaRow - 0.22 * deltaColumn * deltaColumn ) *
+                                    ( 1.0 + 0.06 * deltaRow - 0.04 * deltaColumn ) );
+        }
+    }
+    const std::filesystem::path sourcePath = directory.file( "local-source.fits" );
+    mx::fits::fitsFile<float, mx::verbose::vv> writer;
+    REQUIRE( writer.write( sourcePath.string(), sourceTemplate ) == mx::error_t::noerror );
+
+    const auto prepare = [&]( reductionHarness &reduction )
+    {
+        prepareReduction( reduction, imageCount, rows, columns );
+        reduction.m_minRadius = { 2 };
+        reduction.m_maxRadius = { 11 };
+        reduction.m_modeFractions = { 0.25F, 0.5F };
+        reduction.m_numberImages = 1;
+        reduction.m_derotF.m_angles = angles;
+        reduction.m_doDerotate = true;
+        reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+        reduction.m_skipPreProcess = true;
+        reduction.m_memoryFraction = 0;
+        for( int image = 0; image < imageCount; ++image )
+        {
+            for( int column = 0; column < columns; ++column )
+            {
+                for( int row = 0; row < rows; ++row )
+                {
+                    reduction.m_tgtIms.image( image )( row, column ) =
+                        0.003F * static_cast<float>( row * row ) - 0.002F * static_cast<float>( column * column ) +
+                        0.01F * static_cast<float>( row * column ) + 0.07F * static_cast<float>( image * row ) -
+                        0.04F * static_cast<float>( ( image + 1 ) * column ) +
+                        0.001F * static_cast<float>( ( image % 3 ) * row * column );
+                }
+            }
+        }
+    };
+
+    reductionHarness full;
+    prepare( full );
+    reductionT::imageT centeredTemplate = reductionT::imageT::Zero( rows, columns );
+    centeredTemplate.block( 13, 13, 6, 6 ) = sourceTemplate.block( 1, 1, 6, 6 );
+    for( int image = 0; image < imageCount; ++image )
+    {
+        const float sourceAngle = mx::math::dtor( -positionAngle ) + full.m_derotF.derotAngle( image );
+        reductionT::imageT shifted;
+        mx::improc::imageShift( shifted,
+                                centeredTemplate,
+                                separation * std::sin( sourceAngle ),
+                                separation * std::cos( sourceAngle ),
+                                mx::improc::cubicConvolTransform<float>() );
+        full.m_tgtIms.image( image ) += shifted * contrast;
+    }
+    REQUIRE( full.reduce() == 0 );
+
+    reductionHarness local;
+    prepare( local );
+    local.m_localStampSize = stampSize;
+    local.m_fakeMethod = mx::improc::HCI::fake::single;
+    local.m_fakeFileName = sourcePath.string();
+    local.m_fakeSep = { separation };
+    local.m_fakePA = { positionAngle };
+    local.m_fakeContrast = { contrast };
+    local.m_outputDir = directory.file( "local-products" ).string();
+    local.m_finimName = "finim_";
+    local.m_doWriteFinim = true;
+    REQUIRE( local.reduce() == 0 );
+
+    const std::filesystem::path localResidualPath = directory.file( "local-products/finim_0000.fits" );
+    const std::filesystem::path localValidityPath = directory.file( "local-products/finim_local_validity_0000.fits" );
+    REQUIRE( std::filesystem::exists( localResidualPath ) );
+    REQUIRE( std::filesystem::exists( localValidityPath ) );
+    mx::improc::eigenCube<float> persistedLocalResidual;
+    reductionT::fitsHeaderT localResidualHeader;
+    REQUIRE( writer.read( persistedLocalResidual, localResidualHeader, localResidualPath.string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( persistedLocalResidual.rows() == stampSize );
+    REQUIRE( localResidualHeader["P4 PRODUCT ROLE"].String().starts_with( "LOCAL_RESIDUAL" ) );
+    REQUIRE( localResidualHeader["P4 LOCAL CENTER CONVENTION"].String().starts_with( "0.5*(N-1)" ) );
+    REQUIRE( localResidualHeader["FAKEFILE"].String().starts_with( sourcePath.string() ) );
+    REQUIRE( localResidualHeader["FAKESEP"].String().starts_with( "6.4" ) );
+    REQUIRE( localResidualHeader["FAKEPA"].String().starts_with( "37" ) );
+    REQUIRE( localResidualHeader["FAKECONT"].String().starts_with( "-0.35" ) );
+    mx::improc::eigenCube<float> persistedLocalValidity;
+    reductionT::fitsHeaderT localValidityHeader;
+    REQUIRE( writer.read( persistedLocalValidity, localValidityHeader, localValidityPath.string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( persistedLocalValidity.planes() == local.m_localFinalValidity.planes() );
+    for( int output = 0; output < persistedLocalValidity.planes(); ++output )
+    {
+        REQUIRE( persistedLocalValidity.image( output ).isApprox( local.m_localFinalValidity.image( output ), 0 ) );
+    }
+    REQUIRE( localValidityHeader["P4 PRODUCT ROLE"].String().starts_with( "LOCAL_VALIDITY" ) );
+
+    const float finalSourceAngle = mx::math::dtor( -positionAngle );
+    const double expectedSourceRow =
+        0.5 * static_cast<double>( rows - 1 ) + static_cast<double>( separation * std::sin( finalSourceAngle ) );
+    const double expectedSourceColumn =
+        0.5 * static_cast<double>( columns - 1 ) + static_cast<double>( separation * std::cos( finalSourceAngle ) );
+    REQUIRE( local.m_localSourceRow == Approx( expectedSourceRow ) );
+    REQUIRE( local.m_localSourceColumn == Approx( expectedSourceColumn ) );
+    REQUIRE( local.m_localOriginRow == static_cast<int>( std::floor( expectedSourceRow + 0.5 ) ) - stampSize / 2 );
+    REQUIRE( local.m_localOriginColumn ==
+             static_cast<int>( std::floor( expectedSourceColumn + 0.5 ) ) - stampSize / 2 );
+    REQUIRE( local.m_localTemplateRows == 6 );
+    REQUIRE( local.m_localTemplateColumns == 6 );
+    REQUIRE( local.m_localSearchCount > 0 );
+    REQUIRE( local.m_localSparseSampleCount >= local.m_localSearchCount );
+    REQUIRE( local.m_localGeometryBytes > 0 );
+    REQUIRE( local.m_finim.rows() == stampSize );
+    REQUIRE( local.m_finim.cols() == stampSize );
+    REQUIRE( local.m_finim.planes() == full.m_finim.planes() );
+
+    std::size_t validSamples{ 0 };
+    for( int output = 0; output < local.m_finim.planes(); ++output )
+    {
+        for( int stampColumn = 0; stampColumn < stampSize; ++stampColumn )
+        {
+            for( int stampRow = 0; stampRow < stampSize; ++stampRow )
+            {
+                const float fullValue = full.m_finim.image( output )( local.m_localOriginRow + stampRow,
+                                                                      local.m_localOriginColumn + stampColumn );
+                const bool fullValid = mx::math::isFinite( fullValue );
+                REQUIRE( local.m_localFinalValidity.image( output )( stampRow, stampColumn ) ==
+                         static_cast<float>( fullValid ) );
+                if( fullValid )
+                {
+                    ++validSamples;
+                    REQUIRE( local.m_finim.image( output )( stampRow, stampColumn ) ==
+                             Approx( fullValue ).margin( 8e-5 ) );
+                }
+                else
+                {
+                    REQUIRE( mx::math::isNan( local.m_finim.image( output )( stampRow, stampColumn ) ) );
+                }
+            }
+        }
+    }
+    REQUIRE( validSamples > 0 );
+
+    reductionHarness signalFree;
+    prepare( signalFree );
+    REQUIRE( signalFree.reduce() == 0 );
+
+    reductionHarness canceled;
+    prepare( canceled );
+    for( int image = 0; image < imageCount; ++image )
+    {
+        const float sourceAngle = mx::math::dtor( -positionAngle ) + canceled.m_derotF.derotAngle( image );
+        reductionT::imageT shifted;
+        mx::improc::imageShift( shifted,
+                                centeredTemplate,
+                                separation * std::sin( sourceAngle ),
+                                separation * std::cos( sourceAngle ),
+                                mx::improc::cubicConvolTransform<float>() );
+        canceled.m_tgtIms.image( image ) -= shifted * contrast;
+    }
+    canceled.m_localStampSize = stampSize;
+    canceled.m_fakeMethod = mx::improc::HCI::fake::single;
+    canceled.m_fakeFileName = sourcePath.string();
+    canceled.m_fakeSep = { separation };
+    canceled.m_fakePA = { positionAngle };
+    canceled.m_fakeContrast = { contrast };
+    REQUIRE( canceled.reduce() == 0 );
+    REQUIRE( canceled.m_localOriginRow == local.m_localOriginRow );
+    REQUIRE( canceled.m_localOriginColumn == local.m_localOriginColumn );
+    for( int output = 0; output < canceled.m_finim.planes(); ++output )
+    {
+        for( int stampColumn = 0; stampColumn < stampSize; ++stampColumn )
+        {
+            for( int stampRow = 0; stampRow < stampSize; ++stampRow )
+            {
+                const float controlValue = signalFree.m_finim.image(
+                    output )( canceled.m_localOriginRow + stampRow, canceled.m_localOriginColumn + stampColumn );
+                const bool controlValid = mx::math::isFinite( controlValue );
+                REQUIRE( canceled.m_localFinalValidity.image( output )( stampRow, stampColumn ) ==
+                         static_cast<float>( controlValid ) );
+                if( controlValid )
+                {
+                    REQUIRE( canceled.m_finim.image( output )( stampRow, stampColumn ) ==
+                             Approx( controlValue ).margin( 1e-4 ) );
+                }
+                else
+                {
+                    REQUIRE( mx::math::isNan( canceled.m_finim.image( output )( stampRow, stampColumn ) ) );
+                }
+            }
+        }
+    }
 }
 
 /// Verify opt-in frozen-model calculation captures compact local stamps without changing science residuals.
@@ -1858,6 +2083,43 @@ TEST_CASE( "P4 reduction input lifecycle", "[P4Reduction][input][RDI][finite][pr
         prepareReduction( reduction );
         reduction.m_tgtIms.image( 1 )( 15, 20 ) = std::numeric_limits<float>::infinity();
         REQUIRE_THROWS( reduction.reduce() );
+    }
+
+    SECTION( "pixel-local mode enforces its exact initial contract" )
+    {
+        const auto prepareLocal = []( reductionHarness &reduction )
+        {
+            prepareReduction( reduction );
+            reduction.m_localStampSize = 5;
+            reduction.m_fakeMethod = mx::improc::HCI::fake::single;
+            reduction.m_fakeFileName = "unused-template.fits";
+            reduction.m_fakeSep = { 5 };
+            reduction.m_fakePA = { 20 };
+            reduction.m_fakeContrast = { -0.1F };
+            reduction.m_skipPreProcess = true;
+            reduction.m_doDerotate = true;
+            reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+        };
+
+        reductionHarness evenStamp;
+        prepareLocal( evenStamp );
+        evenStamp.m_localStampSize = 4;
+        REQUIRE_THROWS( evenStamp.reduce() );
+
+        reductionHarness preprocessing;
+        prepareLocal( preprocessing );
+        preprocessing.m_skipPreProcess = false;
+        REQUIRE_THROWS( preprocessing.reduce() );
+
+        reductionHarness rotated;
+        prepareLocal( rotated );
+        rotated.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+        REQUIRE_THROWS( rotated.reduce() );
+
+        reductionHarness multipleTrials;
+        prepareLocal( multipleTrials );
+        multipleTrials.m_fakeSep.push_back( 6 );
+        REQUIRE_THROWS( multipleTrials.reduce() );
     }
 
     SECTION( "preprocess-only stop leaves no stale reduction products" )

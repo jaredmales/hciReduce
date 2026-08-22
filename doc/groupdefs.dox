@@ -68,6 +68,10 @@
   * \ingroup unit_tests
   */
 
+/** \defgroup P4LocalProcessing_unit_tests P4 Pixel-Local Processing Unit Tests
+  * \ingroup unit_tests
+  */
+
 /** \defgroup P4PSFModel_unit_tests P4 Local PSF Model Unit Tests
   * \ingroup unit_tests
   */

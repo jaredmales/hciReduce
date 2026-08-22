@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
@@ -30,6 +31,7 @@
 #include <mx/ioutils/fits/fitsFile.hpp>
 #include <mx/ipc/ompLoopWatcher.hpp>
 #include <mx/math/floatUtils.hpp>
+#include <mx/math/geo.hpp>
 #include <mx/sys/timeUtils.hpp>
 
 namespace mx
@@ -632,6 +634,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "string",
                 "Prefix for compact PSF products inside output.directory; default p4PSF_" );
+    config.add( "p4.localStampSize",
+                "",
+                "p4.localStampSize",
+                mx::app::argType::Required,
+                "p4",
+                "localStampSize",
+                false,
+                "int",
+                "Positive odd pixel-local result width; zero disables local finite-amplitude refitting" );
     config.add( "p4.exclusionPolicy",
                 "",
                 "p4.exclusionPolicy",
@@ -723,6 +734,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( m_psfFilter, "p4.psfFilter" );
     config( m_psfFilterMinGoodFract, "p4.psfFilterMinGoodFract" );
     config( m_psfOutputPrefix, "p4.psfOutputPrefix" );
+    config( m_localStampSize, "p4.localStampSize" );
 
     std::string policy;
     if( m_exclusionPolicy.has_value() )
@@ -814,6 +826,70 @@ template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
 {
     static_cast<void>( regressionFrameString( m_regressionFrame ) );
+    if( m_localStampSize < 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.localStampSize must be nonnegative" );
+    }
+    if( m_localStampSize > 0 )
+    {
+        if( m_localStampSize % 2 == 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.localStampSize must be odd when local processing is enabled" );
+        }
+        if( m_regressionFrame != P4RegressionFrame::detector )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.localStampSize is supported only for detector-frame P4" );
+        }
+        if( !this->m_skipPreProcess )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.localStampSize initially requires preProcess.skip=true" );
+        }
+        if( !this->m_doDerotate )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.localStampSize requires ADI derotation" );
+        }
+        if( this->m_postMedSub )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.localStampSize does not yet support adi.postMedSub=true" );
+        }
+        if( this->m_combineMethod == HCI::combine::none )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.localStampSize requires a final combination method" );
+        }
+        if( this->m_doOutputPSFSub )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.localStampSize does not support output.outputPSFSub=true" );
+        }
+        if( this->m_fakeMethod != HCI::fake::single || this->m_fakeFileName.empty() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.localStampSize requires fake.method=single and fake.fileName" );
+        }
+        if( this->m_fakeSep.size() != 1 || this->m_fakePA.size() != 1 || this->m_fakeContrast.size() != 1 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.localStampSize requires exactly one fake.sep, fake.PA, and "
+                                           "fake.contrast value" );
+        }
+        if( !mx::math::isFinite( this->m_fakeSep[0] ) || this->m_fakeSep[0] < 0 ||
+            !mx::math::isFinite( this->m_fakePA[0] ) || !mx::math::isFinite( this->m_fakeContrast[0] ) ||
+            this->m_fakeContrast[0] == 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "local fake separation, PA, and nonzero contrast must be finite" );
+        }
+        if( !m_psfFile.empty() || m_outputPSFModels || m_psfFilter )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.localStampSize does not yet support P4 frozen-PSF products" );
+        }
+    }
     if( m_regressionFrame == P4RegressionFrame::rotated && this->m_postMedSub )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
@@ -1163,6 +1239,684 @@ void P4Reduction<realT, derotFunctObj, verboseT>::claimOwnership(
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
+    P4PCAResult &result,
+    P4PCA::matrixT &predictors,
+    P4PCA::vectorT &target,
+    P4PCA::matrixT *coefficients,
+    const pixelGridT &grid,
+    std::size_t search,
+    const std::vector<std::vector<int>> &selections,
+    const std::vector<P4PixelCoordinate> &temporalOffsets,
+    const std::vector<int> &modes,
+    P4PCA::workspaceT &workspace,
+    P4PCATiming &timing,
+    double &sameImageSamplingSeconds,
+    double &temporalSamplingSeconds,
+    const P4TrialSource *trialSource ) const
+{
+    if( selections.empty() || modes.empty() || search >= grid.searchPixelCount() ||
+        !grid.searchPixel( search ).valid() )
+    {
+        throw std::invalid_argument( "P4 detector fit requires valid geometry, temporal rows, and modes" );
+    }
+    const std::size_t basePredictorCount = grid.predictorCount();
+    const std::size_t temporalImageCount = selections.front().size() - 1;
+    const std::size_t predictorCount = basePredictorCount + temporalImageCount * temporalOffsets.size();
+    predictors.resize( static_cast<Eigen::Index>( selections.size() ), static_cast<Eigen::Index>( predictorCount ) );
+    target.resize( static_cast<Eigen::Index>( selections.size() ) );
+
+    const P4PixelCoordinate &coordinate = grid.searchPixel( search ).coordinate();
+    sameImageSamplingSeconds = 0;
+    temporalSamplingSeconds = 0;
+    for( std::size_t targetIndex = 0; targetIndex < selections.size(); ++targetIndex )
+    {
+        const std::vector<int> &selection = selections[targetIndex];
+        if( selection.size() != temporalImageCount + 1 )
+        {
+            throw std::invalid_argument( "P4 detector temporal selections must have a uniform width" );
+        }
+        const int centralImage = selection[0];
+        const double sameImageSamplingBegin = omp_get_wtime();
+        double targetValue =
+            static_cast<double>( this->m_tgtIms.image( centralImage )( coordinate.row(), coordinate.column() ) );
+        if( trialSource )
+        {
+            targetValue += checkedPredictorPromotion(
+                trialSource->value( static_cast<std::size_t>( centralImage ), coordinate.row(), coordinate.column() ) );
+        }
+        if( !mx::math::isFinite( targetValue ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                           "P4 trial-perturbed detector target is non-finite" );
+        }
+        target( static_cast<Eigen::Index>( targetIndex ) ) = targetValue;
+        for( std::size_t predictor = 0; predictor < basePredictorCount; ++predictor )
+        {
+            double predictorValue =
+                checkedPredictorPromotion( grid.sample( this->m_tgtIms.image( centralImage ), search, predictor ) );
+            if( trialSource )
+            {
+                predictorValue +=
+                    checkedPredictorPromotion( trialSource->sample( static_cast<std::size_t>( centralImage ),
+                                                                    grid.interpolation( search, predictor ) ) );
+            }
+            if( !mx::math::isFinite( predictorValue ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               "P4 trial-perturbed same-image predictor is non-finite" );
+            }
+            predictors( static_cast<Eigen::Index>( targetIndex ), static_cast<Eigen::Index>( predictor ) ) =
+                predictorValue;
+        }
+        sameImageSamplingSeconds += omp_get_wtime() - sameImageSamplingBegin;
+
+        const double temporalSamplingBegin = omp_get_wtime();
+        for( std::size_t source = 1; source < selection.size(); ++source )
+        {
+            const int image = selection[source];
+            for( std::size_t predictor = 0; predictor < temporalOffsets.size(); ++predictor )
+            {
+                const int row = coordinate.row() + temporalOffsets[predictor].row();
+                const int column = coordinate.column() + temporalOffsets[predictor].column();
+                double predictorValue = checkedPredictorPromotion( this->m_tgtIms.image( image )( row, column ) );
+                if( trialSource )
+                {
+                    predictorValue += checkedPredictorPromotion(
+                        trialSource->value( static_cast<std::size_t>( image ), row, column ) );
+                }
+                if( !mx::math::isFinite( predictorValue ) )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                                   "P4 trial-perturbed additional-image predictor is non-finite" );
+                }
+                const std::size_t columnIndex =
+                    basePredictorCount + ( source - 1 ) * temporalOffsets.size() + predictor;
+                predictors( static_cast<Eigen::Index>( targetIndex ), static_cast<Eigen::Index>( columnIndex ) ) =
+                    predictorValue;
+            }
+        }
+        temporalSamplingSeconds += omp_get_wtime() - temporalSamplingBegin;
+    }
+
+    P4PCA::calculate( result, predictors, target, modes, m_rankTolerance, workspace, &timing, coefficients );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+std::vector<realT> P4Reduction<realT, derotFunctObj, verboseT>::localTrialScales() const
+{
+    std::vector<realT> scales( static_cast<std::size_t>( this->m_Nims ), static_cast<realT>( 1 ) );
+    if( this->m_fakeScaleFileName.empty() )
+    {
+        return scales;
+    }
+    if( this->m_fileList.size() != static_cast<std::size_t>( this->m_Nims ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "local fake scale lookup requires one filename per target image" );
+    }
+
+    std::vector<std::string> scaleFileNames;
+    std::vector<realT> scaleValues;
+    const mx::error_t readResult = mx::ioutils::readColumns( this->m_fakeScaleFileName, scaleFileNames, scaleValues );
+    if( readResult != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( readResult, "reading local fake scale file" );
+    }
+    if( scaleFileNames.size() != scaleValues.size() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "local fake scale file must contain filename and scale columns" );
+    }
+
+    std::map<std::string, realT> scaleByFile;
+    for( std::size_t index = 0; index < scaleFileNames.size(); ++index )
+    {
+        const std::string name = mx::ioutils::pathFilename( scaleFileNames[index].c_str() );
+        if( !mx::math::isFinite( scaleValues[index] ) || !scaleByFile.emplace( name, scaleValues[index] ).second )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "local fake scale entries must be finite and have unique filenames" );
+        }
+    }
+    for( std::size_t image = 0; image < scales.size(); ++image )
+    {
+        const std::string name = mx::ioutils::pathFilename( this->m_fileList[image].c_str() );
+        const auto found = scaleByFile.find( name );
+        if( found == scaleByFile.end() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "target filename is missing from the local fake scale file: " + name );
+        }
+        scales[image] = found->second;
+    }
+    return scales;
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
+    const std::vector<pixelGridT> &grids,
+    const std::vector<P4PixelCoordinate> &temporalOffsets,
+    const std::vector<double> &derotationAngles )
+{
+    if( grids.size() != m_regionStatistics.size() || grids.size() != m_temporalSelections.size() ||
+        grids.size() != m_realizedModes.size() || derotationAngles.size() != static_cast<std::size_t>( this->m_Nims ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "P4 local processing state does not match the configured reduction" );
+    }
+
+    const double localGeometryBegin = omp_get_wtime();
+    P4LocalGeometry::lookupImageT ownership = m_ownership.template cast<std::int64_t>();
+    P4LocalGeometry::lookupImageT searchIndexLookup =
+        P4LocalGeometry::lookupImageT::Constant( this->m_Nrows, this->m_Ncols, -1 );
+    for( std::size_t region = 0; region < grids.size(); ++region )
+    {
+        for( std::size_t search = 0; search < grids[region].searchPixelCount(); ++search )
+        {
+            const P4PixelCoordinate &coordinate = grids[region].searchPixel( search ).coordinate();
+            if( search > static_cast<std::size_t>( std::numeric_limits<std::int64_t>::max() ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 local search index exceeds lookup range" );
+            }
+            searchIndexLookup( coordinate.row(), coordinate.column() ) = static_cast<std::int64_t>( search );
+        }
+    }
+
+    const double imageCenterRow = 0.5 * static_cast<double>( this->m_Nrows - 1 );
+    const double imageCenterColumn = 0.5 * static_cast<double>( this->m_Ncols - 1 );
+    const realT positionAngleRadians = mx::math::dtor( -this->m_fakePA[0] );
+    const realT separation = this->m_fakeSep[0];
+    const double sourceRow = imageCenterRow + static_cast<double>( separation * std::sin( positionAngleRadians ) );
+    const double sourceColumn =
+        imageCenterColumn + static_cast<double>( separation * std::cos( positionAngleRadians ) );
+
+    P4LocalGeometry geometry;
+    try
+    {
+        geometry.configure( this->m_Nrows,
+                            this->m_Ncols,
+                            m_localStampSize,
+                            sourceRow,
+                            sourceColumn,
+                            derotationAngles,
+                            true,
+                            ownership,
+                            searchIndexLookup );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "could not construct P4 local geometry" ) );
+    }
+
+    imageT sourceTemplate;
+    mx::fits::fitsFile<realT, verboseT> reader;
+    const mx::error_t readResult = reader.read( sourceTemplate, this->m_fakeFileName );
+    if( readResult != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( readResult, "could not read local fake template " + this->m_fakeFileName );
+    }
+    P4TrialSource trialSource;
+    try
+    {
+        trialSource.configure( sourceTemplate,
+                               this->m_Nrows,
+                               this->m_Ncols,
+                               m_localStampSize,
+                               derotationAngles,
+                               separation,
+                               static_cast<double>( this->m_fakePA[0] ),
+                               static_cast<double>( this->m_fakeContrast[0] ),
+                               localTrialScales() );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "could not prepare P4 local trial source" ) );
+    }
+
+    m_localOriginRow = geometry.originRow();
+    m_localOriginColumn = geometry.originColumn();
+    m_localSourceRow = geometry.sourceRow();
+    m_localSourceColumn = geometry.sourceColumn();
+    m_localTemplateRows = trialSource.cropRows();
+    m_localTemplateColumns = trialSource.cropColumns();
+    m_localSearchCount = geometry.searchRequests().size();
+    m_localSparseSampleCount = geometry.sparseSampleCount();
+    m_localGeometryBytes = geometry.storageBytes();
+    m_timing.geometryElapsedSeconds += omp_get_wtime() - localGeometryBegin;
+
+    using localResidualT = Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic>;
+    using localValidityT = Eigen::Array<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>;
+    std::vector<localResidualT> localResiduals( m_localSearchCount );
+    std::vector<localValidityT> localValidity( m_localSearchCount );
+    for( std::size_t request = 0; request < m_localSearchCount; ++request )
+    {
+        const std::size_t frameCount = geometry.searchRequests()[request].frames().size();
+        if( frameCount > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) ||
+            m_modeFractions.size() > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 local residual dimensions exceed Eigen range" );
+        }
+        localResiduals[request].resize( static_cast<Eigen::Index>( frameCount ),
+                                        static_cast<Eigen::Index>( m_modeFractions.size() ) );
+        localResiduals[request].setZero();
+        localValidity[request].resize( static_cast<Eigen::Index>( frameCount ),
+                                       static_cast<Eigen::Index>( m_modeFractions.size() ) );
+        localValidity[request].setZero();
+    }
+
+    const long double compactBytes = static_cast<long double>( m_localSparseSampleCount ) *
+                                     static_cast<long double>( m_modeFractions.size() ) *
+                                     ( sizeof( realT ) + sizeof( std::uint8_t ) );
+    const long double templateBytes =
+        static_cast<long double>( this->m_Nrows ) * static_cast<long double>( this->m_Ncols ) * sizeof( realT );
+    const long double materializationBytes =
+        2.0L * static_cast<long double>( m_localStampSize ) * static_cast<long double>( m_localStampSize ) *
+        static_cast<long double>( this->m_Nims ) * static_cast<long double>( m_modeFractions.size() ) * sizeof( realT );
+    if( compactBytes > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) ||
+        templateBytes > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) ||
+        materializationBytes > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 local memory estimate exceeds size_t range" );
+    }
+    m_compactResidualBytes = static_cast<std::size_t>( compactBytes );
+    m_psfModelBytes = static_cast<std::size_t>( templateBytes );
+    m_materializationBytes = static_cast<std::size_t>( materializationBytes );
+
+    if( m_memoryFraction != 0 )
+    {
+        const std::optional<std::size_t> availableMemory = p4AvailableMemoryBytes();
+        if( availableMemory )
+        {
+            m_availableMemoryBytes = *availableMemory;
+            m_memoryBudgetBytes = static_cast<std::size_t>(
+                std::floor( static_cast<long double>( m_memoryFraction ) * m_availableMemoryBytes ) );
+            if( m_memoryBudgetBytes == 0 )
+            {
+                throw mx::exception<verboseT>( mx::error_t::allocerr,
+                                               "p4.memoryFraction selects a zero-byte automatic memory budget" );
+            }
+        }
+        else
+        {
+            std::cerr << "WARNING: P4 could not read Linux MemAvailable; automatic worker limiting is disabled\n";
+        }
+    }
+
+    if( m_compactResidualBytes > std::numeric_limits<std::size_t>::max() - m_psfModelBytes ||
+        m_compactResidualBytes + m_psfModelBytes > std::numeric_limits<std::size_t>::max() - m_localGeometryBytes )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 local persistent byte count overflow" );
+    }
+    const std::size_t persistentBytes = m_compactResidualBytes + m_psfModelBytes + m_localGeometryBytes;
+    if( m_memoryBudgetBytes != 0 &&
+        ( persistentBytes > m_memoryBudgetBytes || m_materializationBytes > m_memoryBudgetBytes - persistentBytes ) )
+    {
+        throw mx::exception<verboseT>(
+            mx::error_t::allocerr,
+            "P4 local residuals and output materialization exceed the automatic memory budget; increase "
+            "p4.memoryFraction, reduce p4.localStampSize, or set p4.memoryFraction=0 to disable the budget" );
+    }
+
+    std::vector<std::vector<int>> targetRowByFrame( grids.size(),
+                                                    std::vector<int>( static_cast<std::size_t>( this->m_Nims ), -1 ) );
+    for( std::size_t region = 0; region < grids.size(); ++region )
+    {
+        for( std::size_t targetIndex = 0; targetIndex < m_temporalSelections[region].size(); ++targetIndex )
+        {
+            const int frame = m_temporalSelections[region][targetIndex][0];
+            targetRowByFrame[region][static_cast<std::size_t>( frame )] = static_cast<int>( targetIndex );
+        }
+    }
+
+    std::size_t maximumWorkerBytes{ 0 };
+    for( std::size_t region = 0; region < grids.size(); ++region )
+    {
+        P4RegionStatistics &statistics = m_regionStatistics[region];
+        statistics.estimatedWorkerBytes =
+            estimatedWorkerBytes( statistics.targetImageCount, statistics.predictorCount, m_modeFractions.size() );
+        maximumWorkerBytes = std::max( maximumWorkerBytes, statistics.estimatedWorkerBytes );
+    }
+    const int requestedWorkers =
+        std::max( 1,
+                  std::min( omp_get_max_threads(),
+                            static_cast<int>( std::min<std::size_t>(
+                                std::max<std::size_t>( 1, m_localSearchCount ),
+                                static_cast<std::size_t>( std::numeric_limits<int>::max() ) ) ) ) );
+    int effectiveWorkers = requestedWorkers;
+    if( m_memoryBudgetBytes != 0 )
+    {
+        effectiveWorkers =
+            memoryLimitedWorkerCount( requestedWorkers, m_memoryBudgetBytes, persistentBytes, maximumWorkerBytes );
+        if( effectiveWorkers == 0 )
+        {
+            throw mx::exception<verboseT>(
+                mx::error_t::allocerr,
+                "one P4 local worker does not fit the automatic memory budget; increase p4.memoryFraction or set "
+                "p4.memoryFraction=0 to disable the budget" );
+        }
+    }
+    for( std::size_t region = 0; region < grids.size(); ++region )
+    {
+        P4RegionStatistics &statistics = m_regionStatistics[region];
+        statistics.maximumWorkerCount = requestedWorkers;
+        statistics.effectiveWorkerCount = effectiveWorkers;
+        statistics.validLocalFitCount = 0;
+        statistics.maskedLocalFitCount = 0;
+        statistics.supportInvalidLocalFitCount = 0;
+        statistics.minimumNumericalRank = 0;
+        statistics.rankInvalidCounts.assign( m_modeFractions.size(), 0 );
+    }
+
+    constexpr double bytesPerMiB = 1024.0 * 1024.0;
+    std::cerr << "P4 local geometry: " << m_localStampSize << 'x' << m_localStampSize << " sky pixels, "
+              << m_localSearchCount << " unique detector fits, " << m_localSparseSampleCount
+              << " sparse residual samples\n";
+    std::cerr << "P4 local memory: " << static_cast<double>( m_compactResidualBytes ) / bytesPerMiB
+              << " MiB residuals, " << static_cast<double>( m_localGeometryBytes ) / bytesPerMiB
+              << " MiB sparse geometry, " << static_cast<double>( m_materializationBytes ) / bytesPerMiB
+              << " MiB output materialization, workers " << effectiveWorkers << " / " << requestedWorkers << '\n';
+
+    std::vector<int> requestRanks( m_localSearchCount, 0 );
+    std::vector<std::uint8_t> requestAttempted( m_localSearchCount, 0 );
+    std::exception_ptr workerException;
+    std::atomic<bool> failed{ false };
+    const imageT *mask = this->m_mask.size() == 0 ? nullptr : &this->m_mask;
+    const double regressionBegin = omp_get_wtime();
+
+    // clang-format off
+#pragma omp parallel num_threads(effectiveWorkers)
+    // clang-format on
+    {
+        P4PCA::workspaceT workspace;
+        P4PCA::matrixT predictors;
+        P4PCA::vectorT target;
+        P4PCAResult result;
+        double threadSamplingSeconds{ 0 };
+        double threadSameImageSamplingSeconds{ 0 };
+        double threadTemporalSamplingSeconds{ 0 };
+        double threadGramSeconds{ 0 };
+        double threadEigensolveSeconds{ 0 };
+        double threadProjectionSeconds{ 0 };
+
+        // clang-format off
+#pragma omp for schedule(static)
+        // clang-format on
+        for( std::size_t requestIndex = 0; requestIndex < m_localSearchCount; ++requestIndex )
+        {
+            if( failed.load( std::memory_order_acquire ) )
+            {
+                continue;
+            }
+            try
+            {
+                const P4LocalSearchRequest &request = geometry.searchRequests()[requestIndex];
+                const std::size_t region = static_cast<std::size_t>( request.region() );
+                const pixelGridT &grid = grids[region];
+                const bool temporalValid = m_regionStatistics[region].temporalNumberImages == 0 ||
+                                           p4TemporalPredictorsValid( request.coordinate(),
+                                                                      temporalOffsets,
+                                                                      this->m_Nrows,
+                                                                      this->m_Ncols,
+                                                                      mask );
+                if( !grid.searchPixel( request.searchIndex() ).valid() || !temporalValid )
+                {
+                    continue;
+                }
+
+                double sameImageSamplingSeconds{ 0 };
+                double temporalSamplingSeconds{ 0 };
+                P4PCATiming pcaTiming;
+                fitDetectorSearch( result,
+                                   predictors,
+                                   target,
+                                   nullptr,
+                                   grid,
+                                   request.searchIndex(),
+                                   m_temporalSelections[region],
+                                   temporalOffsets,
+                                   m_realizedModes[region],
+                                   workspace,
+                                   pcaTiming,
+                                   sameImageSamplingSeconds,
+                                   temporalSamplingSeconds,
+                                   &trialSource );
+                threadSamplingSeconds += sameImageSamplingSeconds + temporalSamplingSeconds;
+                threadSameImageSamplingSeconds += sameImageSamplingSeconds;
+                threadTemporalSamplingSeconds += temporalSamplingSeconds;
+                threadGramSeconds += pcaTiming.gramWorkerSeconds;
+                threadEigensolveSeconds += pcaTiming.eigensolveWorkerSeconds;
+                threadProjectionSeconds += pcaTiming.projectionWorkerSeconds;
+                requestAttempted[requestIndex] = 1;
+                requestRanks[requestIndex] = result.numericalRank;
+
+                const double residualApplyBegin = omp_get_wtime();
+                for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+                {
+                    if( result.modeStatus[output] == P4PCAModeStatus::rankInsufficient )
+                    {
+                        continue;
+                    }
+                    for( std::size_t frameOffset = 0; frameOffset < request.frames().size(); ++frameOffset )
+                    {
+                        const int frame = request.frames()[frameOffset];
+                        const int targetRow = targetRowByFrame[region][static_cast<std::size_t>( frame )];
+                        if( targetRow < 0 )
+                        {
+                            continue;
+                        }
+                        localResiduals[requestIndex]( static_cast<Eigen::Index>( frameOffset ),
+                                                      static_cast<Eigen::Index>( output ) ) =
+                            checkedResidualCast( result.residuals( targetRow, static_cast<Eigen::Index>( output ) ) );
+                        localValidity[requestIndex]( static_cast<Eigen::Index>( frameOffset ),
+                                                     static_cast<Eigen::Index>( output ) ) = 1;
+                    }
+                }
+                threadProjectionSeconds += omp_get_wtime() - residualApplyBegin;
+            }
+            catch( ... )
+            {
+                // clang-format off
+#pragma omp critical(P4ReductionLocalException)
+                // clang-format on
+                {
+                    if( !workerException )
+                    {
+                        workerException = std::current_exception();
+                    }
+                }
+                failed.store( true, std::memory_order_release );
+            }
+        }
+
+        // clang-format off
+#pragma omp critical(P4ReductionLocalTiming)
+        // clang-format on
+        {
+            m_timing.samplingWorkerSeconds += threadSamplingSeconds;
+            m_timing.sameImageSamplingWorkerSeconds += threadSameImageSamplingSeconds;
+            m_timing.temporalSamplingWorkerSeconds += threadTemporalSamplingSeconds;
+            m_timing.gramWorkerSeconds += threadGramSeconds;
+            m_timing.eigensolveWorkerSeconds += threadEigensolveSeconds;
+            m_timing.projectionWorkerSeconds += threadProjectionSeconds;
+        }
+    }
+
+    if( workerException )
+    {
+        try
+        {
+            std::rethrow_exception( workerException );
+        }
+        catch( ... )
+        {
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "P4 local worker failed" ) );
+        }
+    }
+    m_timing.regressionElapsedSeconds = omp_get_wtime() - regressionBegin;
+
+    for( std::size_t requestIndex = 0; requestIndex < m_localSearchCount; ++requestIndex )
+    {
+        const std::size_t region = static_cast<std::size_t>( geometry.searchRequests()[requestIndex].region() );
+        P4RegionStatistics &statistics = m_regionStatistics[region];
+        if( requestAttempted[requestIndex] == 0 )
+        {
+            ++statistics.maskedLocalFitCount;
+            continue;
+        }
+        ++statistics.validLocalFitCount;
+        if( statistics.minimumNumericalRank == 0 )
+        {
+            statistics.minimumNumericalRank = requestRanks[requestIndex];
+        }
+        else
+        {
+            statistics.minimumNumericalRank = std::min( statistics.minimumNumericalRank, requestRanks[requestIndex] );
+        }
+        for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+        {
+            bool modeValid{ false };
+            for( Eigen::Index frameOffset = 0; frameOffset < localValidity[requestIndex].rows(); ++frameOffset )
+            {
+                modeValid =
+                    modeValid || localValidity[requestIndex]( frameOffset, static_cast<Eigen::Index>( output ) );
+            }
+            if( !modeValid )
+            {
+                ++statistics.rankInvalidCounts[output];
+            }
+        }
+    }
+
+    this->t_derotate_begin = mx::sys::get_curr_time();
+    this->m_psfsub.resize( m_modeFractions.size() );
+    this->m_psfsubValidity.resize( m_modeFractions.size() );
+    for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+    {
+        this->m_psfsub[output].resize( m_localStampSize, m_localStampSize, this->m_Nims );
+        this->m_psfsub[output].setZero();
+        this->m_psfsubValidity[output].resize( m_localStampSize, m_localStampSize, this->m_Nims );
+        this->m_psfsubValidity[output].setZero();
+    }
+
+    for( int stampColumn = 0; stampColumn < m_localStampSize; ++stampColumn )
+    {
+        for( int stampRow = 0; stampRow < m_localStampSize; ++stampRow )
+        {
+            for( std::size_t frame = 0; frame < static_cast<std::size_t>( this->m_Nims ); ++frame )
+            {
+                const P4LocalOutputSample &sample = geometry.outputSample( stampRow, stampColumn, frame );
+                if( !sample.valid() )
+                {
+                    continue;
+                }
+                for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+                {
+                    realT value{ 0 };
+                    bool valid{ true };
+                    for( const P4LocalResidualSample &dependency : sample.samples() )
+                    {
+                        if( localValidity[dependency.requestIndex()](
+                                static_cast<Eigen::Index>( dependency.frameOffset() ),
+                                static_cast<Eigen::Index>( output ) ) == 0 )
+                        {
+                            valid = false;
+                            break;
+                        }
+                        value += localResiduals[dependency.requestIndex()](
+                                     static_cast<Eigen::Index>( dependency.frameOffset() ),
+                                     static_cast<Eigen::Index>( output ) ) *
+                                 dependency.weight();
+                    }
+                    if( valid )
+                    {
+                        this->m_psfsub[output].image( static_cast<int>( frame ) )( stampRow, stampColumn ) = value;
+                        this->m_psfsubValidity[output].image( static_cast<int>( frame ) )( stampRow, stampColumn ) = 1;
+                    }
+                }
+            }
+        }
+    }
+    this->t_derotate_end = mx::sys::get_curr_time();
+
+    std::cerr << "combining local sky stamp\n";
+    this->combineFinim();
+    m_localFinalValidity.resize( m_localStampSize, m_localStampSize, static_cast<int>( m_modeFractions.size() ) );
+    for( int output = 0; output < m_localFinalValidity.planes(); ++output )
+    {
+        for( int stampColumn = 0; stampColumn < m_localStampSize; ++stampColumn )
+        {
+            for( int stampRow = 0; stampRow < m_localStampSize; ++stampRow )
+            {
+                m_localFinalValidity.image( output )( stampRow, stampColumn ) =
+                    mx::math::isFinite( this->m_finim.image( output )( stampRow, stampColumn ) ) ? 1 : 0;
+            }
+        }
+    }
+    this->materializePSFSubInvalid();
+
+    fitsHeaderT algorithmHeader;
+    this->stdFitsHeader( &algorithmHeader );
+    appendReductionHeader( algorithmHeader );
+    if( this->m_doWriteFinim )
+    {
+        const std::string finalImagePath = this->finalImageOutputPath();
+        std::cerr << "writing\n";
+        fitsHeaderT residualHeader = algorithmHeader;
+        residualHeader.template append<std::string>( "P4 PRODUCT ROLE", "LOCAL_RESIDUAL", "P4 product role" );
+        this->writeFinimAtPath( finalImagePath, &residualHeader );
+        writeLocalValidity( finalImagePath, algorithmHeader );
+    }
+    this->t_end = mx::sys::get_curr_time();
+    return 0;
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+void P4Reduction<realT, derotFunctObj, verboseT>::writeLocalValidity( const std::string &finalImagePath,
+                                                                      const fitsHeaderT &finalHeader )
+{
+    const std::string path = p4FilterProductPath( finalImagePath, "local_validity", !this->m_exactFinimName );
+    const std::string parent = mx::ioutils::parentPath( path );
+    if( !parent.empty() )
+    {
+        const mx::error_t directoryResult = mx::ioutils::createDirectories( parent );
+        if( directoryResult != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( directoryResult, "could not create P4 local validity directory" );
+        }
+    }
+
+    fitsHeaderT header;
+    fitsHeaderT additionalHeader = finalHeader;
+    this->finalImageHeader( header, &additionalHeader );
+    header.template append<std::string>( "P4 PRODUCT ROLE", "LOCAL_VALIDITY", "P4 product role" );
+    static std::atomic<unsigned long long> sequence{ 0 };
+    const std::string temporaryPath =
+        path + ".tmp." + std::to_string( sequence.fetch_add( 1, std::memory_order_relaxed ) );
+    mx::fits::fitsFile<realT, verboseT> writer;
+    const mx::error_t writeResult = writer.write( temporaryPath, m_localFinalValidity, header );
+    if( writeResult != mx::error_t::noerror )
+    {
+        std::error_code cleanupError;
+        std::filesystem::remove( temporaryPath, cleanupError );
+        throw mx::exception<verboseT>( writeResult, "could not write P4 local validity product " + path );
+    }
+    std::error_code renameError;
+    std::filesystem::rename( temporaryPath, path, renameError );
+    if( renameError )
+    {
+        std::error_code cleanupError;
+        std::filesystem::remove( temporaryPath, cleanupError );
+        throw mx::exception<verboseT>( mx::error_t::fileoerr,
+                                       "could not publish P4 local validity product " + path + ": " +
+                                           renameError.message() );
+    }
+    std::cerr << "P4 local validity written to: " << path << '\n';
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::reduce()
 {
     if( !( this->m_preProcess_only && !this->m_skipPreProcess ) )
@@ -1225,6 +1979,16 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_psfModelBytes = 0;
     m_psfReconstructionBytes = 0;
     m_psfFilterBytes = 0;
+    m_localFinalValidity.resize( 0, 0, 0 );
+    m_localOriginRow = 0;
+    m_localOriginColumn = 0;
+    m_localSourceRow = 0;
+    m_localSourceColumn = 0;
+    m_localTemplateRows = 0;
+    m_localTemplateColumns = 0;
+    m_localSearchCount = 0;
+    m_localSparseSampleCount = 0;
+    m_localGeometryBytes = 0;
     m_timing.reset();
 
     if( !this->m_filesRead )
@@ -1301,7 +2065,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     const imageT *mask = this->m_mask.size() == 0 ? nullptr : &this->m_mask;
     const std::vector<P4PixelCoordinate> temporalPredictorOffsets = p4TemporalPredictorOffsets( m_psfRadius );
     std::vector<double> derotationAngles;
-    if( m_regressionFrame == P4RegressionFrame::rotated || m_numberImages > 0 )
+    if( m_regressionFrame == P4RegressionFrame::rotated || m_numberImages > 0 || m_localStampSize > 0 )
     {
         derotationAngles.reserve( static_cast<std::size_t>( this->m_Nims ) );
         for( int image = 0; image < this->m_Nims; ++image )
@@ -1462,6 +2226,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         statistics.rankInvalidCounts.assign( m_modeFractions.size(), 0 );
     }
     m_timing.geometryElapsedSeconds = omp_get_wtime() - geometryBegin;
+
+    if( m_localStampSize > 0 )
+    {
+        return processLocalTrial( grids, temporalPredictorOffsets, derotationAngles );
+    }
 
     std::size_t totalSearchPixels{ 0 };
     for( const P4RegionStatistics &statistics : m_regionStatistics )
@@ -1809,6 +2578,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                         {
                             double sameImageSamplingSeconds{ 0 };
                             double temporalSamplingSeconds{ 0 };
+                            P4PCATiming pcaTiming;
                             const int row = coordinate.row();
                             const int column = coordinate.column();
                             if( rotated )
@@ -1835,48 +2605,24 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                             }
                             else
                             {
-                                const std::size_t basePredictorCount = grid.predictorCount();
-                                for( std::size_t targetIndex = 0; targetIndex < targetImageCount; ++targetIndex )
-                                {
-                                    const std::vector<int> &selection = temporalSelections[targetIndex];
-                                    const int centralImage = selection[0];
-                                    const double sameImageSamplingBegin = omp_get_wtime();
-                                    target( static_cast<Eigen::Index>( targetIndex ) ) =
-                                        static_cast<double>( this->m_tgtIms.image( centralImage )( row, column ) );
-                                    for( std::size_t predictor = 0; predictor < basePredictorCount; ++predictor )
-                                    {
-                                        predictors( static_cast<Eigen::Index>( targetIndex ), predictor ) =
-                                            checkedPredictorPromotion(
-                                                grid.sample( this->m_tgtIms.image( centralImage ),
-                                                             search,
-                                                             predictor ) );
-                                    }
-                                    sameImageSamplingSeconds += omp_get_wtime() - sameImageSamplingBegin;
-
-                                    const double temporalSamplingBegin = omp_get_wtime();
-                                    for( std::size_t source = 1; source < selection.size(); ++source )
-                                    {
-                                        const int image = selection[source];
-                                        for( std::size_t predictor = 0; predictor < temporalPredictorOffsets.size();
-                                             ++predictor )
-                                        {
-                                            predictors( static_cast<Eigen::Index>( targetIndex ),
-                                                        basePredictorCount +
-                                                            ( source - 1 ) * temporalPredictorOffsets.size() +
-                                                            predictor ) =
-                                                checkedPredictorPromotion( this->m_tgtIms.image( image )(
-                                                    row + temporalPredictorOffsets[predictor].row(),
-                                                    column + temporalPredictorOffsets[predictor].column() ) );
-                                        }
-                                    }
-                                    temporalSamplingSeconds += omp_get_wtime() - temporalSamplingBegin;
-                                }
+                                fitDetectorSearch( result,
+                                                   predictors,
+                                                   target,
+                                                   calculatePSF ? &coefficients : nullptr,
+                                                   grid,
+                                                   search,
+                                                   temporalSelections,
+                                                   temporalPredictorOffsets,
+                                                   modes,
+                                                   workspace,
+                                                   pcaTiming,
+                                                   sameImageSamplingSeconds,
+                                                   temporalSamplingSeconds );
                             }
 
                             threadSamplingSeconds += sameImageSamplingSeconds + temporalSamplingSeconds;
                             threadSameImageSamplingSeconds += sameImageSamplingSeconds;
                             threadTemporalSamplingSeconds += temporalSamplingSeconds;
-                            P4PCATiming pcaTiming;
 
                             if( rotated )
                             {
@@ -1888,17 +2634,6 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                                  workspace,
                                                                  &pcaTiming,
                                                                  calculatePSF ? &coefficients : nullptr );
-                            }
-                            else
-                            {
-                                P4PCA::calculate( result,
-                                                  predictors,
-                                                  target,
-                                                  modes,
-                                                  m_rankTolerance,
-                                                  workspace,
-                                                  &pcaTiming,
-                                                  calculatePSF ? &coefficients : nullptr );
                             }
                             threadGramSeconds += pcaTiming.gramWorkerSeconds;
                             threadEigensolveSeconds += pcaTiming.eigensolveWorkerSeconds;
@@ -2889,6 +3624,40 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.template append<int>( "P4 IN SAMPLE", 1, "in-sample temporal regression" );
     head.template append<int>( "P4 RDI", 0, "target-only ADI implementation" );
     head.template append<int>( "P4 NUMBER IMAGES", m_numberImages, "qualifying earlier and later predictor images" );
+    head.template append<int>( "P4 LOCAL STAMP SIZE", m_localStampSize, "pixel-local sky result width; zero disables" );
+    if( m_localStampSize > 0 )
+    {
+        head.template append<std::string>( "P4 LOCAL INJECTION STAGE",
+                                           "POST_PREPROCESS_P4_INPUT",
+                                           "trial injection stage" );
+        head.template append<std::string>( "P4 LOCAL CENTER CONVENTION",
+                                           "0.5*(N-1)",
+                                           "full-image geometric center convention" );
+        head.template append<std::string>( "P4 LOCAL LATTICE ANCHOR",
+                                           "floor(source+0.5)",
+                                           "integer output-stamp anchor convention" );
+        head.template append<int>( "P4 LOCAL ORIGIN ROW", m_localOriginRow, "full-image row of local element 0,0" );
+        head.template append<int>( "P4 LOCAL ORIGIN COLUMN",
+                                   m_localOriginColumn,
+                                   "full-image column of local element 0,0" );
+        head.template append<double>( "P4 LOCAL SOURCE ROW", m_localSourceRow, "continuous full-image source row" );
+        head.template append<double>( "P4 LOCAL SOURCE COLUMN",
+                                      m_localSourceColumn,
+                                      "continuous full-image source column" );
+        head.template append<int>( "P4 LOCAL TEMPLATE ROWS", m_localTemplateRows, "phase-preserving template rows" );
+        head.template append<int>( "P4 LOCAL TEMPLATE COLUMNS",
+                                   m_localTemplateColumns,
+                                   "phase-preserving template columns" );
+        head.template append<std::string>( "P4 LOCAL SEARCH COUNT",
+                                           std::to_string( m_localSearchCount ),
+                                           "unique detector regressions" );
+        head.template append<std::string>( "P4 LOCAL SPARSE SAMPLE COUNT",
+                                           std::to_string( m_localSparseSampleCount ),
+                                           "retained detector residual samples" );
+        head.template append<std::string>( "P4 LOCAL GEOMETRY BYTES",
+                                           std::to_string( m_localGeometryBytes ),
+                                           "retained sparse geometry storage" );
+    }
     head.template append<std::string>( "P4 MODE FRACTIONS",
                                        p4Join( m_modeFractions ),
                                        "ordered output mode fractions" );

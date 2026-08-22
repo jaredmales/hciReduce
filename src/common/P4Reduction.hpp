@@ -18,6 +18,7 @@
 
 #include "ADIDerotator.hpp"
 #include "ADIobservation.hpp"
+#include "P4LocalProcessing.hpp"
 #include "P4PCA.hpp"
 #include "P4PixelGrid.hpp"
 #include "P4PSFFilter.hpp"
@@ -152,6 +153,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     std::string m_psfOutputPrefix{ "p4PSF_" }; ///< Prefix for compact PSF products in the common output directory.
 
+    int m_localStampSize{ 0 }; ///< Square pixel-local result and nominal source-crop width; zero disables the path.
+
     std::optional<P4ExclusionPolicy> m_exclusionPolicy; ///< Explicit central signal-exclusion policy.
 
     realT m_exclusionRadiusBuffer{ std::numeric_limits<realT>::quiet_NaN() }; ///< Added exclusion-radius buffer.
@@ -207,7 +210,27 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     std::size_t m_psfReconstructionBytes{ 0 }; ///< Conservative peak scratch for one final PSF mode.
 
-    std::size_t m_psfFilterBytes{ 0 }; ///< Bytes retained by filtered, normalization, support, and validity cubes.
+    std::size_t m_psfFilterBytes{ 0 };     ///< Bytes retained by filtered, normalization, support, and validity cubes.
+
+    eigenCube<realT> m_localFinalValidity; ///< Combined local-result validity cube in output-mode order.
+
+    int m_localOriginRow{ 0 };             ///< Full-image row occupied by local result element `(0,0)`.
+
+    int m_localOriginColumn{ 0 };          ///< Full-image column occupied by local result element `(0,0)`.
+
+    double m_localSourceRow{ 0 };          ///< Continuous full-image row of the configured trial source.
+
+    double m_localSourceColumn{ 0 };       ///< Continuous full-image column of the configured trial source.
+
+    int m_localTemplateRows{ 0 };          ///< Actual phase-preserving internal trial-template crop rows.
+
+    int m_localTemplateColumns{ 0 };       ///< Actual phase-preserving internal trial-template crop columns.
+
+    std::size_t m_localSearchCount{ 0 };   ///< Unique detector regressions evaluated by pixel-local processing.
+
+    std::size_t m_localSparseSampleCount{ 0 }; ///< Requested detector-pixel/frame residual pairs.
+
+    std::size_t m_localGeometryBytes{ 0 };     ///< Retained sparse request and output-dependency storage.
 
     ReductionTiming m_timing; ///< Instance-owned elapsed and aggregate-worker timing record for the current reduction.
 
@@ -325,6 +348,38 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                 /**< [in,out] ownership image initialized to -1 */
                                 const P4PixelCoordinate &coordinate, /**< [in] owned search coordinate */
                                 int region /**< [in] nonnegative annulus index */ );
+
+    /// Assemble and solve one detector-frame search-pixel regression through the authoritative production path.
+    void fitDetectorSearch(
+        P4PCAResult &result,                             /**< [out] residuals, rank, and mode status */
+        P4PCA::matrixT &predictors,                      /**< [in,out] reusable target-by-predictor matrix */
+        P4PCA::vectorT &target,                          /**< [in,out] reusable target time-series vector */
+        P4PCA::matrixT *coefficients,                    /**< [out] optional predictor coefficients, or nullptr */
+        const pixelGridT &grid,                          /**< [in] configured detector-frame P4 geometry */
+        std::size_t search,                              /**< [in] annulus-local search-pixel index */
+        const std::vector<std::vector<int>> &selections, /**< [in] central and neighboring images per PCA row */
+        const std::vector<P4PixelCoordinate> &temporalOffsets,
+        /**< [in] direct additional-image predictor offsets */
+        const std::vector<int> &modes,    /**< [in] requested realized integer modes */
+        P4PCA::workspaceT &workspace,     /**< [in,out] reusable eigensolver workspace */
+        P4PCATiming &timing,              /**< [out] PCA phase timing */
+        double &sameImageSamplingSeconds, /**< [out] target and same-image OR worker seconds */
+        double &temporalSamplingSeconds,  /**< [out] additional-image sampling worker seconds */
+        const P4TrialSource *trialSource = nullptr /**< [in] optional finite-amplitude trial perturbation */ ) const;
+
+    /// Load one finite per-frame fake scale vector using the inherited filename-matching convention.
+    std::vector<realT> localTrialScales() const;
+
+    /// Execute one configured pixel-local finite-amplitude refit and final combination.
+    int processLocalTrial(
+        const std::vector<pixelGridT> &grids, /**< [in] configured detector-frame annular geometry */
+        const std::vector<P4PixelCoordinate> &temporalOffsets,
+        /**< [in] direct additional-image predictor offsets */
+        const std::vector<double> &derotationAngles /**< [in] one finite radians angle per target frame */ );
+
+    /// Atomically write the combined local validity cube next to its final residual product.
+    void writeLocalValidity( const std::string &finalImagePath, /**< [in] resolved local residual FITS path */
+                             const fitsHeaderT &finalHeader /**< [in] P4 provenance appended to the final header */ );
 
     /// Reconstruct, optionally persist, and optionally filter the final-frame PSF field one mode at a time.
     void processPSFProducts(

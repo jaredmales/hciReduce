@@ -48,6 +48,7 @@
  * |---|---|---|---|---|---|
  * | `--p4.regressionFrame` | `p4.regressionFrame=rotated` | `HIERARCH P4 FRAME` | `detector` or `rotated` | `detector` | Coordinate frame of the local regression. `detector` preserves the original uncentered algorithm; `rotated` uses direct sky-aligned sampling, a centered fit, and uncentered predictor application. |
  * | `--p4.numberImages` | `p4.numberImages=1` | `HIERARCH P4 NUMBER IMAGES` | nonnegative integer | `0` | For detector-frame regression, append `N` nearest qualifying earlier and `N` nearest qualifying later physical-PSF-disk blocks to each predictor row. At endpoints, extra qualifying images from the available side replace missing blocks. Each side must rotate by at least `2 * p4.psfRadius` at the annulus mean radius. P4 lowers an unattainable request to the greatest positive structurally usable radius, or uses same-image predictors when none exists. Values greater than zero are invalid with `regressionFrame=rotated`. |
+ * | `--p4.localStampSize` | `p4.localStampSize=11` | `HIERARCH P4 LOCAL STAMP SIZE` | zero or positive odd integer | `0` | Opt into one finite-amplitude pixel-local refit and return this square sky-stamp width. Zero preserves the complete reduction. See \ref p4_local_dictionary. |
  * | `--p4.modeFractions` | `p4.modeFractions=0.01,0.03,...` | `HIERARCH P4 MODE FRACTIONS` | finite, strictly increasing values in `(0,1]` | required | Requested PCA fractions. Each becomes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
  * | `--p4.orDeltaRadiusInner` | `p4.orDeltaRadiusInner=pixels` | `HIERARCH P4 OR DELTA RADIUS INNER` | positive real pixels | required | Inward radial extent of the local annular predictor wedge. |
  * | `--p4.orDeltaRadiusOuter` | `p4.orDeltaRadiusOuter=pixels` | `HIERARCH P4 OR DELTA RADIUS OUTER` | positive real pixels | required | Outward radial extent of that wedge. |
@@ -90,6 +91,57 @@
  * cubes because those products are explicitly requested. P4 records the available-memory snapshot, selected budget,
  * compact-storage and materialization estimates, per-annulus worker estimate, maximum worker count, and effective
  * worker count in `HIERARCH P4 ...` FITS cards. `OMP_NUM_THREADS` remains a valid upper limit and is never increased.
+ *
+ * \section p4_local_dictionary Finite-amplitude pixel-local refitting
+ *
+ * A positive `p4.localStampSize` replaces the complete output-field calculation with one exact local trial. The
+ * trial uses the existing `fake.fileName`, `fake.sep`, `fake.PA`, `fake.contrast`, and optional
+ * `fake.scaleFileName` settings. Exactly one separation, PA, and nonzero contrast must be supplied, and
+ * `fake.method=single` is required. Unlike frozen-model PSF calculation, the trial perturbation is added to the
+ * target and every same-image or positive-`numberImages` predictor sample before the ordinary P4 eigensolve. Each
+ * detector regression used by the local sky stamp is therefore refit at the configured finite amplitude.
+ *
+ * The initial exact contract requires `preProcess.skip=true`, `p4.regressionFrame=detector`, enabled derotation, a
+ * final `combine.method`, `adi.postMedSub=false`, and `output.outputPSFSub=false`. Frozen-model settings
+ * `p4.psfFile`, `p4.outputPSFModels`, and `p4.psfFilter` cannot be combined with this path. The fake template must
+ * represent the already-preprocessed P4 input stage; inherited fake injection is inactive when preprocessing is
+ * skipped, so the input cube remains pristine and trial flux does not accumulate across calls.
+ *
+ * Image and template centers use the geometric convention `0.5*(N-1)`. For a final-sky separation `r` and PA
+ * `theta`, the continuous source coordinate is
+ *
+ * \f[
+ *   x_s = \tfrac{1}{2}(N_x-1)-r\sin\theta, \qquad
+ *   y_s = \tfrac{1}{2}(N_y-1)+r\cos\theta.
+ * \f]
+ *
+ * The odd output lattice is anchored at `floor(source+0.5)` in each axis, but the source itself remains at the
+ * continuous coordinate recorded by `HIERARCH P4 LOCAL SOURCE ROW/COLUMN`. The template is never recentered onto
+ * that integer anchor. Its internal centered crop is the smallest dimension at least `localStampSize` having the
+ * same parity as the detector and source template. Thus an 11-pixel result on an even-sized detector uses a centered
+ * 12-pixel template crop and retains the original half-pixel center. Detector and source-template parity must match,
+ * as in ordinary fake injection.
+ *
+ * Only detector residuals touched by the exact cubic derotation footprints are retained. The standard final-image
+ * product becomes a `localStampSize x localStampSize x modeCount` cube with
+ * `HIERARCH P4 PRODUCT ROLE=LOCAL_RESIDUAL`. A second zero/one cube uses the same mode order and is named by inserting
+ * `local_validity` before the normal four-digit sequence, for example
+ * `finim_local_validity_0000.fits`; exact filenames instead become `<stem>_local_validity<extension>`. Both products
+ * carry the integer full-image origin, continuous source coordinate, center/lattice conventions, actual template
+ * crop dimensions, unique detector-fit count, sparse residual-sample count, fake-source provenance, and the
+ * `POST_PREPROCESS_P4_INPUT` injection stage. The memory policy includes the retained sparse dependency map and
+ * records its exact dynamic allocation as `HIERARCH P4 LOCAL GEOMETRY BYTES`.
+ *
+ * For example, evaluate one 11-pixel negative trial against an already-preprocessed input configuration:
+ *
+ * \code{.sh}
+ * p4Reduce -c prepared-p4.conf \
+ *   --preProcess.skip=true \
+ *   --p4.localStampSize=11 \
+ *   --fake.method=single \
+ *   --fake.fileName=/path/post-preprocess-psf.fits \
+ *   --fake.sep=13 --fake.PA=100 --fake.contrast=-0.001
+ * \endcode
  *
  * \section p4_psf_dictionary Frozen-model PSF calculation and output
  *
