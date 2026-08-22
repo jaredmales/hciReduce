@@ -9,14 +9,17 @@
  * P4 (Pixel Prediction Post-Processing) predicts the time-variable stellar PSF and noise at one search pixel from a
  * local annular-wedge optimization region (OR). The complete time sequence trains one in-sample regression for each
  * search pixel. A central exclusion disk prevents the expected companion location from entering the predictor set.
- * `p4.regressionFrame` selects between the original detector-frame regression and a temporally centered regression
- * at fixed pixels in the derotated sky frame.
+ * This guide describes the detector-frame algorithm, which is the P4 science path and the only regression frame that
+ * should be used for reductions. The separate
+ * \ref p4_rotated_user_guide "rotated-frame negative-result page" documents an unsuccessful experiment for historical
+ * and numerical-reference purposes.
  *
  * \section p4reduce_detector_regression Detector-frame regression
  *
- * `p4.regressionFrame=detector` is the compatibility default and preserves the original P4 algorithm. For one fixed
- * detector search pixel, let `y` be its `T x 1` time series and let `X` contain `K` interpolated predictor-pixel time
- * series. P4 eigendecomposes the smaller of the two Gram matrices. For `T <= K` it forms the temporal Gram matrix
+ * For one fixed detector search pixel, let `y` be its `T x 1` time series and let `X` contain `K` interpolated
+ * predictor-pixel time
+ * series. P4 eigendecomposes the smaller of the two <a href=https://en.wikipedia.org/wiki/Gram_matrix>Gram</a> matrices.
+ * For `T <= K` it forms the temporal Gram matrix
  *
  * \f[
  *     G_T = X X^T
@@ -37,177 +40,9 @@
  * displacement is at least `2 * p4.psfRadius` at that annulus's mean search radius, keeping the neighbor's physical
  * PSF disk free of companion signal. If the requested radius cannot retain a structurally valid PCA sample set, P4
  * uses the largest positive radius that does; if no positive radius works, that annulus gracefully reverts to
- * same-image predictors. This detector-only extension is rejected for `p4.regressionFrame=rotated`.
+ * same-image predictors.
  *
  * The detector-frame residual cubes are derotated by the shared ADI final-processing stage before combination.
- *
- * \section p4reduce_local Pixel-local finite-amplitude trials
- *
- * `p4.localStampSize=W>0` evaluates one trial companion without processing the rest of the output field. It is an
- * exact finite-amplitude refit, not a frozen-coefficient response. For every detector search pixel needed by the
- * requested sky stamp and every temporal row, the configured trial perturbation `D_t` changes both sides of the
- * regression:
- *
- * \f[
- *   y'_p(t)=I_t(p)+D_t(p), \qquad
- *   X'_p(t,k)=S_{p,k}[I_t]+S_{p,k}[D_t].
- * \f]
- *
- * The ordinary P4 eigensolve is then repeated. Positive `p4.numberImages` is supported: direct physical-PSF-disk
- * predictors receive the perturbation from their selected physical frame. Every unique detector search pixel is fit
- * once with its complete configured time sequence, but only residual rows needed by the local derotation footprints
- * are retained. Cubic footprints are unioned over the complete field rotation, so the number of fitted detector
- * pixels is generally larger than `W*W` but much smaller than a complete output field.
- *
- * The source center is never quantized. Full images and the source template use the geometric center
- * `0.5*(N-1)` in each axis. The odd result lattice is merely anchored at the nearest integer pixel, while FITS
- * provenance records both that integer origin and the continuous source coordinate. When an odd `W` is used with
- * even detector/template dimensions, the internal centered template crop expands to `W+1`; cropping the template to
- * odd width would move its half-pixel center and is deliberately not done.
- *
- * The initial command-line path requires already-preprocessed inputs (`preProcess.skip=true`) and interprets the
- * existing single `[fake]` template as a perturbation at the P4-input stage. It supports detector regression,
- * derotation, and the ordinary mean, median, weighted-mean, or sigma-clipped final combination, while rejecting
- * rotated regression, post-median subtraction, per-frame PSF-subtracted output, and frozen-model PSF products. The
- * standard final-image name contains the local residual cube, and a neighboring `local_validity` FITS cube records
- * exact combined validity. See \ref p4_local_dictionary for the complete configuration and naming contract.
- *
- * \section p4reduce_frozen_psf Frozen-model PSF responses
- *
- * Setting `p4.psfFile` enables an analytic response calculation for the detector-frame, same-image-predictor
- * algorithm. Let `F_s(p)` denote the configured centered PSF template sampled at detector coordinate `p` for a unit
- * source centered at `s`, and let `S_k` be the exact cubic sampling operator for predictor `k`. For search coordinate
- * `q` and one supported truncated-PCA coefficient vector `beta_m`, the local signed response is
- *
- * \f[
- *   G_{q,m}(s) = F_s(q) - \sum_{k=1}^{K} \beta_{q,m,k}\, S_k[F_s].
- * \f]
- *
- * `beta_m` is the truncated minimum-norm pseudoinverse solution already used by the science regression. It is
- * accumulated while retained eigenmodes are available; no dense pseudoinverse is formed. The template calculation
- * and predictor sampling use float values, while coefficient formation retains P4's current double-precision PCA
- * arithmetic. Invalid and rank-unsupported fits have explicit zero validity and are never interpreted as a zero PSF.
- *
- * The response is `FROZEN_SIGNED`: it is the signed output of the fitted linear predictor with the coefficients held
- * fixed. The template's stored scale is preserved; no peak or integral normalization and no preprocessing are applied
- * to the template. The configured template must therefore represent the post-preprocessing P4 input stage. This is a
- * local filter template, not a calibrated throughput measurement: refitting after finite fake injection can change
- * the coefficients and is deliberately outside this linearized contract.
- *
- * Detector-local responses are retained at every owned search coordinate. Final-frame reconstruction maps each sky
- * stamp sample through the exact inverse derotation, composes the same cubic footprints used by science derotation
- * and local sampling, and combines its bounded frame stack with the configured science estimator, weights, sigma
- * threshold, minimum-good fraction, and response validity. Mean and weighted-mean responses are linear frozen-model
- * products. Median and actively sigma-clipped products are useful filter-template approximations evaluated from the
- * propagated response samples themselves; they are not finite-amplitude-independent photometric transfer functions.
- *
- * The first implementation intentionally rejects `p4.regressionFrame=rotated`, positive `p4.numberImages`, and
- * `adi.postMedSub=true` when a PSF template is configured. A complete final PSF field additionally requires a final
- * combination method; `combine.method=none` does not define one combined response.
- *
- * When `p4.outputPSFModels=true`, P4 writes a deterministic coordinate image, one response cube and one source-center
- * validity image per output mode, and a completion manifest under `p4.psfOutputPrefix` in the common output directory.
- * A response cube is `W x W x S`, where `W=p4.psfStampSize` and plane `s` maps to row `s` of the coordinate image.
- * Unsupported individual response samples are NaN. Model-only sets use schema version 1; enabling filtering uses
- * schema version 2 for the complete set. Every product records its role, template identity/stage/normalization,
- * `FROZEN_SIGNED`, combination policy, stamp and internal support geometry, storage estimates, source count, and mode
- * identity where applicable. Consumers must accept a set only when
- * `p4PSF_manifest.fits` (with the configured prefix substituted) contains both data value `1` and
- * `HIERARCH P4 PSF COMPLETE = 1`.
- *
- * With `p4.psfFilter=true`, the final signed response at output coordinate \f$q\f$ is applied directly to the
- * corresponding final science neighborhood without constructing a dense space-variant convolution matrix:
- *
- * \f[
- *   \widehat a(q) =
- *   \frac{\sum_{\delta \in V_q} H_q(\delta) I(q+\delta)}
- *        {\sum_{\delta \in V_q} H_q(\delta)^2}.
- * \f]
- *
- * Here \f$V_q\f$ contains response-valid samples whose science coordinates are in bounds and finite. The signed
- * numerator preserves negative subtraction lobes; the denominator normalizes the result to an amplitude relative to
- * the stored PSF-template scale. Filtering requires an odd stamp so every response sample maps to an integer science
- * pixel. A result is valid only when the denominator is positive and `p4.psfFilterMinGoodFract` does not exceed
- * \f$|V_q|/W^2\f$. Invalid amplitudes remain NaN rather than becoming zero.
- *
- * Filtering writes `finim_filtered_NNNN.fits`, `finim_filter_normalization_NNNN.fits`,
- * `finim_filter_support_NNNN.fits`, and `finim_filter_validity_NNNN.fits` for the default final-image prefix. The
- * products use the resolved ordinary final-image prefix and sequence number, and contain full-image cubes in ordinary
- * P4 mode order. With an exact final-image name, each role is inserted before its extension. These respectively
- * contain \f$\widehat a\f$, the retained \f$\sum H^2\f$ denominator, \f$|V_q|/W^2\f$, and exact zero/one validity.
- * Each product mirrors the complete ordinary final-image FITS header, then adds schema-2 cards recording the source
- * path, equation, response and template conventions, minimum support, mode mapping, and memory estimate.
- * `p4.outputPSFModels` may remain false; in that case no coordinate or compact model products are written. The
- * ordinary `finim` is unchanged in either case.
- *
- * \section p4reduce_rotated_regression Rotated-frame regression
- *
- * `p4.regressionFrame=rotated` learns a different coefficient vector at each fixed sky-frame search pixel. The OR
- * wedge is constructed once in that sky frame. For search pixel `m`, let \f$q_{m,0}=m\f$ be the target coordinate and
- * let \f$q_{m,k}\f$ be its `K` mapped radial/tangential predictor coordinates. For frame `t`, each fixed sky
- * coordinate is mapped directly back into the preprocessed, unrotated detector image using the configured derotation
- * angle:
- *
- * \f[
- * p_r = C_r+(q_r-C_r)\cos\theta_t+(q_c-C_c)\sin\theta_t,
- * \f]
- *
- * \f[
- * p_c = C_c-(q_r-C_r)\sin\theta_t+(q_c-C_c)\cos\theta_t.
- * \f]
- *
- * Here `C` is the geometric image center. The value
- * \f$u_{t,m}^{(k)}=x_t[p_{t,m,k}]\f$ is evaluated with one cubic-convolution interpolation in the preprocessed,
- * unrotated detector frame. No rotated image cube is materialized, and fractional OR coordinates are not
- * interpolated a second time.
- * The target `k=0` and every predictor use this same direct sampling operator.
- *
- * The target and each predictor column are then centered over the same `T` frames:
- *
- * \f[
- * \widetilde{u}_{t,m}^{(k)} = u_{t,m}^{(k)}-
- *     \frac{1}{T}\sum_{\tau=1}^{T}u_{\tau,m}^{(k)}.
- * \f]
- *
- * With `y_m(t)=\widetilde{u}_{t,m}^{(0)}` and `D_m(t,k)=\widetilde{u}_{t,m}^{(k)}`, each requested truncation minimizes
- *
- * \f[
- *     \left\|y_m-D_m c_m\right\|_2^2
- * \f]
- *
- * over its retained PCA subspace, using the same truncated eigensolution and rank policy as detector mode. Centering
- * removes one temporal degree of freedom, so mode fractions are realized against `min(K,T-1)`. At least two frames
- * are required, and the structural limit remains in force even when `p4.rankTolerance=0`.
- *
- * The centered matrices determine the truncated minimum-norm coefficient vector `c_m`, but that vector is applied to
- * the original uncentered predictor matrix `U_m`. The written residual is
- *
- * \f[
- *     r_m=u_m^{(0)}-U_m c_m.
- * \f]
- *
- * With \f$H=I-\mathbf{1}\mathbf{1}^{T}/T\f$, `H r_m` minimizes the requested centered variance within the retained
- * PCA subspace, while the residual mean is
- * `mean(u_m^(0))-mean(U_m)c_m`. A constant added to the target does not change the fitted coefficients and passes
- * through to the residual, but a constant added to a predictor changes the applied prediction baseline. The baseline
- * convention is therefore the raw predictor level after inherited detector-frame preprocessing and direct rotated
- * sampling. A sky-stationary companion does not enter the centered target used to estimate the coefficients, but its
- * final throughput is not guaranteed solely by centering because the uncentered predictor model can change the
- * residual DC level.
- *
- * \warning Rotated regression is a numerical reference and has not passed scientific acceptance. On a 621-frame
- * AF Lep/NACO comparison, its radial-profile and detector-frame-mean-preprocessed products correlated above
- * 0.999997 with independently reconstructed target-only sky stacks; the P4 corrections had only about 0.2 percent
- * of the target-stack RMS. The corresponding detector-frame P4 control produced substantially lower residual noise
- * and higher companion SNR. The centered objective does not constrain the residual mean shown by a temporal
- * combination, and no replacement stellar-baseline rule has yet been selected. Use the default detector mode for
- * science reductions.
- *
- * Invalid or rank-unsupported locations are carried by an explicit per-output validity cube while arithmetic is in
- * progress. Rank-insufficient output pixels are invalid rather than silently clamped to a smaller mode count. In
- * detector mode validity is propagated through derotation and combination. Rotated residuals and validity are already
- * sky-aligned, so final processing combines them without applying a second derotation. Persistent invalid values are
- * materialized only after final arithmetic.
  *
  * \section p4reduce_modes Application modes
  *
@@ -224,49 +59,28 @@
  * | Target | Contract |
  * |---|---|
  * | `geom.minRadius`, `geom.maxRadius` | Matching, ordered, non-overlapping full-annulus bounds. Inner radii are inclusive and outer radii are exclusive. |
- * | `p4.regressionFrame` | `detector` (default) or `rotated`; selects the regression coordinates, centering rule, support test, and final-frame lifecycle. |
- * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames added to each predictor row; `0` is the compatibility default and positive values are invalid in rotated mode. |
- * | `p4.localStampSize` | Zero for a complete reduction, or a positive odd sky-stamp width for one finite-amplitude local refit using the `[fake]` settings. |
- * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
+ * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames added to each predictor row; `0` is the compatibility default. |
+ * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
  * | `p4.orArcHalfWidth` | Nonnegative azimuthal half-width expressed as arc length in pixels; `0` uses only `p4.orMaxHalfAngle`. |
  * | `p4.orMaxHalfAngle` | Angular half-width cap in `(0,180]` degrees; `180` permits the full 360-degree annulus. |
  * | `p4.psfRadius` | Positive physical radius of the central signal-exclusion disk, in pixels. |
- * | `p4.psfFile` | Optional centered, finite PSF template at the post-preprocessing P4 input stage; enables detector-frame frozen-model calculation. |
- * | `p4.psfStampSize` | Positive square final response-stamp size required with `p4.psfFile`; odd and even sizes use geometric centers. |
- * | `p4.outputPSFModels` | Write the compact combined spatially variable PSF field; default `false`. |
- * | `p4.psfFilter` | Write the signed normalized spatially variable filter products without replacing the ordinary final image; default `false`. |
- * | `p4.psfFilterMinGoodFract` | Minimum usable fraction of the full local stamp in `[0,1]`; default `1`. |
- * | `p4.psfOutputPrefix` | Compact model/manifest prefix in the common output directory; default `p4PSF_`. |
  * | `p4.exclusionPolicy` | Required `sampleCenter` or `kernelSupport` policy. |
  * | `p4.exclusionRadiusBuffer` | Explicit nonnegative amount added to `p4.psfRadius`; `0.5` reproduces the prototype's effective mask buffer. |
  * | `p4.rankTolerance` | Relative eigenvalue threshold in `[0,1)`, default `1e-12`. |
  * | `p4.memoryFraction` | Fraction of Linux `MemAvailable` reserved for future P4 allocations, default `0.8`; `0` disables automatic worker limiting. |
  * | `p4.writeDiagnostics` | Enable ownership, validity, canonical-region, rank, and timing FITS diagnostics. Every diagnostic records `HIERARCH P4 FRAME`. |
  * | `p4.diagnosticDirectory` | Destination for enabled diagnostics. |
- * | `p4Optimize.enabled` | Opt into bounded negative-companion optimization through the pixel-local path; default `false`. |
- * | `p4Optimize.modeFraction`, `p4Optimize.apertureRadius` | Select one exact P4 plane and a uniform-L2 aperture fixed on the initial continuous sky coordinate. |
- * | `p4Optimize.fitPosition`, `p4Optimize.positionBound` | Enable joint Cartesian astrometry/contrast fitting and bound each displacement around the initial source. |
- * | `p4Optimize.contrastLower`, `p4Optimize.contrastUpper` | Inclusive signed nonpositive contrast bounds containing the configured initial `fake.contrast`. |
- * | `p4Optimize.maxEvaluations`, `p4Optimize.validationSamples` | Limit distinct local evaluations and size the required dense validation scan. |
- * | `p4Optimize.parameterTolerance`, `p4Optimize.positionTolerance`, `p4Optimize.meritTolerance` | Independently control contrast, Cartesian-position, and merit convergence. |
- * | `p4Optimize.outputPrefix` | Prefix for the optimizer summary, merit table, best local FITS cubes, and converged `[fake]` fragment. |
  *
- * P4 rejects configured RDI input, overlapping annuli, and nonfinite target input as hard errors. In detector mode the
- * geometry must fit its configured interpolation footprints. In rotated mode every target and predictor must have a
- * complete direct detector-frame cubic footprint in every input frame. If any one of those footprints crosses an edge
- * or touches a zero-valued common-mask pixel, that sky search pixel is invalid in every frame and mode plane; frames
- * are never silently dropped from a local fit.
+ * P4 rejects configured RDI input, overlapping annuli, and nonfinite target input as hard errors. The geometry must
+ * fit its configured detector-frame interpolation footprints.
  *
- * `sampleCenter` reproduces the prototype's center-only signal exclusion. In rotated mode `kernelSupport` checks the
- * exact detector-frame cubic footprints produced by the inverse mapping over all search pixels and frames, then removes
- * an offending predictor column from the annulus-wide OR. Thus every retained local fit has one common `K`, while
- * ordinary mask or edge failures invalidate only the affected search pixel.
+ * `sampleCenter` reproduces the prototype's center-only signal exclusion. `kernelSupport` rejects a predictor when
+ * its nominal cubic footprint intersects the exclusion disk.
  *
  * The rank test is the literal strict comparison `lambda > p4.rankTolerance * lambdaMax`. A zero tolerance therefore
- * accepts every eigenvalue returned as positive, including roundoff-positive numerical nulls, except that rotated
- * mode always enforces its structural `T-1` limit. Use a nonzero relative tolerance when reliable classification of
- * other rank deficiencies matters.
+ * accepts every eigenvalue returned as positive, including roundoff-positive numerical nulls. Use a nonzero relative
+ * tolerance when reliable classification of rank deficiencies matters.
  *
  * \section p4reduce_memory Memory-bounded execution
  *
@@ -284,44 +98,11 @@
  * `OMP_NUM_THREADS` value is always respected. The selected and pre-limit worker counts and the per-worker estimate
  * are printed before regression and recorded in the FITS header. If Linux memory discovery is unavailable, P4 emits
  * a warning and retains the OpenMP maximum. Set `p4.memoryFraction=0` to request that behavior explicitly.
- * Frozen-model runs add the retained local response, prepared template, one output-mode field, coordinate/index
- * maps, and bounded per-worker frame-stamp scratch to these checks. Filtering additionally accounts for its four
- * full-frame output cubes. Final reconstruction independently lowers its worker count when necessary and never
- * increases the `OMP_NUM_THREADS` limit.
- *
  * During geometry construction, `p4Reduce` reports each annulus together with its search-pixel and retained predictor
  * counts. During regression, a rate-limited `std::cerr` status line combines the active annulus's completed/total
  * pixels, measured seconds per pixel, and local ETA with cumulative completed/total pixels
  * across all annuli. Each annulus ends with an exact newline-delimited completion record, so redirected logs remain
  * readable as well as interactive terminal output.
- *
- * \section p4reduce_rotated_baseline Rotated mode, predictor baselines, and final ADI processing
- *
- * Rotated regression fits only temporal fluctuations, then applies those coefficients to the complete
- * post-preprocessing predictor values. It can therefore subtract a predictor-derived static stellar-halo or
- * background level even though that level did not affect the fit, but the centered objective neither requires nor
- * validates that subtraction. The AF Lep/NACO acceptance comparison found that the applied predictor DC removed
- * essentially none of the target-only sky baseline. Two inherited, optional detector-frame preprocessing choices
- * alter this baseline convention before rotated regression:
- *
- * - `preProcess.subradprof=true` subtracts a median radial profile independently from each detector image; and
- * - `preProcess.meanSubMethod=medianImage` subtracts the temporal median detector-frame PSF.
- *
- * They may be combined in that order. Neither is forced by rotated mode: radial-profile subtraction can bias
- * localized sources, while a median PSF can self-subtract a companion when the number of frames or field rotation is
- * inadequate. Because predictor DC levels now enter the science residual, injected-source throughput and residual
- * baselines should be checked for the selected preprocessing. An already preprocessed sequence may use
- * `preProcess.skip=true` only when its preprocessing provenance is known.
- * Neither preprocessing option resolves the mathematical ambiguity: detector-frame temporal averaging does not in
- * general zero the mean of a fixed-sky time series after frame-dependent rotation. Removing a fitted sky-frame
- * intercept would also remove a stationary companion. A scientifically accepted rotated reduction therefore needs
- * an independently justified stellar-baseline model or prior; none is currently implemented.
- *
- * `adi.postMedSub=true` remains rejected with rotated regression because it would impose a second, separate sky-fixed
- * baseline subtraction after the predictor policy and confound its throughput contract. Rotated residuals carry an
- * explicit sky-frame state into final processing, so they are never derotated again. `combine.noDerotate` controls
- * only detector-frame residuals and is irrelevant to rotated mode; its default value cannot cause a double
- * derotation.
  *
  * \section p4reduce_example Example configuration
  *
@@ -349,7 +130,6 @@
  * maxRadius=6,8,10,12,14,16,18,20
  *
  * [p4]
- * regressionFrame=detector
  * numberImages=1
  * modeFractions=0.01,0.03,0.05,0.07,0.09,0.11,0.13,0.15,0.17,0.19,0.21,0.23,0.25,0.27,0.29
  * orDeltaRadiusInner=8
@@ -387,10 +167,18 @@
  *
  * For a new dataset, leave `preProcess.skip=false` and configure inherited preprocessing explicitly. Diagnostics do
  * not change the numerical result, but the ownership and region-summary products are useful when validating new
- * geometry. `p4Validity_*.fits` records residual validity immediately after local fitting. It is in detector
- * coordinates for detector regression and in the final sky coordinates for rotated regression. Final products record
- * the selection as `HIERARCH P4 FRAME = 'detector'` or `HIERARCH P4 FRAME = 'rotated'`. The documented definition of
- * rotated regression includes centered coefficient fitting and application to the uncentered predictors.
+ * geometry. `p4Validity_*.fits` records detector-frame residual validity immediately after local fitting. Final
+ * products record `HIERARCH P4 FRAME = 'detector'`.
+ *
+ * \section p4reduce_specialized_guides Specialized workflows
+ *
+ * Continue with these focused pages as needed:
+ *
+ * - \ref p4_local_user_guide "Pixel-Local Processing" for exact finite-amplitude bounded-stamp evaluation;
+ * - \ref p4_optimizer_user_guide "Negative-Planet Optimization" for contrast and position fitting;
+ * - \ref p4_psf_user_guide "Frozen-Model PSF Responses" for analytic response reconstruction and filtering; and
+ * - \ref p4_rotated_user_guide "Rotated-Frame Regression (Negative Result)" for the unsuccessful experiment retained
+ *   as a numerical reference.
  *
  * \section p4reduce_dictionary Configuration reference
  *

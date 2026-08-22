@@ -1,0 +1,122 @@
+/** \file p4_psf.dox
+ * \brief User's guide for frozen-model P4 PSF responses and filtering.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup p4_psf_user_guide
+ * @{
+ *
+ * Frozen-model PSF processing calculates the signed response of each fitted detector-frame P4 model to a configured
+ * point-source template. It can persist a compact spatially variable response field and apply that field as a
+ * normalized filter without changing the ordinary P4 science image.
+ *
+ * \section p4_psf_response Frozen signed response
+ *
+ * Setting `p4.psfFile` enables the response calculation for detector-frame P4 with same-image predictors. Let
+ * \f$F_s(p)\f$ denote the centered PSF template sampled at detector coordinate \f$p\f$ for a unit source centered at
+ * \f$s\f$, and let \f$S_k\f$ be the exact cubic sampling operator for predictor \f$k\f$. For search coordinate
+ * \f$q\f$ and one supported truncated-PCA coefficient vector \f$\beta_m\f$, the local signed response is
+ *
+ * \f[
+ *   G_{q,m}(s) = F_s(q) - \sum_{k=1}^{K} \beta_{q,m,k}\, S_k[F_s].
+ * \f]
+ *
+ * \f$\beta_m\f$ is the truncated minimum-norm pseudoinverse solution already used by the science regression. It is
+ * accumulated while retained eigenmodes are available; no dense pseudoinverse is formed. Template calculation and
+ * predictor sampling use float values, while coefficient formation retains P4's current double-precision PCA
+ * arithmetic. Invalid and rank-unsupported fits have explicit zero validity and are never interpreted as a zero PSF.
+ *
+ * The response is `FROZEN_SIGNED`: it is the fitted linear predictor's signed output with its coefficients held
+ * fixed. The stored template scale is preserved; P4 applies no peak or integral normalization and no preprocessing to
+ * it. The template must therefore represent the post-preprocessing P4 input stage. This is a local filter template,
+ * not a calibrated finite-amplitude throughput measurement, because refitting after fake injection can change the
+ * coefficients.
+ *
+ * Detector-local responses are retained at every owned search coordinate. Final-frame reconstruction maps each sky
+ * stamp sample through the exact inverse derotation, composes the same cubic footprints used by science derotation
+ * and local sampling, and combines its bounded frame stack with the configured science estimator, weights, sigma
+ * threshold, minimum-good fraction, and response validity. Mean and weighted-mean responses are linear frozen-model
+ * products. Median and actively sigma-clipped products are filter-template approximations evaluated from the
+ * propagated response samples; they are not finite-amplitude-independent photometric transfer functions.
+ *
+ * The implementation requires detector-frame P4, `p4.numberImages=0`, and `adi.postMedSub=false`. A complete final
+ * PSF field additionally requires a final combination method; `combine.method=none` does not define a combined
+ * response.
+ *
+ * \section p4_psf_filter Spatially variable filtering
+ *
+ * With `p4.psfFilter=true`, the final signed response at output coordinate \f$q\f$ is applied directly to the
+ * corresponding science neighborhood without constructing a dense space-variant convolution matrix:
+ *
+ * \f[
+ *   \widehat a(q) =
+ *   \frac{\sum_{\delta \in V_q} H_q(\delta) I(q+\delta)}
+ *        {\sum_{\delta \in V_q} H_q(\delta)^2}.
+ * \f]
+ *
+ * Here \f$V_q\f$ contains response-valid samples whose science coordinates are in bounds and finite. The signed
+ * numerator preserves negative subtraction lobes; the denominator normalizes the result to an amplitude relative to
+ * the stored template scale. Filtering requires an odd stamp so every response sample maps to an integer science
+ * pixel. A result is valid only when the denominator is positive and `p4.psfFilterMinGoodFract` does not exceed
+ * \f$|V_q|/W^2\f$. Invalid amplitudes remain NaN rather than becoming zero.
+ *
+ * \section p4_psf_configuration Configuration
+ *
+ * | CLI | Config key/value shorthand | PSF-product FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--p4.psfFile` | `p4.psfFile=/path/template.fits` | `HIERARCH P4 PSF TEMPLATE` | readable, finite two-dimensional FITS image | unset | Centered PSF template at the post-preprocessing P4 input stage. Setting the path enables response calculation without changing the science products. The stored normalization is preserved. |
+ * | `--p4.psfStampSize` | `p4.psfStampSize=11` | `HIERARCH P4 PSF STAMP SIZE` | positive integer | `0` | Square final response-stamp size. Odd and even sizes use geometric centers. Required with `psfFile`. |
+ * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final combination. |
+ * | `--p4.psfFilter` | `p4.psfFilter=true` | `HIERARCH P4 PSF FILTER` | bool | `false` | Write signed normalized spatially variable filter products. Requires `psfFile`, an odd stamp, and a final combination; it does not require `outputPSFModels=true`. |
+ * | `--p4.psfFilterMinGoodFract` | `p4.psfFilterMinGoodFract=0.8` | `HIERARCH P4 PSF FILTER MIN GOOD FRACTION` | real in `[0,1]` | `1` | Minimum fraction of the full stamp with valid PSF samples and finite in-bounds science samples. |
+ * | `--p4.psfOutputPrefix` | `p4.psfOutputPrefix=p4PSF_` | — | nonempty path prefix | `p4PSF_` | Compact model and manifest prefix inside `output.directory`; filter cubes follow the ordinary final-image name and sequence. |
+ *
+ * For example:
+ *
+ * \code{.ini}
+ * [p4]
+ * psfFile=/path/template.fits
+ * psfStampSize=11
+ * outputPSFModels=true
+ * psfFilter=true
+ * psfFilterMinGoodFract=0.8
+ * \endcode
+ *
+ * The template is sampled with zero exterior padding, while the retained local response expands as needed to
+ * preserve odd/even sampling phase and arbitrary derotation angles. The P4 memory policy includes the local response,
+ * prepared template, one output-mode field, coordinate/index maps, and bounded per-worker frame-stamp scratch.
+ * Filtering additionally accounts for four full-frame output cubes. Reconstruction independently lowers its worker
+ * count when needed and never increases the `OMP_NUM_THREADS` limit.
+ *
+ * \section p4_psf_products Products and completion contract
+ *
+ * With `p4.outputPSFModels=true`, the common output directory receives:
+ *
+ * - `<prefix>coordinates.fits`, an `S x 4` image with `row,column,region,regionSearch` columns;
+ * - `<prefix>model_NNNN.fits`, a `psfStampSize x psfStampSize x S` cube per zero-based mode index;
+ * - `<prefix>validity_NNNN.fits`, an exact zero/one source-center validity image per mode; and
+ * - `<prefix>manifest.fits`, a one-element completion product.
+ *
+ * Plane `s` in each model cube belongs to row `s` of the coordinate image. Individual unsupported stamp samples are
+ * NaN even when the source center is valid. Model-only sets use schema version 1; enabling filtering uses schema
+ * version 2. Every product records its role, template identity/stage/normalization, `FROZEN_SIGNED` convention,
+ * combination policy, support geometry, storage estimates, source count, and mode identity where applicable.
+ *
+ * With `p4.psfFilter=true`, four full-image cubes follow the resolved ordinary final-image name and sequence number:
+ *
+ * - `finim_filtered_NNNN.fits`, containing \f$\sum(HI)/\sum(H^2)\f$ where valid;
+ * - `finim_filter_normalization_NNNN.fits`, containing the retained \f$\sum H^2\f$ denominator;
+ * - `finim_filter_support_NNNN.fits`, containing usable samples divided by the full stamp area; and
+ * - `finim_filter_validity_NNNN.fits`, containing exact zero/one validity.
+ *
+ * Filtering is independent of model persistence. `psfFilter=true, outputPSFModels=false` writes the filter products
+ * and manifest without coordinate or model cubes. The ordinary final image is never replaced. Each filtered product
+ * mirrors its complete FITS header and adds PSF/filter provenance. With an exact final filename, the product role is
+ * inserted before the extension.
+ *
+ * Every file is published by temporary-file rename. The manifest is initially published with
+ * `HIERARCH P4 PSF COMPLETE = 0` and replaced with value `1` only after the entire configured set is written.
+ * Consumers must require value `1`, use the manifest mode count, and ignore stale extra files from an earlier run.
+ *
+ * @}
+ */

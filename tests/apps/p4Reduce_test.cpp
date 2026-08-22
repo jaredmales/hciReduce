@@ -87,7 +87,8 @@ std::string p4Configuration( const std::filesystem::path &inputDirectory,  /**< 
                              const std::string &mode,                      /**< [in] basic or normal */
                              bool preprocessOnly,                    /**< [in] whether to stop after preprocessing */
                              const std::string &minimumRadius = "5", /**< [in] single-annulus inner radius */
-                             const std::string &maximumRadius = "6" /**< [in] single-annulus outer radius */ )
+                             const std::string &maximumRadius = "6", /**< [in] single-annulus outer radius */
+                             const std::string &modeFractions = "0.5" /**< [in] requested P4 mode fractions */ )
 {
     std::ostringstream configuration;
     configuration << "mode=" << mode << '\n'
@@ -103,7 +104,7 @@ std::string p4Configuration( const std::filesystem::path &inputDirectory,  /**< 
                   << "minRadius=" << minimumRadius << '\n'
                   << "maxRadius=" << maximumRadius << '\n'
                   << "[p4]\n"
-                  << "modeFractions=0.5\n"
+                  << "modeFractions=" << modeFractions << '\n'
                   << "regressionFrame=detector\n"
                   << "numberImages=0\n"
                   << "orDeltaRadiusInner=2\n"
@@ -222,6 +223,7 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     REQUIRE( application.m_optimizeValidationSamples == 21 );
     REQUIRE( application.m_optimizeParameterTolerance == Approx( 1e-5 ) );
     REQUIRE( application.m_optimizePositionTolerance == Approx( 1e-3 ) );
+    REQUIRE( application.m_optimizeUncertaintyBlocks == 8 );
     REQUIRE( application.m_optimizeOutputPrefix == "p4Negative_" );
     REQUIRE( application.config.m_targets.at( "mode" ).clType == mx::app::argType::Required );
     REQUIRE( application.config.m_targets.at( "showTiming" ).helpType == "bool" );
@@ -468,6 +470,16 @@ TEST_CASE( "p4Reduce optimizer configuration validation", "[p4Reduce][config][op
     prepareOptimizer( valid );
     REQUIRE_NOTHROW( valid.checkConfig() );
 
+    appHarness disabledUncertainty;
+    prepareOptimizer( disabledUncertainty );
+    disabledUncertainty.m_optimizeUncertaintyBlocks = 0;
+    REQUIRE_NOTHROW( disabledUncertainty.checkConfig() );
+
+    appHarness oneUncertaintyBlock;
+    prepareOptimizer( oneUncertaintyBlock );
+    oneUncertaintyBlock.m_optimizeUncertaintyBlocks = 1;
+    REQUIRE_THROWS( oneUncertaintyBlock.checkConfig() );
+
     appHarness position;
     prepareOptimizer( position );
     position.m_optimizeFitPosition = true;
@@ -701,6 +713,9 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
     writeTarget( directory.file( "target_000.fits" ), 1, -5 );
     writeTarget( directory.file( "target_001.fits" ), 2, 0 );
     writeTarget( directory.file( "target_002.fits" ), 3, 6 );
+    writeTarget( directory.file( "target_003.fits" ), 4, -5 );
+    writeTarget( directory.file( "target_004.fits" ), 5, 0 );
+    writeTarget( directory.file( "target_005.fits" ), 6, 6 );
 
     HCIobservationTestHarness::imageT source = HCIobservationTestHarness::imageT::Zero( 31, 31 );
     source( 15, 15 ) = 1;
@@ -710,7 +725,7 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
     const auto outputDirectory = directory.file( "optimizer-output" );
     const auto configPath = directory.file( "optimizer.conf" );
     writeTextFile( configPath,
-                   p4Configuration( directory.path(), outputDirectory, "normal", false ) +
+                   p4Configuration( directory.path(), outputDirectory, "normal", false, "5", "6", "0.25" ) +
                        "[preProcess]\n"
                        "skip=true\n"
                        "[p4]\n"
@@ -725,7 +740,7 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
                        "contrast=-0.005\n"
                        "[p4Optimize]\n"
                        "enabled=true\n"
-                       "modeFraction=0.5\n"
+                       "modeFraction=0.25\n"
                        "apertureRadius=0.5\n"
                        "contrastLower=-0.01\n"
                        "contrastUpper=0\n"
@@ -733,6 +748,7 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
                        "maxEvaluations=24\n"
                        "parameterTolerance=1e-4\n"
                        "meritTolerance=1e-6\n"
+                       "uncertaintyBlocks=3\n"
                        "outputPrefix=trial_\n" );
 
     appHarness application;
@@ -748,11 +764,13 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
     const auto validityPath = outputDirectory / "trial_best_validity.fits";
     const auto meritPath = outputDirectory / "trial_merit.csv";
     const auto summaryPath = outputDirectory / "trial_summary.yaml";
+    const auto jackknifePath = outputDirectory / "trial_jackknife.csv";
     const auto bestConfigPath = outputDirectory / "trial_best.conf";
     REQUIRE( std::filesystem::exists( residualPath ) );
     REQUIRE( std::filesystem::exists( validityPath ) );
     REQUIRE( std::filesystem::exists( meritPath ) );
     REQUIRE( std::filesystem::exists( summaryPath ) );
+    REQUIRE( std::filesystem::exists( jackknifePath ) );
     REQUIRE( std::filesystem::exists( bestConfigPath ) );
     REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "p4-final.fits" ) );
 
@@ -766,6 +784,9 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
     REQUIRE( header["P4 OPTIMIZER"].value<int>() == 1 );
     REQUIRE( header["P4 OPT CONVERGED"].value<int>() == 1 );
     REQUIRE( header["P4 OPT DENSE AGREEMENT"].value<int>() == 1 );
+    REQUIRE( header["P4 OPT JK BLOCKS"].value<unsigned long long>() == 3 );
+    REQUIRE( header["P4 OPT JK COMPLETE"].value<int>() == 1 );
+    REQUIRE( header["P4 OPT JK CONTRAST ERROR"].value<double>() >= 0 );
     REQUIRE( header["P4 PRODUCT ROLE"].String().starts_with( "LOCAL_RESIDUAL" ) );
 
     const std::string meritTable = readTextFile( meritPath );
@@ -775,6 +796,13 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
     const std::string summary = readTextFile( summaryPath );
     REQUIRE( summary.find( "converged: true" ) != std::string::npos );
     REQUIRE( summary.find( "denseAgreement: true" ) != std::string::npos );
+    REQUIRE( summary.find( "requestedBlocks: 3" ) != std::string::npos );
+    REQUIRE( summary.find( "status: \"complete\"" ) != std::string::npos );
+    const std::string jackknifeTable = readTextFile( jackknifePath );
+    REQUIRE( jackknifeTable.starts_with( "block,omitted_begin,omitted_end,retained_frames" ) );
+    REQUIRE( jackknifeTable.find( "0,0,2,4,1,1" ) != std::string::npos );
+    REQUIRE( jackknifeTable.find( "1,2,4,4,1,1" ) != std::string::npos );
+    REQUIRE( jackknifeTable.find( "2,4,6,4,1,1" ) != std::string::npos );
     const std::string bestConfiguration = readTextFile( bestConfigPath );
     REQUIRE( bestConfiguration.starts_with( "[fake]\n" ) );
     REQUIRE( bestConfiguration.find( "sep=5.400000095" ) != std::string::npos );
@@ -827,6 +855,7 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
                        "parameterTolerance=0.05\n"
                        "positionTolerance=0.25\n"
                        "meritTolerance=1e-6\n"
+                       "uncertaintyBlocks=0\n"
                        "outputPrefix=joint_\n" );
 
     appHarness application;
@@ -857,6 +886,8 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
     REQUIRE( header["P4 OPT CONTRAST CONVERGED"].value<int>() == 1 );
     REQUIRE( header["P4 OPT APERTURE FRAME"].String().starts_with( "FIXED_INITIAL_SKY" ) );
     REQUIRE( header["P4 OPT POSITION TOLERANCE"].value<double>() == Approx( 0.25 ) );
+    REQUIRE( header["P4 OPT JK BLOCKS"].value<unsigned long long>() == 0 );
+    REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "joint_jackknife.csv" ) );
     REQUIRE( std::abs( header["P4 OPT BEST ROW DELTA"].value<double>() ) <= 0.25 );
     REQUIRE( std::abs( header["P4 OPT BEST COLUMN DELTA"].value<double>() ) <= 0.25 );
     REQUIRE( header["P4 OPT BEST SEPARATION"].value<double>() > 0 );

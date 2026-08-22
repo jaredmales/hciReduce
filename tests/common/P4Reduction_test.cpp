@@ -842,6 +842,16 @@ TEST_CASE( "P4 pixel-local finite-amplitude refit matches full reduction",
     REQUIRE( trialChanged );
 
     trial.contrast = contrast;
+    const std::vector<int> includedFrames{ 0, 1, 2, 4, 5, 6 };
+    const auto subsetEvaluation = local.evaluateLocal( trial, includedFrames );
+    REQUIRE( subsetEvaluation.residual.rows() == stampSize );
+    REQUIRE( subsetEvaluation.validity.planes() == static_cast<int>( local.m_modeFractions.size() ) );
+    REQUIRE( local.m_regionStatistics.size() == 1 );
+    REQUIRE( local.m_regionStatistics[0].targetImageCount <= includedFrames.size() );
+    REQUIRE( local.m_regionStatistics[0].targetImageCount > 0 );
+    REQUIRE_THROWS( local.evaluateLocal( trial, { 0, 2, 2 } ) );
+    REQUIRE_THROWS( local.evaluateLocal( trial, { 0, imageCount } ) );
+
     const auto repeatedEvaluation = local.evaluateLocal( trial );
     REQUIRE( local.m_fakeContrast == configuredContrast );
     REQUIRE( local.m_doWriteFinim == 1 );

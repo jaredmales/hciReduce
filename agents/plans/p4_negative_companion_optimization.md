@@ -174,7 +174,7 @@ Proposed meanings:
 | `meritTolerance` | Combined absolute/relative numerical allowance used for simplex convergence and dense-basin agreement. |
 | `validationSamples` | Uniform bounded contrast samples, including both endpoints, used to validate the fitted basin. |
 | `positionBound` | Positive symmetric per-coordinate offset bound in pixels around the initial configured source when `fitPosition=true`. |
-| `uncertaintyBlocks` | Number of contiguous time blocks used by the optional delete-one-block jackknife. |
+| `uncertaintyBlocks` | Number of contiguous time blocks used by the delete-one-block jackknife; zero explicitly disables uncertainty and the default is eight. |
 | `outputPrefix` | Prefix for the summary, sampled merit curve, and best local products. |
 
 The configuration loader must reject an initial contrast outside the bounds, a missing selected mode, an aperture
@@ -254,7 +254,7 @@ From that complete signal-free reduction:
 6. [x] Add summary/table/best-local outputs with complete provenance.
 7. Benchmark repeated in-process evaluations on the remote 1-second-coadd dataset.
 8. [x] Add joint Cartesian position/contrast fitting.
-9. Add delete-one-block jackknife uncertainty.
+9. [x] Add delete-one-block jackknife uncertainty.
 10. Add the one-shot complete-field post-preprocessing injection and perform the signal-free PSF/filter comparison.
 
 ## Acceptance criteria

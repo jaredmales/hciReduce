@@ -6,6 +6,7 @@
 #ifndef P4NegativeOptimizer_hpp
 #define P4NegativeOptimizer_hpp
 
+#include <array>
 #include <cstddef>
 #include <functional>
 #include <string>
@@ -138,6 +139,36 @@ struct P4PositionContrastOptimizationResult
     std::string status;                                 ///< Stable human-readable convergence status.
 };
 
+/// One delete-one-block fitted estimate in Cartesian position and signed contrast.
+/** \ingroup programming_library */
+struct P4JackknifeEstimate
+{
+    double rowDelta{ 0 };    ///< Fitted Cartesian row displacement from the common initial trial.
+
+    double columnDelta{ 0 }; ///< Fitted Cartesian column displacement from the common initial trial.
+
+    double contrast{ 0 };    ///< Fitted signed contrast.
+};
+
+/// Ordinary delete-one-block jackknife mean, covariance, and standard errors.
+/** Covariance storage uses row-major `(rowDelta,columnDelta,contrast)` parameter order.
+ * \ingroup programming_library
+ */
+struct P4JackknifeStatistics
+{
+    std::size_t blockCount{ 0 };        ///< Number of delete-one-block estimates in the calculation.
+
+    P4JackknifeEstimate mean;           ///< Arithmetic mean of the delete-one-block estimates.
+
+    std::array<double, 9> covariance{}; ///< Ordinary jackknife covariance in row-major parameter order.
+
+    double rowStandardError{ 0 };       ///< Square root of the Cartesian-row covariance diagonal.
+
+    double columnStandardError{ 0 };    ///< Square root of the Cartesian-column covariance diagonal.
+
+    double contrastStandardError{ 0 };  ///< Square root of the contrast covariance diagonal.
+};
+
 /// Convert a separation and position angle to its Cartesian sky offset.
 /** This is the exact inverse convention used by P4 local processing: row is `separation*sin(-PA)` and column is
  * `separation*cos(-PA)`.
@@ -237,6 +268,17 @@ P4PositionContrastOptimizationResult optimizeP4PositionContrast(
     /**< [in] callback evaluating one complete local trial */
     std::size_t modeIndex, /**< [in] selected output-plane index */
     double apertureRadius /**< [in] positive merit-aperture radius in pixels */ );
+
+/// Calculate ordinary delete-one-block jackknife covariance for fitted P4 parameters.
+/** Contrast is always included. Cartesian entries are calculated only when `fitPosition` is true and otherwise
+ * remain zero. The covariance multiplier is `(B-1)/B` for `B` delete-one-block estimates.
+ *
+ * \returns the estimate mean, covariance, and diagonal standard errors
+ * \throws std::invalid_argument for fewer than two estimates or any non-finite included estimate
+ */
+P4JackknifeStatistics p4JackknifeStatistics(
+    const std::vector<P4JackknifeEstimate> &estimates, /**< [in] one fitted estimate per omitted time block */
+    bool fitPosition /**< [in] whether to include the two Cartesian position coordinates */ );
 
 } // namespace improc
 } // namespace mx

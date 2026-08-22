@@ -17,6 +17,26 @@
   * \ingroup user_guide
   */
 
+/** \defgroup p4_local_user_guide Pixel-Local Processing
+  * Exact finite-amplitude P4 processing over a bounded sky stamp.
+  * \ingroup p4reduce_user_guide
+  */
+
+/** \defgroup p4_optimizer_user_guide Negative-Planet Optimization
+  * Bounded negative-companion photometry and astrometry using pixel-local P4.
+  * \ingroup p4reduce_user_guide
+  */
+
+/** \defgroup p4_psf_user_guide Frozen-Model PSF Responses
+  * Analytic P4 response reconstruction and spatially variable filtering.
+  * \ingroup p4reduce_user_guide
+  */
+
+/** \defgroup p4_rotated_user_guide Rotated-Frame Regression (Negative Result)
+  * Documentation of the experimental rotated-frame regression and its failed scientific validation.
+  * \ingroup p4reduce_user_guide
+  */
+
 /** \defgroup hcianalyze_user_guide hciAnalyze
   * User guide for the post-reduction SNR measurement application.
   * \ingroup user_guide

@@ -6,15 +6,15 @@
 /** \addtogroup p4reduce_user_guide
  * @{
  *
- * \page p4_configuration_dictionary p4Reduce configuration dictionary
+ * \section p4_configuration_dictionary p4Reduce configuration dictionary
  *
  * This dictionary adds P4 settings to the shared \ref common_configuration_dictionary
  * "common configuration dictionary". Long options use `--dotted.key value`; configuration files require a bare key
  * under `[section]`, as described in the shared dictionary. The key/value columns use dotted shorthand only to keep
  * the tables compact. The FITS-keyword column names the card written to final and saved
  * PSF-subtracted products. Keys containing spaces are emitted automatically as `HIERARCH` cards.
- * Analytic-PSF settings are intentionally absent from the ordinary science header; their provenance is recorded only
- * in the opt-in PSF products described below.
+ * Frozen-model settings and their product-specific provenance are documented on the
+ * \ref p4_psf_user_guide "Frozen-Model PSF Responses" page.
  *
  * \section p4_app_dictionary Application mode and scope
  *
@@ -36,20 +36,17 @@
  * Both geometry vectors and every P4 model setting may be omitted when `preProcess.only=true`; that mode stops after
  * shared preprocessing and never constructs P4 regions.
  *
- * Detector mode rejects geometry whose mapped predictor interpolation footprint crosses an image edge. Rotated mode
- * instead tests the direct detector-frame target and predictor footprints over every input frame and invalidates a
- * local sky-pixel fit when any required footprint is incomplete. To retain science over `[r0,r1)`, calculate halo
- * annuli beyond both boundaries, then interpret/crop the desired science interval after finalization. Merely widening
- * the first science annulus changes its predictor geometry; a separate support annulus preserves the core model.
+ * P4 rejects geometry whose mapped detector-frame predictor interpolation footprint crosses an image edge. To retain
+ * science over `[r0,r1)`, calculate halo annuli beyond both boundaries, then interpret or crop the desired science
+ * interval after finalization. Merely widening the first science annulus changes its predictor geometry; a separate
+ * support annulus preserves the core model.
  *
  * \section p4_model_dictionary Predictor region and PCA modes
  *
  * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
- * | `--p4.regressionFrame` | `p4.regressionFrame=rotated` | `HIERARCH P4 FRAME` | `detector` or `rotated` | `detector` | Coordinate frame of the local regression. `detector` preserves the original uncentered algorithm; `rotated` uses direct sky-aligned sampling, a centered fit, and uncentered predictor application. |
- * | `--p4.numberImages` | `p4.numberImages=1` | `HIERARCH P4 NUMBER IMAGES` | nonnegative integer | `0` | For detector-frame regression, append `N` nearest qualifying earlier and `N` nearest qualifying later physical-PSF-disk blocks to each predictor row. At endpoints, extra qualifying images from the available side replace missing blocks. Each side must rotate by at least `2 * p4.psfRadius` at the annulus mean radius. P4 lowers an unattainable request to the greatest positive structurally usable radius, or uses same-image predictors when none exists. Values greater than zero are invalid with `regressionFrame=rotated`. |
- * | `--p4.localStampSize` | `p4.localStampSize=11` | `HIERARCH P4 LOCAL STAMP SIZE` | zero or positive odd integer | `0` | Opt into one finite-amplitude pixel-local refit and return this square sky-stamp width. Zero preserves the complete reduction. See \ref p4_local_dictionary. |
- * | `--p4.modeFractions` | `p4.modeFractions=0.01,0.03,...` | `HIERARCH P4 MODE FRACTIONS` | finite, strictly increasing values in `(0,1]` | required | Requested PCA fractions. Each becomes `floor(fraction * min(T,K))` in detector mode or `floor(fraction * min(T-1,K))` in rotated mode; zero or duplicate realized counts are rejected. |
+ * | `--p4.numberImages` | `p4.numberImages=1` | `HIERARCH P4 NUMBER IMAGES` | nonnegative integer | `0` | Append `N` nearest qualifying earlier and `N` nearest qualifying later physical-PSF-disk blocks to each predictor row. At endpoints, extra qualifying images from the available side replace missing blocks. Each side must rotate by at least `2 * p4.psfRadius` at the annulus mean radius. P4 lowers an unattainable request to the greatest positive structurally usable radius, or uses same-image predictors when none exists. |
+ * | `--p4.modeFractions` | `p4.modeFractions=0.01,0.03,...` | `HIERARCH P4 MODE FRACTIONS` | finite, strictly increasing values in `(0,1]` | required | Requested PCA fractions. Each becomes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
  * | `--p4.orDeltaRadiusInner` | `p4.orDeltaRadiusInner=pixels` | `HIERARCH P4 OR DELTA RADIUS INNER` | positive real pixels | required | Inward radial extent of the local annular predictor wedge. |
  * | `--p4.orDeltaRadiusOuter` | `p4.orDeltaRadiusOuter=pixels` | `HIERARCH P4 OR DELTA RADIUS OUTER` | positive real pixels | required | Outward radial extent of that wedge. |
  * | `--p4.orArcHalfWidth` | `p4.orArcHalfWidth=pixels` | `HIERARCH P4 OR ARC HALF WIDTH` | nonnegative real arc length | required | Azimuthal half-width of the predictor wedge, expressed as arc length at the region radius; `0` uses only `orMaxHalfAngle`. |
@@ -59,25 +56,12 @@
  * For a positive `p4.numberImages`, `T` is the number of retained central targets in that annulus after temporal
  * neighbor selection, and `K` is the original OR predictor count plus `2 * p4.numberImages` physical-PSF-disk blocks.
  *
- * Detector mode regresses one fixed detector-pixel time series on its local OR without implicit centering or an
- * intercept. Rotated mode constructs one fixed sky-frame OR, maps its target and predictor coordinates directly back
- * through each frame's inverse derotation, and applies one cubic interpolation in the preprocessed detector image.
- * It does not materialize a rotated cube or interpolate fractional OR coordinates twice.
+ * P4 regresses one fixed detector-pixel time series on its local OR without implicit centering or an intercept. The
+ * \ref p4_rotated_user_guide "rotated-frame negative-result page" separately documents an experimental configuration
+ * retained only as a numerical reference.
  *
- * Rotated mode centers the target and every predictor over the same complete `T`-frame set when estimating the
- * coefficients. It then applies those coefficients to the original uncentered, post-preprocessing predictor values
- * and subtracts that prediction from the original sampled target. Centering imposes the structural `T-1` limit even
- * when `p4.rankTolerance=0`; at least two frames are required. A constant target offset does not affect the fit and
- * passes through to the residual, while predictor DC levels affect the applied prediction and residual mean.
- *
- * \warning `rotated` is an experimental numerical-reference mode and has failed its current AF Lep/NACO scientific
- * acceptance comparison. Its products were effectively the target-only sky stacks because the centered objective
- * did not constrain the combined residual baseline. No replacement baseline rule is implemented. Retain the
- * default `detector` setting for science reductions.
- *
- * P4 automatically uses the smaller temporal or predictor Gram formulation, performs the normal-equation work in
- * double precision, and applies the same truncated rank policy in both regression frames. The Gram choice is not a
- * configurable backend.
+ * P4 automatically uses the smaller temporal or predictor Gram formulation and performs the normal-equation work in
+ * double precision. The Gram choice is not a configurable backend.
  *
  * \section p4_memory_dictionary Memory and worker management
  *
@@ -92,201 +76,6 @@
  * compact-storage and materialization estimates, per-annulus worker estimate, maximum worker count, and effective
  * worker count in `HIERARCH P4 ...` FITS cards. `OMP_NUM_THREADS` remains a valid upper limit and is never increased.
  *
- * \section p4_local_dictionary Finite-amplitude pixel-local refitting
- *
- * A positive `p4.localStampSize` replaces the complete output-field calculation with one exact local trial. The
- * trial uses the existing `fake.fileName`, `fake.sep`, `fake.PA`, `fake.contrast`, and optional
- * `fake.scaleFileName` settings. Exactly one separation, PA, and finite contrast must be supplied, and
- * `fake.method=single` is required. Unlike frozen-model PSF calculation, the trial perturbation is added to the
- * target and every same-image or positive-`numberImages` predictor sample before the ordinary P4 eigensolve. Each
- * detector regression used by the local sky stamp is therefore refit at the configured finite amplitude.
- *
- * The initial exact contract requires `preProcess.skip=true`, `p4.regressionFrame=detector`, enabled derotation, a
- * final `combine.method`, `adi.postMedSub=false`, and `output.outputPSFSub=false`. Frozen-model settings
- * `p4.psfFile`, `p4.outputPSFModels`, and `p4.psfFilter` cannot be combined with this path. The fake template must
- * represent the already-preprocessed P4 input stage; inherited fake injection is inactive when preprocessing is
- * skipped, so the input cube remains pristine and trial flux does not accumulate across calls.
- *
- * Image and template centers use the geometric convention `0.5*(N-1)`. For a final-sky separation `r` and PA
- * `theta`, the continuous source coordinate is
- *
- * \f[
- *   x_s = \tfrac{1}{2}(N_x-1)-r\sin\theta, \qquad
- *   y_s = \tfrac{1}{2}(N_y-1)+r\cos\theta.
- * \f]
- *
- * The odd output lattice is anchored at `floor(source+0.5)` in each axis, but the source itself remains at the
- * continuous coordinate recorded by `HIERARCH P4 LOCAL SOURCE ROW/COLUMN`. The template is never recentered onto
- * that integer anchor. Its internal centered crop is the smallest dimension at least `localStampSize` having the
- * same parity as the detector and source template. Thus an 11-pixel result on an even-sized detector uses a centered
- * 12-pixel template crop and retains the original half-pixel center. Detector and source-template parity must match,
- * as in ordinary fake injection.
- *
- * Only detector residuals touched by the exact cubic derotation footprints are retained. The standard final-image
- * product becomes a `localStampSize x localStampSize x modeCount` cube with
- * `HIERARCH P4 PRODUCT ROLE=LOCAL_RESIDUAL`. A second zero/one cube uses the same mode order and is named by inserting
- * `local_validity` before the normal four-digit sequence, for example
- * `finim_local_validity_0000.fits`; exact filenames instead become `<stem>_local_validity<extension>`. Both products
- * carry the integer full-image origin, continuous source coordinate, center/lattice conventions, actual template
- * crop dimensions, unique detector-fit count, sparse residual-sample count, fake-source provenance, and the
- * `POST_PREPROCESS_P4_INPUT` injection stage. The memory policy includes the retained sparse dependency map and
- * records its exact dynamic allocation as `HIERARCH P4 LOCAL GEOMETRY BYTES`.
- *
- * For example, evaluate one 11-pixel negative trial against an already-preprocessed input configuration:
- *
- * \code{.sh}
- * p4Reduce -c prepared-p4.conf \
- *   --preProcess.skip=true \
- *   --p4.localStampSize=11 \
- *   --fake.method=single \
- *   --fake.fileName=/path/post-preprocess-psf.fits \
- *   --fake.sep=13 --fake.PA=100 --fake.contrast=-0.001
- * \endcode
- *
- * \section p4_optimizer_dictionary Negative-companion optimization
- *
- * The optional `[p4Optimize]` layer repeatedly calls the exact finite-amplitude local path against one pristine,
- * already-loaded target cube. With `fitPosition=false`, separation and PA remain fixed at the single configured
- * `[fake]` tuple while a deterministic bounded Brent search minimizes contrast. With `fitPosition=true`, that
- * contrast result seeds a bounded Nelder-Mead search in Cartesian row offset, column offset, and contrast. A second
- * fixed-position dense+Brent contrast fit validates the final photometry. The Cartesian convention is the exact
- * inverse of P4 local processing and therefore preserves the `0.5*(N-1)` image center and avoids PA wrap internally.
- * All modes use the selected output plane's uniform mean-square residual inside a circular aperture centered on the
- * initial continuous source coordinate. Joint trials move the injected source while retaining exactly the same
- * full-image sky pixels in the merit aperture, preventing a fit from improving its score by moving a noisy boundary
- * pixel into or out of the measurement.
- *
- * | CLI | Config key/value shorthand | Best-product FITS keyword | Type and limits | Default | Meaning |
- * |---|---|---|---|---|---|
- * | `--p4Optimize.enabled` | `p4Optimize.enabled=true` | `HIERARCH P4 OPTIMIZER` | bool | `false` | Run negative-companion optimization instead of one ordinary reduction. Requires the pixel-local contract above. |
- * | `--p4Optimize.modeFraction` | `p4Optimize.modeFraction=0.15` | `HIERARCH P4 OPT MODE FRACTION` | exact member of `p4.modeFractions` | `0.15` | Single output plane used by the scalar merit. A nearest plane is never selected silently. |
- * | `--p4Optimize.apertureRadius` | `p4Optimize.apertureRadius=5` | `HIERARCH P4 OPT APERTURE RADIUS` | nonnegative real pixels | `0` | Uniform-L2 aperture radius. Zero selects `2*p4.psfRadius`; every included fixed sky pixel must remain inside each local stamp and be valid. Joint mode requires a local-stamp half-width of at least `apertureRadius+positionBound`. |
- * | `--p4Optimize.fitPosition` | `p4Optimize.fitPosition=true` | `HIERARCH P4 OPT FIT POSITION` | bool | `false` | Jointly fit Cartesian astrometry and contrast. False preserves the fixed-position contrast-only path. |
- * | `--p4Optimize.contrastLower` | `p4Optimize.contrastLower=-0.05` | `HIERARCH P4 OPT CONTRAST LOWER` | finite real | `-0.05` | Inclusive signed lower contrast bound. |
- * | `--p4Optimize.contrastUpper` | `p4Optimize.contrastUpper=0` | `HIERARCH P4 OPT CONTRAST UPPER` | finite real, greater than lower and at most zero | `0` | Inclusive signed upper contrast bound. The configured initial `fake.contrast` must lie inside both bounds. |
- * | `--p4Optimize.maxEvaluations` | `p4Optimize.maxEvaluations=192` | `HIERARCH P4 OPT EVALUATIONS` | integer at least `validationSamples+3`; joint minimum `2*(validationSamples+16)+4` | `64` | Hard limit on distinct local P4 calls. Joint mode reserves two complete contrast stages; 192 is recommended for a 21-point full fit. |
- * | `--p4Optimize.validationSamples` | `p4Optimize.validationSamples=21` | — | integer at least 3 | `21` | Uniform dense-grid size, including both bounds. |
- * | `--p4Optimize.parameterTolerance` | `p4Optimize.parameterTolerance=1e-5` | `HIERARCH P4 OPT CONTRAST TOLERANCE` | positive finite real | `1e-5` | Absolute contrast-width tolerance. |
- * | `--p4Optimize.positionTolerance` | `p4Optimize.positionTolerance=0.001` | `HIERARCH P4 OPT POSITION TOLERANCE` | positive finite real pixels | `0.001` | Cartesian simplex-diameter tolerance used only by joint fitting. |
- * | `--p4Optimize.meritTolerance` | `p4Optimize.meritTolerance=1e-6` | `HIERARCH P4 OPT MERIT TOLERANCE` | nonnegative finite real | `1e-6` | Combined absolute/relative merit allowance, scaled by `max(1,abs(merit))`, for simplex convergence and dense-basin agreement. |
- * | `--p4Optimize.positionBound` | `p4Optimize.positionBound=1` | `HIERARCH P4 OPT POSITION BOUND` | positive finite real pixels in joint mode | `1` | Symmetric row/column bound around the initial configured source. Each Cartesian coordinate is bounded independently. |
- * | `--p4Optimize.uncertaintyBlocks` | `p4Optimize.uncertaintyBlocks=8` | — | integer at least 2 | `8` | Reserved contiguous jackknife block count for the later uncertainty stage. |
- * | `--p4Optimize.outputPrefix` | `p4Optimize.outputPrefix=p4Negative_` | — | nonempty relative prefix | `p4Negative_` | Product prefix inside `output.directory`; parent directories are created automatically. |
- *
- * Intermediate trials disable both ordinary final-image output and P4 diagnostics. At completion the common output
- * directory receives `<prefix>merit.csv`, `<prefix>summary.yaml`, `<prefix>best.fits`, and
- * `<prefix>best_validity.fits`. The two FITS cubes own only the best local result and contain ordinary HCI/P4 cards,
- * the selected mode, fixed aperture frame/center/radius, bounds, tolerances, fitted separation/PA/contrast, Cartesian
- * displacement, evaluation count, position and contrast convergence, dense agreement, and product role. A converged
- * result also writes `<prefix>best.conf`, containing the fitted `[fake]` tuple. An exhausted or dense-disagreeing search still records
- * its best finite evaluation and explicit failure status, but does not write the configuration fragment and returns
- * failure from `p4Reduce`. The joint merit CSV identifies `seed-dense`, `seed-brent`, `simplex`, `final-dense`, and
- * `final-brent` evaluations and records both polar and Cartesian trial coordinates.
- *
- * For the AF Lep 11-pixel local setup, add:
- *
- * \code{.ini}
- * [p4Optimize]
- * enabled=true
- * modeFraction=0.15
- * apertureRadius=5
- * contrastLower=-0.05
- * contrastUpper=0
- * maxEvaluations=64
- * validationSamples=21
- * parameterTolerance=1e-5
- * meritTolerance=1e-6
- * outputPrefix=p4Negative_
- * \endcode
- *
- * The existing `fake.sep` and `fake.PA` remain the fixed location. Set the existing `fake.contrast` to any finite
- * initial value inside `[-0.05,0]`; it is recorded for provenance but the required dense scan supplies the numerical
- * starting basin.
- *
- * To fit astrometry as well, retain the same initial `[fake]` tuple and change the optimizer controls to:
- *
- * \code{.ini}
- * [p4]
- * localStampSize=13
- *
- * [p4Optimize]
- * enabled=true
- * fitPosition=true
- * positionBound=1
- * modeFraction=0.15
- * apertureRadius=5
- * contrastLower=-0.05
- * contrastUpper=0
- * maxEvaluations=192
- * validationSamples=21
- * parameterTolerance=1e-5
- * positionTolerance=0.001
- * meritTolerance=1e-6
- * outputPrefix=p4NegativeFull_
- * \endcode
- *
- * This radius-5, one-pixel position search requires `p4.localStampSize=13` or larger. The ordinary 11-pixel stamp
- * remains sufficient for the contrast-only configuration because its source and aperture do not move.
- *
- * \section p4_psf_dictionary Frozen-model PSF calculation and output
- *
- * | CLI | Config key/value shorthand | PSF-product FITS keyword | Type and limits | Default | Meaning |
- * |---|---|---|---|---|---|
- * | `--p4.psfFile` | `p4.psfFile=/path/template.fits` | `HIERARCH P4 PSF TEMPLATE` | readable, finite two-dimensional FITS image | unset | Centered PSF template at the same post-preprocessing stage as the P4 input. Setting the path enables local frozen-model response calculation without changing the science products. The stored normalization is preserved. |
- * | `--p4.psfStampSize` | `p4.psfStampSize=11` | `HIERARCH P4 PSF STAMP SIZE` | positive integer | `0` | Row and column size of each final square response stamp. Both odd and even sizes use geometric centers. Required when `psfFile` is set. |
- * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final `combine.method`. |
- * | `--p4.psfFilter` | `p4.psfFilter=true` | `HIERARCH P4 PSF FILTER` (PSF products) | bool | `false` | Apply the signed, normalized spatially variable PSF filter and write separate full-image products. Requires `psfFile`, an odd `psfStampSize`, and a final `combine.method`; it does not require `outputPSFModels=true`. |
- * | `--p4.psfFilterMinGoodFract` | `p4.psfFilterMinGoodFract=0.8` | `HIERARCH P4 PSF FILTER MIN GOOD FRACTION` (PSF products) | real in `[0,1]` | `1` | Minimum fraction of the full stamp area having valid PSF samples and finite in-bounds science samples. Values below the threshold have explicit zero filter validity and NaN filtered amplitude. |
- * | `--p4.psfOutputPrefix` | `p4.psfOutputPrefix=p4PSF_` | — | nonempty path prefix | `p4PSF_` | Compact model/manifest prefix inside `output.directory`; parent directories are created automatically. Filter cubes instead follow the ordinary final-image name and sequence. |
- *
- * For example, enable PSF reconstruction in a configuration file with literal sectioned syntax:
- *
- * \code{.ini}
- * [p4]
- * psfFile=/path/template.fits
- * psfStampSize=11
- * outputPSFModels=true
- * psfFilter=true
- * psfFilterMinGoodFract=0.8
- * \endcode
- *
- * The initial implementation accepts `p4.psfFile` only with `p4.regressionFrame=detector`,
- * `p4.numberImages=0`, and `adi.postMedSub=false`. Unsupported combinations are rejected before regression. The
- * template is sampled with zero exterior padding, but the retained local response is enlarged as needed to preserve
- * odd/even sampling phase and support arbitrary derotation angles. Local and reconstruction storage is included in
- * the P4 memory-policy checks. Final reconstruction workers are reduced when their bounded frame-stamp scratch would
- * exceed the configured budget.
- *
- * With `outputPSFModels=true`, the common output directory receives:
- *
- * - `<prefix>coordinates.fits`, an `S x 4` image whose columns are `row,column,region,regionSearch`;
- * - `<prefix>model_NNNN.fits`, a `psfStampSize x psfStampSize x S` cube for each zero-based mode index;
- * - `<prefix>validity_NNNN.fits`, an `S x 1` exact zero/one source-center validity image for each mode; and
- * - `<prefix>manifest.fits`, a one-element completion product.
- *
- * With `psfFilter=true`, it additionally receives four full-frame cubes in the ordinary P4 mode order. Their names
- * follow the resolved ordinary final-image name and share its sequence number. For the default `finim_` prefix these
- * are:
- *
- * - `finim_filtered_NNNN.fits`, containing `sum(H*I)/sum(H*H)` where the local fit is valid;
- * - `finim_filter_normalization_NNNN.fits`, containing the retained `sum(H*H)` denominator;
- * - `finim_filter_support_NNNN.fits`, containing the usable-sample count divided by the full stamp area; and
- * - `finim_filter_validity_NNNN.fits`, containing exact zero/one filter validity.
- *
- * Filtering is independent of model persistence: `psfFilter=true, outputPSFModels=false` writes the four filtered
- * products and manifest without writing coordinate, model, or model-validity products. The ordinary final image is
- * never replaced. Each filtered product mirrors the complete ordinary final-image FITS header and adds its P4 PSF
- * role, filter, and source-path provenance. With `output.exactFName=true`, the role is inserted before the configured
- * filename extension instead of a sequence number. An odd filter stamp is required because its geometric center then
- * maps exactly to the integer output coordinate; even response stamps remain valid when only `outputPSFModels` is
- * enabled.
- *
- * Plane `s` in every model cube belongs to row `s` of the coordinate image. Individual unsupported stamp samples are
- * NaN in the model cube even when the source center is valid. Every file is published by a temporary-file rename.
- * The manifest is first published with `HIERARCH P4 PSF COMPLETE = 0` and is replaced with value `1` only after the
- * complete configured product set has been written. Consumers must require value `1`, use the manifest's mode count,
- * and ignore stale extra files left by an earlier run with more modes.
- *
  * \section p4_exclusion_dictionary Signal exclusion
  *
  * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
@@ -297,50 +86,18 @@
  *
  * `sampleCenter` rejects a predictor sample when its interpolated sample center lies inside the buffered disk. It is the
  * closest match to the prototype's center-only mask. `kernelSupport` rejects a predictor column when any pixel in its
- * nominal cubic-interpolation support lies inside the disk. In rotated mode that test uses the exact one-stage
- * detector-frame footprint over every search pixel and input frame before fixing the annulus-wide predictor count.
- * Thus `kernelSupport` is more conservative near the boundary, but it is not simply a larger `psfRadius`: the exact
- * rejection depends on fractional location and the orientation of the four-by-four detector footprint.
+ * nominal cubic-interpolation support lies inside the disk. Thus `kernelSupport` is more conservative near the
+ * boundary, but it is not simply a larger `psfRadius`: the exact rejection depends on fractional location and the
+ * orientation of the four-by-four detector footprint.
  *
  * \section p4_validity_dictionary Masks, rank, and invalid local fits
  *
- * Common input masks are authoritative. In detector mode a local fit becomes invalid when its target or predictor
- * support touches a masked pixel. In rotated mode the target and every predictor must have complete nominal cubic
- * support in every frame, and every pixel in those detector-frame footprints must be nonzero in the common mask.
- * Failure in one frame invalidates the sky search pixel in every frame and output plane; P4 never drops a different
- * frame set for different predictor columns.
+ * Common input masks are authoritative. A local detector fit becomes invalid when its target or predictor support
+ * touches a masked pixel.
  *
  * Numerical-rank failure invalidates only the unsupported output planes. P4 carries all invalidity in a separate
  * validity cube through the applicable final-processing operations; invalid values become NaN only after final
  * arithmetic. Nonfinite target input remains a hard reduction error.
- *
- * \section p4_rotated_preprocessing_dictionary Optional baseline preprocessing
- *
- * Rotated regression estimates coefficients from temporal fluctuations but applies them to complete predictor values,
- * so its residual baseline is defined by the raw predictor levels after inherited preprocessing. The inherited
- * `preProcess.subradprof=true` option can first subtract a median radial profile from each detector image. The inherited
- * `preProcess.meanSubMethod=medianImage` option can instead, or subsequently, subtract a temporal median detector-frame
- * PSF. These operations precede the rotated regression's internal centering and alter the input from which both target
- * and predictors are sampled.
- *
- * Neither baseline operation is required. Radial-profile subtraction can bias localized sources, and median-image
- * subtraction can self-subtract companions when field rotation or temporal sampling is inadequate. Use injected-source
- * tests to measure throughput for the chosen preprocessing, and use `preProcess.skip=true` only for input whose prior
- * preprocessing is understood.
- *
- * These detector-frame operations do not remove the residual-mean ambiguity in the centered rotated objective.
- * Temporal mean subtraction and frame-dependent rotation do not commute, so a detector-pixel zero mean does not
- * imply a fixed-sky zero mean. A future rotated science mode requires an independently justified stellar-baseline
- * model or prior.
- *
- * \section p4_rotated_final_dictionary ADI and combination interaction
- *
- * `adi.postMedSub=true` is invalid with `p4.regressionFrame=rotated`: subtracting the temporal median at a fixed sky
- * pixel would impose a second sky-fixed baseline policy after the predictor subtraction and confound its throughput
- * contract. Rotated residual and validity cubes are already in the final sky frame, so the shared final lifecycle
- * skips derotation and proceeds to validity-aware combination and output. `combine.noDerotate` applies only to
- * detector-frame residuals and has no effect in rotated mode; users do not need to set it to prevent double
- * derotation.
  *
  * \section p4_diagnostics_dictionary Diagnostics and progress
  *
@@ -352,10 +109,8 @@
  * Geometry construction reports each annulus's search-pixel and retained predictor count. A memory line then reports
  * its estimated private MiB per worker and effective/pre-limit worker counts. Regression status reports the active
  * annulus, completed/total local fits, rate, local ETA, and cumulative overall progress to
- * standard error. `p4Validity_*.fits` is in detector coordinates for detector regression and in sky coordinates for
- * rotated regression. Final and PSF-subtracted FITS products record the selection as the long keyword
- * `HIERARCH P4 FRAME = 'detector'` or `HIERARCH P4 FRAME = 'rotated'`. Temporal centering for coefficient fitting and
- * application to the uncentered predictors are intrinsic to the documented `rotated` definition.
+ * standard error. `p4Validity_*.fits` is in detector coordinates. Final and PSF-subtracted FITS products record
+ * `HIERARCH P4 FRAME = 'detector'`.
  * `p4Timing.fits` schema 3 has one row, in seconds: geometry elapsed, regression elapsed, total sampling, same-image
  * target/OR sampling, additional-image PSF-disk sampling, Gram-construction, eigensolve/rank-selection, and
  * projection/residual aggregate OpenMP-worker time. Schema 4 appends aggregate local-PSF worker time when

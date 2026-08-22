@@ -1,0 +1,143 @@
+/** \file p4_optimizer.dox
+ * \brief User's guide for P4 negative-planet optimization.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup p4_optimizer_user_guide
+ * @{
+ *
+ * Negative-planet optimization repeatedly calls the exact finite-amplitude
+ * \ref p4_local_user_guide "pixel-local P4 path" against one pristine, already-loaded target cube. It can fit signed
+ * negative contrast at a fixed location or jointly fit contrast and position. Intermediate evaluations remain in
+ * memory and do not write ordinary P4 products.
+ *
+ * \section p4_optimizer_algorithm Optimization and merit
+ *
+ * With `p4Optimize.fitPosition=false`, separation and position angle remain fixed at the single configured `[fake]`
+ * tuple while a deterministic bounded Brent search minimizes contrast. With `fitPosition=true`, that contrast result
+ * seeds a bounded Nelder-Mead search in Cartesian row offset, column offset, and contrast. A second fixed-position
+ * dense+Brent contrast fit validates the final photometry.
+ *
+ * Cartesian offsets preserve the `0.5*(N-1)` image-center convention and avoid position-angle wrap internally. The
+ * merit is the selected P4 plane's uniform mean-square residual within a circular aperture centered on the initial
+ * continuous sky coordinate:
+ *
+ * \f[
+ * J(\theta)=\frac{\sum_i v_i w_i R(\theta,i)^2}{\sum_i v_i w_i}.
+ * \f]
+ *
+ * The current weights \f$w_i\f$ are uniform and every required validity value \f$v_i\f$ must be nonzero. Joint
+ * trials move the injected source but retain exactly the same full-image pixels in the aperture. This fixed sky
+ * aperture prevents the optimizer from improving its score by moving a noisy boundary pixel into or out of the
+ * measurement.
+ *
+ * \section p4_optimizer_configuration Configuration
+ *
+ * The complete \ref p4_local_user_guide "pixel-local configuration contract" applies. The initial source and
+ * template come from the single `[fake]` tuple.
+ *
+ * | CLI | Config key/value shorthand | Best-product FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--p4Optimize.enabled` | `p4Optimize.enabled=true` | `HIERARCH P4 OPTIMIZER` | bool | `false` | Run negative-planet optimization instead of one ordinary reduction. |
+ * | `--p4Optimize.modeFraction` | `p4Optimize.modeFraction=0.15` | `HIERARCH P4 OPT MODE FRACTION` | exact member of `p4.modeFractions` | `0.15` | Single output plane used by the scalar merit. A nearest plane is never selected silently. |
+ * | `--p4Optimize.apertureRadius` | `p4Optimize.apertureRadius=5` | `HIERARCH P4 OPT APERTURE RADIUS` | nonnegative real pixels | `0` | Fixed-sky uniform-L2 aperture radius. Zero selects `2*p4.psfRadius`. Joint mode requires a local-stamp half-width of at least `apertureRadius+positionBound`. |
+ * | `--p4Optimize.fitPosition` | `p4Optimize.fitPosition=true` | `HIERARCH P4 OPT FIT POSITION` | bool | `false` | Jointly fit Cartesian astrometry and contrast. |
+ * | `--p4Optimize.contrastLower` | `p4Optimize.contrastLower=-0.05` | `HIERARCH P4 OPT CONTRAST LOWER` | finite real | `-0.05` | Inclusive signed lower contrast bound. |
+ * | `--p4Optimize.contrastUpper` | `p4Optimize.contrastUpper=0` | `HIERARCH P4 OPT CONTRAST UPPER` | finite real, greater than lower and at most zero | `0` | Inclusive signed upper bound; the initial `fake.contrast` must lie within both bounds. |
+ * | `--p4Optimize.maxEvaluations` | `p4Optimize.maxEvaluations=192` | `HIERARCH P4 OPT EVALUATIONS` | integer at least `validationSamples+3`; joint minimum `2*(validationSamples+16)+4` | `64` | Hard limit on distinct local P4 calls. Joint mode reserves two complete contrast stages; 192 is recommended with 21 validation samples. |
+ * | `--p4Optimize.validationSamples` | `p4Optimize.validationSamples=21` | — | integer at least 3 | `21` | Uniform dense-grid size, including both contrast bounds. |
+ * | `--p4Optimize.parameterTolerance` | `p4Optimize.parameterTolerance=1e-5` | `HIERARCH P4 OPT CONTRAST TOLERANCE` | positive finite real | `1e-5` | Absolute contrast-width tolerance. |
+ * | `--p4Optimize.positionTolerance` | `p4Optimize.positionTolerance=0.001` | `HIERARCH P4 OPT POSITION TOLERANCE` | positive finite real pixels | `0.001` | Cartesian simplex-diameter tolerance used by joint fitting. |
+ * | `--p4Optimize.meritTolerance` | `p4Optimize.meritTolerance=1e-6` | `HIERARCH P4 OPT MERIT TOLERANCE` | nonnegative finite real | `1e-6` | Combined absolute/relative allowance, scaled by `max(1,abs(merit))`, for simplex convergence and dense-basin agreement. |
+ * | `--p4Optimize.positionBound` | `p4Optimize.positionBound=1` | `HIERARCH P4 OPT POSITION BOUND` | positive finite real pixels in joint mode | `1` | Independent symmetric row/column bounds around the initial source. |
+ * | `--p4Optimize.uncertaintyBlocks` | `p4Optimize.uncertaintyBlocks=8` | `HIERARCH P4 OPT JK BLOCKS` | zero or integer at least 2 | `8` | Contiguous delete-one-time-block refit count. Zero disables uncertainty; use at least eight blocks for a reported science result. |
+ * | `--p4Optimize.outputPrefix` | `p4Optimize.outputPrefix=p4Negative_` | — | nonempty relative prefix | `p4Negative_` | Product prefix inside `output.directory`; parent directories are created automatically. |
+ *
+ * A contrast-only configuration for an 11-pixel local stamp is:
+ *
+ * \code{.ini}
+ * [p4]
+ * localStampSize=11
+ *
+ * [p4Optimize]
+ * enabled=true
+ * modeFraction=0.15
+ * apertureRadius=5
+ * contrastLower=-0.05
+ * contrastUpper=0
+ * maxEvaluations=64
+ * validationSamples=21
+ * parameterTolerance=1e-5
+ * meritTolerance=1e-6
+ * outputPrefix=p4Negative_
+ * \endcode
+ *
+ * The existing `fake.sep` and `fake.PA` remain fixed. Set `fake.contrast` to a finite initial value within the
+ * configured bounds; the required dense scan supplies the numerical starting basin.
+ *
+ * To fit astrometry as well, retain that initial `[fake]` tuple and use:
+ *
+ * \code{.ini}
+ * [p4]
+ * localStampSize=13
+ *
+ * [p4Optimize]
+ * enabled=true
+ * fitPosition=true
+ * positionBound=1
+ * modeFraction=0.15
+ * apertureRadius=5
+ * contrastLower=-0.05
+ * contrastUpper=0
+ * maxEvaluations=192
+ * validationSamples=21
+ * parameterTolerance=1e-5
+ * positionTolerance=0.001
+ * meritTolerance=1e-6
+ * outputPrefix=p4NegativeFull_
+ * \endcode
+ *
+ * A radius-5 aperture and one-pixel position search require `p4.localStampSize=13` or larger. An 11-pixel stamp is
+ * sufficient for contrast-only fitting because neither its source nor its aperture moves.
+ *
+ * \section p4_optimizer_jackknife Jackknife uncertainty
+ *
+ * After a converged point fit, the optimizer partitions the physical input sequence into \f$B\f$ contiguous,
+ * nearly equal blocks. It repeats the complete fit \f$B\f$ times, omitting one block from both the central-target
+ * rows and any additional-image predictors on each repeat. For delete-one-block estimates \f$\theta_b\f$ and their
+ * arithmetic mean \f$\bar{\theta}\f$, the reported covariance is
+ *
+ * \f[
+ * {\rm Cov}_{\mathrm{JK}}(\theta)
+ * = \frac{B-1}{B}\sum_{b=1}^{B}
+ * (\theta_b-\bar{\theta})(\theta_b-\bar{\theta})^{\mathsf T}.
+ * \f]
+ *
+ * Contrast-only fitting reports the contrast diagonal. Joint fitting uses Cartesian row displacement, Cartesian
+ * column displacement, and signed contrast in that order, avoiding position-angle wrap in the covariance. Standard
+ * errors are the square roots of the covariance diagonal. The point estimate still comes from the complete input
+ * sequence; jackknife means are diagnostics rather than replacement fitted parameters.
+ *
+ * `p4Optimize.maxEvaluations` applies independently to the point fit and to every refit, so uncertainty can cost
+ * approximately \f$B\f$ times the point-fit runtime. The default eight blocks implements the intended scientific
+ * baseline. Values of two or more support development and sensitivity checks, while zero explicitly disables the
+ * stage. A block count greater than the loaded physical frame count is rejected.
+ *
+ * \section p4_optimizer_products Products and convergence
+ *
+ * The common output directory receives `<prefix>merit.csv`, `<prefix>summary.yaml`, `<prefix>best.fits`, and
+ * `<prefix>best_validity.fits`. When jackknife uncertainty is enabled it also receives `<prefix>jackknife.csv`, with
+ * zero-based half-open omitted frame intervals and every refit's fitted parameters and convergence state. The two
+ * FITS cubes own only the complete-sequence best local result and record the selected mode, fixed aperture
+ * frame/center/radius, bounds, tolerances, fitted separation/PA/contrast, Cartesian displacement, evaluation count,
+ * convergence flags, dense agreement, jackknife covariance/errors, and product role.
+ *
+ * A converged result also writes `<prefix>best.conf` containing the fitted `[fake]` tuple. An exhausted or
+ * dense-disagreeing search retains its best finite evaluation with an explicit failure status, does not write that
+ * configuration fragment, and returns failure from `p4Reduce`. A requested jackknife with any unconverged block
+ * similarly retains the point-fit products and resample table, marks uncertainty incomplete, suppresses
+ * `<prefix>best.conf`, and returns failure. Joint merit tables label `seed-dense`, `seed-brent`, `simplex`,
+ * `final-dense`, and `final-brent` evaluations and record both Cartesian and polar coordinates.
+ *
+ * @}
+ */

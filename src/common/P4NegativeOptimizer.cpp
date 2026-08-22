@@ -723,5 +723,58 @@ optimizeP4PositionContrast( const P4ContrastOptimizerConfig &configuration,
     return result;
 }
 
+P4JackknifeStatistics p4JackknifeStatistics( const std::vector<P4JackknifeEstimate> &estimates, bool fitPosition )
+{
+    if( estimates.size() < 2 )
+    {
+        throw std::invalid_argument( "P4 jackknife covariance requires at least two block estimates" );
+    }
+
+    P4JackknifeStatistics statistics;
+    statistics.blockCount = estimates.size();
+    for( const P4JackknifeEstimate &estimate : estimates )
+    {
+        if( !p4OptimizerFinite( estimate.contrast ) ||
+            ( fitPosition &&
+              ( !p4OptimizerFinite( estimate.rowDelta ) || !p4OptimizerFinite( estimate.columnDelta ) ) ) )
+        {
+            throw std::invalid_argument( "P4 jackknife estimates must be finite" );
+        }
+        if( fitPosition )
+        {
+            statistics.mean.rowDelta += estimate.rowDelta;
+            statistics.mean.columnDelta += estimate.columnDelta;
+        }
+        statistics.mean.contrast += estimate.contrast;
+    }
+    const double inverseBlockCount = 1.0 / static_cast<double>( estimates.size() );
+    statistics.mean.rowDelta *= inverseBlockCount;
+    statistics.mean.columnDelta *= inverseBlockCount;
+    statistics.mean.contrast *= inverseBlockCount;
+
+    for( const P4JackknifeEstimate &estimate : estimates )
+    {
+        const std::array<double, 3> delta{ fitPosition ? estimate.rowDelta - statistics.mean.rowDelta : 0,
+                                           fitPosition ? estimate.columnDelta - statistics.mean.columnDelta : 0,
+                                           estimate.contrast - statistics.mean.contrast };
+        for( std::size_t row = 0; row < delta.size(); ++row )
+        {
+            for( std::size_t column = 0; column < delta.size(); ++column )
+            {
+                statistics.covariance[row * delta.size() + column] += delta[row] * delta[column];
+            }
+        }
+    }
+    const double multiplier = static_cast<double>( estimates.size() - 1 ) * inverseBlockCount;
+    for( double &value : statistics.covariance )
+    {
+        value *= multiplier;
+    }
+    statistics.rowStandardError = std::sqrt( std::max( 0.0, statistics.covariance[0] ) );
+    statistics.columnStandardError = std::sqrt( std::max( 0.0, statistics.covariance[4] ) );
+    statistics.contrastStandardError = std::sqrt( std::max( 0.0, statistics.covariance[8] ) );
+    return statistics;
+}
+
 } // namespace improc
 } // namespace mx

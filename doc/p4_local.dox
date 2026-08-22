@@ -1,0 +1,90 @@
+/** \file p4_local.dox
+ * \brief User's guide for P4 pixel-local processing.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup p4_local_user_guide
+ * @{
+ *
+ * Pixel-local processing evaluates one finite-amplitude trial companion over a bounded sky stamp. It uses the
+ * ordinary detector-frame P4 algorithm and complete temporal sample set, but avoids fitting detector pixels that
+ * cannot contribute to the requested result. This is the evaluation path used by
+ * \ref p4_optimizer_user_guide "negative-planet optimization".
+ *
+ * \section p4_local_algorithm Exact finite-amplitude refitting
+ *
+ * Set `p4.localStampSize=W>0` to replace the complete output-field calculation with one local trial. For every
+ * detector search pixel needed by the requested sky stamp and every temporal row, the configured perturbation
+ * \f$D_t\f$ changes both sides of the regression:
+ *
+ * \f[
+ *   y'_p(t)=I_t(p)+D_t(p), \qquad
+ *   X'_p(t,k)=S_{p,k}[I_t]+S_{p,k}[D_t].
+ * \f]
+ *
+ * P4 then repeats its ordinary eigensolve. This is an exact finite-amplitude refit, not the frozen-coefficient PSF
+ * response described in the main \ref p4reduce_user_guide "P4 guide". With positive `p4.numberImages`, the direct
+ * physical-PSF-disk predictors receive the perturbation from their selected physical frame. Every unique detector
+ * search pixel is fit once with its complete configured time sequence, while only the residual rows needed by the
+ * local derotation footprints are retained. Cubic footprints are unioned over the complete field rotation, so the
+ * number of fitted detector pixels is generally greater than `W*W` but much smaller than a complete output field.
+ *
+ * The source center is never quantized. Full images and the source template use the geometric center
+ * `0.5*(N-1)` in each axis. For final-sky separation \f$r\f$ and position angle \f$\theta\f$, the continuous source
+ * coordinate is
+ *
+ * \f[
+ *   x_s = \frac{1}{2}(N_x-1)-r\sin\theta, \qquad
+ *   y_s = \frac{1}{2}(N_y-1)+r\cos\theta.
+ * \f]
+ *
+ * The odd result lattice is anchored at `floor(source+0.5)` in each axis, but the template remains centered on the
+ * continuous coordinate. Its internal crop is the smallest dimension at least `localStampSize` with the same parity
+ * as the detector and source template. Thus an 11-pixel result on an even-sized detector uses a centered 12-pixel
+ * template crop instead of shifting the half-pixel center. Detector and template parity must match.
+ *
+ * \section p4_local_configuration Configuration
+ *
+ * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--p4.localStampSize` | `p4.localStampSize=11` | `HIERARCH P4 LOCAL STAMP SIZE` | zero or positive odd integer | `0` | Return this square sky stamp after one finite-amplitude local refit. Zero preserves complete-field P4 processing. |
+ *
+ * The trial uses `fake.fileName`, `fake.sep`, `fake.PA`, `fake.contrast`, and optional `fake.scaleFileName` from the
+ * shared \ref common_configuration_dictionary "configuration dictionary". Exactly one separation, position angle,
+ * and finite contrast must be supplied, and `fake.method=single` is required.
+ *
+ * The current local contract requires:
+ *
+ * - `preProcess.skip=true` and a template representing the already-preprocessed P4 input stage;
+ * - detector-frame P4, enabled derotation, and a final `combine.method`;
+ * - `adi.postMedSub=false` and `output.outputPSFSub=false`; and
+ * - no frozen-model settings (`p4.psfFile`, `p4.outputPSFModels`, or `p4.psfFilter`).
+ *
+ * Inherited fake injection is inactive when preprocessing is skipped. Pixel-local P4 samples the trial on demand, so
+ * the loaded input cube remains pristine and trial flux does not accumulate across repeated evaluations.
+ *
+ * For example, evaluate one 11-pixel negative trial against already-preprocessed input:
+ *
+ * \code{.sh}
+ * p4Reduce -c prepared-p4.conf \
+ *   --preProcess.skip=true \
+ *   --p4.localStampSize=11 \
+ *   --fake.method=single \
+ *   --fake.fileName=/path/post-preprocess-psf.fits \
+ *   --fake.sep=13 --fake.PA=100 --fake.contrast=-0.001
+ * \endcode
+ *
+ * \section p4_local_products Products and provenance
+ *
+ * The standard final-image product becomes a `localStampSize x localStampSize x modeCount` cube with
+ * `HIERARCH P4 PRODUCT ROLE=LOCAL_RESIDUAL`. A neighboring exact zero/one validity cube inserts `local_validity`
+ * before the normal sequence number, for example `finim_local_validity_0000.fits`. With an exact filename it becomes
+ * `<stem>_local_validity<extension>`.
+ *
+ * Both products record the integer full-image origin, continuous source coordinate, center and lattice conventions,
+ * actual template-crop dimensions, unique detector-fit count, sparse residual-sample count, fake-source provenance,
+ * and `POST_PREPROCESS_P4_INPUT` injection stage. The memory policy includes the retained sparse dependency map and
+ * records its exact dynamic allocation as `HIERARCH P4 LOCAL GEOMETRY BYTES`.
+ *
+ * @}
+ */

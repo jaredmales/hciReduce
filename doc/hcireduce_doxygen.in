@@ -56,6 +56,10 @@ INPUT                   = @CMAKE_SOURCE_DIR@/doc/main.dox \
                           @CMAKE_SOURCE_DIR@/doc/klip_config.dox \
                           @CMAKE_SOURCE_DIR@/doc/p4.dox \
                           @CMAKE_SOURCE_DIR@/doc/p4_config.dox \
+                          @CMAKE_SOURCE_DIR@/doc/p4_local.dox \
+                          @CMAKE_SOURCE_DIR@/doc/p4_optimizer.dox \
+                          @CMAKE_SOURCE_DIR@/doc/p4_psf.dox \
+                          @CMAKE_SOURCE_DIR@/doc/p4_rotated.dox \
                           @CMAKE_SOURCE_DIR@/doc/hciAnalyze.dox \
                           @CMAKE_SOURCE_DIR@/doc/hciAnalyze_config.dox \
                           @CMAKE_SOURCE_DIR@/doc/programming.dox \

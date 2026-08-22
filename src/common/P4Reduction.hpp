@@ -253,19 +253,22 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     eigenCube<realT> m_localFinalValidity; ///< Combined local-result validity cube in output-mode order.
 
-    int m_localOriginRow{ 0 };             ///< Full-image row occupied by local result element `(0,0)`.
+    std::optional<std::vector<int>> m_localIncludedFrames; ///< Physical target frames retained by one resampled local
+                                                           ///< evaluation; unset retains the complete sequence.
 
-    int m_localOriginColumn{ 0 };          ///< Full-image column occupied by local result element `(0,0)`.
+    int m_localOriginRow{ 0 };                             ///< Full-image row occupied by local result element `(0,0)`.
 
-    double m_localSourceRow{ 0 };          ///< Continuous full-image row of the configured trial source.
+    int m_localOriginColumn{ 0 };              ///< Full-image column occupied by local result element `(0,0)`.
 
-    double m_localSourceColumn{ 0 };       ///< Continuous full-image column of the configured trial source.
+    double m_localSourceRow{ 0 };              ///< Continuous full-image row of the configured trial source.
 
-    int m_localTemplateRows{ 0 };          ///< Actual phase-preserving internal trial-template crop rows.
+    double m_localSourceColumn{ 0 };           ///< Continuous full-image column of the configured trial source.
 
-    int m_localTemplateColumns{ 0 };       ///< Actual phase-preserving internal trial-template crop columns.
+    int m_localTemplateRows{ 0 };              ///< Actual phase-preserving internal trial-template crop rows.
 
-    std::size_t m_localSearchCount{ 0 };   ///< Unique detector regressions evaluated by pixel-local processing.
+    int m_localTemplateColumns{ 0 };           ///< Actual phase-preserving internal trial-template crop columns.
+
+    std::size_t m_localSearchCount{ 0 };       ///< Unique detector regressions evaluated by pixel-local processing.
 
     std::size_t m_localSparseSampleCount{ 0 }; ///< Requested detector-pixel/frame residual pairs.
 
@@ -298,6 +301,21 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
      * \throws mx::exception for invalid local configuration, input, geometry, or numerical state
      */
     P4LocalEvaluation<realT> evaluateLocal( const P4LocalTrial &trial /**< [in] replacement single local trial */ );
+
+    /// Evaluate one local trial using an explicit subset of physical target frames.
+    /** The selected frames are used as both central targets and temporal predictors. The selection must be nonempty,
+     * strictly increasing, unique, and in range after the observation has loaded. All state guarantees of the
+     * complete-sequence overload apply.
+     *
+     * \returns an owning local result combined from only the selected frames
+     * \throws mx::exception for an invalid frame selection or local reduction state
+     */
+    P4LocalEvaluation<realT> evaluateLocal(
+        const P4LocalTrial &trial, /**< [in] replacement single local trial */
+        const std::vector<int> &includedFrames /**< [in] ordered physical target-frame indices to retain */ );
+
+    /// Return the current loaded target-frame count, or zero before target loading.
+    std::size_t targetFrameCount() const;
 
     /// Run explicit ordered search-annulus radii through P4 and the shared ADI final lifecycle.
     /** The supplied vectors replace the configured `geom.minRadius` and `geom.maxRadius` values.

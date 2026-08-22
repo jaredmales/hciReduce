@@ -1,0 +1,110 @@
+/** \file p4_rotated.dox
+ * \brief Documentation of the unsuccessful rotated-frame P4 experiment.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup p4_rotated_user_guide
+ * @{
+ *
+ * \warning Rotated-frame regression is a failed scientific experiment retained only as a numerical reference. Use
+ * detector-frame P4 for science reductions.
+ *
+ * The experiment attempted to protect a sky-stationary companion by estimating a different, temporally centered
+ * coefficient vector at each fixed sky-frame search pixel. The implementation is tested and numerically defined, but
+ * its centered objective does not constrain the residual mean that survives temporal combination. It did not improve
+ * the stellar residual in the validation dataset.
+ *
+ * \section p4_rotated_result Negative scientific result
+ *
+ * On a 621-frame AF Lep/NACO comparison, rotated-frame products made after radial-profile or detector-frame-mean
+ * preprocessing correlated above 0.999997 with independently reconstructed target-only sky stacks. The P4 correction
+ * had only about 0.2 percent of the target-stack RMS. The corresponding detector-frame P4 control produced
+ * substantially lower residual noise and higher companion SNR. No replacement stellar-baseline rule has been
+ * selected, so rotated-frame regression should not be used for scientific analysis.
+ *
+ * \section p4_rotated_algorithm Experimental algorithm
+ *
+ * Set `p4.regressionFrame=rotated` to select the experimental path. The OR wedge is constructed once in the sky
+ * frame. For search pixel `m`, let \f$q_{m,0}=m\f$ be the target coordinate and \f$q_{m,k}\f$ its `K` radial and
+ * tangential predictor coordinates. For frame `t`, every fixed sky coordinate maps directly into the preprocessed,
+ * unrotated detector image:
+ *
+ * \f[
+ * p_r = C_r+(q_r-C_r)\cos\theta_t+(q_c-C_c)\sin\theta_t,
+ * \f]
+ *
+ * \f[
+ * p_c = C_c-(q_r-C_r)\sin\theta_t+(q_c-C_c)\cos\theta_t.
+ * \f]
+ *
+ * Here `C` is the geometric image center. The value \f$u_{t,m}^{(k)}=x_t[p_{t,m,k}]\f$ is evaluated by one cubic
+ * interpolation in the unrotated detector frame. No rotated cube is materialized, and fractional OR coordinates are
+ * not interpolated a second time. The target and all predictors use this sampling operator.
+ *
+ * Each sampled series is centered over the same `T` frames:
+ *
+ * \f[
+ * \widetilde{u}_{t,m}^{(k)} = u_{t,m}^{(k)}-
+ *     \frac{1}{T}\sum_{\tau=1}^{T}u_{\tau,m}^{(k)}.
+ * \f]
+ *
+ * With `y_m(t)=\widetilde{u}_{t,m}^{(0)}` and `D_m(t,k)=\widetilde{u}_{t,m}^{(k)}`, each truncation minimizes
+ *
+ * \f[
+ *     \left\|y_m-D_m c_m\right\|_2^2
+ * \f]
+ *
+ * using the detector algorithm's truncated eigensolution and rank policy. Centering removes one temporal degree of
+ * freedom, so mode fractions are realized against `min(K,T-1)`. At least two frames are required, and this structural
+ * limit remains in force with `p4.rankTolerance=0`.
+ *
+ * The centered matrices determine `c_m`, but the implementation applies it to the original uncentered predictor
+ * matrix `U_m`:
+ *
+ * \f[
+ *     r_m=u_m^{(0)}-U_m c_m.
+ * \f]
+ *
+ * Thus the centered variance is minimized, but the residual mean is
+ * `mean(u_m^(0))-mean(U_m)c_m`. A constant target offset passes through without changing the fit, while a constant
+ * predictor offset changes the applied prediction. This raw post-preprocessing predictor baseline is the ambiguity
+ * responsible for the negative result. Centering protects a stationary companion from entering the target fit, but
+ * does not by itself guarantee final throughput or stellar-baseline subtraction.
+ *
+ * \section p4_rotated_configuration Configuration and restrictions
+ *
+ * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|---|
+ * | `--p4.regressionFrame` | `p4.regressionFrame=rotated` | `HIERARCH P4 FRAME` | `detector` or `rotated` | `detector` | Select the failed rotated-frame experiment. Omit this setting or use `detector` for science reductions. |
+ *
+ * In rotated mode, `p4.modeFractions` realizes each count as `floor(fraction*min(T-1,K))`. Positive
+ * `p4.numberImages`, pixel-local processing, frozen-model PSF calculation, and `adi.postMedSub=true` are rejected.
+ * `combine.noDerotate` controls only detector-frame residuals and has no effect here.
+ *
+ * Every target and predictor must have a complete direct detector-frame cubic footprint in every input frame. If one
+ * footprint crosses an edge or touches a zero-valued common-mask pixel, that sky search pixel is invalid in every
+ * frame and output plane; the implementation never drops different frames for different predictor columns.
+ * `p4.exclusionPolicy=kernelSupport` checks these exact detector footprints over all search pixels and frames before
+ * fixing the annulus-wide predictor count.
+ *
+ * \section p4_rotated_preprocessing Predictor baselines and preprocessing
+ *
+ * Two inherited detector-frame preprocessing choices alter the raw predictor baseline before rotated regression:
+ *
+ * - `preProcess.subradprof=true` subtracts a median radial profile from each detector image; and
+ * - `preProcess.meanSubMethod=medianImage` subtracts the temporal median detector-frame PSF.
+ *
+ * They may be combined in that order. Neither is required or scientifically validated for this experiment.
+ * Radial-profile subtraction can bias localized sources, and a median PSF can self-subtract companions when field
+ * rotation or temporal sampling is inadequate. Detector-frame temporal averaging also does not in general zero the
+ * mean of a fixed-sky series after frame-dependent rotation. Removing a fitted sky-frame intercept would remove a
+ * stationary companion. The experiment therefore needs an independently justified stellar-baseline model or prior
+ * before it could be reconsidered.
+ *
+ * `adi.postMedSub=true` is rejected because it would impose a second sky-fixed baseline after predictor subtraction
+ * and confound the throughput contract. Rotated residual and validity cubes are already sky-aligned, so final
+ * processing combines them without derotating again. Final and diagnostic FITS products identify the experiment with
+ * `HIERARCH P4 FRAME = 'rotated'`.
+ *
+ * @}
+ */

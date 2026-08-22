@@ -191,6 +191,39 @@ TEST_CASE( "P4 joint position contrast optimizer", "[P4NegativeOptimizer][positi
                           []( const auto &sample ) { return sample.stage == "final-dense"; } ) );
 }
 
+/// Verify ordinary jackknife covariance uses the delete-one-block multiplier and Cartesian parameter order.
+/** \ingroup P4NegativeOptimizer_unit_tests */
+TEST_CASE( "P4 jackknife covariance", "[P4NegativeOptimizer][jackknife][covariance][uncertainty]" )
+{
+    const std::vector<mx::improc::P4JackknifeEstimate> estimates{ { 1, 2, -1 }, { 2, 4, -2 }, { 3, 6, -3 } };
+    const auto joint = mx::improc::p4JackknifeStatistics( estimates, true );
+    REQUIRE( joint.blockCount == 3 );
+    REQUIRE( joint.mean.rowDelta == Approx( 2 ) );
+    REQUIRE( joint.mean.columnDelta == Approx( 4 ) );
+    REQUIRE( joint.mean.contrast == Approx( -2 ) );
+    REQUIRE( joint.covariance[0] == Approx( 4.0 / 3.0 ) );
+    REQUIRE( joint.covariance[1] == Approx( 8.0 / 3.0 ) );
+    REQUIRE( joint.covariance[2] == Approx( -4.0 / 3.0 ) );
+    REQUIRE( joint.covariance[4] == Approx( 16.0 / 3.0 ) );
+    REQUIRE( joint.covariance[5] == Approx( -8.0 / 3.0 ) );
+    REQUIRE( joint.covariance[8] == Approx( 4.0 / 3.0 ) );
+    REQUIRE( joint.rowStandardError == Approx( std::sqrt( 4.0 / 3.0 ) ) );
+    REQUIRE( joint.columnStandardError == Approx( std::sqrt( 16.0 / 3.0 ) ) );
+    REQUIRE( joint.contrastStandardError == Approx( std::sqrt( 4.0 / 3.0 ) ) );
+
+    const auto contrastOnly = mx::improc::p4JackknifeStatistics( estimates, false );
+    REQUIRE( contrastOnly.mean.rowDelta == 0 );
+    REQUIRE( contrastOnly.mean.columnDelta == 0 );
+    REQUIRE( contrastOnly.covariance[0] == 0 );
+    REQUIRE( contrastOnly.covariance[4] == 0 );
+    REQUIRE( contrastOnly.covariance[8] == Approx( 4.0 / 3.0 ) );
+
+    REQUIRE_THROWS( mx::improc::p4JackknifeStatistics( { estimates.front() }, true ) );
+    auto nonFinite = estimates;
+    nonFinite.back().contrast = std::numeric_limits<double>::quiet_NaN();
+    REQUIRE_THROWS( mx::improc::p4JackknifeStatistics( nonFinite, false ) );
+}
+
 /// Verify optimizeP4Contrast rejects inconsistent bounds, scan budgets, tolerances, and callbacks.
 /** \ingroup P4NegativeOptimizer_unit_tests */
 TEST_CASE( "P4 contrast optimizer validation", "[P4NegativeOptimizer][validation][budget]" )

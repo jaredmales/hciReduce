@@ -118,35 +118,40 @@ std::string p4Index( std::size_t index, /**< [in] zero-based index */
 /// Select central target images and their qualifying temporal predictor images for one detector-frame annulus.
 std::vector<std::vector<int>> p4TemporalSelections( const std::vector<double> &derotationAngles,
                                                     /**< [in] derotation angles in input-image order, in radians */
+                                                    const std::vector<int> &frameIndices,
+                                                    /**< [in] ordered physical frame indices eligible for selection */
                                                     double minimumRadius, /**< [in] annulus inner radius in pixels */
                                                     double psfRadius,     /**< [in] physical PSF radius in pixels */
                                                     int numberImages /**< [in] required qualifying images per side */ )
 {
     std::vector<std::vector<int>> selections;
-    for( std::size_t central = 0; central < derotationAngles.size(); ++central )
+    for( std::size_t centralOffset = 0; centralOffset < frameIndices.size(); ++centralOffset )
     {
+        const int central = frameIndices[centralOffset];
         std::vector<int> earlier;
         std::vector<int> later;
-        for( std::size_t candidate = central; candidate-- > 0; )
+        for( std::size_t candidateOffset = centralOffset; candidateOffset-- > 0; )
         {
+            const int candidate = frameIndices[candidateOffset];
             const double displacement =
                 std::abs( mx::math::angleDiff<mx::math::radiansT<double>>( derotationAngles[candidate],
                                                                            derotationAngles[central] ) ) *
                 minimumRadius;
             if( displacement >= psfRadius )
             {
-                earlier.push_back( static_cast<int>( candidate ) );
+                earlier.push_back( candidate );
             }
         }
-        for( std::size_t candidate = central + 1; candidate < derotationAngles.size(); ++candidate )
+        for( std::size_t candidateOffset = centralOffset + 1; candidateOffset < frameIndices.size(); ++candidateOffset )
         {
+            const int candidate = frameIndices[candidateOffset];
             const double displacement =
                 std::abs( mx::math::angleDiff<mx::math::radiansT<double>>( derotationAngles[candidate],
                                                                            derotationAngles[central] ) ) *
                 minimumRadius;
             if( displacement >= psfRadius )
             {
-                later.push_back( static_cast<int>( candidate ) );
+                later.push_back( candidate );
             }
         }
         const std::size_t requiredPerSide = static_cast<std::size_t>( numberImages );
@@ -160,7 +165,7 @@ std::vector<std::vector<int>> p4TemporalSelections( const std::vector<double> &d
         {
             continue;
         }
-        std::vector<int> selection{ static_cast<int>( central ) };
+        std::vector<int> selection{ central };
         selection.insert( selection.end(), earlier.begin(), earlier.begin() + earlierCount + additionalEarlier );
         selection.insert( selection.end(), later.begin(), later.begin() + laterCount + additionalLater );
         selections.push_back( std::move( selection ) );
@@ -211,6 +216,8 @@ bool p4TemporalSelectionSupportsModes( const std::vector<std::vector<int>> &sele
 std::pair<double, std::vector<std::vector<int>>>
 p4TemporalSelectionWithFallback( const std::vector<double> &derotationAngles,
                                  /**< [in] derotation angles in input-image order, in radians */
+                                 const std::vector<int> &frameIndices,
+                                 /**< [in] ordered physical frame indices eligible for selection */
                                  double meanRadius,              /**< [in] mean annulus radius in pixels */
                                  double requestedPsfRadius,      /**< [in] configured physical PSF radius in pixels */
                                  int numberImages,               /**< [in] requested qualifying images per side */
@@ -220,10 +227,12 @@ p4TemporalSelectionWithFallback( const std::vector<double> &derotationAngles,
                                  const std::vector<float> &modeFractions /**< [in] requested PCA fractions */ )
 {
     std::vector<double> candidateRadii{ requestedPsfRadius };
-    for( std::size_t first = 0; first < derotationAngles.size(); ++first )
+    for( std::size_t firstOffset = 0; firstOffset < frameIndices.size(); ++firstOffset )
     {
-        for( std::size_t second = first + 1; second < derotationAngles.size(); ++second )
+        const int first = frameIndices[firstOffset];
+        for( std::size_t secondOffset = firstOffset + 1; secondOffset < frameIndices.size(); ++secondOffset )
         {
+            const int second = frameIndices[secondOffset];
             const double radius =
                 std::abs( mx::math::angleDiff<mx::math::radiansT<double>>( derotationAngles[first],
                                                                            derotationAngles[second] ) ) *
@@ -239,7 +248,7 @@ p4TemporalSelectionWithFallback( const std::vector<double> &derotationAngles,
     for( const double radius : candidateRadii )
     {
         std::vector<std::vector<int>> selections =
-            p4TemporalSelections( derotationAngles, meanRadius, radius, numberImages );
+            p4TemporalSelections( derotationAngles, frameIndices, meanRadius, radius, numberImages );
         if( p4TemporalSelectionSupportsModes( selections, basePredictorCount, temporalPredictorCount, modeFractions ) )
         {
             return { radius, std::move( selections ) };
@@ -2004,6 +2013,39 @@ P4LocalEvaluation<realT> P4Reduction<realT, derotFunctObj, verboseT>::evaluateLo
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+P4LocalEvaluation<realT>
+P4Reduction<realT, derotFunctObj, verboseT>::evaluateLocal( const P4LocalTrial &trial,
+                                                            const std::vector<int> &includedFrames )
+{
+    if( includedFrames.empty() || !std::is_sorted( includedFrames.begin(), includedFrames.end(), std::less<int>() ) ||
+        std::adjacent_find( includedFrames.begin(), includedFrames.end() ) != includedFrames.end() ||
+        includedFrames.front() < 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                       "P4 local included frames must be nonempty, unique, and strictly increasing" );
+    }
+    const std::optional<std::vector<int>> configuredIncludedFrames = m_localIncludedFrames;
+    m_localIncludedFrames = includedFrames;
+    try
+    {
+        P4LocalEvaluation<realT> evaluation = evaluateLocal( trial );
+        m_localIncludedFrames = configuredIncludedFrames;
+        return evaluation;
+    }
+    catch( ... )
+    {
+        m_localIncludedFrames = configuredIncludedFrames;
+        throw;
+    }
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+std::size_t P4Reduction<realT, derotFunctObj, verboseT>::targetFrameCount() const
+{
+    return this->m_Nims > 0 ? static_cast<std::size_t>( this->m_Nims ) : 0;
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<realT> &minimumRadii,
                                                           const std::vector<realT> &maximumRadii )
 {
@@ -2070,6 +2112,24 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         this->m_tgtIms.rows() != this->m_Nrows || this->m_tgtIms.cols() != this->m_Ncols )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr, "invalid target cube state for P4 reduction" );
+    }
+    std::vector<int> activeFrames;
+    if( m_localIncludedFrames )
+    {
+        activeFrames = *m_localIncludedFrames;
+        if( activeFrames.empty() || activeFrames.back() >= this->m_Nims )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                           "P4 local included frame index is outside the loaded target sequence" );
+        }
+    }
+    else
+    {
+        activeFrames.reserve( static_cast<std::size_t>( this->m_Nims ) );
+        for( int image = 0; image < this->m_Nims; ++image )
+        {
+            activeFrames.push_back( image );
+        }
     }
     if( !targetCubeFinite() )
     {
@@ -2193,8 +2253,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         {
             if( m_numberImages == 0 )
             {
-                m_temporalSelections[region].reserve( static_cast<std::size_t>( this->m_Nims ) );
-                for( int image = 0; image < this->m_Nims; ++image )
+                m_temporalSelections[region].reserve( activeFrames.size() );
+                for( const int image : activeFrames )
                 {
                     m_temporalSelections[region].push_back( { image } );
                 }
@@ -2204,6 +2264,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                 const double meanRadius =
                     0.5 * ( static_cast<double>( m_minRadius[region] ) + static_cast<double>( m_maxRadius[region] ) );
                 auto selection = p4TemporalSelectionWithFallback( derotationAngles,
+                                                                  activeFrames,
                                                                   meanRadius,
                                                                   2 * static_cast<double>( m_psfRadius ),
                                                                   m_numberImages,
@@ -2214,8 +2275,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                 m_temporalSelections[region] = std::move( selection.second );
                 if( m_temporalSelections[region].empty() )
                 {
-                    m_temporalSelections[region].reserve( static_cast<std::size_t>( this->m_Nims ) );
-                    for( int image = 0; image < this->m_Nims; ++image )
+                    m_temporalSelections[region].reserve( activeFrames.size() );
+                    for( const int image : activeFrames )
                     {
                         m_temporalSelections[region].push_back( { image } );
                     }
@@ -2224,8 +2285,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
         else
         {
-            m_temporalSelections[region].reserve( static_cast<std::size_t>( this->m_Nims ) );
-            for( int image = 0; image < this->m_Nims; ++image )
+            m_temporalSelections[region].reserve( activeFrames.size() );
+            for( const int image : activeFrames )
             {
                 m_temporalSelections[region].push_back( { image } );
             }
