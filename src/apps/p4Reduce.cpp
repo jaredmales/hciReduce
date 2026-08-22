@@ -58,9 +58,9 @@ class p4Reduce : public mx::app::application
 
         mx::improc::P4LocalTrial trial;       ///< Best finite polar trial from the resample.
 
-        double rowDelta{ 0 };                 ///< Fitted Cartesian row displacement from the common initial trial.
+        double rowDelta{ 0 };                 ///< Fitted Cartesian row displacement from the configured trial.
 
-        double columnDelta{ 0 };              ///< Fitted Cartesian column displacement from the common initial trial.
+        double columnDelta{ 0 };              ///< Fitted Cartesian column displacement from the configured trial.
 
         double merit{ 0 };                    ///< Best aperture mean-square residual in the resample.
 
@@ -159,6 +159,21 @@ class p4Reduce : public mx::app::application
                                                       directoryError.message() );
         }
         return prefixPath;
+    }
+
+    /// Remove a configuration fragment left by an earlier optimizer run with the same prefix.
+    static void removeOptimizerConfiguration(
+        const std::filesystem::path &prefixPath /**< [in] complete optimizer product prefix */ )
+    {
+        const std::filesystem::path configurationPath( prefixPath.string() + "best.conf" );
+        std::error_code removalError;
+        std::filesystem::remove( configurationPath, removalError );
+        if( removalError )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::fileoerr,
+                                                  "could not remove stale P4 optimizer configuration fragment " +
+                                                      configurationPath.string() + ": " + removalError.message() );
+        }
     }
 
     /// Accumulate every reduction timing field from one optimizer refit.
@@ -280,7 +295,8 @@ class p4Reduce : public mx::app::application
     /// Run the configured joint-position delete-one-time-block jackknife refits.
     OptimizerJackknifeResult runPositionJackknife(
         const mx::improc::P4ContrastOptimizerConfig &configuration, /**< [in] point-fit optimizer controls */
-        const mx::improc::P4LocalTrial &initialTrial,               /**< [in] common configured initial trial */
+        const mx::improc::P4LocalTrial &referenceTrial,             /**< [in] configured reporting reference */
+        const mx::improc::P4LocalTrial &searchCenterTrial,          /**< [in] converged full-data search center */
         std::size_t modeIndex,                                      /**< [in] selected output-plane index */
         double apertureRadius /**< [in] effective merit-aperture radius */ )
     {
@@ -294,6 +310,7 @@ class p4Reduce : public mx::app::application
         std::vector<mx::improc::P4JackknifeEstimate> estimates;
         estimates.reserve( jackknife.requestedBlocks );
         jackknife.samples.reserve( jackknife.requestedBlocks );
+        const mx::improc::P4CartesianOffset referenceOffset = mx::improc::p4TrialCartesianOffset( referenceTrial );
         for( std::size_t block = 0; block < jackknife.requestedBlocks; ++block )
         {
             std::size_t begin{ 0 };
@@ -306,12 +323,15 @@ class p4Reduce : public mx::app::application
             { return m_obs.evaluateLocal( trial, includedFrames ); };
             const mx::improc::P4PositionContrastOptimizationResult refit =
                 mx::improc::optimizeP4PositionContrast( configuration,
-                                                        initialTrial,
+                                                        searchCenterTrial,
                                                         m_optimizePositionBound,
                                                         evaluate,
                                                         modeIndex,
                                                         apertureRadius );
             const bool converged = refit.converged && refit.denseAgreement;
+            const mx::improc::P4CartesianOffset fittedOffset = mx::improc::p4TrialCartesianOffset( refit.bestTrial );
+            const double rowDelta = fittedOffset.row - referenceOffset.row;
+            const double columnDelta = fittedOffset.column - referenceOffset.column;
             jackknife.samples.push_back( { block,
                                            begin,
                                            end,
@@ -319,8 +339,8 @@ class p4Reduce : public mx::app::application
                                            converged,
                                            refit.denseAgreement,
                                            refit.bestTrial,
-                                           refit.bestRowDelta,
-                                           refit.bestColumnDelta,
+                                           rowDelta,
+                                           columnDelta,
                                            refit.bestMerit,
                                            refit.evaluationCount,
                                            refit.evaluationElapsedSeconds,
@@ -330,7 +350,7 @@ class p4Reduce : public mx::app::application
             accumulateOptimizerTiming( jackknife.timing, refit.timing );
             if( converged )
             {
-                estimates.push_back( { refit.bestRowDelta, refit.bestColumnDelta, refit.bestTrial.contrast } );
+                estimates.push_back( { rowDelta, columnDelta, refit.bestTrial.contrast } );
             }
         }
         jackknife.complete = estimates.size() == jackknife.requestedBlocks;
@@ -499,6 +519,7 @@ class p4Reduce : public mx::app::application
     {
         namespace fs = std::filesystem;
 
+        removeOptimizerConfiguration( prefixPath );
         writeJackknifeTable( jackknife, prefixPath );
 
         const fs::path summaryPath( prefixPath.string() + "summary.yaml" );
@@ -834,7 +855,11 @@ class p4Reduce : public mx::app::application
             jackknife.requestedBlocks = m_optimizeUncertaintyBlocks;
             if( result.converged && result.denseAgreement )
             {
-                jackknife = runPositionJackknife( optimizerConfiguration, initialTrial, modeIndex, apertureRadius );
+                jackknife = runPositionJackknife( optimizerConfiguration,
+                                                  initialTrial,
+                                                  result.bestTrial,
+                                                  modeIndex,
+                                                  apertureRadius );
             }
             else if( jackknife.requestedBlocks != 0 )
             {

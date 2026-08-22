@@ -116,7 +116,10 @@
  * Contrast-only fitting reports the contrast diagonal. Joint fitting uses Cartesian row displacement, Cartesian
  * column displacement, and signed contrast in that order, avoiding position-angle wrap in the covariance. Standard
  * errors are the square roots of the covariance diagonal. The point estimate still comes from the complete input
- * sequence; jackknife means are diagnostics rather than replacement fitted parameters.
+ * sequence; jackknife means are diagnostics rather than replacement fitted parameters. Joint jackknife searches are
+ * centered on the converged complete-sequence fit, while their tabulated displacements remain referenced to the
+ * original configured source position. This preserves product coordinates while avoiding repeated use of the
+ * position-search budget merely to return from the configured seed to the full-data solution.
  *
  * `p4Optimize.maxEvaluations` applies independently to the point fit and to every refit, so uncertainty can cost
  * approximately \f$B\f$ times the point-fit runtime. The default eight blocks implements the intended scientific
@@ -135,8 +138,9 @@
  * A converged result also writes `<prefix>best.conf` containing the fitted `[fake]` tuple. An exhausted or
  * dense-disagreeing search retains its best finite evaluation with an explicit failure status, does not write that
  * configuration fragment, and returns failure from `p4Reduce`. A requested jackknife with any unconverged block
- * similarly retains the point-fit products and resample table, marks uncertainty incomplete, suppresses
- * `<prefix>best.conf`, and returns failure. Joint merit tables label `seed-dense`, `seed-brent`, `simplex`,
+ * similarly retains the point-fit products and resample table, marks uncertainty incomplete, removes any stale
+ * `<prefix>best.conf` from an earlier run with the same prefix, and returns failure. Joint merit tables label
+ * `seed-dense`, `seed-brent`, `simplex`,
  * `final-dense`, and `final-brent` evaluations and record both Cartesian and polar coordinates.
  *
  * @}

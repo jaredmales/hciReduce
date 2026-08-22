@@ -47,6 +47,7 @@ struct appHarness : public appT
     using appT::m_optimizeUncertaintyBlocks;
     using appT::m_optimizeValidationSamples;
     using appT::m_showTiming;
+    using appT::removeOptimizerConfiguration;
     using appT::setupConfig;
 };
 
@@ -820,6 +821,9 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
     writeTarget( directory.file( "target_000.fits" ), 1, -5 );
     writeTarget( directory.file( "target_001.fits" ), 2, 0 );
     writeTarget( directory.file( "target_002.fits" ), 3, 6 );
+    writeTarget( directory.file( "target_003.fits" ), 4, -5 );
+    writeTarget( directory.file( "target_004.fits" ), 5, 0 );
+    writeTarget( directory.file( "target_005.fits" ), 6, 6 );
 
     HCIobservationTestHarness::imageT source = HCIobservationTestHarness::imageT::Zero( 31, 31 );
     source( 15, 15 ) = 1;
@@ -829,7 +833,7 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
     const auto outputDirectory = directory.file( "joint-output" );
     const auto configPath = directory.file( "joint.conf" );
     writeTextFile( configPath,
-                   p4Configuration( directory.path(), outputDirectory, "normal", false, "3", "8" ) +
+                   p4Configuration( directory.path(), outputDirectory, "normal", false, "3", "8", "0.25" ) +
                        "[preProcess]\n"
                        "skip=true\n"
                        "[p4]\n"
@@ -846,7 +850,7 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
                        "enabled=true\n"
                        "fitPosition=true\n"
                        "positionBound=0.25\n"
-                       "modeFraction=0.5\n"
+                       "modeFraction=0.25\n"
                        "apertureRadius=1\n"
                        "contrastLower=-0.01\n"
                        "contrastUpper=0\n"
@@ -855,7 +859,7 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
                        "parameterTolerance=0.05\n"
                        "positionTolerance=0.25\n"
                        "meritTolerance=1e-6\n"
-                       "uncertaintyBlocks=0\n"
+                       "uncertaintyBlocks=3\n"
                        "outputPrefix=joint_\n" );
 
     appHarness application;
@@ -869,11 +873,13 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
     const auto residualPath = outputDirectory / "joint_best.fits";
     const auto meritPath = outputDirectory / "joint_merit.csv";
     const auto summaryPath = outputDirectory / "joint_summary.yaml";
+    const auto jackknifePath = outputDirectory / "joint_jackknife.csv";
     const auto bestConfigPath = outputDirectory / "joint_best.conf";
     REQUIRE( std::filesystem::exists( residualPath ) );
     REQUIRE( std::filesystem::exists( outputDirectory / "joint_best_validity.fits" ) );
     REQUIRE( std::filesystem::exists( meritPath ) );
     REQUIRE( std::filesystem::exists( summaryPath ) );
+    REQUIRE( std::filesystem::exists( jackknifePath ) );
     REQUIRE( std::filesystem::exists( bestConfigPath ) );
     REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "p4-final.fits" ) );
 
@@ -886,8 +892,10 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
     REQUIRE( header["P4 OPT CONTRAST CONVERGED"].value<int>() == 1 );
     REQUIRE( header["P4 OPT APERTURE FRAME"].String().starts_with( "FIXED_INITIAL_SKY" ) );
     REQUIRE( header["P4 OPT POSITION TOLERANCE"].value<double>() == Approx( 0.25 ) );
-    REQUIRE( header["P4 OPT JK BLOCKS"].value<unsigned long long>() == 0 );
-    REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "joint_jackknife.csv" ) );
+    REQUIRE( header["P4 OPT JK BLOCKS"].value<unsigned long long>() == 3 );
+    REQUIRE( header["P4 OPT JK COMPLETE"].value<int>() == 1 );
+    REQUIRE( header["P4 OPT JK ROW ERROR"].value<double>() >= 0 );
+    REQUIRE( header["P4 OPT JK COLUMN ERROR"].value<double>() >= 0 );
     REQUIRE( std::abs( header["P4 OPT BEST ROW DELTA"].value<double>() ) <= 0.25 );
     REQUIRE( std::abs( header["P4 OPT BEST COLUMN DELTA"].value<double>() ) <= 0.25 );
     REQUIRE( header["P4 OPT BEST SEPARATION"].value<double>() > 0 );
@@ -915,9 +923,33 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
     REQUIRE( summary.find( "contrastConverged: true" ) != std::string::npos );
     REQUIRE( summary.find( "apertureFrame: \"fixed-initial-sky\"" ) != std::string::npos );
     REQUIRE( summary.find( "positionTolerance: 0.25" ) != std::string::npos );
+    REQUIRE( summary.find( "requestedBlocks: 3" ) != std::string::npos );
+    REQUIRE( summary.find( "status: \"complete\"" ) != std::string::npos );
+    const std::string jackknifeTable = readTextFile( jackknifePath );
+    REQUIRE( jackknifeTable.find( "0,0,2,4,1,1" ) != std::string::npos );
+    REQUIRE( jackknifeTable.find( "1,2,4,4,1,1" ) != std::string::npos );
+    REQUIRE( jackknifeTable.find( "2,4,6,4,1,1" ) != std::string::npos );
     const std::string bestConfiguration = readTextFile( bestConfigPath );
     REQUIRE( bestConfiguration.find( "sep=" ) != std::string::npos );
     REQUIRE( bestConfiguration.find( "PA=" ) != std::string::npos );
+}
+
+/// Verify optimizer publication removes a stale configuration before deciding whether a new fit is publishable.
+/** This exercises p4Reduce::removeOptimizerConfiguration().
+ * \ingroup p4Reduce_unit_tests
+ */
+TEST_CASE( "p4Reduce clears stale optimizer configuration", "[p4Reduce][optimizer][configuration][output]" )
+{
+    TestDirectory directory;
+    const std::filesystem::path prefixPath = directory.file( "trial_" );
+    const std::filesystem::path configurationPath = directory.file( "trial_best.conf" );
+    writeTextFile( configurationPath, "stale\n" );
+    REQUIRE( std::filesystem::exists( configurationPath ) );
+
+    appHarness::removeOptimizerConfiguration( prefixPath );
+    REQUIRE_FALSE( std::filesystem::exists( configurationPath ) );
+
+    REQUIRE_NOTHROW( appHarness::removeOptimizerConfiguration( prefixPath ) );
 }
 
 /// Verify p4ReduceMain reports a nested configured-run failure and treats command-line help as success.
