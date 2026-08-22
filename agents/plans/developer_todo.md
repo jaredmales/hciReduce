@@ -68,3 +68,10 @@ Fake planet injection in P4 will exploit the pixel locality of P4 processing.  T
 ## Better Temporal Prediction
 
 [] when adding numberImages, the extension at the beginning and end by adding 2 later images (for images at the beginning) or 2 earlier images (for images at the end) should be modified.  We should calculate 3 different sets of coefficients.  This is to optimize to exploit any temporal predictability.  As it is, with a single set of coefficients for all three subsets we're basically only calculating the mean.
+
+[] alternatively, we could use linear prediction:
+  - form an estimate of the auto-correlation (AC) or PSD of the intensity by averaging the AC or PSD of the pixels in an SR.  Note we want to use something like Lomb-Scargle here if the data are not regularly sampled over the whole time-series, which will be common for real observations.  Whether it's AC or PSD is an open question
+  - Use the AC/PSD to calculate optimum LP coefficients
+  - Use the LP to predict the values in the PSF-masked patch using only prior/later pixels that are outside the rotation exclusion.  
+     - This will require multi-step prediction, over non-regular sampling.  We'll need strategies to handle this.
+     - There may be better conceptualizations that LP for interpolation vs. extrapolation that exploit the same statistical predictability.
