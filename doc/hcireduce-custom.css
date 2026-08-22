@@ -19,6 +19,19 @@ table.memberdecls div.groupHeader {
         -13px 1px var(--separator-color);
 }
 
+/* Keep Doxygen's black transparent-background formula PNGs visible in dark mode. */
+@media (prefers-color-scheme: dark) {
+    html:not(.light-mode) img.formulaInl,
+    html:not(.light-mode) img.formulaDsp {
+        filter: brightness(89%) hue-rotate(180deg) invert();
+    }
+}
+
+html.dark-mode img.formulaInl,
+html.dark-mode img.formulaDsp {
+    filter: brightness(89%) hue-rotate(180deg) invert();
+}
+
 /* Keep long C++ return types from collapsing member names and descriptions. */
 @media screen and (min-width: 768px) {
     table.memberdecls {

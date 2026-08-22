@@ -119,6 +119,7 @@ if(Doxygen_FOUND)
                 ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome.css
                 ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-sidebar-only.css
                 ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+                ${CMAKE_SOURCE_DIR}/doc/hcireduce-custom.css
                 ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js
                 ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js
                 ${CMAKE_SOURCE_DIR}/cmake/ensure_coverage_placeholder.cmake

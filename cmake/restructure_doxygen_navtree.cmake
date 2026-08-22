@@ -30,6 +30,7 @@ set(_hcireduce_navtree_data [=[var NAVTREE =
       [ "Common Configuration and Workflow", "group__common__user__guide.html", null ],
       [ "klipReduce", "group__klipreduce__user__guide.html", null ],
       [ "p4Reduce", "group__p4reduce__user__guide.html", [
+        [ "Introduction", "group__p4reduce__user__guide.html", null ],
         [ "Pixel-Local Processing", "group__p4__local__user__guide.html", null ],
         [ "Negative-Planet Optimization", "group__p4__optimizer__user__guide.html", null ],
         [ "Frozen-Model PSF Responses", "group__p4__psf__user__guide.html", null ],
@@ -123,16 +124,19 @@ foreach(_hcireduce_navtree_index_file IN LISTS _hcireduce_navtree_indexes)
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
     string(REGEX REPLACE "(\\\"group__klipreduce__user__guide\\.html\\\":)\\[0,1\\]" "\\1[0,2]"
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
-    string(REGEX REPLACE "(\\\"group__p4reduce__user__guide\\.html\\\":)\\[0,2\\]" "\\1[0,3]"
+    # Select P4's Introduction child for the overview URL. The p4Reduce parent
+    # links to that same page, so navigating through either entry leaves the
+    # P4 subtree expanded in the sidebar.
+    string(REGEX REPLACE "(\\\"group__p4reduce__user__guide\\.html\\\":)\\[0,2\\]" "\\1[0,3,0]"
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
 
-    string(REGEX REPLACE "(\\\"group__p4__local__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,0]"
+    string(REGEX REPLACE "(\\\"group__p4__local__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,1]"
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
-    string(REGEX REPLACE "(\\\"group__p4__optimizer__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,1]"
+    string(REGEX REPLACE "(\\\"group__p4__optimizer__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,2]"
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
-    string(REGEX REPLACE "(\\\"group__p4__psf__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,2]"
+    string(REGEX REPLACE "(\\\"group__p4__psf__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,3]"
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
-    string(REGEX REPLACE "(\\\"group__p4__rotated__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,3]"
+    string(REGEX REPLACE "(\\\"group__p4__rotated__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,4]"
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
 
     file(WRITE "${_hcireduce_navtree_index_file}" "${_hcireduce_navtree_index_contents}")

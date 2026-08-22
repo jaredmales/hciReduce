@@ -16,9 +16,9 @@
  *
  * \section p4reduce_detector_regression Detector-frame regression
  *
- * For one fixed detector search pixel, let `y` be its `T x 1` time series and let `X` contain `K` interpolated
- * predictor-pixel time
- * series. P4 eigendecomposes the smaller of the two <a href=https://en.wikipedia.org/wiki/Gram_matrix>Gram</a> matrices.
+ * For one fixed detector search pixel indexed by \f$n\f$, let \f$\mathbf{y}_n\f$ be its `T x 1` time series and let `X` contain `K` interpolated
+ * predictor-pixel time series. P4 eigendecomposes the smaller of the two
+ * <a href=https://en.wikipedia.org/wiki/Gram_matrix>Gram</a> matrices.
  * For `T <= K` it forms the temporal Gram matrix
  *
  * \f[
@@ -26,7 +26,13 @@
  * \f]
  *
  * and subtracts each retained temporal eigenvector `u` as `u (u^T y)`. For `T > K` it forms the predictor Gram
- * matrix `G_K = X^T X` and `b = X^T y`, then applies the algebraically equivalent truncated pseudoinverse. Both
+ * matrix
+ *
+ * \f[
+ *   G_K = X^T X
+ * \f]
+ *
+ * and `b = X^T y`, then applies the algebraically equivalent truncated pseudoinverse. Both
  * branches solve an `N x N` symmetric problem with `N = min(T,K)`, use the same nonzero eigenvalues and rank policy,
  * and add no hidden centering or intercept. Mean-image subtraction and other preprocessing are controlled entirely
  * by the inherited hciReduce preprocessing configuration.
