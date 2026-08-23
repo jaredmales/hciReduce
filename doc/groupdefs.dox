@@ -42,8 +42,18 @@
   * \ingroup user_guide
   */
 
-/** \defgroup programming_guide Programming
+/** \defgroup programming_guide Developer's Guide
   * Library architecture, extension points, tests, and verification for developers.
+  */
+
+/** \defgroup developer_klip_algorithm KLIP Algorithm
+  * Code-oriented guide to KLIP reduction processing.
+  * \ingroup programming_guide
+  */
+
+/** \defgroup developer_p4_algorithm P4 Algorithm
+  * Code-oriented guide to P4 reduction processing.
+  * \ingroup programming_guide
   */
 
 /** \defgroup programming_library Library API
@@ -126,9 +136,4 @@
 
 /** \defgroup hciAnalyze_unit_tests hciAnalyze Application Unit Tests
   * \ingroup unit_tests
-  */
-
-/** \defgroup bibliography Bibliography
-  * Literature cited by the hciReduce documentation.
-  * \ingroup programming_guide
   */

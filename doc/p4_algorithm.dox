@@ -1,0 +1,41 @@
+/** \file p4_algorithm.dox
+ * \brief Developer guide to the P4 algorithm implementation.
+ * \author Jared R. Males
+ */
+
+/** \addtogroup developer_p4_algorithm
+ * @{
+ *
+ * `p4Reduce` dispatches either one normal reduction or repeated pixel-local evaluations for negative-companion
+ * optimization. \ref mx::improc::P4Reduction::reduce "P4Reduction::reduce()" delegates the reduction to
+ * \ref mx::improc::P4Reduction::regions "P4Reduction::regions()", which constructs annular geometry and temporal
+ * selections before choosing the full-frame or pixel-local path.
+ *
+ * Each detector-pixel fit enters `P4Reduction::fitDetectorSearch()` to sample the target time series and predictor
+ * matrix, then calls \ref mx::improc::P4PCA::calculate "P4PCA::calculate()" for
+ * Gram construction, eigendecomposition, rank selection, and residual projection. Pixel-local processing schedules
+ * only the unique detector fits needed by the requested sky stamp, but uses this same regression kernel.
+ *
+ * \section developer_p4_flow Processing diagram
+ *
+ * <div class="p4-algorithm-diagram">
+ * <a href="p4_algorithm_processing.pdf" title="Open the P4 processing diagram as a PDF">
+ * <img src="p4_algorithm_processing.svg" alt="Block diagram of P4 algorithm processing" />
+ * </a>
+ * </div>
+ *
+ * Click the diagram to open the vector PDF. The editable TikZ source is `doc/figures/p4_algorithm_processing.tex`.
+ * The diagram follows the detector-frame science path and intentionally omits detailed memory management and error
+ * handling.
+ *
+ * \section developer_p4_code_map Code map
+ *
+ * - `src/apps/p4Reduce.cpp`: application and negative-companion optimizer dispatch.
+ * - `src/common/P4Reduction.cpp`: geometry, scheduling, regression orchestration, and final products.
+ * - `src/common/P4PCA.cpp`: numerical PCA kernel.
+ * - `src/common/P4PixelGrid.cpp` and `src/common/P4LocalProcessing.cpp`: detector and pixel-local geometry.
+ * - `src/common/P4PSFModel.cpp`, `src/common/P4PSFReconstructor.cpp`, and `src/common/P4PSFFilter.cpp`: optional
+ *   frozen-response products.
+ *
+ * @}
+ */

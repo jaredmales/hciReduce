@@ -32,6 +32,19 @@ html.dark-mode img.formulaDsp {
     filter: brightness(89%) hue-rotate(180deg) invert();
 }
 
+/* Keep the code-grounded P4 flow diagram readable without overflowing the page. */
+.p4-algorithm-diagram {
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.p4-algorithm-diagram img {
+    width: 100%;
+    max-width: 1100px;
+    height: auto;
+    background: white;
+}
+
 /* Keep long C++ return types from collapsing member names and descriptions. */
 @media screen and (min-width: 768px) {
     table.memberdecls {

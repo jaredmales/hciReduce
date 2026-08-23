@@ -5,6 +5,6 @@
  * <a href="https://github.com/jaredmales/hciReduce">hciReduce repository</a>.
  *
  * Start with the \ref user_guide "User's Guide" to configure and run a reduction. The
- * \ref programming_guide "Programming" section describes the library, its architecture,
- * tests, verification, and bibliography.
+ * \ref programming_guide "Developer's Guide" describes the algorithms, library architecture,
+ * tests, and verification. See \ref citelist "References" for cited literature.
  */

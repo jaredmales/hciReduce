@@ -63,13 +63,15 @@ INPUT                   = @CMAKE_SOURCE_DIR@/doc/main.dox \
                           @CMAKE_SOURCE_DIR@/doc/hciAnalyze.dox \
                           @CMAKE_SOURCE_DIR@/doc/hciAnalyze_config.dox \
                           @CMAKE_SOURCE_DIR@/doc/programming.dox \
-                          @CMAKE_SOURCE_DIR@/doc/bibliography.dox \
+                          @CMAKE_SOURCE_DIR@/doc/klip_algorithm.dox \
+                          @CMAKE_SOURCE_DIR@/doc/p4_algorithm.dox \
                           @CMAKE_SOURCE_DIR@/doc/testing.dox \
                           @CMAKE_SOURCE_DIR@/doc/building_tests.dox \
                           @CMAKE_SOURCE_DIR@/doc/coverage_report.dox \
                           @CMAKE_SOURCE_DIR@/src \
                           @CMAKE_SOURCE_DIR@/tests
 INPUT_ENCODING          = UTF-8
+IMAGE_PATH              = @HCIREDUCE_DOC_FIGURE_IMAGE_PATH@
 FILE_PATTERNS           = *.hpp *.cpp *.dox *.md
 RECURSIVE               = YES
 EXCLUDE                 = @CMAKE_SOURCE_DIR@/tests/catch2 \
@@ -96,7 +98,8 @@ HTML_EXTRA_STYLESHEET   = @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css/doxygen-awe
                           @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css \
                           @CMAKE_SOURCE_DIR@/doc/hcireduce-custom.css
 HTML_EXTRA_FILES        = @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
-                          @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js
+                          @CMAKE_SOURCE_DIR@/doc/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js \
+                          @HCIREDUCE_DOC_FIGURE_HTML_EXTRA_FILES@
 HTML_COPY_CLIPBOARD     = NO
 HTML_COLORSTYLE         = LIGHT
 HTML_COLORSTYLE_HUE     = 20

@@ -80,8 +80,58 @@ if(Doxygen_FOUND)
     set(HCIREDUCE_DOXYGEN_CONFIG_IN ${CMAKE_SOURCE_DIR}/doc/hcireduce_doxygen.in)
     set(HCIREDUCE_DOXYGEN_CONFIG ${CMAKE_BINARY_DIR}/hcireduce_doxygen)
     set(HCIREDUCE_DOXYGEN_OUTPUT_DIRECTORY ${HCIREDUCE_DOC_OUTPUT_DIR})
+    set(HCIREDUCE_DOC_FIGURE_SOURCE_DIR ${CMAKE_SOURCE_DIR}/doc/figures)
+    set(HCIREDUCE_DOC_FIGURE_BUILD_DIR ${CMAKE_BINARY_DIR}/doc-figures)
+
+    # Every standalone TikZ source produces same-named PDF and SVG assets. CONFIGURE_DEPENDS
+    # makes newly added diagrams join the pipeline after CMake automatically regenerates.
+    file(GLOB HCIREDUCE_DOC_TIKZ_SOURCES CONFIGURE_DEPENDS ${HCIREDUCE_DOC_FIGURE_SOURCE_DIR}/*.tex)
+    find_program(HCIREDUCE_LATEXMK_EXECUTABLE latexmk)
+    find_program(HCIREDUCE_PDFTOCAIRO_EXECUTABLE pdftocairo)
+    set(HCIREDUCE_DOC_FIGURE_OUTPUTS)
+    set(_hcireduce_doc_figure_extra_files)
+
+    if(HCIREDUCE_DOC_TIKZ_SOURCES AND HCIREDUCE_LATEXMK_EXECUTABLE AND HCIREDUCE_PDFTOCAIRO_EXECUTABLE)
+        set(HCIREDUCE_DOC_FIGURE_IMAGE_PATH ${HCIREDUCE_DOC_FIGURE_BUILD_DIR})
+        foreach(_hcireduce_tikz_source IN LISTS HCIREDUCE_DOC_TIKZ_SOURCES)
+            get_filename_component(_hcireduce_figure_stem ${_hcireduce_tikz_source} NAME_WE)
+            set(_hcireduce_figure_pdf ${HCIREDUCE_DOC_FIGURE_BUILD_DIR}/${_hcireduce_figure_stem}.pdf)
+            set(_hcireduce_figure_svg ${HCIREDUCE_DOC_FIGURE_BUILD_DIR}/${_hcireduce_figure_stem}.svg)
+            add_custom_command(
+                OUTPUT ${_hcireduce_figure_pdf} ${_hcireduce_figure_svg}
+                COMMAND ${CMAKE_COMMAND} -E make_directory ${HCIREDUCE_DOC_FIGURE_BUILD_DIR}
+                COMMAND ${HCIREDUCE_LATEXMK_EXECUTABLE} -pdf -interaction=nonstopmode -halt-on-error
+                        -outdir=${HCIREDUCE_DOC_FIGURE_BUILD_DIR} ${_hcireduce_tikz_source}
+                COMMAND ${HCIREDUCE_PDFTOCAIRO_EXECUTABLE} -svg ${_hcireduce_figure_pdf} ${_hcireduce_figure_svg}
+                COMMAND ${HCIREDUCE_LATEXMK_EXECUTABLE} -c -outdir=${HCIREDUCE_DOC_FIGURE_BUILD_DIR}
+                        ${_hcireduce_tikz_source}
+                DEPENDS ${_hcireduce_tikz_source}
+                WORKING_DIRECTORY ${HCIREDUCE_DOC_FIGURE_SOURCE_DIR}
+                COMMENT "Rendering documentation diagram ${_hcireduce_figure_stem}"
+                VERBATIM
+            )
+            list(APPEND HCIREDUCE_DOC_FIGURE_OUTPUTS ${_hcireduce_figure_pdf} ${_hcireduce_figure_svg})
+            list(APPEND _hcireduce_doc_figure_extra_files ${_hcireduce_figure_svg} ${_hcireduce_figure_pdf})
+        endforeach()
+    else()
+        set(HCIREDUCE_DOC_FIGURE_IMAGE_PATH ${HCIREDUCE_DOC_FIGURE_SOURCE_DIR})
+        foreach(_hcireduce_tikz_source IN LISTS HCIREDUCE_DOC_TIKZ_SOURCES)
+            get_filename_component(_hcireduce_figure_stem ${_hcireduce_tikz_source} NAME_WE)
+            list(APPEND _hcireduce_doc_figure_extra_files
+                 ${HCIREDUCE_DOC_FIGURE_SOURCE_DIR}/${_hcireduce_figure_stem}.svg
+                 ${HCIREDUCE_DOC_FIGURE_SOURCE_DIR}/${_hcireduce_figure_stem}.pdf)
+        endforeach()
+        if(HCIREDUCE_DOC_TIKZ_SOURCES)
+            message(WARNING "latexmk or pdftocairo was not found; documentation will use pre-rendered diagram assets")
+        endif()
+    endif()
+
+    string(JOIN " \\\n                          " HCIREDUCE_DOC_FIGURE_HTML_EXTRA_FILES
+           ${_hcireduce_doc_figure_extra_files})
 
     configure_file(${HCIREDUCE_DOXYGEN_CONFIG_IN} ${HCIREDUCE_DOXYGEN_CONFIG} @ONLY)
+
+    add_custom_target(doc_figures DEPENDS ${HCIREDUCE_DOC_FIGURE_OUTPUTS})
 
     if(HCIREDUCE_BUILD_DOCS)
         set(_hcireduce_docs_all ALL)
@@ -112,7 +162,8 @@ if(Doxygen_FOUND)
                 ${CMAKE_SOURCE_DIR}/doc/hciAnalyze.dox
                 ${CMAKE_SOURCE_DIR}/doc/hciAnalyze_config.dox
                 ${CMAKE_SOURCE_DIR}/doc/programming.dox
-                ${CMAKE_SOURCE_DIR}/doc/bibliography.dox
+                ${CMAKE_SOURCE_DIR}/doc/klip_algorithm.dox
+                ${CMAKE_SOURCE_DIR}/doc/p4_algorithm.dox
                 ${CMAKE_SOURCE_DIR}/doc/testing.dox
                 ${CMAKE_SOURCE_DIR}/doc/building_tests.dox
                 ${CMAKE_SOURCE_DIR}/doc/coverage_report.dox
@@ -122,11 +173,13 @@ if(Doxygen_FOUND)
                 ${CMAKE_SOURCE_DIR}/doc/hcireduce-custom.css
                 ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js
                 ${CMAKE_SOURCE_DIR}/doc/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js
+                ${HCIREDUCE_DOC_FIGURE_OUTPUTS}
                 ${CMAKE_SOURCE_DIR}/cmake/ensure_coverage_placeholder.cmake
                 ${CMAKE_SOURCE_DIR}/cmake/restructure_doxygen_navtree.cmake
         USES_TERMINAL
         VERBATIM
     )
+    add_dependencies(docs doc_figures)
 else()
     message(WARNING "doxygen not found. The docs target will not be available.")
 endif()
@@ -164,5 +217,6 @@ add_custom_target(coverage_clean
 if(TARGET docs)
     add_custom_target(docs_clean
         COMMAND ${CMAKE_COMMAND} -E rm -rf ${HCIREDUCE_DOC_OUTPUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E rm -rf ${HCIREDUCE_DOC_FIGURE_BUILD_DIR}
     )
 endif()

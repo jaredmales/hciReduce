@@ -37,7 +37,10 @@ set(_hcireduce_navtree_data [=[var NAVTREE =
         [ "Rotated-Frame Regression (Negative Result)", "group__p4__rotated__user__guide.html", null ]
       ] ]
     ] ],
-    [ "Programming", "group__programming__guide.html", [
+    [ "Developer's Guide", "group__programming__guide.html", [
+      [ "Introduction", "group__programming__guide.html", null ],
+      [ "KLIP Algorithm", "group__developer__klip__algorithm.html", null ],
+      [ "P4 Algorithm", "group__developer__p4__algorithm.html", null ],
       [ "Library API", "group__programming__library.html", null ],
       [ "Testing and Verification", "group__hcireduce__testing.html", [
         [ "Building Tests", "group__testing__building.html", null ],
@@ -54,9 +57,7 @@ set(_hcireduce_navtree_data [=[var NAVTREE =
           [ "p4Reduce Application Unit Tests", "group__p4Reduce__unit__tests.html", null ]
         ] ]
       ] ],
-      [ "Bibliography", "group__bibliography.html", null ],
-      [ "Todo List", "todo.html", null ],
-      [ "Cited Literature", "citelist.html", null ],
+      [ "To-Do", "todo.html", null ],
       [ "Namespaces", "namespaces.html", [
         [ "Namespace List", "namespaces.html", "namespaces_dup" ],
         [ "Namespace Members", "namespacemembers.html", [
@@ -83,7 +84,8 @@ set(_hcireduce_navtree_data [=[var NAVTREE =
           [ "Functions", "globals_func.html", null ]
         ] ]
       ] ]
-    ] ]
+    ] ],
+    [ "References", "citelist.html", null ]
   ] ]
 ];
 
@@ -92,7 +94,7 @@ set(_hcireduce_navtree_data [=[var NAVTREE =
 file(WRITE "${_hcireduce_navtree}" "${_hcireduce_navtree_header}${_hcireduce_navtree_data}${_hcireduce_navtree_index}")
 
 # Doxygen's external index files contain paths through its original root-level
-# Topics, Todo, Bibliography, Namespaces, Classes, and Files entries. Rewrite
+# Topics, To-Do, References, Namespaces, Classes, and Files entries. Rewrite
 # those paths to match the tree above. Process the root entries first, then
 # remove the old Topics level from the two documentation groups.
 file(GLOB _hcireduce_navtree_indexes "${HCIREDUCE_DOC_HTML_DIR}/navtreeindex*.js")
@@ -101,14 +103,16 @@ foreach(_hcireduce_navtree_index_file IN LISTS _hcireduce_navtree_indexes)
 
     string(REGEX REPLACE "(:)\\[1," "\\1[1,3," _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
     string(REGEX REPLACE "(:)\\[1\\]" "\\1[1,3]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
-    string(REGEX REPLACE "(:)\\[2," "\\1[1,4," _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
-    string(REGEX REPLACE "(:)\\[2\\]" "\\1[1,4]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
-    string(REGEX REPLACE "(:)\\[3," "\\1[1,5," _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
-    string(REGEX REPLACE "(:)\\[3\\]" "\\1[1,5]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(:)\\[2," "\\1[1,5," _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(:)\\[2\\]" "\\1[1,5]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(:)\\[3," "\\1[2," _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(:)\\[3\\]" "\\1[2]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
     string(REGEX REPLACE "(:)\\[4," "\\1[1,6," _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
     string(REGEX REPLACE "(:)\\[4\\]" "\\1[1,6]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
     string(REGEX REPLACE "(:)\\[5," "\\1[1,7," _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
     string(REGEX REPLACE "(:)\\[5\\]" "\\1[1,7]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(:)\\[6," "\\1[1,8," _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(:)\\[6\\]" "\\1[1,8]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
 
     string(REGEX REPLACE "(:)\\[0,1," "\\1[1," _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
     string(REGEX REPLACE "(:)\\[0,1\\]" "\\1[1]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
@@ -139,5 +143,64 @@ foreach(_hcireduce_navtree_index_file IN LISTS _hcireduce_navtree_indexes)
     string(REGEX REPLACE "(\\\"group__p4__rotated__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,4]"
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
 
+    # The Developer's Guide parent and Introduction child share one URL. Keep
+    # the subtree open and select Introduction, just as for p4Reduce.
+    string(REGEX REPLACE "(\\\"group__programming__guide\\.html[^\\\"]*\\\":)\\[[0-9,]+\\]" "\\1[1,0]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__developer__klip__algorithm\\.html[^\\\"]*\\\":)\\[[0-9,]+\\]" "\\1[1,1]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__developer__p4__algorithm\\.html[^\\\"]*\\\":)\\[[0-9,]+\\]" "\\1[1,2]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__programming__library\\.html[^\\\"]*\\\":)\\[[0-9,]+\\]" "\\1[1,3]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__hcireduce__testing\\.html[^\\\"]*\\\":)\\[[0-9,]+\\]" "\\1[1,4]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__testing__building\\.html[^\\\"]*\\\":)\\[[0-9,]+\\]" "\\1[1,4,0]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__testing__coverage\\.html[^\\\"]*\\\":)\\[[0-9,]+\\]" "\\1[1,4,1]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__unit__tests\\.html[^\\\"]*\\\":)\\[[0-9,]+\\]" "\\1[1,4,2]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+
+    set(_hcireduce_unit_test_groups
+        HCIobservation
+        HCI
+        ADIobservation
+        KLIPreduction
+        P4PCA
+        P4PixelGrid
+        P4Reduction
+        klipReduce
+        p4Reduce)
+    set(_hcireduce_unit_test_index 0)
+    foreach(_hcireduce_unit_test_group IN LISTS _hcireduce_unit_test_groups)
+        string(REGEX REPLACE
+               "(\\\"group__${_hcireduce_unit_test_group}__unit__tests\\.html[^\\\"]*\\\":)\\[[0-9,]+\\]"
+               "\\1[1,4,2,${_hcireduce_unit_test_index}]"
+               _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+        math(EXPR _hcireduce_unit_test_index "${_hcireduce_unit_test_index} + 1")
+    endforeach()
+
+    # These generated indexes must resolve inside the custom tree; otherwise
+    # synchronizing them collapses the Developer's Guide subtree.
+    string(REGEX REPLACE "(\\\"todo\\.html\\\":)\\[[0-9,]+\\]" "\\1[1,5]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"files\\.html\\\":)\\[[0-9,]+\\]" "\\1[1,8,0]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"citelist\\.html\\\":)\\[[0-9,]+\\]" "\\1[2]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+
     file(WRITE "${_hcireduce_navtree_index_file}" "${_hcireduce_navtree_index_contents}")
 endforeach()
+
+# Doxygen names its generated citation page "Bibliography". hciReduce exposes
+# that single page as the higher-level References section.
+set(_hcireduce_references_page "${HCIREDUCE_DOC_HTML_DIR}/citelist.html")
+if(EXISTS "${_hcireduce_references_page}")
+    file(READ "${_hcireduce_references_page}" _hcireduce_references_contents)
+    string(REPLACE "<title>hciReduce: Bibliography</title>" "<title>hciReduce: References</title>"
+                   _hcireduce_references_contents "${_hcireduce_references_contents}")
+    string(REPLACE "<div class=\"title\">Bibliography " "<div class=\"title\">References "
+                   _hcireduce_references_contents "${_hcireduce_references_contents}")
+    file(WRITE "${_hcireduce_references_page}" "${_hcireduce_references_contents}")
+endif()
