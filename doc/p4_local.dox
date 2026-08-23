@@ -77,9 +77,10 @@
  * \section p4_local_products Products and provenance
  *
  * The standard final-image product becomes a `localStampSize x localStampSize x modeCount` cube with
- * `HIERARCH P4 PRODUCT ROLE=LOCAL_RESIDUAL`. A neighboring exact zero/one validity cube inserts `local_validity`
- * before the normal sequence number, for example `finim_local_validity_0000.fits`. With an exact filename it becomes
- * `<stem>_local_validity<extension>`.
+ * `HIERARCH P4 PRODUCT ROLE=LOCAL_RESIDUAL`. An exact zero/one validity cube inserts `local_validity` before the
+ * normal sequence number and is stored in the residual's auxiliary directory. For example, `finim_0000.fits` uses
+ * `finim_0000_outputs/finim_local_validity_0000.fits`. With an exact filename it becomes
+ * `<stem>_outputs/<stem>_local_validity<extension>`.
  *
  * Both products record the integer full-image origin, continuous source coordinate, center and lattice conventions,
  * actual template-crop dimensions, unique detector-fit count, sparse residual-sample count, fake-source provenance,

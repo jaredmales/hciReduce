@@ -117,7 +117,7 @@ class p4Reduce : public mx::app::application
 
     std::size_t m_optimizeUncertaintyBlocks{ 8 };  ///< Contiguous delete-one-block jackknife count; zero disables it.
 
-    std::string m_optimizeOutputPrefix{ "p4Negative_" }; ///< Prefix for optimizer products in output.directory.
+    std::string m_optimizeOutputPrefix{ "p4Negative_" }; ///< Prefix inside the final image's auxiliary directory.
 
     /// @}
 
@@ -148,7 +148,7 @@ class p4Reduce : public mx::app::application
     std::filesystem::path optimizerPrefixPath() const
     {
         namespace fs = std::filesystem;
-        const fs::path outputDirectory = m_obs.m_outputDir.empty() ? fs::path( "." ) : fs::path( m_obs.m_outputDir );
+        const fs::path outputDirectory( m_obs.auxiliaryOutputDirectory() );
         const fs::path prefixPath = outputDirectory / m_optimizeOutputPrefix;
         std::error_code directoryError;
         fs::create_directories( prefixPath.parent_path(), directoryError );
@@ -1072,7 +1072,7 @@ class p4Reduce : public mx::app::application
                     "outputPrefix",
                     false,
                     "string",
-                    "optimizer product prefix inside output.directory; default p4Negative_" );
+                    "optimizer product prefix inside the final image's _outputs directory; default p4Negative_" );
 
         m_obs.setupConfig( config );
     }

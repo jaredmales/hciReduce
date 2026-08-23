@@ -76,7 +76,7 @@
  * | `p4.rankTolerance` | Relative eigenvalue threshold in `[0,1)`, default `1e-12`. |
  * | `p4.memoryFraction` | Fraction of Linux `MemAvailable` reserved for future P4 allocations, default `0.8`; `0` disables automatic worker limiting. |
  * | `p4.writeDiagnostics` | Enable ownership, validity, canonical-region, rank, and timing FITS diagnostics. Every diagnostic records `HIERARCH P4 FRAME`. |
- * | `p4.diagnosticDirectory` | Destination for enabled diagnostics. |
+ * | `p4.diagnosticDirectory` | Optional explicit destination override; `.` groups diagnostics with the run's other auxiliary products. |
  *
  * P4 rejects configured RDI input, overlapping annuli, and nonfinite target input as hard errors. The geometry must
  * fit its configured detector-frame interpolation footprints.
@@ -87,6 +87,18 @@
  * The rank test is the literal strict comparison `lambda > p4.rankTolerance * lambdaMax`. A zero tolerance therefore
  * accepts every eigenvalue returned as positive, including roundoff-positive numerical nulls. Use a nonzero relative
  * tolerance when reliable classification of rank deficiencies matters.
+ *
+ * \section p4reduce_products Output organization
+ *
+ * A normal P4 run keeps only the ordinary `finim_NNNN.fits` and, when requested, its
+ * `finim_filtered_NNNN.fits` science product directly in `output.directory`. Auxiliary products are grouped under
+ * `finim_NNNN_outputs/`. This includes pixel-local validity, per-frame PSF-subtracted products and weights, enabled
+ * ownership/rank/timing diagnostics, frozen-model PSF products, optimizer summaries and merit tables, best-fit
+ * residual and validity cubes, configuration fragments, and jackknife tables. An exact final filename
+ * `<stem>.fits` uses `<stem>_outputs/`.
+ *
+ * `p4.diagnosticDirectory` retains an explicit override for diagnostics that intentionally belong elsewhere. Leave
+ * it at `.` to use the grouped run directory.
  *
  * \section p4reduce_memory Memory-bounded execution
  *
@@ -148,7 +160,7 @@
  * rankTolerance=1e-12
  * memoryFraction=0.8
  * writeDiagnostics=false
- * diagnosticDirectory=./p4-diagnostics
+ * diagnosticDirectory=.
  *
  * [preProcess]
  * skip=true

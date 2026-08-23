@@ -51,7 +51,7 @@
  * | `--p4Optimize.meritTolerance` | `p4Optimize.meritTolerance=1e-6` | `HIERARCH P4 OPT MERIT TOLERANCE` | nonnegative finite real | `1e-6` | Combined absolute/relative allowance, scaled by `max(1,abs(merit))`, for simplex convergence and dense-basin agreement. |
  * | `--p4Optimize.positionBound` | `p4Optimize.positionBound=1` | `HIERARCH P4 OPT POSITION BOUND` | positive finite real pixels in joint mode | `1` | Independent symmetric row/column bounds around the initial source. |
  * | `--p4Optimize.uncertaintyBlocks` | `p4Optimize.uncertaintyBlocks=8` | `HIERARCH P4 OPT JK BLOCKS` | zero or integer at least 2 | `8` | Contiguous delete-one-time-block refit count. Zero disables uncertainty; use at least eight blocks for a reported science result. |
- * | `--p4Optimize.outputPrefix` | `p4Optimize.outputPrefix=p4Negative_` | — | nonempty relative prefix | `p4Negative_` | Product prefix inside `output.directory`; parent directories are created automatically. |
+ * | `--p4Optimize.outputPrefix` | `p4Optimize.outputPrefix=p4Negative_` | — | nonempty relative prefix | `p4Negative_` | Product prefix inside the resolved final image's `_outputs` directory; parent directories are created automatically. |
  *
  * A contrast-only configuration for an 11-pixel local stamp is:
  *
@@ -159,7 +159,9 @@
  *
  * \section p4_optimizer_products Products and convergence
  *
- * All optimizer products are written below `output.directory` using `p4Optimize.outputPrefix`:
+ * All optimizer products are written below the resolved final image's auxiliary directory using
+ * `p4Optimize.outputPrefix`. For example, an ordinary final-image name `finim_0044.fits` uses
+ * `finim_0044_outputs/`; an exact configured name `science.fits` uses `science_outputs/`:
  *
  * - **`<prefix>summary.yaml`** is the compact machine-readable result summary. It records the initial and fitted
  *   separation, position angle, and signed contrast; Cartesian displacement; merit and aperture definition;

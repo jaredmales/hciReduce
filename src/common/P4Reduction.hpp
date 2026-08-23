@@ -190,7 +190,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     realT m_psfFilterMinGoodFract{ 1 }; ///< Minimum usable local-stamp fraction required by PSF filtering.
 
-    std::string m_psfOutputPrefix{ "p4PSF_" }; ///< Prefix for compact PSF products in the common output directory.
+    std::string m_psfOutputPrefix{ "p4PSF_" }; ///< Prefix for compact products in the final image's output directory.
 
     int m_localStampSize{ 0 }; ///< Square pixel-local result and nominal source-crop width; zero disables the path.
 
@@ -204,7 +204,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     bool m_writeDiagnostics{ false };         ///< Whether checked P4 diagnostic FITS products are written.
 
-    std::string m_diagnosticDirectory{ "." }; ///< Destination directory for enabled diagnostics.
+    std::string m_diagnosticDirectory{ "." }; ///< Optional explicit destination; `.` selects the auxiliary directory.
 
     /// @}
 
@@ -316,6 +316,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     /// Return the current loaded target-frame count, or zero before target loading.
     std::size_t targetFrameCount() const;
+
+    /// Return the auxiliary-product directory derived from the currently resolved final-image path.
+    std::string auxiliaryOutputDirectory() const;
 
     /// Run explicit ordered search-annulus radii through P4 and the shared ADI final lifecycle.
     /** The supplied vectors replace the configured `geom.minRadius` and `geom.maxRadius` values.

@@ -738,7 +738,8 @@ TEST_CASE( "P4 pixel-local finite-amplitude refit matches full reduction",
     REQUIRE( local.reduce() == 0 );
 
     const std::filesystem::path localResidualPath = directory.file( "local-products/finim_0000.fits" );
-    const std::filesystem::path localValidityPath = directory.file( "local-products/finim_local_validity_0000.fits" );
+    const std::filesystem::path localValidityPath =
+        directory.file( "local-products/finim_0000_outputs/finim_local_validity_0000.fits" );
     REQUIRE( std::filesystem::exists( localResidualPath ) );
     REQUIRE( std::filesystem::exists( localValidityPath ) );
     mx::improc::eigenCube<float> persistedLocalResidual;
@@ -1086,7 +1087,7 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     reduction.m_doWriteFinim = true;
     reduction.m_combineMethod = mx::improc::HCI::combine::mean;
     reduction.m_writeDiagnostics = true;
-    reduction.m_diagnosticDirectory = directory.file( "field-diagnostics" ).string();
+    reduction.m_diagnosticDirectory = ".";
     REQUIRE( reduction.reduce() == 0 );
     REQUIRE( reduction.m_finim.rows() == baseline.m_finim.rows() );
     REQUIRE( reduction.m_finim.cols() == baseline.m_finim.cols() );
@@ -1111,17 +1112,17 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
         }
     }
 
-    const std::filesystem::path coordinatePath = directory.file( "nested/products/field_coordinates.fits" );
-    const std::filesystem::path manifestPath = directory.file( "nested/products/field_manifest.fits" );
-    const std::filesystem::path modelPath = directory.file( "nested/products/field_model_0000.fits" );
-    const std::filesystem::path validityPath = directory.file( "nested/products/field_validity_0000.fits" );
+    const std::filesystem::path productDirectory = directory.file( "nested/products/finim_0000_outputs" );
+    const std::filesystem::path coordinatePath = productDirectory / "field_coordinates.fits";
+    const std::filesystem::path manifestPath = productDirectory / "field_manifest.fits";
+    const std::filesystem::path modelPath = productDirectory / "field_model_0000.fits";
+    const std::filesystem::path validityPath = productDirectory / "field_validity_0000.fits";
     const std::filesystem::path finalImagePath = directory.file( "nested/products/finim_0000.fits" );
     const std::filesystem::path filteredPath = directory.file( "nested/products/finim_filtered_0000.fits" );
-    const std::filesystem::path normalizationPath =
-        directory.file( "nested/products/finim_filter_normalization_0000.fits" );
-    const std::filesystem::path supportPath = directory.file( "nested/products/finim_filter_support_0000.fits" );
-    const std::filesystem::path filterValidityPath =
-        directory.file( "nested/products/finim_filter_validity_0000.fits" );
+    const std::filesystem::path normalizationPath = productDirectory / "finim_filter_normalization_0000.fits";
+    const std::filesystem::path supportPath = productDirectory / "finim_filter_support_0000.fits";
+    const std::filesystem::path filterValidityPath = productDirectory / "finim_filter_validity_0000.fits";
+    REQUIRE( std::filesystem::is_directory( productDirectory ) );
     REQUIRE( std::filesystem::exists( coordinatePath ) );
     REQUIRE( std::filesystem::exists( manifestPath ) );
     REQUIRE( std::filesystem::exists( modelPath ) );
@@ -1131,6 +1132,25 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( std::filesystem::exists( normalizationPath ) );
     REQUIRE( std::filesystem::exists( supportPath ) );
     REQUIRE( std::filesystem::exists( filterValidityPath ) );
+    REQUIRE( std::filesystem::exists( productDirectory / "p4Ownership.fits" ) );
+    REQUIRE( std::filesystem::exists( productDirectory / "p4CanonicalOR_000.fits" ) );
+    REQUIRE( std::filesystem::exists( productDirectory / "p4RegionSummary.fits" ) );
+    REQUIRE( std::filesystem::exists( productDirectory / "p4Timing.fits" ) );
+    REQUIRE_FALSE( std::filesystem::exists( directory.file( "nested/products/field_manifest.fits" ) ) );
+    REQUIRE_FALSE(
+        std::filesystem::exists( directory.file( "nested/products/finim_filter_normalization_0000.fits" ) ) );
+    std::vector<std::string> topLevelFits;
+    for( const std::filesystem::directory_entry &entry :
+         std::filesystem::directory_iterator( directory.file( "nested/products" ) ) )
+    {
+        if( entry.is_regular_file() && entry.path().extension() == ".fits" )
+        {
+            topLevelFits.push_back( entry.path().filename().string() );
+        }
+    }
+    std::sort( topLevelFits.begin(), topLevelFits.end() );
+    const std::vector<std::string> expectedTopLevelFits{ "finim_0000.fits", "finim_filtered_0000.fits" };
+    REQUIRE( topLevelFits == expectedTopLevelFits );
 
     mx::fits::fitsFile<float, mx::verbose::vv> reader;
     reductionT::imageT manifest;
@@ -1238,7 +1258,7 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
 
     reductionT::imageT timing;
     reductionT::fitsHeaderT timingHeader;
-    REQUIRE( reader.read( timing, timingHeader, directory.file( "field-diagnostics/p4Timing.fits" ).string() ) ==
+    REQUIRE( reader.read( timing, timingHeader, ( productDirectory / "p4Timing.fits" ).string() ) ==
              mx::error_t::noerror );
     REQUIRE( timing.rows() == 1 );
     REQUIRE( timing.cols() == 10 );
@@ -1261,9 +1281,16 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     filterOnly.m_combineMethod = mx::improc::HCI::combine::mean;
     REQUIRE( filterOnly.reduce() == 0 );
     REQUIRE( std::filesystem::exists( directory.file( "filter-only/science_filtered.fits" ) ) );
-    REQUIRE( std::filesystem::exists( directory.file( "filter-only/filterOnly_manifest.fits" ) ) );
-    REQUIRE_FALSE( std::filesystem::exists( directory.file( "filter-only/filterOnly_coordinates.fits" ) ) );
-    REQUIRE_FALSE( std::filesystem::exists( directory.file( "filter-only/filterOnly_model_0000.fits" ) ) );
+    REQUIRE( std::filesystem::exists( directory.file( "filter-only/science_outputs/filterOnly_manifest.fits" ) ) );
+    REQUIRE(
+        std::filesystem::exists( directory.file( "filter-only/science_outputs/science_filter_normalization.fits" ) ) );
+    REQUIRE( std::filesystem::exists( directory.file( "filter-only/science_outputs/science_filter_support.fits" ) ) );
+    REQUIRE( std::filesystem::exists( directory.file( "filter-only/science_outputs/science_filter_validity.fits" ) ) );
+    REQUIRE_FALSE(
+        std::filesystem::exists( directory.file( "filter-only/science_outputs/filterOnly_coordinates.fits" ) ) );
+    REQUIRE_FALSE(
+        std::filesystem::exists( directory.file( "filter-only/science_outputs/filterOnly_model_0000.fits" ) ) );
+    REQUIRE_FALSE( std::filesystem::exists( directory.file( "filter-only/filterOnly_manifest.fits" ) ) );
     REQUIRE( filterOnly.m_finim.rows() == baseline.m_finim.rows() );
     REQUIRE( filterOnly.m_finim.cols() == baseline.m_finim.cols() );
     REQUIRE( filterOnly.m_finim.planes() == baseline.m_finim.planes() );
@@ -2510,11 +2537,12 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     diagnostic.m_outputDir = directory.path().string();
     diagnostic.m_PSFSubPrefix = "p4-psf";
     REQUIRE( diagnostic.finalProcess() == 0 );
-    REQUIRE( std::filesystem::exists( directory.file( "p4-psf_000_00000.fits" ) ) );
+    const std::filesystem::path psfSubPath = directory.file( "finim_0000_outputs/p4-psf_000_00000.fits" );
+    REQUIRE( std::filesystem::exists( psfSubPath ) );
+    REQUIRE_FALSE( std::filesystem::exists( directory.file( "p4-psf_000_00000.fits" ) ) );
     reductionT::imageT persistedScience;
     reductionT::fitsHeaderT persistedHeader;
-    REQUIRE( reader.read( persistedScience, persistedHeader, directory.file( "p4-psf_000_00000.fits" ).string() ) ==
-             mx::error_t::noerror );
+    REQUIRE( reader.read( persistedScience, persistedHeader, psfSubPath.string() ) == mx::error_t::noerror );
     REQUIRE( persistedHeader["P4 ALGORITHM"].String().starts_with( "P4-PCA" ) );
     REQUIRE( persistedHeader["P4 FRAME"].String().starts_with( "detector" ) );
 

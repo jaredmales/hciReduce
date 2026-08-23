@@ -761,18 +761,20 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
     REQUIRE( application.m_optimizeEnabled );
     REQUIRE( application.m_obs.m_fakeContrast.size() == 1 );
 
-    const auto residualPath = outputDirectory / "trial_best.fits";
-    const auto validityPath = outputDirectory / "trial_best_validity.fits";
-    const auto meritPath = outputDirectory / "trial_merit.csv";
-    const auto summaryPath = outputDirectory / "trial_summary.yaml";
-    const auto jackknifePath = outputDirectory / "trial_jackknife.csv";
-    const auto bestConfigPath = outputDirectory / "trial_best.conf";
+    const auto auxiliaryDirectory = outputDirectory / "p4-final_outputs";
+    const auto residualPath = auxiliaryDirectory / "trial_best.fits";
+    const auto validityPath = auxiliaryDirectory / "trial_best_validity.fits";
+    const auto meritPath = auxiliaryDirectory / "trial_merit.csv";
+    const auto summaryPath = auxiliaryDirectory / "trial_summary.yaml";
+    const auto jackknifePath = auxiliaryDirectory / "trial_jackknife.csv";
+    const auto bestConfigPath = auxiliaryDirectory / "trial_best.conf";
     REQUIRE( std::filesystem::exists( residualPath ) );
     REQUIRE( std::filesystem::exists( validityPath ) );
     REQUIRE( std::filesystem::exists( meritPath ) );
     REQUIRE( std::filesystem::exists( summaryPath ) );
     REQUIRE( std::filesystem::exists( jackknifePath ) );
     REQUIRE( std::filesystem::exists( bestConfigPath ) );
+    REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "trial_best.fits" ) );
     REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "p4-final.fits" ) );
 
     mx::improc::eigenCube<float> residual;
@@ -870,17 +872,19 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
     REQUIRE( application.main( 3, arguments ) == 0 );
     REQUIRE( application.m_optimizeFitPosition );
 
-    const auto residualPath = outputDirectory / "joint_best.fits";
-    const auto meritPath = outputDirectory / "joint_merit.csv";
-    const auto summaryPath = outputDirectory / "joint_summary.yaml";
-    const auto jackknifePath = outputDirectory / "joint_jackknife.csv";
-    const auto bestConfigPath = outputDirectory / "joint_best.conf";
+    const auto auxiliaryDirectory = outputDirectory / "p4-final_outputs";
+    const auto residualPath = auxiliaryDirectory / "joint_best.fits";
+    const auto meritPath = auxiliaryDirectory / "joint_merit.csv";
+    const auto summaryPath = auxiliaryDirectory / "joint_summary.yaml";
+    const auto jackknifePath = auxiliaryDirectory / "joint_jackknife.csv";
+    const auto bestConfigPath = auxiliaryDirectory / "joint_best.conf";
     REQUIRE( std::filesystem::exists( residualPath ) );
-    REQUIRE( std::filesystem::exists( outputDirectory / "joint_best_validity.fits" ) );
+    REQUIRE( std::filesystem::exists( auxiliaryDirectory / "joint_best_validity.fits" ) );
     REQUIRE( std::filesystem::exists( meritPath ) );
     REQUIRE( std::filesystem::exists( summaryPath ) );
     REQUIRE( std::filesystem::exists( jackknifePath ) );
     REQUIRE( std::filesystem::exists( bestConfigPath ) );
+    REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "joint_best.fits" ) );
     REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "p4-final.fits" ) );
 
     mx::improc::eigenCube<float> residual;

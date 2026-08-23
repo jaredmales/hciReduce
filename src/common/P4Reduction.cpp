@@ -89,6 +89,29 @@ std::string p4FilterProductPath( const std::string &finalImagePath, /**< [in] re
     return ( finalPath.parent_path() / fileName ).string();
 }
 
+/// Derive the P4 auxiliary-product directory from the resolved final-image path.
+std::filesystem::path
+p4AuxiliaryProductDirectory( const std::string &finalImagePath /**< [in] resolved final-image output path */ )
+{
+    const std::filesystem::path finalPath( finalImagePath );
+    const std::string finalStem = finalPath.stem().string();
+    if( finalStem.empty() )
+    {
+        throw std::invalid_argument( "P4 auxiliary-product naming requires a final-image filename" );
+    }
+
+    return finalPath.parent_path() / ( finalStem + "_outputs" );
+}
+
+/// Derive a filter-diagnostic path inside the final image's P4 PSF product directory.
+std::string p4FilterDiagnosticPath( const std::string &finalImagePath, /**< [in] resolved final-image output path */
+                                    const std::string &role, /**< [in] filename role inserted before the sequence */
+                                    bool sequential /**< [in] whether the final image uses a four-digit sequence */ )
+{
+    const std::filesystem::path productPath( p4FilterProductPath( finalImagePath, role, sequential ) );
+    return ( p4AuxiliaryProductDirectory( finalImagePath ) / productPath.filename() ).string();
+}
+
 /// Join a vector into a stable comma-delimited FITS value.
 template <typename valueT>
 std::string p4Join( const std::vector<valueT> &values /**< [in] ordered values */ )
@@ -642,7 +665,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 "psfOutputPrefix",
                 false,
                 "string",
-                "Prefix for compact PSF products inside output.directory; default p4PSF_" );
+                "Prefix for compact PSF products inside the final image's _outputs directory; default p4PSF_" );
     config.add( "p4.localStampSize",
                 "",
                 "p4.localStampSize",
@@ -705,7 +728,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 "diagnosticDirectory",
                 false,
                 "string",
-                "Destination directory for enabled P4 diagnostics" );
+                "Explicit P4 diagnostic destination; default . groups diagnostics in the final image's _outputs "
+                "directory" );
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -1885,7 +1909,7 @@ template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::writeLocalValidity( const std::string &finalImagePath,
                                                                       const fitsHeaderT &finalHeader )
 {
-    const std::string path = p4FilterProductPath( finalImagePath, "local_validity", !this->m_exactFinimName );
+    const std::string path = p4FilterDiagnosticPath( finalImagePath, "local_validity", !this->m_exactFinimName );
     const std::string parent = mx::ioutils::parentPath( path );
     if( !parent.empty() )
     {
@@ -2043,6 +2067,12 @@ template <typename realT, class derotFunctObj, class verboseT>
 std::size_t P4Reduction<realT, derotFunctObj, verboseT>::targetFrameCount() const
 {
     return this->m_Nims > 0 ? static_cast<std::size_t>( this->m_Nims ) : 0;
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+std::string P4Reduction<realT, derotFunctObj, verboseT>::auxiliaryOutputDirectory() const
+{
+    return p4AuxiliaryProductDirectory( this->finalImageOutputPath() ).string();
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -3284,11 +3314,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
     m_psfReconstructionBytes = static_cast<std::size_t>( selectedReconstructionBytes );
     std::cerr << "P4 PSF reconstruction workers: " << effectiveWorkers << " / " << requestedWorkers << '\n';
 
+    const std::filesystem::path productDirectory = p4AuxiliaryProductDirectory( finalImagePath );
     const auto productPath = [&]( const std::string &suffix )
-    {
-        const std::string name = m_psfOutputPrefix + suffix;
-        return this->m_outputDir.empty() ? name : this->m_outputDir + "/" + name;
-    };
+    { return ( productDirectory / ( m_psfOutputPrefix + suffix ) ).string(); };
     const auto writeProduct = [&]<typename dataT>( const std::string &path, const dataT &data, fitsHeaderT &header )
     {
         const std::string parent = mx::ioutils::parentPath( path );
@@ -3606,15 +3634,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
                       filtered,
                       filteredHeader );
         fitsHeaderT normalizationHeader = productHeader( "FILTER_NORMALIZATION", m_modeFractions.size() );
-        writeProduct( p4FilterProductPath( finalImagePath, "filter_normalization", !this->m_exactFinimName ),
+        writeProduct( p4FilterDiagnosticPath( finalImagePath, "filter_normalization", !this->m_exactFinimName ),
                       filterNormalization,
                       normalizationHeader );
         fitsHeaderT supportHeader = productHeader( "FILTER_SUPPORT", m_modeFractions.size() );
-        writeProduct( p4FilterProductPath( finalImagePath, "filter_support", !this->m_exactFinimName ),
+        writeProduct( p4FilterDiagnosticPath( finalImagePath, "filter_support", !this->m_exactFinimName ),
                       filterSupport,
                       supportHeader );
         fitsHeaderT filterValidityHeader = productHeader( "FILTER_VALIDITY", m_modeFractions.size() );
-        writeProduct( p4FilterProductPath( finalImagePath, "filter_validity", !this->m_exactFinimName ),
+        writeProduct( p4FilterDiagnosticPath( finalImagePath, "filter_validity", !this->m_exactFinimName ),
                       filterValidity,
                       filterValidityHeader );
     }
@@ -3690,8 +3718,12 @@ void P4Reduction<realT, derotFunctObj, verboseT>::writeDiagnostic( const std::st
         return;
     }
 
-    std::string path = fileName;
-    if( !m_diagnosticDirectory.empty() && m_diagnosticDirectory != "." )
+    std::string path;
+    if( m_diagnosticDirectory.empty() || m_diagnosticDirectory == "." )
+    {
+        path = ( p4AuxiliaryProductDirectory( this->finalImageOutputPath() ) / fileName ).string();
+    }
+    else
     {
         path = m_diagnosticDirectory + "/" + fileName;
     }
@@ -3911,9 +3943,36 @@ int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess( bool reportProgre
     }
     const ADIDataFrame dataFrame =
         m_regressionFrame == P4RegressionFrame::rotated ? ADIDataFrame::sky : ADIDataFrame::detector;
-    return this->ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( algorithmHeaderPointer,
-                                                                               dataFrame,
-                                                                               reportProgress );
+    const std::string configuredPSFSubPrefix = this->m_PSFSubPrefix;
+    if( this->m_doOutputPSFSub )
+    {
+        const std::filesystem::path auxiliaryDirectory( auxiliaryOutputDirectory() );
+        const std::filesystem::path relativeDirectory =
+            this->m_outputDir.empty()
+                ? auxiliaryDirectory
+                : auxiliaryDirectory.lexically_relative( std::filesystem::path( this->m_outputDir ) );
+        this->m_PSFSubPrefix = relativeDirectory.string();
+        if( !this->m_PSFSubPrefix.empty() && !configuredPSFSubPrefix.empty() )
+        {
+            this->m_PSFSubPrefix += "/";
+        }
+        this->m_PSFSubPrefix += configuredPSFSubPrefix;
+    }
+
+    int result{ 0 };
+    try
+    {
+        result = this->ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( algorithmHeaderPointer,
+                                                                                     dataFrame,
+                                                                                     reportProgress );
+    }
+    catch( ... )
+    {
+        this->m_PSFSubPrefix = configuredPSFSubPrefix;
+        throw;
+    }
+    this->m_PSFSubPrefix = configuredPSFSubPrefix;
+    return result;
 }
 
 template struct P4Reduction<float, ADIDerotator<float, verbose::vv>, verbose::vv>;

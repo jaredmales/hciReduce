@@ -69,7 +69,7 @@
  * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final combination. |
  * | `--p4.psfFilter` | `p4.psfFilter=true` | `HIERARCH P4 PSF FILTER` | bool | `false` | Write signed normalized spatially variable filter products. Requires `psfFile`, an odd stamp, and a final combination; it does not require `outputPSFModels=true`. |
  * | `--p4.psfFilterMinGoodFract` | `p4.psfFilterMinGoodFract=0.8` | `HIERARCH P4 PSF FILTER MIN GOOD FRACTION` | real in `[0,1]` | `1` | Minimum fraction of the full stamp with valid PSF samples and finite in-bounds science samples. |
- * | `--p4.psfOutputPrefix` | `p4.psfOutputPrefix=p4PSF_` | — | nonempty path prefix | `p4PSF_` | Compact model and manifest prefix inside `output.directory`; filter cubes follow the ordinary final-image name and sequence. |
+ * | `--p4.psfOutputPrefix` | `p4.psfOutputPrefix=p4PSF_` | — | nonempty path prefix | `p4PSF_` | Compact model and manifest prefix inside the resolved final image's `_outputs` directory. |
  *
  * For example:
  *
@@ -90,7 +90,11 @@
  *
  * \section p4_psf_products Products and completion contract
  *
- * With `p4.outputPSFModels=true`, the common output directory receives:
+ * P4 keeps the ordinary and filtered science products directly in `output.directory`. All other frozen-model PSF
+ * products are grouped in a sibling directory derived from the resolved ordinary final-image name. For example,
+ * `finim_0044.fits` uses `finim_0044_outputs/`, while an exact name `science.fits` uses `science_outputs/`.
+ *
+ * With `p4.outputPSFModels=true`, that derived directory receives:
  *
  * - `<prefix>coordinates.fits`, an `S x 4` image with `row,column,region,regionSearch` columns;
  * - `<prefix>model_NNNN.fits`, a `psfStampSize x psfStampSize x S` cube per zero-based mode index;
@@ -102,9 +106,13 @@
  * version 2. Every product records its role, template identity/stage/normalization, `FROZEN_SIGNED` convention,
  * combination policy, support geometry, storage estimates, source count, and mode identity where applicable.
  *
- * With `p4.psfFilter=true`, four full-image cubes follow the resolved ordinary final-image name and sequence number:
+ * With `p4.psfFilter=true`, four full-image cubes follow the resolved ordinary final-image name and sequence number.
+ * The filtered science product remains beside the ordinary final image:
  *
  * - `finim_filtered_NNNN.fits`, containing \f$\sum(HI)/\sum(H^2)\f$ where valid;
+ *
+ * The three filter diagnostics are placed in `finim_NNNN_outputs/`:
+ *
  * - `finim_filter_normalization_NNNN.fits`, containing the retained \f$\sum H^2\f$ denominator;
  * - `finim_filter_support_NNNN.fits`, containing usable samples divided by the full stamp area; and
  * - `finim_filter_validity_NNNN.fits`, containing exact zero/one validity.
@@ -112,7 +120,7 @@
  * Filtering is independent of model persistence. `psfFilter=true, outputPSFModels=false` writes the filter products
  * and manifest without coordinate or model cubes. The ordinary final image is never replaced. Each filtered product
  * mirrors its complete FITS header and adds PSF/filter provenance. With an exact final filename, the product role is
- * inserted before the extension.
+ * inserted before the extension, and the diagnostics use the exact final-image stem for their `_outputs` directory.
  *
  * Every file is published by temporary-file rename. The manifest is initially published with
  * `HIERARCH P4 PSF COMPLETE = 0` and replaced with value `1` only after the entire configured set is written.

@@ -222,7 +222,7 @@ configured:
 | `p4.outputPSFModels` | Write the compact spatially variable PSF products in addition to any in-process filtering. |
 | `p4.psfFilter` | Apply the spatially variable PSF filter to the final science cube; default `false`. |
 | `p4.psfFilterMinGoodFract` | Minimum usable fraction of the full odd-sized filter stamp; default `1`. |
-| `p4.psfOutputPrefix` | Prefix for compact PSF-model products and their manifest inside the common output directory. |
+| `p4.psfOutputPrefix` | Prefix for compact PSF-model products and their manifest inside the resolved final image's `_outputs` directory. |
 
 The names and grouping should be finalized during implementation review rather than overloading `fake.fileName` or
 `p4.psfRadius`. The physical exclusion radius and the forward-model stamp size are different quantities.
@@ -240,8 +240,10 @@ unfiltered P4 product. Filtering should first write a distinct, clearly named cu
 can be compared; replacing the in-memory/output `finim` can be considered only as a separate explicit option.
 Implemented filter products derive their names from the resolved ordinary final-image path, insert the product role
 before its shared four-digit sequence (or before the extension for an exact name), and mirror the complete final-image
-FITS header before appending product-specific P4 provenance. Compact model products continue to use
-`p4.psfOutputPrefix`.
+FITS header before appending product-specific P4 provenance. The ordinary and filtered science images remain in the
+common output directory. Filter diagnostics, compact models, coordinates, validity products, and the manifest are
+grouped under `<final-image-stem>_outputs/`; compact products continue to use `p4.psfOutputPrefix` within that
+directory.
 
 ## Work sequence
 
