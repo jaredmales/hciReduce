@@ -120,7 +120,7 @@ implemented, before adopting either result as a calibrated science uncertainty.
 
 [] when adding numberImages, the extension at the beginning and end by adding 2 later images (for images at the beginning) or 2 earlier images (for images at the end) should be modified.  We should calculate 3 different sets of coefficients.  This is to optimize to exploit any temporal predictability.  As it is, with a single set of coefficients for all three subsets we're basically only calculating the mean.
 
-[] alternatively, we could use KLIP-T (Long et al, 2023).The flaw in this is that the data have gaps and may not be regularly sampled, meaning that we are not fully exploiting temporal correlations
+[] alternatively, we could use PCAT (Long et al, 2023,https://arxiv.org/abs/2303.05559).The flaw in this is that the data have gaps and may not be regularly sampled, meaning that we are not fully exploiting temporal correlations
   - calculate a KL transform of the time-series with a rotation gap using all the other pixels in the OR (or maybe a temoral-OR)
   - project that onto the time-series of the pixels in the masked region
   - use the predicted values of the masked pixels in the main P4 calculation instead of the numberImages pixels above.
@@ -131,3 +131,15 @@ implemented, before adopting either result as a calibrated science uncertainty.
   - Use the LP to predict the values in the PSF-masked patch using only prior/later pixels that are outside the rotation exclusion.  
      - This will require multi-step prediction, over non-regular sampling.  We'll need strategies to handle this.
      - There may be better conceptualizations that LP for interpolation vs. extrapolation that exploit the same statistical predictability.
+
+## Exclusion of target images
+
+Right now we do an inversion for all the images at once.  This means that when we are predictiog x_t[n] the pixels' in OR(x_t) are included in the basis, as is the true value of x_t[n] included in the b vector
+
+[] implement excluding the target image from the basis set
+   - ideally we should exclude x_t from it's own basis set
+   - if we do this we may also consider having a configurable temporal exclusion region as we do with numberImages > 0.
+   
+[] this will be much slower, probably on the order of T times slower. So we should look into 
+      -- using the downdate algorithm of Long and Males 2021 (https://arxiv.org/abs/2101.11634)
+      -- batch GPU processing
