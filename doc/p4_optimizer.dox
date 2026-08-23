@@ -102,10 +102,35 @@
  *
  * \section p4_optimizer_jackknife Jackknife uncertainty
  *
- * After a converged point fit, the optimizer partitions the physical input sequence into \f$B\f$ contiguous,
- * nearly equal blocks. It repeats the complete fit \f$B\f$ times, omitting one block from both the central-target
- * rows and any additional-image predictors on each repeat. For delete-one-block estimates \f$\theta_b\f$ and their
- * arithmetic mean \f$\bar{\theta}\f$, the reported covariance is
+ * After a converged complete-sequence fit, the optimizer partitions the loaded input frames into \f$B\f$ contiguous,
+ * nearly equal time blocks. These are blocks of image planes in acquisition order, after any configured input
+ * preparation or coadding; they are not blocks of pixels. The same local stamp, optimization pixels, and fixed merit
+ * aperture are used in every refit.
+ *
+ * The optimizer then repeats the complete fit \f$B\f$ times. Refit \f$b\f$ omits every frame in time block \f$b\f$
+ * from both the central-target samples and the eligible temporal-predictor pool. With `p4.numberImages` enabled,
+ * neighboring predictors are reselected from the retained frames. Thus each refit asks how much the inferred
+ * companion changes when one contiguous part of the observing sequence is absent.
+ * Contiguous blocks retain some sensitivity to time-correlated speckle evolution that would be hidden by deleting
+ * isolated frames, without assuming that individual image pixels are independent measurements.
+ *
+ * Each refit produces a parameter estimate \f$\theta_b\f$. For a joint position-and-contrast fit this is the vector
+ *
+ * \f[
+ * \theta_b =
+ * \left(
+ * \begin{array}{c}
+ * \Delta r_b \\
+ * \Delta c_b \\
+ * C_b
+ * \end{array}
+ * \right),
+ * \f]
+ *
+ * where \f$\Delta r_b\f$ and \f$\Delta c_b\f$ are Cartesian row and column displacements from the originally
+ * configured source position and \f$C_b\f$ is signed contrast. For a contrast-only fit, \f$\theta_b=C_b\f$ is a
+ * scalar. Using Cartesian displacements avoids position-angle wrap in the covariance. For the arithmetic mean
+ * \f$\bar{\theta}=B^{-1}\sum_b\theta_b\f$, the reported delete-one-block jackknife covariance is
  *
  * \f[
  * {\rm Cov}_{\mathrm{JK}}(\theta)
@@ -113,35 +138,81 @@
  * (\theta_b-\bar{\theta})(\theta_b-\bar{\theta})^{\mathsf T}.
  * \f]
  *
- * Contrast-only fitting reports the contrast diagonal. Joint fitting uses Cartesian row displacement, Cartesian
- * column displacement, and signed contrast in that order, avoiding position-angle wrap in the covariance. Standard
- * errors are the square roots of the covariance diagonal. The point estimate still comes from the complete input
- * sequence; jackknife means are diagnostics rather than replacement fitted parameters. Joint jackknife searches are
- * centered on the converged complete-sequence fit, while their tabulated displacements remain referenced to the
- * original configured source position. This preserves product coordinates while avoiding repeated use of the
- * position-search budget merely to return from the configured seed to the full-data solution.
+ * The covariance parameter order is row displacement, column displacement, and contrast. Standard errors are the
+ * square roots of its diagonal, while the off-diagonal terms preserve fitted astrometry/photometry correlations for
+ * downstream analysis. In contrast-only mode only the contrast variance and standard error are scientifically
+ * meaningful.
+ *
+ * The reported point estimate always comes from the fit to the complete input sequence. The jackknife mean is a
+ * diagnostic of the refit ensemble, not a replacement point estimate. Joint jackknife searches are centered on the
+ * converged complete-sequence fit, but their tabulated displacements remain referenced to the originally configured
+ * source position. Changing that common coordinate origin would not change the covariance.
  *
  * `p4Optimize.maxEvaluations` applies independently to the point fit and to every refit, so uncertainty can cost
- * approximately \f$B\f$ times the point-fit runtime. The default eight blocks implements the intended scientific
+ * approximately \f$B\f$ times the point-fit runtime. The default eight blocks implement the intended scientific
  * baseline. Values of two or more support development and sensitivity checks, while zero explicitly disables the
- * stage. A block count greater than the loaded physical frame count is rejected.
+ * stage. A block count greater than the loaded frame count is rejected. Because this application of a time-block
+ * jackknife is still experimental, compare results across reasonable block counts: blocks should be long enough to
+ * represent temporal correlations but numerous enough to estimate a stable covariance. These uncertainties measure
+ * sensitivity to temporal data selection; they do not include PSF-template calibration, plate scale, true-north, or
+ * other external systematic errors.
  *
  * \section p4_optimizer_products Products and convergence
  *
- * The common output directory receives `<prefix>merit.csv`, `<prefix>summary.yaml`, `<prefix>best.fits`, and
- * `<prefix>best_validity.fits`. When jackknife uncertainty is enabled it also receives `<prefix>jackknife.csv`, with
- * zero-based half-open omitted frame intervals and every refit's fitted parameters and convergence state. The two
- * FITS cubes own only the complete-sequence best local result and record the selected mode, fixed aperture
- * frame/center/radius, bounds, tolerances, fitted separation/PA/contrast, Cartesian displacement, evaluation count,
- * convergence flags, dense agreement, jackknife covariance/errors, and product role.
+ * All optimizer products are written below `output.directory` using `p4Optimize.outputPrefix`:
  *
- * A converged result also writes `<prefix>best.conf` containing the fitted `[fake]` tuple. An exhausted or
- * dense-disagreeing search retains its best finite evaluation with an explicit failure status, does not write that
- * configuration fragment, and returns failure from `p4Reduce`. A requested jackknife with any unconverged block
- * similarly retains the point-fit products and resample table, marks uncertainty incomplete, removes any stale
- * `<prefix>best.conf` from an earlier run with the same prefix, and returns failure. Joint merit tables label
- * `seed-dense`, `seed-brent`, `simplex`,
- * `final-dense`, and `final-brent` evaluations and record both Cartesian and polar coordinates.
+ * - **`<prefix>summary.yaml`** is the compact machine-readable result summary. It records the initial and fitted
+ *   separation, position angle, and signed contrast; Cartesian displacement; merit and aperture definition;
+ *   optimizer bounds, tolerances, convergence flags, evaluation counts, and timing. Its `jackknife` mapping records
+ *   completion and cost. When every refit succeeds it also contains the jackknife mean, standard errors, and full
+ *   covariance matrix with explicit parameter order. Use the `fitted` mapping as the complete-sequence point
+ *   estimate and the jackknife `standardError` and `covariance` fields as its internal statistical uncertainty.
+ *
+ * - **`<prefix>merit.csv`** contains one row per distinct complete-sequence optimizer evaluation. Contrast-only rows
+ *   contain `evaluation,stage,contrast,merit,elapsed_seconds`. Joint rows additionally contain Cartesian displacement,
+ *   separation, and position angle. Joint stages are `seed-dense`, `seed-brent`, `simplex`, `final-dense`, and
+ *   `final-brent`; contrast-only stages are `dense` and `brent`. Use this table to inspect the merit surface, verify
+ *   that the optimum is not pinned to a configured bound, identify competing minima, and diagnose expensive trials.
+ *   It is optimization history, not an uncertainty sample.
+ *
+ * - **`<prefix>best.fits`** is the local residual image cube evaluated at the complete-sequence best-fit parameters.
+ *   Its spatial dimensions are `p4.localStampSize` by `p4.localStampSize`, and its planes follow the configured
+ *   `p4.modeFractions` order. The FITS header records the optimizer configuration and result, selected merit plane,
+ *   aperture geometry, convergence state, jackknife statistics, and `HIERARCH P4 PRODUCT ROLE=LOCAL_RESIDUAL`. Use it
+ *   to inspect whether the companion signal and surrounding structured residual are actually removed; do not use its
+ *   pixel scatter as a substitute for the jackknife parameter covariance.
+ *
+ * - **`<prefix>best_validity.fits`** is the zero/one support cube corresponding exactly to `<prefix>best.fits`, with
+ *   `HIERARCH P4 PRODUCT ROLE=LOCAL_VALIDITY`. A zero marks an unsupported residual pixel. Apply this cube as a mask
+ *   whenever measuring or displaying the residual product; it describes algorithmic support, not confidence or
+ *   statistical weight.
+ *
+ * - **`<prefix>jackknife.csv`** is written when `p4Optimize.uncertaintyBlocks` is nonzero. It has one row per omitted
+ *   time block, including the zero-based block number, the zero-based half-open frame interval `[omitted_begin,
+ *   omitted_end)`, retained frame count, convergence and dense-agreement flags, fitted Cartesian and polar
+ *   parameters, merit, evaluation count, elapsed time, and status. Row and column displacements use the original
+ *   configured source as their common origin. Inspect this table for a single influential observing interval,
+ *   boundary-pinned solutions, or nonconverged refits before accepting the aggregate errors. The rows are correlated
+ *   leave-one-block-out estimates and should not be treated as independent companion measurements.
+ *
+ * - **`<prefix>best.conf`** is a reusable INI fragment containing the fitted `[fake]` separation, position angle, and
+ *   signed negative contrast. It is written only when the complete-sequence fit converges, agrees with dense
+ *   validation, and every requested jackknife refit converges. It can be included in a subsequent signal-subtracted
+ *   reduction. If the PSF template is photometrically calibrated, the corresponding positive companion contrast is
+ *   normally the negative of this fitted signed contrast; calibration systematics remain external to the optimizer.
+ *
+ * A practical acceptance sequence is therefore: require complete-sequence convergence and dense agreement; require
+ * jackknife completion when uncertainty was requested; inspect `merit.csv` for bounds or secondary basins; inspect
+ * every row of `jackknife.csv` for instability; then examine `best.fits` through the `best_validity.fits` mask. Use the
+ * complete-sequence fitted parameters as the measurement and propagate the full jackknife covariance when position
+ * and contrast are fitted jointly.
+ *
+ * An exhausted or dense-disagreeing complete-sequence search retains its best finite FITS evaluation and diagnostic
+ * tables with an explicit failure status, does not write `<prefix>best.conf`, and returns failure from `p4Reduce`. A
+ * requested jackknife with any unconverged block similarly retains the point-fit products and resample table, marks
+ * uncertainty incomplete, removes any stale `<prefix>best.conf` from an earlier run with the same prefix, and returns
+ * failure. Missing covariance fields in the YAML/FITS products therefore mean that no complete jackknife uncertainty
+ * estimate was produced; they must not be interpreted as zero uncertainty.
  *
  * @}
  */
