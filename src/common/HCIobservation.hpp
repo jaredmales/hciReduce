@@ -734,6 +734,15 @@ struct HCIobservation
      */
     bool m_exactFinimName{ false };
 
+    /// Stable final-image path reserved by the first output-path lookup in one reduction.
+    mutable std::string m_resolvedFinimPath;
+
+    /// Output basename for which m_resolvedFinimPath remains valid.
+    mutable std::string m_resolvedFinimBase;
+
+    /// Exact-name mode for which m_resolvedFinimPath remains valid.
+    mutable bool m_resolvedFinimExact{ false };
+
     /// Controls whether or not the individual PSF subtracted images are written to disk.
     /** - true -- write to disk
      * - false -- [default] don't write to disk
@@ -757,7 +766,10 @@ struct HCIobservation
                                                              have cards appended to it. */
     );
 
-    /// Resolve the exact or next sequential final-image output path without writing it.
+    /// Resolve and retain the exact or next monotonic sequential final-image output path.
+    /** Sequential output uses one greater than the highest suffix represented by either a matching FITS file or its
+     * same-stem `_outputs` directory, without filling gaps.
+     */
     std::string finalImageOutputPath() const;
 
     /// Construct the complete FITS header used for a final combined image.
@@ -3585,12 +3597,60 @@ std::string HCIobservation<_realT, verboseT>::finalImageOutputPath() const
         fname = m_outputDir + "/" + fname;
     }
 
+    if( !m_resolvedFinimPath.empty() && fname == m_resolvedFinimBase && m_exactFinimName == m_resolvedFinimExact )
+    {
+        return m_resolvedFinimPath;
+    }
+    m_resolvedFinimPath.clear();
+    m_resolvedFinimBase = fname;
+    m_resolvedFinimExact = m_exactFinimName;
+
     if( !m_exactFinimName )
     {
-        fname = ioutils::getSequentialFilename( fname, ".fits" );
+        const std::filesystem::path basePath( fname );
+        std::filesystem::path parentPath = basePath.parent_path();
+        if( parentPath.empty() )
+        {
+            parentPath = ".";
+        }
+        const std::string prefix = basePath.filename().string();
+        int highestSequence = -1;
+        if( std::filesystem::exists( parentPath ) )
+        {
+            for( const auto &entry : std::filesystem::directory_iterator( parentPath ) )
+            {
+                const std::string name = entry.path().filename().string();
+                if( !name.starts_with( prefix ) )
+                {
+                    continue;
+                }
+                const std::string_view remainder( name.data() + prefix.size(), name.size() - prefix.size() );
+                constexpr std::string_view fitsSuffix{ ".fits" };
+                constexpr std::string_view auxiliarySuffix{ "_outputs" };
+                if( ( remainder.size() != 4 + fitsSuffix.size() || !remainder.ends_with( fitsSuffix ) ) &&
+                    ( remainder.size() != 4 + auxiliarySuffix.size() || !remainder.ends_with( auxiliarySuffix ) ) )
+                {
+                    continue;
+                }
+
+                int sequence{ 0 };
+                const auto conversion = std::from_chars( remainder.data(), remainder.data() + 4, sequence );
+                if( conversion.ec == std::errc() && conversion.ptr == remainder.data() + 4 )
+                {
+                    highestSequence = std::max( highestSequence, sequence );
+                }
+            }
+        }
+        if( highestSequence >= 9999 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::fileoerr,
+                                           "could not allocate a four-digit final-image sequence number" );
+        }
+        fname = std::format( "{}{:04}.fits", fname, highestSequence + 1 );
     }
 
-    return fname;
+    m_resolvedFinimPath = fname;
+    return m_resolvedFinimPath;
 }
 
 template <typename _realT, class verboseT>
@@ -3656,6 +3716,12 @@ void HCIobservation<_realT, verboseT>::writeFinimAtPath( const std::string &fnam
     if( result != mx::error_t::noerror )
     {
         throw mx::exception<verboseT>( result, "writing final image " + fname );
+    }
+
+    if( fname == m_resolvedFinimPath )
+    {
+        m_resolvedFinimPath.clear();
+        m_resolvedFinimBase.clear();
     }
 
     std::cerr << "Final image written to: " << fname << "\n";

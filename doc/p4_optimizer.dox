@@ -162,6 +162,10 @@
  * All optimizer products are written below the resolved final image's auxiliary directory using
  * `p4Optimize.outputPrefix`. For example, an ordinary final-image name `finim_0044.fits` uses
  * `finim_0044_outputs/`; an exact configured name `science.fits` uses `science_outputs/`:
+ * An optimizer-only run therefore reserves its sequential final-image number even though it does not write the
+ * corresponding top-level `finim_NNNN.fits`. Later reductions choose one greater than the highest sequence occupied
+ * by either a final FITS file or an `_outputs` directory, so deleting an older product does not cause its number to
+ * be reused.
  *
  * - **`<prefix>summary.yaml`** is the compact machine-readable result summary. It records the initial and fitted
  *   separation, position angle, and signed contrast; Cartesian displacement; merit and aperture definition;

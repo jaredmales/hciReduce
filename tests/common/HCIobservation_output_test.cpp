@@ -274,7 +274,12 @@ TEST_CASE( "HCIobservation final-image output", "[HCIobservation][output][writeF
 
     HCIobservationTestHarness::fitsHeaderT additional;
     additional.append<int>( "EXTRA", 77, "additional output card" );
-    const auto firstPath = directory.file( "nested/final/combined_0000.fits" );
+    const auto occupiedAuxiliaryPath = directory.file( "nested/final/combined_0045_outputs" );
+    std::filesystem::create_directories( occupiedAuxiliaryPath );
+    writeTextFile( occupiedAuxiliaryPath / "optimizer-summary.yaml", "reserved by an auxiliary-only run" );
+    writeTextFile( directory.file( "nested/final/combined_0046.fits" ), "later retained product" );
+    const auto firstPath = directory.file( "nested/final/combined_0047.fits" );
+    REQUIRE( observation.finalImageOutputPath() == firstPath.string() );
     REQUIRE( observation.finalImageOutputPath() == firstPath.string() );
     HCIobservationTestHarness::fitsHeaderT constructedHeader;
     observation.finalImageHeader( constructedHeader, &additional );
@@ -298,7 +303,7 @@ TEST_CASE( "HCIobservation final-image output", "[HCIobservation][output][writeF
     REQUIRE( header["EXTRA"].Int() == 77 );
 
     observation.writeFinim();
-    REQUIRE( std::filesystem::exists( directory.file( "nested/final/combined_0001.fits" ) ) );
+    REQUIRE( std::filesystem::exists( directory.file( "nested/final/combined_0048.fits" ) ) );
 
     const auto resolvedPath = directory.file( "nested/final/resolved-product.fits" );
     observation.writeFinimAtPath( resolvedPath.string(), &additional );

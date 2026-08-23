@@ -123,7 +123,7 @@
  * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
  * | `--output.directory` | `output.directory=/path` | writable directory | unset | Destination for final products. Missing directories are created automatically. |
- * | `--output.fileName` | `output.fileName=finim_` | literal string | `finim_` | Prefix when `exactFName=false`; hciReduce appends the next unused `0000`-style suffix and `.fits`. |
+ * | `--output.fileName` | `output.fileName=finim_` | literal string | `finim_` | Prefix when `exactFName=false`; hciReduce appends a `0000`-style suffix one greater than the highest matching FITS file or same-stem `_outputs` directory, followed by `.fits`. Deleted sequence numbers are not reused. |
  * | `--output.exactFName` | `output.exactFName=true` | bool | `false` | Treat `output.fileName` as the complete literal filename, with no suffix or extension appended. |
  * | `--output.outputPSFSub` | `output.outputPSFSub=true` | bool | `false` | Also write the PSF-subtracted residual cube. |
  * | `--output.psfSubPrefix` | `output.psfSubPrefix=psfsub_` | literal string | unset | Prefix used for residual-cube products. |

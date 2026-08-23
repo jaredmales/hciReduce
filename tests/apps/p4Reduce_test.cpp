@@ -83,13 +83,16 @@ class StreamCapture
 };
 
 /// Construct a complete compact p4Reduce configuration.
-std::string p4Configuration( const std::filesystem::path &inputDirectory,  /**< [in] target FITS directory */
-                             const std::filesystem::path &outputDirectory, /**< [in] final-product directory */
-                             const std::string &mode,                      /**< [in] basic or normal */
-                             bool preprocessOnly,                    /**< [in] whether to stop after preprocessing */
-                             const std::string &minimumRadius = "5", /**< [in] single-annulus inner radius */
-                             const std::string &maximumRadius = "6", /**< [in] single-annulus outer radius */
-                             const std::string &modeFractions = "0.5" /**< [in] requested P4 mode fractions */ )
+std::string p4Configuration(
+    const std::filesystem::path &inputDirectory,         /**< [in] target FITS directory */
+    const std::filesystem::path &outputDirectory,        /**< [in] final-product directory */
+    const std::string &mode,                             /**< [in] basic or normal */
+    bool preprocessOnly,                                 /**< [in] whether to stop after preprocessing */
+    const std::string &minimumRadius = "5",              /**< [in] single-annulus inner radius */
+    const std::string &maximumRadius = "6",              /**< [in] single-annulus outer radius */
+    const std::string &modeFractions = "0.5",            /**< [in] requested P4 mode fractions */
+    const std::string &outputFileName = "p4-final.fits", /**< [in] exact output name or sequential prefix */
+    bool exactOutputName = true /**< [in] whether outputFileName is exact */ )
 {
     std::ostringstream configuration;
     configuration << "mode=" << mode << '\n'
@@ -124,8 +127,8 @@ std::string p4Configuration( const std::filesystem::path &inputDirectory,  /**< 
                   << "minGoodFract=0\n"
                   << "[output]\n"
                   << "directory=" << outputDirectory.string() << '\n'
-                  << "fileName=p4-final.fits\n"
-                  << "exactFName=true\n";
+                  << "fileName=" << outputFileName << '\n'
+                  << "exactFName=" << ( exactOutputName ? "true" : "false" ) << '\n';
     return configuration.str();
 }
 
@@ -724,33 +727,37 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
     writeFitsImage( sourcePath, source );
 
     const auto outputDirectory = directory.file( "optimizer-output" );
+    const auto priorAuxiliaryDirectory = outputDirectory / "finim_0000_outputs";
+    std::filesystem::create_directories( priorAuxiliaryDirectory );
+    writeTextFile( priorAuxiliaryDirectory / "prior_summary.yaml", "prior optimizer run" );
     const auto configPath = directory.file( "optimizer.conf" );
-    writeTextFile( configPath,
-                   p4Configuration( directory.path(), outputDirectory, "normal", false, "5", "6", "0.25" ) +
-                       "[preProcess]\n"
-                       "skip=true\n"
-                       "[p4]\n"
-                       "localStampSize=5\n"
-                       "[fake]\n"
-                       "method=single\n"
-                       "fileName=" +
-                       sourcePath.string() +
-                       "\n"
-                       "sep=5.4\n"
-                       "PA=35\n"
-                       "contrast=-0.005\n"
-                       "[p4Optimize]\n"
-                       "enabled=true\n"
-                       "modeFraction=0.25\n"
-                       "apertureRadius=0.5\n"
-                       "contrastLower=-0.01\n"
-                       "contrastUpper=0\n"
-                       "validationSamples=5\n"
-                       "maxEvaluations=24\n"
-                       "parameterTolerance=1e-4\n"
-                       "meritTolerance=1e-6\n"
-                       "uncertaintyBlocks=3\n"
-                       "outputPrefix=trial_\n" );
+    writeTextFile(
+        configPath,
+        p4Configuration( directory.path(), outputDirectory, "normal", false, "5", "6", "0.25", "finim_", false ) +
+            "[preProcess]\n"
+            "skip=true\n"
+            "[p4]\n"
+            "localStampSize=5\n"
+            "[fake]\n"
+            "method=single\n"
+            "fileName=" +
+            sourcePath.string() +
+            "\n"
+            "sep=5.4\n"
+            "PA=35\n"
+            "contrast=-0.005\n"
+            "[p4Optimize]\n"
+            "enabled=true\n"
+            "modeFraction=0.25\n"
+            "apertureRadius=0.5\n"
+            "contrastLower=-0.01\n"
+            "contrastUpper=0\n"
+            "validationSamples=5\n"
+            "maxEvaluations=24\n"
+            "parameterTolerance=1e-4\n"
+            "meritTolerance=1e-6\n"
+            "uncertaintyBlocks=3\n"
+            "outputPrefix=trial_\n" );
 
     appHarness application;
     std::string invokedName = "p4Reduce-test";
@@ -761,7 +768,7 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
     REQUIRE( application.m_optimizeEnabled );
     REQUIRE( application.m_obs.m_fakeContrast.size() == 1 );
 
-    const auto auxiliaryDirectory = outputDirectory / "p4-final_outputs";
+    const auto auxiliaryDirectory = outputDirectory / "finim_0001_outputs";
     const auto residualPath = auxiliaryDirectory / "trial_best.fits";
     const auto validityPath = auxiliaryDirectory / "trial_best_validity.fits";
     const auto meritPath = auxiliaryDirectory / "trial_merit.csv";
@@ -775,7 +782,8 @@ TEST_CASE( "p4Reduce contrast optimizer FITS outputs", "[p4Reduce][optimizer][lo
     REQUIRE( std::filesystem::exists( jackknifePath ) );
     REQUIRE( std::filesystem::exists( bestConfigPath ) );
     REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "trial_best.fits" ) );
-    REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "p4-final.fits" ) );
+    REQUIRE_FALSE( std::filesystem::exists( outputDirectory / "finim_0001.fits" ) );
+    REQUIRE_FALSE( std::filesystem::exists( priorAuxiliaryDirectory / "trial_best.fits" ) );
 
     mx::improc::eigenCube<float> residual;
     mx::fits::fitsHeader<mx::verbose::vv> header;
