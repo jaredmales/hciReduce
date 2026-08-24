@@ -302,7 +302,8 @@ Known non-blocking ownership follow-ups:
       parse paths, regenerate the report, and only then mark this integration gate complete. `gaussKernel`,
       `stddevImageCube`, `maskCircle`, `fitsFile`, `fitsHeader`, and `fitsHeaderCard` have 100% executable-line
       coverage in the current report; `maskCircle` remains at 92.9% function coverage and should be checked alongside
-      the new tests.
+      the new tests. The external P4 per-pixel PSF reader also reaches `parseStringVector` through
+      `hciAnalyze::headerVector()`, so its mode-label parsing remains part of this same mxlib-owned follow-up.
 
 - [x] Bring `mx::improc::cutImageRegion()` and `mx::improc::insertImageRegion()` to 100% executable-line coverage.
       Commit `b3635f4` adds indexed cut/insert tests covering automatic allocation, caller-owned storage, Eigen views,

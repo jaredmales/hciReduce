@@ -27,8 +27,15 @@
  *
  * \section hcianalyze_measurement SNR measurement
  *
- * Invalid FITS pixels are excluded from filtering and noise estimation. Optional Gaussian high-pass unsharp masking
- * is applied first, followed by optional Gaussian low-pass smoothing. At image edges and beside invalid samples, each
+ * Invalid FITS pixels are excluded from filtering and noise estimation. `filter.perPixelPSF` optionally applies a
+ * coordinate-indexed P4 response field before any Gaussian filtering. Point it at a complete `p4PSF_manifest.fits`
+ * product; hciAnalyze loads the sibling coordinate, model, and validity products and requires their mode fractions to
+ * match the science cube. This allows, for example, a response field calculated after optimized negative-companion
+ * subtraction to filter the corresponding unsubtracted final image. The signed normalized filter is
+ * `sum(H*I)/sum(H*H)`, matching the in-process P4 filter.
+ *
+ * Optional Gaussian high-pass unsharp masking is then applied, followed by optional Gaussian low-pass smoothing. At
+ * image edges and beside invalid samples, each
  * Gaussian uses its available valid in-bounds footprint and renormalizes by the retained kernel weight, rather than
  * rejecting pixels without full kernel support. The radial standard-deviation profile is then
  * calculated in the configured annulus after excluding invalid pixels and every signal mask. The reported SNR is
@@ -46,7 +53,8 @@
  * `plane mode signal separation position_angle contrast snr`. `snr` is the maximum inside `snr.apertureR`. A missing
  * mode label or contrast is represented as `nan`. hciAnalyze always writes or replaces the full SNR FITS cube next to
  * the input as `<input-stem>_snr<input-extension>`. Its FITS header records the resolved SNR annulus and aperture,
- * filter FWHMs, and the resolved signal separation, PA, exclusion radius, and x/y coordinates. Set
+ * filter FWHMs, optional per-pixel PSF provenance, and the resolved signal separation, PA, exclusion radius, and x/y
+ * coordinates. Set
  * `diagnostics=true` or pass `--diagnostics` to print the resolved annulus, filters, signal coordinates,
  * invalid-pixel counts, and SNR measurements to standard error.
  *

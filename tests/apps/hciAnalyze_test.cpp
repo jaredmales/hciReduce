@@ -25,12 +25,15 @@ struct appHarness : public hciAnalyze
     using hciAnalyze::checkConfig;
     using hciAnalyze::config;
     using hciAnalyze::filterCube;
+    using hciAnalyze::filterCubePerPixelPSF;
     using hciAnalyze::loadConfig;
     using hciAnalyze::m_fakeContrast;
     using hciAnalyze::m_fakePositionAngle;
     using hciAnalyze::m_fakeSeparation;
     using hciAnalyze::m_fakeSpecified;
     using hciAnalyze::m_file;
+    using hciAnalyze::m_perPixelPSF;
+    using hciAnalyze::m_perPixelPSFMinimumSupport;
     using hciAnalyze::m_planetPositionAngle;
     using hciAnalyze::m_planetRadius;
     using hciAnalyze::m_planetSeparation;
@@ -64,6 +67,8 @@ TEST_CASE( "hciAnalyze PA coordinate convention", "[hciAnalyze][coordinates]" )
 TEST_CASE( "hciAnalyze configuration validation", "[hciAnalyze][config][validation]" )
 {
     appHarness application;
+    application.setupConfig();
+    REQUIRE( application.config.m_targets.count( "filter.perPixelPSF" ) == 1 );
     application.m_file = "input.fits";
     application.m_planetSeparation = { 3 };
     application.m_planetPositionAngle = { 0, 90 };
@@ -212,6 +217,79 @@ TEST_CASE( "hciAnalyze Gaussian filtering", "[hciAnalyze][filter]" )
     application.filterCube( cube, invalidMask, 0, 2 );
     REQUIRE( cube.image( 0 )( 7, 6 ) == Approx( 1 ) );
     REQUIRE( cube.image( 0 )( 7, 7 ) == 0 );
+}
+
+/// Verify hciAnalyze loads a complete P4 response field and applies its normalized per-pixel filters.
+/** \ingroup hciAnalyze_unit_tests */
+TEST_CASE( "hciAnalyze external per-pixel P4 PSF filtering", "[hciAnalyze][filter][p4PSF]" )
+{
+    TestDirectory directory;
+    const std::filesystem::path manifestPath = directory.file( "field_manifest.fits" );
+
+    hciAnalyze::fitsHeaderT manifestHeader;
+    REQUIRE( manifestHeader.append<int>( "P4 PSF PRODUCT SCHEMA", 2, "schema" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "P4 PSF PRODUCT", "MANIFEST", "role" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<int>( "P4 PSF COMPLETE", 1, "complete" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<int>( "P4 PSF MODE COUNT", 1, "modes" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "P4 PSF SOURCE COUNT", "1", "sources" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<int>( "P4 PSF STAMP SIZE", 3, "stamp" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<float>( "P4 PSF FILTER MIN GOOD FRACTION", 1, "support" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "P4 MODE FRACTIONS", "0.5", "modes" ) == mx::error_t::noerror );
+    hciAnalyze::imageT manifest( 1, 1 );
+    manifest( 0, 0 ) = 1;
+    writeFitsImage( manifestPath, manifest, &manifestHeader );
+
+    hciAnalyze::fitsHeaderT coordinateHeader;
+    REQUIRE( coordinateHeader.append<std::string>( "P4 PSF PRODUCT", "COORDINATES", "role" ) == mx::error_t::noerror );
+    hciAnalyze::imageT coordinates( 1, 4 );
+    coordinates << 4, 4, 0, 0;
+    writeFitsImage( directory.file( "field_coordinates.fits" ), coordinates, &coordinateHeader );
+
+    hciAnalyze::fitsHeaderT modelHeader;
+    REQUIRE( modelHeader.append<std::string>( "P4 PSF PRODUCT", "MODEL", "role" ) == mx::error_t::noerror );
+    REQUIRE( modelHeader.append<int>( "P4 PSF MODE INDEX", 0, "mode" ) == mx::error_t::noerror );
+    hciAnalyze::cubeT models( 3, 3, 1 );
+    models.setZero();
+    models.image( 0 )( 1, 1 ) = 2;
+    writeFitsCube( directory.file( "field_model_0000.fits" ), models, &modelHeader );
+
+    hciAnalyze::fitsHeaderT validityHeader;
+    REQUIRE( validityHeader.append<std::string>( "P4 PSF PRODUCT", "VALIDITY", "role" ) == mx::error_t::noerror );
+    REQUIRE( validityHeader.append<int>( "P4 PSF MODE INDEX", 0, "mode" ) == mx::error_t::noerror );
+    hciAnalyze::imageT validity( 1, 1 );
+    validity( 0, 0 ) = 1;
+    writeFitsImage( directory.file( "field_validity_0000.fits" ), validity, &validityHeader );
+
+    appHarness application;
+    application.m_perPixelPSF = manifestPath.string();
+    hciAnalyze::cubeT science( 9, 9, 1 );
+    science.setZero();
+    science.image( 0 )( 4, 4 ) = 6;
+    hciAnalyze::fitsHeaderT scienceHeader;
+    REQUIRE( scienceHeader.append<std::string>( "P4 MODE FRACTIONS", "0.5", "modes" ) == mx::error_t::noerror );
+
+    application.filterCubePerPixelPSF( science, scienceHeader );
+    REQUIRE( science.image( 0 )( 4, 4 ) == Approx( 3 ) );
+    REQUIRE( std::isnan( science.image( 0 )( 0, 0 ) ) );
+    REQUIRE( application.m_perPixelPSFMinimumSupport == Approx( 1 ) );
+
+    hciAnalyze::fitsHeaderT mismatchedHeader;
+    REQUIRE( mismatchedHeader.append<std::string>( "P4 MODE FRACTIONS", "0.6", "modes" ) == mx::error_t::noerror );
+    hciAnalyze::cubeT mismatchedScience( 9, 9, 1 );
+    mismatchedScience.setZero();
+    REQUIRE_THROWS( application.filterCubePerPixelPSF( mismatchedScience, mismatchedHeader ) );
+
+    manifest( 0, 0 ) = 0;
+    writeFitsImage( manifestPath, manifest, &manifestHeader );
+    hciAnalyze::cubeT rejectedScience( 9, 9, 1 );
+    rejectedScience.setZero();
+    REQUIRE_THROWS( application.filterCubePerPixelPSF( rejectedScience, scienceHeader ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4PSFFilter::calculate( {}, {}, {}, 0, 0, 1 );
+#endif
+    // clang-format on
 }
 
 /// Verify hciAnalyze reports the maximum inside snr.apertureR while excluding invalid input pixels.

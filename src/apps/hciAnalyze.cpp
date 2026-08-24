@@ -4,7 +4,10 @@
  */
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <cstdint>
+#include <cstddef>
 #include <cstdlib>
 #include <filesystem>
 #include <format>
@@ -12,6 +15,7 @@
 #include <limits>
 #include <numbers>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -23,6 +27,8 @@
 #include <mx/improc/imageUtils.hpp>
 #include <mx/ioutils/fits/fitsFile.hpp>
 #include <mx/ioutils/stringUtils.hpp>
+
+#include "src/common/P4PSFFilter.hpp"
 
 /// One configured or header-derived signal to measure.
 struct hciAnalyzeSignal
@@ -74,6 +80,8 @@ class hciAnalyze : public mx::app::application
 
     realT m_highPassFwhm{ 0 };                ///< Gaussian high-pass unsharp-mask FWHM in pixels.
     realT m_lowPassFwhm{ 0 };                 ///< Gaussian low-pass smoothing FWHM in pixels.
+    std::string m_perPixelPSF;                ///< P4 PSF manifest supplying the spatially variable filter field.
+    realT m_perPixelPSFMinimumSupport{ 1 };   ///< Minimum usable response-stamp fraction read from the manifest.
     bool m_diagnostics{ false };              ///< Whether to print resolved measurement diagnostics to standard error.
 
     bool m_planetSpecified{ false };          ///< True when any explicit planet target was supplied.
@@ -135,6 +143,10 @@ class hciAnalyze : public mx::app::application
                      const cubeT &invalidMask, /**< [in] non-zero marks samples excluded from every kernel */
                      realT highPassFwhm,       /**< [in] high-pass FWHM, non-positive disables */
                      realT lowPassFwhm /**< [in] low-pass FWHM, non-positive disables */ ) const;
+
+    /// Apply an externally generated spatially variable P4 PSF field to every matching cube plane.
+    void filterCubePerPixelPSF( cubeT &cube, /**< [in,out] science cube replaced by matched-filter amplitudes */
+                                fitsHeaderT &scienceHeader /**< [in] science header supplying mode labels */ );
 
     /// Measure all resolved signals in an already-read FITS cube.
     void analyzeCube( cubeT &cube, /**< [in,out] input image cube, replaced with zeroed-invalid pixels */
@@ -280,6 +292,15 @@ void hciAnalyze::setupConfig()
                 false,
                 "float",
                 "Gaussian low-pass smoothing FWHM in pixels; non-positive disables" );
+    config.add( "filter.perPixelPSF",
+                "",
+                "filter.perPixelPSF",
+                mx::app::argType::Required,
+                "filter",
+                "perPixelPSF",
+                false,
+                "string",
+                "complete P4 per-pixel PSF manifest used for spatially variable matched filtering" );
     config.add( "diagnostics",
                 "d",
                 "diagnostics",
@@ -306,6 +327,7 @@ void hciAnalyze::loadConfig()
     config( m_snrApertureRadius, "snr.apertureR" );
     config( m_highPassFwhm, "filter.hpfGaussFW" );
     config( m_lowPassFwhm, "filter.lpfGaussFW" );
+    config( m_perPixelPSF, "filter.perPixelPSF" );
     config( m_diagnostics, "diagnostics" );
 
     m_planetSpecified =
@@ -624,9 +646,228 @@ void hciAnalyze::filterCube( cubeT &cube, const cubeT &invalidMask, realT highPa
     }
 }
 
+void hciAnalyze::filterCubePerPixelPSF( cubeT &cube, fitsHeaderT &scienceHeader )
+{
+    const std::filesystem::path manifestPath{ m_perPixelPSF };
+    const std::string manifestName = manifestPath.filename().string();
+    constexpr std::string_view manifestSuffix{ "manifest.fits" };
+    if( !manifestName.ends_with( manifestSuffix ) )
+    {
+        throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                              "filter.perPixelPSF must name a P4 PSF manifest.fits product" );
+    }
+    const std::string productPrefix =
+        ( manifestPath.parent_path() / manifestName.substr( 0, manifestName.size() - manifestSuffix.size() ) ).string();
+
+    mx::fits::fitsFile<realT, mx::verbose::vv> reader;
+    imageT manifest;
+    fitsHeaderT manifestHeader;
+    mx::error_t readResult = reader.read( manifest, manifestHeader, manifestPath.string() );
+    if( readResult != mx::error_t::noerror )
+    {
+        throw mx::exception<mx::verbose::vv>( readResult, "reading per-pixel PSF manifest " + m_perPixelPSF );
+    }
+    const auto requireHeader = [&manifestHeader]( const std::string &keyword )
+    {
+        if( manifestHeader.count( keyword ) == 0 )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "per-pixel PSF manifest is missing " + keyword );
+        }
+    };
+    for( const std::string &keyword : { "P4 PSF PRODUCT SCHEMA",
+                                        "P4 PSF PRODUCT",
+                                        "P4 PSF COMPLETE",
+                                        "P4 PSF MODE COUNT",
+                                        "P4 PSF SOURCE COUNT",
+                                        "P4 PSF STAMP SIZE",
+                                        "P4 PSF FILTER MIN GOOD FRACTION" } )
+    {
+        requireHeader( keyword );
+    }
+    if( manifest.rows() != 1 || manifest.cols() != 1 || manifest( 0, 0 ) != 1 ||
+        !manifestHeader["P4 PSF PRODUCT"].String().starts_with( "MANIFEST" ) ||
+        manifestHeader["P4 PSF COMPLETE"].value<int>() != 1 )
+    {
+        throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                              "filter.perPixelPSF does not name a complete P4 PSF manifest" );
+    }
+    const int schema = manifestHeader["P4 PSF PRODUCT SCHEMA"].value<int>();
+    const int modeCount = manifestHeader["P4 PSF MODE COUNT"].value<int>();
+    const int stampSize = manifestHeader["P4 PSF STAMP SIZE"].value<int>();
+    m_perPixelPSFMinimumSupport = manifestHeader["P4 PSF FILTER MIN GOOD FRACTION"].value<realT>();
+    if( schema < 1 || modeCount <= 0 || modeCount != cube.planes() || stampSize <= 0 || stampSize % 2 == 0 ||
+        !std::isfinite( m_perPixelPSFMinimumSupport ) || m_perPixelPSFMinimumSupport < 0 ||
+        m_perPixelPSFMinimumSupport > 1 )
+    {
+        throw mx::exception<mx::verbose::vv>(
+            mx::error_t::invalidconfig,
+            "per-pixel PSF schema, mode count, odd stamp size, or minimum support is incompatible with the input" );
+    }
+
+    const std::vector<realT> scienceModes =
+        scienceHeader.count( "NMODES" )              ? headerVector( scienceHeader, "NMODES" )
+        : scienceHeader.count( "FRACT NMODES" )      ? headerVector( scienceHeader, "FRACT NMODES" )
+        : scienceHeader.count( "P4 MODE FRACTIONS" ) ? headerVector( scienceHeader, "P4 MODE FRACTIONS" )
+                                                     : headerVector( scienceHeader, "P4MODFR" );
+    const std::vector<realT> responseModes = manifestHeader.count( "P4 MODE FRACTIONS" )
+                                                 ? headerVector( manifestHeader, "P4 MODE FRACTIONS" )
+                                                 : headerVector( manifestHeader, "P4MODFR" );
+    if( scienceModes.size() != static_cast<std::size_t>( modeCount ) || responseModes.size() != scienceModes.size() )
+    {
+        throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                              "science and per-pixel PSF products require matching mode labels" );
+    }
+    for( int mode = 0; mode < modeCount; ++mode )
+    {
+        const realT scale = std::max( { realT{ 1 }, std::abs( scienceModes[mode] ), std::abs( responseModes[mode] ) } );
+        if( !std::isfinite( scienceModes[mode] ) || !std::isfinite( responseModes[mode] ) ||
+            std::abs( scienceModes[mode] - responseModes[mode] ) > 8 * std::numeric_limits<realT>::epsilon() * scale )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "science and per-pixel PSF mode labels differ at plane " +
+                                                      std::to_string( mode ) );
+        }
+    }
+
+    imageT coordinates;
+    fitsHeaderT coordinateHeader;
+    const std::string coordinatePath = productPrefix + "coordinates.fits";
+    readResult = reader.read( coordinates, coordinateHeader, coordinatePath );
+    if( readResult != mx::error_t::noerror )
+    {
+        throw mx::exception<mx::verbose::vv>( readResult, "reading per-pixel PSF coordinates " + coordinatePath );
+    }
+    if( coordinates.rows() <= 0 || coordinates.cols() != 4 || coordinateHeader.count( "P4 PSF PRODUCT" ) == 0 ||
+        !coordinateHeader["P4 PSF PRODUCT"].String().starts_with( "COORDINATES" ) )
+    {
+        throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                              "per-pixel PSF coordinates have an invalid role or shape" );
+    }
+    const std::string sourceCountString = manifestHeader["P4 PSF SOURCE COUNT"].String();
+    std::size_t parsedCharacters{ 0 };
+    std::size_t sourceCount{ 0 };
+    try
+    {
+        sourceCount = std::stoull( sourceCountString, &parsedCharacters );
+    }
+    catch( const std::exception & )
+    {
+        throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                              "per-pixel PSF manifest source count is not an integer" );
+    }
+    const bool trailingCharactersAreWhitespace =
+        std::all_of( sourceCountString.begin() + static_cast<std::ptrdiff_t>( parsedCharacters ),
+                     sourceCountString.end(),
+                     []( unsigned char character ) { return std::isspace( character ) != 0; } );
+    if( !trailingCharactersAreWhitespace || sourceCount != static_cast<std::size_t>( coordinates.rows() ) )
+    {
+        throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                              "per-pixel PSF source count '" + sourceCountString + "' does not match " +
+                                                  std::to_string( coordinates.rows() ) + " coordinate rows" );
+    }
+
+    std::vector<std::pair<int, int>> sourceCoordinates( sourceCount );
+    std::vector<std::uint8_t> coordinateOwners( static_cast<std::size_t>( cube.rows() ) * cube.cols(), 0 );
+    for( std::size_t source = 0; source < sourceCount; ++source )
+    {
+        const realT rowValue = coordinates( static_cast<Eigen::Index>( source ), 0 );
+        const realT columnValue = coordinates( static_cast<Eigen::Index>( source ), 1 );
+        if( !std::isfinite( rowValue ) || !std::isfinite( columnValue ) || rowValue != std::trunc( rowValue ) ||
+            columnValue != std::trunc( columnValue ) || rowValue < 0 || rowValue >= cube.rows() || columnValue < 0 ||
+            columnValue >= cube.cols() )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "per-pixel PSF source coordinate is not a valid image pixel" );
+        }
+        const int row = static_cast<int>( rowValue );
+        const int column = static_cast<int>( columnValue );
+        const std::size_t owner = static_cast<std::size_t>( row ) + static_cast<std::size_t>( cube.rows() ) * column;
+        if( coordinateOwners[owner] != 0 )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "per-pixel PSF coordinate product contains duplicate pixels" );
+        }
+        coordinateOwners[owner] = 1;
+        sourceCoordinates[source] = { row, column };
+    }
+
+    cubeT filtered( cube.rows(), cube.cols(), cube.planes() );
+    filtered.cube().setConstant( std::numeric_limits<realT>::quiet_NaN() );
+    for( int mode = 0; mode < modeCount; ++mode )
+    {
+        const std::string modeIndex = std::format( "{:04d}", mode );
+        const std::string modelPath = productPrefix + "model_" + modeIndex + ".fits";
+        const std::string validityPath = productPrefix + "validity_" + modeIndex + ".fits";
+        cubeT models;
+        imageT sourceValidity;
+        fitsHeaderT modelHeader;
+        fitsHeaderT validityHeader;
+        readResult = reader.read( models, modelHeader, modelPath );
+        if( readResult != mx::error_t::noerror )
+        {
+            throw mx::exception<mx::verbose::vv>( readResult, "reading per-pixel PSF model " + modelPath );
+        }
+        readResult = reader.read( sourceValidity, validityHeader, validityPath );
+        if( readResult != mx::error_t::noerror )
+        {
+            throw mx::exception<mx::verbose::vv>( readResult, "reading per-pixel PSF validity " + validityPath );
+        }
+        if( models.rows() != stampSize || models.cols() != stampSize ||
+            models.planes() != static_cast<int>( sourceCount ) || sourceValidity.rows() != coordinates.rows() ||
+            sourceValidity.cols() != 1 || modelHeader.count( "P4 PSF PRODUCT" ) == 0 ||
+            validityHeader.count( "P4 PSF PRODUCT" ) == 0 ||
+            !modelHeader["P4 PSF PRODUCT"].String().starts_with( "MODEL" ) ||
+            !validityHeader["P4 PSF PRODUCT"].String().starts_with( "VALIDITY" ) ||
+            modelHeader.count( "P4 PSF MODE INDEX" ) == 0 || validityHeader.count( "P4 PSF MODE INDEX" ) == 0 ||
+            modelHeader["P4 PSF MODE INDEX"].value<int>() != mode ||
+            validityHeader["P4 PSF MODE INDEX"].value<int>() != mode )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "per-pixel PSF model or validity product is inconsistent" );
+        }
+
+        for( std::size_t source = 0; source < sourceCount; ++source )
+        {
+            if( !std::isfinite( sourceValidity( static_cast<Eigen::Index>( source ), 0 ) ) ||
+                sourceValidity( static_cast<Eigen::Index>( source ), 0 ) <= 0 )
+            {
+                continue;
+            }
+            mx::improc::P4PSFFilter::validityT responseValidity( stampSize, stampSize );
+            for( int column = 0; column < stampSize; ++column )
+            {
+                for( int row = 0; row < stampSize; ++row )
+                {
+                    responseValidity( row, column ) =
+                        std::isfinite( models.image( static_cast<int>( source ) )( row, column ) ) ? 1 : 0;
+                }
+            }
+            const auto [sourceRow, sourceColumn] = sourceCoordinates[source];
+            const mx::improc::P4PSFFilterResult result =
+                mx::improc::P4PSFFilter::calculate( cube.image( mode ),
+                                                    models.image( static_cast<int>( source ) ),
+                                                    responseValidity,
+                                                    sourceRow,
+                                                    sourceColumn,
+                                                    m_perPixelPSFMinimumSupport );
+            if( result.valid && std::isfinite( result.amplitude ) &&
+                std::abs( result.amplitude ) <= std::numeric_limits<realT>::max() )
+            {
+                filtered.image( mode )( sourceRow, sourceColumn ) = static_cast<realT>( result.amplitude );
+            }
+        }
+    }
+    cube = std::move( filtered );
+}
+
 void hciAnalyze::analyzeCube( cubeT &cube, fitsHeaderT &header )
 {
     const auto [minRadius, maxRadius] = snrAnnulus( header );
+    if( !m_perPixelPSF.empty() )
+    {
+        filterCubePerPixelPSF( cube, header );
+    }
     cubeT invalidMask;
     mx::improc::zeroNaNCube( cube, &invalidMask );
     filterCube( cube, invalidMask, m_highPassFwhm, m_lowPassFwhm );
@@ -723,7 +964,8 @@ void hciAnalyze::printDiagnostics( realT minRadius, realT maxRadius, const cubeT
               << "  SNR annulus: " << minRadius << " to " << maxRadius << " pixels\n"
               << "  aperture radius: " << m_snrApertureRadius << " pixels\n"
               << "  high-pass FWHM: " << m_highPassFwhm << " pixels\n"
-              << "  low-pass FWHM: " << m_lowPassFwhm << " pixels\n";
+              << "  low-pass FWHM: " << m_lowPassFwhm << " pixels\n"
+              << "  per-pixel PSF manifest: " << ( m_perPixelPSF.empty() ? "disabled" : m_perPixelPSF ) << '\n';
     for( size_t signalIndex = 0; signalIndex < m_signals.size(); ++signalIndex )
     {
         const hciAnalyzeSignal &signal = m_signals[signalIndex];
@@ -794,6 +1036,8 @@ hciAnalyze::writeSNRMap( const cubeT &snrCube, fitsHeaderT &header, realT minRad
     addHeader( "SNRAPER", m_snrApertureRadius, "SNR aperture radius [pix]" );
     addHeader( "HPFGFW", m_highPassFwhm, "high-pass Gaussian FWHM [pix]" );
     addHeader( "LPFGFW", m_lowPassFwhm, "low-pass Gaussian FWHM [pix]" );
+    addHeader( "HCIAPSF", m_perPixelPSF, "per-pixel PSF manifest" );
+    addHeader( "HCIAPSM", m_perPixelPSFMinimumSupport, "per-pixel PSF minimum support" );
     addHeader( "HCISEPS", signalValues( &hciAnalyzeSignal::m_separation ), "signal separations [pix]" );
     addHeader( "HCIPAS", signalValues( &hciAnalyzeSignal::m_positionAngle ), "signal PAs [deg E of N]" );
     addHeader( "HCIRADS", signalValues( &hciAnalyzeSignal::m_exclusionRadius ), "signal exclusion radii [pix]" );

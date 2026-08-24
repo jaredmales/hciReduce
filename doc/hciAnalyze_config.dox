@@ -37,14 +37,23 @@
  * | `--snr.apertureR` | `snr.apertureR=pixels` | positive real | `2` | Radius of the aperture used to extract the reported `snr` value. |
  * | `--filter.hpfGaussFW` | `filter.hpfGaussFW=pixels` | finite real | `0` | High-pass Gaussian unsharp-mask FWHM; non-positive disables it. |
  * | `--filter.lpfGaussFW` | `filter.lpfGaussFW=pixels` | finite real | `0` | Low-pass Gaussian smoothing FWHM; non-positive disables it. |
+ * | `--filter.perPixelPSF` | `filter.perPixelPSF=/path/p4PSF_manifest.fits` | complete P4 PSF manifest FITS path | unset | Apply the manifest's coordinate-indexed signed response field to the input cube before SNR calculation. This permits a response field measured from a signal-subtracted P4 reduction to filter the corresponding unsubtracted science product. |
  * | `-d`, `--diagnostics` | `diagnostics=true` | bool | `false` | Print resolved geometry, filters, invalid-pixel counts, and SNR values to standard error. |
  *
- * When both filters are enabled, high-pass filtering runs before low-pass smoothing. At image edges and beside invalid
- * input samples, the filters use partial valid in-bounds Gaussian kernels and renormalize by their retained weights.
+ * `filter.perPixelPSF` must name the `*_manifest.fits` file from a P4 run with `p4.outputPSFModels=true`.
+ * hciAnalyze locates the sibling `coordinates`, `model_NNNN`, and `validity_NNNN` files from the manifest prefix. It
+ * rejects incomplete sets and mismatched image planes, mode fractions, stamp geometry, coordinates, or product roles.
+ * Filtering uses the recorded `P4 PSF FILTER MIN GOOD FRACTION` and the same signed normalized estimator as P4:
+ * `sum(H*I)/sum(H*H)`. Pixels without a valid response remain excluded from the SNR calculation.
+ *
+ * Per-pixel PSF filtering runs first, followed by high-pass filtering and then low-pass smoothing when those Gaussian
+ * filters are also enabled. At image edges and beside invalid input samples, the Gaussian filters use partial valid
+ * in-bounds kernels and renormalize by their retained weights.
  * The reported `snr` is the aperture maximum inside `snr.apertureR`; `planet.R` or `fake.R` only excludes the signal
  * from the noise estimate.
  * hciAnalyze always writes or replaces the full SNR cube beside the input as `<input-stem>_snr<input-extension>`.
- * Its header records the resolved signal geometry, the resolved SNR annulus and aperture, and both filter FWHMs.
+ * Its header records the resolved signal geometry, the resolved SNR annulus and aperture, both filter FWHMs, and the
+ * per-pixel PSF manifest and minimum support when configured.
  *
  * @}
  */
