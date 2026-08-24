@@ -175,6 +175,19 @@ std::size_t P4PSFModel::storageBytes() const noexcept
     return static_cast<std::size_t>( m_shiftedTemplate.size() ) * sizeof( float );
 }
 
+float P4PSFModel::sampleTemplate( double deltaRow, double deltaColumn ) const
+{
+    if( !mx::math::isFinite( deltaRow ) || !mx::math::isFinite( deltaColumn ) )
+    {
+        throw std::invalid_argument( "P4 PSF detector offsets must be finite" );
+    }
+    const double stampCenterRow = 0.5 * static_cast<double>( m_stampRows - 1 );
+    const double stampCenterColumn = 0.5 * static_cast<double>( m_stampColumns - 1 );
+    return p4PSFSample( m_shiftedTemplate,
+                        stampCenterRow + deltaRow - static_cast<double>( m_minimumRowIndex ),
+                        stampCenterColumn + deltaColumn - static_cast<double>( m_minimumColumnIndex ) );
+}
+
 float P4PSFModel::shiftedTemplateValue( std::int64_t rowIndex, std::int64_t columnIndex ) const noexcept
 {
     const std::int64_t storedRow = rowIndex - m_minimumRowIndex;
@@ -192,6 +205,27 @@ void P4PSFModel::calculateLocalResponse( imageT &output,
                                          std::size_t searchIndex,
                                          const Eigen::Ref<const coefficientT> &coefficients ) const
 {
+    imageT components;
+    calculateLocalResponseComponents( components, grid, searchIndex, {}, 0, coefficients );
+    output.resize( m_stampRows, m_stampColumns );
+    for( int stampColumn = 0; stampColumn < m_stampColumns; ++stampColumn )
+    {
+        for( int stampRow = 0; stampRow < m_stampRows; ++stampRow )
+        {
+            const Eigen::Index stampPixel =
+                static_cast<Eigen::Index>( stampRow ) + static_cast<Eigen::Index>( m_stampRows ) * stampColumn;
+            output( stampRow, stampColumn ) = components( stampPixel, 0 );
+        }
+    }
+}
+
+void P4PSFModel::calculateLocalResponseComponents( imageT &output,
+                                                   const gridT &grid,
+                                                   std::size_t searchIndex,
+                                                   const std::vector<P4PixelCoordinate> &temporalOffsets,
+                                                   std::size_t temporalImageCount,
+                                                   const Eigen::Ref<const coefficientT> &coefficients ) const
+{
     if( !grid.regionConfigured() )
     {
         throw std::invalid_argument( "P4 PSF calculation requires a complete detector-frame pixel grid" );
@@ -201,9 +235,25 @@ void P4PSFModel::calculateLocalResponse( imageT &output,
     {
         throw std::invalid_argument( "P4 PSF calculation requires a valid local fit" );
     }
-    if( coefficients.rows() != static_cast<Eigen::Index>( grid.predictorCount() ) )
+    if( temporalImageCount != 0 && temporalOffsets.empty() )
     {
-        throw std::invalid_argument( "P4 PSF coefficient count must match the pixel-grid predictor count" );
+        throw std::invalid_argument( "P4 temporal PSF calculation requires predictor offsets" );
+    }
+    if( temporalImageCount != 0 &&
+        temporalImageCount > std::numeric_limits<std::size_t>::max() / temporalOffsets.size() )
+    {
+        throw std::length_error( "P4 temporal PSF predictor count overflows size_t" );
+    }
+    const std::size_t temporalPredictorCount = temporalImageCount * temporalOffsets.size();
+    if( grid.predictorCount() > std::numeric_limits<std::size_t>::max() - temporalPredictorCount )
+    {
+        throw std::length_error( "P4 PSF predictor count overflows size_t" );
+    }
+    const std::size_t predictorCount = grid.predictorCount() + temporalPredictorCount;
+    if( predictorCount > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) ||
+        coefficients.rows() != static_cast<Eigen::Index>( predictorCount ) )
+    {
+        throw std::invalid_argument( "P4 PSF coefficient count must match same-image and temporal predictors" );
     }
     if( !p4PSFAllFinite( coefficients ) )
     {
@@ -211,7 +261,14 @@ void P4PSFModel::calculateLocalResponse( imageT &output,
     }
 
     const P4PixelCoordinate &target = search.coordinate();
-    output.resize( m_stampRows, m_stampColumns );
+    const Eigen::Index stampPixels =
+        static_cast<Eigen::Index>( m_stampRows ) * static_cast<Eigen::Index>( m_stampColumns );
+    if( temporalImageCount == std::numeric_limits<std::size_t>::max() ||
+        temporalImageCount + 1 > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) )
+    {
+        throw std::length_error( "P4 PSF temporal component count exceeds Eigen range" );
+    }
+    output.resize( stampPixels, static_cast<Eigen::Index>( temporalImageCount + 1 ) );
     for( int stampColumn = 0; stampColumn < m_stampColumns; ++stampColumn )
     {
         for( int stampRow = 0; stampRow < m_stampRows; ++stampRow )
@@ -234,7 +291,8 @@ void P4PSFModel::calculateLocalResponse( imageT &output,
                             shiftedTemplateValue( rowIndex, columnIndex ) * record.kernel()( rowOffset, columnOffset );
                     }
                 }
-                residual -= coefficients( predictor ) * static_cast<double>( predictorSample );
+                residual -=
+                    coefficients( static_cast<Eigen::Index>( predictor ) ) * static_cast<double>( predictorSample );
             }
 
             if( !mx::math::isFinite( residual ) )
@@ -246,7 +304,33 @@ void P4PSFModel::calculateLocalResponse( imageT &output,
             {
                 throw std::overflow_error( "P4 local PSF value exceeds float storage range" );
             }
-            output( stampRow, stampColumn ) = stored;
+            const Eigen::Index stampPixel =
+                static_cast<Eigen::Index>( stampRow ) + static_cast<Eigen::Index>( m_stampRows ) * stampColumn;
+            output( stampPixel, 0 ) = stored;
+
+            for( std::size_t temporalImage = 0; temporalImage < temporalImageCount; ++temporalImage )
+            {
+                double temporalResponse{ 0 };
+                for( std::size_t predictor = 0; predictor < temporalOffsets.size(); ++predictor )
+                {
+                    const P4PixelCoordinate &offset = temporalOffsets[predictor];
+                    const std::size_t coefficientIndex =
+                        grid.predictorCount() + temporalImage * temporalOffsets.size() + predictor;
+                    temporalResponse -= coefficients( static_cast<Eigen::Index>( coefficientIndex ) ) *
+                                        static_cast<double>( shiftedTemplateValue( stampRow + offset.row(),
+                                                                                   stampColumn + offset.column() ) );
+                }
+                if( !mx::math::isFinite( temporalResponse ) )
+                {
+                    throw std::runtime_error( "P4 temporal PSF component calculation produced a nonfinite value" );
+                }
+                const float temporalStored = static_cast<float>( temporalResponse );
+                if( !mx::math::isFinite( temporalStored ) )
+                {
+                    throw std::overflow_error( "P4 temporal PSF component exceeds float storage range" );
+                }
+                output( stampPixel, static_cast<Eigen::Index>( temporalImage + 1 ) ) = temporalStored;
+            }
         }
     }
 }

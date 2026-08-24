@@ -114,9 +114,12 @@ later images. The selected image identities vary with the central target row, in
 A sky-stationary source occupies a different detector coordinate in each selected image. Consequently, one
 frame-independent stamp per detector search pixel is not sufficient.
 
-The bounded extension should retain the compact `beta` vectors for that annulus, synthesize one target frame's local
-responses at a time using `m_temporalSelections`, derotate/accumulate them, and release the frame scratch. It must not
-allocate `search pixels * target frames * modes * stamp pixels` by default.
+The implemented bounded factorization retains one same-image response stamp plus the temporal PSF-disk coefficients
+for each selection slot. During reconstruction, the coefficients are evaluated against the full prepared template at
+the source detector position in the exact physical image named by `m_temporalSelections`. This avoids truncating a
+temporal contribution when field rotation carries its source outside the compact same-image stamp. A target frame
+missing from an annulus's qualifying selection is invalid for that annulus rather than treated as a zero response.
+The representation never allocates `search pixels * target frames * modes * stamp pixels`.
 
 ### Output-pixel reconstruction needs an exact oracle
 
@@ -153,15 +156,16 @@ Potential retained representations have leading sizes:
 
 ```text
 all coefficients:                 8 * S * K * M bytes
-frame-independent local stamps:   4 * S * M * A bytes
+same-image stamps + temporal beta: 4 * S * M * (A + 2N * P) bytes
 all frame-dependent stamps:       4 * S * T * M * A bytes  (prohibited by default)
-one-frame stamp scratch:          4 * S * M * A bytes
+one-frame stamp scratch:          bounded per reconstruction worker
 one final compact PSF mode:       4 * S * A bytes
 ```
 
-For the measured 2,828-pixel, 11-mode geometry and a 10-by-10 stamp, frame-independent stamps occupy about 11.9 MiB,
-while 8,182-frame stamps would occupy about 95 GiB. If `K=800`, all-double coefficients occupy about 190 MiB. These
-terms must be added to the existing compact-residual and worker estimates before enabling the feature.
+Here `P` is the number of pixels in the temporal PSF disk. For the measured 2,828-pixel, 11-mode geometry and a
+10-by-10 stamp, the `numberImages=0` stamp store occupies about 11.9 MiB. Positive `numberImages` adds only `2N * P`
+floats per pixel/mode, while retaining all 8,182 frame-dependent stamps would occupy about 95 GiB. The coefficient
+store and bounded reconstruction scratch are included in the P4 memory estimates.
 
 ### AF Lep/NACO test reference
 
@@ -187,9 +191,10 @@ estimated 1.995 MiB per worker and reached 311,732 KiB maximum RSS. On this smal
 0.40 seconds of wall time; its 6.11 aggregate worker seconds were 91.6% of the regression worker total. Both the
 enabled and disabled runs completed successfully after rebuilding the application against the changed library ABI.
 
-This result does not justify temporary products for the frame-independent local state: the retained model is tiny
-relative to the science cube and materialization. Final-field reconstruction and the temporal-image extension still
-need their own peak-memory measurements before the no-temporary-file decision can be generalized.
+This result does not justify temporary products for the local state: the retained model is tiny relative to the
+science cube and materialization. The temporal-image extension increases this state by the bounded temporal
+coefficient count, not the frame count; a remote peak-memory measurement remains useful validation for large
+`numberImages` values.
 
 After enforcing phase parity and rotation-safe support, the same local run used 26-by-26 internal response stamps.
 It retained 0.743 MiB of local responses, estimated 2.036 MiB per worker, and reached 312,284 KiB maximum RSS versus
@@ -315,16 +320,19 @@ directory.
 
 ### 6. Support `p4.numberImages>0` without frame-count storage
 
-- [ ] Retain or stream the supported `beta` vectors for one annulus instead of a frame-independent local stamp.
-- [ ] For each retained central target row, use its exact `m_temporalSelections` entry and predictor-column ordering to
+- [x] Retain one same-image response stamp plus the temporal PSF-disk coefficients while the supported coefficients
+  are resident; use the full template for selected-image evaluation so large rotations are not stamp-truncated.
+- [x] For each retained central target row, use its exact `m_temporalSelections` entry and predictor-column ordering to
   evaluate the source in the central and selected neighboring detector images. Include one-sided endpoint selection
-  and the annulus's realized temporal exclusion radius.
-- [ ] Accumulate one target frame directly into bounded final-PSF tiles, then release its response scratch. Never
-  allocate `S * T * M * A` stamps.
-- [ ] Compare against a direct frozen-model cube containing a rotating unit source for `numberImages=1` and a larger
-  `N`, including beginning/end targets and non-monotonic angle sequences.
-- [ ] Recalculate worker and retained-memory estimates for coefficient storage; allow writing/reloading coefficient
-  blocks by annulus if that is smaller than retaining all regions.
+  and annulus-dependent target support.
+- [x] Reconstruct one target frame with bounded scratch and never allocate `S * T * M * A` stamps.
+- [x] Compare the temporal operator against direct frozen-model injection, including selected physical-image
+  positions, endpoint selections, and nonzero/non-monotonic angles; exercise the full product path with
+  `numberImages=1`.
+- [x] Recalculate worker and retained-memory estimates for the same-image stamp/temporal-coefficient store and final
+  reconstruction scratch.
+  Disk-backed coefficient blocks are unnecessary because neither coefficients nor frame-count response state are
+  retained.
 
 ### 7. Apply the configured combination approximation
 

@@ -16,6 +16,7 @@
 
 #include "HCI.hpp"
 #include "P4PixelGrid.hpp"
+#include "P4PSFModel.hpp"
 
 namespace mx
 {
@@ -47,6 +48,9 @@ class P4PSFReconstructor
 
     /// Bounded frame-stack storage used by the configured final estimator.
     using cubeT = eigenCube<float>;
+
+    /// Central and selected physical image indices by annulus and central target frame.
+    using temporalSelectionT = std::vector<std::vector<std::vector<int>>>;
 
     /// Construct and validate fixed detector, output-stamp, and local-stamp geometry.
     P4PSFReconstructor( int detectorRows,            /**< [in] positive detector row count */
@@ -117,6 +121,33 @@ class P4PSFReconstructor
                               float sigmaThreshold,              /**< [in] configured sigma threshold */
                               float minimumGoodFraction /**< [in] required valid-frame fraction in `[0,1]` */ ) const;
 
+    /// Reconstruct and combine a response whose compact coefficients use distinct selected temporal images.
+    /** `localModels` stores the same-image response for one output mode. Temporal predictor coefficients are retained
+     * separately and evaluated against the full prepared template at the source position in each selected image.
+     */
+    void reconstructCombinedTemporal(
+        imageT &output,                     /**< [out] combined response stamp */
+        validityT &outputValidity,          /**< [out] finite combined-sample validity */
+        const imageT &localModels,          /**< [in] search-major same-image response stamps */
+        const imageT &temporalCoefficients, /**< [in] global search columns and slot-major offset rows */
+        const std::vector<P4PixelCoordinate> &temporalOffsets,
+        /**< [in] temporal predictor offsets within each retained slot */
+        const P4PSFModel &psfModel,            /**< [in] prepared full-support source template */
+        const validityT &localValidity,        /**< [in] one validity column for the isolated output mode */
+        const searchIndexT &searchIndex,       /**< [in] detector-to-search-index lookup */
+        const std::vector<int> &searchRegions, /**< [in] owning annulus for every global search index */
+        const std::vector<std::size_t> &regionComponentCounts,
+        /**< [in] active component count for every annulus */
+        const temporalSelectionT &temporalSelections,
+        /**< [in] central and selected physical frames by annulus and target frame */
+        double sourceSkyRow,                         /**< [in] finite final-frame source-center row */
+        double sourceSkyColumn,                      /**< [in] finite final-frame source-center column */
+        const std::vector<double> &derotationAngles, /**< [in] finite image rotations in radians */
+        HCI::combine method,                         /**< [in] supported final estimator other than none */
+        const std::vector<float> &weights,           /**< [in] empty or one normalized weight per frame */
+        float sigmaThreshold,                        /**< [in] configured sigma threshold */
+        float minimumGoodFraction /**< [in] required valid-frame fraction in `[0,1]` */ ) const;
+
   private:
     /// Map one final-frame coordinate to its detector-frame coordinate.
     std::pair<double, double> inverseRotate( double row,    /**< [in] final-frame row */
@@ -129,6 +160,27 @@ class P4PSFReconstructor
                               Eigen::Index modelColumn,  /**< [in] selected search-pixel/mode column */
                               double deltaRow,           /**< [in] detector target-minus-source row offset */
                               double deltaColumn /**< [in] detector target-minus-source column offset */ ) const;
+
+    /// Reconstruct one frame from a compact same-image response and selected-image temporal coefficients.
+    void reconstructFrameComponents(
+        imageT &output,                     /**< [out] one reconstructed sky response stamp */
+        validityT &outputValidity,          /**< [out] per-stamp-element validity */
+        const imageT &localModels,          /**< [in] search-major same-image response stamps */
+        const imageT &temporalCoefficients, /**< [in] temporal coefficient columns for all search/mode pairs */
+        const std::vector<P4PixelCoordinate> &temporalOffsets,
+        /**< [in] temporal predictor offsets within every slot */
+        const P4PSFModel *psfModel,            /**< [in] prepared template, or null for same-image-only input */
+        const validityT &localValidity,        /**< [in] search-pixel/mode validity */
+        const searchIndexT &searchIndex,       /**< [in] detector-to-search-index lookup */
+        std::size_t modeIndex,                 /**< [in] zero-based mode in local validity */
+        const std::vector<int> &searchRegions, /**< [in] owning region for every search index */
+        const std::vector<std::size_t> &regionComponentCounts,
+        /**< [in] active components per region */
+        const std::vector<std::pair<double, double>> &regionSourceDetectors,
+        /**< [in] source detector coordinates in region-major/component-minor order */
+        double sourceSkyRow,    /**< [in] finite final-frame source-center row */
+        double sourceSkyColumn, /**< [in] finite final-frame source-center column */
+        double derotationAngle /**< [in] finite central-frame image rotation in radians */ ) const;
 
     int m_detectorRows{ 0 };            ///< Positive detector row count.
 

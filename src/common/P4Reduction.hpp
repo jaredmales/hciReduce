@@ -220,10 +220,16 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     ///< Per-annulus central and neighboring target-image indices used in detector-frame predictor rows.
 
     std::vector<imageT> m_localPSFModels;
-    ///< Compact local stamps by annulus; rows are column-major stamp pixels and columns are search-major modes.
+    ///< Compact same-image local responses by annulus; columns are search-major then mode-minor.
+
+    std::vector<imageT> m_localPSFTemporalCoefficients;
+    ///< Temporal predictor coefficients by annulus; rows are slot-major offsets and columns are search-major modes.
 
     std::vector<psfValidityT> m_localPSFValidity;
     ///< Rank and geometry validity by annulus, search pixel, and requested output mode.
+
+    std::vector<std::size_t> m_localPSFComponentCounts;
+    ///< Same-image plus realized temporal response-component count for every annulus.
 
     int m_localPSFRows{ 0 };       ///< Phase-matched, support-padded local response row count.
 
@@ -391,14 +397,18 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Return the exact retained byte count for one compact local-PSF annulus.
     static std::size_t localPSFBytes( std::size_t searchPixelCount, /**< [in] owned search-pixel count */
                                       std::size_t modeCount,        /**< [in] requested output-mode count */
-                                      int stampRows,                /**< [in] positive local-stamp row count */
+                                      std::size_t temporalPredictorCount,
+                                      /**< [in] retained temporal coefficients per pixel and mode */
+                                      int stampRows, /**< [in] positive local-stamp row count */
                                       int stampColumns /**< [in] positive local-stamp column count */ );
 
     /// Conservatively estimate peak scratch used to reconstruct and persist one final PSF mode.
     static std::size_t psfReconstructionBytes( std::size_t searchPixelCount, /**< [in] owned output positions */
                                                std::size_t targetImageCount, /**< [in] target-frame count */
-                                               int outputStampSize,          /**< [in] square final-stamp size */
-                                               int localStampRows,           /**< [in] support-padded local rows */
+                                               std::size_t temporalPredictorCount,
+                                               /**< [in] retained temporal coefficients per search pixel */
+                                               int outputStampSize, /**< [in] square final-stamp size */
+                                               int localStampRows,  /**< [in] support-padded local rows */
                                                int localStampColumns /**< [in] support-padded local columns */ );
 
     /// Return the exact retained byte count for the four full-frame PSF-filter products.
@@ -453,6 +463,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Reconstruct, optionally persist, and optionally filter the final-frame PSF field one mode at a time.
     void processPSFProducts(
         const std::vector<pixelGridT> &grids, /**< [in] retained detector-frame annulus geometry */
+        const P4PSFModel &psfModel,           /**< [in] prepared full-support source template */
         const std::string &finalImagePath,    /**< [in] resolved path supplying filter naming and provenance */
         const fitsHeaderT &finalHeader /**< [in] ADI and P4 cards mirrored from the ordinary final image */ );
 

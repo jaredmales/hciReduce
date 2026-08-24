@@ -291,6 +291,187 @@ TEST_CASE( "P4 compact sky reconstruction matches direct frozen injection", "[P4
     REQUIRE( validCount == static_cast<std::size_t>( outputSize * outputSize ) );
 }
 
+/// Verify temporal response components follow the selected physical image in every central frame.
+/** This exercises mx::improc::P4PSFModel::calculateLocalResponse(), mx::improc::P4PSFModel::sampleTemplate(), and
+ * mx::improc::P4PSFReconstructor::reconstructCombinedTemporal() against direct frozen-model detector cubes,
+ * including one-sided endpoint selections and rotations beyond the compact same-image stamp.
+ * \ingroup P4PSFReconstructor_unit_tests
+ */
+TEST_CASE( "P4 temporal compact reconstruction matches direct selected-image injection",
+           "[P4PSFReconstructor][temporal][oracle]" )
+{
+    constexpr int detectorRows = 43;
+    constexpr int detectorColumns = 45;
+    constexpr double centerRow = 21.0;
+    constexpr double centerColumn = 22.0;
+    constexpr int outputSize = 3;
+    constexpr int localRows = 19;
+    constexpr int localColumns = 20;
+    constexpr double sourceSkyRow = 21.0;
+    constexpr double sourceSkyColumn = 29.0;
+    const std::vector<double> angles{ 0.0, 1.6, -1.2, 2.4 };
+    const reconstructorT::temporalSelectionT selections{ {
+        { 0, 1, 2 },
+        { 1, 0, 2 },
+        { 2, 1, 3 },
+        { 3, 2, 1 },
+    } };
+    const std::vector<mx::improc::P4PixelCoordinate> temporalOffsets{ mx::improc::P4PixelCoordinate( -1, 0 ),
+                                                                      mx::improc::P4PixelCoordinate( 0, 0 ),
+                                                                      mx::improc::P4PixelCoordinate( 1, 0 ) };
+    constexpr std::size_t componentCount = 3;
+
+    gridT grid;
+    grid.resize( detectorRows, detectorColumns, centerRow, centerColumn );
+    grid.region( testRegion(), nullptr );
+    const imageT psfTemplate = asymmetricTemplate( 25, 26 );
+    const modelT model( psfTemplate, localRows, localColumns );
+    const Eigen::Index localPixels = static_cast<Eigen::Index>( localRows * localColumns );
+    imageT localModels( localPixels, static_cast<Eigen::Index>( grid.searchPixelCount() ) );
+    localModels.setZero();
+    imageT temporalCoefficients( static_cast<Eigen::Index>( ( componentCount - 1 ) * temporalOffsets.size() ),
+                                 static_cast<Eigen::Index>( grid.searchPixelCount() ) );
+    temporalCoefficients.setZero();
+    validityT localValidity( static_cast<Eigen::Index>( grid.searchPixelCount() ), 1 );
+    localValidity.setZero();
+    searchIndexT searchIndex = searchIndexT::Constant( detectorRows, detectorColumns, -1 );
+    std::vector<coefficientT> coefficients;
+    coefficients.reserve( grid.searchPixelCount() );
+    imageT localResponse;
+    for( std::size_t search = 0; search < grid.searchPixelCount(); ++search )
+    {
+        coefficientT coefficient(
+            static_cast<Eigen::Index>( grid.predictorCount() + ( componentCount - 1 ) * temporalOffsets.size() ) );
+        for( Eigen::Index predictor = 0; predictor < coefficient.rows(); ++predictor )
+        {
+            coefficient( predictor ) = 0.0017 * std::sin( 0.11 * static_cast<double>( predictor + 3 * search ) );
+        }
+        coefficients.push_back( coefficient );
+        if( !grid.searchPixel( search ).valid() )
+        {
+            continue;
+        }
+        model.calculateLocalResponse( localResponse,
+                                      grid,
+                                      search,
+                                      coefficients.back().head( static_cast<Eigen::Index>( grid.predictorCount() ) ) );
+        for( int column = 0; column < localColumns; ++column )
+        {
+            for( int row = 0; row < localRows; ++row )
+            {
+                localModels( static_cast<Eigen::Index>( row + localRows * column ),
+                             static_cast<Eigen::Index>( search ) ) = localResponse( row, column );
+            }
+        }
+        for( Eigen::Index coefficient = static_cast<Eigen::Index>( grid.predictorCount() );
+             coefficient < coefficients.back().rows();
+             ++coefficient )
+        {
+            temporalCoefficients( coefficient - static_cast<Eigen::Index>( grid.predictorCount() ),
+                                  static_cast<Eigen::Index>( search ) ) =
+                static_cast<float>( -coefficients.back()( coefficient ) );
+        }
+        localValidity( static_cast<Eigen::Index>( search ), 0 ) = 1;
+        const mx::improc::P4PixelCoordinate &coordinate = grid.searchPixel( search ).coordinate();
+        searchIndex( coordinate.row(), coordinate.column() ) = static_cast<int>( search );
+    }
+
+    reconstructorT::cubeT directFrames;
+    reconstructorT::cubeT directValidity;
+    directFrames.resize( outputSize, outputSize, static_cast<int>( angles.size() ) );
+    directValidity.resize( outputSize, outputSize, static_cast<int>( angles.size() ) );
+    for( int image = 0; image < directValidity.planes(); ++image )
+    {
+        directValidity.image( image ).setOnes();
+    }
+    for( std::size_t central = 0; central < angles.size(); ++central )
+    {
+        std::vector<imageT> injected;
+        for( const int selected : selections[0][central] )
+        {
+            const std::pair<double, double> source =
+                inverseRotate( sourceSkyRow, sourceSkyColumn, centerRow, centerColumn, angles[selected] );
+            injected.push_back(
+                injectedDetectorImage( psfTemplate, detectorRows, detectorColumns, source.first, source.second ) );
+        }
+        imageT detectorResponse = imageT::Zero( detectorRows, detectorColumns );
+        for( std::size_t search = 0; search < grid.searchPixelCount(); ++search )
+        {
+            if( !grid.searchPixel( search ).valid() )
+            {
+                continue;
+            }
+            const mx::improc::P4PixelCoordinate &coordinate = grid.searchPixel( search ).coordinate();
+            double response = injected[0]( coordinate.row(), coordinate.column() );
+            for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+            {
+                response -= coefficients[search]( static_cast<Eigen::Index>( predictor ) ) *
+                            grid.sample( injected[0], search, predictor );
+            }
+            for( std::size_t component = 1; component < componentCount; ++component )
+            {
+                for( std::size_t predictor = 0; predictor < temporalOffsets.size(); ++predictor )
+                {
+                    const mx::improc::P4PixelCoordinate &offset = temporalOffsets[predictor];
+                    const Eigen::Index coefficientIndex = static_cast<Eigen::Index>(
+                        grid.predictorCount() + ( component - 1 ) * temporalOffsets.size() + predictor );
+                    response -=
+                        coefficients[search]( coefficientIndex ) *
+                        injected[component]( coordinate.row() + offset.row(), coordinate.column() + offset.column() );
+                }
+            }
+            detectorResponse( coordinate.row(), coordinate.column() ) = static_cast<float>( response );
+        }
+        for( int stampColumn = 0; stampColumn < outputSize; ++stampColumn )
+        {
+            for( int stampRow = 0; stampRow < outputSize; ++stampRow )
+            {
+                const std::pair<double, double> detector = inverseRotate( sourceSkyRow + stampRow - 1,
+                                                                          sourceSkyColumn + stampColumn - 1,
+                                                                          centerRow,
+                                                                          centerColumn,
+                                                                          angles[central] );
+                directFrames.image( static_cast<int>( central ) )( stampRow, stampColumn ) =
+                    sampleImageZero( detectorResponse, detector.first, detector.second );
+            }
+        }
+    }
+    imageT expected;
+    directFrames.mean( expected, directValidity, 1.0F );
+
+    reconstructorT
+        reconstructor( detectorRows, detectorColumns, centerRow, centerColumn, outputSize, localRows, localColumns );
+    imageT compact;
+    validityT compactValidity;
+    const std::vector<int> searchRegions( grid.searchPixelCount(), 0 );
+    reconstructor.reconstructCombinedTemporal( compact,
+                                               compactValidity,
+                                               localModels,
+                                               temporalCoefficients,
+                                               temporalOffsets,
+                                               model,
+                                               localValidity,
+                                               searchIndex,
+                                               searchRegions,
+                                               { componentCount },
+                                               selections,
+                                               sourceSkyRow,
+                                               sourceSkyColumn,
+                                               angles,
+                                               mx::improc::HCI::combine::mean,
+                                               {},
+                                               0,
+                                               1 );
+    REQUIRE( compactValidity.sum() == outputSize * outputSize );
+    for( int column = 0; column < outputSize; ++column )
+    {
+        for( int row = 0; row < outputSize; ++row )
+        {
+            REQUIRE( compact( row, column ) == Approx( expected( row, column ) ).margin( 2e-6 ) );
+        }
+    }
+}
+
 /// Verify bounded multi-frame reconstruction follows every supported final estimator.
 /** This exercises mx::improc::P4PSFReconstructor::reconstructCombined() and
  * mx::improc::P4PSFReconstructor::combineFrames() against direct frozen detector injections for unweighted mean,

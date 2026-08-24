@@ -305,6 +305,75 @@ TEST_CASE( "P4 local PSF response matches brute-force detector sampling", "[P4PS
     }
 }
 
+/// Verify temporal PSF components preserve predictor-slot ordering and direct detector sampling.
+/** This exercises mx::improc::P4PSFModel::calculateLocalResponseComponents() against explicit shifted-template
+ * images for two temporal slots with direct PSF-disk predictor offsets.
+ * \ingroup P4PSFModel_unit_tests
+ */
+TEST_CASE( "P4 temporal local PSF components match direct sampling", "[P4PSFModel][temporal][oracle]" )
+{
+    gridT grid;
+    grid.resize( 41, 43, 20.0, 21.0 );
+    grid.region( testRegion(), nullptr );
+    const std::size_t searchIndex = findSearch( grid, 23, 25 );
+    const mx::improc::P4PixelCoordinate &target = grid.searchPixel( searchIndex ).coordinate();
+    const std::vector<mx::improc::P4PixelCoordinate> temporalOffsets{ mx::improc::P4PixelCoordinate( -1, 0 ),
+                                                                      mx::improc::P4PixelCoordinate( 0, 1 ) };
+    constexpr std::size_t temporalImageCount = 2;
+    coefficientT coefficients(
+        static_cast<Eigen::Index>( grid.predictorCount() + temporalImageCount * temporalOffsets.size() ) );
+    for( Eigen::Index predictor = 0; predictor < coefficients.rows(); ++predictor )
+    {
+        coefficients( predictor ) = 0.001 * static_cast<double>( predictor + 1 );
+    }
+
+    constexpr int stampSize = 5;
+    const imageT psfTemplate = asymmetricTemplate( 11, 13 );
+    const modelT model( psfTemplate, stampSize );
+    imageT components;
+    model.calculateLocalResponseComponents( components,
+                                            grid,
+                                            searchIndex,
+                                            temporalOffsets,
+                                            temporalImageCount,
+                                            coefficients );
+    REQUIRE( components.rows() == stampSize * stampSize );
+    REQUIRE( components.cols() == 1 + static_cast<Eigen::Index>( temporalImageCount ) );
+
+    const double stampCenter = 0.5 * static_cast<double>( stampSize - 1 );
+    for( int stampColumn = 0; stampColumn < stampSize; ++stampColumn )
+    {
+        for( int stampRow = 0; stampRow < stampSize; ++stampRow )
+        {
+            const double sourceRow = static_cast<double>( target.row() ) - ( stampRow - stampCenter );
+            const double sourceColumn = static_cast<double>( target.column() ) - ( stampColumn - stampCenter );
+            const imageT detector = injectedDetectorImage( psfTemplate, grid, sourceRow, sourceColumn );
+            double baseResponse = detector( target.row(), target.column() );
+            for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+            {
+                baseResponse -= coefficients( static_cast<Eigen::Index>( predictor ) ) *
+                                grid.sample( detector, searchIndex, predictor );
+            }
+            const Eigen::Index stampPixel = stampRow + stampSize * stampColumn;
+            REQUIRE( components( stampPixel, 0 ) == Approx( baseResponse ).margin( 2e-5 ) );
+            for( std::size_t temporalImage = 0; temporalImage < temporalImageCount; ++temporalImage )
+            {
+                double temporalResponse{ 0 };
+                for( std::size_t predictor = 0; predictor < temporalOffsets.size(); ++predictor )
+                {
+                    const mx::improc::P4PixelCoordinate &offset = temporalOffsets[predictor];
+                    const Eigen::Index coefficientIndex = static_cast<Eigen::Index>(
+                        grid.predictorCount() + temporalImage * temporalOffsets.size() + predictor );
+                    temporalResponse -= coefficients( coefficientIndex ) *
+                                        detector( target.row() + offset.row(), target.column() + offset.column() );
+                }
+                REQUIRE( components( stampPixel, static_cast<Eigen::Index>( temporalImage + 1 ) ) ==
+                         Approx( temporalResponse ).margin( 2e-5 ) );
+            }
+        }
+    }
+}
+
 /// Measure compact-stamp reconstruction against direct frozen injection after nonzero derotation.
 /** This exercises mx::improc::P4PSFModel::calculateLocalResponse() as the compact input to the exact
  * mx::improc::imageRotate() detector-to-sky sampling convention.

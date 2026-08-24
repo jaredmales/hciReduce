@@ -114,6 +114,44 @@ void P4PSFReconstructor::reconstructFrame( imageT &output,
                                            double sourceSkyColumn,
                                            double derotationAngle ) const
 {
+    const std::vector<int> searchRegions( static_cast<std::size_t>( localValidity.rows() ), 0 );
+    const std::vector<std::size_t> regionComponentCounts{ 1 };
+    const std::vector<std::pair<double, double>> regionSourceDetectors{
+        inverseRotate( sourceSkyRow, sourceSkyColumn, derotationAngle ) };
+    reconstructFrameComponents( output,
+                                outputValidity,
+                                localModels,
+                                imageT(),
+                                {},
+                                nullptr,
+                                localValidity,
+                                searchIndex,
+                                modeIndex,
+                                searchRegions,
+                                regionComponentCounts,
+                                regionSourceDetectors,
+                                sourceSkyRow,
+                                sourceSkyColumn,
+                                derotationAngle );
+}
+
+void P4PSFReconstructor::reconstructFrameComponents(
+    imageT &output,
+    validityT &outputValidity,
+    const imageT &localModels,
+    const imageT &temporalCoefficients,
+    const std::vector<P4PixelCoordinate> &temporalOffsets,
+    const P4PSFModel *psfModel,
+    const validityT &localValidity,
+    const searchIndexT &searchIndex,
+    std::size_t modeIndex,
+    const std::vector<int> &searchRegions,
+    const std::vector<std::size_t> &regionComponentCounts,
+    const std::vector<std::pair<double, double>> &regionSourceDetectors,
+    double sourceSkyRow,
+    double sourceSkyColumn,
+    double derotationAngle ) const
+{
     const Eigen::Index localPixels =
         static_cast<Eigen::Index>( m_localStampRows ) * static_cast<Eigen::Index>( m_localStampColumns );
     if( localModels.rows() != localPixels || localValidity.rows() <= 0 || localValidity.cols() <= 0 )
@@ -130,6 +168,42 @@ void P4PSFReconstructor::reconstructFrame( imageT &output,
     {
         throw std::invalid_argument( "P4 compact local PSF column count does not match validity dimensions" );
     }
+    if( regionComponentCounts.empty() )
+    {
+        throw std::invalid_argument( "P4 temporal PSF region metadata does not match compact local models" );
+    }
+    if( regionSourceDetectors.empty() || regionSourceDetectors.size() % regionComponentCounts.size() != 0 )
+    {
+        throw std::invalid_argument( "P4 temporal PSF region metadata does not match compact local models" );
+    }
+    const std::size_t componentStride = regionSourceDetectors.size() / regionComponentCounts.size();
+    if( searchRegions.size() != static_cast<std::size_t>( localValidity.rows() ) || componentStride == 0 )
+    {
+        throw std::invalid_argument( "P4 temporal PSF region metadata does not match compact local models" );
+    }
+    for( const std::size_t count : regionComponentCounts )
+    {
+        if( count > componentStride )
+        {
+            throw std::invalid_argument( "P4 temporal PSF component count is outside the retained stride" );
+        }
+    }
+    const std::size_t temporalSlotCount = componentStride - 1;
+    if( temporalSlotCount != 0 &&
+        ( psfModel == nullptr || temporalOffsets.empty() ||
+          temporalSlotCount > std::numeric_limits<std::size_t>::max() / temporalOffsets.size() ||
+          temporalCoefficients.rows() != static_cast<Eigen::Index>( temporalSlotCount * temporalOffsets.size() ) ||
+          temporalCoefficients.cols() != localValidity.rows() * localValidity.cols() ) )
+    {
+        throw std::invalid_argument( "P4 temporal coefficient dimensions do not match reconstruction metadata" );
+    }
+    for( const int region : searchRegions )
+    {
+        if( region < 0 || static_cast<std::size_t>( region ) >= regionComponentCounts.size() )
+        {
+            throw std::invalid_argument( "P4 temporal PSF search region is out of range" );
+        }
+    }
     if( searchIndex.rows() != m_detectorRows || searchIndex.cols() != m_detectorColumns )
     {
         throw std::invalid_argument( "P4 PSF search-index image does not match detector dimensions" );
@@ -145,7 +219,6 @@ void P4PSFReconstructor::reconstructFrame( imageT &output,
     outputValidity.resize( m_outputStampSize, m_outputStampSize );
     outputValidity.setZero();
 
-    const std::pair<double, double> sourceDetector = inverseRotate( sourceSkyRow, sourceSkyColumn, derotationAngle );
     const double outputCenter = 0.5 * static_cast<double>( m_outputStampSize - 1 );
     int minimumFootprintRow = m_detectorRows;
     int minimumFootprintColumn = m_detectorColumns;
@@ -198,14 +271,36 @@ void P4PSFReconstructor::reconstructFrame( imageT &output,
             {
                 continue;
             }
+            const std::size_t region = static_cast<std::size_t>( searchRegions[static_cast<std::size_t>( search )] );
+            if( regionComponentCounts[region] == 0 )
+            {
+                continue;
+            }
             const Eigen::Index modelColumn =
                 static_cast<Eigen::Index>( search ) * localValidity.cols() + static_cast<Eigen::Index>( modeIndex );
+            const std::pair<double, double> &centralSource = regionSourceDetectors[region * componentStride];
             float localSample{ 0 };
-            if( sampleLocalResponse( localSample,
-                                     localModels,
-                                     modelColumn,
-                                     static_cast<double>( detectorRow ) - sourceDetector.first,
-                                     static_cast<double>( detectorColumn ) - sourceDetector.second ) )
+            bool localValid = sampleLocalResponse( localSample,
+                                                   localModels,
+                                                   modelColumn,
+                                                   static_cast<double>( detectorRow ) - centralSource.first,
+                                                   static_cast<double>( detectorColumn ) - centralSource.second );
+            for( std::size_t component = 1; component < regionComponentCounts[region] && localValid; ++component )
+            {
+                const std::pair<double, double> &sourceDetector =
+                    regionSourceDetectors[region * componentStride + component];
+                for( std::size_t predictor = 0; predictor < temporalOffsets.size(); ++predictor )
+                {
+                    const std::size_t coefficientRow = ( component - 1 ) * temporalOffsets.size() + predictor;
+                    const P4PixelCoordinate &offset = temporalOffsets[predictor];
+                    localSample +=
+                        temporalCoefficients( static_cast<Eigen::Index>( coefficientRow ), modelColumn ) *
+                        psfModel->sampleTemplate(
+                            static_cast<double>( detectorRow ) - sourceDetector.first + offset.row(),
+                            static_cast<double>( detectorColumn ) - sourceDetector.second + offset.column() );
+                }
+            }
+            if( localValid )
             {
                 detectorResponse( detectorRow - minimumFootprintRow, detectorColumn - minimumFootprintColumn ) =
                     localSample;
@@ -417,6 +512,135 @@ void P4PSFReconstructor::reconstructCombined( imageT &output,
                        sourceSkyRow,
                        sourceSkyColumn,
                        derotationAngles );
+    combineFrames( output,
+                   outputValidity,
+                   frames,
+                   frameValidity,
+                   method,
+                   weights,
+                   sigmaThreshold,
+                   minimumGoodFraction );
+}
+
+void P4PSFReconstructor::reconstructCombinedTemporal( imageT &output,
+                                                      validityT &outputValidity,
+                                                      const imageT &localModels,
+                                                      const imageT &temporalCoefficients,
+                                                      const std::vector<P4PixelCoordinate> &temporalOffsets,
+                                                      const P4PSFModel &psfModel,
+                                                      const validityT &localValidity,
+                                                      const searchIndexT &searchIndex,
+                                                      const std::vector<int> &searchRegions,
+                                                      const std::vector<std::size_t> &regionComponentCounts,
+                                                      const temporalSelectionT &temporalSelections,
+                                                      double sourceSkyRow,
+                                                      double sourceSkyColumn,
+                                                      const std::vector<double> &derotationAngles,
+                                                      HCI::combine method,
+                                                      const std::vector<float> &weights,
+                                                      float sigmaThreshold,
+                                                      float minimumGoodFraction ) const
+{
+    if( derotationAngles.empty() || regionComponentCounts.empty() ||
+        temporalSelections.size() != regionComponentCounts.size() || localValidity.cols() != 1 )
+    {
+        throw std::invalid_argument( "P4 temporal PSF reconstruction metadata is incomplete" );
+    }
+    if( derotationAngles.size() > static_cast<std::size_t>( std::numeric_limits<int>::max() ) ||
+        localValidity.rows() <= 0 )
+    {
+        throw std::length_error( "P4 temporal PSF reconstruction dimensions are outside the supported range" );
+    }
+    const std::size_t componentStride = *std::max_element( regionComponentCounts.begin(), regionComponentCounts.end() );
+    if( componentStride == 0 )
+    {
+        throw std::invalid_argument( "P4 temporal PSF reconstruction requires retained response components" );
+    }
+    std::vector<std::vector<const std::vector<int> *>> selectionByTarget(
+        temporalSelections.size(),
+        std::vector<const std::vector<int> *>( derotationAngles.size(), nullptr ) );
+    for( std::size_t region = 0; region < temporalSelections.size(); ++region )
+    {
+        if( temporalSelections[region].empty() || regionComponentCounts[region] == 0 ||
+            regionComponentCounts[region] > componentStride )
+        {
+            throw std::invalid_argument( "P4 temporal PSF selections do not match target frames or components" );
+        }
+        std::vector<std::uint8_t> targetSeen( derotationAngles.size(), 0 );
+        for( const std::vector<int> &selection : temporalSelections[region] )
+        {
+            if( selection.size() != regionComponentCounts[region] || selection.empty() || selection[0] < 0 ||
+                static_cast<std::size_t>( selection[0] ) >= derotationAngles.size() ||
+                targetSeen[static_cast<std::size_t>( selection[0] )] != 0 )
+            {
+                throw std::invalid_argument( "P4 temporal PSF selection ordering does not match target frames" );
+            }
+            targetSeen[static_cast<std::size_t>( selection[0] )] = 1;
+            selectionByTarget[region][static_cast<std::size_t>( selection[0] )] = &selection;
+            for( const int selectedImage : selection )
+            {
+                if( selectedImage < 0 || static_cast<std::size_t>( selectedImage ) >= derotationAngles.size() )
+                {
+                    throw std::out_of_range( "P4 temporal PSF selected image is out of range" );
+                }
+            }
+        }
+    }
+    for( const double angle : derotationAngles )
+    {
+        if( !mx::math::isFinite( angle ) )
+        {
+            throw std::invalid_argument( "P4 temporal PSF derotation angles must be finite" );
+        }
+    }
+
+    cubeT frames;
+    cubeT frameValidity;
+    frames.resize( m_outputStampSize, m_outputStampSize, static_cast<int>( derotationAngles.size() ) );
+    frameValidity.resize( m_outputStampSize, m_outputStampSize, static_cast<int>( derotationAngles.size() ) );
+    frames.setZero();
+    frameValidity.setZero();
+    imageT frame;
+    validityT validity;
+    std::vector<std::pair<double, double>> sourceDetectors( regionComponentCounts.size() * componentStride );
+    std::vector<std::size_t> frameComponentCounts( regionComponentCounts.size(), 0 );
+    for( std::size_t image = 0; image < derotationAngles.size(); ++image )
+    {
+        std::fill( frameComponentCounts.begin(), frameComponentCounts.end(), 0 );
+        for( std::size_t region = 0; region < temporalSelections.size(); ++region )
+        {
+            const std::vector<int> *selection = selectionByTarget[region][image];
+            if( selection == nullptr )
+            {
+                continue;
+            }
+            frameComponentCounts[region] = selection->size();
+            for( std::size_t component = 0; component < selection->size(); ++component )
+            {
+                sourceDetectors[region * componentStride + component] =
+                    inverseRotate( sourceSkyRow,
+                                   sourceSkyColumn,
+                                   derotationAngles[static_cast<std::size_t>( selection->at( component ) )] );
+            }
+        }
+        reconstructFrameComponents( frame,
+                                    validity,
+                                    localModels,
+                                    temporalCoefficients,
+                                    temporalOffsets,
+                                    &psfModel,
+                                    localValidity,
+                                    searchIndex,
+                                    0,
+                                    searchRegions,
+                                    frameComponentCounts,
+                                    sourceDetectors,
+                                    sourceSkyRow,
+                                    sourceSkyColumn,
+                                    derotationAngles[image] );
+        frames.image( static_cast<int>( image ) ) = frame;
+        frameValidity.image( static_cast<int>( image ) ) = validity.cast<float>();
+    }
     combineFrames( output,
                    outputValidity,
                    frames,

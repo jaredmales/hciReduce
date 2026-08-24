@@ -70,21 +70,30 @@ class P4ReductionTestAccess
     /// Invoke the production exact compact local-PSF byte calculation.
     static std::size_t localPSFBytes( std::size_t searchPixelCount, /**< [in] search-pixel count */
                                       std::size_t modeCount,        /**< [in] output-mode count */
-                                      int stampRows,                /**< [in] local-stamp rows */
+                                      std::size_t temporalPredictorCount,
+                                      /**< [in] retained temporal coefficients per model */
+                                      int stampRows, /**< [in] local-stamp rows */
                                       int stampColumns /**< [in] local-stamp columns */ )
     {
-        return P4Reductionf::localPSFBytes( searchPixelCount, modeCount, stampRows, stampColumns );
+        return P4Reductionf::localPSFBytes( searchPixelCount,
+                                            modeCount,
+                                            temporalPredictorCount,
+                                            stampRows,
+                                            stampColumns );
     }
 
     /// Invoke the production one-mode final PSF reconstruction byte calculation.
     static std::size_t psfReconstructionBytes( std::size_t searchPixelCount, /**< [in] output-position count */
                                                std::size_t targetImageCount, /**< [in] target-frame count */
-                                               int outputStampSize,          /**< [in] final-stamp size */
-                                               int localStampRows,           /**< [in] local-stamp rows */
+                                               std::size_t temporalPredictorCount,
+                                               /**< [in] retained temporal coefficients per search pixel */
+                                               int outputStampSize, /**< [in] final-stamp size */
+                                               int localStampRows,  /**< [in] local-stamp rows */
                                                int localStampColumns /**< [in] local-stamp columns */ )
     {
         return P4Reductionf::psfReconstructionBytes( searchPixelCount,
                                                      targetImageCount,
+                                                     temporalPredictorCount,
                                                      outputStampSize,
                                                      localStampRows,
                                                      localStampColumns );
@@ -558,10 +567,14 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 0, 10 ) );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 10, 0 ) );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFModelDimension( std::numeric_limits<int>::max(), 10 ) );
-    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFBytes( 20, 3, 9, 10 ) == 20 * 3 * ( 90 * 4 + 1 ) );
-    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFBytes( 0, 3, 9, 10 ) );
-    REQUIRE( mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 20, 7, 5, 9, 10 ) > 20 * 25 * sizeof( float ) );
-    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 0, 7, 5, 9, 10 ) );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFBytes( 20, 3, 0, 9, 10 ) == 20 * 3 * ( 90 * 4 + 1 ) );
+    REQUIRE( mx::improc::P4ReductionTestAccess::localPSFBytes( 20, 3, 6, 9, 10 ) == 20 * 3 * ( 96 * 4 + 1 ) );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::localPSFBytes( 0, 3, 0, 9, 10 ) );
+    REQUIRE( mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 20, 7, 0, 5, 9, 10 ) >
+             20 * 25 * sizeof( float ) );
+    REQUIRE( mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 20, 7, 6, 5, 9, 10 ) >
+             mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 20, 7, 0, 5, 9, 10 ) );
+    REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::psfReconstructionBytes( 0, 7, 0, 5, 9, 10 ) );
     REQUIRE( mx::improc::P4ReductionTestAccess::psfFilterBytes( 20, 30, 4 ) == 4 * 20 * 30 * 4 * sizeof( float ) );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::psfFilterBytes( 0, 30, 4 ) );
     REQUIRE_THROWS( mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 0, 8, 2 ) );
@@ -1036,10 +1049,89 @@ TEST_CASE( "P4 reduction captures opt-in local PSF models", "[P4Reduction][PSF][
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "psfWorker" ) != std::string::npos );
 }
 
+/// Verify positive numberImages captures bounded temporal PSF components without changing science residuals.
+/** This exercises mx::improc::P4Reduction::reduce() through
+ * compact same-image response capture and temporal-coefficient retention with two selected images in each temporal
+ * direction.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 reduction captures temporal PSF response components", "[P4Reduction][PSF][temporal][memory]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    reductionT::imageT psfTemplate( 9, 9 );
+    for( int column = 0; column < psfTemplate.cols(); ++column )
+    {
+        for( int row = 0; row < psfTemplate.rows(); ++row )
+        {
+            const double deltaRow = static_cast<double>( row ) - 4.0;
+            const double deltaColumn = static_cast<double>( column ) - 4.0;
+            psfTemplate( row, column ) =
+                static_cast<float>( std::exp( -0.18 * deltaRow * deltaRow - 0.09 * deltaColumn * deltaColumn ) *
+                                    ( 1 + 0.02 * deltaRow - 0.01 * deltaColumn ) );
+        }
+    }
+    mx::fits::fitsFile<float, mx::verbose::vv> writer;
+    const std::filesystem::path psfPath = directory.file( "temporal-template.fits" );
+    REQUIRE( writer.write( psfPath.string(), psfTemplate ) == mx::error_t::noerror );
+
+    reductionHarness baseline;
+    prepareReduction( baseline, 7 );
+    baseline.m_numberImages = 2;
+    baseline.m_derotF.m_angles = { 0, 20, 40, 60, 80, 100, 120 };
+    baseline.m_memoryFraction = 0;
+    REQUIRE( baseline.reduce() == 0 );
+
+    reductionHarness modeled;
+    prepareReduction( modeled, 7 );
+    modeled.m_numberImages = 2;
+    modeled.m_derotF.m_angles = baseline.m_derotF.m_angles;
+    modeled.m_memoryFraction = 0;
+    modeled.m_psfFile = psfPath.string();
+    modeled.m_psfStampSize = 3;
+    REQUIRE( modeled.reduce() == 0 );
+    REQUIRE( modeled.m_psfsub.size() == baseline.m_psfsub.size() );
+    for( std::size_t output = 0; output < modeled.m_psfsub.size(); ++output )
+    {
+        for( int image = 0; image < modeled.m_psfsub[output].planes(); ++image )
+        {
+            REQUIRE(
+                ( modeled.m_psfsubValidity[output].image( image ) == baseline.m_psfsubValidity[output].image( image ) )
+                    .all() );
+            for( int column = 0; column < modeled.m_psfsub[output].cols(); ++column )
+            {
+                for( int row = 0; row < modeled.m_psfsub[output].rows(); ++row )
+                {
+                    if( modeled.m_psfsubValidity[output].image( image )( row, column ) != 0 )
+                    {
+                        REQUIRE( modeled.m_psfsub[output].image( image )( row, column ) ==
+                                 baseline.m_psfsub[output].image( image )( row, column ) );
+                    }
+                }
+            }
+        }
+    }
+    REQUIRE( modeled.m_localPSFComponentCounts == std::vector<std::size_t>{ 5 } );
+    REQUIRE( modeled.m_localPSFModels.size() == 1 );
+    REQUIRE( modeled.m_localPSFModels[0].cols() ==
+             static_cast<Eigen::Index>( modeled.m_regionStatistics[0].searchPixelCount ) );
+    REQUIRE( modeled.m_localPSFModels[0].abs().sum() > 0 );
+    REQUIRE( modeled.m_localPSFTemporalCoefficients.size() == 1 );
+    REQUIRE( modeled.m_localPSFTemporalCoefficients[0].rows() > 0 );
+    REQUIRE( modeled.m_localPSFTemporalCoefficients[0].cols() == modeled.m_localPSFModels[0].cols() );
+    REQUIRE( modeled.m_localPSFTemporalCoefficients[0].abs().sum() > 0 );
+    REQUIRE( modeled.m_localPSFBytes ==
+             modeled.m_regionStatistics[0].searchPixelCount *
+                 static_cast<std::size_t>( ( modeled.m_localPSFRows * modeled.m_localPSFColumns +
+                                             modeled.m_localPSFTemporalCoefficients[0].rows() ) *
+                                               sizeof( float ) +
+                                           1 ) );
+}
+
 /// Verify opt-in final PSF fields and normalized filtered products are written without changing the science image.
 /** This exercises mx::improc::P4Reduction::reduce() through
- * mx::improc::P4PSFReconstructor::reconstructCombined(), mx::improc::P4PSFFilter::calculate(), and the transactional
- * FITS publication path.
+ * mx::improc::P4PSFReconstructor::reconstructCombinedTemporal(), mx::improc::P4PSFFilter::calculate(), and the
+ * transactional FITS publication path.
  * \ingroup P4Reduction_unit_tests
  */
 TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
@@ -1064,18 +1156,24 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( writer.write( psfPath.string(), psfTemplate ) == mx::error_t::noerror );
 
     reductionHarness baseline;
-    prepareReduction( baseline, 3, 31, 31 );
+    prepareReduction( baseline, 5, 31, 31 );
     baseline.m_minRadius = { 5 };
     baseline.m_maxRadius = { 10 };
     baseline.m_memoryFraction = 0;
+    baseline.m_numberImages = 1;
+    baseline.m_derotF.m_angles = { 0, 0.25F, 0.5F, 0.75F, 1.0F };
+    baseline.m_doDerotate = true;
     baseline.m_combineMethod = mx::improc::HCI::combine::mean;
     REQUIRE( baseline.reduce() == 0 );
 
     reductionHarness reduction;
-    prepareReduction( reduction, 3, 31, 31 );
+    prepareReduction( reduction, 5, 31, 31 );
     reduction.m_minRadius = { 5 };
     reduction.m_maxRadius = { 10 };
     reduction.m_memoryFraction = 0;
+    reduction.m_numberImages = 1;
+    reduction.m_derotF.m_angles = baseline.m_derotF.m_angles;
+    reduction.m_doDerotate = true;
     reduction.m_psfFile = psfPath.string();
     reduction.m_psfStampSize = 3;
     reduction.m_outputPSFModels = true;
@@ -1181,6 +1279,9 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( modelHeader["P4 PSF TEMPLATE CENTER ROW"].value<double>() == Approx( 4.0 ) );
     REQUIRE( modelHeader["P4 PSF TEMPLATE CENTER COLUMN"].value<double>() == Approx( 4.5 ) );
     REQUIRE( modelHeader["P4 PSF RESPONSE"].String().starts_with( "FROZEN_SIGNED" ) );
+    REQUIRE( modelHeader["P4 PSF TEMPORAL NUMBER IMAGES"].value<int>() == 1 );
+    REQUIRE( modelHeader["P4 PSF COMPONENT STRIDE"].value<int>() == 3 );
+    REQUIRE( modelHeader["P4 PSF TEMPORAL COEFFICIENT COUNT"].value<int>() > 0 );
     REQUIRE( modelHeader["P4 PSF MODE INDEX"].value<int>() == 0 );
 
     reductionT::imageT validity;
@@ -1266,10 +1367,13 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "psfReconstructionElapsed" ) != std::string::npos );
 
     reductionHarness filterOnly;
-    prepareReduction( filterOnly, 3, 31, 31 );
+    prepareReduction( filterOnly, 5, 31, 31 );
     filterOnly.m_minRadius = { 5 };
     filterOnly.m_maxRadius = { 10 };
     filterOnly.m_memoryFraction = 0;
+    filterOnly.m_numberImages = 1;
+    filterOnly.m_derotF.m_angles = baseline.m_derotF.m_angles;
+    filterOnly.m_doDerotate = true;
     filterOnly.m_psfFile = psfPath.string();
     filterOnly.m_psfStampSize = 3;
     filterOnly.m_psfFilter = true;
@@ -1965,13 +2069,6 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         rotated.m_psfStampSize = 3;
         rotated.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
         REQUIRE_THROWS_WITH( rotated.reduce(), Catch::Matchers::Contains( "only for detector-frame P4" ) );
-
-        reductionHarness temporal;
-        prepareReduction( temporal, 6 );
-        temporal.m_psfFile = "unused.fits";
-        temporal.m_psfStampSize = 3;
-        temporal.m_numberImages = 1;
-        REQUIRE_THROWS_WITH( temporal.reduce(), Catch::Matchers::Contains( "positive p4.numberImages" ) );
 
         reductionHarness postMedian;
         prepareReduction( postMedian );

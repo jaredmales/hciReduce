@@ -61,9 +61,10 @@ Implementation plan: `agents/plans/p4_psf_calculation_post_processing.md`.
 Completed in `cc1c3c2` (`Add P4 PSF model calculation`), `b1d5bd4` (`Tighten P4 local PSF support`),
 `42bdeda` (`Add spatially variable P4 PSF filtering`), and `2795905` (`Align P4 filter products with final images`).
 
-[] Extend analytic PSF calculation to `p4.numberImages>0` with bounded coefficient/stamp storage.  The current
-frame-independent implementation intentionally rejects this case; the temporal-image response is frame-dependent and
-must be streamed without retaining `pixels * frames * modes * stamp pixels`.
+[x] Extend analytic PSF calculation to `p4.numberImages>0` with bounded coefficient/stamp storage.  The implemented
+factorization retains one same-image stamp plus the temporal PSF-disk coefficients, reconstructs each target with its
+exact selection and detector position against the full template, and does not retain `pixels * frames * modes * stamp
+pixels`.
 
 [] Add a one-shot complete-field post-preprocessing injection path for the fitted negative source.  Use the resulting
 signal-free reduction to regenerate the spatially variable PSF and filtered product, then determine whether the

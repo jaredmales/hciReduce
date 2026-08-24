@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #include <Eigen/Dense>
 
@@ -62,6 +63,10 @@ class P4PSFModel
     /// Return the exact byte count of the retained precomputed float template samples.
     std::size_t storageBytes() const noexcept;
 
+    /// Sample the prepared template at a detector offset from its geometric center.
+    float sampleTemplate( double deltaRow, /**< [in] detector row offset from the source center */
+                          double deltaColumn /**< [in] detector column offset from the source center */ ) const;
+
     /// Calculate one compact local residual PSF stamp from a frozen coefficient vector.
     /** The grid must contain a complete valid detector-frame region, \p searchIndex must select a valid local fit,
      * and the coefficient count must equal the grid predictor count. On success, \p output is completely replaced;
@@ -72,6 +77,23 @@ class P4PSFModel
                                  std::size_t searchIndex, /**< [in] zero-based search-pixel index */
                                  const Eigen::Ref<const coefficientT> &coefficients
                                  /**< [in] finite predictor coefficients */ ) const;
+
+    /// Calculate compact same-image and temporal response components from one frozen coefficient vector.
+    /** Column zero contains the target response minus the same-image OR prediction. Each following column contains
+     * the negative prediction from one temporal-image slot, ordered exactly as the corresponding predictor columns.
+     * Rows flatten the configured response stamp in column-major order. This is a bounded-stamp diagnostic helper;
+     * production temporal reconstruction retains the coefficients and uses sampleTemplate() so large rotations keep
+     * the full configured template support.
+     */
+    void calculateLocalResponseComponents(
+        imageT &output,          /**< [out] stamp-pixel by temporal-component response matrix */
+        const gridT &grid,       /**< [in] complete detector-frame P4 geometry */
+        std::size_t searchIndex, /**< [in] zero-based search-pixel index */
+        const std::vector<P4PixelCoordinate> &temporalOffsets,
+        /**< [in] direct detector-pixel offsets repeated for each temporal image */
+        std::size_t temporalImageCount, /**< [in] number of temporal-image predictor slots */
+        const Eigen::Ref<const coefficientT> &coefficients
+        /**< [in] finite same-image then temporal predictor coefficients */ ) const;
 
   private:
     /// Return one phase-shifted template sample or zero outside the stored support.

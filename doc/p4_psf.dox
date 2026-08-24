@@ -12,7 +12,7 @@
  *
  * \section p4_psf_response Frozen signed response
  *
- * Setting `p4.psfFile` enables the response calculation for detector-frame P4 with same-image predictors. Let
+ * Setting `p4.psfFile` enables the response calculation for detector-frame P4. Let
  * \f$F_s(p)\f$ denote the centered PSF template sampled at detector coordinate \f$p\f$ for a unit source centered at
  * \f$s\f$, and let \f$S_k\f$ be the exact cubic sampling operator for predictor \f$k\f$. For search coordinate
  * \f$q\f$ and one supported truncated-PCA coefficient vector \f$\beta_m\f$, the local signed response is
@@ -39,9 +39,17 @@
  * products. Median and actively sigma-clipped products are filter-template approximations evaluated from the
  * propagated response samples; they are not finite-amplitude-independent photometric transfer functions.
  *
- * The implementation requires detector-frame P4, `p4.numberImages=0`, and `adi.postMedSub=false`. A complete final
- * PSF field additionally requires a final combination method; `combine.method=none` does not define a combined
- * response.
+ * With `p4.numberImages>0`, the response includes the PSF-disk predictors from the exact earlier/later images selected
+ * for each fitted target frame. A sky-stationary source is sampled at its detector position in each selected image.
+ * One-sided beginning/end fallback is therefore propagated consistently with the science regression. Frames which
+ * do not qualify as targets in an annulus contribute no response from that annulus, rather than a zero-valued model.
+ * The retained representation has one compact same-image response stamp plus the PSF-disk predictor coefficients for
+ * every selected additional-image slot. Those coefficients are evaluated against the full prepared template during
+ * reconstruction, so large field rotations are not truncated by the compact same-image stamp. Its size is independent
+ * of frame count.
+ *
+ * The implementation requires detector-frame P4 and `adi.postMedSub=false`. A complete final PSF field additionally
+ * requires a final combination method; `combine.method=none` does not define a combined response.
  *
  * \section p4_psf_filter Spatially variable filtering
  *
@@ -64,7 +72,7 @@
  *
  * | CLI | Config key/value shorthand | PSF-product FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
- * | `--p4.psfFile` | `p4.psfFile=/path/template.fits` | `HIERARCH P4 PSF TEMPLATE` | readable, finite two-dimensional FITS image | unset | Centered PSF template at the post-preprocessing P4 input stage. Setting the path enables response calculation without changing the science products. The stored normalization is preserved. |
+ * | `--p4.psfFile` | `p4.psfFile=/path/template.fits` | `HIERARCH P4 PSF TEMPLATE` | readable, finite two-dimensional FITS image | unset | Centered PSF template at the post-preprocessing P4 input stage. Setting the path enables response calculation without changing the science products. The stored normalization is preserved, including when `p4.numberImages>0`. |
  * | `--p4.psfStampSize` | `p4.psfStampSize=11` | `HIERARCH P4 PSF STAMP SIZE` | positive integer | `0` | Square final response-stamp size. Odd and even sizes use geometric centers. Required with `psfFile`. |
  * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final combination. |
  * | `--p4.psfFilter` | `p4.psfFilter=true` | `HIERARCH P4 PSF FILTER` | bool | `false` | Write signed normalized spatially variable filter products. Requires `psfFile`, an odd stamp, and a final combination; it does not require `outputPSFModels=true`. |

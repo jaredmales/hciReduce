@@ -949,11 +949,6 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                            "p4.psfFile is initially supported only for detector-frame P4" );
         }
-        if( m_numberImages > 0 )
-        {
-            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfFile is not yet supported with positive p4.numberImages" );
-        }
         if( this->m_postMedSub )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
@@ -1179,6 +1174,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::localPSFModelDimension( int out
 template <typename realT, class derotFunctObj, class verboseT>
 std::size_t P4Reduction<realT, derotFunctObj, verboseT>::localPSFBytes( std::size_t searchPixelCount,
                                                                         std::size_t modeCount,
+                                                                        std::size_t temporalPredictorCount,
                                                                         int stampRows,
                                                                         int stampColumns )
 {
@@ -1188,7 +1184,8 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::localPSFBytes( std::siz
     }
     const long double elementCount = static_cast<long double>( searchPixelCount ) * modeCount;
     const long double stampPixels = static_cast<long double>( stampRows ) * stampColumns;
-    const long double bytes = elementCount * ( sizeof( realT ) * stampPixels + sizeof( std::uint8_t ) );
+    const long double bytes =
+        elementCount * ( sizeof( realT ) * ( stampPixels + temporalPredictorCount ) + sizeof( std::uint8_t ) );
     if( bytes > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) )
     {
         throw std::overflow_error( "P4 local PSF byte count exceeds size_t range" );
@@ -1199,6 +1196,7 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::localPSFBytes( std::siz
 template <typename realT, class derotFunctObj, class verboseT>
 std::size_t P4Reduction<realT, derotFunctObj, verboseT>::psfReconstructionBytes( std::size_t searchPixelCount,
                                                                                  std::size_t targetImageCount,
+                                                                                 std::size_t temporalPredictorCount,
                                                                                  int outputStampSize,
                                                                                  int localStampRows,
                                                                                  int localStampColumns )
@@ -1212,10 +1210,10 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::psfReconstructionBytes(
     const long double frames = static_cast<long double>( targetImageCount );
     const long double outputPixels = static_cast<long double>( outputStampSize ) * outputStampSize;
     const long double localPixels = static_cast<long double>( localStampRows ) * localStampColumns;
-    const long double bytes = searches * localPixels * sizeof( realT ) + searches * sizeof( std::uint8_t ) +
-                              searches * outputPixels * sizeof( realT ) + searches * sizeof( realT ) +
-                              searches * 4 * sizeof( realT ) + 2 * outputPixels * frames * sizeof( realT ) +
-                              2 * frames * sizeof( realT ) +
+    const long double bytes = searches * ( localPixels + temporalPredictorCount ) * sizeof( realT ) +
+                              searches * sizeof( std::uint8_t ) + searches * outputPixels * sizeof( realT ) +
+                              searches * sizeof( realT ) + searches * 4 * sizeof( realT ) +
+                              2 * outputPixels * frames * sizeof( realT ) + 2 * frames * sizeof( realT ) +
                               outputPixels * ( sizeof( realT ) + sizeof( std::uint8_t ) ) +
                               localPixels * ( sizeof( realT ) + sizeof( std::uint8_t ) );
     if( bytes > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) )
@@ -2100,7 +2098,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_regionStatistics.clear();
     m_temporalSelections.clear();
     m_localPSFModels.clear();
+    m_localPSFTemporalCoefficients.clear();
     m_localPSFValidity.clear();
+    m_localPSFComponentCounts.clear();
     m_localPSFRows = 0;
     m_localPSFColumns = 0;
     m_psfTemplateRows = 0;
@@ -2212,6 +2212,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_realizedModes.resize( m_minRadius.size() );
     m_regionStatistics.resize( m_minRadius.size() );
     m_temporalSelections.resize( m_minRadius.size() );
+    m_localPSFComponentCounts.resize( m_minRadius.size(), 1 );
     m_ownership.resize( this->m_Nrows, this->m_Ncols );
     m_ownership.setConstant( -1 );
 
@@ -2323,6 +2324,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
         const std::size_t targetImageCount = m_temporalSelections[region].size();
         const std::size_t temporalImageCount = m_temporalSelections[region].front().size() - 1;
+        m_localPSFComponentCounts[region] = temporalImageCount + 1;
         if( temporalImageCount > std::numeric_limits<std::size_t>::max() / temporalPredictorOffsets.size() )
         {
             throw mx::exception<verboseT>( mx::error_t::sizeerr,
@@ -2408,10 +2410,15 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 local PSF dimensions exceed size_t range" );
         }
         psfStampPixels = static_cast<std::size_t>( localStampPixels );
-        for( const P4RegionStatistics &statistics : m_regionStatistics )
+        for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
         {
+            const P4RegionStatistics &statistics = m_regionStatistics[region];
             const std::size_t regionBytes =
-                localPSFBytes( statistics.searchPixelCount, m_modeFractions.size(), m_localPSFRows, m_localPSFColumns );
+                localPSFBytes( statistics.searchPixelCount,
+                               m_modeFractions.size(),
+                               ( m_localPSFComponentCounts[region] - 1 ) * temporalPredictorOffsets.size(),
+                               m_localPSFRows,
+                               m_localPSFColumns );
             if( m_localPSFBytes > std::numeric_limits<std::size_t>::max() - regionBytes )
             {
                 throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 local PSF byte count overflow" );
@@ -2420,11 +2427,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
         if( processPSF )
         {
-            m_psfReconstructionBytes = psfReconstructionBytes( totalSearchPixels,
-                                                               static_cast<std::size_t>( this->m_Nims ),
-                                                               m_psfStampSize,
-                                                               m_localPSFRows,
-                                                               m_localPSFColumns );
+            m_psfReconstructionBytes = psfReconstructionBytes(
+                totalSearchPixels,
+                static_cast<std::size_t>( this->m_Nims ),
+                ( *std::max_element( m_localPSFComponentCounts.begin(), m_localPSFComponentCounts.end() ) - 1 ) *
+                    temporalPredictorOffsets.size(),
+                m_psfStampSize,
+                m_localPSFRows,
+                m_localPSFColumns );
             if( m_psfFilter )
             {
                 m_psfFilterBytes = psfFilterBytes( this->m_Nrows, this->m_Ncols, m_modeFractions.size() );
@@ -2557,6 +2567,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     if( calculatePSF )
     {
         m_localPSFModels.resize( m_regionStatistics.size() );
+        m_localPSFTemporalCoefficients.resize( m_regionStatistics.size() );
         m_localPSFValidity.resize( m_regionStatistics.size() );
         for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
         {
@@ -2574,6 +2585,16 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             m_localPSFModels[region].resize( static_cast<Eigen::Index>( psfStampPixels ),
                                              static_cast<Eigen::Index>( compactColumnCount ) );
             m_localPSFModels[region].setZero();
+            const std::size_t temporalCoefficientCount =
+                ( m_localPSFComponentCounts[region] - 1 ) * temporalPredictorOffsets.size();
+            if( temporalCoefficientCount > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                               "P4 temporal PSF coefficient dimensions exceed Eigen range" );
+            }
+            m_localPSFTemporalCoefficients[region].resize( static_cast<Eigen::Index>( temporalCoefficientCount ),
+                                                           static_cast<Eigen::Index>( compactColumnCount ) );
+            m_localPSFTemporalCoefficients[region].setZero();
             m_localPSFValidity[region].resize( static_cast<Eigen::Index>( statistics.searchPixelCount ),
                                                static_cast<Eigen::Index>( m_modeFractions.size() ) );
             m_localPSFValidity[region].setZero();
@@ -2838,13 +2859,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                     {
                                         continue;
                                     }
+                                    const Eigen::Index compactColumn =
+                                        static_cast<Eigen::Index>( search * modes.size() + output );
                                     psfModel->calculateLocalResponse(
                                         localPSFResponse,
                                         grid,
                                         search,
-                                        coefficients.col( static_cast<Eigen::Index>( output ) ) );
-                                    const Eigen::Index compactColumn =
-                                        static_cast<Eigen::Index>( search * modes.size() + output );
+                                        coefficients.col( static_cast<Eigen::Index>( output ) )
+                                            .head( static_cast<Eigen::Index>( grid.predictorCount() ) ) );
                                     for( int stampColumn = 0; stampColumn < m_localPSFColumns; ++stampColumn )
                                     {
                                         for( int stampRow = 0; stampRow < m_localPSFRows; ++stampRow )
@@ -2854,6 +2876,22 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                             m_localPSFModels[region]( stampPixel, compactColumn ) =
                                                 localPSFResponse( stampRow, stampColumn );
                                         }
+                                    }
+                                    for( Eigen::Index coefficient = static_cast<Eigen::Index>( grid.predictorCount() );
+                                         coefficient < coefficients.rows();
+                                         ++coefficient )
+                                    {
+                                        const double value =
+                                            -coefficients( coefficient, static_cast<Eigen::Index>( output ) );
+                                        const float stored = static_cast<float>( value );
+                                        if( !mx::math::isFinite( stored ) )
+                                        {
+                                            throw std::overflow_error(
+                                                "P4 temporal PSF coefficient exceeds float storage range" );
+                                        }
+                                        m_localPSFTemporalCoefficients[region](
+                                            coefficient - static_cast<Eigen::Index>( grid.predictorCount() ),
+                                            compactColumn ) = stored;
                                     }
                                     m_localPSFValidity[region]( static_cast<Eigen::Index>( search ),
                                                                 static_cast<Eigen::Index>( output ) ) = 1;
@@ -2964,7 +3002,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         for( std::size_t region = 0; region < grids.size(); ++region )
         {
             int offsetRadius{ 0 };
-            const std::size_t predictorCount = m_regionStatistics[region].predictorCount;
+            const std::size_t predictorCount = m_regressionFrame == P4RegressionFrame::detector
+                                                   ? grids[region].predictorCount()
+                                                   : rotatedGrids[region].predictorCount();
             const auto predictorOffset = [&]( std::size_t predictor ) -> const P4PixelCoordinate &
             {
                 return m_regressionFrame == P4RegressionFrame::detector
@@ -3064,7 +3104,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         if( result == 0 && processPSF )
         {
             const double reconstructionBegin = omp_get_wtime();
-            processPSFProducts( grids, finalImagePath, finalHeader );
+            processPSFProducts( grids, *psfModel, finalImagePath, finalHeader );
             m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
         }
         writeTimingDiagnostic();
@@ -3163,7 +3203,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         if( processPSF )
         {
             const double reconstructionBegin = omp_get_wtime();
-            processPSFProducts( grids, finalImagePath, finalHeader );
+            processPSFProducts( grids, *psfModel, finalImagePath, finalHeader );
             m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
         }
         writeTimingDiagnostic();
@@ -3183,11 +3223,13 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
 
 template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std::vector<pixelGridT> &grids,
+                                                                      const P4PSFModel &psfModel,
                                                                       const std::string &finalImagePath,
                                                                       const fitsHeaderT &finalHeader )
 {
     if( grids.size() != m_regionStatistics.size() || m_localPSFModels.size() != grids.size() ||
-        m_localPSFValidity.size() != grids.size() )
+        m_localPSFTemporalCoefficients.size() != grids.size() || m_localPSFValidity.size() != grids.size() ||
+        m_localPSFComponentCounts.size() != grids.size() )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr,
                                        "P4 local PSF state does not match detector-region geometry" );
@@ -3220,10 +3262,12 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
     }
 
     using reconstructorT = P4PSFReconstructor;
+    const std::vector<P4PixelCoordinate> temporalOffsets = p4TemporalPredictorOffsets( m_psfRadius );
     reconstructorT::searchIndexT searchIndex =
         reconstructorT::searchIndexT::Constant( this->m_Nrows, this->m_Ncols, -1 );
     imageT coordinates( static_cast<Eigen::Index>( searchPixelCount ), 4 );
     std::vector<std::size_t> regionOffsets( grids.size(), 0 );
+    std::vector<int> searchRegions( searchPixelCount, -1 );
     std::size_t globalSearch{ 0 };
     for( std::size_t region = 0; region < grids.size(); ++region )
     {
@@ -3241,6 +3285,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
             coordinates( static_cast<Eigen::Index>( globalSearch ), 1 ) = static_cast<realT>( coordinate.column() );
             coordinates( static_cast<Eigen::Index>( globalSearch ), 2 ) = static_cast<realT>( region );
             coordinates( static_cast<Eigen::Index>( globalSearch ), 3 ) = static_cast<realT>( search );
+            searchRegions[globalSearch] = static_cast<int>( region );
             ++globalSearch;
         }
     }
@@ -3275,8 +3320,23 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
                                               m_localPSFRows,
                                               m_localPSFColumns );
 
+    const std::size_t componentStride =
+        *std::max_element( m_localPSFComponentCounts.begin(), m_localPSFComponentCounts.end() );
+    if( temporalOffsets.empty() || componentStride > static_cast<std::size_t>( std::numeric_limits<int>::max() ) ||
+        ( componentStride - 1 ) > std::numeric_limits<std::size_t>::max() / temporalOffsets.size() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 final PSF temporal coefficient dimensions overflow" );
+    }
+    const std::size_t temporalCoefficientCount = ( componentStride - 1 ) * temporalOffsets.size();
+    if( temporalCoefficientCount > static_cast<std::size_t>( std::numeric_limits<int>::max() ) ||
+        temporalCoefficientCount > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "P4 final PSF temporal coefficient dimensions exceed output range" );
+    }
     const std::size_t oneWorkerBytes = psfReconstructionBytes( 1,
                                                                static_cast<std::size_t>( this->m_Nims ),
+                                                               temporalCoefficientCount,
                                                                m_psfStampSize,
                                                                m_localPSFRows,
                                                                m_localPSFColumns );
@@ -3383,6 +3443,12 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
         header.template append<int>( "P4 PSF TEMPORAL NUMBER IMAGES",
                                      m_numberImages,
                                      "additional predictor images per direction" );
+        header.template append<int>( "P4 PSF COMPONENT STRIDE",
+                                     static_cast<int>( componentStride ),
+                                     "maximum retained temporal response components" );
+        header.template append<int>( "P4 PSF TEMPORAL COEFFICIENT COUNT",
+                                     static_cast<int>( temporalCoefficientCount ),
+                                     "retained temporal coefficients per search pixel and mode" );
         header.template append<int>( "P4 PSF STAMP SIZE", m_psfStampSize, "square final PSF stamp size" );
         header.template append<int>( "P4 LOCAL PSF ROWS", m_localPSFRows, "support-padded local response rows" );
         header.template append<int>( "P4 LOCAL PSF COLUMNS",
@@ -3467,20 +3533,34 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
 
     const Eigen::Index localPixels =
         static_cast<Eigen::Index>( m_localPSFRows ) * static_cast<Eigen::Index>( m_localPSFColumns );
+    if( searchPixelCount > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 final PSF component dimensions exceed Eigen range" );
+    }
     for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
     {
         std::cerr << "reconstructing P4 PSF model " << output + 1 << " / " << m_modeFractions.size() << '\n';
         imageT localModels( localPixels, static_cast<Eigen::Index>( searchPixelCount ) );
+        localModels.setZero();
+        imageT temporalCoefficients( static_cast<Eigen::Index>( temporalCoefficientCount ),
+                                     static_cast<Eigen::Index>( searchPixelCount ) );
+        temporalCoefficients.setZero();
         reconstructorT::validityT localValidity( static_cast<Eigen::Index>( searchPixelCount ), 1 );
         localValidity.setZero();
         for( std::size_t region = 0; region < grids.size(); ++region )
         {
             for( std::size_t search = 0; search < grids[region].searchPixelCount(); ++search )
             {
+                const Eigen::Index globalSearchIndex = static_cast<Eigen::Index>( regionOffsets[region] + search );
                 const Eigen::Index sourceColumn = static_cast<Eigen::Index>( search * m_modeFractions.size() + output );
-                const Eigen::Index destinationColumn = static_cast<Eigen::Index>( regionOffsets[region] + search );
-                localModels.col( destinationColumn ) = m_localPSFModels[region].col( sourceColumn );
-                localValidity( destinationColumn, 0 ) =
+                localModels.col( globalSearchIndex ) = m_localPSFModels[region].col( sourceColumn );
+                if( m_localPSFTemporalCoefficients[region].rows() != 0 )
+                {
+                    temporalCoefficients.col( globalSearchIndex )
+                        .head( m_localPSFTemporalCoefficients[region].rows() ) =
+                        m_localPSFTemporalCoefficients[region].col( sourceColumn );
+                }
+                localValidity( globalSearchIndex, 0 ) =
                     m_localPSFValidity[region]( static_cast<Eigen::Index>( search ),
                                                 static_cast<Eigen::Index>( output ) );
             }
@@ -3520,19 +3600,24 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
                         static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 0 ) );
                     const double sourceColumn =
                         static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 1 ) );
-                    reconstructor.reconstructCombined( combined,
-                                                       combinedValidity,
-                                                       localModels,
-                                                       localValidity,
-                                                       searchIndex,
-                                                       0,
-                                                       sourceRow,
-                                                       sourceColumn,
-                                                       derotationAngles,
-                                                       this->m_combineMethod,
-                                                       this->m_comboWeights,
-                                                       this->m_sigmaThreshold,
-                                                       this->m_minGoodFract );
+                    reconstructor.reconstructCombinedTemporal( combined,
+                                                               combinedValidity,
+                                                               localModels,
+                                                               temporalCoefficients,
+                                                               temporalOffsets,
+                                                               psfModel,
+                                                               localValidity,
+                                                               searchIndex,
+                                                               searchRegions,
+                                                               m_localPSFComponentCounts,
+                                                               m_temporalSelections,
+                                                               sourceRow,
+                                                               sourceColumn,
+                                                               derotationAngles,
+                                                               this->m_combineMethod,
+                                                               this->m_comboWeights,
+                                                               this->m_sigmaThreshold,
+                                                               this->m_minGoodFract );
                     const int imageRow = static_cast<int>( sourceRow );
                     const int imageColumn = static_cast<int>( sourceColumn );
                     if( m_psfFilter )
@@ -3561,19 +3646,24 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
                     }
                     if( m_outputPSFModels )
                     {
-                        centerReconstructor.reconstructCombined( centerCombined,
-                                                                 centerValidity,
-                                                                 localModels,
-                                                                 localValidity,
-                                                                 searchIndex,
-                                                                 0,
-                                                                 sourceRow,
-                                                                 sourceColumn,
-                                                                 derotationAngles,
-                                                                 this->m_combineMethod,
-                                                                 this->m_comboWeights,
-                                                                 this->m_sigmaThreshold,
-                                                                 this->m_minGoodFract );
+                        centerReconstructor.reconstructCombinedTemporal( centerCombined,
+                                                                         centerValidity,
+                                                                         localModels,
+                                                                         temporalCoefficients,
+                                                                         temporalOffsets,
+                                                                         psfModel,
+                                                                         localValidity,
+                                                                         searchIndex,
+                                                                         searchRegions,
+                                                                         m_localPSFComponentCounts,
+                                                                         m_temporalSelections,
+                                                                         sourceRow,
+                                                                         sourceColumn,
+                                                                         derotationAngles,
+                                                                         this->m_combineMethod,
+                                                                         this->m_comboWeights,
+                                                                         this->m_sigmaThreshold,
+                                                                         this->m_minGoodFract );
                         finalValidity( static_cast<Eigen::Index>( source ), 0 ) = centerValidity( 0, 0 );
                         for( int column = 0; column < combined.cols(); ++column )
                         {
@@ -3608,6 +3698,12 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
             try
             {
                 std::rethrow_exception( reconstructionException );
+            }
+            catch( const std::exception &error )
+            {
+                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception,
+                                                                 "P4 final PSF reconstruction failed for output " +
+                                                                     std::to_string( output ) + ": " + error.what() ) );
             }
             catch( ... )
             {
