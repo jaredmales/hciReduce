@@ -35,7 +35,8 @@ set(_hcireduce_navtree_data [=[var NAVTREE =
         [ "Negative-Planet Optimization", "group__p4__optimizer__user__guide.html", null ],
         [ "Frozen-Model PSF Responses", "group__p4__psf__user__guide.html", null ],
         [ "Rotated-Frame Regression (Negative Result)", "group__p4__rotated__user__guide.html", null ]
-      ] ]
+      ] ],
+      [ "hciAnalyze", "group__hcianalyze__user__guide.html", null ]
     ] ],
     [ "Developer's Guide", "group__programming__guide.html", [
       [ "Introduction", "group__programming__guide.html", null ],
@@ -120,7 +121,7 @@ foreach(_hcireduce_navtree_index_file IN LISTS _hcireduce_navtree_indexes)
     string(REGEX REPLACE "(:)\\[0,0\\]" "\\1[0]" _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
 
     # The custom User's Guide has a standalone Introduction before Doxygen's
-    # three user-guide groups. Preserve each page's selected node after adding
+    # four user-guide groups. Preserve each page's selected node after adding
     # that child; otherwise links select the preceding sibling.
     string(REGEX REPLACE "(\\\"introduction\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,0]"
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
@@ -141,6 +142,8 @@ foreach(_hcireduce_navtree_index_file IN LISTS _hcireduce_navtree_indexes)
     string(REGEX REPLACE "(\\\"group__p4__psf__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,3]"
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
     string(REGEX REPLACE "(\\\"group__p4__rotated__user__guide\\.html\\\":)\\[[0-9,]+\\]" "\\1[0,3,4]"
+                         _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
+    string(REGEX REPLACE "(\\\"group__hcianalyze__user__guide\\.html[^\\\"]*\\\":)\\[[0-9,]+\\]" "\\1[0,4]"
                          _hcireduce_navtree_index_contents "${_hcireduce_navtree_index_contents}")
 
     # The Developer's Guide parent and Introduction child share one URL. Keep

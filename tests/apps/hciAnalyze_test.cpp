@@ -9,6 +9,8 @@
 
 #include <cmath>
 #include <limits>
+#include <numbers>
+#include <sstream>
 
 #define HCIREDUCE_HCIANALYZE_NO_MAIN
 #include "src/apps/hciAnalyze.cpp"
@@ -24,6 +26,7 @@ struct appHarness : public hciAnalyze
     using hciAnalyze::analyzeCube;
     using hciAnalyze::checkConfig;
     using hciAnalyze::config;
+    using hciAnalyze::correctSmallSampleSNR;
     using hciAnalyze::filterCube;
     using hciAnalyze::filterCubePerPixelPSF;
     using hciAnalyze::loadConfig;
@@ -32,6 +35,8 @@ struct appHarness : public hciAnalyze
     using hciAnalyze::m_fakeSeparation;
     using hciAnalyze::m_fakeSpecified;
     using hciAnalyze::m_file;
+    using hciAnalyze::m_lambdaD;
+    using hciAnalyze::m_lambdaDSpecified;
     using hciAnalyze::m_perPixelPSF;
     using hciAnalyze::m_perPixelPSFMinimumSupport;
     using hciAnalyze::m_planetPositionAngle;
@@ -46,6 +51,38 @@ struct appHarness : public hciAnalyze
     using hciAnalyze::resolveSignals;
     using hciAnalyze::setupConfig;
     using hciAnalyze::snrAnnulus;
+};
+
+/// Capture standard-error output and restore its stream buffer at scope exit.
+class ErrorCapture
+{
+  public:
+    /// Redirect standard error into the owned string buffer.
+    ErrorCapture() : m_buffer(), m_original( std::cerr.rdbuf( m_buffer.rdbuf() ) )
+    {
+    }
+
+    /// Restore the original standard-error stream buffer.
+    ~ErrorCapture()
+    {
+        std::cerr.rdbuf( m_original );
+    }
+
+    /// Disallow copying a live standard-error capture.
+    ErrorCapture( const ErrorCapture & ) = delete;
+
+    /// Disallow assigning a live standard-error capture.
+    ErrorCapture &operator=( const ErrorCapture & ) = delete;
+
+    /// Return all text captured so far.
+    std::string str() const
+    {
+        return m_buffer.str();
+    }
+
+  private:
+    std::ostringstream m_buffer; ///< Captured standard-error text.
+    std::streambuf *m_original;  ///< Original standard-error buffer restored by the destructor.
 };
 /// \endcond
 
@@ -69,6 +106,7 @@ TEST_CASE( "hciAnalyze configuration validation", "[hciAnalyze][config][validati
     appHarness application;
     application.setupConfig();
     REQUIRE( application.config.m_targets.count( "filter.perPixelPSF" ) == 1 );
+    REQUIRE( application.config.m_targets.count( "lambdaD" ) == 1 );
     application.m_file = "input.fits";
     application.m_planetSeparation = { 3 };
     application.m_planetPositionAngle = { 0, 90 };
@@ -79,6 +117,10 @@ TEST_CASE( "hciAnalyze configuration validation", "[hciAnalyze][config][validati
     application.m_fakeSeparation = { 3 };
     application.m_fakePositionAngle = { 0 };
     application.m_fakeSpecified = true;
+    REQUIRE_THROWS( application.checkConfig() );
+
+    application.m_fakeSpecified = false;
+    application.m_lambdaD = 0;
     REQUIRE_THROWS( application.checkConfig() );
 }
 
@@ -102,6 +144,8 @@ TEST_CASE( "hciAnalyze config-file SNR dispatch", "[hciAnalyze][config][execute]
     writeTextFile( configPath,
                    "file=" + directory.file( "product.fits" ).string() +
                        "\n"
+                       "lambdaD=2.5" +
+                       "\n"
                        "[planet]\n"
                        "sep=2\n"
                        "PA=0\n"
@@ -115,7 +159,14 @@ TEST_CASE( "hciAnalyze config-file SNR dispatch", "[hciAnalyze][config][execute]
     std::string configOption = "--config";
     std::string configName = configPath.string();
     char *arguments[]{ invokedName.data(), configOption.data(), configName.data() };
-    REQUIRE( application.main( 3, arguments ) == 0 );
+    std::string explicitWarnings;
+    {
+        ErrorCapture errors;
+        REQUIRE( application.main( 3, arguments ) == 0 );
+        explicitWarnings = errors.str();
+    }
+    REQUIRE( explicitWarnings.find( "lambdaD was not set" ) == std::string::npos );
+    REQUIRE( application.m_lambdaDSpecified );
     REQUIRE( application.m_results.size() == 1 );
     REQUIRE( std::isfinite( application.m_results[0].m_snr ) );
     REQUIRE( std::filesystem::exists( directory.file( "product_snr.fits" ) ) );
@@ -128,15 +179,52 @@ TEST_CASE( "hciAnalyze config-file SNR dispatch", "[hciAnalyze][config][execute]
     REQUIRE( snrHeader["SNRMINR"].value<float>() == Approx( 1 ) );
     REQUIRE( snrHeader["SNRMAXR"].value<float>() == Approx( 6 ) );
     REQUIRE( snrHeader["SNRAPER"].value<float>() == Approx( 1 ) );
+    REQUIRE( snrHeader["LAMBDAD"].value<float>() == Approx( 2.5 ) );
+    REQUIRE( snrHeader["SNRSMALL"].value<int>() == 1 );
     REQUIRE( snrHeader["HPFGFW"].value<float>() == Approx( 0 ) );
     REQUIRE( snrHeader["LPFGFW"].value<float>() == Approx( 0 ) );
     REQUIRE( snrHeader["HCISEPS"].String().starts_with( "2" ) );
     REQUIRE( snrHeader["HCIPAS"].String().starts_with( "0" ) );
     REQUIRE( snrHeader["HCIRADS"].String().starts_with( "10" ) );
 
+    writeTextFile( configPath,
+                   "file=" + directory.file( "product.fits" ).string() +
+                       "\n"
+                       "[planet]\n"
+                       "sep=2\n"
+                       "PA=0\n"
+                       "[snr]\n"
+                       "minRad=1\n"
+                       "maxRad=6\n"
+                       "apertureR=1\n" );
     appHarness overwriteApplication;
-    REQUIRE( overwriteApplication.main( 3, arguments ) == 0 );
+    std::string defaultWarnings;
+    {
+        ErrorCapture errors;
+        REQUIRE( overwriteApplication.main( 3, arguments ) == 0 );
+        defaultWarnings = errors.str();
+    }
+    REQUIRE( defaultWarnings.find( "lambdaD was not set; using 2.5" ) != std::string::npos );
+    REQUIRE_FALSE( overwriteApplication.m_lambdaDSpecified );
     REQUIRE( std::filesystem::exists( directory.file( "product_snr.fits" ) ) );
+}
+
+/// Verify hciAnalyze applies the requested Mawet small-sample correction as a function of lambda/D radius.
+/** \ingroup hciAnalyze_unit_tests */
+TEST_CASE( "hciAnalyze small-sample SNR correction", "[hciAnalyze][snr][small-sample]" )
+{
+    appHarness application;
+    application.m_lambdaD = 2.5F;
+    hciAnalyze::cubeT snrCube( 11, 11, 2 );
+    snrCube.cube().setOnes();
+
+    application.correctSmallSampleSNR( snrCube );
+
+    const double comparisonSamples = 4.0 * std::numbers::pi - 1.0;
+    const double expected = 1.0 / std::sqrt( 1.0 + 1.0 / comparisonSamples );
+    REQUIRE( snrCube.image( 0 )( 5, 10 ) == Approx( expected ) );
+    REQUIRE( snrCube.image( 1 )( 5, 10 ) == Approx( expected ) );
+    REQUIRE( snrCube.image( 0 )( 5, 5 ) == 0 );
 }
 
 /// Verify hciAnalyze parses FITS fake-planet keywords and lets explicit planet coordinates take precedence.

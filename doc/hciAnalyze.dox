@@ -25,21 +25,54 @@
  * `planet` values take precedence over fake metadata. Every configured signal is excluded from the radial noise
  * estimate using `planet.R` or `fake.R`; omit that setting to use the 10-pixel default.
  *
+ * \section hcianalyze_filtering Filtering
+ *
+ * hciAnalyze supports a spatially varying P4 matched filter and two Gaussian image filters. When more than one is
+ * enabled, they are applied in this order: per-pixel P4 response, Gaussian high pass, then Gaussian low pass. Invalid
+ * FITS pixels are excluded from filtering; at image edges and beside invalid samples, the Gaussian filters use their
+ * available valid in-bounds footprint and renormalize by the retained kernel weight.
+ *
+ * \subsection hcianalyze_filtering_per_pixel_psf Per-pixel P4 response filter
+ *
+ * Set `filter.perPixelPSF` to a complete `p4PSF_manifest.fits` product to apply its coordinate-indexed P4 response
+ * field. hciAnalyze loads the sibling coordinate, model, and validity products and requires their mode fractions to
+ * match the science cube. This permits, for example, a response field calculated after optimized negative-companion
+ * subtraction to filter the corresponding unsubtracted final image. At each output pixel the signed normalized
+ * matched-filter estimate is `sum(H*I)/sum(H*H)`, matching the in-process P4 filter. Pixels without a valid response
+ * remain excluded from the SNR calculation.
+ *
+ * \subsection hcianalyze_filtering_high_pass Gaussian high-pass filter
+ *
+ * Set `filter.hpfGaussFW` to a positive FWHM in pixels to apply Gaussian unsharp masking. The Gaussian-smoothed image
+ * is subtracted from the current image, suppressing structure broader than the configured scale. A non-positive value
+ * disables the high-pass filter.
+ *
+ * \subsection hcianalyze_filtering_low_pass Gaussian low-pass filter
+ *
+ * Set `filter.lpfGaussFW` to a positive FWHM in pixels to smooth the current image with a Gaussian kernel. This can
+ * suppress pixel-scale noise before the radial noise estimate is calculated. A non-positive value disables the
+ * low-pass filter.
+ *
  * \section hcianalyze_measurement SNR measurement
  *
- * Invalid FITS pixels are excluded from filtering and noise estimation. `filter.perPixelPSF` optionally applies a
- * coordinate-indexed P4 response field before any Gaussian filtering. Point it at a complete `p4PSF_manifest.fits`
- * product; hciAnalyze loads the sibling coordinate, model, and validity products and requires their mode fractions to
- * match the science cube. This allows, for example, a response field calculated after optimized negative-companion
- * subtraction to filter the corresponding unsubtracted final image. The signed normalized filter is
- * `sum(H*I)/sum(H*H)`, matching the in-process P4 filter.
+ * After filtering, the radial standard-deviation profile is calculated in the configured annulus after excluding
+ * invalid pixels and every signal mask. The reported SNR is the maximum value inside `snr.apertureR` centered on the
+ * signal.
  *
- * Optional Gaussian high-pass unsharp masking is then applied, followed by optional Gaussian low-pass smoothing. At
- * image edges and beside invalid samples, each
- * Gaussian uses its available valid in-bounds footprint and renormalizes by the retained kernel weight, rather than
- * rejecting pixels without full kernel support. The radial standard-deviation profile is then
- * calculated in the configured annulus after excluding invalid pixels and every signal mask. The reported SNR is
- * the maximum value inside `snr.apertureR` centered on the signal.
+ * hciAnalyze corrects the raw radial-noise SNR for the small number of independent resolution elements at close
+ * separations following Mawet et al. (2014) \cite mawet_2014. For pixel radius \f$r_{\rm pix}\f$ and configured
+ * sampling `lambdaD` in
+ * pixels per \f$\lambda/D\f$, the comparison-sample count and multiplicative correction are
+ *
+ * \f[
+ * n_2=2\pi\frac{r_{\rm pix}}{{\tt lambdaD}}-1,
+ * \qquad
+ * C=\frac{1}{\sqrt{1+1/n_2}}.
+ * \f]
+ *
+ * Every raw SNR-map pixel is multiplied by \f$C\f$. Pixels with \f$n_2\leq0\f$ are set to zero because the estimate
+ * is undefined. `lambdaD` defaults to `2.5`, but hciAnalyze warns whenever that default was not explicitly confirmed
+ * in configuration.
  *
  * `snr.minRad` and `snr.maxRad` override the radial annulus. If either is non-positive, hciAnalyze derives it from
  * the extrema of `REGMINR`/`REGMAXR` or `HIERARCH P4 MIN RADIUS`/`HIERARCH P4 MAX RADIUS` in the FITS header. This
@@ -53,8 +86,8 @@
  * `plane mode signal separation position_angle contrast snr`. `snr` is the maximum inside `snr.apertureR`. A missing
  * mode label or contrast is represented as `nan`. hciAnalyze always writes or replaces the full SNR FITS cube next to
  * the input as `<input-stem>_snr<input-extension>`. Its FITS header records the resolved SNR annulus and aperture,
- * filter FWHMs, optional per-pixel PSF provenance, and the resolved signal separation, PA, exclusion radius, and x/y
- * coordinates. Set
+ * filter FWHMs, `lambdaD`, small-sample-correction status, optional per-pixel PSF provenance, and the resolved signal
+ * separation, PA, exclusion radius, and x/y coordinates. Set
  * `diagnostics=true` or pass `--diagnostics` to print the resolved annulus, filters, signal coordinates,
  * invalid-pixel counts, and SNR measurements to standard error.
  *

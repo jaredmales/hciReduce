@@ -77,6 +77,8 @@ class hciAnalyze : public mx::app::application
     realT m_snrMinRadius{ 0 };                ///< Inner SNR annulus radius; non-positive derives from FITS metadata.
     realT m_snrMaxRadius{ 0 };                ///< Outer SNR annulus radius; non-positive derives from FITS metadata.
     realT m_snrApertureRadius{ 2 };           ///< Radius of each SNR aperture in pixels.
+    realT m_lambdaD{ 2.5 };                   ///< Image scale in pixels per diffraction resolution element.
+    bool m_lambdaDSpecified{ false };         ///< Whether lambdaD was supplied explicitly instead of defaulted.
 
     realT m_highPassFwhm{ 0 };                ///< Gaussian high-pass unsharp-mask FWHM in pixels.
     realT m_lowPassFwhm{ 0 };                 ///< Gaussian low-pass smoothing FWHM in pixels.
@@ -148,6 +150,9 @@ class hciAnalyze : public mx::app::application
     void filterCubePerPixelPSF( cubeT &cube, /**< [in,out] science cube replaced by matched-filter amplitudes */
                                 fitsHeaderT &scienceHeader /**< [in] science header supplying mode labels */ );
 
+    /// Apply the Mawet et al. small-sample multiplicative correction to every SNR-cube pixel.
+    void correctSmallSampleSNR( cubeT &snrCube /**< [in,out] uncorrected SNR cube */ ) const;
+
     /// Measure all resolved signals in an already-read FITS cube.
     void analyzeCube( cubeT &cube, /**< [in,out] input image cube, replaced with zeroed-invalid pixels */
                       fitsHeaderT &header /**< [in] input FITS header */ );
@@ -180,6 +185,15 @@ void hciAnalyze::setupConfig()
 {
     config
         .add( "file", "f", "file", mx::app::argType::Required, "", "file", true, "string", "input FITS image or cube" );
+    config.add( "lambdaD",
+                "",
+                "lambdaD",
+                mx::app::argType::Required,
+                "",
+                "lambdaD",
+                false,
+                "float",
+                "image scale in pixels per lambda/D; default 2.5 with a warning when omitted" );
 
     config.add( "planet.sep",
                 "",
@@ -315,6 +329,7 @@ void hciAnalyze::setupConfig()
 void hciAnalyze::loadConfig()
 {
     config( m_file, "file" );
+    config( m_lambdaD, "lambdaD" );
     config( m_planetSeparation, "planet.sep" );
     config( m_planetPositionAngle, "planet.PA" );
     config( m_planetRadius, "planet.R" );
@@ -334,6 +349,11 @@ void hciAnalyze::loadConfig()
         targetSpecified( "planet.sep" ) || targetSpecified( "planet.PA" ) || targetSpecified( "planet.R" );
     m_fakeSpecified = targetSpecified( "fake.sep" ) || targetSpecified( "fake.PA" ) ||
                       targetSpecified( "fake.contrast" ) || targetSpecified( "fake.R" );
+    m_lambdaDSpecified = targetSpecified( "lambdaD" );
+    if( !m_lambdaDSpecified )
+    {
+        std::cerr << "hciAnalyze warning: lambdaD was not set; using 2.5 pixels per lambda/D\n";
+    }
 }
 
 void hciAnalyze::checkConfig()
@@ -359,6 +379,10 @@ void hciAnalyze::checkConfig()
     if( !std::isfinite( m_snrApertureRadius ) || m_snrApertureRadius <= 0 )
     {
         throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig, "snr.apertureR must be finite and positive" );
+    }
+    if( !std::isfinite( m_lambdaD ) || m_lambdaD <= 0 )
+    {
+        throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig, "lambdaD must be finite and positive" );
     }
     if( !std::isfinite( m_snrMinRadius ) || !std::isfinite( m_snrMaxRadius ) || !std::isfinite( m_highPassFwhm ) ||
         !std::isfinite( m_lowPassFwhm ) )
@@ -861,6 +885,29 @@ void hciAnalyze::filterCubePerPixelPSF( cubeT &cube, fitsHeaderT &scienceHeader 
     cube = std::move( filtered );
 }
 
+void hciAnalyze::correctSmallSampleSNR( cubeT &snrCube ) const
+{
+    const double centerRow = 0.5 * static_cast<double>( snrCube.rows() - 1 );
+    const double centerColumn = 0.5 * static_cast<double>( snrCube.cols() - 1 );
+    for( int column = 0; column < snrCube.cols(); ++column )
+    {
+        for( int row = 0; row < snrCube.rows(); ++row )
+        {
+            const double radiusPixels =
+                std::hypot( static_cast<double>( row ) - centerRow, static_cast<double>( column ) - centerColumn );
+            const double resolutionRadius = radiusPixels / static_cast<double>( m_lambdaD );
+            const double comparisonSamples = 2.0 * std::numbers::pi * resolutionRadius - 1.0;
+            const realT correction = comparisonSamples > 0
+                                         ? static_cast<realT>( 1.0 / std::sqrt( 1.0 + 1.0 / comparisonSamples ) )
+                                         : realT{ 0 };
+            for( int plane = 0; plane < snrCube.planes(); ++plane )
+            {
+                snrCube.image( plane )( row, column ) *= correction;
+            }
+        }
+    }
+}
+
 void hciAnalyze::analyzeCube( cubeT &cube, fitsHeaderT &header )
 {
     const auto [minRadius, maxRadius] = snrAnnulus( header );
@@ -893,6 +940,7 @@ void hciAnalyze::analyzeCube( cubeT &cube, fitsHeaderT &header )
 
     cubeT snrCube;
     mx::improc::stddevImageCube( snrCube, cube, noiseMask, minRadius, maxRadius, true );
+    correctSmallSampleSNR( snrCube );
     mx::improc::zeroNaNCube( snrCube );
     const std::filesystem::path snrMapPath = writeSNRMap( snrCube, header, minRadius, maxRadius );
 
@@ -963,6 +1011,7 @@ void hciAnalyze::printDiagnostics( realT minRadius, realT maxRadius, const cubeT
               << "  input: " << m_file << '\n'
               << "  SNR annulus: " << minRadius << " to " << maxRadius << " pixels\n"
               << "  aperture radius: " << m_snrApertureRadius << " pixels\n"
+              << "  lambda/D scale: " << m_lambdaD << " pixels per lambda/D\n"
               << "  high-pass FWHM: " << m_highPassFwhm << " pixels\n"
               << "  low-pass FWHM: " << m_lowPassFwhm << " pixels\n"
               << "  per-pixel PSF manifest: " << ( m_perPixelPSF.empty() ? "disabled" : m_perPixelPSF ) << '\n';
@@ -1034,6 +1083,8 @@ hciAnalyze::writeSNRMap( const cubeT &snrCube, fitsHeaderT &header, realT minRad
     addHeader( "SNRMINR", minRadius, "SNR annulus inner radius [pix]" );
     addHeader( "SNRMAXR", maxRadius, "SNR annulus outer radius [pix]" );
     addHeader( "SNRAPER", m_snrApertureRadius, "SNR aperture radius [pix]" );
+    addHeader( "LAMBDAD", m_lambdaD, "image scale [pix per lambda/D]" );
+    addHeader( "SNRSMALL", 1, "Mawet small-sample correction applied" );
     addHeader( "HPFGFW", m_highPassFwhm, "high-pass Gaussian FWHM [pix]" );
     addHeader( "LPFGFW", m_lowPassFwhm, "low-pass Gaussian FWHM [pix]" );
     addHeader( "HCIAPSF", m_perPixelPSF, "per-pixel PSF manifest" );
