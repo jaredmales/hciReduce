@@ -119,6 +119,10 @@ implemented, before adopting either result as a calibrated science uncertainty.
 
 ## Better Temporal Prediction
 
+[] Try just adding 1 pixel instead of the whole PSF mask
+
+[] Try adding the mean or median of the pixels
+
 [] when adding numberImages, the extension at the beginning and end by adding 2 later images (for images at the beginning) or 2 earlier images (for images at the end) should be modified.  We should calculate 3 different sets of coefficients.  This is to optimize to exploit any temporal predictability.  As it is, with a single set of coefficients for all three subsets we're basically only calculating the mean.
 
 [] alternatively, we could use PCAT (Long et al, 2023,https://arxiv.org/abs/2303.05559).The flaw in this is that the data have gaps and may not be regularly sampled, meaning that we are not fully exploiting temporal correlations
@@ -132,6 +136,7 @@ implemented, before adopting either result as a calibrated science uncertainty.
   - Use the LP to predict the values in the PSF-masked patch using only prior/later pixels that are outside the rotation exclusion.  
      - This will require multi-step prediction, over non-regular sampling.  We'll need strategies to handle this.
      - There may be better conceptualizations that LP for interpolation vs. extrapolation that exploit the same statistical predictability.
+  - Alternatively: use the PSD to calculate a KL transform of the Legendre polynomials and use this as the basis
 
 ## Exclusion of target images
 
@@ -142,5 +147,32 @@ Right now we do an inversion for all the images at once.  This means that when w
    - if we do this we may also consider having a configurable temporal exclusion region as we do with numberImages > 0.
    
 [] this will be much slower, probably on the order of T times slower. So we should look into 
-      -- using the downdate algorithm of Long and Males 2021 (https://arxiv.org/abs/2101.11634)
-      -- batch GPU processing
+      -- using the downdate algorithm of Long and Males 2021 (https://arxiv.org/abs/2101.11634).  This will 
+      -- batch GPU processing.  I.e. load the CV into GPU memory once then do the decomposition T times, once for each t removed.   
+
+## Other solvers
+
+[] SVD (which is equivalent to eigendecompositon for a covariance matrix)
+
+[] In particular we should look at SVD + Tikhonov regularization.  
+
+## Pixel grouping
+
+[] evaluate grouping pixels such that the solution is based on, say, a 2x2 square of pixels instead of a single pixel.  That solution is used for each pixel individually
+  - This may reduce calculation time
+  - This may improve the fit given more data
+
+## Fake Planet Cleanup
+
+[] enable fake injection with preProcess.skip=true
+
+[] add a "real" configuration section, parallel to "fake", where the known location of a fake planet can be entered and then propagated through to hciAnalyze, etc.  Include contrast.
+
+[] have a fake.includeReal=no/pos/neg flag which will then automatically include the real planet parameters in injected fakes with the indicated sign. No is default.  
+
+## Config Cleanup
+
+[] make it so boolean options work with both.  This can be done based on isSet.
+   [] --flag  (implicitly true)
+   [] --flag=true/fales (explicitly set)
+
