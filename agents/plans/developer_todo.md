@@ -147,7 +147,7 @@ Right now we do an inversion for all the images at once.  This means that when w
    - if we do this we may also consider having a configurable temporal exclusion region as we do with numberImages > 0.
    
 [] this will be much slower, probably on the order of T times slower. So we should look into 
-      -- using the downdate algorithm of Long and Males 2021 (https://arxiv.org/abs/2101.11634).  This will 
+      -- using the downdate algorithm of Long and Males 2021 (https://arxiv.org/abs/2101.11634).  This will require restructuring the algo to use SVD of the data instead of the CV.
       -- batch GPU processing.  I.e. load the CV into GPU memory once then do the decomposition T times, once for each t removed.   
 
 ## Other solvers
