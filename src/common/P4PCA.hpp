@@ -44,6 +44,13 @@ struct P4PCAResult
 
     /// Number of eigenvalues above the configured relative rank threshold.
     int numericalRank{ 0 };
+
+    /// Optional per-sample, per-mode rank validity used by held-out fits; empty means modeStatus applies to every row.
+    Eigen::Array<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic> sampleValidity;
+
+    /// Report whether one residual sample has sufficient numerical rank.
+    bool sampleSupported( Eigen::Index sample, /**< [in] residual row */
+                          std::size_t mode /**< [in] requested-mode index */ ) const;
 };
 
 /// Per-call aggregate-worker timing values for the numerical P4 PCA core.
@@ -91,6 +98,23 @@ struct P4PCA
                            workspaceT &workspace, /**< [in,out] caller-owned, non-shared LAPACK workspace */
                            P4PCATiming *timing = nullptr, /**< [out] optional per-call worker timing */
                            matrixT *coefficients = nullptr /**< [out] optional K-by-mode predictor coefficients */ );
+
+    /// Calculate exact target-held-out residuals from explicit training-row sets.
+    /** Each output row is predicted by a separate PCA fit containing only the corresponding entries of
+     * \p referenceRows. Requested modes beyond an individual fit's structural or numerical rank remain NaN and are
+     * marked invalid in P4PCAResult::sampleValidity. Coefficients are intentionally not returned because they differ
+     * for every target row.
+     */
+    static void calculateHeldOut(
+        P4PCAResult &output,       /**< [out] held-out residuals, aggregate mode states, and minimum solved rank */
+        const matrixT &predictors, /**< [in] finite full T-by-K predictor matrix */
+        const vectorT &target,     /**< [in] finite full T-sample target time series */
+        const std::vector<std::vector<std::size_t>> &referenceRows,
+        /**< [in] retained training-row indices for each target row */
+        const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
+        double rankTolerance,          /**< [in] finite nonnegative threshold relative to lambdaMax */
+        workspaceT &workspace,         /**< [in,out] caller-owned, non-shared LAPACK workspace */
+        P4PCATiming *timing = nullptr /**< [out] optional aggregate worker timing for all refits */ );
 
     /// Calculate a temporally centered fit and apply its predictor coefficients to the uncentered data.
     /** Each predictor column and the target are centered over their T samples when estimating the truncated-PCA

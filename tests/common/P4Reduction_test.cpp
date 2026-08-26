@@ -46,18 +46,31 @@ class P4ReductionTestAccess
         return P4Reductionf::checkedMaximumDegreesOfFreedom( imageCount, predictorCount, temporallyCentered );
     }
 
+    /// Invoke the production KLIP-compatible target-reference selection.
+    static std::vector<std::vector<std::size_t>>
+    targetReferenceRows( const std::vector<std::vector<int>> &selections, /**< [in] temporal row selections */
+                         HCI::exclude method,                             /**< [in] exclusion method */
+                         float minDPx,                                    /**< [in] exclusion threshold */
+                         float minimumRadius,                             /**< [in] annulus inner radius */
+                         const std::vector<double> &angles /**< [in] physical-image radians angles */ )
+    {
+        return P4Reductionf::targetReferenceRows( selections, method, minDPx, minimumRadius, angles );
+    }
+
     /// Invoke the production conservative one-worker memory estimate.
     static std::size_t estimatedWorkerBytes( std::size_t targetImageCount,     /**< [in] temporal sample count */
                                              std::size_t predictorCount,       /**< [in] predictor-column count */
                                              std::size_t modeCount,            /**< [in] residual-column count */
                                              bool includeCoefficients = false, /**< [in] include coefficient output */
-                                             std::size_t psfStampPixels = 0 /**< [in] float PSF scratch */ )
+                                             std::size_t psfStampPixels = 0,   /**< [in] float PSF scratch */
+                                             bool exactHeldOut = false /**< [in] include explicit refit scratch */ )
     {
         return P4Reductionf::estimatedWorkerBytes( targetImageCount,
                                                    predictorCount,
                                                    modeCount,
                                                    includeCoefficients,
-                                                   psfStampPixels );
+                                                   psfStampPixels,
+                                                   exactHeldOut );
     }
 
     /// Invoke the production phase-matched local-model dimension calculation.
@@ -416,6 +429,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_modeFractions.empty() );
     REQUIRE( defaults.m_regressionFrame == mx::improc::P4RegressionFrame::detector );
     REQUIRE( defaults.m_numberImages == 0 );
+    REQUIRE( defaults.m_minDPx == 0 );
+    REQUIRE( defaults.m_excludeMethod == mx::improc::HCI::exclude::none );
     REQUIRE_FALSE( defaults.m_exclusionPolicy.has_value() );
     REQUIRE( mx::math::isNan( defaults.m_orDeltaRadiusInner ) );
     REQUIRE( mx::math::isNan( defaults.m_exclusionRadiusBuffer ) );
@@ -436,6 +451,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.modeFractions" ).clType == mx::app::argType::Required );
     REQUIRE( registered.m_targets.at( "p4.regressionFrame" ).clType == mx::app::argType::Required );
     REQUIRE( registered.m_targets.at( "p4.numberImages" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "adi.minDPx" ).helpType == "float" );
+    REQUIRE( registered.m_targets.at( "adi.excludeMethod" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfFile" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::Optional );
@@ -461,6 +478,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     readReductionConfig( configured,
                          directory.file( "p4.conf" ),
                          "[geom]\nminRadius=5,8\nmaxRadius=6,9\n"
+                         "[adi]\nminDPx=1.5\nexcludeMethod=angle\n"
                          "[p4]\nmodeFractions=0.25,0.5\nregressionFrame=rotated\n"
                          "orDeltaRadiusInner=2\norDeltaRadiusOuter=3\n"
                          "orArcHalfWidth=4\norMaxHalfAngle=90\npsfRadius=1.5\n"
@@ -473,6 +491,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( configured.m_modeFractions == std::vector<float>{ 0.25f, 0.5f } );
     REQUIRE( configured.m_regressionFrame == mx::improc::P4RegressionFrame::rotated );
     REQUIRE( configured.m_numberImages == 0 );
+    REQUIRE( configured.m_minDPx == Approx( 1.5 ) );
+    REQUIRE( configured.m_excludeMethod == mx::improc::HCI::exclude::angle );
     REQUIRE( configured.m_orDeltaRadiusInner == 2 );
     REQUIRE( configured.m_orDeltaRadiusOuter == 3 );
     REQUIRE( configured.m_orArcHalfWidth == 4 );
@@ -487,6 +507,9 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     reductionT::fitsHeaderT configuredHeader;
     configured.appendReductionHeader( configuredHeader );
     REQUIRE( configuredHeader["P4 FRAME"].String().starts_with( "rotated" ) );
+    REQUIRE( configuredHeader["P4 IN SAMPLE"].Int() == 0 );
+    REQUIRE( configuredHeader["P4 ADI EXCLUDE METHOD"].String().starts_with( "angle" ) );
+    REQUIRE( configuredHeader["P4 ADI MIN DPX"].value<float>() == Approx( 1.5 ) );
     REQUIRE( configuredHeader["P4 EXCLUSION POLICY"].String().starts_with( "sampleCenter" ) );
     REQUIRE( configuredHeader["P4 MIN RADIUS"].String().find( ',' ) != std::string::npos );
 
@@ -529,6 +552,32 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     // clang-format on
 }
 
+/// Verify P4 target-reference selection exactly follows KLIP exclusion units and inclusive boundaries.
+/** This directly exercises mx::improc::P4Reduction::targetReferenceRows(). */
+TEST_CASE( "P4 target-frame reference selection", "[P4Reduction][exclusion]" )
+{
+    using excludeT = mx::improc::HCI::exclude;
+    const std::vector<std::vector<int>> selections{ { 0 }, { 1 }, { 2 }, { 3 } };
+    const std::vector<double> angles{ 0, 0.05, 0.20, 0.40 };
+
+    REQUIRE(
+        mx::improc::P4ReductionTestAccess::targetReferenceRows( selections, excludeT::none, 0, 10, angles ).empty() );
+
+    const auto byImage =
+        mx::improc::P4ReductionTestAccess::targetReferenceRows( selections, excludeT::imno, 1, 10, {} );
+    REQUIRE( byImage == std::vector<std::vector<std::size_t>>{ { 2, 3 }, { 3 }, { 0 }, { 0, 1 } } );
+
+    const auto byPixel =
+        mx::improc::P4ReductionTestAccess::targetReferenceRows( selections, excludeT::pixel, 1, 10, angles );
+    REQUIRE( byPixel == std::vector<std::vector<std::size_t>>{ { 2, 3 }, { 2, 3 }, { 0, 1, 3 }, { 0, 1, 2 } } );
+
+    const auto byAngle =
+        mx::improc::P4ReductionTestAccess::targetReferenceRows( selections, excludeT::angle, 6, 10, angles );
+    REQUIRE( byAngle == byPixel );
+    REQUIRE_THROWS(
+        mx::improc::P4ReductionTestAccess::targetReferenceRows( selections, excludeT::pixel, 1, 0, angles ) );
+}
+
 /// Verify P4Reduction enforces both finite interpolation and all-double-to-float storage boundaries.
 /** \ingroup P4Reduction_unit_tests */
 TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversion]" )
@@ -554,10 +603,13 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
     const std::size_t coefficientWorkerBytes =
         mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 30, 80, 2, true );
     const std::size_t psfWorkerBytes = mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 30, 80, 2, true, 100 );
+    const std::size_t heldOutWorkerBytes =
+        mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 30, 80, 2, false, 0, true );
     REQUIRE( smallWorkerBytes >= 1024 * 1024 );
     REQUIRE( largeWorkerBytes > smallWorkerBytes );
     REQUIRE( coefficientWorkerBytes > largeWorkerBytes );
     REQUIRE( psfWorkerBytes > coefficientWorkerBytes );
+    REQUIRE( heldOutWorkerBytes > largeWorkerBytes );
     REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 11, 256 ) == 22 );
     REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 11, 255 ) == 23 );
     REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 4, 10 ) == 12 );
@@ -655,6 +707,42 @@ TEST_CASE( "P4 reduction exact synthetic prediction", "[P4Reduction][reduce][pre
     doxygenReduction.regions( { 5 }, { 6 } );
 #endif
     // clang-format on
+}
+
+/// Verify detector-frame P4 excludes each target from its exact CPU fit through KLIP-compatible ADI configuration.
+/** This exercises mx::improc::P4Reduction::reduce() and mx::improc::P4PCA::calculateHeldOut().
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][reduce][held-out][validity]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    reductionHarness reduction;
+    prepareReduction( reduction );
+    reduction.m_excludeMethod = mx::improc::HCI::exclude::imno;
+    reduction.m_minDPx = 0;
+
+    REQUIRE( reduction.reduce() == 0 );
+    REQUIRE( reduction.m_regionStatistics.size() == 1 );
+    REQUIRE( reduction.m_regionStatistics[0].minimumNumericalRank == 1 );
+    std::size_t validSamples{ 0 };
+    for( int image = 0; image < reduction.m_Nims; ++image )
+    {
+        for( int column = 0; column < reduction.m_Ncols; ++column )
+        {
+            for( int row = 0; row < reduction.m_Nrows; ++row )
+            {
+                if( reduction.m_psfsubValidity[0].image( image )( row, column ) == 1 )
+                {
+                    ++validSamples;
+                    REQUIRE( reduction.m_psfsub[0].image( image )( row, column ) == Approx( 0 ).margin( 2e-5 ) );
+                }
+            }
+        }
+    }
+    REQUIRE( validSamples == reduction.m_regionStatistics[0].searchPixelCount * 3 );
+    reductionT::fitsHeaderT header;
+    reduction.appendReductionHeader( header );
+    REQUIRE( header["P4 IN SAMPLE"].Int() == 0 );
 }
 
 /// Verify P4Reduction's finite-amplitude local path matches a crop from an independently materialized full rerun.
@@ -1470,6 +1558,61 @@ TEST_CASE( "P4 compact finalization matches retained residual cubes", "[P4Reduct
     REQUIRE( compact.m_regionStatistics.front().estimatedWorkerBytes > 0 );
     REQUIRE( compact.m_finim.rows() == expected.rows() );
     REQUIRE( compact.m_finim.cols() == expected.cols() );
+    REQUIRE( compact.m_finim.planes() == expected.planes() );
+    for( int output = 0; output < expected.planes(); ++output )
+    {
+        for( int column = 0; column < expected.cols(); ++column )
+        {
+            for( int row = 0; row < expected.rows(); ++row )
+            {
+                const float expectedValue = expected.image( output )( row, column );
+                const float actualValue = compact.m_finim.image( output )( row, column );
+                if( mx::math::isNan( expectedValue ) )
+                {
+                    REQUIRE( mx::math::isNan( actualValue ) );
+                }
+                else
+                {
+                    REQUIRE( actualValue == Approx( expectedValue ).margin( 1e-6 ) );
+                }
+            }
+        }
+    }
+}
+
+/// Verify compact finalization preserves per-target validity and residuals from exact held-out fits.
+/** This compares both output-storage paths in mx::improc::P4Reduction::reduce() while exercising
+ * mx::improc::P4PCA::calculateHeldOut().
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 held-out compact finalization matches retained residual cubes",
+           "[P4Reduction][held-out][memory][combine][validity]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    const auto prepareHeldOut = []( reductionHarness &reduction )
+    {
+        prepareReduction( reduction, 5 );
+        reduction.m_modeFractions = { 0.2F, 0.4F };
+        reduction.m_excludeMethod = mx::improc::HCI::exclude::imno;
+        reduction.m_minDPx = 1;
+        reduction.m_derotF.m_angles = { 0, 20, 40, 60, 80 };
+        reduction.m_doDerotate = true;
+        reduction.m_memoryFraction = 0;
+    };
+
+    reductionHarness retained;
+    prepareHeldOut( retained );
+    REQUIRE( retained.reduce() == 0 );
+    retained.m_combineMethod = mx::improc::HCI::combine::mean;
+    retained.combineFinim();
+    const mx::improc::eigenCube<float> expected = retained.m_finim;
+
+    reductionHarness compact;
+    prepareHeldOut( compact );
+    compact.m_combineMethod = mx::improc::HCI::combine::mean;
+    REQUIRE( compact.reduce() == 0 );
+    REQUIRE( compact.m_psfsub.empty() );
+    REQUIRE( compact.m_psfsubValidity.empty() );
     REQUIRE( compact.m_finim.planes() == expected.planes() );
     for( int output = 0; output < expected.planes(); ++output )
     {

@@ -20,6 +20,8 @@
  *
  * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
+ * | `--adi.excludeMethod` | `adi.excludeMethod=imno` | `HIERARCH P4 ADI EXCLUDE METHOD` | `none`, `pixel`, `angle`, or `imno` | `none` | Select exact per-target CPU refitting. `none` preserves the in-sample model. Non-`none` methods exclude every candidate at or inside `adi.minDPx`, including the target itself at zero. |
+ * | `--adi.minDPx` | `adi.minDPx=0` | `HIERARCH P4 ADI MIN DPX` | finite nonnegative real | `0` | Inclusive exclusion threshold in pixels at the annulus inner radius (`pixel`), degrees (`angle`), or temporal-row index (`imno`). |
  * | `--mode` | `mode=basic` | — | `basic` or `normal` | `basic` | Exact aliases for one configured, target-only P4 reduction. |
  * | `--showTiming` | `showTiming=true` | — | bool | `false` | Print the completed P4 reduction timing report to standard output. |
  *
@@ -61,7 +63,8 @@
  * retained only as a numerical reference.
  *
  * P4 automatically uses the smaller temporal or predictor Gram formulation and performs the normal-equation work in
- * double precision. The Gram choice is not a configurable backend.
+ * double precision. The Gram choice is not a configurable backend. Exact target exclusion currently requires
+ * detector-frame regression with `p4.numberImages=0` and does not support pixel-local or frozen-PSF products.
  *
  * \section p4_memory_dictionary Memory and worker management
  *

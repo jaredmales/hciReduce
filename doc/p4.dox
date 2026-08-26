@@ -7,8 +7,9 @@
  * @{
  *
  * P4 (Pixel Prediction Post-Processing) predicts the time-variable stellar PSF and noise at one search pixel from a
- * local annular-wedge optimization region (OR). The complete time sequence trains one in-sample regression for each
- * search pixel. A central exclusion disk prevents the expected companion location from entering the predictor set.
+ * local annular-wedge optimization region (OR). By default the complete time sequence trains one in-sample regression
+ * for each search pixel. KLIP-compatible ADI exclusion can instead refit the model separately for every target frame.
+ * A central exclusion disk prevents the expected companion location from entering the predictor set.
  * This guide describes the detector-frame algorithm, which is the P4 science path and the only regression frame that
  * should be used for reductions. The separate
  * \ref p4_rotated_user_guide "rotated-frame negative-result page" documents an unsuccessful experiment for historical
@@ -65,6 +66,8 @@
  * | Target | Contract |
  * |---|---|
  * | `geom.minRadius`, `geom.maxRadius` | Matching, ordered, non-overlapping full-annulus bounds. Inner radii are inclusive and outer radii are exclusive. |
+ * | `adi.excludeMethod` | `none` preserves the in-sample fit. `pixel`, `angle`, and `imno` perform exact CPU refits after excluding references within the inclusive `adi.minDPx` threshold, with the same semantics as KLIP. |
+ * | `adi.minDPx` | Nonnegative exclusion threshold: pixels at the annulus inner radius for `pixel`, degrees for `angle`, or target-row distance for `imno`. A non-`none` method with zero excludes exactly the target row. |
  * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames added to each predictor row; `0` is the compatibility default. |
  * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
@@ -79,7 +82,9 @@
  * | `p4.diagnosticDirectory` | Optional explicit destination override; `.` groups diagnostics with the run's other auxiliary products. |
  *
  * P4 rejects configured RDI input, overlapping annuli, and nonfinite target input as hard errors. The geometry must
- * fit its configured detector-frame interpolation footprints.
+ * fit its configured detector-frame interpolation footprints. The initial exact held-out implementation is a slow
+ * CPU reference path and requires detector-frame regression, `p4.numberImages=0`, no pixel-local processing, and no
+ * frozen-model PSF calculation. Rank support is tracked independently for every target and output mode.
  *
  * `sampleCenter` reproduces the prototype's center-only signal exclusion. `kernelSupport` rejects a predictor when
  * its nominal cubic footprint intersects the exclusion disk.

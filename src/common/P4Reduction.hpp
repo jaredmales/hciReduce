@@ -77,7 +77,7 @@ struct P4RegionStatistics
 
     std::size_t supportInvalidLocalFitCount{ 0 }; ///< Direct rotated fits lacking all-frame edge or mask support.
 
-    std::vector<std::size_t> rankInvalidCounts;   ///< Rank-insufficient search pixels for each requested output plane.
+    std::vector<std::size_t> rankInvalidCounts; ///< Search pixels with one or more rank-invalid target fits per plane.
 };
 
 /// One finite-amplitude pixel-local trial evaluated against the pristine target cube.
@@ -120,7 +120,7 @@ struct P4LocalEvaluation
 };
 
 /// Target-only Pixel Prediction Post-Processing reduction orchestrator.
-/** P4 learns one in-sample temporal regression per search pixel. Predictor geometry is fixed within each annulus,
+/** P4 learns one temporal regression per search pixel. Predictor geometry is fixed within each annulus,
  * while numerical workspaces are private to OpenMP workers. The initial supported implementation uses float image
  * storage, all-double normal equations, and float cubic-convolution interpolation. Detector-frame regression is the
  * compatibility default; rotated-frame regression directly samples fixed sky coordinates from each preprocessed,
@@ -167,6 +167,10 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     P4RegressionFrame m_regressionFrame{ P4RegressionFrame::detector }; ///< Frame of the learned regression.
 
     int m_numberImages{ 0 }; ///< Qualifying earlier and later images appended to each detector-frame predictor row.
+
+    realT m_minDPx{ 0 };     ///< Minimum target/reference displacement interpreted by `m_excludeMethod`.
+
+    HCI::exclude m_excludeMethod{ HCI::exclude::none }; ///< KLIP-compatible target-frame exclusion method.
 
     realT m_orDeltaRadiusInner{ std::numeric_limits<realT>::quiet_NaN() }; ///< Inward OR radial extent in pixels.
 
@@ -385,13 +389,22 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                                bool temporallyCentered = false /**< [in] whether centering removes one
                                                                                          temporal degree of freedom */ );
 
+    /// Build KLIP-compatible ordered reference-row sets for every central target row.
+    static std::vector<std::vector<std::size_t>> targetReferenceRows(
+        const std::vector<std::vector<int>> &selections, /**< [in] central physical image in each row's first slot */
+        HCI::exclude method,                             /**< [in] none, pixel, angle, or image-number exclusion */
+        realT minDPx,                                    /**< [in] nonnegative exclusion threshold */
+        realT minimumRadius,                             /**< [in] annulus inner radius for pixel conversion */
+        const std::vector<double> &derotationAngles /**< [in] radians angles indexed by physical target image */ );
+
     /// Conservatively estimate the peak private allocation for one P4 regression worker.
     static std::size_t estimatedWorkerBytes( std::size_t targetImageCount, /**< [in] temporal sample count */
                                              std::size_t predictorCount,   /**< [in] predictor-column count */
                                              std::size_t modeCount,        /**< [in] requested residual-column count */
                                              bool includeCoefficients = false, /**< [in] include optional K-by-mode
                                                                                           coefficient output */
-                                             std::size_t psfStampPixels = 0 /**< [in] optional float PSF scratch */ );
+                                             std::size_t psfStampPixels = 0,   /**< [in] optional float PSF scratch */
+                                             bool exactHeldOut = false /**< [in] include explicit refit scratch */ );
 
     /// Return the phase-matched local-model dimension needed for final-stamp reconstruction.
     static int localPSFModelDimension( int outputStampSize, /**< [in] positive square final-stamp size */
@@ -447,6 +460,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         P4PCATiming &timing,              /**< [out] PCA phase timing */
         double &sameImageSamplingSeconds, /**< [out] target and same-image OR worker seconds */
         double &temporalSamplingSeconds,  /**< [out] additional-image sampling worker seconds */
+        const std::vector<std::vector<std::size_t>> *referenceRows,
+        /**< [in] optional exact per-target training rows; nullptr selects in-sample fitting */
         const P4TrialSource *trialSource = nullptr /**< [in] optional finite-amplitude trial perturbation */ ) const;
 
     /// Load one finite per-frame fake scale vector using the inherited filename-matching convention.

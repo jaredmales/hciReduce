@@ -391,6 +391,23 @@ void p4PCAResetEigenSolverForTesting()
 
 } // namespace detail
 
+bool P4PCAResult::sampleSupported( Eigen::Index sample, std::size_t mode ) const
+{
+    if( sample < 0 || sample >= residuals.rows() || mode >= modeStatus.size() )
+    {
+        throw std::out_of_range( "P4PCA result sample or mode is out of range" );
+    }
+    if( sampleValidity.size() == 0 )
+    {
+        return modeStatus[mode] == P4PCAModeStatus::rankSupported;
+    }
+    if( sampleValidity.rows() != residuals.rows() || sampleValidity.cols() != residuals.cols() )
+    {
+        throw std::logic_error( "P4PCA sample-validity dimensions do not match residuals" );
+    }
+    return sampleValidity( sample, static_cast<Eigen::Index>( mode ) ) != 0;
+}
+
 void P4PCA::calculate( P4PCAResult &output,
                        const matrixT &predictors,
                        const vectorT &target,
@@ -400,6 +417,7 @@ void P4PCA::calculate( P4PCAResult &output,
                        P4PCATiming *timing,
                        matrixT *coefficients )
 {
+    output.sampleValidity.resize( 0, 0 );
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
     const int maxDOF = static_cast<int>( std::min( sampleCount, predictorCount ) );
@@ -415,6 +433,138 @@ void P4PCA::calculate( P4PCAResult &output,
                              workspace,
                              timing,
                              coefficients );
+}
+
+void P4PCA::calculateHeldOut( P4PCAResult &output,
+                              const matrixT &predictors,
+                              const vectorT &target,
+                              const std::vector<std::vector<std::size_t>> &referenceRows,
+                              const std::vector<int> &modes,
+                              double rankTolerance,
+                              workspaceT &workspace,
+                              P4PCATiming *timing )
+{
+    const Eigen::Index sampleCount = predictors.rows();
+    const Eigen::Index predictorCount = predictors.cols();
+    if( sampleCount <= 0 || predictorCount <= 0 || target.rows() != sampleCount ||
+        referenceRows.size() != static_cast<std::size_t>( sampleCount ) )
+    {
+        throw std::invalid_argument( "P4PCA held-out inputs must have consistent nonempty dimensions" );
+    }
+    if( modes.empty() )
+    {
+        throw std::invalid_argument( "P4PCA held-out regression requires at least one mode count" );
+    }
+    int previousMode{ 0 };
+    for( const int mode : modes )
+    {
+        if( mode <= previousMode )
+        {
+            throw std::invalid_argument( "P4PCA held-out mode counts must be positive and strictly increasing" );
+        }
+        previousMode = mode;
+    }
+    if( !mx::math::isFinite( rankTolerance ) || rankTolerance < 0 || !p4PCAAllFinite( predictors ) ||
+        !p4PCAAllFinite( target ) )
+    {
+        throw std::invalid_argument( "P4PCA held-out values and rank tolerance must be finite and valid" );
+    }
+
+    output.residuals.resize( sampleCount, static_cast<Eigen::Index>( modes.size() ) );
+    output.residuals.setConstant( std::numeric_limits<double>::quiet_NaN() );
+    output.sampleValidity.resize( sampleCount, static_cast<Eigen::Index>( modes.size() ) );
+    output.sampleValidity.setZero();
+    output.modeStatus.assign( modes.size(), P4PCAModeStatus::rankInsufficient );
+    output.numericalRank = std::numeric_limits<int>::max();
+    if( timing )
+    {
+        *timing = P4PCATiming{};
+    }
+
+    matrixT trainingPredictors;
+    vectorT trainingTarget;
+    matrixT coefficients;
+    for( Eigen::Index heldOut = 0; heldOut < sampleCount; ++heldOut )
+    {
+        const std::vector<std::size_t> &rows = referenceRows[static_cast<std::size_t>( heldOut )];
+        if( rows.empty() )
+        {
+            output.numericalRank = 0;
+            continue;
+        }
+        std::size_t previousRow{ 0 };
+        bool first{ true };
+        for( const std::size_t row : rows )
+        {
+            if( row >= static_cast<std::size_t>( sampleCount ) || row == static_cast<std::size_t>( heldOut ) ||
+                ( !first && row <= previousRow ) )
+            {
+                throw std::invalid_argument(
+                    "P4PCA held-out reference rows must be ordered, unique, in range, and omit their target" );
+            }
+            previousRow = row;
+            first = false;
+        }
+
+        const int structuralRank =
+            static_cast<int>( std::min<std::size_t>( rows.size(), static_cast<std::size_t>( predictorCount ) ) );
+        output.numericalRank = std::min( output.numericalRank, structuralRank );
+        const auto supportedEnd = std::upper_bound( modes.begin(), modes.end(), structuralRank );
+        if( supportedEnd == modes.begin() )
+        {
+            continue;
+        }
+        const std::vector<int> supportedModes( modes.begin(), supportedEnd );
+        trainingPredictors.resize( static_cast<Eigen::Index>( rows.size() ), predictorCount );
+        trainingTarget.resize( static_cast<Eigen::Index>( rows.size() ) );
+        for( std::size_t training = 0; training < rows.size(); ++training )
+        {
+            const Eigen::Index source = static_cast<Eigen::Index>( rows[training] );
+            trainingPredictors.row( static_cast<Eigen::Index>( training ) ) = predictors.row( source );
+            trainingTarget( static_cast<Eigen::Index>( training ) ) = target( source );
+        }
+
+        P4PCAResult fit;
+        P4PCATiming fitTiming;
+        calculate( fit,
+                   trainingPredictors,
+                   trainingTarget,
+                   supportedModes,
+                   rankTolerance,
+                   workspace,
+                   &fitTiming,
+                   &coefficients );
+        output.numericalRank = std::min( output.numericalRank, fit.numericalRank );
+        if( timing )
+        {
+            timing->gramWorkerSeconds += fitTiming.gramWorkerSeconds;
+            timing->eigensolveWorkerSeconds += fitTiming.eigensolveWorkerSeconds;
+            timing->projectionWorkerSeconds += fitTiming.projectionWorkerSeconds;
+        }
+        const auto heldOutProjectionBegin = std::chrono::steady_clock::now();
+        for( std::size_t mode = 0; mode < supportedModes.size(); ++mode )
+        {
+            if( fit.modeStatus[mode] == P4PCAModeStatus::rankInsufficient )
+            {
+                continue;
+            }
+            const double prediction = predictors.row( heldOut ).matrix().dot(
+                coefficients.col( static_cast<Eigen::Index>( mode ) ).matrix() );
+            const double residual = target( heldOut ) - prediction;
+            if( !mx::math::isFinite( residual ) )
+            {
+                throw std::runtime_error( "P4PCA held-out prediction produced a nonfinite residual" );
+            }
+            output.residuals( heldOut, static_cast<Eigen::Index>( mode ) ) = residual;
+            output.sampleValidity( heldOut, static_cast<Eigen::Index>( mode ) ) = 1;
+            output.modeStatus[mode] = P4PCAModeStatus::rankSupported;
+        }
+        if( timing )
+        {
+            timing->projectionWorkerSeconds +=
+                std::chrono::duration<double>( std::chrono::steady_clock::now() - heldOutProjectionBegin ).count();
+        }
+    }
 }
 
 void P4PCA::calculateCentered( P4PCAResult &output,
@@ -446,6 +596,7 @@ void P4PCA::calculateCenteredInPlace( P4PCAResult &output,
                                       P4PCATiming *timing,
                                       matrixT *coefficients )
 {
+    output.sampleValidity.resize( 0, 0 );
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
     if( sampleCount == 1 )

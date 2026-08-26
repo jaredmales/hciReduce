@@ -958,6 +958,90 @@ TEST_CASE( "P4PCA propagates eigensolver and invalid solver output", "[P4PCA][so
     }
 }
 
+/// Verify exact held-out P4 refits match independently assembled training problems and retain sample-level validity.
+/** This directly exercises mx::improc::P4PCA::calculateHeldOut() and
+ * mx::improc::P4PCAResult::sampleSupported().
+ */
+TEST_CASE( "P4PCA exact held-out regression", "[P4PCA][held-out]" )
+{
+    pcaT::matrixT predictors( 4, 2 );
+    predictors << 1, 0, 0, 1, 1, 1, 2, -1;
+    pcaT::vectorT target( 4 );
+    target << 2, -1, 1, 5;
+    const std::vector<std::vector<std::size_t>> references{ { 1, 2, 3 }, { 0, 2, 3 }, { 0, 1, 3 }, { 0, 1, 2 } };
+    resultT heldOut;
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCATiming timing;
+    mx::improc::P4PCA::calculateHeldOut( heldOut, predictors, target, references, { 1, 2 }, 1e-12, workspace, &timing );
+
+    REQUIRE( heldOut.residuals.rows() == 4 );
+    REQUIRE( heldOut.residuals.cols() == 2 );
+    REQUIRE( heldOut.sampleValidity.rows() == 4 );
+    REQUIRE( heldOut.sampleValidity.cols() == 2 );
+    REQUIRE( timing.gramWorkerSeconds >= 0 );
+    REQUIRE( timing.eigensolveWorkerSeconds >= 0 );
+    REQUIRE( timing.projectionWorkerSeconds >= 0 );
+    for( Eigen::Index heldOutRow = 0; heldOutRow < 4; ++heldOutRow )
+    {
+        pcaT::matrixT trainingPredictors( 3, 2 );
+        pcaT::vectorT trainingTarget( 3 );
+        for( Eigen::Index training = 0; training < 3; ++training )
+        {
+            const Eigen::Index source = static_cast<Eigen::Index>( references[heldOutRow][training] );
+            trainingPredictors.row( training ) = predictors.row( source );
+            trainingTarget( training ) = target( source );
+        }
+        resultT independent;
+        pcaT::matrixT coefficients;
+        pcaT::workspaceT independentWorkspace;
+        mx::improc::P4PCA::calculate( independent,
+                                      trainingPredictors,
+                                      trainingTarget,
+                                      { 1, 2 },
+                                      1e-12,
+                                      independentWorkspace,
+                                      nullptr,
+                                      &coefficients );
+        for( std::size_t mode = 0; mode < 2; ++mode )
+        {
+            REQUIRE( heldOut.sampleSupported( heldOutRow, mode ) );
+            const double expected =
+                target( heldOutRow ) - predictors.row( heldOutRow ).matrix().dot( coefficients.col( mode ).matrix() );
+            REQUIRE( heldOut.residuals( heldOutRow, static_cast<Eigen::Index>( mode ) ) == Approx( expected ) );
+        }
+    }
+
+    const std::vector<std::vector<std::size_t>> limitedReferences{ { 1 }, { 0, 2, 3 }, { 0, 1, 3 }, { 2 } };
+    mx::improc::P4PCA::calculateHeldOut( heldOut, predictors, target, limitedReferences, { 1, 2 }, 1e-12, workspace );
+    REQUIRE( heldOut.sampleSupported( 0, 0 ) );
+    REQUIRE_FALSE( heldOut.sampleSupported( 0, 1 ) );
+    REQUIRE( heldOut.sampleSupported( 1, 1 ) );
+    REQUIRE_FALSE( heldOut.sampleSupported( 3, 1 ) );
+    REQUIRE_THROWS_AS( heldOut.sampleSupported( 4, 0 ), std::out_of_range );
+}
+
+/// Verify held-out reference-row validation rejects self-inclusion, duplicates, and inconsistent dimensions.
+/** This directly exercises mx::improc::P4PCA::calculateHeldOut(). */
+TEST_CASE( "P4PCA held-out input validation", "[P4PCA][held-out][validation]" )
+{
+    pcaT::matrixT predictors( 2, 1 );
+    predictors << 1, 2;
+    pcaT::vectorT target( 2 );
+    target << 3, 4;
+    resultT result;
+    pcaT::workspaceT workspace;
+
+    REQUIRE_THROWS_AS(
+        mx::improc::P4PCA::calculateHeldOut( result, predictors, target, { { 0 }, { 0 } }, { 1 }, 0, workspace ),
+        std::invalid_argument );
+    REQUIRE_THROWS_AS(
+        mx::improc::P4PCA::calculateHeldOut( result, predictors, target, { { 1, 1 }, { 0 } }, { 1 }, 0, workspace ),
+        std::invalid_argument );
+    REQUIRE_THROWS_AS(
+        mx::improc::P4PCA::calculateHeldOut( result, predictors, target, { { 1 } }, { 1 }, 0, workspace ),
+        std::invalid_argument );
+}
+
 /// Verify centered-fit P4PCA applies its coefficients to uncentered predictor data in both Gram branches.
 /** This exercises mx::improc::P4PCA::calculateCentered() across both adaptive Gram-matrix branches. */
 TEST_CASE( "P4PCA centered fit with uncentered application agrees with direct SVD",
