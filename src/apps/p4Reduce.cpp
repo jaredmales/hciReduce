@@ -940,7 +940,7 @@ class p4Reduce : public mx::app::application
         config.add( "showTiming",
                     "",
                     "showTiming",
-                    mx::app::argType::True,
+                    mx::app::argType::Optional,
                     "",
                     "showTiming",
                     false,
@@ -950,7 +950,7 @@ class p4Reduce : public mx::app::application
         config.add( "p4Optimize.enabled",
                     "",
                     "p4Optimize.enabled",
-                    mx::app::argType::True,
+                    mx::app::argType::Optional,
                     "p4Optimize",
                     "enabled",
                     false,
@@ -977,7 +977,7 @@ class p4Reduce : public mx::app::application
         config.add( "p4Optimize.fitPosition",
                     "",
                     "p4Optimize.fitPosition",
-                    mx::app::argType::True,
+                    mx::app::argType::Optional,
                     "p4Optimize",
                     "fitPosition",
                     false,
@@ -1082,11 +1082,11 @@ class p4Reduce : public mx::app::application
     {
         m_obs.loadConfig( config );
         config( m_mode, "mode" );
-        config( m_showTiming, "showTiming" );
-        config( m_optimizeEnabled, "p4Optimize.enabled" );
+        mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_showTiming, "showTiming" );
+        mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_optimizeEnabled, "p4Optimize.enabled" );
         config( m_optimizeModeFraction, "p4Optimize.modeFraction" );
         config( m_optimizeApertureRadius, "p4Optimize.apertureRadius" );
-        config( m_optimizeFitPosition, "p4Optimize.fitPosition" );
+        mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_optimizeFitPosition, "p4Optimize.fitPosition" );
         config( m_optimizeContrastLower, "p4Optimize.contrastLower" );
         config( m_optimizeContrastUpper, "p4Optimize.contrastUpper" );
         config( m_optimizeMaxEvaluations, "p4Optimize.maxEvaluations" );

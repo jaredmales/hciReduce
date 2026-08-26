@@ -181,6 +181,12 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
     std::vector<realT> m_fakePA;       ///< Position angles(s) of the fake planet(s)
     std::vector<realT> m_fakeContrast; ///< Contrast(s) of the fake planet(s)
 
+    std::vector<realT> m_planetSep;    ///< Separation(s) of known planets in pixels.
+    std::vector<realT> m_planetPA;     ///< Position angle(s) of known planets in degrees east of north.
+    std::vector<realT> m_planetContrast; ///< Positive physical contrast(s) of known planets.
+
+    bool m_subtractPlanet{ false };    ///< Whether fake injection also injects the negative configured planet sources.
+
     realT m_fakeRDIFluxScale{ 1 };     /**< Flux scaling to apply to fake planets injected in RDI.
                                             Depend on the assumed spectrum in SDI.*/
     realT m_fakeRDISepScale{ 1 };      /**< Scaling to apply to fake planet separation in RDI.
@@ -219,9 +225,15 @@ struct ADIobservation : public HCIobservation<_realT, verboseT>
                      realT RDISepScale      /**< [in] RDI separation scale */
     );
 
+    /// Report whether the derived reduction defers target injection to an on-demand path.
+    virtual bool deferTargetFakeInjection() const;
+
     /// @}
 
     void stdFitsHeader( fitsHeaderT *head );
+
+    /// Append ADI and source provenance to preprocessing-only target products.
+    void appendPreprocessedFitsHeader( fitsHeaderT &head /**< [in,out] header receiving ADI cards */ ) override;
 
     /// Construct the per-image rotated mask cube and write its auxiliary angle and FITS products.
     virtual void makeMaskCube();
@@ -257,13 +269,14 @@ ADIobservation<realT, derotFunctObj, verboseT>::ADIobservation()
 template <typename realT, class derotFunctObj, class verboseT>
 void ADIobservation<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfigurator &config )
 {
+    config.m_sources = true;
 
     m_derotF.setupConfig( config );
 
     config.add( "adi.postMedSub",
                 "",
                 "adi.postMedSub",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "adi",
                 "postMedSub",
                 false,
@@ -332,6 +345,46 @@ void ADIobservation<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appCo
                 "vector<float>",
                 "Contrast(s) of the fake planet(s)" );
 
+    config.add( "fake.subtractPlanet",
+                "",
+                "fake.subtractPlanet",
+                mx::app::argType::Optional,
+                "fake",
+                "subtractPlanet",
+                false,
+                "bool",
+                "Also inject the negative of every configured planet without changing fake metadata." );
+
+    config.add( "planet.sep",
+                "",
+                "planet.sep",
+                mx::app::argType::Required,
+                "planet",
+                "sep",
+                false,
+                "vector<float>",
+                "Separation(s) of known planets in pixels." );
+
+    config.add( "planet.PA",
+                "",
+                "planet.PA",
+                mx::app::argType::Required,
+                "planet",
+                "PA",
+                false,
+                "vector<float>",
+                "Position angle(s) of known planets in degrees east of north." );
+
+    config.add( "planet.contrast",
+                "",
+                "planet.contrast",
+                mx::app::argType::Required,
+                "planet",
+                "contrast",
+                false,
+                "vector<float>",
+                "Positive physical contrast(s) of known planets." );
+
     config.add( "fake.RDIFluxScale",
                 "",
                 "fake.RDIFluxScale",
@@ -355,7 +408,7 @@ void ADIobservation<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appCo
     config.add( "combine.noDerotate",
                 "",
                 "combine.noDerotate",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "combine",
                 "noDerotate",
                 false,
@@ -372,7 +425,7 @@ void ADIobservation<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appCon
     m_RDIderotF.m_angleScale = m_derotF.m_angleScale;
     m_RDIderotF.m_angleConstant = m_derotF.m_angleConstant;
 
-    config( m_postMedSub, "adi.postMedSub" );
+    loadBoolConfig<verboseT>( config, m_postMedSub, "adi.postMedSub" );
 
     std::string fakestr;
     try
@@ -400,11 +453,42 @@ void ADIobservation<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appCon
     config( m_fakeSep, "fake.sep" );
     config( m_fakePA, "fake.PA" );
     config( m_fakeContrast, "fake.contrast" );
+    loadBoolConfig<verboseT>( config, m_subtractPlanet, "fake.subtractPlanet" );
+    config( m_planetSep, "planet.sep" );
+    config( m_planetPA, "planet.PA" );
+    config( m_planetContrast, "planet.contrast" );
     config( m_fakeRDIFluxScale, "fake.RDIFluxScale" );
     config( m_fakeRDISepScale, "fake.RDISepScale" );
 
+    const bool anyPlanetConfigured = config.m_targets.at( "planet.sep" ).set ||
+                                     config.m_targets.at( "planet.PA" ).set ||
+                                     config.m_targets.at( "planet.contrast" ).set;
+    if( anyPlanetConfigured && ( m_planetSep.empty() || m_planetSep.size() != m_planetPA.size() ||
+                                 m_planetSep.size() != m_planetContrast.size() ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "planet.sep, planet.PA, and planet.contrast must be nonempty equal-length "
+                                       "vectors" );
+    }
+    for( size_t index = 0; index < m_planetSep.size(); ++index )
+    {
+        if( !mx::math::isFinite( m_planetSep[index] ) || m_planetSep[index] < 0 ||
+            !mx::math::isFinite( m_planetPA[index] ) || !mx::math::isFinite( m_planetContrast[index] ) ||
+            m_planetContrast[index] < 0 )
+        {
+            throw mx::exception<verboseT>(
+                mx::error_t::invalidconfig,
+                "planet separation and contrast must be finite and nonnegative, and planet PA must be finite" );
+        }
+    }
+    if( m_subtractPlanet && ( m_planetSep.empty() || m_fakeFileName.empty() ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "fake.subtractPlanet requires complete planet metadata and fake.fileName" );
+    }
+
     bool noDer = !m_doDerotate;
-    config( noDer, "combine.noDerotate" );
+    loadBoolConfig<verboseT>( config, noDer, "combine.noDerotate" );
     m_doDerotate = !noDer;
 }
 
@@ -454,7 +538,7 @@ void ADIobservation<realT, derotFunctObj, verboseT>::postReadFiles()
         throw mx::exception<verboseT>( mx::error_t::invalidarg, "bad derotation angles in FITS header" );
     }
 
-    if( m_fakeFileName != "" && !this->m_skipPreProcess )
+    if( m_fakeFileName != "" && !deferTargetFakeInjection() )
     {
         std::cerr << "Injecting fakes in target images...\n";
 
@@ -769,9 +853,40 @@ void ADIobservation<realT, derotFunctObj, verboseT>::injectFake( eigenCube<realT
                 std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception, "from injectFake" ) );
             }
         }
+
+        if( m_subtractPlanet )
+        {
+            for( size_t j = 0; j < m_planetSep.size(); ++j )
+            {
+                try
+                {
+                    injectFake( fakePSF,
+                                ims,
+                                i,
+                                derotF.derotAngle( i ),
+                                m_planetPA[j],
+                                m_planetSep[j],
+                                -m_planetContrast[j],
+                                fakeScale[i],
+                                RDIFluxScale,
+                                RDISepScale );
+                }
+                catch( ... )
+                {
+                    std::throw_with_nested(
+                        mx::exception<verboseT>( mx::error_t::exception, "from planet subtraction" ) );
+                }
+            }
+        }
     }
 
     t_fake_end = sys::get_curr_time();
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+bool ADIobservation<realT, derotFunctObj, verboseT>::deferTargetFakeInjection() const
+{
+    return false;
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -1120,8 +1235,6 @@ int ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( const fitsHead
     return 0;
 }
 
-// If fakeFileName == "" or skipPreProcess == true then use the structure of propagated values
-
 template <typename realT, class derotFunctObj, class verboseT>
 void ADIobservation<realT, derotFunctObj, verboseT>::stdFitsHeader( fitsHeaderT *head )
 {
@@ -1177,6 +1290,54 @@ void ADIobservation<realT, derotFunctObj, verboseT>::stdFitsHeader( fitsHeaderT 
             head->template append<char *>( "FAKECONT", (char *)str.str().c_str(), "Contrast of fake planets" );
         }
     }
+
+    std::stringstream planetValues;
+    if( !m_planetSep.empty() )
+    {
+        for( size_t index = 0; index < m_planetSep.size(); ++index )
+        {
+            if( index != 0 )
+            {
+                planetValues << ',';
+            }
+            planetValues << m_planetSep[index];
+        }
+        head->append( "PLANETSEP", planetValues.str(), "separation of known planets" );
+    }
+    if( !m_planetPA.empty() )
+    {
+        planetValues.str( "" );
+        planetValues.clear();
+        for( size_t index = 0; index < m_planetPA.size(); ++index )
+        {
+            if( index != 0 )
+            {
+                planetValues << ',';
+            }
+            planetValues << m_planetPA[index];
+        }
+        head->append( "PLANETPA", planetValues.str(), "PA of known planets" );
+    }
+    if( !m_planetContrast.empty() )
+    {
+        planetValues.str( "" );
+        planetValues.clear();
+        for( size_t index = 0; index < m_planetContrast.size(); ++index )
+        {
+            if( index != 0 )
+            {
+                planetValues << ',';
+            }
+            planetValues << m_planetContrast[index];
+        }
+        head->append( "PLANETCONT", planetValues.str(), "positive contrast of known planets" );
+    }
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+void ADIobservation<realT, derotFunctObj, verboseT>::appendPreprocessedFitsHeader( fitsHeaderT &head )
+{
+    stdFitsHeader( &head );
 }
 
 template <typename realT, class verboseT>

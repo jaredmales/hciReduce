@@ -39,6 +39,7 @@
 #include <mx/improc/imageTransforms.hpp>
 #include <mx/improc/imageUtils.hpp>
 
+#include "ConfigUtils.hpp"
 #include "HCI.hpp"
 
 namespace mx
@@ -761,6 +762,12 @@ struct HCIobservation
     /** \throws mx::exception if the cube/header sizes are invalid or an output operation fails. */
     void outputRDIPreProcessed();
 
+    /// Append derived-observation metadata to one preprocessing-only FITS header.
+    /** The base implementation adds no cards. Derived observation types override this hook so preprocessing-only
+     * products carry the same observation-level provenance as final products.
+     */
+    virtual void appendPreprocessedFitsHeader( fitsHeaderT &head /**< [in,out] header receiving derived cards */ );
+
     /// Append the standard HCIobservation reduction metadata to a FITS header.
     void stdFitsHeader( fitsHeaderT &head /**< [in.out] the fitsHeader structure which will
                                                              have cards appended to it. */
@@ -841,6 +848,8 @@ bool HCIobservation<_realT, verboseT>::preprocessingOnly() const
 template <typename _realT, class verboseT>
 int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &config )
 {
+    config.m_sources = true;
+
     config.add( "input.directory",
                 "D",
                 "input.directory",
@@ -927,7 +936,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "input.thresholdOnly",
                 "",
                 "input.thresholdOnly",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "input",
                 "thresholdOnly",
                 false,
@@ -947,7 +956,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "input.dateIsISO8601",
                 "",
                 "input.dateIsISO8601",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "input",
                 "dateIsISO8601",
                 false,
@@ -1081,7 +1090,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "rdi.dateIsISO8601",
                 "",
                 "rdi.dateIsISO8601",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "rdi",
                 "dateIsISO8601",
                 false,
@@ -1115,7 +1124,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "rdi.useInputMask",
                 "",
                 "rdi.useInputMask",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "rdi",
                 "useInputMask",
                 false,
@@ -1179,7 +1188,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "preProcess.skip",
                 "",
                 "preProcess.skip",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "preProcess",
                 "skip",
                 false,
@@ -1189,7 +1198,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "preProcess.beforeCoadd",
                 "",
                 "preProcess.beforeCoadd",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "preProcess",
                 "beforeCoadd",
                 false,
@@ -1199,7 +1208,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "preProcess.mask",
                 "",
                 "preProcess.mask",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "preProcess",
                 "mask",
                 false,
@@ -1209,7 +1218,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "preProcess.subradprof",
                 "",
                 "preProcess.subradprof",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "preProcess",
                 "subradprof",
                 false,
@@ -1333,7 +1342,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "preProcess.only",
                 "",
                 "preProcess.only",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "preProcess",
                 "only",
                 false,
@@ -1393,7 +1402,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "output.exactFName",
                 "",
                 "output.exactFName",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "output",
                 "exactFName",
                 false,
@@ -1413,7 +1422,7 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
     config.add( "output.outputPSFSub",
                 "",
                 "output.outputPSFSub",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "output",
                 "outputPSFSub",
                 false,
@@ -1447,10 +1456,10 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
 
     config( m_qualityFile, "input.qualityFile" );
     config( m_qualityThreshold, "input.qualityThreshold" );
-    config( m_thresholdOnly, "input.thresholdOnly" );
+    loadBoolConfig<verboseT>( config, m_thresholdOnly, "input.thresholdOnly" );
 
     config( m_dateKeyword, "input.dateKeyword" );
-    config( m_dateIsISO8601, "input.dateIsISO8601" );
+    loadBoolConfig<verboseT>( config, m_dateIsISO8601, "input.dateIsISO8601" );
     config( m_dateUnit, "input.dateUnit" );
 
     config( m_imSize, "input.imSize" );
@@ -1470,12 +1479,12 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
     config( m_RDIqualityThreshold, "rdi.qualityThreshold" );
 
     config( m_RDIdateKeyword, "rdi.dateKeyword" );
-    config( m_RDIdateIsISO8601, "rdi.dateIsISO8601" );
+    loadBoolConfig<verboseT>( config, m_RDIdateIsISO8601, "rdi.dateIsISO8601" );
     config( m_RDIdateUnit, "rdi.dateUnit" );
 
     config( m_RDImaskFile, "rdi.maskFile" );
 
-    config( m_RDImaskUseInput, "rdi.useInputMask" );
+    loadBoolConfig<verboseT>( config, m_RDImaskUseInput, "rdi.useInputMask" );
 
     std::string coaddToStr = HCI::coaddToStr<verboseT>( m_coaddMethod ); // get default
     config( coaddToStr, "coadd.method" );
@@ -1493,9 +1502,9 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
     config( m_coaddMaxAngle, "coadd.maxAngle" );
     config( m_coaddKeywords, "coadd.keywords" );
 
-    config( m_preProcess_beforeCoadd, "preProcess.beforeCoadd" );
-    config( m_preProcess_mask, "preProcess.mask" );
-    config( m_preProcess_subradprof, "preProcess.subradprof" );
+    loadBoolConfig<verboseT>( config, m_preProcess_beforeCoadd, "preProcess.beforeCoadd" );
+    loadBoolConfig<verboseT>( config, m_preProcess_mask, "preProcess.mask" );
+    loadBoolConfig<verboseT>( config, m_preProcess_subradprof, "preProcess.subradprof" );
     config( m_preProcess_azUSM_azHalfWidth, "preProcess.azUSM_azW" );
     config( m_preProcess_azUSM_azHalfWidth, "preProcess.azUSM_azHalfWidth" );
     config( m_preProcess_azUSM_maxAz, "preProcess.azUSM_maxAz" );
@@ -1562,8 +1571,8 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
 
     config( m_preProcess_outputPrefix, "preProcess.outputPrefix" );
 
-    config( m_preProcess_only, "preProcess.only" );
-    config( m_skipPreProcess, "preProcess.skip" );
+    loadBoolConfig<verboseT>( config, m_preProcess_only, "preProcess.only" );
+    loadBoolConfig<verboseT>( config, m_skipPreProcess, "preProcess.skip" );
 
     std::string cmbm;
     try
@@ -1592,9 +1601,9 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
     config( m_minGoodFract, "combine.minGoodFract" );
 
     config( m_finimName, "output.fileName" );
-    config( m_exactFinimName, "output.exactFName" );
+    loadBoolConfig<verboseT>( config, m_exactFinimName, "output.exactFName" );
     config( m_outputDir, "output.directory" );
-    config( m_doOutputPSFSub, "output.outputPSFSub" );
+    loadBoolConfig<verboseT>( config, m_doOutputPSFSub, "output.outputPSFSub" );
     config( m_PSFSubPrefix, "output.psfSubPrefix" );
 
     return 0;
@@ -3474,6 +3483,7 @@ void HCIobservation<_realT, verboseT>::outputPreProcessed()
 
         fitsHeaderT fh = m_heads[i];
         stdFitsHeader( fh );
+        appendPreprocessedFitsHeader( fh );
         const mx::error_t result =
             ff.write( fname, m_tgtIms.image( i ).data(), m_tgtIms.rows(), m_tgtIms.cols(), 1, fh );
         if( result != mx::error_t::noerror )
@@ -3482,6 +3492,12 @@ void HCIobservation<_realT, verboseT>::outputPreProcessed()
         }
     }
 } // void HCIobservation<_realT,verboseT>::outputPreProcessed()
+
+template <typename _realT, class verboseT>
+void HCIobservation<_realT, verboseT>::appendPreprocessedFitsHeader( fitsHeaderT &head )
+{
+    static_cast<void>( head );
+}
 
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::outputRDIPreProcessed()
@@ -3516,6 +3532,7 @@ void HCIobservation<_realT, verboseT>::outputRDIPreProcessed()
         const std::string fname = std::format( "{}RDI_{:06}.fits", m_preProcess_outputPrefix, i );
         fitsHeaderT head = m_RDIheads[i];
         stdFitsHeader( head );
+        appendPreprocessedFitsHeader( head );
         const mx::error_t result =
             ff.write( fname, m_refIms.image( i ).data(), m_refIms.rows(), m_refIms.cols(), 1, head );
         if( result != mx::error_t::noerror )

@@ -438,13 +438,13 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.numberImages" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.psfFile" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
-    REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::True );
-    REQUIRE( registered.m_targets.at( "p4.psfFilter" ).clType == mx::app::argType::True );
+    REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::Optional );
+    REQUIRE( registered.m_targets.at( "p4.psfFilter" ).clType == mx::app::argType::Optional );
     REQUIRE( registered.m_targets.at( "p4.psfFilterMinGoodFract" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "p4.psfOutputPrefix" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.localStampSize" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.memoryFraction" ).helpType == "double" );
-    REQUIRE( registered.m_targets.at( "p4.writeDiagnostics" ).clType == mx::app::argType::True );
+    REQUIRE( registered.m_targets.at( "p4.writeDiagnostics" ).clType == mx::app::argType::Optional );
     REQUIRE( registered.m_targets.at( "p4.orMaxHalfAngle" ).helpType == "float" );
     REQUIRE_NOTHROW( defaults.loadConfig( registered ) );
     REQUIRE_FALSE( defaults.m_exclusionPolicy.has_value() );

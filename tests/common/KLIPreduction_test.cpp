@@ -218,7 +218,7 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     mx::app::appConfigurator config;
     defaults.setupConfig( config );
 
-    REQUIRE( config.m_targets.at( "klip.writeDiagnostics" ).clType == mx::app::argType::True );
+    REQUIRE( config.m_targets.at( "klip.writeDiagnostics" ).clType == mx::app::argType::Optional );
     REQUIRE( config.m_targets.at( "klip.writeDiagnostics" ).helpType == "bool" );
     REQUIRE( config.m_targets.at( "klip.diagnosticDirectory" ).clType == mx::app::argType::Required );
     REQUIRE( config.m_targets.at( "klip.diagnosticDirectory" ).helpType == "string" );

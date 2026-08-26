@@ -41,6 +41,10 @@ struct observationHarness : public observationT
     using observationT::m_Ncols;
     using observationT::m_Nims;
     using observationT::m_Nrows;
+    using observationT::m_planetContrast;
+    using observationT::m_planetPA;
+    using observationT::m_planetSep;
+    using observationT::m_preProcess_outputPrefix;
     using observationT::m_psfsub;
     using observationT::m_RDIdateKeyword;
     using observationT::m_RDIfileList;
@@ -48,6 +52,7 @@ struct observationHarness : public observationT
     using observationT::m_RDIheads;
     using observationT::m_refIms;
     using observationT::m_skipPreProcess;
+    using observationT::m_subtractPlanet;
     using observationT::m_tgtIms;
 };
 
@@ -85,6 +90,34 @@ TEST_CASE( "ADIobservation configuration errors", "[ADIobservation][config]" )
     writeTextFile( path, "[fake]\nmethod=invalid\n" );
     REQUIRE( configured.readConfig( path.string() ) == 0 );
     REQUIRE_THROWS( invalidConfigured.loadConfig( configured ) );
+
+    observationHarness vectorPlanets;
+    mx::app::appConfigurator planetConfig;
+    planetConfig.m_sources = true;
+    vectorPlanets.setupConfig( planetConfig );
+    const auto planetPath = directory.file( "planet.conf" );
+    writeTextFile( planetPath,
+                   "[fake]\n"
+                   "fileName=template.fits\n"
+                   "subtractPlanet=true\n"
+                   "[planet]\n"
+                   "sep=2,4\n"
+                   "PA=10,20\n"
+                   "contrast=0.001,0.002\n" );
+    REQUIRE( planetConfig.readConfig( planetPath.string() ) == 0 );
+    REQUIRE_NOTHROW( vectorPlanets.loadConfig( planetConfig ) );
+    REQUIRE( vectorPlanets.m_subtractPlanet );
+    REQUIRE( vectorPlanets.m_planetSep == std::vector<float>{ 2, 4 } );
+    REQUIRE( vectorPlanets.m_planetPA == std::vector<float>{ 10, 20 } );
+    REQUIRE( vectorPlanets.m_planetContrast == std::vector<float>{ 0.001F, 0.002F } );
+
+    observationHarness incompletePlanet;
+    mx::app::appConfigurator incompleteConfig;
+    incompletePlanet.setupConfig( incompleteConfig );
+    const auto incompletePath = directory.file( "incomplete-planet.conf" );
+    writeTextFile( incompletePath, "[planet]\nsep=2\nPA=10\n" );
+    REQUIRE( incompleteConfig.readConfig( incompletePath.string() ) == 0 );
+    REQUIRE_THROWS( incompletePlanet.loadConfig( incompleteConfig ) );
 
     // clang-format off
 #ifdef __DOXY_ONLY__
@@ -330,6 +363,19 @@ TEST_CASE( "ADIobservation fake injection", "[ADIobservation][injectFake]" )
     REQUIRE( images.image( 0 )( 2, 2 ) == Approx( 2 ) );
     REQUIRE( images.image( 1 )( 2, 2 ) == Approx( 3 ) );
 
+    images.setZero();
+    observation.m_subtractPlanet = true;
+    observation.m_planetSep = { 0 };
+    observation.m_planetPA = { 0 };
+    observation.m_planetContrast = { 0.25F };
+    observation.injectFake( images, fileList, observation.m_derotF, 1, 1 );
+    REQUIRE( images.image( 0 )( 2, 2 ) == Approx( 1.5F ) );
+    REQUIRE( images.image( 1 )( 2, 2 ) == Approx( 2.25F ) );
+    REQUIRE( observation.m_fakeSep == std::vector<float>{ 0 } );
+    REQUIRE( observation.m_fakePA == std::vector<float>{ 0 } );
+    REQUIRE( observation.m_fakeContrast == std::vector<float>{ 1 } );
+    observation.m_subtractPlanet = false;
+
     observation.m_fakePA.clear();
     REQUIRE_THROWS( observation.injectFake( images, fileList, observation.m_derotF, 1, 1 ) );
     observation.m_fakePA = { 0 };
@@ -410,6 +456,7 @@ TEST_CASE( "ADIobservation fake injection", "[ADIobservation][injectFake]" )
     postRead.m_fakeSep = { 0 };
     postRead.m_fakePA = { 0 };
     postRead.m_fakeContrast = { 1 };
+    postRead.m_skipPreProcess = true;
     REQUIRE_NOTHROW( postRead.postReadFiles() );
     REQUIRE( postRead.m_tgtIms.image( 0 )( 2, 2 ) == Approx( 1 ) );
     postRead.m_fakeFileName = directory.file( "missing-fake.fits" ).string();
@@ -942,6 +989,7 @@ TEST_CASE( "ADIobservation shared final output", "[ADIobservation][finalProcess]
 /** \ingroup ADIobservation_unit_tests */
 TEST_CASE( "ADIobservation FITS metadata", "[ADIobservation][stdFitsHeader]" )
 {
+    TestDirectory directory;
     observationHarness observation;
     observation.m_postMedSub = true;
     observation.m_fakeFileName = "fake.fits";
@@ -949,6 +997,9 @@ TEST_CASE( "ADIobservation FITS metadata", "[ADIobservation][stdFitsHeader]" )
     observation.m_fakeSep = { 2, 4 };
     observation.m_fakePA = { 10, 20 };
     observation.m_fakeContrast = { 1e-3F, 2e-3F };
+    observation.m_planetSep = { 3, 5 };
+    observation.m_planetPA = { 30, 40 };
+    observation.m_planetContrast = { 3e-3F, 4e-3F };
 
     observationHarness::fitsHeaderT header;
     observation.stdFitsHeader( &header );
@@ -959,6 +1010,22 @@ TEST_CASE( "ADIobservation FITS metadata", "[ADIobservation][stdFitsHeader]" )
     REQUIRE( header["FAKESEP"].String().starts_with( "2,4" ) );
     REQUIRE( header["FAKEPA"].String().starts_with( "10,20" ) );
     REQUIRE( header["FAKECONT"].String().starts_with( "0.001,0.002" ) );
+    REQUIRE( header["PLANETSEP"].String().starts_with( "3,5" ) );
+    REQUIRE( header["PLANETPA"].String().starts_with( "30,40" ) );
+    REQUIRE( header["PLANETCONT"].String().starts_with( "0.003,0.004" ) );
+
+    observation.m_tgtIms.resize( 3, 3, 1 );
+    observation.m_tgtIms.setZero();
+    observation.m_heads.resize( 1 );
+    observation.m_preProcess_outputPrefix = directory.file( "preprocessed_" ).string();
+    REQUIRE_NOTHROW( observation.outputPreProcessed() );
+    observationHarness::imageT preprocessed;
+    observationHarness::fitsHeaderT preprocessedHeader;
+    observationHarness::fitsFileT reader;
+    REQUIRE( reader.read( preprocessed, preprocessedHeader, directory.file( "preprocessed_000000.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( preprocessedHeader["FAKESEP"].String().starts_with( "2,4" ) );
+    REQUIRE( preprocessedHeader["PLANETSEP"].String().starts_with( "3,5" ) );
     REQUIRE_NOTHROW( observation.stdFitsHeader( nullptr ) );
 
     // clang-format off

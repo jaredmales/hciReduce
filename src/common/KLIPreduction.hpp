@@ -600,7 +600,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::setupConfig( mx::ap
     config.add( "klip.writeDiagnostics",
                 "",
                 "klip.writeDiagnostics",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "klip",
                 "writeDiagnostics",
                 false,
@@ -720,7 +720,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::loadConfig( mx::app
     config( m_rightReason, "klip.rightReason" );
     config( m_rightReasonRadius, "klip.rrRadius" );
     config( m_pixelTSSigma, "klip.pixelTSSigma" );
-    config( m_writeDiagnostics, "klip.writeDiagnostics" );
+    loadBoolConfig<verboseT>( config, m_writeDiagnostics, "klip.writeDiagnostics" );
     config( m_diagnosticDirectory, "klip.diagnosticDirectory" );
 }
 

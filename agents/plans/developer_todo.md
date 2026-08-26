@@ -164,15 +164,15 @@ Right now we do an inversion for all the images at once.  This means that when w
 
 ## Fake Planet Cleanup
 
-[] enable fake injection with preProcess.skip=true
+[x] enable fake injection with preProcess.skip=true
 
-[] add a "real" configuration section, parallel to "fake", where the known location of a fake planet can be entered and then propagated through to hciAnalyze, etc.  Include contrast.
+[x] extend the existing "planet" configuration section, parallel to "fake", so the known location and contrast of a planet can be propagated through to hciAnalyze, etc.
 
-[] have a fake.includeReal=no/pos/neg flag which will then automatically include the real planet parameters in injected fakes with the indicated sign. No is default.  
+[x] add a `fake.subtractPlanet=false/true` flag. When true, inject the negative of the configured planet in addition to
+the configured fake planets, without adding it to the fake vectors or `FAKE*` metadata.
 
 ## Config Cleanup
 
-[] make it so boolean options work with both.  This can be done based on isSet.
-   [] --flag  (implicitly true)
-   [] --flag=true/fales (explicitly set)
-
+[x] make it so boolean options work with both.  This can be done based on isSet.
+   [x] --flag  (implicitly true)
+   [x] --flag=true/false (explicitly set)

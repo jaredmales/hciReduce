@@ -20,9 +20,11 @@
  * x=xCenter-sep\sin(PA),\qquad y=yCenter+sep\cos(PA).
  * \f]
  *
- * Set `planet.sep` and `planet.PA` to measure known signals directly. Alternatively, hciAnalyze accepts
- * `FAKESEP`, `FAKEPA`, and `FAKECONT` from its FITS header, or an explicit `fake` configuration group. Explicit
- * `planet` values take precedence over fake metadata. Every configured signal is excluded from the radial noise
+ * Set vector-valued `planet.sep` and `planet.PA`, plus optional matching `planet.contrast`, to measure known signals
+ * directly. Alternatively, hciAnalyze accepts `PLANETSEP`, `PLANETPA`, and `PLANETCONT` from its FITS header,
+ * `FAKESEP`, `FAKEPA`, and `FAKECONT` as a legacy fallback, or an explicit `fake` configuration group. Explicit
+ * `planet` values take precedence, followed by explicit fake values, planet headers, and fake headers. Every
+ * configured signal is excluded from the radial noise
  * estimate using `planet.R` or `fake.R`; omit that setting to use the 10-pixel default.
  *
  * \section hcianalyze_filtering Filtering

@@ -30,7 +30,10 @@
  * with an unintended default.
  *
  * Command-line values override configuration-file values. `-c path` / `--config path` selects a configuration file;
- * `--help` prints the complete live option list and defaults. Boolean values are `true` or `false`. Lists are
+ * `--help` prints the complete live option list and defaults. A bare boolean option such as `--showTiming` means true;
+ * attach an explicit value as `--showTiming=true` or `--showTiming=false`. The attached form is required when a
+ * command-line value must override a configuration-file boolean with false. Configuration files continue to use
+ * `key=true` or `key=false`. Repeating one boolean option on a command line is rejected as ambiguous. Lists are
  * comma-separated, for example `minRadius=6,8,10`.
  *
  * \section common_input_dictionary Input target sequence
@@ -84,7 +87,7 @@
  *
  * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
- * | `--preProcess.skip` | `preProcess.skip=true` | bool | `false` | Skip all preprocessing, for already prepared input. |
+ * | `--preProcess.skip` | `preProcess.skip=true` | bool | `false` | Skip all preprocessing, for already prepared input. Configured fake injection still occurs directly after loading. |
  * | `--preProcess.beforeCoadd` | `preProcess.beforeCoadd=true` | bool | `false` | Run preprocessing before, rather than after, temporal coaddition. |
  * | `--preProcess.mask` | `preProcess.mask=true` | bool | `true` | Apply the common input mask during preprocessing. |
  * | `--preProcess.subradprof` | `preProcess.subradprof=true` | bool | `false` | Subtract a radial profile from each image. |
@@ -111,12 +114,19 @@
  * | `--fake.fileName` | `fake.fileName=psf.fits` | FITS file path | unset | Off-axis PSF/template used for injection. |
  * | `--fake.scaleFileName` | `fake.scaleFileName=scales.txt` | two-column filename/scale table | unset | Per-image fake-companion scale factors. |
  * | `--fake.sep`, `--fake.PA`, `--fake.contrast` | `fake.sep=...` etc. | matching comma-separated real vectors; pixels, degrees, contrast | empty | Locations and brightnesses for injected companions. |
+ * | `--planet.sep`, `--planet.PA`, `--planet.contrast` | `planet.sep=...` etc. | matching nonempty comma-separated vectors; nonnegative pixels, finite degrees, nonnegative contrast | unset | Known-planet metadata propagated independently as `PLANETSEP`, `PLANETPA`, and `PLANETCONT`. The section supports any number of matching planet tuples and does not inject by itself. |
+ * | `--fake.subtractPlanet` | `fake.subtractPlanet=true` | bool | `false` | During fake injection, also inject the negative of every configured planet using `fake.fileName` and the ordinary scale convention. This does not change the configured fake vectors or `FAKE*` metadata. |
  * | `--fake.RDIFluxScale`, `--fake.RDISepScale` | `fake.RDIFluxScale=...` etc. | comma-separated real vectors | empty | Optional RDI-specific fake scaling. |
  * | `--combine.noDerotate` | `combine.noDerotate=true` | bool | `false` | Suppress ADI derotation before final combination. |
  * | `--combine.method` | `combine.method=mean` | `mean`, `median`, `weighted`, `sigmaMean` | `mean` | Final image-combination estimator. |
  * | `--combine.weightFile` | `combine.weightFile=weights.txt` | two-column filename/weight table | unset | Weights for `weighted` combination. |
  * | `--combine.sigmaThreshold` | `combine.sigmaThreshold=value` | nonnegative real | `0` | Clip threshold for `sigmaMean` combination; `<=0` falls back to mean. |
  * | `--combine.minGoodFract` | `combine.minGoodFract=fraction` | real fraction in `[0,1]` | `0` | Minimum valid temporal fraction; insufficient samples produce an invalid final pixel. |
+ *
+ * Fake injection follows input loading whether preprocessing is enabled or skipped. With preprocessing enabled, the
+ * injected cube then passes through the configured preprocessing. P4 pixel-local processing instead samples its one
+ * configured fake trial and any fixed planet subtraction on demand from a pristine loaded cube, so repeated optimizer
+ * and jackknife evaluations do not accumulate sources.
  *
  * \section common_output_dictionary Output products
  *

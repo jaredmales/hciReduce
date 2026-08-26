@@ -542,12 +542,56 @@ void P4TrialSource::configure( const imageT &sourceTemplate,
     m_template = std::move( prepared );
     m_cropRows = cropRows;
     m_cropColumns = cropColumns;
-    m_shifts = std::move( shifts );
+    m_sourceShifts = { std::move( shifts ) };
+}
+
+void P4TrialSource::addSource( const std::vector<double> &angles,
+                               double separation,
+                               double positionAngle,
+                               double contrast,
+                               const std::vector<float> &scales )
+{
+    if( !configured() || angles.size() != m_sourceShifts.front().size() || angles.size() != scales.size() ||
+        !p4LocalFinite( separation ) || separation < 0 || !p4LocalFinite( positionAngle ) ||
+        !p4LocalFinite( contrast ) || !std::all_of( angles.begin(), angles.end(), p4LocalFinite ) ||
+        !std::all_of( scales.begin(), scales.end(), []( float scale ) { return mx::math::isFinite( scale ); } ) )
+    {
+        throw std::invalid_argument( "P4 local auxiliary source configuration is invalid" );
+    }
+
+    std::vector<FrameShift> shifts;
+    shifts.reserve( angles.size() );
+    cubicConvolTransform<float> transform;
+    const float separationValue = static_cast<float>( separation );
+    const float positionAngleRadians = mx::math::dtor( -static_cast<float>( positionAngle ) );
+    for( std::size_t frame = 0; frame < angles.size(); ++frame )
+    {
+        const float angle = positionAngleRadians + static_cast<float>( angles[frame] );
+        FrameShift shift;
+        shift.rowShift = separationValue * std::sin( angle );
+        shift.columnShift = separationValue * std::cos( angle );
+        shift.scale = static_cast<float>( contrast * static_cast<double>( scales[frame] ) );
+        if( !p4LocalFinite( shift.rowShift ) || !p4LocalFinite( shift.columnShift ) ||
+            !mx::math::isFinite( shift.scale ) )
+        {
+            throw std::invalid_argument( "P4 local auxiliary source shift or scaled contrast is non-finite" );
+        }
+        shift.integral =
+            shift.rowShift == std::floor( shift.rowShift ) && shift.columnShift == std::floor( shift.columnShift );
+        if( !shift.integral )
+        {
+            const float rowPhase = 1.0F - ( shift.rowShift - std::floor( shift.rowShift ) );
+            const float columnPhase = 1.0F - ( shift.columnShift - std::floor( shift.columnShift ) );
+            transform( shift.kernel, rowPhase, columnPhase );
+        }
+        shifts.push_back( std::move( shift ) );
+    }
+    m_sourceShifts.push_back( std::move( shifts ) );
 }
 
 bool P4TrialSource::configured() const noexcept
 {
-    return m_template.rows() > 0 && m_template.cols() > 0 && !m_shifts.empty();
+    return m_template.rows() > 0 && m_template.cols() > 0 && !m_sourceShifts.empty() && !m_sourceShifts.front().empty();
 }
 
 int P4TrialSource::cropRows() const noexcept
@@ -566,45 +610,53 @@ float P4TrialSource::value( std::size_t frame, int row, int column ) const
     {
         throw std::logic_error( "P4 local trial source is not configured" );
     }
-    if( frame >= m_shifts.size() || row < 0 || row >= m_template.rows() || column < 0 || column >= m_template.cols() )
+    if( frame >= m_sourceShifts.front().size() || row < 0 || row >= m_template.rows() || column < 0 ||
+        column >= m_template.cols() )
     {
         throw std::out_of_range( "P4 local trial-source sample index is out of range" );
     }
 
-    const FrameShift &shift = m_shifts[frame];
-    if( shift.integral )
+    float result{ 0 };
+    for( const std::vector<FrameShift> &sourceShifts : m_sourceShifts )
     {
-        const int sourceRow = row - static_cast<int>( shift.rowShift );
-        const int sourceColumn = column - static_cast<int>( shift.columnShift );
-        if( sourceRow < 0 || sourceRow >= m_template.rows() || sourceColumn < 0 || sourceColumn >= m_template.cols() )
+        const FrameShift &shift = sourceShifts[frame];
+        if( shift.integral )
         {
-            return 0;
+            const int sourceRow = row - static_cast<int>( shift.rowShift );
+            const int sourceColumn = column - static_cast<int>( shift.columnShift );
+            if( sourceRow >= 0 && sourceRow < m_template.rows() && sourceColumn >= 0 &&
+                sourceColumn < m_template.cols() )
+            {
+                result += shift.scale * m_template( sourceRow, sourceColumn );
+            }
+            continue;
         }
-        return shift.scale * m_template( sourceRow, sourceColumn );
-    }
 
-    const int anchorRow = static_cast<int>( static_cast<float>( row ) - shift.rowShift );
-    const int anchorColumn = static_cast<int>( static_cast<float>( column ) - shift.columnShift );
-    const int leftBuffer = P4PixelGridf::leftBuffer;
-    const int upperRow = m_template.rows() - P4PixelGridf::width + leftBuffer;
-    const int upperColumn = m_template.cols() - P4PixelGridf::width + leftBuffer;
-    if( anchorRow <= leftBuffer || anchorRow >= upperRow || anchorColumn <= leftBuffer || anchorColumn >= upperColumn )
-    {
-        return 0;
-    }
-
-    float value{ 0 };
-    const int footprintRow = anchorRow - leftBuffer;
-    const int footprintColumn = anchorColumn - leftBuffer;
-    for( int columnOffset = 0; columnOffset < P4PixelGridf::width; ++columnOffset )
-    {
-        for( int rowOffset = 0; rowOffset < P4PixelGridf::width; ++rowOffset )
+        const int anchorRow = static_cast<int>( static_cast<float>( row ) - shift.rowShift );
+        const int anchorColumn = static_cast<int>( static_cast<float>( column ) - shift.columnShift );
+        const int leftBuffer = P4PixelGridf::leftBuffer;
+        const int upperRow = m_template.rows() - P4PixelGridf::width + leftBuffer;
+        const int upperColumn = m_template.cols() - P4PixelGridf::width + leftBuffer;
+        if( anchorRow <= leftBuffer || anchorRow >= upperRow || anchorColumn <= leftBuffer ||
+            anchorColumn >= upperColumn )
         {
-            value += m_template( footprintRow + rowOffset, footprintColumn + columnOffset ) *
-                     shift.kernel( rowOffset, columnOffset );
+            continue;
         }
+
+        float value{ 0 };
+        const int footprintRow = anchorRow - leftBuffer;
+        const int footprintColumn = anchorColumn - leftBuffer;
+        for( int columnOffset = 0; columnOffset < P4PixelGridf::width; ++columnOffset )
+        {
+            for( int rowOffset = 0; rowOffset < P4PixelGridf::width; ++rowOffset )
+            {
+                value += m_template( footprintRow + rowOffset, footprintColumn + columnOffset ) *
+                         shift.kernel( rowOffset, columnOffset );
+            }
+        }
+        result += shift.scale * value;
     }
-    return shift.scale * value;
+    return result;
 }
 
 float P4TrialSource::sample( std::size_t frame, const P4PixelGridf::interpolationRecordT &record ) const

@@ -293,6 +293,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Load inherited observation and P4-specific configuration values.
     void loadConfig( mx::app::appConfigurator &config /**< [in] parsed application configuration */ );
 
+    /// Defer configured target-source injection when pixel-local processing samples sources on demand.
+    bool deferTargetFakeInjection() const override;
+
     /// Run the configured ordered search annuli through P4 and the shared ADI final lifecycle.
     /** \returns 0 on success, including a configured preprocessing-only stop.
      * \throws mx::exception for invalid configuration, data, geometry, numerical, diagnostic, or output state.

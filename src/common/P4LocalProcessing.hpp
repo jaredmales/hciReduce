@@ -226,6 +226,13 @@ class P4TrialSource
                     double contrast,                   /**< [in] finite trial contrast, including zero */
                     const std::vector<float> &scales /**< [in] one finite per-frame flux scale */ );
 
+    /// Add another source using the already-prepared template and detector geometry.
+    void addSource( const std::vector<double> &angles, /**< [in] one finite derotation angle per target frame */
+                    double separation,                 /**< [in] finite nonnegative sky separation in pixels */
+                    double positionAngle,              /**< [in] finite PA in degrees east of north */
+                    double contrast,                   /**< [in] finite signed contrast */
+                    const std::vector<float> &scales /**< [in] one finite per-frame flux scale */ );
+
     /// Report whether a successful configuration is available.
     bool configured() const noexcept;
 
@@ -270,7 +277,7 @@ class P4TrialSource
 
     int m_cropColumns{ 0 };           ///< Actual phase-preserving internal crop columns.
 
-    std::vector<FrameShift> m_shifts; ///< Prepared shift and scale for each target frame.
+    std::vector<std::vector<FrameShift>> m_sourceShifts; ///< Per-source prepared shifts and scales for each frame.
 };
 
 } // namespace improc

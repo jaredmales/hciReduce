@@ -30,6 +30,7 @@ struct appHarness : public hciAnalyze
     using hciAnalyze::filterCube;
     using hciAnalyze::filterCubePerPixelPSF;
     using hciAnalyze::loadConfig;
+    using hciAnalyze::m_diagnostics;
     using hciAnalyze::m_fakeContrast;
     using hciAnalyze::m_fakePositionAngle;
     using hciAnalyze::m_fakeSeparation;
@@ -39,6 +40,7 @@ struct appHarness : public hciAnalyze
     using hciAnalyze::m_lambdaDSpecified;
     using hciAnalyze::m_perPixelPSF;
     using hciAnalyze::m_perPixelPSFMinimumSupport;
+    using hciAnalyze::m_planetContrast;
     using hciAnalyze::m_planetPositionAngle;
     using hciAnalyze::m_planetRadius;
     using hciAnalyze::m_planetSeparation;
@@ -122,6 +124,30 @@ TEST_CASE( "hciAnalyze configuration validation", "[hciAnalyze][config][validati
     application.m_fakeSpecified = false;
     application.m_lambdaD = 0;
     REQUIRE_THROWS( application.checkConfig() );
+}
+
+/// Verify hciAnalyze honors an attached false value for its diagnostics boolean option.
+/** This exercises hciAnalyze::loadConfig() through the real command-line parser.
+ * \ingroup hciAnalyze_unit_tests
+ */
+TEST_CASE( "hciAnalyze explicit false command-line option", "[hciAnalyze][config][bool]" )
+{
+    appHarness application;
+    application.setupConfig();
+
+    std::string invoked = "hciAnalyze";
+    std::string diagnostics = "--diagnostics=false";
+    char *arguments[]{ invoked.data(), diagnostics.data() };
+    application.config.parseCommandLine( 2, arguments );
+    REQUIRE_NOTHROW( application.loadConfig() );
+    REQUIRE_FALSE( application.m_diagnostics );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    hciAnalyze doxygenApplication;
+    doxygenApplication.loadConfig();
+#endif
+    // clang-format on
 }
 
 /// Verify hciAnalyze reads a normal configuration file and measures its configured FITS cube.
@@ -248,6 +274,17 @@ TEST_CASE( "hciAnalyze fake keyword resolution", "[hciAnalyze][header][fake]" )
     application.resolveSignals( header, 11, 11 );
     REQUIRE( application.m_signals[0].m_y == Approx( 6 ) );
     REQUIRE( std::isnan( application.m_signals[0].m_contrast ) );
+
+    application.m_planetSpecified = false;
+    header.append<std::string>( "PLANETSEP", "1,2", "planet separations" );
+    header.append<std::string>( "PLANETPA", "0,180", "planet position angles" );
+    header.append<std::string>( "PLANETCONT", "0.001,0.002", "planet contrasts" );
+    application.resolveSignals( header, 11, 11 );
+    REQUIRE( application.m_signals.size() == 2 );
+    REQUIRE( application.m_signals[0].m_y == Approx( 6 ) );
+    REQUIRE( application.m_signals[0].m_contrast == Approx( 0.001F ) );
+    REQUIRE( application.m_signals[1].m_y == Approx( 3 ) );
+    REQUIRE( application.m_signals[1].m_contrast == Approx( 0.002F ) );
 }
 
 /// Verify hciAnalyze rejects missing header annulus metadata and accepts explicit annulus bounds.

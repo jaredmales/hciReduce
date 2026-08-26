@@ -19,15 +19,17 @@
  * | `--lambdaD` | `lambdaD=2.5` | positive finite pixels per \f$\lambda/D\f$ | `2.5` with warning | Image sampling used to convert pixel radius into independent-resolution-element radius for the small-sample SNR correction. This is a top-level configuration key. |
  * | `--planet.sep` | `planet.sep=10,20` | nonnegative real-pixel vector | unset | Direct signal separations. Pair every value with `planet.PA`. |
  * | `--planet.PA` | `planet.PA=0,90` | finite degree vector | unset | Direct PAs east of north: north is up and east is left. |
+ * | `--planet.contrast` | `planet.contrast=1e-4,1e-5` | optional matching nonnegative vector | unset | Physical planet contrasts included in output when supplied. Reduction-produced `PLANET*` headers always include contrast. |
  * | `--planet.R` | `planet.R=8` | one nonnegative real or one per signal | `10` | Signal exclusion radius or radii. |
  * | `--fake.sep` | `fake.sep=10,20` | nonnegative real-pixel vector | FITS keyword | Explicit fake separations; pair with `fake.PA`. |
  * | `--fake.PA` | `fake.PA=0,90` | finite degree vector | FITS keyword | Explicit fake PAs, east of north. |
  * | `--fake.contrast` | `fake.contrast=1e-4,1e-5` | one finite real per fake | FITS keyword | Fake contrasts included in output. |
  * | `--fake.R` | `fake.R=8` | one nonnegative real or one per fake | `10` | Fake exclusion radius or radii. |
  *
- * Do not mix explicit `planet` and `fake` settings. With neither group supplied, the FITS header must provide all of
- * `FAKESEP`, `FAKEPA`, and `FAKECONT`, encoded as comma-separated lists. Direct planets intentionally do not require
- * contrast metadata.
+ * Do not mix explicit `planet` and `fake` settings. With neither group supplied, complete `PLANETSEP`, `PLANETPA`, and
+ * `PLANETCONT` vectors take precedence. Otherwise the FITS header must provide all of `FAKESEP`, `FAKEPA`, and
+ * `FAKECONT`. Header vectors are comma-separated and equal length. Direct planet configuration intentionally retains
+ * compatibility with position-only analysis and does not require contrast metadata.
  *
  * \section hcianalyze_snr SNR and filtering
  *

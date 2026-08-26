@@ -75,6 +75,18 @@ TEST_CASE( "P4 local trial source matches full image shift", "[P4LocalProcessing
         }
     }
 
+    REQUIRE_NOTHROW( source.addSource( angles, separation, positionAngle, -contrast, scales ) );
+    for( std::size_t frame = 0; frame < angles.size(); ++frame )
+    {
+        for( int column = 0; column < sourceTemplate.cols(); ++column )
+        {
+            for( int row = 0; row < sourceTemplate.rows(); ++row )
+            {
+                REQUIRE( source.value( frame, row, column ) == Approx( 0 ).margin( 3e-7 ) );
+            }
+        }
+    }
+
     mx::improc::P4TrialSource integral;
     integral.configure( sourceTemplate, 16, 16, 5, { 0 }, 2, 0, 0.5, { 2 } );
     imageT integralExpected;

@@ -633,7 +633,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
     config.add( "p4.outputPSFModels",
                 "",
                 "p4.outputPSFModels",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "p4",
                 "outputPSFModels",
                 false,
@@ -642,7 +642,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
     config.add( "p4.psfFilter",
                 "",
                 "p4.psfFilter",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "p4",
                 "psfFilter",
                 false,
@@ -714,7 +714,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
     config.add( "p4.writeDiagnostics",
                 "",
                 "p4.writeDiagnostics",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "p4",
                 "writeDiagnostics",
                 false,
@@ -763,8 +763,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( m_psfRadius, "p4.psfRadius" );
     config( m_psfFile, "p4.psfFile" );
     config( m_psfStampSize, "p4.psfStampSize" );
-    config( m_outputPSFModels, "p4.outputPSFModels" );
-    config( m_psfFilter, "p4.psfFilter" );
+    loadBoolConfig<verboseT>( config, m_outputPSFModels, "p4.outputPSFModels" );
+    loadBoolConfig<verboseT>( config, m_psfFilter, "p4.psfFilter" );
     config( m_psfFilterMinGoodFract, "p4.psfFilterMinGoodFract" );
     config( m_psfOutputPrefix, "p4.psfOutputPrefix" );
     config( m_localStampSize, "p4.localStampSize" );
@@ -795,8 +795,14 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( m_exclusionRadiusBuffer, "p4.exclusionRadiusBuffer" );
     config( m_rankTolerance, "p4.rankTolerance" );
     config( m_memoryFraction, "p4.memoryFraction" );
-    config( m_writeDiagnostics, "p4.writeDiagnostics" );
+    loadBoolConfig<verboseT>( config, m_writeDiagnostics, "p4.writeDiagnostics" );
     config( m_diagnosticDirectory, "p4.diagnosticDirectory" );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+bool P4Reduction<realT, derotFunctObj, verboseT>::deferTargetFakeInjection() const
+{
+    return m_localStampSize > 0;
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -1490,6 +1496,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
     P4TrialSource trialSource;
     try
     {
+        const std::vector<realT> trialScales = localTrialScales();
         trialSource.configure( sourceTemplate,
                                this->m_Nrows,
                                this->m_Ncols,
@@ -1498,7 +1505,18 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
                                separation,
                                static_cast<double>( this->m_fakePA[0] ),
                                static_cast<double>( this->m_fakeContrast[0] ),
-                               localTrialScales() );
+                               trialScales );
+        if( this->m_subtractPlanet )
+        {
+            for( std::size_t planet = 0; planet < this->m_planetSep.size(); ++planet )
+            {
+                trialSource.addSource( derotationAngles,
+                                       static_cast<double>( this->m_planetSep[planet] ),
+                                       static_cast<double>( this->m_planetPA[planet] ),
+                                       -static_cast<double>( this->m_planetContrast[planet] ),
+                                       trialScales );
+            }
+        }
     }
     catch( ... )
     {

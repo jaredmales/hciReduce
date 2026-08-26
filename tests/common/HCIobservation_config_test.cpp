@@ -51,14 +51,14 @@ TEST_CASE( "HCIobservation configuration metadata", "[HCIobservation][config]" )
     REQUIRE( config.m_targets.at( "input.dateUnit" ).helpType == "float" );
     REQUIRE( config.m_targets.at( "rdi.dateUnit" ).clType == mx::app::argType::Required );
     REQUIRE( config.m_targets.at( "rdi.dateUnit" ).helpType == "float" );
-    REQUIRE( config.m_targets.at( "input.dateIsISO8601" ).clType == mx::app::argType::True );
-    REQUIRE( config.m_targets.at( "rdi.dateIsISO8601" ).clType == mx::app::argType::True );
-    REQUIRE( config.m_targets.at( "input.thresholdOnly" ).clType == mx::app::argType::True );
+    REQUIRE( config.m_targets.at( "input.dateIsISO8601" ).clType == mx::app::argType::Optional );
+    REQUIRE( config.m_targets.at( "rdi.dateIsISO8601" ).clType == mx::app::argType::Optional );
+    REQUIRE( config.m_targets.at( "input.thresholdOnly" ).clType == mx::app::argType::Optional );
     REQUIRE( config.m_targets.at( "input.thresholdOnly" ).helpType == "bool" );
     REQUIRE( config.m_targets.at( "coadd.maxAngle" ).helpType == "float" );
     REQUIRE( config.m_targets.at( "preProcess.mask" ).helpType == "bool" );
     REQUIRE( config.m_targets.at( "input.maskFile" ).helpType == "string" );
-    REQUIRE( config.m_targets.at( "rdi.useInputMask" ).clType == mx::app::argType::True );
+    REQUIRE( config.m_targets.at( "rdi.useInputMask" ).clType == mx::app::argType::Optional );
     REQUIRE( config.m_targets.at( "preProcess.medianUSM_fwhm" ).helpType == "int" );
     REQUIRE( config.m_targets.count( "preProcess.azUSM_azHalfWidth" ) == 1 );
     REQUIRE( config.m_targets.count( "preProcess.azUSM_radHalfWidth" ) == 1 );
@@ -87,6 +87,76 @@ TEST_CASE( "HCIobservation configuration metadata", "[HCIobservation][config]" )
 #ifdef __DOXY_ONLY__
     mx::improc::HCIobservation<float, mx::verbose::vv>::setupConfig( config );
     mx::improc::HCIobservation<float, mx::verbose::vv>::loadConfig( config );
+#endif
+    // clang-format on
+}
+
+/// Verify loadBoolConfig handles defaults, bare flags, explicit values, and command-line precedence.
+/** This exercises mx::improc::loadBoolConfig() through mxlib's real optional-argument parser.
+ * \ingroup HCIobservation_unit_tests
+ */
+TEST_CASE( "hciReduce optional boolean loading", "[HCIobservation][config][bool]" )
+{
+    TestDirectory directory;
+    const auto load = [&]( const std::string &configValue, const std::string &argument, bool defaultValue )
+    {
+        mx::app::appConfigurator config;
+        config.m_sources = true;
+        config.add( "test.flag",
+                    "",
+                    "test.flag",
+                    mx::app::argType::Optional,
+                    "test",
+                    "flag",
+                    false,
+                    "bool",
+                    "test boolean" );
+        if( !configValue.empty() )
+        {
+            const auto path = directory.file( "bool.conf" );
+            writeTextFile( path, "[test]\nflag=" + configValue + "\n" );
+            REQUIRE( config.readConfig( path.string() ) == 0 );
+        }
+        std::string invoked = "config-test";
+        if( argument.empty() )
+        {
+            char *arguments[]{ invoked.data() };
+            config.parseCommandLine( 1, arguments );
+        }
+        else
+        {
+            std::string option = argument;
+            char *arguments[]{ invoked.data(), option.data() };
+            config.parseCommandLine( 2, arguments );
+        }
+        bool value = defaultValue;
+        mx::improc::loadBoolConfig<mx::verbose::vv>( config, value, "test.flag" );
+        return value;
+    };
+
+    REQUIRE_FALSE( load( "", "", false ) );
+    REQUIRE( load( "", "--test.flag", false ) );
+    REQUIRE_FALSE( load( "", "--test.flag=false", true ) );
+    REQUIRE( load( "false", "--test.flag", false ) );
+    REQUIRE_FALSE( load( "true", "--test.flag=false", true ) );
+    REQUIRE( load( "false", "--test.flag=true", false ) );
+    REQUIRE_THROWS( load( "", "--test.flag=invalid", false ) );
+
+    mx::app::appConfigurator repeatedConfig;
+    repeatedConfig.m_sources = true;
+    repeatedConfig
+        .add( "test.flag", "", "test.flag", mx::app::argType::Optional, "test", "flag", false, "bool", "test boolean" );
+    std::string repeatedInvoked = "config-test";
+    std::string repeatedBare = "--test.flag";
+    std::string repeatedFalse = "--test.flag=false";
+    char *repeatedArguments[]{ repeatedInvoked.data(), repeatedBare.data(), repeatedFalse.data() };
+    repeatedConfig.parseCommandLine( 3, repeatedArguments );
+    bool repeatedValue = true;
+    REQUIRE_THROWS( mx::improc::loadBoolConfig<mx::verbose::vv>( repeatedConfig, repeatedValue, "test.flag" ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::loadBoolConfig<mx::verbose::vv>( config, value, "test.flag" );
 #endif
     // clang-format on
 }

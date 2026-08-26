@@ -100,7 +100,7 @@ class klipReduce : public application
         config.add( "showTiming",
                     "",
                     "showTiming",
-                    argType::True,
+                    argType::Optional,
                     "",
                     "showTiming",
                     false,
@@ -125,7 +125,7 @@ class klipReduce : public application
         config( m_postprocessDirectory, "postprocess.directory" );
         config( m_postprocessPrefix, "postprocess.prefix" );
         config( m_postprocessExtension, "postprocess.extension" );
-        config( m_showTiming, "showTiming" );
+        mx::improc::loadBoolConfig<verboseT>( config, m_showTiming, "showTiming" );
 
         // This checks for unused config options, printing the banner only once no matter how many there are.
         // This will catch both bad options, and options we aren't actually using (debugging).

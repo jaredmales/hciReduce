@@ -273,6 +273,38 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     // clang-format on
 }
 
+/// Verify p4Reduce honors attached false values for application and inherited observation boolean options.
+/** This exercises p4Reduce::loadConfig() and HCIobservation::loadConfig() through the real command-line parser.
+ * \ingroup p4Reduce_unit_tests
+ */
+TEST_CASE( "p4Reduce explicit false command-line options", "[p4Reduce][config][bool]" )
+{
+    appHarness application;
+    application.setupConfig();
+
+    std::string invoked = "p4Reduce";
+    std::string optimize = "--p4Optimize.enabled=false";
+    std::string skip = "--preProcess.skip=false";
+    std::string fitPosition = "--p4Optimize.fitPosition=false";
+    char *arguments[]{ invoked.data(), optimize.data(), skip.data(), fitPosition.data() };
+    application.config.parseCommandLine( 4, arguments );
+    REQUIRE_NOTHROW( application.loadConfig() );
+
+    REQUIRE_FALSE( application.m_optimizeEnabled );
+    REQUIRE( application.config.m_targets.at( "preProcess.skip" ).used );
+    REQUIRE( application.config.m_targets.at( "preProcess.skip" ).values.back() == "false" );
+    REQUIRE_FALSE( application.m_optimizeFitPosition );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    p4Reduce doxygenApplication;
+    doxygenApplication.loadConfig();
+    mx::improc::HCIobservation<float, mx::verbose::vv> doxygenObservation;
+    doxygenObservation.loadConfig( doxygenApplication.config );
+#endif
+    // clang-format on
+}
+
 /// Verify the AF Lep/NACO comparison configuration loads its support geometry and controlled settings.
 /** \ingroup p4Reduce_unit_tests */
 TEST_CASE( "p4Reduce AF Lep prototype configuration", "[p4Reduce][config][prototype][AF-Lep]" )

@@ -7,6 +7,7 @@
 
 # list of source files
 set(libheaders common/HCI.hpp
+               common/ConfigUtils.hpp
                common/HCIobservation.hpp
                common/ADIobservation.hpp
                common/ADIDerotator.hpp

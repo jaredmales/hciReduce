@@ -230,6 +230,30 @@ TEST_CASE( "klipReduce postprocess configuration", "[klipReduce][config][postpro
     REQUIRE_THROWS( application.checkConfig() );
 }
 
+/// Verify klipReduce honors an attached false value for an application boolean option.
+/** This exercises klipReduce::loadConfig() through the real command-line parser.
+ * \ingroup klipReduce_unit_tests
+ */
+TEST_CASE( "klipReduce explicit false command-line option", "[klipReduce][config][bool]" )
+{
+    appHarness application;
+    application.setupConfig();
+
+    std::string invoked = "klipReduce";
+    std::string showTiming = "--showTiming=false";
+    char *arguments[]{ invoked.data(), showTiming.data() };
+    application.config.parseCommandLine( 2, arguments );
+    REQUIRE_NOTHROW( application.loadConfig() );
+    REQUIRE_FALSE( application.m_showTiming );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    klipReduce doxygenApplication;
+    doxygenApplication.loadConfig();
+#endif
+    // clang-format on
+}
+
 /// Verify klipReduce dispatches postprocess mode through KLIPreduction::processPSFSub and writes the configured result.
 /** \ingroup klipReduce_unit_tests */
 TEST_CASE( "klipReduce postprocess dispatch", "[klipReduce][execute][postprocess]" )

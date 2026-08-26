@@ -52,6 +52,8 @@
  * The trial uses `fake.fileName`, `fake.sep`, `fake.PA`, `fake.contrast`, and optional `fake.scaleFileName` from the
  * shared \ref common_configuration_dictionary "configuration dictionary". Exactly one separation, position angle,
  * and finite contrast must be supplied, and `fake.method=single` is required.
+ * When `fake.subtractPlanet=true`, each configured `[planet]` tuple is also sampled at negative contrast during every
+ * local evaluation. This fixed subtraction is not added to the fake vectors and is not an optimizer parameter.
  *
  * The current local contract requires:
  *

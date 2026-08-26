@@ -53,7 +53,10 @@
  *
  * Both applications use the configured detector angles to derotate residual images before final combination unless
  * `combine.noDerotate=true`. `adi.postMedSub` applies a median subtraction immediately before derotation. The
- * `fake.*` settings inject calibrated artificial companions for throughput experiments. `combine.method` selects the
+ * `fake.*` settings inject calibrated artificial companions for throughput experiments, including on already
+ * preprocessed input. The vector-valued `planet.*` settings record known companions independently; enabling
+ * `fake.subtractPlanet` also injects their negative response without adding them to `FAKE*` metadata.
+ * `combine.method` selects the
  * final mean, median, weighted, or sigma-clipped (`sigmaMean`) combination; `combine.minGoodFract` determines when insufficient
  * valid samples produce an invalid output pixel.
  *

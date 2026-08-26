@@ -28,6 +28,7 @@
 #include <mx/ioutils/fits/fitsFile.hpp>
 #include <mx/ioutils/stringUtils.hpp>
 
+#include "src/common/ConfigUtils.hpp"
 #include "src/common/P4PSFFilter.hpp"
 
 /// One configured or header-derived signal to measure.
@@ -67,6 +68,7 @@ class hciAnalyze : public mx::app::application
 
     std::vector<realT> m_planetSeparation;    ///< Explicit measured-signal separations in pixels.
     std::vector<realT> m_planetPositionAngle; ///< Explicit measured-signal PAs, degrees east of north.
+    std::vector<realT> m_planetContrast;      ///< Explicit positive physical planet contrasts.
     std::vector<realT> m_planetRadius;        ///< Optional explicit exclusion radii in pixels.
 
     std::vector<realT> m_fakeSeparation;      ///< Explicit fake-planet separations in pixels.
@@ -126,7 +128,9 @@ class hciAnalyze : public mx::app::application
                                 const std::vector<realT> &radius,        /**< [in] optional exclusion radii */
                                 const std::vector<realT> &contrast,      /**< [in] optional contrasts */
                                 const std::string &source,               /**< [in] source description for errors */
-                                bool requireContrast /**< [in] whether a contrast vector is required */ ) const;
+                                bool requireContrast, /**< [in] whether a contrast vector is required */
+                                bool nonnegativeContrast = false
+                                /**< [in] whether every supplied contrast must be nonnegative */ ) const;
 
     /// Parse a comma-separated floating-point FITS keyword vector.
     std::vector<realT> headerVector( fitsHeaderT &header, /**< [in] input FITS header */
@@ -213,6 +217,15 @@ void hciAnalyze::setupConfig()
                 false,
                 "vector<float>",
                 "signal position angles in degrees east of north; east is left" );
+    config.add( "planet.contrast",
+                "",
+                "planet.contrast",
+                mx::app::argType::Required,
+                "planet",
+                "contrast",
+                false,
+                "vector<float>",
+                "positive physical planet contrasts" );
     config.add( "planet.R",
                 "",
                 "planet.R",
@@ -318,7 +331,7 @@ void hciAnalyze::setupConfig()
     config.add( "diagnostics",
                 "d",
                 "diagnostics",
-                mx::app::argType::True,
+                mx::app::argType::Optional,
                 "",
                 "diagnostics",
                 false,
@@ -332,6 +345,7 @@ void hciAnalyze::loadConfig()
     config( m_lambdaD, "lambdaD" );
     config( m_planetSeparation, "planet.sep" );
     config( m_planetPositionAngle, "planet.PA" );
+    config( m_planetContrast, "planet.contrast" );
     config( m_planetRadius, "planet.R" );
     config( m_fakeSeparation, "fake.sep" );
     config( m_fakePositionAngle, "fake.PA" );
@@ -343,10 +357,10 @@ void hciAnalyze::loadConfig()
     config( m_highPassFwhm, "filter.hpfGaussFW" );
     config( m_lowPassFwhm, "filter.lpfGaussFW" );
     config( m_perPixelPSF, "filter.perPixelPSF" );
-    config( m_diagnostics, "diagnostics" );
+    mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_diagnostics, "diagnostics" );
 
-    m_planetSpecified =
-        targetSpecified( "planet.sep" ) || targetSpecified( "planet.PA" ) || targetSpecified( "planet.R" );
+    m_planetSpecified = targetSpecified( "planet.sep" ) || targetSpecified( "planet.PA" ) ||
+                        targetSpecified( "planet.contrast" ) || targetSpecified( "planet.R" );
     m_fakeSpecified = targetSpecified( "fake.sep" ) || targetSpecified( "fake.PA" ) ||
                       targetSpecified( "fake.contrast" ) || targetSpecified( "fake.R" );
     m_lambdaDSpecified = targetSpecified( "lambdaD" );
@@ -370,7 +384,13 @@ void hciAnalyze::checkConfig()
     }
     if( m_planetSpecified )
     {
-        validateSignalVectors( m_planetSeparation, m_planetPositionAngle, m_planetRadius, {}, "planet", false );
+        validateSignalVectors( m_planetSeparation,
+                               m_planetPositionAngle,
+                               m_planetRadius,
+                               m_planetContrast,
+                               "planet",
+                               false,
+                               true );
     }
     if( m_fakeSpecified )
     {
@@ -436,7 +456,8 @@ void hciAnalyze::validateSignalVectors( const std::vector<realT> &separation,
                                         const std::vector<realT> &radius,
                                         const std::vector<realT> &contrast,
                                         const std::string &source,
-                                        bool requireContrast ) const
+                                        bool requireContrast,
+                                        bool nonnegativeContrast ) const
 {
     if( separation.empty() || positionAngle.empty() || separation.size() != positionAngle.size() )
     {
@@ -478,9 +499,11 @@ void hciAnalyze::validateSignalVectors( const std::vector<realT> &separation,
     }
     for( const realT value : contrast )
     {
-        if( !std::isfinite( value ) )
+        if( !std::isfinite( value ) || ( nonnegativeContrast && value < 0 ) )
         {
-            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig, source + ".contrast must be finite" );
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  source + ".contrast must be finite" +
+                                                      ( nonnegativeContrast ? " and nonnegative" : "" ) );
         }
     }
 }
@@ -510,6 +533,7 @@ void hciAnalyze::resolveSignals( fitsHeaderT &header, int xPixels, int yPixels )
         separation = m_planetSeparation;
         positionAngle = m_planetPositionAngle;
         radius = m_planetRadius;
+        contrast = m_planetContrast;
         source = "planet";
     }
     else if( m_fakeSpecified )
@@ -520,6 +544,14 @@ void hciAnalyze::resolveSignals( fitsHeaderT &header, int xPixels, int yPixels )
         contrast = m_fakeContrast;
         source = "fake";
     }
+    else if( header.count( "PLANETSEP" ) != 0 || header.count( "PLANETPA" ) != 0 || header.count( "PLANETCONT" ) != 0 )
+    {
+        separation = headerVector( header, "PLANETSEP" );
+        positionAngle = headerVector( header, "PLANETPA" );
+        contrast = headerVector( header, "PLANETCONT" );
+        source = "PLANET FITS keywords";
+        requireContrast = true;
+    }
     else
     {
         separation = headerVector( header, "FAKESEP" );
@@ -529,7 +561,13 @@ void hciAnalyze::resolveSignals( fitsHeaderT &header, int xPixels, int yPixels )
         requireContrast = true;
     }
 
-    validateSignalVectors( separation, positionAngle, radius, contrast, source, requireContrast );
+    validateSignalVectors( separation,
+                           positionAngle,
+                           radius,
+                           contrast,
+                           source,
+                           requireContrast,
+                           source == "planet" || source == "PLANET FITS keywords" );
     m_signals.clear();
     m_signals.reserve( separation.size() );
     for( size_t index = 0; index < separation.size(); ++index )
