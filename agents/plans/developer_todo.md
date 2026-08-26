@@ -148,7 +148,7 @@ Right now we do an inversion for all the images at once.  This means that when w
    
 [] this will be much slower, probably on the order of T times slower. So we should look into 
       -- using the downdate algorithm of Long and Males 2021 (https://arxiv.org/abs/2101.11634).  This will require restructuring the algo to use SVD of the data instead of the CV.
-      -- batch GPU processing.  I.e. load the CV into GPU memory once then do the decomposition T times, once for each t removed.   
+      -- batch GPU processing.  I.e. load the CV into GPU memory once then do the decomposition T times, once for each t removed.   Should be able to download from GPU only the predicted pixel values (per mode).
 
 ## Other solvers
 
@@ -171,7 +171,7 @@ Right now we do an inversion for all the images at once.  This means that when w
 [x] add a `fake.subtractPlanet=false/true` flag. When true, inject the negative of the configured planet in addition to
 the configured fake planets, without adding it to the fake vectors or `FAKE*` metadata.
 
-Completed by `3b26865`
+Completed by `3b26865` and `c4dd646`
 
 ## Config Cleanup
 
@@ -179,4 +179,4 @@ Completed by `3b26865`
    [x] --flag  (implicitly true)
    [x] --flag=true/false (explicitly set)
 
-Completed by `3b26865`
+Completed by `3b26865` and `c4dd646`
