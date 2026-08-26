@@ -164,6 +164,8 @@ Right now we do an inversion for all the images at once.  This means that when w
 
 ## Fake Planet Cleanup
 
+Shared implementation plan: `agents/plans/fake_planet_and_config_cleanup.md`.
+
 [x] enable fake injection with preProcess.skip=true
 
 [x] extend the existing "planet" configuration section, parallel to "fake", so the known location and contrast of a planet can be propagated through to hciAnalyze, etc.
@@ -174,6 +176,8 @@ the configured fake planets, without adding it to the fake vectors or `FAKE*` me
 Completed by `3b26865` and `c4dd646`
 
 ## Config Cleanup
+
+Shared implementation plan: `agents/plans/fake_planet_and_config_cleanup.md`.
 
 [x] make it so boolean options work with both.  This can be done based on isSet.
    [x] --flag  (implicitly true)
