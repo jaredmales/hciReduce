@@ -171,8 +171,12 @@ Right now we do an inversion for all the images at once.  This means that when w
 [x] add a `fake.subtractPlanet=false/true` flag. When true, inject the negative of the configured planet in addition to
 the configured fake planets, without adding it to the fake vectors or `FAKE*` metadata.
 
+Completed by `3b26865`
+
 ## Config Cleanup
 
 [x] make it so boolean options work with both.  This can be done based on isSet.
    [x] --flag  (implicitly true)
    [x] --flag=true/false (explicitly set)
+
+Completed by `3b26865`
