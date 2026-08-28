@@ -184,3 +184,21 @@ Shared implementation plan: `agents/plans/fake_planet_and_config_cleanup.md`.
    [x] --flag=true/false (explicitly set)
 
 Completed by `3b26865` and `c4dd646`
+
+## Propagation of Pre-processing
+
+[] when pre-processing is skipped because we are using pre-pre-processed files, we want to inherit the pre-processing settings from those files and write them to the output FITS
+   - maybe a flag like preprocess.inherit=true/false that only has meaning on skip
+   - when inheriting, validate that all files have the same settings, etc
+
+## SNR calculation with mean
+
+[] We aren't calculating the mean noise and subtracting it, but should be
+   - we're doing S/stdev(noise - mean) instead of (S-mean)/stdev(noise-mean)
+   - this should be a straightforward addition to stddevImage where we calculate the mean after accumulation at the same time we calculate the variance (and re-use it in the variance for efficiency)
+
+## Matched Filtering Updates
+
+[] Evaluate the covariance weighted matched filter, using the eigenvector projection
+
+[] Evalute approximating the signal-free reponse by averaging nearby PSFs from outside an exclusion radius at the same separation at a known planet.  This probably wants a rotation, not just a shift.
