@@ -584,6 +584,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "string",
                 "Target-frame exclusion method: none, pixel, angle, or imno; default none" );
+    config.add( "p4.exclusionSolver",
+                "",
+                "p4.exclusionSolver",
+                mx::app::argType::Required,
+                "p4",
+                "exclusionSolver",
+                false,
+                "string",
+                "Target-exclusion solver: explicitRefit or factorDowndateExact; default explicitRefit" );
     config.add( "p4.orDeltaRadiusInner",
                 "",
                 "p4.orDeltaRadiusInner",
@@ -778,6 +787,18 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( excludeMethod, "adi.excludeMethod" );
     m_excludeMethod = HCI::excludeFmStr<verboseT>( excludeMethod );
 
+    std::string exclusionSolver = exclusionSolverString( m_exclusionSolver );
+    config( exclusionSolver, "p4.exclusionSolver" );
+    try
+    {
+        m_exclusionSolver = parseExclusionSolver( exclusionSolver );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.exclusionSolver is not valid" ) );
+    }
+
     config( m_orDeltaRadiusInner, "p4.orDeltaRadiusInner" );
     config( m_orDeltaRadiusOuter, "p4.orDeltaRadiusOuter" );
     config( m_orArcHalfWidth, "p4.orArcHalfWidth" );
@@ -856,6 +877,34 @@ P4ExclusionPolicy P4Reduction<realT, derotFunctObj, verboseT>::parseExclusionPol
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+std::string P4Reduction<realT, derotFunctObj, verboseT>::exclusionSolverString( P4ExclusionSolver solver )
+{
+    if( solver == P4ExclusionSolver::explicitRefit )
+    {
+        return "explicitRefit";
+    }
+    if( solver == P4ExclusionSolver::factorDowndateExact )
+    {
+        return "factorDowndateExact";
+    }
+    throw std::invalid_argument( "unsupported P4 target-exclusion solver" );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+P4ExclusionSolver P4Reduction<realT, derotFunctObj, verboseT>::parseExclusionSolver( const std::string &value )
+{
+    if( value == "explicitRefit" )
+    {
+        return P4ExclusionSolver::explicitRefit;
+    }
+    if( value == "factorDowndateExact" )
+    {
+        return P4ExclusionSolver::factorDowndateExact;
+    }
+    throw std::invalid_argument( "unsupported P4 target-exclusion solver: " + value );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 std::string P4Reduction<realT, derotFunctObj, verboseT>::regressionFrameString( P4RegressionFrame frame )
 {
     if( frame == P4RegressionFrame::detector )
@@ -888,6 +937,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
 {
     static_cast<void>( regressionFrameString( m_regressionFrame ) );
     static_cast<void>( HCI::excludeToStr<verboseT>( m_excludeMethod ) );
+    static_cast<void>( exclusionSolverString( m_exclusionSolver ) );
     if( !mx::math::isFinite( m_minDPx ) || m_minDPx < 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig, "adi.minDPx must be finite and nonnegative" );
@@ -914,6 +964,11 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                            "P4 target-frame exclusion does not yet support frozen-PSF products" );
         }
+    }
+    else if( m_exclusionSolver != P4ExclusionSolver::explicitRefit )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "p4.exclusionSolver requires adi.excludeMethod other than none" );
     }
     if( m_localStampSize < 0 )
     {
@@ -1177,16 +1232,16 @@ int P4Reduction<realT, derotFunctObj, verboseT>::checkedMaximumDegreesOfFreedom(
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-std::vector<std::vector<std::size_t>>
-P4Reduction<realT, derotFunctObj, verboseT>::targetReferenceRows( const std::vector<std::vector<int>> &selections,
-                                                                  HCI::exclude method,
-                                                                  realT minDPx,
-                                                                  realT minimumRadius,
-                                                                  const std::vector<double> &derotationAngles )
+P4TargetExclusions
+P4Reduction<realT, derotFunctObj, verboseT>::targetExclusions( const std::vector<std::vector<int>> &selections,
+                                                               HCI::exclude method,
+                                                               realT minDPx,
+                                                               realT minimumRadius,
+                                                               const std::vector<double> &derotationAngles )
 {
     if( method == HCI::exclude::none )
     {
-        return {};
+        return P4TargetExclusions();
     }
     if( selections.empty() || !mx::math::isFinite( minDPx ) || minDPx < 0 )
     {
@@ -1211,54 +1266,56 @@ P4Reduction<realT, derotFunctObj, verboseT>::targetReferenceRows( const std::vec
         throw std::invalid_argument( "unsupported P4 target-frame exclusion method" );
     }
 
-    std::vector<std::vector<std::size_t>> rows( selections.size() );
-    for( std::size_t targetRow = 0; targetRow < selections.size(); ++targetRow )
+    for( const auto &selection : selections )
     {
-        if( selections[targetRow].empty() )
+        if( selection.empty() )
         {
             throw std::invalid_argument( "P4 target exclusion encountered an empty temporal selection" );
         }
+    }
+
+    const Eigen::Index targetCount = static_cast<Eigen::Index>( selections.size() );
+    if( method == HCI::exclude::imno )
+    {
+        std::vector<P4ExclusionSpan> spans( selections.size() );
+        for( Eigen::Index target = 0; target < targetCount; ++target )
+        {
+            const double first = std::ceil( std::max( 0.0, static_cast<double>( target ) - threshold ) );
+            const double last = std::floor(
+                std::min( static_cast<double>( targetCount - 1 ), static_cast<double>( target ) + threshold ) );
+            spans[static_cast<std::size_t>( target )] = { static_cast<Eigen::Index>( first ),
+                                                          static_cast<Eigen::Index>( last ) + 1 };
+        }
+        return P4TargetExclusions::fromSpans( targetCount, spans );
+    }
+
+    std::vector<std::vector<Eigen::Index>> rows( selections.size() );
+    for( std::size_t targetRow = 0; targetRow < selections.size(); ++targetRow )
+    {
         const int targetImage = selections[targetRow][0];
-        if( method != HCI::exclude::imno &&
-            ( targetImage < 0 || static_cast<std::size_t>( targetImage ) >= derotationAngles.size() ||
-              !mx::math::isFinite( derotationAngles[static_cast<std::size_t>( targetImage )] ) ) )
+        if( targetImage < 0 || static_cast<std::size_t>( targetImage ) >= derotationAngles.size() ||
+            !mx::math::isFinite( derotationAngles[static_cast<std::size_t>( targetImage )] ) )
         {
             throw std::invalid_argument( "P4 target exclusion requires a finite angle for every central image" );
         }
         for( std::size_t candidateRow = 0; candidateRow < selections.size(); ++candidateRow )
         {
-            if( selections[candidateRow].empty() )
+            const int candidateImage = selections[candidateRow][0];
+            if( candidateImage < 0 || static_cast<std::size_t>( candidateImage ) >= derotationAngles.size() ||
+                !mx::math::isFinite( derotationAngles[static_cast<std::size_t>( candidateImage )] ) )
             {
-                throw std::invalid_argument( "P4 target exclusion encountered an empty temporal selection" );
+                throw std::invalid_argument( "P4 target exclusion requires a finite angle for every central image" );
             }
-            bool excluded{ false };
-            if( method == HCI::exclude::imno )
+            const double difference = std::abs( mx::math::angleDiff<mx::math::radiansT<double>>(
+                derotationAngles[static_cast<std::size_t>( candidateImage )],
+                derotationAngles[static_cast<std::size_t>( targetImage )] ) );
+            if( difference <= threshold )
             {
-                const double difference =
-                    std::abs( static_cast<double>( candidateRow ) - static_cast<double>( targetRow ) );
-                excluded = difference <= threshold;
-            }
-            else
-            {
-                const int candidateImage = selections[candidateRow][0];
-                if( candidateImage < 0 || static_cast<std::size_t>( candidateImage ) >= derotationAngles.size() ||
-                    !mx::math::isFinite( derotationAngles[static_cast<std::size_t>( candidateImage )] ) )
-                {
-                    throw std::invalid_argument(
-                        "P4 target exclusion requires a finite angle for every central image" );
-                }
-                const double difference = std::abs( mx::math::angleDiff<mx::math::radiansT<double>>(
-                    derotationAngles[static_cast<std::size_t>( candidateImage )],
-                    derotationAngles[static_cast<std::size_t>( targetImage )] ) );
-                excluded = difference <= threshold;
-            }
-            if( !excluded )
-            {
-                rows[targetRow].push_back( candidateRow );
+                rows[targetRow].push_back( static_cast<Eigen::Index>( candidateRow ) );
             }
         }
     }
-    return rows;
+    return P4TargetExclusions::fromExplicit( targetCount, rows );
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -1267,7 +1324,10 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::estimatedWorkerBytes( s
                                                                                std::size_t modeCount,
                                                                                bool includeCoefficients,
                                                                                std::size_t psfStampPixels,
-                                                                               bool exactHeldOut )
+                                                                               bool exactHeldOut,
+                                                                               P4ExclusionSolver exclusionSolver,
+                                                                               std::size_t maximumDeletedRows,
+                                                                               std::size_t maximumRetainedMode )
 {
     if( targetImageCount == 0 || predictorCount == 0 || modeCount == 0 )
     {
@@ -1277,10 +1337,27 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::estimatedWorkerBytes( s
     const long double predictors = static_cast<long double>( predictorCount );
     const long double modes = static_cast<long double>( modeCount );
     const long double dimension = std::min( targets, predictors );
+    const long double maximumDeleted = static_cast<long double>( maximumDeletedRows );
+    long double heldOutValues{ 0 };
+    if( exactHeldOut )
+    {
+        if( exclusionSolver == P4ExclusionSolver::factorDowndateExact )
+        {
+            const long double retainedModes =
+                maximumRetainedMode == 0 ? dimension
+                                         : std::min( dimension, static_cast<long double>( maximumRetainedMode ) );
+            heldOutValues = targets * dimension + 2 * dimension * dimension + 2 * maximumDeleted * dimension +
+                            dimension * retainedModes + 10 * dimension;
+        }
+        else
+        {
+            heldOutValues = targets <= predictors ? dimension * dimension + targets * modes
+                                                  : targets * predictors + predictors * modes + targets * modes;
+        }
+    }
     const long double doubleValues = targets * predictors + targets * modes + 2 * dimension * dimension + 5 * targets +
                                      2 * predictors + 70 * dimension +
-                                     ( includeCoefficients ? predictors * ( modes + 2 ) : 0 ) +
-                                     ( exactHeldOut ? targets * predictors + predictors * modes + targets * modes : 0 );
+                                     ( includeCoefficients ? predictors * ( modes + 2 ) : 0 ) + heldOutValues;
     constexpr long double safetyFactor = 1.25L;
     constexpr std::size_t fixedMargin = 1024 * 1024;
     const long double estimated = safetyFactor * ( sizeof( double ) * doubleValues +
@@ -1423,10 +1500,11 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
     const std::vector<P4PixelCoordinate> &temporalOffsets,
     const std::vector<int> &modes,
     P4PCA::workspaceT &workspace,
+    P4PCADowndateWorkspace *downdateWorkspace,
     P4PCATiming &timing,
     double &sameImageSamplingSeconds,
     double &temporalSamplingSeconds,
-    const std::vector<std::vector<std::size_t>> *referenceRows,
+    const P4TargetExclusions *exclusions,
     const P4TrialSource *trialSource ) const
 {
     if( selections.empty() || modes.empty() || search >= grid.searchPixelCount() ||
@@ -1513,20 +1591,39 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
         temporalSamplingSeconds += omp_get_wtime() - temporalSamplingBegin;
     }
 
-    if( referenceRows )
+    if( exclusions )
     {
         if( coefficients )
         {
             throw std::invalid_argument( "P4 held-out fitting does not provide shared predictor coefficients" );
         }
-        P4PCA::calculateHeldOut( result,
-                                 predictors,
-                                 target,
-                                 *referenceRows,
-                                 modes,
-                                 m_rankTolerance,
-                                 workspace,
-                                 &timing );
+        if( m_exclusionSolver == P4ExclusionSolver::factorDowndateExact )
+        {
+            if( !downdateWorkspace )
+            {
+                throw std::invalid_argument( "P4 exact factor deletion requires a worker-private workspace" );
+            }
+            P4PCA::calculateHeldOutDowndated( result,
+                                              predictors,
+                                              target,
+                                              *exclusions,
+                                              modes,
+                                              m_rankTolerance,
+                                              workspace,
+                                              *downdateWorkspace,
+                                              &timing );
+        }
+        else
+        {
+            P4PCA::calculateHeldOut( result,
+                                     predictors,
+                                     target,
+                                     *exclusions,
+                                     modes,
+                                     m_rankTolerance,
+                                     workspace,
+                                     &timing );
+        }
     }
     else
     {
@@ -1883,6 +1980,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
                                    temporalOffsets,
                                    m_realizedModes[region],
                                    workspace,
+                                   nullptr,
                                    pcaTiming,
                                    sameImageSamplingSeconds,
                                    temporalSamplingSeconds,
@@ -2284,6 +2382,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_availableMemoryBytes = 0;
     m_memoryBudgetBytes = 0;
     m_compactResidualBytes = 0;
+    m_targetExclusionBytes = 0;
     m_materializationBytes = 0;
     m_localPSFBytes = 0;
     m_psfModelBytes = 0;
@@ -2564,6 +2663,28 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         return processLocalTrial( grids, temporalPredictorOffsets, derotationAngles );
     }
 
+    std::vector<P4TargetExclusions> regionExclusions( m_regionStatistics.size() );
+    if( m_excludeMethod != HCI::exclude::none )
+    {
+        for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
+        {
+            regionExclusions[region] = targetExclusions( m_temporalSelections[region],
+                                                         m_excludeMethod,
+                                                         m_minDPx,
+                                                         m_minRadius[region],
+                                                         derotationAngles );
+            P4RegionStatistics &statistics = m_regionStatistics[region];
+            statistics.maximumExcludedRows = static_cast<std::size_t>( regionExclusions[region].maximumDeleted() );
+            statistics.exclusionStorageBytes = regionExclusions[region].storageBytes();
+            if( m_targetExclusionBytes > std::numeric_limits<std::size_t>::max() - statistics.exclusionStorageBytes )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                               "P4 compact target-exclusion byte count overflow" );
+            }
+            m_targetExclusionBytes += statistics.exclusionStorageBytes;
+        }
+    }
+
     std::size_t totalSearchPixels{ 0 };
     for( const P4RegionStatistics &statistics : m_regionStatistics )
     {
@@ -2683,18 +2804,22 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
 
         configureMemoryBudget();
         if( m_compactResidualBytes > std::numeric_limits<std::size_t>::max() - m_localPSFBytes ||
-            m_compactResidualBytes + m_localPSFBytes > std::numeric_limits<std::size_t>::max() - m_psfModelBytes )
+            m_compactResidualBytes + m_localPSFBytes > std::numeric_limits<std::size_t>::max() - m_psfModelBytes ||
+            m_compactResidualBytes + m_localPSFBytes + m_psfModelBytes >
+                std::numeric_limits<std::size_t>::max() - m_targetExclusionBytes )
         {
             throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 persistent byte count overflow" );
         }
-        const std::size_t persistentBytes = m_compactResidualBytes + m_localPSFBytes + m_psfModelBytes;
+        const std::size_t persistentBytes =
+            m_compactResidualBytes + m_localPSFBytes + m_psfModelBytes + m_targetExclusionBytes;
         const std::size_t postRegressionScratch = std::max( m_materializationBytes, m_psfReconstructionBytes );
         if( m_memoryBudgetBytes != 0 &&
             ( persistentBytes > m_memoryBudgetBytes || postRegressionScratch > m_memoryBudgetBytes - persistentBytes ) )
         {
             throw mx::exception<verboseT>(
                 mx::error_t::allocerr,
-                "P4 compact residuals, local PSFs, and post-regression output scratch exceed the automatic memory "
+                "P4 compact residuals, target exclusions, local PSFs, and post-regression output scratch exceed the "
+                "automatic memory "
                 "budget; "
                 "increase p4.memoryFraction, reduce the frame count, or set p4.memoryFraction=0 to disable the "
                 "automatic budget" );
@@ -2725,18 +2850,20 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             this->m_psfsubValidity[output].setZero();
         }
         configureMemoryBudget();
-        if( m_localPSFBytes > std::numeric_limits<std::size_t>::max() - m_psfModelBytes )
+        if( m_localPSFBytes > std::numeric_limits<std::size_t>::max() - m_psfModelBytes ||
+            m_localPSFBytes + m_psfModelBytes > std::numeric_limits<std::size_t>::max() - m_targetExclusionBytes )
         {
             throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 persistent byte count overflow" );
         }
-        const std::size_t persistentBytes = m_localPSFBytes + m_psfModelBytes;
+        const std::size_t persistentBytes = m_localPSFBytes + m_psfModelBytes + m_targetExclusionBytes;
         if( m_memoryBudgetBytes != 0 && ( persistentBytes > m_memoryBudgetBytes ||
                                           m_psfReconstructionBytes > m_memoryBudgetBytes - persistentBytes ) )
         {
             throw mx::exception<verboseT>(
                 mx::error_t::allocerr,
-                "P4 local PSF models exceed the automatic memory budget; increase p4.memoryFraction, reduce the "
-                "search or stamp size, or set p4.memoryFraction=0 to disable the automatic budget" );
+                "P4 target exclusions and local PSF models exceed the automatic memory budget; increase "
+                "p4.memoryFraction, reduce the search or stamp size, or set p4.memoryFraction=0 to disable the "
+                "automatic budget" );
         }
     }
 
@@ -2783,6 +2910,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         std::cerr << "P4 memory policy: " << static_cast<double>( m_availableMemoryBytes ) / bytesPerGiB
                   << " GiB available, " << static_cast<double>( m_memoryBudgetBytes ) / bytesPerGiB << " GiB budget, "
                   << static_cast<double>( m_compactResidualBytes ) / bytesPerGiB << " GiB compact residuals, "
+                  << static_cast<double>( m_targetExclusionBytes ) / bytesPerGiB << " GiB target exclusions, "
                   << static_cast<double>( m_materializationBytes ) / bytesPerGiB << " GiB output materialization";
         if( calculatePSF )
         {
@@ -2804,12 +2932,16 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
     {
         P4RegionStatistics &statistics = m_regionStatistics[region];
-        statistics.estimatedWorkerBytes = estimatedWorkerBytes( statistics.targetImageCount,
-                                                                statistics.predictorCount,
-                                                                m_modeFractions.size(),
-                                                                calculatePSF,
-                                                                psfStampPixels,
-                                                                m_excludeMethod != HCI::exclude::none );
+        statistics.estimatedWorkerBytes =
+            estimatedWorkerBytes( statistics.targetImageCount,
+                                  statistics.predictorCount,
+                                  m_modeFractions.size(),
+                                  calculatePSF,
+                                  psfStampPixels,
+                                  m_excludeMethod != HCI::exclude::none,
+                                  m_exclusionSolver,
+                                  statistics.maximumExcludedRows,
+                                  static_cast<std::size_t>( m_realizedModes[region].back() ) );
         statistics.maximumWorkerCount =
             std::max( 1,
                       std::min( omp_get_max_threads(),
@@ -2819,11 +2951,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         statistics.effectiveWorkerCount = statistics.maximumWorkerCount;
         if( m_memoryBudgetBytes != 0 )
         {
-            statistics.effectiveWorkerCount =
-                memoryLimitedWorkerCount( statistics.maximumWorkerCount,
-                                          m_memoryBudgetBytes,
-                                          m_compactResidualBytes + m_localPSFBytes + m_psfModelBytes,
-                                          statistics.estimatedWorkerBytes );
+            statistics.effectiveWorkerCount = memoryLimitedWorkerCount(
+                statistics.maximumWorkerCount,
+                m_memoryBudgetBytes,
+                m_compactResidualBytes + m_targetExclusionBytes + m_localPSFBytes + m_psfModelBytes,
+                statistics.estimatedWorkerBytes );
             if( statistics.effectiveWorkerCount == 0 )
             {
                 throw mx::exception<verboseT>(
@@ -2851,9 +2983,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         const std::size_t searchPixelCount = m_regionStatistics[region].searchPixelCount;
         const std::vector<std::vector<int>> &temporalSelections = m_temporalSelections[region];
         const std::size_t targetImageCount = temporalSelections.size();
-        const std::vector<std::vector<std::size_t>> referenceRows =
-            targetReferenceRows( temporalSelections, m_excludeMethod, m_minDPx, m_minRadius[region], derotationAngles );
-        const auto *referenceRowsPointer = referenceRows.empty() ? nullptr : &referenceRows;
+        const P4TargetExclusions *exclusions = regionExclusions[region].empty() ? nullptr : &regionExclusions[region];
         const bool usesTemporalPredictors = m_regionStatistics[region].temporalNumberImages > 0;
         const std::size_t predictorCount = m_regionStatistics[region].predictorCount;
         const std::vector<int> &modes = m_realizedModes[region];
@@ -2872,6 +3002,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         std::size_t maskedLocalFitCount{ 0 };
         std::size_t supportInvalidLocalFitCount{ 0 };
         int minimumNumericalRank{ std::numeric_limits<int>::max() };
+        int minimumBaseRank{ std::numeric_limits<int>::max() };
+        std::size_t downdateClampCount{ 0 };
+        std::size_t explicitFallbackCount{ 0 };
         std::vector<std::size_t> rankInvalidCounts( modes.size(), 0 );
 
         // clang-format off
@@ -2879,6 +3012,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         // clang-format on
         {
             P4PCA::workspaceT workspace;
+            P4PCADowndateWorkspace downdateWorkspace;
             P4PCA::matrixT predictors( static_cast<Eigen::Index>( targetImageCount ),
                                        static_cast<Eigen::Index>( predictorCount ) );
             P4PCA::vectorT target( static_cast<Eigen::Index>( targetImageCount ) );
@@ -2889,6 +3023,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             std::size_t threadMasked{ 0 };
             std::size_t threadSupportInvalid{ 0 };
             int threadMinimumRank{ std::numeric_limits<int>::max() };
+            int threadMinimumBaseRank{ std::numeric_limits<int>::max() };
+            std::size_t threadDowndateClampCount{ 0 };
+            std::size_t threadExplicitFallbackCount{ 0 };
             std::vector<std::size_t> threadRankInvalid( modes.size(), 0 );
             double threadSamplingSeconds{ 0 };
             double threadSameImageSamplingSeconds{ 0 };
@@ -2970,10 +3107,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                    temporalPredictorOffsets,
                                                    modes,
                                                    workspace,
+                                                   &downdateWorkspace,
                                                    pcaTiming,
                                                    sameImageSamplingSeconds,
                                                    temporalSamplingSeconds,
-                                                   referenceRowsPointer );
+                                                   exclusions );
                             }
 
                             threadSamplingSeconds += sameImageSamplingSeconds + temporalSamplingSeconds;
@@ -2996,6 +3134,12 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                             threadProjectionSeconds += pcaTiming.projectionWorkerSeconds;
                             ++threadValid;
                             threadMinimumRank = std::min( threadMinimumRank, result.numericalRank );
+                            if( m_exclusionSolver == P4ExclusionSolver::factorDowndateExact )
+                            {
+                                threadMinimumBaseRank = std::min( threadMinimumBaseRank, result.baseRank );
+                                threadDowndateClampCount += result.downdateClampCount;
+                                threadExplicitFallbackCount += result.explicitFallbackCount;
+                            }
 
                             const double residualApplyBegin = omp_get_wtime();
                             for( std::size_t output = 0; output < modes.size(); ++output )
@@ -3108,6 +3252,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                 maskedLocalFitCount += threadMasked;
                 supportInvalidLocalFitCount += threadSupportInvalid;
                 minimumNumericalRank = std::min( minimumNumericalRank, threadMinimumRank );
+                minimumBaseRank = std::min( minimumBaseRank, threadMinimumBaseRank );
+                downdateClampCount += threadDowndateClampCount;
+                explicitFallbackCount += threadExplicitFallbackCount;
                 for( std::size_t output = 0; output < modes.size(); ++output )
                 {
                     rankInvalidCounts[output] += threadRankInvalid[output];
@@ -3146,7 +3293,16 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         statistics.supportInvalidLocalFitCount = supportInvalidLocalFitCount;
         statistics.minimumNumericalRank =
             minimumNumericalRank == std::numeric_limits<int>::max() ? 0 : minimumNumericalRank;
+        statistics.minimumBaseRank = minimumBaseRank == std::numeric_limits<int>::max() ? 0 : minimumBaseRank;
+        statistics.downdateClampCount = downdateClampCount;
+        statistics.explicitFallbackCount = explicitFallbackCount;
         statistics.rankInvalidCounts = rankInvalidCounts;
+        if( explicitFallbackCount != 0 )
+        {
+            std::cerr << "WARNING: P4 region " << region << " recomputed " << explicitFallbackCount
+                      << " target fits with the explicit oracle because a downdated eigenvalue was numerically "
+                         "indistinguishable from the rank threshold\n";
+        }
         for( std::size_t output = 0; output < modes.size(); ++output )
         {
             if( rankInvalidCounts[output] != 0 )
@@ -4062,6 +4218,20 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.template append<std::string>( "P4 ADI EXCLUDE METHOD",
                                        HCI::excludeToStr<verboseT>( m_excludeMethod ),
                                        "target-frame exclusion method" );
+    head.template append<std::string>( "P4 EXCLUSION SOLVER",
+                                       exclusionSolverString( m_exclusionSolver ),
+                                       "target-frame exclusion solver" );
+    head.template append<std::string>( "P4 RANK MODEL",
+                                       m_exclusionSolver == P4ExclusionSolver::factorDowndateExact ? "completeBaseExact"
+                                                                                                   : "direct",
+                                       "held-out rank model" );
+    head.template append<int>( "P4 FULL BASE",
+                               m_exclusionSolver == P4ExclusionSolver::factorDowndateExact ? 1 : 0,
+                               "whether factor solver retained a complete safe base" );
+    head.template append<std::string>( "P4 DELETION BACKEND",
+                                       m_exclusionSolver == P4ExclusionSolver::factorDowndateExact ? "leadingCovariance"
+                                                                                                   : "none",
+                                       "mxlib SVD deletion backend" );
     head.template append<realT>( "P4 ADI MIN DPX", m_minDPx, "minimum target/reference displacement" );
     head.template append<int>( "P4 RDI", 0, "target-only ADI implementation" );
     head.template append<int>( "P4 NUMBER IMAGES", m_numberImages, "qualifying earlier and later predictor images" );
@@ -4124,6 +4294,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.template append<std::string>( "P4 COMPACT RESIDUAL BYTES",
                                        std::to_string( m_compactResidualBytes ),
                                        "compact residual estimate" );
+    head.template append<std::string>( "P4 TARGET EXCLUSION BYTES",
+                                       std::to_string( m_targetExclusionBytes ),
+                                       "compact deleted-row storage" );
     head.template append<std::string>( "P4 MATERIALIZATION BYTES",
                                        std::to_string( m_materializationBytes ),
                                        "one output-pair estimate" );
@@ -4132,6 +4305,11 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     std::vector<std::size_t> predictorCounts;
     std::vector<int> degreesOfFreedom;
     std::vector<int> minimumRanks;
+    std::vector<int> minimumBaseRanks;
+    std::vector<std::size_t> maximumExcludedRows;
+    std::vector<std::size_t> exclusionStorageBytes;
+    std::vector<std::size_t> downdateClampCounts;
+    std::vector<std::size_t> explicitFallbackCounts;
     std::vector<std::size_t> searchCounts;
     std::vector<std::size_t> targetImageCounts;
     std::vector<int> temporalImageCounts;
@@ -4145,6 +4323,11 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     predictorCounts.reserve( m_regionStatistics.size() );
     degreesOfFreedom.reserve( m_regionStatistics.size() );
     minimumRanks.reserve( m_regionStatistics.size() );
+    minimumBaseRanks.reserve( m_regionStatistics.size() );
+    maximumExcludedRows.reserve( m_regionStatistics.size() );
+    exclusionStorageBytes.reserve( m_regionStatistics.size() );
+    downdateClampCounts.reserve( m_regionStatistics.size() );
+    explicitFallbackCounts.reserve( m_regionStatistics.size() );
     searchCounts.reserve( m_regionStatistics.size() );
     targetImageCounts.reserve( m_regionStatistics.size() );
     temporalImageCounts.reserve( m_regionStatistics.size() );
@@ -4160,6 +4343,11 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
         predictorCounts.push_back( statistics.predictorCount );
         degreesOfFreedom.push_back( statistics.maximumDegreesOfFreedom );
         minimumRanks.push_back( statistics.minimumNumericalRank );
+        minimumBaseRanks.push_back( statistics.minimumBaseRank );
+        maximumExcludedRows.push_back( statistics.maximumExcludedRows );
+        exclusionStorageBytes.push_back( statistics.exclusionStorageBytes );
+        downdateClampCounts.push_back( statistics.downdateClampCount );
+        explicitFallbackCounts.push_back( statistics.explicitFallbackCount );
         searchCounts.push_back( statistics.searchPixelCount );
         targetImageCounts.push_back( statistics.targetImageCount );
         temporalImageCounts.push_back( statistics.temporalNumberImages );
@@ -4174,6 +4362,19 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.template append<std::string>( "P4 PREDICTOR COUNT", p4Join( predictorCounts ), "predictor counts by annulus" );
     head.template append<std::string>( "P4 MAX DOF", p4Join( degreesOfFreedom ), "maximum DOF by annulus" );
     head.template append<std::string>( "P4 MINIMUM RANK", p4Join( minimumRanks ), "minimum numerical rank by annulus" );
+    head.template append<std::string>( "P4 BASE RANK", p4Join( minimumBaseRanks ), "minimum base rank by annulus" );
+    head.template append<std::string>( "P4 MAX DELETED ROWS",
+                                       p4Join( maximumExcludedRows ),
+                                       "maximum target deletion count by annulus" );
+    head.template append<std::string>( "P4 EXCLUSION STORAGE BYTES",
+                                       p4Join( exclusionStorageBytes ),
+                                       "compact exclusion bytes by annulus" );
+    head.template append<std::string>( "P4 DELETION CLAMPS",
+                                       p4Join( downdateClampCounts ),
+                                       "roundoff clamps by annulus" );
+    head.template append<std::string>( "P4 EXPLICIT FALLBACKS",
+                                       p4Join( explicitFallbackCounts ),
+                                       "recomputed target fits by annulus" );
     head.template append<std::string>( "P4 SEARCH PIXEL COUNT", p4Join( searchCounts ), "search pixels by annulus" );
     head.template append<std::string>( "P4 TARGET IMAGE COUNT",
                                        p4Join( targetImageCounts ),

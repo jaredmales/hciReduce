@@ -8,6 +8,7 @@
 #include "src/common/P4PCA.hpp"
 #include "src/common/ReductionTiming.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -24,6 +25,29 @@ using reductionTimingT = mx::improc::ReductionTiming;
 using resultT = mx::improc::P4PCAResult;
 using statusT = mx::improc::P4PCAModeStatus;
 using timingT = mx::improc::P4PCATiming;
+
+/// Convert target-specific retained rows into the compact deleted-row contract used by production P4.
+mx::improc::P4TargetExclusions exclusionsFromRetained(
+    const std::vector<std::vector<std::size_t>> &retained /**< [in] target-specific retained temporal rows */ )
+{
+    std::vector<std::vector<Eigen::Index>> deleted( retained.size() );
+    for( std::size_t target = 0; target < retained.size(); ++target )
+    {
+        auto retainedRow = retained[target].begin();
+        for( std::size_t row = 0; row < retained.size(); ++row )
+        {
+            if( retainedRow != retained[target].end() && *retainedRow == row )
+            {
+                ++retainedRow;
+            }
+            else
+            {
+                deleted[target].push_back( static_cast<Eigen::Index>( row ) );
+            }
+        }
+    }
+    return mx::improc::P4TargetExclusions::fromExplicit( static_cast<Eigen::Index>( retained.size() ), deleted );
+}
 
 /// Compare two Eigen-like vectors coefficient by coefficient.
 template <typename actualT, typename expectedT>
@@ -969,10 +993,11 @@ TEST_CASE( "P4PCA exact held-out regression", "[P4PCA][held-out]" )
     pcaT::vectorT target( 4 );
     target << 2, -1, 1, 5;
     const std::vector<std::vector<std::size_t>> references{ { 1, 2, 3 }, { 0, 2, 3 }, { 0, 1, 3 }, { 0, 1, 2 } };
+    const mx::improc::P4TargetExclusions exclusions = exclusionsFromRetained( references );
     resultT heldOut;
     pcaT::workspaceT workspace;
     mx::improc::P4PCATiming timing;
-    mx::improc::P4PCA::calculateHeldOut( heldOut, predictors, target, references, { 1, 2 }, 1e-12, workspace, &timing );
+    mx::improc::P4PCA::calculateHeldOut( heldOut, predictors, target, exclusions, { 1, 2 }, 1e-12, workspace, &timing );
 
     REQUIRE( heldOut.residuals.rows() == 4 );
     REQUIRE( heldOut.residuals.cols() == 2 );
@@ -1012,7 +1037,13 @@ TEST_CASE( "P4PCA exact held-out regression", "[P4PCA][held-out]" )
     }
 
     const std::vector<std::vector<std::size_t>> limitedReferences{ { 1 }, { 0, 2, 3 }, { 0, 1, 3 }, { 2 } };
-    mx::improc::P4PCA::calculateHeldOut( heldOut, predictors, target, limitedReferences, { 1, 2 }, 1e-12, workspace );
+    mx::improc::P4PCA::calculateHeldOut( heldOut,
+                                         predictors,
+                                         target,
+                                         exclusionsFromRetained( limitedReferences ),
+                                         { 1, 2 },
+                                         1e-12,
+                                         workspace );
     REQUIRE( heldOut.sampleSupported( 0, 0 ) );
     REQUIRE_FALSE( heldOut.sampleSupported( 0, 1 ) );
     REQUIRE( heldOut.sampleSupported( 1, 1 ) );
@@ -1020,8 +1051,360 @@ TEST_CASE( "P4PCA exact held-out regression", "[P4PCA][held-out]" )
     REQUIRE_THROWS_AS( heldOut.sampleSupported( 4, 0 ), std::out_of_range );
 }
 
-/// Verify held-out reference-row validation rejects self-inclusion, duplicates, and inconsistent dimensions.
-/** This directly exercises mx::improc::P4PCA::calculateHeldOut(). */
+/// Verify the reused temporal Gram path agrees with independent explicit refits for every held-out target.
+/** This directly exercises mx::improc::P4PCA::calculateHeldOut() when T is no greater than K and compares its output
+ * with mx::improc::P4PCA::calculate() on explicitly assembled training matrices.
+ */
+TEST_CASE( "P4PCA temporal Gram held-out regression matches explicit refits", "[P4PCA][held-out][temporal-gram]" )
+{
+    pcaT::matrixT predictors( 4, 6 );
+    predictors << 1, 0, 0, 0, 1, 2, 0, 1, 0, 0, 2, -1, 0, 0, 1, 0, -1, 1, 0, 0, 0, 1, 1, 0.5;
+    pcaT::vectorT target( 4 );
+    target << 2, -1, 3, 0.5;
+    const std::vector<std::vector<std::size_t>> references{ { 1, 2, 3 }, { 2, 3 }, { 0, 1, 3 }, { 0, 1 } };
+    const mx::improc::P4TargetExclusions exclusions = exclusionsFromRetained( references );
+    const std::vector<int> modes{ 1, 2, 3 };
+
+    resultT heldOut;
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCA::calculateHeldOut( heldOut, predictors, target, exclusions, modes, 1e-12, workspace );
+
+    for( Eigen::Index heldOutRow = 0; heldOutRow < predictors.rows(); ++heldOutRow )
+    {
+        const std::vector<std::size_t> &rows = references[static_cast<std::size_t>( heldOutRow )];
+        pcaT::matrixT trainingPredictors( static_cast<Eigen::Index>( rows.size() ), predictors.cols() );
+        pcaT::vectorT trainingTarget( static_cast<Eigen::Index>( rows.size() ) );
+        for( std::size_t training = 0; training < rows.size(); ++training )
+        {
+            const Eigen::Index source = static_cast<Eigen::Index>( rows[training] );
+            trainingPredictors.row( static_cast<Eigen::Index>( training ) ) = predictors.row( source );
+            trainingTarget( static_cast<Eigen::Index>( training ) ) = target( source );
+        }
+
+        const auto supportedEnd = std::upper_bound( modes.begin(), modes.end(), static_cast<int>( rows.size() ) );
+        const std::vector<int> supportedModes( modes.begin(), supportedEnd );
+        resultT independent;
+        pcaT::matrixT coefficients;
+        pcaT::workspaceT independentWorkspace;
+        mx::improc::P4PCA::calculate( independent,
+                                      trainingPredictors,
+                                      trainingTarget,
+                                      supportedModes,
+                                      1e-12,
+                                      independentWorkspace,
+                                      nullptr,
+                                      &coefficients );
+        for( std::size_t mode = 0; mode < modes.size(); ++mode )
+        {
+            if( mode >= supportedModes.size() )
+            {
+                REQUIRE_FALSE( heldOut.sampleSupported( heldOutRow, mode ) );
+                continue;
+            }
+            REQUIRE( heldOut.sampleSupported( heldOutRow, mode ) );
+            const double expected =
+                target( heldOutRow ) - predictors.row( heldOutRow ).matrix().dot( coefficients.col( mode ).matrix() );
+            REQUIRE( heldOut.residuals( heldOutRow, static_cast<Eigen::Index>( mode ) ) ==
+                     Approx( expected ).margin( 1e-10 ) );
+        }
+    }
+}
+
+/// Verify full-rank factor deletion reproduces explicit held-out P4 regression across matrix orientations.
+/** This directly compares mx::improc::P4PCA::calculateHeldOutDowndated() with
+ * mx::improc::P4PCA::calculateHeldOut() for wide, square, and tall predictor matrices, variable deletion sets,
+ * workspace reuse, structural rank loss, and the all-rows-deleted edge case.
+ * \ingroup P4PCA_unit_tests
+ */
+TEST_CASE( "P4PCA exact factor downdate matches explicit held-out refits", "[P4PCA][held-out][downdate][exact]" )
+{
+    pcaT::workspaceT explicitWorkspace;
+    pcaT::workspaceT baseWorkspace;
+    mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+
+    const auto compare = [&]( const pcaT::matrixT &predictors,
+                              const pcaT::vectorT &target,
+                              const std::vector<std::vector<Eigen::Index>> &deleted,
+                              const std::vector<int> &modes,
+                              int expectedBaseRank )
+    {
+        const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( predictors.rows(), deleted );
+        resultT explicitResult;
+        resultT downdatedResult;
+        mx::improc::P4PCA::calculateHeldOut( explicitResult,
+                                             predictors,
+                                             target,
+                                             exclusions,
+                                             modes,
+                                             1e-12,
+                                             explicitWorkspace );
+        mx::improc::P4PCA::calculateHeldOutDowndated( downdatedResult,
+                                                      predictors,
+                                                      target,
+                                                      exclusions,
+                                                      modes,
+                                                      1e-12,
+                                                      baseWorkspace,
+                                                      downdateWorkspace );
+
+        REQUIRE( downdatedResult.baseRank == expectedBaseRank );
+        REQUIRE_FALSE( downdatedResult.numericalRankCapped );
+        REQUIRE( downdatedResult.explicitFallbackCount == 0 );
+        REQUIRE( downdatedResult.numericalRank == explicitResult.numericalRank );
+        REQUIRE( downdatedResult.modeStatus == explicitResult.modeStatus );
+        REQUIRE( downdatedResult.sampleValidity.rows() == explicitResult.sampleValidity.rows() );
+        REQUIRE( downdatedResult.sampleValidity.cols() == explicitResult.sampleValidity.cols() );
+        for( Eigen::Index mode = 0; mode < downdatedResult.residuals.cols(); ++mode )
+        {
+            for( Eigen::Index sample = 0; sample < downdatedResult.residuals.rows(); ++sample )
+            {
+                CAPTURE( sample, mode, predictors.rows(), predictors.cols() );
+                REQUIRE( downdatedResult.sampleSupported( sample, static_cast<std::size_t>( mode ) ) ==
+                         explicitResult.sampleSupported( sample, static_cast<std::size_t>( mode ) ) );
+                if( downdatedResult.sampleSupported( sample, static_cast<std::size_t>( mode ) ) )
+                {
+                    REQUIRE( downdatedResult.residuals( sample, mode ) ==
+                             Approx( explicitResult.residuals( sample, mode ) ).margin( 2e-9 ) );
+                }
+                else
+                {
+                    REQUIRE( mx::math::isNan( downdatedResult.residuals( sample, mode ) ) );
+                }
+            }
+        }
+    };
+
+    SECTION( "T is less than K" )
+    {
+        pcaT::matrixT predictors( 4, 6 );
+        predictors << 1, 0, 0, 0, 1, 2, 0, 1, 0, 0, 2, -1, 0, 0, 1, 0, -1, 1, 0, 0, 0, 1, 1, 0.5;
+        pcaT::vectorT target( 4 );
+        target << 2, -1, 3, 0.5;
+        compare( predictors, target, { { 0, 2 }, { 1 }, { 0, 2 }, { 1, 3 } }, { 1, 2, 3 }, 4 );
+    }
+
+    SECTION( "T equals K" )
+    {
+        pcaT::matrixT predictors( 4, 4 );
+        predictors << 2, 0, 1, -1, 1, 3, 0, 1, 0, 1, 2, 2, 1, -1, 1, 3;
+        pcaT::vectorT target( 4 );
+        target << 1, 4, -2, 3;
+        compare( predictors, target, { { 0 }, { 1, 3 }, { 0, 2 }, { 3 } }, { 1, 2, 3 }, 4 );
+    }
+
+    SECTION( "K is less than T" )
+    {
+        pcaT::matrixT predictors( 6, 4 );
+        predictors << 1, 0, 2, -1, 0, 1, -1, 2, 2, 1, 0, 1, -1, 2, 1, 0, 3, -1, 2, 2, 1, 2, -2, 1;
+        pcaT::vectorT target( 6 );
+        target << 2, -1, 3, 0.5, 4, -2;
+        compare( predictors, target, { { 0 }, { 1, 4 }, { 0, 2 }, { 3, 5 }, { 1, 4 }, { 2, 5 } }, { 1, 2, 3 }, 4 );
+    }
+
+    SECTION( "rank-deficient T is less than K" )
+    {
+        pcaT::matrixT predictors( 4, 6 );
+        predictors << 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 2, -1, 0, 0, 0, 0;
+        pcaT::vectorT target( 4 );
+        target << 2, -1, 3, 0.5;
+        compare( predictors, target, { { 0 }, { 1 }, { 2 }, { 3 } }, { 1, 2 }, 2 );
+    }
+
+    SECTION( "rank-deficient T equals K" )
+    {
+        pcaT::matrixT predictors( 4, 4 );
+        predictors << 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 2, 0, 2, -1, 1, 0;
+        pcaT::vectorT target( 4 );
+        target << 1, 4, -2, 3;
+        compare( predictors, target, { { 0 }, { 1 }, { 2 }, { 3 } }, { 1, 2 }, 2 );
+    }
+
+    SECTION( "rank-deficient K is less than T" )
+    {
+        pcaT::matrixT predictors( 6, 3 );
+        predictors << 1, 0, 1, 0, 1, 1, 1, 1, 2, 2, -1, 1, -1, 2, 1, 3, 1, 4;
+        pcaT::vectorT target( 6 );
+        target << 2, -1, 3, 0.5, 4, -2;
+        compare( predictors, target, { { 0 }, { 1 }, { 2 }, { 3 }, { 4 }, { 5 } }, { 1, 2 }, 2 );
+    }
+
+    SECTION( "every target has no retained row" )
+    {
+        pcaT::matrixT predictors( 3, 4 );
+        predictors << 1, 0, 2, 1, 0, 1, -1, 2, 2, 1, 0, -1;
+        pcaT::vectorT target( 3 );
+        target << 2, -1, 3;
+        const auto exclusions =
+            mx::improc::P4TargetExclusions::fromExplicit( 3, { { 0, 1, 2 }, { 0, 1, 2 }, { 0, 1, 2 } } );
+        resultT result;
+        solverReset reset( fakeSolverBehavior::failure );
+        mx::improc::P4PCA::calculateHeldOutDowndated( result,
+                                                      predictors,
+                                                      target,
+                                                      exclusions,
+                                                      { 1, 2 },
+                                                      1e-12,
+                                                      baseWorkspace,
+                                                      downdateWorkspace );
+        REQUIRE( solverCalls == 0 );
+        REQUIRE( result.baseRank == 0 );
+        REQUIRE( result.numericalRank == 0 );
+        REQUIRE( allNan( result.residuals ) );
+        REQUIRE( result.sampleValidity.count() == 0 );
+    }
+}
+
+/// Verify threshold-adjacent downdated spectra are recomputed by the explicit held-out oracle.
+/** This exercises mx::improc::P4PCA::calculateHeldOutDowndated() and mx::improc::P4PCA::calculateHeldOut() in both
+ * Gram orientations at an exactly equal strict rank boundary.
+ * \ingroup P4PCA_unit_tests
+ */
+TEST_CASE( "P4PCA exact factor downdate records rank-boundary fallback", "[P4PCA][held-out][downdate][rank][fallback]" )
+{
+    const auto compareFallback = []( const pcaT::matrixT &predictors, const pcaT::vectorT &target )
+    {
+        std::vector<std::vector<Eigen::Index>> deleted( static_cast<std::size_t>( predictors.rows() ) );
+        for( Eigen::Index targetIndex = 0; targetIndex < predictors.rows(); ++targetIndex )
+        {
+            deleted[static_cast<std::size_t>( targetIndex )].push_back( targetIndex );
+        }
+        const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( predictors.rows(), deleted );
+        pcaT::workspaceT explicitWorkspace;
+        pcaT::workspaceT baseWorkspace;
+        mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+        resultT explicitResult;
+        resultT downdatedResult;
+        mx::improc::P4PCA::calculateHeldOut( explicitResult,
+                                             predictors,
+                                             target,
+                                             exclusions,
+                                             { 1, 2 },
+                                             0.5,
+                                             explicitWorkspace );
+        mx::improc::P4PCA::calculateHeldOutDowndated( downdatedResult,
+                                                      predictors,
+                                                      target,
+                                                      exclusions,
+                                                      { 1, 2 },
+                                                      0.5,
+                                                      baseWorkspace,
+                                                      downdateWorkspace );
+
+        REQUIRE( downdatedResult.explicitFallbackCount == static_cast<std::size_t>( predictors.rows() ) );
+        REQUIRE( downdatedResult.baseRank == std::min( predictors.rows(), predictors.cols() ) );
+        REQUIRE( downdatedResult.numericalRank == explicitResult.numericalRank );
+        REQUIRE( downdatedResult.modeStatus == explicitResult.modeStatus );
+        REQUIRE( ( downdatedResult.sampleValidity == explicitResult.sampleValidity ).all() );
+        for( Eigen::Index mode = 0; mode < explicitResult.residuals.cols(); ++mode )
+        {
+            for( Eigen::Index sample = 0; sample < explicitResult.residuals.rows(); ++sample )
+            {
+                if( explicitResult.sampleSupported( sample, static_cast<std::size_t>( mode ) ) )
+                {
+                    REQUIRE( downdatedResult.residuals( sample, mode ) ==
+                             Approx( explicitResult.residuals( sample, mode ) ).margin( 1e-12 ) );
+                }
+                else
+                {
+                    REQUIRE( mx::math::isNan( downdatedResult.residuals( sample, mode ) ) );
+                }
+            }
+        }
+    };
+
+    SECTION( "temporal Gram" )
+    {
+        pcaT::matrixT predictors = pcaT::matrixT::Zero( 3, 3 );
+        predictors( 0, 0 ) = 2;
+        predictors( 1, 1 ) = std::sqrt( 2.0 );
+        predictors( 2, 2 ) = 1;
+        pcaT::vectorT target( 3 );
+        target << 1, -2, 3;
+        compareFallback( predictors, target );
+    }
+
+    SECTION( "predictor Gram" )
+    {
+        pcaT::matrixT predictors = pcaT::matrixT::Zero( 4, 3 );
+        predictors( 0, 0 ) = 2;
+        predictors( 1, 1 ) = std::sqrt( 2.0 );
+        predictors( 2, 2 ) = 1;
+        pcaT::vectorT target( 4 );
+        target << 1, -2, 3, 0.5;
+        compareFallback( predictors, target );
+    }
+}
+
+/// Verify complete-base factor deletion removes excluded target and predictor information from each fitted model.
+/** This directly exercises mx::improc::P4PCA::calculateHeldOutDowndated() with noncontiguous multi-row exclusions.
+ * \ingroup P4PCA_unit_tests
+ */
+TEST_CASE( "P4PCA exact factor downdate has no excluded-row leakage", "[P4PCA][held-out][downdate][leakage]" )
+{
+    pcaT::matrixT predictors( 5, 6 );
+    predictors << 1, 0, 0, 2, -1, 1, 0, 1, 2, 0, 1, -1, 2, -1, 1, 0, 2, 1, -1, 2, 0, 1, 1, 0, 1, 1, -2, 1, 0, 2;
+    pcaT::vectorT target( 5 );
+    target << 2, -1, 3, 0.5, 4;
+    const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( 5, { { 0 }, { 1 }, { 0, 2 }, { 3 }, { 4 } } );
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+    resultT baseline;
+    mx::improc::P4PCA::calculateHeldOutDowndated( baseline,
+                                                  predictors,
+                                                  target,
+                                                  exclusions,
+                                                  { 1, 2 },
+                                                  1e-12,
+                                                  workspace,
+                                                  downdateWorkspace );
+
+    pcaT::vectorT changedTarget = target;
+    changedTarget( 0 ) += 100;
+    resultT targetChanged;
+    mx::improc::P4PCA::calculateHeldOutDowndated( targetChanged,
+                                                  predictors,
+                                                  changedTarget,
+                                                  exclusions,
+                                                  { 1, 2 },
+                                                  1e-12,
+                                                  workspace,
+                                                  downdateWorkspace );
+    REQUIRE( targetChanged.residuals.row( 2 ).isApprox( baseline.residuals.row( 2 ), 2e-9 ) );
+
+    pcaT::matrixT changedPredictors = predictors;
+    changedPredictors.row( 0 ) *= 20;
+    resultT predictorsChanged;
+    mx::improc::P4PCA::calculateHeldOutDowndated( predictorsChanged,
+                                                  changedPredictors,
+                                                  target,
+                                                  exclusions,
+                                                  { 1, 2 },
+                                                  1e-12,
+                                                  workspace,
+                                                  downdateWorkspace );
+    REQUIRE( predictorsChanged.residuals.row( 2 ).isApprox( baseline.residuals.row( 2 ), 2e-8 ) );
+
+    changedTarget = target;
+    changedTarget( 2 ) += 7;
+    resultT observedChanged;
+    mx::improc::P4PCA::calculateHeldOutDowndated( observedChanged,
+                                                  predictors,
+                                                  changedTarget,
+                                                  exclusions,
+                                                  { 1, 2 },
+                                                  1e-12,
+                                                  workspace,
+                                                  downdateWorkspace );
+    for( Eigen::Index mode = 0; mode < baseline.residuals.cols(); ++mode )
+    {
+        const double baselinePrediction = target( 2 ) - baseline.residuals( 2, mode );
+        const double changedPrediction = changedTarget( 2 ) - observedChanged.residuals( 2, mode );
+        REQUIRE( changedPrediction == Approx( baselinePrediction ).margin( 2e-9 ) );
+    }
+}
+
+/// Verify held-out deletion validation rejects target omission, duplicates, and inconsistent dimensions.
+/** This directly exercises mx::improc::P4TargetExclusions and mx::improc::P4PCA::calculateHeldOut(). */
 TEST_CASE( "P4PCA held-out input validation", "[P4PCA][held-out][validation]" )
 {
     pcaT::matrixT predictors( 2, 1 );
@@ -1031,14 +1414,15 @@ TEST_CASE( "P4PCA held-out input validation", "[P4PCA][held-out][validation]" )
     resultT result;
     pcaT::workspaceT workspace;
 
+    REQUIRE_THROWS_AS( mx::improc::P4TargetExclusions::fromExplicit( 2, { { 0 }, { 0 } } ), std::invalid_argument );
+    REQUIRE_THROWS_AS( mx::improc::P4TargetExclusions::fromExplicit( 2, { { 0, 0 }, { 1 } } ), std::invalid_argument );
+    REQUIRE_THROWS_AS( mx::improc::P4TargetExclusions::fromExplicit( 2, { { 0 } } ), std::invalid_argument );
+
+    pcaT::matrixT widePredictors( 2, 3 );
+    widePredictors << 1, 0, 2, 0, 1, -1;
+    const auto mismatched = mx::improc::P4TargetExclusions::fromSpans( 3, { { 0, 1 }, { 1, 2 }, { 2, 3 } } );
     REQUIRE_THROWS_AS(
-        mx::improc::P4PCA::calculateHeldOut( result, predictors, target, { { 0 }, { 0 } }, { 1 }, 0, workspace ),
-        std::invalid_argument );
-    REQUIRE_THROWS_AS(
-        mx::improc::P4PCA::calculateHeldOut( result, predictors, target, { { 1, 1 }, { 0 } }, { 1 }, 0, workspace ),
-        std::invalid_argument );
-    REQUIRE_THROWS_AS(
-        mx::improc::P4PCA::calculateHeldOut( result, predictors, target, { { 1 } }, { 1 }, 0, workspace ),
+        mx::improc::P4PCA::calculateHeldOut( result, widePredictors, target, mismatched, { 1 }, 0, workspace ),
         std::invalid_argument );
 }
 

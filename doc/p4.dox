@@ -66,8 +66,9 @@
  * | Target | Contract |
  * |---|---|
  * | `geom.minRadius`, `geom.maxRadius` | Matching, ordered, non-overlapping full-annulus bounds. Inner radii are inclusive and outer radii are exclusive. |
- * | `adi.excludeMethod` | `none` preserves the in-sample fit. `pixel`, `angle`, and `imno` perform exact CPU refits after excluding references within the inclusive `adi.minDPx` threshold, with the same semantics as KLIP. |
+ * | `adi.excludeMethod` | `none` preserves the in-sample fit. `pixel`, `angle`, and `imno` select references for target-frame exclusion within the inclusive `adi.minDPx` threshold, with the same semantics as KLIP. |
  * | `adi.minDPx` | Nonnegative exclusion threshold: pixels at the annulus inner radius for `pixel`, degrees for `angle`, or target-row distance for `imno`. A non-`none` method with zero excludes exactly the target row. |
+ * | `p4.exclusionSolver` | Held-out regression solver: `explicitRefit` (default) or the opt-in `factorDowndateExact` correctness backend. This target requires a non-`none` `adi.excludeMethod`. |
  * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames added to each predictor row; `0` is the compatibility default. |
  * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
@@ -82,9 +83,40 @@
  * | `p4.diagnosticDirectory` | Optional explicit destination override; `.` groups diagnostics with the run's other auxiliary products. |
  *
  * P4 rejects configured RDI input, overlapping annuli, and nonfinite target input as hard errors. The geometry must
- * fit its configured detector-frame interpolation footprints. The initial exact held-out implementation is a slow
- * CPU reference path and requires detector-frame regression, `p4.numberImages=0`, no pixel-local processing, and no
- * frozen-model PSF calculation. Rank support is tracked independently for every target and output mode.
+ * fit its configured detector-frame interpolation footprints. Target-frame exclusion requires detector-frame
+ * regression, `p4.numberImages=0`, no pixel-local processing, and no frozen-model PSF calculation. Rank support is
+ * tracked independently for every target and output mode.
+ *
+ * \subsection p4reduce_exclusion_solvers Target-frame exclusion solvers
+ *
+ * `explicitRefit` is the default and numerical oracle. For every target frame, it materializes the retained-row
+ * complement and directly refits that target's retained design. `factorDowndateExact` instead factors one immutable,
+ * complete safely represented base design for each search pixel, then independently removes each target's deleted
+ * rows with mxlib's dense `leadingCovariance` SVD-deletion backend. Downdates are never chained between targets. The
+ * science rank threshold is applied after deletion, so it is not used to truncate the base factorization.
+ *
+ * An unsafe or inconsistent complete base, or a deletion-solver failure, rejects the reduction. One deliberately
+ * recorded exception protects the strict post-deletion rank decision: if a downdated eigenvalue is numerically
+ * indistinguishable from `p4.rankTolerance * lambdaMax`, P4 recomputes every target fit for that search pixel with
+ * the explicit oracle. The number of recomputed target fits is reported and stored in the FITS provenance, so this
+ * fallback cannot silently change the backend history. The current dense deletion core still solves a `q x q`
+ * symmetric problem for every target. It is a correctness integration and may provide little speedup, or be slower,
+ * when `q` approaches the structural rank. A later structured diagonal-minus-low-rank solver is needed before a
+ * performance benefit should be assumed.
+ *
+ * Exclusion selection is stored as deleted rows rather than one retained-row vector per target. `imno` windows use
+ * compact half-open spans, including their naturally shortened dataset endpoints without wraparound. `angle` and
+ * `pixel` selections use flattened sorted index lists with target offsets. The explicit oracle constructs a retained
+ * complement only while evaluating a target. This removes the persistent `O(T^2)` retained-index table while keeping
+ * identical selection semantics for both solvers.
+ *
+ * Science products record the backend and its numerical state in FITS cards. The principal provenance cards are
+ * `HIERARCH P4 EXCLUSION SOLVER`, `HIERARCH P4 RANK MODEL`, `HIERARCH P4 FULL BASE`, and
+ * `HIERARCH P4 DELETION BACKEND`. Storage and rank diagnostics are recorded by
+ * `HIERARCH P4 TARGET EXCLUSION BYTES`, `HIERARCH P4 BASE RANK`, `HIERARCH P4 MAX DELETED ROWS`,
+ * `HIERARCH P4 EXCLUSION STORAGE BYTES`, `HIERARCH P4 DELETION CLAMPS`, and
+ * `HIERARCH P4 EXPLICIT FALLBACKS`, with per-annulus values where applicable. `HIERARCH P4 MINIMUM RANK` continues
+ * to report the minimum post-exclusion numerical rank.
  *
  * `sampleCenter` reproduces the prototype's center-only signal exclusion. `kernelSupport` rejects a predictor when
  * its nominal cubic footprint intersects the exclusion disk.
@@ -114,10 +146,12 @@
  * values are unchanged. `combine.method=none` retains all full residual cubes because they are then the requested
  * result; `output.outputPSFSub=true` also uses the retained-cube path so every per-frame product remains available.
  *
- * P4 estimates private PCA workspace from each annulus's temporal sample count, predictor count, and requested output
- * count. With the default `p4.memoryFraction=0.8`, Linux `MemAvailable` supplies a future-allocation budget. P4 first
- * verifies that compact residuals and one materialized output pair fit, then caps that annulus's OpenMP worker count
- * so its compact storage plus the estimated concurrent workspaces remain inside the budget. A lower
+ * P4 estimates private PCA workspace from each annulus's temporal sample count, predictor count, requested output
+ * count, selected exclusion solver, and maximum deleted-row count. The estimate includes the exact factor backend's
+ * base factors, dense core, rotations, deletion scratch, and mxlib workspace. With the default
+ * `p4.memoryFraction=0.8`, Linux `MemAvailable` supplies a future-allocation budget. P4 first verifies that compact
+ * residuals, compact deleted-row patterns, and one materialized output pair fit, then caps that annulus's OpenMP
+ * worker count so its compact storage plus the estimated concurrent workspaces remain inside the budget. A lower
  * `OMP_NUM_THREADS` value is always respected. The selected and pre-limit worker counts and the per-worker estimate
  * are printed before regression and recorded in the FITS header. If Linux memory discovery is unavailable, P4 emits
  * a warning and retains the OpenMP maximum. Set `p4.memoryFraction=0` to request that behavior explicitly.

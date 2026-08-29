@@ -221,11 +221,19 @@ validated independently.
 
 The production CPU oracle uses the existing KLIP configuration names and meanings: `adi.excludeMethod` selects
 `none`, `pixel`, `angle`, or `imno`, and `adi.minDPx` supplies the inclusive threshold. Non-`none` methods therefore
-exclude the target itself at zero. Each target receives an explicit ordered training-row set; the implementation
-gathers that target's training matrix, calls the existing FP64 `P4PCA` solve, and evaluates only the held-out row.
-Per-target/per-mode validity is retained through compact output materialization. The initial supported surface is
-detector-frame, `p4.numberImages=0`, ordinary full reductions without local or frozen-PSF products. This path is
-intentionally retained as a correctness oracle, not presented as the final scalable algorithm.
+exclude the target itself at zero. Each target receives an explicit ordered training-row set. Per-target/per-mode
+validity is retained through compact output materialization. The initial supported surface is detector-frame,
+`p4.numberImages=0`, ordinary full reductions without local or frozen-PSF products.
+
+The first implementation gathered each target's training matrix, called the existing FP64 `P4PCA` solve, and
+evaluated only the held-out row. A 48-worker remote run confirmed that this literal oracle kept the CPU occupied but
+recomputed `X_train X_train^T` for every target and was only about 40% complete after 14 hours. The `T <= K`
+production path now uses the temporal-Gram identity above: it forms `C = X X^T` once per search pixel, extracts each
+training-set principal submatrix and held-out cross-vector, and evaluates the residual without constructing
+predictor-space coefficients. Independent explicit refits remain the numerical test oracle, and the `K < T` path
+retains explicit predictor-space refitting until its downdate implementation is available. This optimization removes
+the repeated `T x K` copies and Gram products but still performs approximately `T` dense eigensolves per search pixel;
+it is an intermediate direct baseline, not a replacement for the Long-Males downdate.
 
 ### 2. Create a representative standalone CUDA benchmark
 
@@ -328,6 +336,10 @@ The direct method missed even the 621-frame gate. Retain the standalone harness 
 but do not add a direct eigensolver backend to the reduction. Proceed to the SVD downdate.
 
 ### 5. Adapt the Long-Males SVD downdate
+
+The detailed reusable mxlib design, exact factor-deletion equations, P4 factor-space regression, and revised CPU-first
+work sequence are in [p4_svd_downdate.md](p4_svd_downdate.md). That plan supersedes the preliminary implementation
+details below where they differ.
 
 - Derive the held-out P4 regression directly from the downdated SVD, including numerical-rank truncation and multiple
   requested mode counts.

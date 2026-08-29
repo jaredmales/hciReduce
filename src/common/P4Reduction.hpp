@@ -61,15 +61,25 @@ struct P4RegionStatistics
 
     std::size_t predictorCount{ 0 };   ///< Annulus-wide predictor-column count.
 
-    int maximumDegreesOfFreedom{ 0 };  ///< Structural mode limit for the selected regression frame and annulus.
+    std::size_t maximumExcludedRows{ 0 };   ///< Largest target-specific deleted-row count in the annulus.
 
-    std::size_t estimatedWorkerBytes{ 0 }; ///< Conservative peak private allocation for one regression worker.
+    std::size_t exclusionStorageBytes{ 0 }; ///< Persistent bytes owned by compact target exclusions.
 
-    int maximumWorkerCount{ 0 };           ///< OpenMP/search-pixel worker maximum before memory limiting.
+    int maximumDegreesOfFreedom{ 0 };       ///< Structural mode limit for the selected regression frame and annulus.
 
-    int effectiveWorkerCount{ 0 };         ///< Worker count selected after applying the configured memory policy.
+    std::size_t estimatedWorkerBytes{ 0 };  ///< Conservative peak private allocation for one regression worker.
+
+    int maximumWorkerCount{ 0 };            ///< OpenMP/search-pixel worker maximum before memory limiting.
+
+    int effectiveWorkerCount{ 0 };          ///< Worker count selected after applying the configured memory policy.
 
     int minimumNumericalRank{ 0 }; ///< Minimum rank among common-mask-valid local fits, or zero when none are valid.
+
+    int minimumBaseRank{ 0 };      ///< Minimum factor base rank, or zero when the explicit solver is used.
+
+    std::size_t downdateClampCount{ 0 };          ///< Roundoff-scale negative core eigenvalues clamped in this annulus.
+
+    std::size_t explicitFallbackCount{ 0 };       ///< Target rows recomputed by the explicit rank-boundary oracle.
 
     std::size_t validLocalFitCount{ 0 };          ///< Number of local fits accepted by the common mask.
 
@@ -172,9 +182,11 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     HCI::exclude m_excludeMethod{ HCI::exclude::none }; ///< KLIP-compatible target-frame exclusion method.
 
-    realT m_orDeltaRadiusInner{ std::numeric_limits<realT>::quiet_NaN() }; ///< Inward OR radial extent in pixels.
+    P4ExclusionSolver m_exclusionSolver{ P4ExclusionSolver::explicitRefit }; ///< Target-frame exclusion solver.
 
-    realT m_orDeltaRadiusOuter{ std::numeric_limits<realT>::quiet_NaN() }; ///< Outward OR radial extent in pixels.
+    realT m_orDeltaRadiusInner{ std::numeric_limits<realT>::quiet_NaN() };   ///< Inward OR radial extent in pixels.
+
+    realT m_orDeltaRadiusOuter{ std::numeric_limits<realT>::quiet_NaN() };   ///< Outward OR radial extent in pixels.
 
     realT m_orArcHalfWidth{ std::numeric_limits<realT>::quiet_NaN() }; ///< OR azimuthal half-width in pixels; zero uses
                                                                        ///< only the angular cap.
@@ -250,6 +262,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     std::size_t m_memoryBudgetBytes{ 0 };      ///< Bytes selected from available memory for future P4 allocations.
 
     std::size_t m_compactResidualBytes{ 0 };   ///< Estimated bytes retained by compact residual and validity arrays.
+
+    std::size_t m_targetExclusionBytes{ 0 };   ///< Bytes retained by compact target-specific deletion patterns.
 
     std::size_t m_materializationBytes{ 0 };   ///< Estimated bytes in one full residual/validity materialization pair.
 
@@ -365,6 +379,12 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Parse an exact exclusion-policy spelling.
     static P4ExclusionPolicy parseExclusionPolicy( const std::string &value /**< [in] configuration spelling */ );
 
+    /// Convert a supported target-frame exclusion solver to its stable configuration spelling.
+    static std::string exclusionSolverString( P4ExclusionSolver solver /**< [in] supported exclusion solver */ );
+
+    /// Parse an exact target-frame exclusion-solver spelling.
+    static P4ExclusionSolver parseExclusionSolver( const std::string &value /**< [in] configuration spelling */ );
+
     /// Convert a supported regression frame to its stable configuration spelling.
     static std::string regressionFrameString( P4RegressionFrame frame /**< [in] supported regression frame */ );
 
@@ -389,8 +409,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                                bool temporallyCentered = false /**< [in] whether centering removes one
                                                                                          temporal degree of freedom */ );
 
-    /// Build KLIP-compatible ordered reference-row sets for every central target row.
-    static std::vector<std::vector<std::size_t>> targetReferenceRows(
+    /// Build compact KLIP-compatible deleted-row patterns for every central target row.
+    static P4TargetExclusions targetExclusions(
         const std::vector<std::vector<int>> &selections, /**< [in] central physical image in each row's first slot */
         HCI::exclude method,                             /**< [in] none, pixel, angle, or image-number exclusion */
         realT minDPx,                                    /**< [in] nonnegative exclusion threshold */
@@ -404,7 +424,13 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                              bool includeCoefficients = false, /**< [in] include optional K-by-mode
                                                                                           coefficient output */
                                              std::size_t psfStampPixels = 0,   /**< [in] optional float PSF scratch */
-                                             bool exactHeldOut = false /**< [in] include explicit refit scratch */ );
+                                             bool exactHeldOut = false, /**< [in] include target-exclusion scratch */
+                                             P4ExclusionSolver exclusionSolver = P4ExclusionSolver::explicitRefit,
+                                             /**< [in] target-exclusion numerical implementation */
+                                             std::size_t maximumDeletedRows = 0,
+                                             /**< [in] maximum deletion count for factor workspace */
+                                             std::size_t maximumRetainedMode = 0
+                                             /**< [in] largest retained mode, or zero for a conservative maximum */ );
 
     /// Return the phase-matched local-model dimension needed for final-stamp reconstruction.
     static int localPSFModelDimension( int outputStampSize, /**< [in] positive square final-stamp size */
@@ -455,13 +481,15 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         const std::vector<std::vector<int>> &selections, /**< [in] central and neighboring images per PCA row */
         const std::vector<P4PixelCoordinate> &temporalOffsets,
         /**< [in] direct additional-image predictor offsets */
-        const std::vector<int> &modes,    /**< [in] requested realized integer modes */
-        P4PCA::workspaceT &workspace,     /**< [in,out] reusable eigensolver workspace */
+        const std::vector<int> &modes, /**< [in] requested realized integer modes */
+        P4PCA::workspaceT &workspace,  /**< [in,out] reusable eigensolver workspace */
+        P4PCADowndateWorkspace *downdateWorkspace,
+        /**< [in,out] optional reusable factor-deletion workspace */
         P4PCATiming &timing,              /**< [out] PCA phase timing */
         double &sameImageSamplingSeconds, /**< [out] target and same-image OR worker seconds */
         double &temporalSamplingSeconds,  /**< [out] additional-image sampling worker seconds */
-        const std::vector<std::vector<std::size_t>> *referenceRows,
-        /**< [in] optional exact per-target training rows; nullptr selects in-sample fitting */
+        const P4TargetExclusions *exclusions,
+        /**< [in] optional per-target deleted rows; nullptr selects in-sample fitting */
         const P4TrialSource *trialSource = nullptr /**< [in] optional finite-amplitude trial perturbation */ ) const;
 
     /// Load one finite per-frame fake scale vector using the inherited filename-matching convention.
