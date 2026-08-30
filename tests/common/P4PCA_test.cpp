@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -180,6 +181,9 @@ fakeSolverBehavior solverBehavior{ fakeSolverBehavior::failure };
 /// Number of invocations of the controlled eigensolver.
 int solverCalls{ 0 };
 
+/// Whether controlled tests solve a diagonal oracle exactly after the first injected base result.
+bool solverUsesDiagonalOracleAfterFirst{ false };
+
 /// Gram matrix received by the controlled eigensolver.
 pcaT::matrixT solverGram;
 
@@ -197,6 +201,24 @@ MXLAPACK_INT fakeEigenSolver( pcaT::matrixT &eigenvectors, /**< [out] controlled
     ++solverCalls;
     solverGram = covariance;
     solverModeCount = modeCount;
+
+    if( solverUsesDiagonalOracleAfterFirst && solverCalls > 1 )
+    {
+        const int dimension = static_cast<int>( covariance.rows() );
+        if( modeCount != dimension )
+        {
+            return 38;
+        }
+        eigenvectors.resize( dimension, dimension );
+        eigenvectors.setZero();
+        eigenvalues.resize( dimension, 1 );
+        for( int index = 0; index < dimension; ++index )
+        {
+            eigenvectors( index, index ) = 1;
+            eigenvalues( index ) = covariance( index, index );
+        }
+        return 0;
+    }
 
     if( solverBehavior == fakeSolverBehavior::failure )
     {
@@ -278,10 +300,13 @@ MXLAPACK_INT fakeEigenSolver( pcaT::matrixT &eigenvectors, /**< [out] controlled
 struct solverReset
 {
     /// Install the controlled eigensolver and reset its call count.
-    explicit solverReset( fakeSolverBehavior behavior /**< [in] controlled outcome */ )
+    explicit solverReset(
+        fakeSolverBehavior behavior, /**< [in] controlled first or repeated outcome */
+        bool diagonalOracleAfterFirst = false /**< [in] whether later calls solve the diagonal test Gram exactly */ )
     {
         solverBehavior = behavior;
         solverCalls = 0;
+        solverUsesDiagonalOracleAfterFirst = diagonalOracleAfterFirst;
         solverGram.resize( 0, 0 );
         solverModeCount = 0;
         mx::improc::detail::p4PCASetEigenSolverForTesting( &fakeEigenSolver );
@@ -291,6 +316,33 @@ struct solverReset
     ~solverReset()
     {
         mx::improc::detail::p4PCAResetEigenSolverForTesting();
+        solverUsesDiagonalOracleAfterFirst = false;
+    }
+};
+
+/// Inject an allocation failure only while mxlib validates the supplied temporal factor.
+void failFactorValidationAllocation(
+    mx::math::detail::svdDeletionTestOperation operation /**< [in] mxlib operation being attempted */ )
+{
+    if( operation == mx::math::detail::svdDeletionTestOperation::validateFactor )
+    {
+        throw std::bad_alloc();
+    }
+}
+
+/// Restore mxlib's process-wide SVD-deletion hooks after a controlled failure test.
+struct svdDeletionHookReset
+{
+    /// Clear preexisting hooks before installing one controlled outcome.
+    svdDeletionHookReset()
+    {
+        mx::math::detail::svdDeletionHooks<double>() = {};
+    }
+
+    /// Restore ordinary mxlib execution.
+    ~svdDeletionHookReset()
+    {
+        mx::math::detail::svdDeletionHooks<double>() = {};
     }
 };
 /** \endcond */
@@ -1168,6 +1220,7 @@ TEST_CASE( "P4PCA exact factor downdate matches explicit held-out refits", "[P4P
         REQUIRE( downdatedResult.baseRank == expectedBaseRank );
         REQUIRE_FALSE( downdatedResult.numericalRankCapped );
         REQUIRE( downdatedResult.explicitFallbackCount == 0 );
+        REQUIRE( downdatedResult.explicitFallbackReason == mx::improc::P4PCAFallbackReason::none );
         REQUIRE( downdatedResult.numericalRank == explicitResult.numericalRank );
         REQUIRE( downdatedResult.modeStatus == explicitResult.modeStatus );
         REQUIRE( downdatedResult.sampleValidity.rows() == explicitResult.sampleValidity.rows() );
@@ -1272,29 +1325,44 @@ TEST_CASE( "P4PCA exact factor downdate matches explicit held-out refits", "[P4P
     }
 }
 
-/// Verify P4 accepts ordinary eigensolver orthogonality error but diagnoses materially invalid factors.
+/// Verify P4 accepts ordinary factor error, explicitly refits orthogonality failures, and rejects other statuses.
 /** This directly exercises mx::improc::P4PCA::calculateHeldOutDowndated() through its controlled eigensolver seam.
  * \ingroup P4PCA_unit_tests
  */
-TEST_CASE( "P4PCA exact factor downdate diagnoses nonorthonormal factors", "[P4PCA][held-out][downdate][validation]" )
+TEST_CASE( "P4PCA exact factor downdate handles factor validation outcomes",
+           "[P4PCA][held-out][downdate][validation][fallback]" )
 {
     pcaT::matrixT predictors( 3, 4 );
     predictors << 1, 0, 0, 0, 0, std::sqrt( 2.0 ), 0, 0, 0, 0, std::sqrt( 3.0 ), 0;
     pcaT::vectorT target( 3 );
     target << 2, -1, 3;
     const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( 3, { { 0 }, { 1 }, { 2 } } );
+
+    resultT explicitResult;
+    pcaT::workspaceT explicitWorkspace;
+    mx::improc::P4PCA::calculateHeldOut( explicitResult,
+                                         predictors,
+                                         target,
+                                         exclusions,
+                                         { 1, 2 },
+                                         1e-12,
+                                         explicitWorkspace );
+    const auto requireExplicitMatch = [&]( const resultT &result )
+    {
+        REQUIRE( result.modeStatus == explicitResult.modeStatus );
+        REQUIRE( ( result.sampleValidity == explicitResult.sampleValidity ).all() );
+        for( Eigen::Index mode = 0; mode < result.residuals.cols(); ++mode )
+        {
+            for( Eigen::Index sample = 0; sample < result.residuals.rows(); ++sample )
+            {
+                REQUIRE( result.residuals( sample, mode ) ==
+                         Approx( explicitResult.residuals( sample, mode ) ).margin( 1e-11 ) );
+            }
+        }
+    };
+
     SECTION( "DSYEVR-scale defect is accepted" )
     {
-        resultT explicitResult;
-        pcaT::workspaceT explicitWorkspace;
-        mx::improc::P4PCA::calculateHeldOut( explicitResult,
-                                             predictors,
-                                             target,
-                                             exclusions,
-                                             { 1, 2 },
-                                             1e-12,
-                                             explicitWorkspace );
-
         resultT downdatedResult;
         pcaT::workspaceT baseWorkspace;
         mx::improc::P4PCADowndateWorkspace downdateWorkspace;
@@ -1308,24 +1376,65 @@ TEST_CASE( "P4PCA exact factor downdate diagnoses nonorthonormal factors", "[P4P
                                                                        1e-12,
                                                                        baseWorkspace,
                                                                        downdateWorkspace ) );
-        REQUIRE( downdatedResult.modeStatus == explicitResult.modeStatus );
-        REQUIRE( ( downdatedResult.sampleValidity == explicitResult.sampleValidity ).all() );
-        for( Eigen::Index mode = 0; mode < downdatedResult.residuals.cols(); ++mode )
-        {
-            for( Eigen::Index sample = 0; sample < downdatedResult.residuals.rows(); ++sample )
-            {
-                REQUIRE( downdatedResult.residuals( sample, mode ) ==
-                         Approx( explicitResult.residuals( sample, mode ) ).margin( 1e-11 ) );
-            }
-        }
+        REQUIRE( downdatedResult.explicitFallbackCount == 0 );
+        REQUIRE( downdatedResult.explicitFallbackReason == mx::improc::P4PCAFallbackReason::none );
+        REQUIRE( downdatedResult.factorOrthogonalityDefect == 0 );
+        REQUIRE( downdatedResult.factorOrthogonalityTolerance == 0 );
+        requireExplicitMatch( downdatedResult );
     }
 
-    SECTION( "defect above the P4 acceptance bound is rejected" )
+    SECTION( "defect above the P4 acceptance bound uses the explicit oracle" )
     {
         resultT result;
         pcaT::workspaceT eigensolverWorkspace;
         mx::improc::P4PCADowndateWorkspace downdateWorkspace;
-        solverReset reset( fakeSolverBehavior::excessivelyNonorthonormalEigenvectors );
+        solverReset reset( fakeSolverBehavior::excessivelyNonorthonormalEigenvectors, true );
+
+        REQUIRE_NOTHROW( mx::improc::P4PCA::calculateHeldOutDowndated( result,
+                                                                       predictors,
+                                                                       target,
+                                                                       exclusions,
+                                                                       { 1, 2 },
+                                                                       1e-12,
+                                                                       eigensolverWorkspace,
+                                                                       downdateWorkspace ) );
+        REQUIRE( solverCalls > 1 );
+        REQUIRE( result.explicitFallbackCount == static_cast<std::size_t>( predictors.rows() ) );
+        REQUIRE( result.explicitFallbackReason == mx::improc::P4PCAFallbackReason::factorValidation );
+        REQUIRE( result.factorOrthogonalityDefect > result.factorOrthogonalityTolerance );
+        REQUIRE( result.factorOrthogonalityTolerance > 0 );
+        requireExplicitMatch( result );
+    }
+
+    SECTION( "material defect also uses the explicit oracle without relaxing tolerance" )
+    {
+        resultT result;
+        pcaT::workspaceT eigensolverWorkspace;
+        mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+        solverReset reset( fakeSolverBehavior::nonorthonormalEigenvectors, true );
+
+        REQUIRE_NOTHROW( mx::improc::P4PCA::calculateHeldOutDowndated( result,
+                                                                       predictors,
+                                                                       target,
+                                                                       exclusions,
+                                                                       { 1, 2 },
+                                                                       1e-12,
+                                                                       eigensolverWorkspace,
+                                                                       downdateWorkspace ) );
+        REQUIRE( result.explicitFallbackCount == static_cast<std::size_t>( predictors.rows() ) );
+        REQUIRE( result.explicitFallbackReason == mx::improc::P4PCAFallbackReason::factorValidation );
+        REQUIRE( result.factorOrthogonalityDefect == Approx( 3.0 ) );
+        REQUIRE( result.factorOrthogonalityDefect > result.factorOrthogonalityTolerance );
+        requireExplicitMatch( result );
+    }
+
+    SECTION( "non-factor validation status remains a hard error" )
+    {
+        resultT result;
+        pcaT::workspaceT eigensolverWorkspace;
+        mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+        svdDeletionHookReset reset;
+        mx::math::detail::svdDeletionHooks<double>().operation = &failFactorValidationAllocation;
 
         try
         {
@@ -1337,41 +1446,12 @@ TEST_CASE( "P4PCA exact factor downdate diagnoses nonorthonormal factors", "[P4P
                                                           1e-12,
                                                           eigensolverWorkspace,
                                                           downdateWorkspace );
-            FAIL( "expected above-tolerance temporal-factor validation failure" );
+            FAIL( "expected non-factor validation failure" );
         }
         catch( const std::runtime_error &error )
         {
             const std::string message = error.what();
-            REQUIRE( message.find( "status factorNotOrthonormal" ) != std::string::npos );
-            REQUIRE( message.find( "acceptedTolerance=" ) != std::string::npos );
-        }
-    }
-
-    SECTION( "material defect is rejected" )
-    {
-        resultT result;
-        pcaT::workspaceT eigensolverWorkspace;
-        mx::improc::P4PCADowndateWorkspace downdateWorkspace;
-        solverReset reset( fakeSolverBehavior::nonorthonormalEigenvectors );
-
-        try
-        {
-            mx::improc::P4PCA::calculateHeldOutDowndated( result,
-                                                          predictors,
-                                                          target,
-                                                          exclusions,
-                                                          { 1, 2 },
-                                                          1e-12,
-                                                          eigensolverWorkspace,
-                                                          downdateWorkspace );
-            FAIL( "expected temporal-factor validation failure" );
-        }
-        catch( const std::runtime_error &error )
-        {
-            const std::string message = error.what();
-            REQUIRE( message.find( "status factorNotOrthonormal" ) != std::string::npos );
-            REQUIRE( message.find( "max|L^T L-I|=3" ) != std::string::npos );
-            REQUIRE( message.find( "acceptedTolerance=" ) != std::string::npos );
+            REQUIRE( message.find( "status allocationFailure" ) != std::string::npos );
         }
     }
 }
@@ -1413,6 +1493,9 @@ TEST_CASE( "P4PCA exact factor downdate records rank-boundary fallback", "[P4PCA
                                                       downdateWorkspace );
 
         REQUIRE( downdatedResult.explicitFallbackCount == static_cast<std::size_t>( predictors.rows() ) );
+        REQUIRE( downdatedResult.explicitFallbackReason == mx::improc::P4PCAFallbackReason::rankBoundary );
+        REQUIRE( downdatedResult.factorOrthogonalityDefect == 0 );
+        REQUIRE( downdatedResult.factorOrthogonalityTolerance == 0 );
         REQUIRE( downdatedResult.baseRank == std::min( predictors.rows(), predictors.cols() ) );
         REQUIRE( downdatedResult.numericalRank == explicitResult.numericalRank );
         REQUIRE( downdatedResult.modeStatus == explicitResult.modeStatus );

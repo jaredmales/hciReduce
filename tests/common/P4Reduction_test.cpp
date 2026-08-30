@@ -320,6 +320,16 @@ void requireSameReduction( const reductionHarness &left, /**< [in] first complet
         REQUIRE( leftStatistics.maximumDegreesOfFreedom == rightStatistics.maximumDegreesOfFreedom );
         REQUIRE( leftStatistics.estimatedWorkerBytes == rightStatistics.estimatedWorkerBytes );
         REQUIRE( leftStatistics.minimumNumericalRank == rightStatistics.minimumNumericalRank );
+        REQUIRE( leftStatistics.minimumBaseRank == rightStatistics.minimumBaseRank );
+        REQUIRE( leftStatistics.downdateClampCount == rightStatistics.downdateClampCount );
+        REQUIRE( leftStatistics.explicitFallbackCount == rightStatistics.explicitFallbackCount );
+        REQUIRE( leftStatistics.rankBoundaryFallbackPixelCount == rightStatistics.rankBoundaryFallbackPixelCount );
+        REQUIRE( leftStatistics.factorValidationFallbackPixelCount ==
+                 rightStatistics.factorValidationFallbackPixelCount );
+        REQUIRE( leftStatistics.maximumFactorOrthogonalityDefect ==
+                 Approx( rightStatistics.maximumFactorOrthogonalityDefect ) );
+        REQUIRE( leftStatistics.factorOrthogonalityToleranceAtMaximumDefect ==
+                 Approx( rightStatistics.factorOrthogonalityToleranceAtMaximumDefect ) );
         REQUIRE( leftStatistics.validLocalFitCount == rightStatistics.validLocalFitCount );
         REQUIRE( leftStatistics.maskedLocalFitCount == rightStatistics.maskedLocalFitCount );
         REQUIRE( leftStatistics.supportInvalidLocalFitCount == rightStatistics.supportInvalidLocalFitCount );
@@ -366,13 +376,46 @@ MXLAPACK_INT failingEigenSolver( mx::improc::P4PCA::matrixT &eigenvectors, /**< 
     return 73;
 }
 
+/// Return a valid eigensystem while making only a three-dimensional base factor observably nonorthonormal.
+MXLAPACK_INT factorValidationFallbackEigenSolver(
+    mx::improc::P4PCA::matrixT &eigenvectors, /**< [out] ascending eigenvectors, with one controlled perturbation */
+    mx::improc::P4PCA::matrixT &eigenvalues,  /**< [out] ascending eigenvalues */
+    mx::improc::P4PCA::matrixT &covariance,   /**< [in] lower-triangular covariance matrix */
+    int modeCount,                            /**< [in] requested complete eigenpair count */
+    mx::improc::P4PCA::workspaceT &workspace /**< [in,out] unused production workspace */ )
+{
+    static_cast<void>( workspace );
+    if( covariance.rows() <= 0 || covariance.rows() != covariance.cols() || modeCount != covariance.rows() )
+    {
+        return 74;
+    }
+
+    const int dimension = static_cast<int>( covariance.rows() );
+    eigenvectors.resize( dimension, modeCount );
+    eigenvectors.setZero();
+    eigenvalues.resize( dimension, 1 );
+    eigenvalues.setZero();
+    const int firstEigenvector = dimension - modeCount;
+    for( int mode = 0; mode < modeCount; ++mode )
+    {
+        eigenvectors( firstEigenvector + mode, mode ) = 1;
+        eigenvalues( mode ) = firstEigenvector + mode + 1;
+    }
+    if( covariance.rows() == 3 )
+    {
+        eigenvectors.col( eigenvectors.cols() - 1 ) *= 1.001;
+    }
+    return 0;
+}
+
 /// Restore the production P4PCA eigensolver after one controlled failure scope.
 struct eigenSolverReset
 {
-    /// Install the failing eigensolver.
-    eigenSolverReset()
+    /// Install the selected controlled eigensolver.
+    explicit eigenSolverReset(
+        mx::improc::detail::P4PCAEigenSolverT solver = &failingEigenSolver /**< [in] solver active for this scope */ )
     {
-        mx::improc::detail::p4PCASetEigenSolverForTesting( &failingEigenSolver );
+        mx::improc::detail::p4PCASetEigenSolverForTesting( solver );
     }
 
     /// Restore the production eigensolver.
@@ -815,6 +858,10 @@ TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][re
     REQUIRE( downdated.m_regionStatistics[0].maximumExcludedRows == 1 );
     REQUIRE( downdated.m_regionStatistics[0].exclusionStorageBytes > 0 );
     REQUIRE( downdated.m_regionStatistics[0].explicitFallbackCount == 0 );
+    REQUIRE( downdated.m_regionStatistics[0].rankBoundaryFallbackPixelCount == 0 );
+    REQUIRE( downdated.m_regionStatistics[0].factorValidationFallbackPixelCount == 0 );
+    REQUIRE( downdated.m_regionStatistics[0].maximumFactorOrthogonalityDefect == 0 );
+    REQUIRE( downdated.m_regionStatistics[0].factorOrthogonalityToleranceAtMaximumDefect == 0 );
     REQUIRE( downdated.m_psfsub.size() == reduction.m_psfsub.size() );
     REQUIRE( downdated.m_psfsubValidity.size() == reduction.m_psfsubValidity.size() );
     for( std::size_t output = 0; output < reduction.m_psfsub.size(); ++output )
@@ -844,11 +891,48 @@ TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][re
     REQUIRE( downdatedHeader["P4 FULL BASE"].Int() == 1 );
     REQUIRE( downdatedHeader["P4 DELETION BACKEND"].String().starts_with( "leadingCovariance" ) );
     REQUIRE( downdatedHeader["P4 EXPLICIT FALLBACKS"].String().starts_with( "0" ) );
+    REQUIRE( downdatedHeader["P4 RANK BOUNDARY FALLBACK PIXELS"].String().starts_with( "0" ) );
+    REQUIRE( downdatedHeader["P4 FACTOR VALIDATION FALLBACK PIXELS"].String().starts_with( "0" ) );
+    REQUIRE( downdatedHeader["P4 MAX FACTOR ORTHOGONALITY DEFECT"].String().starts_with( "0" ) );
+    REQUIRE( downdatedHeader["P4 FACTOR TOLERANCE AT MAX DEFECT"].String().starts_with( "0" ) );
 
-    downdated.m_regionStatistics[0].explicitFallbackCount = 3;
+    downdated.m_regionStatistics[0].explicitFallbackCount = 9;
+    downdated.m_regionStatistics[0].rankBoundaryFallbackPixelCount = 2;
+    downdated.m_regionStatistics[0].factorValidationFallbackPixelCount = 1;
+    downdated.m_regionStatistics[0].maximumFactorOrthogonalityDefect = 4.8172787807387873e-11;
+    downdated.m_regionStatistics[0].factorOrthogonalityToleranceAtMaximumDefect = 1.7649881556280889e-11;
     reductionT::fitsHeaderT fallbackHeader;
     downdated.appendReductionHeader( fallbackHeader );
-    REQUIRE( fallbackHeader["P4 EXPLICIT FALLBACKS"].String().starts_with( "3" ) );
+    REQUIRE( fallbackHeader["P4 EXPLICIT FALLBACKS"].String().starts_with( "9" ) );
+    REQUIRE( fallbackHeader["P4 RANK BOUNDARY FALLBACK PIXELS"].String().starts_with( "2" ) );
+    REQUIRE( fallbackHeader["P4 FACTOR VALIDATION FALLBACK PIXELS"].String().starts_with( "1" ) );
+    REQUIRE( std::stod( fallbackHeader["P4 MAX FACTOR ORTHOGONALITY DEFECT"].String() ) ==
+             Approx( downdated.m_regionStatistics[0].maximumFactorOrthogonalityDefect ) );
+    REQUIRE( std::stod( fallbackHeader["P4 FACTOR TOLERANCE AT MAX DEFECT"].String() ) ==
+             Approx( downdated.m_regionStatistics[0].factorOrthogonalityToleranceAtMaximumDefect ) );
+
+    reductionHarness factorFallback;
+    prepareHeldOut( factorFallback );
+    factorFallback.m_exclusionSolver = mx::improc::P4ExclusionSolver::factorDowndateExact;
+    std::string fallbackWarning;
+    {
+        eigenSolverReset solver( &factorValidationFallbackEigenSolver );
+        OpenMPThreadGuard fallbackWorkers( 2 );
+        CerrCapture capture;
+        REQUIRE( factorFallback.reduce() == 0 );
+        fallbackWarning = capture.str();
+    }
+    const auto &factorStatistics = factorFallback.m_regionStatistics[0];
+    REQUIRE( factorStatistics.effectiveWorkerCount == 2 );
+    REQUIRE( factorStatistics.rankBoundaryFallbackPixelCount == 0 );
+    REQUIRE( factorStatistics.factorValidationFallbackPixelCount == factorStatistics.searchPixelCount );
+    REQUIRE( factorStatistics.explicitFallbackCount ==
+             factorStatistics.searchPixelCount * factorStatistics.targetImageCount );
+    REQUIRE( factorStatistics.maximumFactorOrthogonalityDefect >
+             factorStatistics.factorOrthogonalityToleranceAtMaximumDefect );
+    REQUIRE( factorStatistics.factorOrthogonalityToleranceAtMaximumDefect > 0 );
+    REQUIRE( fallbackWarning.find( "rank-boundary search pixels and" ) != std::string::npos );
+    REQUIRE( fallbackWarning.find( "factor-validation search pixels; maximum factor defect" ) != std::string::npos );
 }
 
 /// Verify P4Reduction's finite-amplitude local path matches a crop from an independently materialized full rerun.
@@ -2821,6 +2905,15 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( reader.read( summary, summaryHeader, directory.file( "diagnostics/p4RegionSummary.fits" ).string() ) ==
              mx::error_t::noerror );
     REQUIRE( summaryHeader["P4 FRAME"].String().starts_with( "detector" ) );
+    REQUIRE( summaryHeader["P4 REGION SUMMARY SCHEMA"].Int() == 1 );
+    REQUIRE( summaryHeader["P4 REGION SUMMARY MODE COUNT"].Int() == 1 );
+    REQUIRE( summaryHeader["P4 REGION SUMMARY COLUMNS"].String() ==
+             "minRadius,maxRadius,searchPixelCount,targetImageCount,temporalNumberImages,temporalPsfRadius,"
+             "predictorCount,maximumDegreesOfFreedom,minimumNumericalRank,validLocalFitCount,maskedLocalFitCount,"
+             "supportInvalidLocalFitCount,realizedModes[000],rankInvalidCounts[000],estimatedWorkerBytes,"
+             "maximumWorkerCount,effectiveWorkerCount,rankBoundaryFallbackPixelCount,"
+             "factorValidationFallbackPixelCount,maximumFactorOrthogonalityDefect,"
+             "factorOrthogonalityToleranceAtMaximumDefect" );
 
     mx::improc::eigenCube<float> diagnosticValidity;
     reductionT::fitsHeaderT diagnosticValidityHeader;
@@ -2832,13 +2925,18 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( diagnosticValidity.image( 0 ).isApprox( diagnostic.m_psfsubValidity[0].image( 0 ), 0 ) );
 
     REQUIRE( summary.rows() == 1 );
-    REQUIRE( summary.cols() == 17 );
+    REQUIRE( summary.cols() == 21 );
     REQUIRE( summary( 0, 9 ) + summary( 0, 10 ) + summary( 0, 11 ) == Approx( summary( 0, 2 ) ) );
     REQUIRE( summary( 0, 12 ) == Approx( diagnostic.m_realizedModes[0][0] ) );
     REQUIRE( summary( 0, 13 ) == Approx( diagnostic.m_regionStatistics[0].rankInvalidCounts[0] ) );
     REQUIRE( summary( 0, 14 ) == Approx( diagnostic.m_regionStatistics[0].estimatedWorkerBytes ) );
     REQUIRE( summary( 0, 15 ) == Approx( diagnostic.m_regionStatistics[0].maximumWorkerCount ) );
     REQUIRE( summary( 0, 16 ) == Approx( diagnostic.m_regionStatistics[0].effectiveWorkerCount ) );
+    REQUIRE( summary( 0, 17 ) == Approx( diagnostic.m_regionStatistics[0].rankBoundaryFallbackPixelCount ) );
+    REQUIRE( summary( 0, 18 ) == Approx( diagnostic.m_regionStatistics[0].factorValidationFallbackPixelCount ) );
+    REQUIRE( summary( 0, 19 ) == Approx( diagnostic.m_regionStatistics[0].maximumFactorOrthogonalityDefect ) );
+    REQUIRE( summary( 0, 20 ) ==
+             Approx( diagnostic.m_regionStatistics[0].factorOrthogonalityToleranceAtMaximumDefect ) );
 
     reductionT::imageT timing;
     reductionT::fitsHeaderT timingHeader;
@@ -2878,6 +2976,10 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
              std::to_string( diagnostic.m_regionStatistics[0].maskedLocalFitCount ) );
     REQUIRE( header["P4 SUPPORT INVALID FIT COUNT"].String() ==
              std::to_string( diagnostic.m_regionStatistics[0].supportInvalidLocalFitCount ) );
+    REQUIRE( header["P4 RANK BOUNDARY FALLBACK PIXELS"].String() == "0" );
+    REQUIRE( header["P4 FACTOR VALIDATION FALLBACK PIXELS"].String() == "0" );
+    REQUIRE( header["P4 MAX FACTOR ORTHOGONALITY DEFECT"].String() == "0" );
+    REQUIRE( header["P4 FACTOR TOLERANCE AT MAX DEFECT"].String() == "0" );
     diagnostic.m_heads.resize( diagnostic.m_Nims );
     diagnostic.m_doOutputPSFSub = true;
     diagnostic.m_outputDir = directory.path().string();

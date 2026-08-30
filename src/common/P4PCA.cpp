@@ -59,6 +59,17 @@ double p4PCAFactorValidationTolerance( const P4PCA::matrixT &factor /**< [in] te
            static_cast<double>( std::max( factor.rows(), factor.cols() ) );
 }
 
+/// Measure the maximum absolute error in a temporal factor's orthogonality Gram matrix.
+double p4PCAFactorOrthogonalityDefect( const P4PCA::matrixT &factor /**< [in] temporal singular-vector factor */ )
+{
+    P4PCA::matrixT gram = ( factor.matrix().transpose() * factor.matrix() ).array();
+    for( Eigen::Index mode = 0; mode < gram.rows(); ++mode )
+    {
+        gram( mode, mode ) -= 1.0;
+    }
+    return gram.abs().maxCoeff();
+}
+
 /// Format factor validation failures, including the orthogonality defect when that contract alone failed.
 std::string p4PCAFactorValidationMessage( mx::math::svdDeletionStatus status, /**< [in] validation outcome */
                                           const P4PCA::matrixT &factor, /**< [in] temporal singular-vector factor */
@@ -72,12 +83,7 @@ std::string p4PCAFactorValidationMessage( mx::math::svdDeletionStatus status, /*
         return message.str();
     }
 
-    P4PCA::matrixT gram = ( factor.matrix().transpose() * factor.matrix() ).array();
-    for( Eigen::Index mode = 0; mode < gram.rows(); ++mode )
-    {
-        gram( mode, mode ) -= 1.0;
-    }
-    const double maximumError = gram.abs().maxCoeff();
+    const double maximumError = p4PCAFactorOrthogonalityDefect( factor );
     message << std::setprecision( 17 ) << ", max|L^T L-I|=" << maximumError << ", acceptedTolerance=" << tolerance;
     return message.str();
 }
@@ -103,6 +109,47 @@ MXLAPACK_INT p4PCAEigenSolve( P4PCA::matrixT &eigenvectors, /**< [out] selected 
                                  dimension,
                                  'L',
                                  &workspace );
+}
+
+/// Replace one recoverable factor-downdate attempt with the complete explicit held-out oracle result.
+void p4PCAExplicitFallback(
+    P4PCAResult &output,                     /**< [in,out] attempted diagnostics, then explicit result */
+    const P4PCA::matrixT &predictors,        /**< [in] finite full predictor matrix */
+    const P4PCA::vectorT &target,            /**< [in] finite full target time series */
+    const P4TargetExclusions &exclusions,    /**< [in] target-specific deleted rows */
+    const std::vector<int> &modes,           /**< [in] requested retained-mode counts */
+    double rankTolerance,                    /**< [in] relative numerical-rank threshold */
+    P4PCA::workspaceT &eigensolverWorkspace, /**< [in,out] reusable explicit-oracle eigensolver storage */
+    P4PCAFallbackReason reason,              /**< [in] recoverable condition that selected the oracle */
+    P4PCATiming *timing /**< [in,out] optional attempted plus explicit timing */ )
+{
+    const int attemptedBaseRank = output.baseRank;
+    const std::size_t attemptedClampCount = output.downdateClampCount;
+    const double factorOrthogonalityDefect = output.factorOrthogonalityDefect;
+    const double factorOrthogonalityTolerance = output.factorOrthogonalityTolerance;
+    P4PCAResult explicitResult;
+    P4PCATiming explicitTiming;
+    P4PCA::calculateHeldOut( explicitResult,
+                             predictors,
+                             target,
+                             exclusions,
+                             modes,
+                             rankTolerance,
+                             eigensolverWorkspace,
+                             timing ? &explicitTiming : nullptr );
+    explicitResult.baseRank = attemptedBaseRank;
+    explicitResult.downdateClampCount = attemptedClampCount;
+    explicitResult.explicitFallbackCount = static_cast<std::size_t>( predictors.rows() );
+    explicitResult.explicitFallbackReason = reason;
+    explicitResult.factorOrthogonalityDefect = factorOrthogonalityDefect;
+    explicitResult.factorOrthogonalityTolerance = factorOrthogonalityTolerance;
+    output = std::move( explicitResult );
+    if( timing )
+    {
+        timing->gramWorkerSeconds += explicitTiming.gramWorkerSeconds;
+        timing->eigensolveWorkerSeconds += explicitTiming.eigensolveWorkerSeconds;
+        timing->projectionWorkerSeconds += explicitTiming.projectionWorkerSeconds;
+    }
 }
 
 /// Validate one P4PCA request against its path-specific structural degree-of-freedom limit.
@@ -331,6 +378,9 @@ void p4PCACalculateValidated(
     output.numericalRankCapped = false;
     output.downdateClampCount = 0;
     output.explicitFallbackCount = 0;
+    output.explicitFallbackReason = P4PCAFallbackReason::none;
+    output.factorOrthogonalityDefect = 0;
+    output.factorOrthogonalityTolerance = 0;
     if( coefficients )
     {
         coefficients->resize( predictorCount, modes.size() );
@@ -688,6 +738,9 @@ void P4PCA::calculateHeldOut( P4PCAResult &output,
     output.numericalRankCapped = false;
     output.downdateClampCount = 0;
     output.explicitFallbackCount = 0;
+    output.explicitFallbackReason = P4PCAFallbackReason::none;
+    output.factorOrthogonalityDefect = 0;
+    output.factorOrthogonalityTolerance = 0;
     if( timing )
     {
         *timing = P4PCATiming{};
@@ -945,6 +998,9 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
     output.numericalRankCapped = false;
     output.downdateClampCount = 0;
     output.explicitFallbackCount = 0;
+    output.explicitFallbackReason = P4PCAFallbackReason::none;
+    output.factorOrthogonalityDefect = 0;
+    output.factorOrthogonalityTolerance = 0;
     if( timing )
     {
         *timing = P4PCATiming{};
@@ -1081,8 +1137,27 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
         mx::math::validateSvdDeletionFactor( downdateWorkspace.m_temporalFactor, factorTolerance );
     if( !mx::math::svdDeletionSucceeded( factorStatus ) )
     {
-        throw std::runtime_error(
-            p4PCAFactorValidationMessage( factorStatus, downdateWorkspace.m_temporalFactor, factorTolerance ) );
+        if( factorStatus != mx::math::svdDeletionStatus::factorNotOrthonormal )
+        {
+            throw std::runtime_error(
+                p4PCAFactorValidationMessage( factorStatus, downdateWorkspace.m_temporalFactor, factorTolerance ) );
+        }
+        output.factorOrthogonalityDefect = p4PCAFactorOrthogonalityDefect( downdateWorkspace.m_temporalFactor );
+        output.factorOrthogonalityTolerance = factorTolerance;
+        if( timing )
+        {
+            timing->eigensolveWorkerSeconds = secondsSince( baseSolveStart );
+        }
+        p4PCAExplicitFallback( output,
+                               predictors,
+                               target,
+                               exclusions,
+                               modes,
+                               rankTolerance,
+                               eigensolverWorkspace,
+                               P4PCAFallbackReason::factorValidation,
+                               timing );
+        return;
     }
 
     const Eigen::Index maximumOutputRank = std::min<Eigen::Index>( modes.back(), baseRank );
@@ -1239,28 +1314,15 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
 
     if( requiresExplicitOracle )
     {
-        const int attemptedBaseRank = output.baseRank;
-        const std::size_t attemptedClampCount = output.downdateClampCount;
-        P4PCAResult explicitResult;
-        P4PCATiming explicitTiming;
-        calculateHeldOut( explicitResult,
-                          predictors,
-                          target,
-                          exclusions,
-                          modes,
-                          rankTolerance,
-                          eigensolverWorkspace,
-                          &explicitTiming );
-        explicitResult.baseRank = attemptedBaseRank;
-        explicitResult.downdateClampCount = attemptedClampCount;
-        explicitResult.explicitFallbackCount = static_cast<std::size_t>( sampleCount );
-        output = std::move( explicitResult );
-        if( timing )
-        {
-            timing->gramWorkerSeconds += explicitTiming.gramWorkerSeconds;
-            timing->eigensolveWorkerSeconds += explicitTiming.eigensolveWorkerSeconds;
-            timing->projectionWorkerSeconds += explicitTiming.projectionWorkerSeconds;
-        }
+        p4PCAExplicitFallback( output,
+                               predictors,
+                               target,
+                               exclusions,
+                               modes,
+                               rankTolerance,
+                               eigensolverWorkspace,
+                               P4PCAFallbackReason::rankBoundary,
+                               timing );
     }
 }
 

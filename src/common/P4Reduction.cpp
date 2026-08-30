@@ -3005,6 +3005,10 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         int minimumBaseRank{ std::numeric_limits<int>::max() };
         std::size_t downdateClampCount{ 0 };
         std::size_t explicitFallbackCount{ 0 };
+        std::size_t rankBoundaryFallbackPixelCount{ 0 };
+        std::size_t factorValidationFallbackPixelCount{ 0 };
+        double maximumFactorOrthogonalityDefect{ 0 };
+        double factorOrthogonalityToleranceAtMaximumDefect{ 0 };
         std::vector<std::size_t> rankInvalidCounts( modes.size(), 0 );
 
         // clang-format off
@@ -3026,6 +3030,10 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             int threadMinimumBaseRank{ std::numeric_limits<int>::max() };
             std::size_t threadDowndateClampCount{ 0 };
             std::size_t threadExplicitFallbackCount{ 0 };
+            std::size_t threadRankBoundaryFallbackPixelCount{ 0 };
+            std::size_t threadFactorValidationFallbackPixelCount{ 0 };
+            double threadMaximumFactorOrthogonalityDefect{ 0 };
+            double threadFactorOrthogonalityToleranceAtMaximumDefect{ 0 };
             std::vector<std::size_t> threadRankInvalid( modes.size(), 0 );
             double threadSamplingSeconds{ 0 };
             double threadSameImageSamplingSeconds{ 0 };
@@ -3139,6 +3147,24 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                 threadMinimumBaseRank = std::min( threadMinimumBaseRank, result.baseRank );
                                 threadDowndateClampCount += result.downdateClampCount;
                                 threadExplicitFallbackCount += result.explicitFallbackCount;
+                                switch( result.explicitFallbackReason )
+                                {
+                                case P4PCAFallbackReason::none:
+                                    break;
+                                case P4PCAFallbackReason::rankBoundary:
+                                    ++threadRankBoundaryFallbackPixelCount;
+                                    break;
+                                case P4PCAFallbackReason::factorValidation:
+                                    ++threadFactorValidationFallbackPixelCount;
+                                    if( threadFactorValidationFallbackPixelCount == 1 ||
+                                        result.factorOrthogonalityDefect > threadMaximumFactorOrthogonalityDefect )
+                                    {
+                                        threadMaximumFactorOrthogonalityDefect = result.factorOrthogonalityDefect;
+                                        threadFactorOrthogonalityToleranceAtMaximumDefect =
+                                            result.factorOrthogonalityTolerance;
+                                    }
+                                    break;
+                                }
                             }
 
                             const double residualApplyBegin = omp_get_wtime();
@@ -3255,6 +3281,15 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                 minimumBaseRank = std::min( minimumBaseRank, threadMinimumBaseRank );
                 downdateClampCount += threadDowndateClampCount;
                 explicitFallbackCount += threadExplicitFallbackCount;
+                rankBoundaryFallbackPixelCount += threadRankBoundaryFallbackPixelCount;
+                if( threadFactorValidationFallbackPixelCount != 0 &&
+                    ( factorValidationFallbackPixelCount == 0 ||
+                      threadMaximumFactorOrthogonalityDefect > maximumFactorOrthogonalityDefect ) )
+                {
+                    maximumFactorOrthogonalityDefect = threadMaximumFactorOrthogonalityDefect;
+                    factorOrthogonalityToleranceAtMaximumDefect = threadFactorOrthogonalityToleranceAtMaximumDefect;
+                }
+                factorValidationFallbackPixelCount += threadFactorValidationFallbackPixelCount;
                 for( std::size_t output = 0; output < modes.size(); ++output )
                 {
                     rankInvalidCounts[output] += threadRankInvalid[output];
@@ -3296,12 +3331,25 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         statistics.minimumBaseRank = minimumBaseRank == std::numeric_limits<int>::max() ? 0 : minimumBaseRank;
         statistics.downdateClampCount = downdateClampCount;
         statistics.explicitFallbackCount = explicitFallbackCount;
+        statistics.rankBoundaryFallbackPixelCount = rankBoundaryFallbackPixelCount;
+        statistics.factorValidationFallbackPixelCount = factorValidationFallbackPixelCount;
+        statistics.maximumFactorOrthogonalityDefect = maximumFactorOrthogonalityDefect;
+        statistics.factorOrthogonalityToleranceAtMaximumDefect = factorOrthogonalityToleranceAtMaximumDefect;
         statistics.rankInvalidCounts = rankInvalidCounts;
         if( explicitFallbackCount != 0 )
         {
-            std::cerr << "WARNING: P4 region " << region << " recomputed " << explicitFallbackCount
-                      << " target fits with the explicit oracle because a downdated eigenvalue was numerically "
-                         "indistinguishable from the rank threshold\n";
+            std::ostringstream fallbackWarning;
+            fallbackWarning << "WARNING: P4 region " << region << " recomputed " << explicitFallbackCount
+                            << " target rows with the explicit oracle at " << rankBoundaryFallbackPixelCount
+                            << " rank-boundary search pixels and " << factorValidationFallbackPixelCount
+                            << " factor-validation search pixels";
+            if( factorValidationFallbackPixelCount != 0 )
+            {
+                fallbackWarning << "; maximum factor defect " << std::setprecision( 17 )
+                                << maximumFactorOrthogonalityDefect << " at tolerance "
+                                << factorOrthogonalityToleranceAtMaximumDefect;
+            }
+            std::cerr << fallbackWarning.str() << '\n';
         }
         for( std::size_t output = 0; output < modes.size(); ++output )
         {
@@ -3366,7 +3414,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
 
         imageT summary( static_cast<Eigen::Index>( m_regionStatistics.size() ),
-                        static_cast<Eigen::Index>( 15 + 2 * m_modeFractions.size() ) );
+                        static_cast<Eigen::Index>( 19 + 2 * m_modeFractions.size() ) );
         for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
         {
             const P4RegionStatistics &statistics = m_regionStatistics[region];
@@ -3392,8 +3440,38 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             summary( region, workerColumn ) = static_cast<realT>( statistics.estimatedWorkerBytes );
             summary( region, workerColumn + 1 ) = static_cast<realT>( statistics.maximumWorkerCount );
             summary( region, workerColumn + 2 ) = static_cast<realT>( statistics.effectiveWorkerCount );
+            summary( region, workerColumn + 3 ) = static_cast<realT>( statistics.rankBoundaryFallbackPixelCount );
+            summary( region, workerColumn + 4 ) = static_cast<realT>( statistics.factorValidationFallbackPixelCount );
+            summary( region, workerColumn + 5 ) = static_cast<realT>( statistics.maximumFactorOrthogonalityDefect );
+            summary( region, workerColumn + 6 ) =
+                static_cast<realT>( statistics.factorOrthogonalityToleranceAtMaximumDefect );
         }
-        writeDiagnostic( "p4RegionSummary.fits", summary );
+        fitsHeaderT summaryHeader;
+        summaryHeader.template append<int>( "P4 REGION SUMMARY SCHEMA",
+                                            1,
+                                            "P4 region-summary diagnostic schema version" );
+        summaryHeader.template append<int>( "P4 REGION SUMMARY MODE COUNT",
+                                            static_cast<int>( m_modeFractions.size() ),
+                                            "output-plane entries in each indexed column group" );
+        std::ostringstream summaryColumns;
+        summaryColumns << "minRadius,maxRadius,searchPixelCount,targetImageCount,temporalNumberImages,"
+                          "temporalPsfRadius,predictorCount,maximumDegreesOfFreedom,minimumNumericalRank,"
+                          "validLocalFitCount,maskedLocalFitCount,supportInvalidLocalFitCount";
+        for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+        {
+            summaryColumns << ",realizedModes[" << p4Index( output ) << ']';
+        }
+        for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+        {
+            summaryColumns << ",rankInvalidCounts[" << p4Index( output ) << ']';
+        }
+        summaryColumns << ",estimatedWorkerBytes,maximumWorkerCount,effectiveWorkerCount,"
+                          "rankBoundaryFallbackPixelCount,factorValidationFallbackPixelCount,"
+                          "maximumFactorOrthogonalityDefect,factorOrthogonalityToleranceAtMaximumDefect";
+        summaryHeader.template append<std::string>( "P4 REGION SUMMARY COLUMNS",
+                                                    summaryColumns.str(),
+                                                    "exact columns; [NNN] indexes output-plane groups" );
+        writeDiagnostic( "p4RegionSummary.fits", summary, &summaryHeader );
     }
 
     const auto writeTimingDiagnostic = [&]()
@@ -4310,6 +4388,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     std::vector<std::size_t> exclusionStorageBytes;
     std::vector<std::size_t> downdateClampCounts;
     std::vector<std::size_t> explicitFallbackCounts;
+    std::vector<std::size_t> rankBoundaryFallbackPixelCounts;
+    std::vector<std::size_t> factorValidationFallbackPixelCounts;
+    std::vector<double> maximumFactorOrthogonalityDefects;
+    std::vector<double> factorOrthogonalityTolerancesAtMaximumDefect;
     std::vector<std::size_t> searchCounts;
     std::vector<std::size_t> targetImageCounts;
     std::vector<int> temporalImageCounts;
@@ -4328,6 +4410,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     exclusionStorageBytes.reserve( m_regionStatistics.size() );
     downdateClampCounts.reserve( m_regionStatistics.size() );
     explicitFallbackCounts.reserve( m_regionStatistics.size() );
+    rankBoundaryFallbackPixelCounts.reserve( m_regionStatistics.size() );
+    factorValidationFallbackPixelCounts.reserve( m_regionStatistics.size() );
+    maximumFactorOrthogonalityDefects.reserve( m_regionStatistics.size() );
+    factorOrthogonalityTolerancesAtMaximumDefect.reserve( m_regionStatistics.size() );
     searchCounts.reserve( m_regionStatistics.size() );
     targetImageCounts.reserve( m_regionStatistics.size() );
     temporalImageCounts.reserve( m_regionStatistics.size() );
@@ -4348,6 +4434,11 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
         exclusionStorageBytes.push_back( statistics.exclusionStorageBytes );
         downdateClampCounts.push_back( statistics.downdateClampCount );
         explicitFallbackCounts.push_back( statistics.explicitFallbackCount );
+        rankBoundaryFallbackPixelCounts.push_back( statistics.rankBoundaryFallbackPixelCount );
+        factorValidationFallbackPixelCounts.push_back( statistics.factorValidationFallbackPixelCount );
+        maximumFactorOrthogonalityDefects.push_back( statistics.maximumFactorOrthogonalityDefect );
+        factorOrthogonalityTolerancesAtMaximumDefect.push_back(
+            statistics.factorOrthogonalityToleranceAtMaximumDefect );
         searchCounts.push_back( statistics.searchPixelCount );
         targetImageCounts.push_back( statistics.targetImageCount );
         temporalImageCounts.push_back( statistics.temporalNumberImages );
@@ -4374,7 +4465,19 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
                                        "roundoff clamps by annulus" );
     head.template append<std::string>( "P4 EXPLICIT FALLBACKS",
                                        p4Join( explicitFallbackCounts ),
-                                       "recomputed target fits by annulus" );
+                                       "recomputed target rows by annulus" );
+    head.template append<std::string>( "P4 RANK BOUNDARY FALLBACK PIXELS",
+                                       p4Join( rankBoundaryFallbackPixelCounts ),
+                                       "rank-boundary fallback search pixels by annulus" );
+    head.template append<std::string>( "P4 FACTOR VALIDATION FALLBACK PIXELS",
+                                       p4Join( factorValidationFallbackPixelCounts ),
+                                       "factor-validation fallback search pixels by annulus" );
+    head.template append<std::string>( "P4 MAX FACTOR ORTHOGONALITY DEFECT",
+                                       p4Join( maximumFactorOrthogonalityDefects ),
+                                       "maximum rejected factor defect by annulus" );
+    head.template append<std::string>( "P4 FACTOR TOLERANCE AT MAX DEFECT",
+                                       p4Join( factorOrthogonalityTolerancesAtMaximumDefect ),
+                                       "factor tolerance paired with maximum defect" );
     head.template append<std::string>( "P4 SEARCH PIXEL COUNT", p4Join( searchCounts ), "search pixels by annulus" );
     head.template append<std::string>( "P4 TARGET IMAGE COUNT",
                                        p4Join( targetImageCounts ),

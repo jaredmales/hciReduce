@@ -39,6 +39,15 @@ enum class P4ExclusionSolver : std::uint8_t
     factorDowndateExact ///< Delete target rows from one complete safely represented base factorization.
 };
 
+/// Reason an exact factor-downdated search pixel was recomputed with the explicit held-out oracle.
+/** \ingroup programming_library */
+enum class P4PCAFallbackReason : std::uint8_t
+{
+    none,            ///< The factor-downdated calculation completed without an explicit fallback.
+    rankBoundary,    ///< A downdated eigenvalue was numerically indistinguishable from the rank threshold.
+    factorValidation ///< The base temporal factor failed its numerical orthogonality validation.
+};
+
 /// Storage model used by a compact collection of target-specific deleted rows.
 /** \ingroup programming_library */
 enum class P4ExclusionStorage : std::uint8_t
@@ -144,8 +153,17 @@ struct P4PCAResult
     /// Number of roundoff-scale negative deletion-core eigenvalues clamped across target rows.
     std::size_t downdateClampCount{ 0 };
 
-    /// Number of target rows recomputed by the explicit oracle after a rank-threshold ambiguity.
+    /// Number of target rows recomputed by the explicit oracle after a recoverable downdate condition.
     std::size_t explicitFallbackCount{ 0 };
+
+    /// Reason the complete search pixel was recomputed by the explicit oracle.
+    P4PCAFallbackReason explicitFallbackReason{ P4PCAFallbackReason::none };
+
+    /// Maximum absolute temporal-factor Gram defect that triggered factor-validation fallback, or zero.
+    double factorOrthogonalityDefect{ 0 };
+
+    /// Accepted temporal-factor Gram-defect tolerance when factor-validation fallback occurred, or zero.
+    double factorOrthogonalityTolerance{ 0 };
 
     /// Optional per-sample, per-mode rank validity used by held-out fits; empty means modeStatus applies to every row.
     Eigen::Array<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic> sampleValidity;
@@ -258,9 +276,10 @@ struct P4PCA
      * compact exclusion set is passed to mxlib's full-spectrum leading-covariance deletion backend, after which the
      * existing held-out principal-component regression is evaluated entirely in factor coordinates. This path is
      * algebraically exact for the represented base design; the explicit calculateHeldOut() method remains the oracle.
-     * If any post-deletion eigenvalue is numerically indistinguishable from the rank threshold, every target for that
-     * search pixel is recomputed with calculateHeldOut() and P4PCAResult::explicitFallbackCount is set to the number
-     * of recomputed target fits. Unsafe base factors and deletion-solver failures throw instead of falling back.
+     * If the temporal factor fails only its numerical orthogonality bound, or if any post-deletion eigenvalue is
+     * numerically indistinguishable from the rank threshold, every target for that search pixel is recomputed with
+     * calculateHeldOut(). P4PCAResult records the fallback count, reason, and factor defect when applicable. Other
+     * unsafe base states and deletion-solver failures throw instead of falling back.
      */
     static void calculateHeldOutDowndated(
         P4PCAResult &output,                       /**< [out] held-out residuals and deletion diagnostics */

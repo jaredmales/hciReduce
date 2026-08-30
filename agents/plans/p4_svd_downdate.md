@@ -494,7 +494,7 @@ allocates on every call, and currently lacks the workspace/error contract needed
 - Factor base-spectrum preparation and factor-space response calculation into focused private helpers.
 - Return the same `P4PCAResult`: `T x M` residuals, `T x M` sample validity, per-mode status, and rank diagnostics.
 - Keep fallback deliberate and internally consistent. If one target has an ambiguous rank boundary, recompute every
-  target for that search pixel with the explicit oracle and record both the reason and the number of target fits.
+  target row for that search pixel with the explicit oracle and record both the reason and the number of target rows.
 
 ### `P4Reduction`
 
@@ -558,14 +558,16 @@ The first P4 integration slice now has a concrete code boundary, but it is not y
   `P4PCA::calculateHeldOutDowndated()` path constructs a complete safely represented base factor and calls mxlib's
   double `leadingCovariance` row-deletion backend independently for every target.
 - `p4.exclusionSolver=explicitRefit` remains the default. `factorDowndateExact` is an explicit opt-in and has no
-  unrecorded direct-refit fallback. If any deleted spectrum is within a dimension- and scale-aware FP64 guard band of
-  the configured rank threshold, the whole search pixel is recomputed with the explicit oracle so every residual,
-  rank, and validity decision remains internally consistent. Unsafe bases and deletion-solver failures still reject
-  the reduction. The initial unsupported-combination restrictions remain unchanged.
+  unrecorded direct-refit fallback. If the base temporal factor fails only its orthogonality validation, or if any
+  deleted spectrum is within a dimension- and scale-aware FP64 guard band of the configured rank threshold, the
+  whole search pixel is recomputed with the explicit oracle so every residual, rank, and validity decision remains
+  internally consistent. Other unsafe bases, deletion-solver failures, and failures of the explicit oracle still
+  reject the reduction. The initial unsupported-combination restrictions remain unchanged.
 - P4 has per-worker mxlib deletion workspaces, deletion-aware memory estimates, and FITS cards for solver, rank model,
   full-base state, deletion backend, compact exclusion storage, base rank, maximum deletion count, clamp count, and
-  explicit-fallback count. `P4 EXPLICIT FALLBACKS` is the number of target fits recomputed in each annulus, so one
-  ambiguous search pixel contributes `T`; the configured solver and deletion-backend cards remain
+  explicit-fallback count. `P4 EXPLICIT FALLBACKS` is the number of target rows recomputed in each annulus, so one
+  fallback search pixel contributes `T`; reason-specific search-pixel counts and the maximum rejected-factor defect
+  with its paired tolerance are recorded separately. The configured solver and deletion-backend cards remain
   `factorDowndateExact` and `leadingCovariance`.
 
 The first external-consumer verification exposed an Eigen ABI hazard rather than a downdate-equation failure. mxlib
@@ -602,21 +604,33 @@ focused `P4PCA` cases, and the final staged mismatch passes all 56,598 assertion
 mixed-alignment ASan/UBSan consumer also passes the 855 `P4PCA` assertions, and the reduced application completes all
 four regressions and writes its final output without a sanitizer diagnostic.
 
-A `factorNotOrthonormal` status, if it occurs after this memory-safety fix, is a separate numerical question rather
-than another allocator symptom. P4 now includes the measured `max|L^T L-I|` defect and the automatic tolerance in
-that error. Record those values on the production Gram before considering a change from the current `SYEVR` driver;
-compare `SYEVR`, `SYEVD`, and a direct-SVD oracle as a later accuracy/performance experiment rather than using a
-solver change to mask the ABI failure.
+A `factorNotOrthonormal` status after this memory-safety fix is a separate numerical question rather than another
+allocator symptom. P4 measures `max|L^T L-I|` and retains the accepted tolerance. It does not use the rejected factor:
+the existing exact held-out oracle recomputes every target row for that search pixel and the reduction continues. The
+fallback reason and numerical measurements remain visible in console and FITS provenance. Compare `SYEVR`, `SYEVD`,
+and a direct-SVD oracle as a later accuracy/performance experiment if the fallback rate or worker-time cost is
+nontrivial; do not use a solver change merely to mask the earlier ABI failure.
 
 The first post-ABI remote run reached annulus `[10,12)` before reporting `max|L^T L-I|=1.0274e-11` against the
 mxlib automatic bound `64 epsilon 621=8.8249e-12`. This is the `T<=K` temporal-Gram branch, so the factor is copied
 directly from the complete `SYEVR` eigensystem rather than formed through division by small singular values. The
 observed defect is only `1.164` times the original bound. P4 therefore supplies the explicit solver-specific
 acceptance bound `128 epsilon max(T,q)` while mxlib retains its stricter general default. A controlled eigensolver
-test admits a defect between those two bounds and continues to reject a materially nonorthonormal factor. If a
-production factor exceeds the P4 bound, retain the measured failure and compare `SYEVD` with the direct-SVD oracle.
-The matching local 621-image, 2988-predictor annulus completed all 132 search pixels under the P4 bound. Do not
-reorthogonalize the temporal factor alone because that would make it inconsistent with the unchanged singular values.
+test admits a defect between those two bounds. The matching local 621-image, 2988-predictor annulus completed all 132
+search pixels under the P4 bound, and the next ROC run also completed that annulus. The following `[12,14)` annulus,
+however, produced `max|L^T L-I|=4.8173e-11`, or `2.73` times the P4 bound and above even
+`256 epsilon max(T,q)`. This second observation demonstrates that repeatedly relaxing a fixed constant would chase a
+variable `SYEVR` orthogonality tail. P4 therefore retains the 128-scaled bound and sends any larger defect to the
+recorded exact-oracle fallback. Do not reorthogonalize the temporal factor alone because that would make it
+inconsistent with the unchanged singular values.
+
+The exact-fallback slice passes 905 assertions in 25 focused `P4PCA` cases against the staged ABI-v2 mxlib build.
+Those cases compare complete residual and validity products with `calculateHeldOut()`, cover accepted and rejected
+factor defects, preserve the separate rank-boundary reason, and keep non-orthogonality-unrelated validation failures
+fatal. The full `P4Reduction` executable passes 56,665 assertions in 20 cases, including a two-worker forced
+factor-validation fallback and exact console, FITS-header, and `p4RegionSummary.fits` provenance checks. The
+documentation target, formatting check, and whitespace check also pass; the documentation build retains only its
+pre-existing warnings.
 
 This is the requested stop-and-review point for P4 integration. Before beginning bounded-rank work or treating the
 backend as an optimization, the open gates are an exact-path one-versus-multiple-worker product comparison with inner

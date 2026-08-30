@@ -95,14 +95,16 @@
  * rows with mxlib's dense `leadingCovariance` SVD-deletion backend. Downdates are never chained between targets. The
  * science rank threshold is applied after deletion, so it is not used to truncate the base factorization.
  *
- * An unsafe or inconsistent complete base, or a deletion-solver failure, rejects the reduction. One deliberately
- * recorded exception protects the strict post-deletion rank decision: if a downdated eigenvalue is numerically
- * indistinguishable from `p4.rankTolerance * lambdaMax`, P4 recomputes every target fit for that search pixel with
- * the explicit oracle. The number of recomputed target fits is reported and stored in the FITS provenance, so this
- * fallback cannot silently change the backend history. The current dense deletion core still solves a `q x q`
- * symmetric problem for every target. It is a correctness integration and may provide little speedup, or be slower,
- * when `q` approaches the structural rank. A later structured diagonal-minus-low-rank solver is needed before a
- * performance benefit should be assumed.
+ * P4 never uses a base temporal factor which fails its numerical orthogonality check. Instead, it recomputes every
+ * target row for that search pixel with the explicit oracle and continues the reduction. The same whole-pixel
+ * fallback protects the strict post-deletion rank decision when a downdated eigenvalue is numerically
+ * indistinguishable from `p4.rankTolerance * lambdaMax`. Results from a successful explicit fallback are ordinary
+ * valid science samples, but the fallback reason, number of affected search pixels, number of recomputed target
+ * rows, and maximum rejected-factor defect and tolerance are retained as provenance. Other unsafe base states,
+ * deletion-solver failures, and failures of the explicit oracle remain hard errors. The current dense deletion core
+ * still solves a `q x q` symmetric problem for every target. It is a correctness integration and may provide little
+ * speedup, or be slower, when `q` approaches the structural rank. A later structured diagonal-minus-low-rank solver
+ * is needed before a performance benefit should be assumed.
  *
  * Exclusion selection is stored as deleted rows rather than one retained-row vector per target. `imno` windows use
  * compact half-open spans, including their naturally shortened dataset endpoints without wraparound. `angle` and
@@ -115,8 +117,11 @@
  * `HIERARCH P4 DELETION BACKEND`. Storage and rank diagnostics are recorded by
  * `HIERARCH P4 TARGET EXCLUSION BYTES`, `HIERARCH P4 BASE RANK`, `HIERARCH P4 MAX DELETED ROWS`,
  * `HIERARCH P4 EXCLUSION STORAGE BYTES`, `HIERARCH P4 DELETION CLAMPS`, and
- * `HIERARCH P4 EXPLICIT FALLBACKS`, with per-annulus values where applicable. `HIERARCH P4 MINIMUM RANK` continues
- * to report the minimum post-exclusion numerical rank.
+ * `HIERARCH P4 EXPLICIT FALLBACKS`, with per-annulus values where applicable. Reason-specific fallback provenance is
+ * recorded by `HIERARCH P4 RANK BOUNDARY FALLBACK PIXELS`,
+ * `HIERARCH P4 FACTOR VALIDATION FALLBACK PIXELS`, `HIERARCH P4 MAX FACTOR ORTHOGONALITY DEFECT`, and
+ * `HIERARCH P4 FACTOR TOLERANCE AT MAX DEFECT`. `HIERARCH P4 MINIMUM RANK` continues to report the minimum
+ * post-exclusion numerical rank.
  *
  * `sampleCenter` reproduces the prototype's center-only signal exclusion. `kernelSupport` rejects a predictor when
  * its nominal cubic footprint intersects the exclusion disk.

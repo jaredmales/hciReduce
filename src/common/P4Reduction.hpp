@@ -77,11 +77,19 @@ struct P4RegionStatistics
 
     int minimumBaseRank{ 0 };      ///< Minimum factor base rank, or zero when the explicit solver is used.
 
-    std::size_t downdateClampCount{ 0 };          ///< Roundoff-scale negative core eigenvalues clamped in this annulus.
+    std::size_t downdateClampCount{ 0 };    ///< Roundoff-scale negative core eigenvalues clamped in this annulus.
 
-    std::size_t explicitFallbackCount{ 0 };       ///< Target rows recomputed by the explicit rank-boundary oracle.
+    std::size_t explicitFallbackCount{ 0 }; ///< Target rows recomputed by the explicit oracle for any reason.
 
-    std::size_t validLocalFitCount{ 0 };          ///< Number of local fits accepted by the common mask.
+    std::size_t rankBoundaryFallbackPixelCount{ 0 }; ///< Search pixels explicitly refit at a rank-boundary ambiguity.
+
+    std::size_t factorValidationFallbackPixelCount{ 0 }; ///< Search pixels explicitly refit after factor validation.
+
+    double maximumFactorOrthogonalityDefect{ 0 }; ///< Largest factor defect among validation-fallback search pixels.
+
+    double factorOrthogonalityToleranceAtMaximumDefect{ 0 }; ///< Tolerance paired with the largest factor defect.
+
+    std::size_t validLocalFitCount{ 0 };                     ///< Number of local fits accepted by the common mask.
 
     std::size_t maskedLocalFitCount{ 0 };         ///< Number of complete local fits rejected by the common mask.
 
