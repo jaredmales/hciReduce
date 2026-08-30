@@ -158,6 +158,8 @@ The resident GPU eigensolver benchmark in `e052ddd` showed that direct batched G
 parallel CPU baseline on the tested RTX 3050 Ti. The production CPU path now uses the Long--Males factor-deletion
 formulation; the direct GPU decomposition remains a comparison benchmark rather than a production backend.
 
+[] Add the factor-deletion method to klip processing for image exclusion.
+
 ## Other solvers
 
 [] SVD (which is equivalent to eigendecompositon for a covariance matrix)
