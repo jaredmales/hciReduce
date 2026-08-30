@@ -68,6 +68,9 @@ void p4AccumulateTiming( ReductionTiming &total, /**< [in,out] accumulated sessi
     total.temporalSamplingWorkerSeconds += evaluation.temporalSamplingWorkerSeconds;
     total.gramWorkerSeconds += evaluation.gramWorkerSeconds;
     total.eigensolveWorkerSeconds += evaluation.eigensolveWorkerSeconds;
+    total.baseFactorWorkerSeconds += evaluation.baseFactorWorkerSeconds;
+    total.deletionWorkerSeconds += evaluation.deletionWorkerSeconds;
+    total.explicitFallbackWorkerSeconds += evaluation.explicitFallbackWorkerSeconds;
     total.modeWorkerSeconds += evaluation.modeWorkerSeconds;
     total.projectionWorkerSeconds += evaluation.projectionWorkerSeconds;
     total.psfWorkerSeconds += evaluation.psfWorkerSeconds;

@@ -69,6 +69,7 @@
  * | `adi.excludeMethod` | `none` preserves the in-sample fit. `pixel`, `angle`, and `imno` select references for target-frame exclusion within the inclusive `adi.minDPx` threshold, with the same semantics as KLIP. |
  * | `adi.minDPx` | Nonnegative exclusion threshold: pixels at the annulus inner radius for `pixel`, degrees for `angle`, or target-row distance for `imno`. A non-`none` method with zero excludes exactly the target row. |
  * | `p4.exclusionSolver` | Held-out regression solver: `explicitRefit` (default) or the opt-in `factorDowndateExact` correctness backend. This target requires a non-`none` `adi.excludeMethod`. |
+ * | `p4.deletionBackend` | Factor-deletion implementation: `leadingCovariance` (default, dense, supports one or more deleted rows) or the opt-in `rankOneSecular` structured backend. The structured backend requires `p4.exclusionSolver=factorDowndateExact` and exactly one deleted row for every active target. |
  * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames added to each predictor row; `0` is the compatibility default. |
  * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
@@ -92,8 +93,28 @@
  * `explicitRefit` is the default and numerical oracle. For every target frame, it materializes the retained-row
  * complement and directly refits that target's retained design. `factorDowndateExact` instead factors one immutable,
  * complete safely represented base design for each search pixel, then independently removes each target's deleted
- * rows with mxlib's dense `leadingCovariance` SVD-deletion backend. Downdates are never chained between targets. The
- * science rank threshold is applied after deletion, so it is not used to truncate the base factorization.
+ * rows with the configured mxlib SVD-deletion backend. Downdates are never chained between targets. The science rank
+ * threshold is applied after deletion, so it is not used to truncate the base factorization.
+ *
+ * `leadingCovariance` is the compatibility default. It constructs and diagonalizes a dense `q x q` covariance core
+ * and supports one or more deleted rows. `rankOneSecular` uses the diagonal-minus-rank-one structure of a one-row
+ * deletion and reduces its per-target core to `O(q^2)` work and storage. It is deliberately opt-in: P4 validates the
+ * actual compact exclusion pattern before starting regression and rejects the configuration unless every target
+ * that retains any rows deletes exactly one row. A target whose exclusion removes every row remains the existing
+ * rank-zero invalid result and does not invoke mxlib. P4 never silently substitutes the dense backend for an
+ * unsupported multirow structured request.
+ *
+ * A one-row leave-one-out run therefore uses:
+ *
+ * \code{.ini}
+ * [adi]
+ * excludeMethod=imno
+ * minDPx=0
+ *
+ * [p4]
+ * exclusionSolver=factorDowndateExact
+ * deletionBackend=rankOneSecular
+ * \endcode
  *
  * P4 never uses a base temporal factor which fails its numerical orthogonality check. Instead, it recomputes every
  * target row for that search pixel with the explicit oracle and continues the reduction. The same whole-pixel
@@ -101,10 +122,11 @@
  * indistinguishable from `p4.rankTolerance * lambdaMax`. Results from a successful explicit fallback are ordinary
  * valid science samples, but the fallback reason, number of affected search pixels, number of recomputed target
  * rows, and maximum rejected-factor defect and tolerance are retained as provenance. Other unsafe base states,
- * deletion-solver failures, and failures of the explicit oracle remain hard errors. The current dense deletion core
- * still solves a `q x q` symmetric problem for every target. It is a correctness integration and may provide little
- * speedup, or be slower, when `q` approaches the structural rank. A later structured diagonal-minus-low-rank solver
- * is needed before a performance benefit should be assumed.
+ * invalid backend contracts, dense deletion-solver failures, and failures of the explicit oracle remain hard errors.
+ * A recoverable numerical failure from `rankOneSecular`, including a positive LAPACK convergence status, instead
+ * recomputes every target row for that search pixel once with the explicit oracle. A negative LAPACK status denotes
+ * an illegal argument and remains a hard error. This whole-search-pixel policy prevents a result from mixing
+ * structured and direct target rows. The structured backend does not yet support multiple deleted rows.
  *
  * Exclusion selection is stored as deleted rows rather than one retained-row vector per target. `imno` windows use
  * compact half-open spans, including their naturally shortened dataset endpoints without wraparound. `angle` and
@@ -119,9 +141,11 @@
  * `HIERARCH P4 EXCLUSION STORAGE BYTES`, `HIERARCH P4 DELETION CLAMPS`, and
  * `HIERARCH P4 EXPLICIT FALLBACKS`, with per-annulus values where applicable. Reason-specific fallback provenance is
  * recorded by `HIERARCH P4 RANK BOUNDARY FALLBACK PIXELS`,
- * `HIERARCH P4 FACTOR VALIDATION FALLBACK PIXELS`, `HIERARCH P4 MAX FACTOR ORTHOGONALITY DEFECT`, and
- * `HIERARCH P4 FACTOR TOLERANCE AT MAX DEFECT`. `HIERARCH P4 MINIMUM RANK` continues to report the minimum
- * post-exclusion numerical rank.
+ * `HIERARCH P4 FACTOR VALIDATION FALLBACK PIXELS`,
+ * `HIERARCH P4 DELETION SOLVER FALLBACK PIXELS`, `HIERARCH P4 MAX FACTOR ORTHOGONALITY DEFECT`, and
+ * `HIERARCH P4 FACTOR TOLERANCE AT MAX DEFECT`. `HIERARCH P4 DELETION BACKEND` records the selected mxlib backend
+ * for `factorDowndateExact` and `none` for the explicit solver. `HIERARCH P4 MINIMUM RANK` continues to report the
+ * minimum post-exclusion numerical rank.
  *
  * `sampleCenter` reproduces the prototype's center-only signal exclusion. `kernelSupport` rejects a predictor when
  * its nominal cubic footprint intersects the exclusion disk.
@@ -152,9 +176,9 @@
  * result; `output.outputPSFSub=true` also uses the retained-cube path so every per-frame product remains available.
  *
  * P4 estimates private PCA workspace from each annulus's temporal sample count, predictor count, requested output
- * count, selected exclusion solver, and maximum deleted-row count. The estimate includes the exact factor backend's
- * base factors, dense core, rotations, deletion scratch, and mxlib workspace. With the default
- * `p4.memoryFraction=0.8`, Linux `MemAvailable` supplies a future-allocation budget. P4 first verifies that compact
+ * count, selected exclusion solver and deletion backend, and maximum deleted-row count. The estimate includes the
+ * exact factor backend's base factors, deletion core, rotations, deletion scratch, and mxlib workspace. With the
+ * default `p4.memoryFraction=0.8`, Linux `MemAvailable` supplies a future-allocation budget. P4 first verifies that compact
  * residuals, compact deleted-row patterns, and one materialized output pair fit, then caps that annulus's OpenMP
  * worker count so its compact storage plus the estimated concurrent workspaces remain inside the budget. A lower
  * `OMP_NUM_THREADS` value is always respected. The selected and pre-limit worker counts and the per-worker estimate

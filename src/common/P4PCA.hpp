@@ -43,9 +43,10 @@ enum class P4ExclusionSolver : std::uint8_t
 /** \ingroup programming_library */
 enum class P4PCAFallbackReason : std::uint8_t
 {
-    none,            ///< The factor-downdated calculation completed without an explicit fallback.
-    rankBoundary,    ///< A downdated eigenvalue was numerically indistinguishable from the rank threshold.
-    factorValidation ///< The base temporal factor failed its numerical orthogonality validation.
+    none,             ///< The factor-downdated calculation completed without an explicit fallback.
+    rankBoundary,     ///< A downdated eigenvalue was numerically indistinguishable from the rank threshold.
+    factorValidation, ///< The base temporal factor failed its numerical orthogonality validation.
+    deletionSolver    ///< The selected structured row-deletion solver reported a recoverable numerical failure.
 };
 
 /// Storage model used by a compact collection of target-specific deleted rows.
@@ -177,11 +178,17 @@ struct P4PCAResult
 /** \ingroup programming_library */
 struct P4PCATiming
 {
-    double gramWorkerSeconds{ 0 };       ///< Time to form the selected normal equations.
+    double gramWorkerSeconds{ 0 };             ///< Time to form the selected normal equations.
 
-    double eigensolveWorkerSeconds{ 0 }; ///< Time in the eigensolver and rank selection.
+    double eigensolveWorkerSeconds{ 0 };       ///< Time in the eigensolver and rank selection.
 
-    double projectionWorkerSeconds{ 0 }; ///< Time to project modes and construct residuals.
+    double baseFactorWorkerSeconds{ 0 };       ///< Time to construct the complete reusable singular system.
+
+    double deletionWorkerSeconds{ 0 };         ///< Time in target-specific row-deletion solves.
+
+    double explicitFallbackWorkerSeconds{ 0 }; ///< Wall time in a complete explicit held-out fallback.
+
+    double projectionWorkerSeconds{ 0 };       ///< Time to project modes and construct residuals.
 };
 
 /// Reusable worker-private storage for exact P4 factor deletion.
@@ -271,7 +278,7 @@ struct P4PCA
         workspaceT &workspace,                /**< [in,out] caller-owned, non-shared LAPACK workspace */
         P4PCATiming *timing = nullptr /**< [out] optional aggregate worker timing for all refits */ );
 
-    /// Calculate exact target-held-out residuals by deleting rows from one complete base factorization.
+    /// Calculate exact target-held-out residuals with the default dense deletion backend.
     /** The base keeps every safely representable singular triplet independently of \p rankTolerance. Each target's
      * compact exclusion set is passed to mxlib's full-spectrum leading-covariance deletion backend, after which the
      * existing held-out principal-component regression is evaluated entirely in factor coordinates. This path is
@@ -290,6 +297,25 @@ struct P4PCA
         double rankTolerance,                      /**< [in] finite nonnegative threshold relative to lambdaMax */
         workspaceT &eigensolverWorkspace,          /**< [in,out] reusable base eigensolver workspace */
         P4PCADowndateWorkspace &downdateWorkspace, /**< [in,out] reusable factor-deletion storage */
+        P4PCATiming *timing = nullptr /**< [out] optional aggregate base, deletion, and projection timing */ );
+
+    /// Calculate exact target-held-out residuals with an explicitly selected row-deletion backend.
+    /** `leadingCovariance` accepts arbitrary validated exclusion sizes. `rankOneSecular` requires exactly one deleted
+     * row for every target that retains any training rows; all-row-excluded targets remain valid rank-zero skips. The
+     * backend is selected once for the entire search pixel. Recoverable structured-solver failures discard any partial
+     * target results and recompute the complete search pixel with calculateHeldOut(). Other invalid or resource-failure
+     * states throw.
+     */
+    static void calculateHeldOutDowndated(
+        P4PCAResult &output,                          /**< [out] held-out residuals and deletion diagnostics */
+        const matrixT &predictors,                    /**< [in] finite full T-by-K predictor matrix */
+        const vectorT &target,                        /**< [in] finite full T-sample target time series */
+        const P4TargetExclusions &exclusions,         /**< [in] compact deleted-row pattern for every target row */
+        const std::vector<int> &modes,                /**< [in] positive, strictly increasing retained counts */
+        double rankTolerance,                         /**< [in] finite nonnegative threshold relative to lambdaMax */
+        mx::math::svdDeletionBackend deletionBackend, /**< [in] supported dense or one-row structured backend */
+        workspaceT &eigensolverWorkspace,             /**< [in,out] reusable base eigensolver workspace */
+        P4PCADowndateWorkspace &downdateWorkspace,    /**< [in,out] reusable factor-deletion storage */
         P4PCATiming *timing = nullptr /**< [out] optional aggregate base, deletion, and projection timing */ );
 
     /// Calculate a temporally centered fit and apply its predictor coefficients to the uncentered data.

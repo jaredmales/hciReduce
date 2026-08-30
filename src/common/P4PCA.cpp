@@ -129,6 +129,7 @@ void p4PCAExplicitFallback(
     const double factorOrthogonalityTolerance = output.factorOrthogonalityTolerance;
     P4PCAResult explicitResult;
     P4PCATiming explicitTiming;
+    const auto explicitBegin = std::chrono::steady_clock::now();
     P4PCA::calculateHeldOut( explicitResult,
                              predictors,
                              target,
@@ -149,7 +150,36 @@ void p4PCAExplicitFallback(
         timing->gramWorkerSeconds += explicitTiming.gramWorkerSeconds;
         timing->eigensolveWorkerSeconds += explicitTiming.eigensolveWorkerSeconds;
         timing->projectionWorkerSeconds += explicitTiming.projectionWorkerSeconds;
+        timing->explicitFallbackWorkerSeconds +=
+            std::chrono::duration<double>( std::chrono::steady_clock::now() - explicitBegin ).count();
     }
+}
+
+/// Return whether a structured deletion failure can be replaced safely by the complete explicit oracle.
+bool p4PCARecoverableStructuredFailure(
+    mx::math::svdDeletionStatus status, /**< [in] failed deletion status */
+    MXLAPACK_INT lapackInfo /**< [in] underlying LAPACK status, when the solver was entered */ )
+{
+    switch( status )
+    {
+    case mx::math::svdDeletionStatus::solverFailure:
+        return lapackInfo > 0;
+    case mx::math::svdDeletionStatus::nonFiniteOutput:
+    case mx::math::svdDeletionStatus::invalidSolverOutput:
+    case mx::math::svdDeletionStatus::rescalingOverflow:
+    case mx::math::svdDeletionStatus::nonPositiveSemidefinite:
+        return true;
+    case mx::math::svdDeletionStatus::notComputed:
+    case mx::math::svdDeletionStatus::success:
+    case mx::math::svdDeletionStatus::successWithClamping:
+    case mx::math::svdDeletionStatus::invalidInput:
+    case mx::math::svdDeletionStatus::allocationFailure:
+    case mx::math::svdDeletionStatus::workspaceQueryFailure:
+    case mx::math::svdDeletionStatus::factorNotOrthonormal:
+    case mx::math::svdDeletionStatus::unsupportedDeletionCount:
+        return false;
+    }
+    return false;
 }
 
 /// Validate one P4PCA request against its path-specific structural degree-of-freedom limit.
@@ -975,6 +1005,29 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
                                        P4PCADowndateWorkspace &downdateWorkspace,
                                        P4PCATiming *timing )
 {
+    calculateHeldOutDowndated( output,
+                               predictors,
+                               target,
+                               exclusions,
+                               modes,
+                               rankTolerance,
+                               mx::math::svdDeletionBackend::leadingCovariance,
+                               eigensolverWorkspace,
+                               downdateWorkspace,
+                               timing );
+}
+
+void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
+                                       const matrixT &predictors,
+                                       const vectorT &target,
+                                       const P4TargetExclusions &exclusions,
+                                       const std::vector<int> &modes,
+                                       double rankTolerance,
+                                       mx::math::svdDeletionBackend deletionBackend,
+                                       workspaceT &eigensolverWorkspace,
+                                       P4PCADowndateWorkspace &downdateWorkspace,
+                                       P4PCATiming *timing )
+{
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
     const Eigen::Index structuralBaseRank = std::min( sampleCount, predictorCount );
@@ -986,6 +1039,11 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
     if( exclusions.sampleCount() != sampleCount || exclusions.targetCount() != sampleCount )
     {
         throw std::invalid_argument( "P4PCA downdate exclusions must match the predictor row count" );
+    }
+    if( deletionBackend != mx::math::svdDeletionBackend::leadingCovariance &&
+        deletionBackend != mx::math::svdDeletionBackend::rankOneSecular )
+    {
+        throw std::invalid_argument( "P4PCA supports only leadingCovariance and rankOneSecular deletion backends" );
     }
 
     output.residuals.resize( sampleCount, static_cast<Eigen::Index>( modes.size() ) );
@@ -1015,6 +1073,18 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
         {
             hasRetainedTarget = true;
             maximumActiveDeleted = std::max( maximumActiveDeleted, deletedCount );
+        }
+    }
+    if( deletionBackend == mx::math::svdDeletionBackend::rankOneSecular && hasRetainedTarget )
+    {
+        for( Eigen::Index targetIndex = 0; targetIndex < sampleCount; ++targetIndex )
+        {
+            const Eigen::Index deletedCount = exclusions.deletedCount( targetIndex );
+            if( deletedCount < sampleCount && deletedCount != 1 )
+            {
+                throw std::invalid_argument(
+                    "P4PCA rankOneSecular deletion requires exactly one deleted row for every retained target" );
+            }
         }
     }
     if( !hasRetainedTarget )
@@ -1128,6 +1198,7 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
         if( timing )
         {
             timing->eigensolveWorkerSeconds = secondsSince( baseSolveStart );
+            timing->baseFactorWorkerSeconds = timing->eigensolveWorkerSeconds;
         }
         return;
     }
@@ -1147,6 +1218,7 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
         if( timing )
         {
             timing->eigensolveWorkerSeconds = secondsSince( baseSolveStart );
+            timing->baseFactorWorkerSeconds = timing->eigensolveWorkerSeconds;
         }
         p4PCAExplicitFallback( output,
                                predictors,
@@ -1164,9 +1236,7 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
     const mx::math::svdDeletionStatus resultPrepareStatus =
         downdateWorkspace.m_deletionResult.prepare( baseRank, maximumOutputRank );
     const mx::math::svdDeletionStatus workspacePrepareStatus =
-        downdateWorkspace.m_deletionWorkspace.prepare( baseRank,
-                                                       maximumActiveDeleted,
-                                                       mx::math::svdDeletionBackend::leadingCovariance );
+        downdateWorkspace.m_deletionWorkspace.prepare( baseRank, maximumActiveDeleted, deletionBackend );
     if( !mx::math::svdDeletionSucceeded( resultPrepareStatus ) ||
         !mx::math::svdDeletionSucceeded( workspacePrepareStatus ) )
     {
@@ -1185,6 +1255,7 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
     if( timing )
     {
         timing->eigensolveWorkerSeconds = secondsSince( baseSolveStart );
+        timing->baseFactorWorkerSeconds = timing->eigensolveWorkerSeconds;
     }
 
     bool requiresExplicitOracle{ false };
@@ -1216,9 +1287,29 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
                                              deleted,
                                              requestedOutputRank,
                                              downdateWorkspace.m_deletionWorkspace,
-                                             mx::math::svdDeletionBackend::leadingCovariance );
+                                             deletionBackend );
+        const double deletionSeconds = secondsSince( deletionStart );
+        if( timing )
+        {
+            timing->eigensolveWorkerSeconds += deletionSeconds;
+            timing->deletionWorkerSeconds += deletionSeconds;
+        }
         if( !mx::math::svdDeletionSucceeded( deletionStatus ) )
         {
+            if( deletionBackend == mx::math::svdDeletionBackend::rankOneSecular &&
+                p4PCARecoverableStructuredFailure( deletionStatus, downdateWorkspace.m_deletionResult.lapackInfo() ) )
+            {
+                p4PCAExplicitFallback( output,
+                                       predictors,
+                                       target,
+                                       exclusions,
+                                       modes,
+                                       rankTolerance,
+                                       eigensolverWorkspace,
+                                       P4PCAFallbackReason::deletionSolver,
+                                       timing );
+                return;
+            }
             throw std::runtime_error( "P4PCA row deletion failed for target " + std::to_string( heldOut ) +
                                       " with status " + mx::math::svdDeletionStatusName( deletionStatus ) +
                                       " and LAPACK status " +
@@ -1226,11 +1317,6 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
         }
         output.downdateClampCount +=
             static_cast<std::size_t>( downdateWorkspace.m_deletionResult.clampedEigenvalues() );
-        if( timing )
-        {
-            timing->eigensolveWorkerSeconds += secondsSince( deletionStart );
-        }
-
         const auto squaredSingularValues = downdateWorkspace.m_deletionResult.squaredSingularValues();
         int numericalRank{ 0 };
         const double largestEigenvalue = squaredSingularValues( 0 );

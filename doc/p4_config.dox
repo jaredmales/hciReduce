@@ -20,8 +20,10 @@
  *
  * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
- * | `--adi.excludeMethod` | `adi.excludeMethod=imno` | `HIERARCH P4 ADI EXCLUDE METHOD` | `none`, `pixel`, `angle`, or `imno` | `none` | Select exact per-target CPU refitting. `none` preserves the in-sample model. Non-`none` methods exclude every candidate at or inside `adi.minDPx`, including the target itself at zero. |
+ * | `--adi.excludeMethod` | `adi.excludeMethod=imno` | `HIERARCH P4 ADI EXCLUDE METHOD` | `none`, `pixel`, `angle`, or `imno` | `none` | Select target-frame reference exclusion. `none` preserves the in-sample model. Non-`none` methods exclude every candidate at or inside `adi.minDPx`, including the target itself at zero; `p4.exclusionSolver` chooses how the retained fit is calculated. |
  * | `--adi.minDPx` | `adi.minDPx=0` | `HIERARCH P4 ADI MIN DPX` | finite nonnegative real | `0` | Inclusive exclusion threshold in pixels at the annulus inner radius (`pixel`), degrees (`angle`), or temporal-row index (`imno`). |
+ * | `--p4.exclusionSolver` | `p4.exclusionSolver=factorDowndateExact` | `HIERARCH P4 EXCLUSION SOLVER` | `explicitRefit` or `factorDowndateExact` | `explicitRefit` | Select the direct retained-row oracle or exact deletion from one complete safely represented base factor. A non-`none` `adi.excludeMethod` is required. |
+ * | `--p4.deletionBackend` | `p4.deletionBackend=rankOneSecular` | `HIERARCH P4 DELETION BACKEND` | `leadingCovariance` or `rankOneSecular` | `leadingCovariance` | Select the mxlib factor-deletion implementation. `leadingCovariance` is dense and supports one or more deleted rows. `rankOneSecular` requires `factorDowndateExact` and exactly one deleted row for every active target. |
  * | `--mode` | `mode=basic` | — | `basic` or `normal` | `basic` | Exact aliases for one configured, target-only P4 reduction. |
  * | `--showTiming` | `showTiming=true` | — | bool | `false` | Print the completed P4 reduction timing report to standard output. |
  *
@@ -65,6 +67,14 @@
  * P4 automatically uses the smaller temporal or predictor Gram formulation and performs the normal-equation work in
  * double precision. The Gram choice is not a configurable backend. Exact target exclusion currently requires
  * detector-frame regression with `p4.numberImages=0` and does not support pixel-local or frozen-PSF products.
+ * `p4.deletionBackend` applies only to `p4.exclusionSolver=factorDowndateExact`; selecting `rankOneSecular` with the
+ * explicit solver is rejected rather than ignored. P4 checks the realized compact exclusion pattern before
+ * regression. With `rankOneSecular`, each target which retains any reference rows must delete exactly one row. A
+ * target whose exclusion removes every row retains the ordinary rank-zero invalid result without invoking mxlib.
+ * Recoverable structured-solver numerical failures, including positive LAPACK convergence statuses, trigger one
+ * explicit refit of the complete search-pixel time series, so a search pixel never mixes structured and direct
+ * target rows. Negative LAPACK statuses remain hard contract failures. Unsupported multirow structured exclusions
+ * are configuration errors and never silently select the dense backend.
  *
  * \section p4_memory_dictionary Memory and worker management
  *
@@ -115,13 +125,19 @@
  * annulus, completed/total local fits, rate, local ETA, and cumulative overall progress to
  * standard error. `p4Validity_*.fits` is in detector coordinates. Final and PSF-subtracted FITS products record
  * `HIERARCH P4 FRAME = 'detector'`.
- * `p4Timing.fits` schema 3 has one row, in seconds: geometry elapsed, regression elapsed, total sampling, same-image
- * target/OR sampling, additional-image PSF-disk sampling, Gram-construction, eigensolve/rank-selection, and
- * projection/residual aggregate OpenMP-worker time. Schema 4 appends aggregate local-PSF worker time when
- * `p4.psfFile` is set. Schema 5 appends elapsed final-field reconstruction/product time when either
- * `p4.outputPSFModels=true` or `p4.psfFilter=true`.
+ * `p4Timing.fits` schema 6 has one row, in seconds: geometry elapsed, regression elapsed, total sampling, same-image
+ * target/OR sampling, additional-image PSF-disk sampling, Gram-construction, eigensolve/rank-selection, reusable
+ * base-factor construction, row deletion, explicit oracle fallback, and projection/residual aggregate OpenMP-worker
+ * time. Base-factor and row-deletion time are subdivisions of the eigensolve aggregate. Explicit-fallback time
+ * measures the complete direct-oracle retry and therefore overlaps its phase-specific Gram, eigensolve, and
+ * projection totals; these diagnostic subfields must not be added to the aggregate total. Schema 7 appends aggregate
+ * local-PSF worker time when `p4.psfFile` is set. Schema 8 appends elapsed final-field reconstruction/product time
+ * when either `p4.outputPSFModels=true` or `p4.psfFilter=true`.
  * Worker totals can exceed elapsed time when local fits run concurrently; `HIERARCH P4 TIMING SCHEMA` and
  * `HIERARCH P4 TIMING COLUMNS` define the persisted layout.
+ * `p4RegionSummary.fits` schema 2 adds `deletionSolverFallbackPixelCount` beside the existing rank-boundary and
+ * factor-validation search-pixel counts. The final product header records the same per-annulus values in
+ * `HIERARCH P4 DELETION SOLVER FALLBACK PIXELS`.
  *
  * @}
  */

@@ -514,6 +514,7 @@ During validation, expose the implemented exact choices
 
 ```text
 p4.exclusionSolver=explicitRefit|factorDowndateExact
+p4.deletionBackend=leadingCovariance|rankOneSecular
 ```
 
 `factorDowndateExact` retains the complete safely represented rank. A future `factorDowndateProjected` choice would
@@ -521,6 +522,12 @@ use bounded `q` and be explicitly approximate; it is not currently accepted as a
 backend remains the default until the gates below pass. Do not add a user-visible guard-rank control until convergence
 measurements show that it is scientifically necessary; sweeps can initially use a diagnostic override. If it becomes
 public, define it as extra modes beyond `m_max+c_max`, not as a second interpretation of mode fractions.
+
+`leadingCovariance` remains the compatibility deletion backend and supports one or more deleted rows.
+`rankOneSecular` is an explicit one-row-only selection and is valid only with `factorDowndateExact`. Validate the
+realized compact exclusion pattern before regression: every active target must delete exactly one row. Preserve an
+all-rows-excluded target as the existing rank-zero invalid result, and reject any other multirow structured request
+rather than silently switching backends.
 
 Record at least:
 
@@ -530,6 +537,9 @@ Record at least:
 - dense or structured mxlib backend;
 - any roundoff clamps, failures, or explicit-fallback count; and
 - capped/minimum supported-rank information.
+
+Record the selected mxlib backend for `factorDowndateExact` and `none` for the explicit oracle. Keep separate
+search-pixel counts for rank-boundary, factor-validation, and structured deletion-solver fallback.
 
 ### Timing
 
@@ -545,6 +555,13 @@ Split held-out timing sufficiently to distinguish:
 Preserve existing aggregate timing fields or advance the timing schema deliberately, updating console YAML,
 `p4Timing.fits`, readers, and tests together.
 
+The structured integration advances `p4Timing.fits` to schemas 6/7/8. The common columns insert reusable-base-factor,
+row-deletion, and explicit-oracle-fallback worker seconds after the existing eigensolve aggregate. Base-factor and
+row-deletion time subdivide the eigensolve aggregate. Explicit-fallback time spans the entire direct-oracle retry and
+therefore overlaps the retry's Gram, eigensolve, and projection phase counters; it is diagnostic rather than an
+additional component of total worker time. Schemas 7 and 8 append the existing local-PSF and reconstruction fields,
+respectively.
+
 ## Current P4 integration and review checkpoint
 
 The first P4 integration slice now has a concrete code boundary, but it is not yet a promoted performance backend:
@@ -556,19 +573,21 @@ The first P4 integration slice now has a concrete code boundary, but it is not y
   flattened index storage. The direct oracle materializes retained complements only on demand.
 - `P4PCA::calculateHeldOut()` remains the direct retained-matrix oracle. The separate
   `P4PCA::calculateHeldOutDowndated()` path constructs a complete safely represented base factor and calls mxlib's
-  double `leadingCovariance` row-deletion backend independently for every target.
+  configured double row-deletion backend independently for every target.
 - `p4.exclusionSolver=explicitRefit` remains the default. `factorDowndateExact` is an explicit opt-in and has no
   unrecorded direct-refit fallback. If the base temporal factor fails only its orthogonality validation, or if any
   deleted spectrum is within a dimension- and scale-aware FP64 guard band of the configured rank threshold, the
   whole search pixel is recomputed with the explicit oracle so every residual, rank, and validity decision remains
-  internally consistent. Other unsafe bases, deletion-solver failures, and failures of the explicit oracle still
-  reject the reduction. The initial unsupported-combination restrictions remain unchanged.
+  internally consistent. A recoverable numerical failure of the selected structured deletion solver uses the same
+  whole-search-pixel fallback; invalid API contracts, dense deletion failures, and failures of the explicit oracle
+  still reject the reduction. The initial unsupported-combination restrictions remain unchanged.
 - P4 has per-worker mxlib deletion workspaces, deletion-aware memory estimates, and FITS cards for solver, rank model,
   full-base state, deletion backend, compact exclusion storage, base rank, maximum deletion count, clamp count, and
   explicit-fallback count. `P4 EXPLICIT FALLBACKS` is the number of target rows recomputed in each annulus, so one
   fallback search pixel contributes `T`; reason-specific search-pixel counts and the maximum rejected-factor defect
-  with its paired tolerance are recorded separately. The configured solver and deletion-backend cards remain
-  `factorDowndateExact` and `leadingCovariance`.
+  with its paired tolerance are recorded separately. The deletion-solver fallback has its own search-pixel count.
+  The configured solver and selected deletion backend are recorded separately; the direct oracle records deletion
+  backend `none`.
 
 The first external-consumer verification exposed an Eigen ABI hazard rather than a downdate-equation failure. mxlib
 was compiled with `-march=native`, while the ordinary hciReduce build was generic. On the 48-core ROC run this first
@@ -638,6 +657,84 @@ BLAS threading controlled, a forced application-level rank-boundary fallback inc
 memory-limit behavior, production-dimension timing and peak-RSS measurement, and a remote real-data science
 comparison. Passing those checks advances the full-rank correctness slice; it does not by itself satisfy the
 structured-performance or science-promotion steps below.
+
+The ROC timing baseline in `working/roc/finim_0059_timing.txt` used the exact factor path with the dense
+`leadingCovariance` backend over 5,024 search pixels. The P4 algorithm took 3,041.519 elapsed seconds. Its accumulated
+worker time was dominated by the existing combined eigensolve/downdate bucket: 132,504.042 worker seconds, or
+98.745% of the measured worker total, versus 996.304 seconds for Gram construction and 475.500 seconds for
+projection/residual work. This is essentially the same regression elapsed time as the preceding 3,032.06-second
+run, so it is the comparison baseline for the structured integration rather than evidence of a dense-path speedup.
+
+### Structured one-row mxlib checkpoint
+
+Step 8 now has a working mxlib-only `rankOneSecular` backend. For one deleted singular-factor row it evaluates the
+same normalized covariance core as `leadingCovariance`,
+
+```text
+H = diag(s^2) - z z^T,    z = s .* f,
+```
+
+by solving the positive rank-one problem `-H = diag(-s^2) + z z^T`. A LAPACK `LAED9` secular solve handles the active
+system after a DLAED2-style pass deflates negligible update components and clustered poles. Recorded Givens rotations
+embed the active eigenvectors back into the original factor coordinates in reverse order. The backend computes the
+complete spectrum for PSD and rank diagnostics, reconstructs only the requested leading rotation columns, reuses all
+workspace, and has `O(q^2)` time and storage per deletion after preparation.
+
+The provider call is owned by the output-first `mx::math::laed9<float/double>()` wrappers in mxlib's
+`templateLapack` layer rather than by the downdate implementation. Both typed wrappers have direct analytic tests and
+complete executable-line coverage on the available OpenBLAS/LAPACK build.
+
+The public contract is deliberately narrow at this checkpoint: an empty deletion returns the identity update,
+exactly one row uses the structured solver, and more than one row returns `unsupportedDeletionCount`. It does not
+silently select a dense backend. Finite/order/interlacing/PSD, eigenvector norm, and matrix-free residual checks turn
+malformed or numerically unsafe solver output into explicit status values. Roundoff-scale negative covariance values
+are clamped under the existing result contract; material indefiniteness is rejected.
+
+The optimized focused executable passes 509 assertions in 20 test cases. The complete mxlib coverage target passes
+all 178 executables, including the mixed-Eigen-alignment dynamic-symbol fixture, and reports 1,044/1,044 executable
+lines and 80/80 functions covered in `source/math/svdDowndate.cpp`. Comparisons include direct row and column SVDs,
+leading-projector equivalence, float and double, scalar and zero systems, repeated and clustered spectra, zero and
+high leverage, roundoff clamping, overflow, invalid contracts, and injected LAPACK failures. The earlier mixed
+32-byte-producer/16-byte-consumer ASan/UBSan run also completed without a diagnostic.
+
+A local P4-shaped synthetic comparison used `q=621`, `outputRank=465`, a square orthogonal factor, and one deletion.
+The dense `leadingCovariance` backend took 0.0392046 seconds per deletion and `rankOneSecular` took 0.00936694 seconds,
+a 4.19-fold speedup. The relative squared-spectrum error was `5.20346e-15`, the leading-projector error was
+`5.15436e-13`, and all 621 structured deletions completed in 7.82617 seconds with no failures. This is a useful local
+kernel result, not yet a production P4 timing claim.
+
+This was the requested stop-and-review point before P4 integration. The review accepted the reusable API and direct
+SVD comparisons, so the following checkpoint records the deliberately opt-in P4 wiring. The current host verifies
+the OpenBLAS/LAPACK ABI; a oneMKL compile/link smoke test remains open because oneMKL is not installed here.
+
+### P4 structured one-row integration checkpoint
+
+P4 now exposes `p4.deletionBackend=leadingCovariance|rankOneSecular` separately from
+`p4.exclusionSolver=explicitRefit|factorDowndateExact`. Both defaults remain unchanged: direct explicit refits are the
+science default, and `leadingCovariance` is the factor solver's compatibility backend. `rankOneSecular` is accepted
+only with `factorDowndateExact`.
+
+The application validates actual compact exclusions, not merely the configured `adi.minDPx`, before allocating
+worker state or starting regression. Every active target must delete exactly one row. A target which deletes every
+row remains the existing rank-zero invalid result and bypasses mxlib; every other multirow request is rejected up
+front. P4 passes the same selected backend to workspace preparation and every independent deletion from the immutable
+base factor, so backend selection cannot change partway through a search pixel.
+
+A recoverable numerical `rankOneSecular` failure, including a positive LAPACK convergence status, abandons the
+structured result for that search pixel and recomputes all of its target rows once with
+`P4PCA::calculateHeldOut()`. It does not mix rows from the two solvers and does not silently invoke
+`leadingCovariance`. A negative LAPACK status denotes an illegal argument and remains a hard contract failure, as do
+invalid contracts, allocation failures, unsupported deletion counts, dense-backend failures, and failure of the
+explicit oracle. FITS provenance records the selected backend and a distinct deletion-solver fallback search-pixel
+count alongside the existing rank-boundary and factor-validation counts.
+
+Timing retains the existing eigensolve/rank-selection aggregate and adds reusable-base-factor and row-deletion
+subtotals plus a complete explicit-fallback retry timer. The latter overlaps phase-specific oracle counters and is
+not additive. `p4Timing.fits` uses schemas 6, 7, and 8 for the base, local-PSF, and reconstructed-PSF layouts. Focused
+local verification passes 1,121 assertions in the 28-case `P4PCA` suite and 65,382 assertions in the 20-case
+`P4Reduction` suite. The latter forces a positive secular-solver failure through a complete reduction and verifies
+the whole-pixel explicit result, warning, counters, and FITS provenance. A remote wall-time comparison remains the
+promotion evidence for this opt-in backend; multiple-row structured deletion remains future work.
 
 ## Work sequence
 
@@ -733,7 +830,8 @@ not details to defer until after making the backend default.
 ### 8. Add a structured deletion backend if dense solves remain limiting
 
 - Use the diagonal-minus-rank-`c` form `H=diag(s^2)-Z Z^T` rather than treating `H` as an arbitrary dense matrix.
-- For delete-one, prototype a stable Gu--Eisenstat/secular eigendowndate with `O(q^2)` work.
+- The delete-one Gu--Eisenstat/secular eigendowndate with `O(q^2)` work is implemented in mxlib and wired into P4 as
+  the explicit `rankOneSecular` backend described above.
 - For small blocks, compare a stable block method with `c` within-target rank-one steps. Each target still starts from
   the immutable base spectrum; this does not introduce cross-target chaining.
 - Keep the dense backend as a development oracle and as a fallback for supported, adequately conditioned block cases.

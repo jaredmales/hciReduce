@@ -12,9 +12,21 @@
  * selections before choosing the full-frame or pixel-local path.
  *
  * Each detector-pixel fit enters `P4Reduction::fitDetectorSearch()` to sample the target time series and predictor
- * matrix, then calls \ref mx::improc::P4PCA::calculate "P4PCA::calculate()" for
- * Gram construction, eigendecomposition, rank selection, and residual projection. Pixel-local processing schedules
- * only the unique detector fits needed by the requested sky stamp, but uses this same regression kernel.
+ * matrix. The in-sample path calls \ref mx::improc::P4PCA::calculate "P4PCA::calculate()". Target-frame exclusion
+ * first builds one compact \ref mx::improc::P4TargetExclusions "P4TargetExclusions" pattern per annulus with
+ * `P4Reduction::targetExclusions()`, then calls either
+ * \ref mx::improc::P4PCA::calculateHeldOut "P4PCA::calculateHeldOut()" for the direct oracle or
+ * \ref mx::improc::P4PCA::calculateHeldOutDowndated "P4PCA::calculateHeldOutDowndated()" for deletion from an
+ * immutable complete base factor. All paths preserve the same Gram construction, rank-selection, residual, and
+ * validity contracts. Pixel-local processing schedules only the unique detector fits needed by the requested sky
+ * stamp, but uses the same in-sample regression kernel.
+ *
+ * The factor path chooses its mxlib deletion implementation once per calculation. `leadingCovariance` constructs a
+ * dense covariance core and supports one or more deleted rows. `rankOneSecular` exploits the one-row
+ * diagonal-minus-rank-one structure. `P4Reduction::regions()` validates every active target's realized deletion
+ * count before worker execution, and `P4PCA::calculateHeldOutDowndated()` independently enforces the same one-row
+ * contract. A recoverable structured numerical failure calls the direct oracle once for the complete search pixel;
+ * it never combines target rows produced by different solvers.
  *
  * \section developer_p4_flow Processing diagram
  *

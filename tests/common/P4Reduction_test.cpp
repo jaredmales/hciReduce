@@ -326,6 +326,7 @@ void requireSameReduction( const reductionHarness &left, /**< [in] first complet
         REQUIRE( leftStatistics.rankBoundaryFallbackPixelCount == rightStatistics.rankBoundaryFallbackPixelCount );
         REQUIRE( leftStatistics.factorValidationFallbackPixelCount ==
                  rightStatistics.factorValidationFallbackPixelCount );
+        REQUIRE( leftStatistics.deletionSolverFallbackPixelCount == rightStatistics.deletionSolverFallbackPixelCount );
         REQUIRE( leftStatistics.maximumFactorOrthogonalityDefect ==
                  Approx( rightStatistics.maximumFactorOrthogonalityDefect ) );
         REQUIRE( leftStatistics.factorOrthogonalityToleranceAtMaximumDefect ==
@@ -425,6 +426,52 @@ struct eigenSolverReset
     }
 };
 
+/// Number of structured row-deletion solves forced to fail by the integration-test hook.
+std::size_t deletionSolverFailureCalls{ 0 };
+
+/// Return a positive LAPACK convergence failure from the structured row-deletion solver seam.
+MXLAPACK_INT failingDeletionSolver( double *eigenvalues,           /**< [out] unused updated eigenvalues */
+                                    double *secularWorkspace,      /**< [out] unused secular-equation workspace */
+                                    double *eigenvectors,          /**< [out] unused updated eigenvectors */
+                                    MXLAPACK_INT dimension,        /**< [in] unused secular-equation dimension */
+                                    MXLAPACK_INT leadingDimension, /**< [in] unused matrix leading dimension */
+                                    double updateMagnitude,        /**< [in] unused rank-one update magnitude */
+                                    double *diagonal,              /**< [in] unused diagonal spectrum */
+                                    double *update /**< [in] unused deflation-adjusted update vector */ )
+{
+    ++deletionSolverFailureCalls;
+    static_cast<void>( eigenvalues );
+    static_cast<void>( secularWorkspace );
+    static_cast<void>( eigenvectors );
+    static_cast<void>( dimension );
+    static_cast<void>( leadingDimension );
+    static_cast<void>( updateMagnitude );
+    static_cast<void>( diagonal );
+    static_cast<void>( update );
+    return 73;
+}
+
+/// Restore mxlib's structured row-deletion test hooks after one forced-fallback scope.
+struct deletionSolverHookReset
+{
+    /// Preserve the current hooks and install the controlled convergence failure.
+    deletionSolverHookReset() : m_previous( mx::math::detail::svdDeletionHooks<double>() )
+    {
+        deletionSolverFailureCalls = 0;
+        mx::math::detail::svdDeletionHooks<double>().laed9 = &failingDeletionSolver;
+    }
+
+    /// Restore every hook to its state on construction.
+    ~deletionSolverHookReset()
+    {
+        mx::math::detail::svdDeletionHooks<double>() = m_previous;
+    }
+
+  private:
+    /// Complete hook state active before the test scope.
+    mx::math::detail::svdDeletionTestHooks<double> m_previous;
+};
+
 /// Sample one fixed sky coordinate directly from an unrotated detector image.
 float directRotatedSample( const reductionT::imageT &image, /**< [in] preprocessed detector-frame image */
                            double skyRow,                   /**< [in] fixed sky-frame row coordinate */
@@ -482,6 +529,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_minDPx == 0 );
     REQUIRE( defaults.m_excludeMethod == mx::improc::HCI::exclude::none );
     REQUIRE( defaults.m_exclusionSolver == mx::improc::P4ExclusionSolver::explicitRefit );
+    REQUIRE( defaults.m_deletionBackend == mx::math::svdDeletionBackend::leadingCovariance );
     REQUIRE_FALSE( defaults.m_exclusionPolicy.has_value() );
     REQUIRE( mx::math::isNan( defaults.m_orDeltaRadiusInner ) );
     REQUIRE( mx::math::isNan( defaults.m_exclusionRadiusBuffer ) );
@@ -505,6 +553,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "adi.minDPx" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "adi.excludeMethod" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.exclusionSolver" ).helpType == "string" );
+    REQUIRE( registered.m_targets.at( "p4.deletionBackend" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfFile" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::Optional );
@@ -533,6 +582,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
                          "[adi]\nminDPx=1.5\nexcludeMethod=angle\n"
                          "[p4]\nmodeFractions=0.25,0.5\nregressionFrame=rotated\n"
                          "exclusionSolver=factorDowndateExact\n"
+                         "deletionBackend=rankOneSecular\n"
                          "orDeltaRadiusInner=2\norDeltaRadiusOuter=3\n"
                          "orArcHalfWidth=4\norMaxHalfAngle=90\npsfRadius=1.5\n"
                          "exclusionPolicy=sampleCenter\nexclusionRadiusBuffer=0.5\nrankTolerance=1e-8\n"
@@ -547,6 +597,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( configured.m_minDPx == Approx( 1.5 ) );
     REQUIRE( configured.m_excludeMethod == mx::improc::HCI::exclude::angle );
     REQUIRE( configured.m_exclusionSolver == mx::improc::P4ExclusionSolver::factorDowndateExact );
+    REQUIRE( configured.m_deletionBackend == mx::math::svdDeletionBackend::rankOneSecular );
     REQUIRE( configured.m_orDeltaRadiusInner == 2 );
     REQUIRE( configured.m_orDeltaRadiusOuter == 3 );
     REQUIRE( configured.m_orArcHalfWidth == 4 );
@@ -564,6 +615,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( configuredHeader["P4 IN SAMPLE"].Int() == 0 );
     REQUIRE( configuredHeader["P4 ADI EXCLUDE METHOD"].String().starts_with( "angle" ) );
     REQUIRE( configuredHeader["P4 EXCLUSION SOLVER"].String().starts_with( "factorDowndateExact" ) );
+    REQUIRE( configuredHeader["P4 DELETION BACKEND"].String().starts_with( "rankOneSecular" ) );
     REQUIRE( configuredHeader["P4 ADI MIN DPX"].value<float>() == Approx( 1.5 ) );
     REQUIRE( configuredHeader["P4 EXCLUSION POLICY"].String().starts_with( "sampleCenter" ) );
     REQUIRE( configuredHeader["P4 MIN RADIUS"].String().find( ',' ) != std::string::npos );
@@ -600,6 +652,17 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE_THROWS( readReductionConfig( invalidExclusionSolver,
                                          directory.file( "invalid-exclusion-solver.conf" ),
                                          "[p4]\nexclusionSolver=projected\n" ) );
+
+    reductionHarness invalidDeletionBackend;
+    REQUIRE_THROWS( readReductionConfig( invalidDeletionBackend,
+                                         directory.file( "invalid-deletion-backend.conf" ),
+                                         "[p4]\ndeletionBackend=projected\n" ) );
+
+    reductionHarness inactiveDeletionBackend;
+    REQUIRE_NOTHROW( readReductionConfig( inactiveDeletionBackend,
+                                          directory.file( "inactive-deletion-backend.conf" ),
+                                          "[p4]\ndeletionBackend=rankOneSecular\n" ) );
+    REQUIRE_THROWS( inactiveDeletionBackend.reduce() );
 
     // clang-format off
 #ifdef __DOXY_ONLY__
@@ -860,6 +923,7 @@ TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][re
     REQUIRE( downdated.m_regionStatistics[0].explicitFallbackCount == 0 );
     REQUIRE( downdated.m_regionStatistics[0].rankBoundaryFallbackPixelCount == 0 );
     REQUIRE( downdated.m_regionStatistics[0].factorValidationFallbackPixelCount == 0 );
+    REQUIRE( downdated.m_regionStatistics[0].deletionSolverFallbackPixelCount == 0 );
     REQUIRE( downdated.m_regionStatistics[0].maximumFactorOrthogonalityDefect == 0 );
     REQUIRE( downdated.m_regionStatistics[0].factorOrthogonalityToleranceAtMaximumDefect == 0 );
     REQUIRE( downdated.m_psfsub.size() == reduction.m_psfsub.size() );
@@ -893,12 +957,14 @@ TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][re
     REQUIRE( downdatedHeader["P4 EXPLICIT FALLBACKS"].String().starts_with( "0" ) );
     REQUIRE( downdatedHeader["P4 RANK BOUNDARY FALLBACK PIXELS"].String().starts_with( "0" ) );
     REQUIRE( downdatedHeader["P4 FACTOR VALIDATION FALLBACK PIXELS"].String().starts_with( "0" ) );
+    REQUIRE( downdatedHeader["P4 DELETION SOLVER FALLBACK PIXELS"].String().starts_with( "0" ) );
     REQUIRE( downdatedHeader["P4 MAX FACTOR ORTHOGONALITY DEFECT"].String().starts_with( "0" ) );
     REQUIRE( downdatedHeader["P4 FACTOR TOLERANCE AT MAX DEFECT"].String().starts_with( "0" ) );
 
     downdated.m_regionStatistics[0].explicitFallbackCount = 9;
     downdated.m_regionStatistics[0].rankBoundaryFallbackPixelCount = 2;
     downdated.m_regionStatistics[0].factorValidationFallbackPixelCount = 1;
+    downdated.m_regionStatistics[0].deletionSolverFallbackPixelCount = 3;
     downdated.m_regionStatistics[0].maximumFactorOrthogonalityDefect = 4.8172787807387873e-11;
     downdated.m_regionStatistics[0].factorOrthogonalityToleranceAtMaximumDefect = 1.7649881556280889e-11;
     reductionT::fitsHeaderT fallbackHeader;
@@ -906,6 +972,7 @@ TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][re
     REQUIRE( fallbackHeader["P4 EXPLICIT FALLBACKS"].String().starts_with( "9" ) );
     REQUIRE( fallbackHeader["P4 RANK BOUNDARY FALLBACK PIXELS"].String().starts_with( "2" ) );
     REQUIRE( fallbackHeader["P4 FACTOR VALIDATION FALLBACK PIXELS"].String().starts_with( "1" ) );
+    REQUIRE( fallbackHeader["P4 DELETION SOLVER FALLBACK PIXELS"].String().starts_with( "3" ) );
     REQUIRE( std::stod( fallbackHeader["P4 MAX FACTOR ORTHOGONALITY DEFECT"].String() ) ==
              Approx( downdated.m_regionStatistics[0].maximumFactorOrthogonalityDefect ) );
     REQUIRE( std::stod( fallbackHeader["P4 FACTOR TOLERANCE AT MAX DEFECT"].String() ) ==
@@ -926,13 +993,83 @@ TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][re
     REQUIRE( factorStatistics.effectiveWorkerCount == 2 );
     REQUIRE( factorStatistics.rankBoundaryFallbackPixelCount == 0 );
     REQUIRE( factorStatistics.factorValidationFallbackPixelCount == factorStatistics.searchPixelCount );
+    REQUIRE( factorStatistics.deletionSolverFallbackPixelCount == 0 );
     REQUIRE( factorStatistics.explicitFallbackCount ==
              factorStatistics.searchPixelCount * factorStatistics.targetImageCount );
     REQUIRE( factorStatistics.maximumFactorOrthogonalityDefect >
              factorStatistics.factorOrthogonalityToleranceAtMaximumDefect );
     REQUIRE( factorStatistics.factorOrthogonalityToleranceAtMaximumDefect > 0 );
     REQUIRE( fallbackWarning.find( "rank-boundary search pixels and" ) != std::string::npos );
-    REQUIRE( fallbackWarning.find( "factor-validation search pixels; maximum factor defect" ) != std::string::npos );
+    REQUIRE( fallbackWarning.find( "factor-validation search pixels and" ) != std::string::npos );
+    REQUIRE( fallbackWarning.find( "deletion-solver search pixels; maximum factor defect" ) != std::string::npos );
+
+    downdated.m_regionStatistics[0].explicitFallbackCount = 0;
+    downdated.m_regionStatistics[0].rankBoundaryFallbackPixelCount = 0;
+    downdated.m_regionStatistics[0].factorValidationFallbackPixelCount = 0;
+    downdated.m_regionStatistics[0].deletionSolverFallbackPixelCount = 0;
+    downdated.m_regionStatistics[0].maximumFactorOrthogonalityDefect = 0;
+    downdated.m_regionStatistics[0].factorOrthogonalityToleranceAtMaximumDefect = 0;
+
+    reductionHarness structured;
+    prepareHeldOut( structured );
+    structured.m_exclusionSolver = mx::improc::P4ExclusionSolver::factorDowndateExact;
+    structured.m_deletionBackend = mx::math::svdDeletionBackend::rankOneSecular;
+    REQUIRE( structured.reduce() == 0 );
+    requireSameReduction( downdated, structured );
+    reductionT::fitsHeaderT structuredHeader;
+    structured.appendReductionHeader( structuredHeader );
+    REQUIRE( structuredHeader["P4 DELETION BACKEND"].String().starts_with( "rankOneSecular" ) );
+
+    reductionHarness structuredFallback;
+    prepareHeldOut( structuredFallback );
+    structuredFallback.m_exclusionSolver = mx::improc::P4ExclusionSolver::factorDowndateExact;
+    structuredFallback.m_deletionBackend = mx::math::svdDeletionBackend::rankOneSecular;
+    std::string deletionFallbackWarning;
+    {
+        deletionSolverHookReset solver;
+        CerrCapture capture;
+        REQUIRE( structuredFallback.reduce() == 0 );
+        deletionFallbackWarning = capture.str();
+    }
+    const auto &deletionFallbackStatistics = structuredFallback.m_regionStatistics[0];
+    REQUIRE( deletionSolverFailureCalls == deletionFallbackStatistics.searchPixelCount );
+    REQUIRE( deletionFallbackStatistics.deletionSolverFallbackPixelCount ==
+             deletionFallbackStatistics.searchPixelCount );
+    REQUIRE( deletionFallbackStatistics.explicitFallbackCount ==
+             deletionFallbackStatistics.searchPixelCount * deletionFallbackStatistics.targetImageCount );
+    REQUIRE( deletionFallbackWarning.find( "deletion-solver search pixels" ) != std::string::npos );
+    for( std::size_t output = 0; output < reduction.m_psfsub.size(); ++output )
+    {
+        for( int image = 0; image < reduction.m_Nims; ++image )
+        {
+            for( int column = 0; column < reduction.m_Ncols; ++column )
+            {
+                for( int row = 0; row < reduction.m_Nrows; ++row )
+                {
+                    const std::uint8_t expectedValidity =
+                        reduction.m_psfsubValidity[output].image( image )( row, column );
+                    REQUIRE( structuredFallback.m_psfsubValidity[output].image( image )( row, column ) ==
+                             expectedValidity );
+                    if( expectedValidity == 1 )
+                    {
+                        REQUIRE( structuredFallback.m_psfsub[output].image( image )( row, column ) ==
+                                 Approx( reduction.m_psfsub[output].image( image )( row, column ) ).margin( 2e-5 ) );
+                    }
+                }
+            }
+        }
+    }
+    reductionT::fitsHeaderT deletionFallbackHeader;
+    structuredFallback.appendReductionHeader( deletionFallbackHeader );
+    REQUIRE( deletionFallbackHeader["P4 DELETION SOLVER FALLBACK PIXELS"].String().starts_with(
+        std::to_string( deletionFallbackStatistics.searchPixelCount ) ) );
+
+    reductionHarness unsupportedStructured;
+    prepareHeldOut( unsupportedStructured );
+    unsupportedStructured.m_exclusionSolver = mx::improc::P4ExclusionSolver::factorDowndateExact;
+    unsupportedStructured.m_deletionBackend = mx::math::svdDeletionBackend::rankOneSecular;
+    unsupportedStructured.m_minDPx = 1;
+    REQUIRE_THROWS( unsupportedStructured.reduce() );
 }
 
 /// Verify P4Reduction's finite-amplitude local path matches a crop from an independently materialized full rerun.
@@ -1322,9 +1459,12 @@ TEST_CASE( "P4 reduction captures opt-in local PSF models", "[P4Reduction][PSF][
     REQUIRE( writer.read( timing, timingHeader, directory.file( "local-diagnostics/p4Timing.fits" ).string() ) ==
              mx::error_t::noerror );
     REQUIRE( timing.rows() == 1 );
-    REQUIRE( timing.cols() == 9 );
-    REQUIRE( timingHeader["P4 TIMING SCHEMA"].value<int>() == 4 );
+    REQUIRE( timing.cols() == 12 );
+    REQUIRE( timingHeader["P4 TIMING SCHEMA"].value<int>() == 7 );
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "psfWorker" ) != std::string::npos );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "baseFactorWorker" ) != std::string::npos );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "deletionWorker" ) != std::string::npos );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "explicitFallbackWorker" ) != std::string::npos );
 }
 
 /// Verify positive numberImages captures bounded temporal PSF components without changing science residuals.
@@ -1640,8 +1780,8 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( reader.read( timing, timingHeader, ( productDirectory / "p4Timing.fits" ).string() ) ==
              mx::error_t::noerror );
     REQUIRE( timing.rows() == 1 );
-    REQUIRE( timing.cols() == 10 );
-    REQUIRE( timingHeader["P4 TIMING SCHEMA"].value<int>() == 5 );
+    REQUIRE( timing.cols() == 13 );
+    REQUIRE( timingHeader["P4 TIMING SCHEMA"].value<int>() == 8 );
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "psfReconstructionElapsed" ) != std::string::npos );
 
     reductionHarness filterOnly;
@@ -2905,14 +3045,14 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( reader.read( summary, summaryHeader, directory.file( "diagnostics/p4RegionSummary.fits" ).string() ) ==
              mx::error_t::noerror );
     REQUIRE( summaryHeader["P4 FRAME"].String().starts_with( "detector" ) );
-    REQUIRE( summaryHeader["P4 REGION SUMMARY SCHEMA"].Int() == 1 );
+    REQUIRE( summaryHeader["P4 REGION SUMMARY SCHEMA"].Int() == 2 );
     REQUIRE( summaryHeader["P4 REGION SUMMARY MODE COUNT"].Int() == 1 );
     REQUIRE( summaryHeader["P4 REGION SUMMARY COLUMNS"].String() ==
              "minRadius,maxRadius,searchPixelCount,targetImageCount,temporalNumberImages,temporalPsfRadius,"
              "predictorCount,maximumDegreesOfFreedom,minimumNumericalRank,validLocalFitCount,maskedLocalFitCount,"
              "supportInvalidLocalFitCount,realizedModes[000],rankInvalidCounts[000],estimatedWorkerBytes,"
              "maximumWorkerCount,effectiveWorkerCount,rankBoundaryFallbackPixelCount,"
-             "factorValidationFallbackPixelCount,maximumFactorOrthogonalityDefect,"
+             "factorValidationFallbackPixelCount,deletionSolverFallbackPixelCount,maximumFactorOrthogonalityDefect,"
              "factorOrthogonalityToleranceAtMaximumDefect" );
 
     mx::improc::eigenCube<float> diagnosticValidity;
@@ -2925,7 +3065,7 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( diagnosticValidity.image( 0 ).isApprox( diagnostic.m_psfsubValidity[0].image( 0 ), 0 ) );
 
     REQUIRE( summary.rows() == 1 );
-    REQUIRE( summary.cols() == 21 );
+    REQUIRE( summary.cols() == 22 );
     REQUIRE( summary( 0, 9 ) + summary( 0, 10 ) + summary( 0, 11 ) == Approx( summary( 0, 2 ) ) );
     REQUIRE( summary( 0, 12 ) == Approx( diagnostic.m_realizedModes[0][0] ) );
     REQUIRE( summary( 0, 13 ) == Approx( diagnostic.m_regionStatistics[0].rankInvalidCounts[0] ) );
@@ -2934,8 +3074,9 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( summary( 0, 16 ) == Approx( diagnostic.m_regionStatistics[0].effectiveWorkerCount ) );
     REQUIRE( summary( 0, 17 ) == Approx( diagnostic.m_regionStatistics[0].rankBoundaryFallbackPixelCount ) );
     REQUIRE( summary( 0, 18 ) == Approx( diagnostic.m_regionStatistics[0].factorValidationFallbackPixelCount ) );
-    REQUIRE( summary( 0, 19 ) == Approx( diagnostic.m_regionStatistics[0].maximumFactorOrthogonalityDefect ) );
-    REQUIRE( summary( 0, 20 ) ==
+    REQUIRE( summary( 0, 19 ) == Approx( diagnostic.m_regionStatistics[0].deletionSolverFallbackPixelCount ) );
+    REQUIRE( summary( 0, 20 ) == Approx( diagnostic.m_regionStatistics[0].maximumFactorOrthogonalityDefect ) );
+    REQUIRE( summary( 0, 21 ) ==
              Approx( diagnostic.m_regionStatistics[0].factorOrthogonalityToleranceAtMaximumDefect ) );
 
     reductionT::imageT timing;
@@ -2943,17 +3084,23 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( reader.read( timing, timingHeader, directory.file( "diagnostics/p4Timing.fits" ).string() ) ==
              mx::error_t::noerror );
     REQUIRE( timing.rows() == 1 );
-    REQUIRE( timing.cols() == 8 );
-    REQUIRE( timingHeader["P4 TIMING SCHEMA"].Int() == 3 );
+    REQUIRE( timing.cols() == 11 );
+    REQUIRE( timingHeader["P4 TIMING SCHEMA"].Int() == 6 );
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().starts_with( "geometryElapsed" ) );
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "sameImageSamplingWorker" ) != std::string::npos );
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "temporalSamplingWorker" ) != std::string::npos );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "baseFactorWorker" ) != std::string::npos );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "deletionWorker" ) != std::string::npos );
+    REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "explicitFallbackWorker" ) != std::string::npos );
     for( Eigen::Index column = 0; column < timing.cols(); ++column )
     {
         REQUIRE( std::isfinite( timing( 0, column ) ) );
         REQUIRE( timing( 0, column ) >= 0 );
     }
     REQUIRE( timing( 0, 2 ) == Approx( timing( 0, 3 ) + timing( 0, 4 ) ).margin( 1e-6 ) );
+    REQUIRE( timing( 0, 7 ) == Approx( diagnostic.m_timing.baseFactorWorkerSeconds ) );
+    REQUIRE( timing( 0, 8 ) == Approx( diagnostic.m_timing.deletionWorkerSeconds ) );
+    REQUIRE( timing( 0, 9 ) == Approx( diagnostic.m_timing.explicitFallbackWorkerSeconds ) );
 
     reductionT::fitsHeaderT header;
     diagnostic.appendReductionHeader( header );
@@ -2978,6 +3125,7 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
              std::to_string( diagnostic.m_regionStatistics[0].supportInvalidLocalFitCount ) );
     REQUIRE( header["P4 RANK BOUNDARY FALLBACK PIXELS"].String() == "0" );
     REQUIRE( header["P4 FACTOR VALIDATION FALLBACK PIXELS"].String() == "0" );
+    REQUIRE( header["P4 DELETION SOLVER FALLBACK PIXELS"].String() == "0" );
     REQUIRE( header["P4 MAX FACTOR ORTHOGONALITY DEFECT"].String() == "0" );
     REQUIRE( header["P4 FACTOR TOLERANCE AT MAX DEFECT"].String() == "0" );
     diagnostic.m_heads.resize( diagnostic.m_Nims );

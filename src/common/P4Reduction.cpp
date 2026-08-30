@@ -593,6 +593,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "string",
                 "Target-exclusion solver: explicitRefit or factorDowndateExact; default explicitRefit" );
+    config.add( "p4.deletionBackend",
+                "",
+                "p4.deletionBackend",
+                mx::app::argType::Required,
+                "p4",
+                "deletionBackend",
+                false,
+                "string",
+                "Factor row-deletion backend: leadingCovariance or rankOneSecular; default leadingCovariance" );
     config.add( "p4.orDeltaRadiusInner",
                 "",
                 "p4.orDeltaRadiusInner",
@@ -781,6 +790,18 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
             mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.regressionFrame is not valid" ) );
     }
 
+    std::string deletionBackend = deletionBackendString( m_deletionBackend );
+    config( deletionBackend, "p4.deletionBackend" );
+    try
+    {
+        m_deletionBackend = parseDeletionBackend( deletionBackend );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.deletionBackend is not valid" ) );
+    }
+
     config( m_numberImages, "p4.numberImages" );
     config( m_minDPx, "adi.minDPx" );
     std::string excludeMethod = HCI::excludeToStr<verboseT>( m_excludeMethod );
@@ -905,6 +926,32 @@ P4ExclusionSolver P4Reduction<realT, derotFunctObj, verboseT>::parseExclusionSol
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+std::string P4Reduction<realT, derotFunctObj, verboseT>::deletionBackendString( mx::math::svdDeletionBackend backend )
+{
+    if( backend == mx::math::svdDeletionBackend::leadingCovariance ||
+        backend == mx::math::svdDeletionBackend::rankOneSecular )
+    {
+        return mx::math::svdDeletionBackendName( backend );
+    }
+    throw std::invalid_argument( "unsupported P4 row-deletion backend" );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+mx::math::svdDeletionBackend
+P4Reduction<realT, derotFunctObj, verboseT>::parseDeletionBackend( const std::string &value )
+{
+    if( value == "leadingCovariance" )
+    {
+        return mx::math::svdDeletionBackend::leadingCovariance;
+    }
+    if( value == "rankOneSecular" )
+    {
+        return mx::math::svdDeletionBackend::rankOneSecular;
+    }
+    throw std::invalid_argument( "unsupported P4 row-deletion backend: " + value );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 std::string P4Reduction<realT, derotFunctObj, verboseT>::regressionFrameString( P4RegressionFrame frame )
 {
     if( frame == P4RegressionFrame::detector )
@@ -938,6 +985,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     static_cast<void>( regressionFrameString( m_regressionFrame ) );
     static_cast<void>( HCI::excludeToStr<verboseT>( m_excludeMethod ) );
     static_cast<void>( exclusionSolverString( m_exclusionSolver ) );
+    static_cast<void>( deletionBackendString( m_deletionBackend ) );
     if( !mx::math::isFinite( m_minDPx ) || m_minDPx < 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig, "adi.minDPx must be finite and nonnegative" );
@@ -969,6 +1017,13 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                        "p4.exclusionSolver requires adi.excludeMethod other than none" );
+    }
+    if( m_deletionBackend == mx::math::svdDeletionBackend::rankOneSecular &&
+        m_exclusionSolver != P4ExclusionSolver::factorDowndateExact )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "p4.deletionBackend=rankOneSecular requires "
+                                       "p4.exclusionSolver=factorDowndateExact" );
     }
     if( m_localStampSize < 0 )
     {
@@ -1609,6 +1664,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
                                               *exclusions,
                                               modes,
                                               m_rankTolerance,
+                                              m_deletionBackend,
                                               workspace,
                                               *downdateWorkspace,
                                               &timing );
@@ -1940,6 +1996,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
         double threadTemporalSamplingSeconds{ 0 };
         double threadGramSeconds{ 0 };
         double threadEigensolveSeconds{ 0 };
+        double threadBaseFactorSeconds{ 0 };
+        double threadDeletionSeconds{ 0 };
+        double threadExplicitFallbackSeconds{ 0 };
         double threadProjectionSeconds{ 0 };
 
         // clang-format off
@@ -1991,6 +2050,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
                 threadTemporalSamplingSeconds += temporalSamplingSeconds;
                 threadGramSeconds += pcaTiming.gramWorkerSeconds;
                 threadEigensolveSeconds += pcaTiming.eigensolveWorkerSeconds;
+                threadBaseFactorSeconds += pcaTiming.baseFactorWorkerSeconds;
+                threadDeletionSeconds += pcaTiming.deletionWorkerSeconds;
+                threadExplicitFallbackSeconds += pcaTiming.explicitFallbackWorkerSeconds;
                 threadProjectionSeconds += pcaTiming.projectionWorkerSeconds;
                 requestAttempted[requestIndex] = 1;
                 requestRanks[requestIndex] = result.numericalRank;
@@ -2043,6 +2105,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
             m_timing.temporalSamplingWorkerSeconds += threadTemporalSamplingSeconds;
             m_timing.gramWorkerSeconds += threadGramSeconds;
             m_timing.eigensolveWorkerSeconds += threadEigensolveSeconds;
+            m_timing.baseFactorWorkerSeconds += threadBaseFactorSeconds;
+            m_timing.deletionWorkerSeconds += threadDeletionSeconds;
+            m_timing.explicitFallbackWorkerSeconds += threadExplicitFallbackSeconds;
             m_timing.projectionWorkerSeconds += threadProjectionSeconds;
         }
     }
@@ -2676,6 +2741,24 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             P4RegionStatistics &statistics = m_regionStatistics[region];
             statistics.maximumExcludedRows = static_cast<std::size_t>( regionExclusions[region].maximumDeleted() );
             statistics.exclusionStorageBytes = regionExclusions[region].storageBytes();
+            if( m_exclusionSolver == P4ExclusionSolver::factorDowndateExact &&
+                m_deletionBackend == mx::math::svdDeletionBackend::rankOneSecular )
+            {
+                const Eigen::Index targetCount = regionExclusions[region].targetCount();
+                for( Eigen::Index target = 0; target < targetCount; ++target )
+                {
+                    const Eigen::Index deletedCount = regionExclusions[region].deletedCount( target );
+                    if( deletedCount < targetCount && deletedCount != 1 )
+                    {
+                        throw mx::exception<verboseT>(
+                            mx::error_t::invalidconfig,
+                            "p4.deletionBackend=rankOneSecular requires exactly one excluded row for every "
+                            "retained target; annulus " +
+                                std::to_string( region ) + ", target row " + std::to_string( target ) + " excludes " +
+                                std::to_string( deletedCount ) );
+                    }
+                }
+            }
             if( m_targetExclusionBytes > std::numeric_limits<std::size_t>::max() - statistics.exclusionStorageBytes )
             {
                 throw mx::exception<verboseT>( mx::error_t::sizeerr,
@@ -2932,6 +3015,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
     {
         P4RegionStatistics &statistics = m_regionStatistics[region];
+        const std::size_t estimatedMaximumExcludedRows =
+            m_exclusionSolver == P4ExclusionSolver::factorDowndateExact &&
+                    m_deletionBackend == mx::math::svdDeletionBackend::rankOneSecular
+                ? 1
+                : statistics.maximumExcludedRows;
         statistics.estimatedWorkerBytes =
             estimatedWorkerBytes( statistics.targetImageCount,
                                   statistics.predictorCount,
@@ -2940,7 +3028,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                   psfStampPixels,
                                   m_excludeMethod != HCI::exclude::none,
                                   m_exclusionSolver,
-                                  statistics.maximumExcludedRows,
+                                  estimatedMaximumExcludedRows,
                                   static_cast<std::size_t>( m_realizedModes[region].back() ) );
         statistics.maximumWorkerCount =
             std::max( 1,
@@ -3007,6 +3095,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         std::size_t explicitFallbackCount{ 0 };
         std::size_t rankBoundaryFallbackPixelCount{ 0 };
         std::size_t factorValidationFallbackPixelCount{ 0 };
+        std::size_t deletionSolverFallbackPixelCount{ 0 };
         double maximumFactorOrthogonalityDefect{ 0 };
         double factorOrthogonalityToleranceAtMaximumDefect{ 0 };
         std::vector<std::size_t> rankInvalidCounts( modes.size(), 0 );
@@ -3032,6 +3121,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             std::size_t threadExplicitFallbackCount{ 0 };
             std::size_t threadRankBoundaryFallbackPixelCount{ 0 };
             std::size_t threadFactorValidationFallbackPixelCount{ 0 };
+            std::size_t threadDeletionSolverFallbackPixelCount{ 0 };
             double threadMaximumFactorOrthogonalityDefect{ 0 };
             double threadFactorOrthogonalityToleranceAtMaximumDefect{ 0 };
             std::vector<std::size_t> threadRankInvalid( modes.size(), 0 );
@@ -3040,6 +3130,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             double threadTemporalSamplingSeconds{ 0 };
             double threadGramSeconds{ 0 };
             double threadEigensolveSeconds{ 0 };
+            double threadBaseFactorSeconds{ 0 };
+            double threadDeletionSeconds{ 0 };
+            double threadExplicitFallbackSeconds{ 0 };
             double threadProjectionSeconds{ 0 };
             double threadPSFSeconds{ 0 };
 
@@ -3139,6 +3232,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                             }
                             threadGramSeconds += pcaTiming.gramWorkerSeconds;
                             threadEigensolveSeconds += pcaTiming.eigensolveWorkerSeconds;
+                            threadBaseFactorSeconds += pcaTiming.baseFactorWorkerSeconds;
+                            threadDeletionSeconds += pcaTiming.deletionWorkerSeconds;
+                            threadExplicitFallbackSeconds += pcaTiming.explicitFallbackWorkerSeconds;
                             threadProjectionSeconds += pcaTiming.projectionWorkerSeconds;
                             ++threadValid;
                             threadMinimumRank = std::min( threadMinimumRank, result.numericalRank );
@@ -3163,6 +3259,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                         threadFactorOrthogonalityToleranceAtMaximumDefect =
                                             result.factorOrthogonalityTolerance;
                                     }
+                                    break;
+                                case P4PCAFallbackReason::deletionSolver:
+                                    ++threadDeletionSolverFallbackPixelCount;
                                     break;
                                 }
                             }
@@ -3290,6 +3389,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                     factorOrthogonalityToleranceAtMaximumDefect = threadFactorOrthogonalityToleranceAtMaximumDefect;
                 }
                 factorValidationFallbackPixelCount += threadFactorValidationFallbackPixelCount;
+                deletionSolverFallbackPixelCount += threadDeletionSolverFallbackPixelCount;
                 for( std::size_t output = 0; output < modes.size(); ++output )
                 {
                     rankInvalidCounts[output] += threadRankInvalid[output];
@@ -3299,6 +3399,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                 m_timing.temporalSamplingWorkerSeconds += threadTemporalSamplingSeconds;
                 m_timing.gramWorkerSeconds += threadGramSeconds;
                 m_timing.eigensolveWorkerSeconds += threadEigensolveSeconds;
+                m_timing.baseFactorWorkerSeconds += threadBaseFactorSeconds;
+                m_timing.deletionWorkerSeconds += threadDeletionSeconds;
+                m_timing.explicitFallbackWorkerSeconds += threadExplicitFallbackSeconds;
                 m_timing.projectionWorkerSeconds += threadProjectionSeconds;
                 m_timing.psfWorkerSeconds += threadPSFSeconds;
             }
@@ -3333,6 +3436,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         statistics.explicitFallbackCount = explicitFallbackCount;
         statistics.rankBoundaryFallbackPixelCount = rankBoundaryFallbackPixelCount;
         statistics.factorValidationFallbackPixelCount = factorValidationFallbackPixelCount;
+        statistics.deletionSolverFallbackPixelCount = deletionSolverFallbackPixelCount;
         statistics.maximumFactorOrthogonalityDefect = maximumFactorOrthogonalityDefect;
         statistics.factorOrthogonalityToleranceAtMaximumDefect = factorOrthogonalityToleranceAtMaximumDefect;
         statistics.rankInvalidCounts = rankInvalidCounts;
@@ -3342,7 +3446,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             fallbackWarning << "WARNING: P4 region " << region << " recomputed " << explicitFallbackCount
                             << " target rows with the explicit oracle at " << rankBoundaryFallbackPixelCount
                             << " rank-boundary search pixels and " << factorValidationFallbackPixelCount
-                            << " factor-validation search pixels";
+                            << " factor-validation search pixels and " << deletionSolverFallbackPixelCount
+                            << " deletion-solver search pixels";
             if( factorValidationFallbackPixelCount != 0 )
             {
                 fallbackWarning << "; maximum factor defect " << std::setprecision( 17 )
@@ -3414,7 +3519,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
 
         imageT summary( static_cast<Eigen::Index>( m_regionStatistics.size() ),
-                        static_cast<Eigen::Index>( 19 + 2 * m_modeFractions.size() ) );
+                        static_cast<Eigen::Index>( 20 + 2 * m_modeFractions.size() ) );
         for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
         {
             const P4RegionStatistics &statistics = m_regionStatistics[region];
@@ -3442,13 +3547,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             summary( region, workerColumn + 2 ) = static_cast<realT>( statistics.effectiveWorkerCount );
             summary( region, workerColumn + 3 ) = static_cast<realT>( statistics.rankBoundaryFallbackPixelCount );
             summary( region, workerColumn + 4 ) = static_cast<realT>( statistics.factorValidationFallbackPixelCount );
-            summary( region, workerColumn + 5 ) = static_cast<realT>( statistics.maximumFactorOrthogonalityDefect );
-            summary( region, workerColumn + 6 ) =
+            summary( region, workerColumn + 5 ) = static_cast<realT>( statistics.deletionSolverFallbackPixelCount );
+            summary( region, workerColumn + 6 ) = static_cast<realT>( statistics.maximumFactorOrthogonalityDefect );
+            summary( region, workerColumn + 7 ) =
                 static_cast<realT>( statistics.factorOrthogonalityToleranceAtMaximumDefect );
         }
         fitsHeaderT summaryHeader;
         summaryHeader.template append<int>( "P4 REGION SUMMARY SCHEMA",
-                                            1,
+                                            2,
                                             "P4 region-summary diagnostic schema version" );
         summaryHeader.template append<int>( "P4 REGION SUMMARY MODE COUNT",
                                             static_cast<int>( m_modeFractions.size() ),
@@ -3467,7 +3573,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
         summaryColumns << ",estimatedWorkerBytes,maximumWorkerCount,effectiveWorkerCount,"
                           "rankBoundaryFallbackPixelCount,factorValidationFallbackPixelCount,"
-                          "maximumFactorOrthogonalityDefect,factorOrthogonalityToleranceAtMaximumDefect";
+                          "deletionSolverFallbackPixelCount,maximumFactorOrthogonalityDefect,"
+                          "factorOrthogonalityToleranceAtMaximumDefect";
         summaryHeader.template append<std::string>( "P4 REGION SUMMARY COLUMNS",
                                                     summaryColumns.str(),
                                                     "exact columns; [NNN] indexes output-plane groups" );
@@ -3480,7 +3587,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         {
             return;
         }
-        imageT timing( 1, processPSF ? 10 : ( calculatePSF ? 9 : 8 ) );
+        imageT timing( 1, processPSF ? 13 : ( calculatePSF ? 12 : 11 ) );
         timing( 0, 0 ) = static_cast<realT>( m_timing.geometryElapsedSeconds );
         timing( 0, 1 ) = static_cast<realT>( m_timing.regressionElapsedSeconds );
         timing( 0, 2 ) = static_cast<realT>( m_timing.samplingWorkerSeconds );
@@ -3488,23 +3595,27 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         timing( 0, 4 ) = static_cast<realT>( m_timing.temporalSamplingWorkerSeconds );
         timing( 0, 5 ) = static_cast<realT>( m_timing.gramWorkerSeconds );
         timing( 0, 6 ) = static_cast<realT>( m_timing.eigensolveWorkerSeconds );
-        timing( 0, 7 ) = static_cast<realT>( m_timing.projectionWorkerSeconds );
+        timing( 0, 7 ) = static_cast<realT>( m_timing.baseFactorWorkerSeconds );
+        timing( 0, 8 ) = static_cast<realT>( m_timing.deletionWorkerSeconds );
+        timing( 0, 9 ) = static_cast<realT>( m_timing.explicitFallbackWorkerSeconds );
+        timing( 0, 10 ) = static_cast<realT>( m_timing.projectionWorkerSeconds );
         if( calculatePSF )
         {
-            timing( 0, 8 ) = static_cast<realT>( m_timing.psfWorkerSeconds );
+            timing( 0, 11 ) = static_cast<realT>( m_timing.psfWorkerSeconds );
         }
         if( processPSF )
         {
-            timing( 0, 9 ) = static_cast<realT>( m_timing.psfReconstructionElapsedSeconds );
+            timing( 0, 12 ) = static_cast<realT>( m_timing.psfReconstructionElapsedSeconds );
         }
         fitsHeaderT timingHeader;
         timingHeader.template append<int>( "P4 TIMING SCHEMA",
-                                           processPSF ? 5 : ( calculatePSF ? 4 : 3 ),
+                                           processPSF ? 8 : ( calculatePSF ? 7 : 6 ),
                                            "P4 timing diagnostic schema version" );
         timingHeader.template append<std::string>( "P4 TIMING COLUMNS",
                                                    "geometryElapsed,regressionElapsed,samplingWorker,"
                                                    "sameImageSamplingWorker,temporalSamplingWorker,gramWorker,"
-                                                   "eigensolveWorker,projectionWorker" +
+                                                   "eigensolveWorker,baseFactorWorker,deletionWorker,"
+                                                   "explicitFallbackWorker,projectionWorker" +
                                                        std::string( calculatePSF ? ",psfWorker" : "" ) +
                                                        std::string( processPSF ? ",psfReconstructionElapsed" : "" ),
                                                    "P4 timing columns in seconds" );
@@ -4202,6 +4313,22 @@ void P4Reduction<realT, derotFunctObj, verboseT>::dump_times() const
     printf( "      EigenDecomposition %f worker sec (%f%%)\n",
             m_timing.eigensolveWorkerSeconds,
             percentage( m_timing.eigensolveWorkerSeconds ) );
+    if( m_exclusionSolver == P4ExclusionSolver::factorDowndateExact )
+    {
+        const auto eigensolvePercentage = [this]( double seconds )
+        { return m_timing.eigensolveWorkerSeconds > 0 ? seconds / m_timing.eigensolveWorkerSeconds * 100 : 0; };
+        printf( "        Base factorization %f worker sec (%f%% of eigensolve)\n",
+                m_timing.baseFactorWorkerSeconds,
+                eigensolvePercentage( m_timing.baseFactorWorkerSeconds ) );
+        printf( "        Row deletion %f worker sec (%f%% of eigensolve)\n",
+                m_timing.deletionWorkerSeconds,
+                eigensolvePercentage( m_timing.deletionWorkerSeconds ) );
+        if( m_timing.explicitFallbackWorkerSeconds > 0 )
+        {
+            printf( "      Explicit fallback %f worker sec (overlaps phase totals)\n",
+                    m_timing.explicitFallbackWorkerSeconds );
+        }
+    }
     printf( "      Projection/residual %f worker sec (%f%%)\n",
             m_timing.projectionWorkerSeconds,
             percentage( m_timing.projectionWorkerSeconds ) );
@@ -4307,8 +4434,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
                                m_exclusionSolver == P4ExclusionSolver::factorDowndateExact ? 1 : 0,
                                "whether factor solver retained a complete safe base" );
     head.template append<std::string>( "P4 DELETION BACKEND",
-                                       m_exclusionSolver == P4ExclusionSolver::factorDowndateExact ? "leadingCovariance"
-                                                                                                   : "none",
+                                       m_exclusionSolver == P4ExclusionSolver::factorDowndateExact
+                                           ? deletionBackendString( m_deletionBackend )
+                                           : "none",
                                        "mxlib SVD deletion backend" );
     head.template append<realT>( "P4 ADI MIN DPX", m_minDPx, "minimum target/reference displacement" );
     head.template append<int>( "P4 RDI", 0, "target-only ADI implementation" );
@@ -4390,6 +4518,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     std::vector<std::size_t> explicitFallbackCounts;
     std::vector<std::size_t> rankBoundaryFallbackPixelCounts;
     std::vector<std::size_t> factorValidationFallbackPixelCounts;
+    std::vector<std::size_t> deletionSolverFallbackPixelCounts;
     std::vector<double> maximumFactorOrthogonalityDefects;
     std::vector<double> factorOrthogonalityTolerancesAtMaximumDefect;
     std::vector<std::size_t> searchCounts;
@@ -4412,6 +4541,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     explicitFallbackCounts.reserve( m_regionStatistics.size() );
     rankBoundaryFallbackPixelCounts.reserve( m_regionStatistics.size() );
     factorValidationFallbackPixelCounts.reserve( m_regionStatistics.size() );
+    deletionSolverFallbackPixelCounts.reserve( m_regionStatistics.size() );
     maximumFactorOrthogonalityDefects.reserve( m_regionStatistics.size() );
     factorOrthogonalityTolerancesAtMaximumDefect.reserve( m_regionStatistics.size() );
     searchCounts.reserve( m_regionStatistics.size() );
@@ -4436,6 +4566,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
         explicitFallbackCounts.push_back( statistics.explicitFallbackCount );
         rankBoundaryFallbackPixelCounts.push_back( statistics.rankBoundaryFallbackPixelCount );
         factorValidationFallbackPixelCounts.push_back( statistics.factorValidationFallbackPixelCount );
+        deletionSolverFallbackPixelCounts.push_back( statistics.deletionSolverFallbackPixelCount );
         maximumFactorOrthogonalityDefects.push_back( statistics.maximumFactorOrthogonalityDefect );
         factorOrthogonalityTolerancesAtMaximumDefect.push_back(
             statistics.factorOrthogonalityToleranceAtMaximumDefect );
@@ -4472,6 +4603,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.template append<std::string>( "P4 FACTOR VALIDATION FALLBACK PIXELS",
                                        p4Join( factorValidationFallbackPixelCounts ),
                                        "factor-validation fallback search pixels by annulus" );
+    head.template append<std::string>( "P4 DELETION SOLVER FALLBACK PIXELS",
+                                       p4Join( deletionSolverFallbackPixelCounts ),
+                                       "deletion-solver fallback search pixels by annulus" );
     head.template append<std::string>( "P4 MAX FACTOR ORTHOGONALITY DEFECT",
                                        p4Join( maximumFactorOrthogonalityDefects ),
                                        "maximum rejected factor defect by annulus" );

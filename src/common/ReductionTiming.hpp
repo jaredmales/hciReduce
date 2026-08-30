@@ -33,6 +33,12 @@ struct ReductionTiming
 
     double eigensolveWorkerSeconds{ 0 };        ///< Aggregate worker time spent in eigensolvers and rank selection.
 
+    double baseFactorWorkerSeconds{ 0 };        ///< Aggregate worker time used to form reusable base singular systems.
+
+    double deletionWorkerSeconds{ 0 };          ///< Aggregate worker time used by factor-deletion backends.
+
+    double explicitFallbackWorkerSeconds{ 0 };  ///< Aggregate worker time used by explicit numerical fallbacks.
+
     double modeWorkerSeconds{ 0 };              ///< Aggregate worker time used to construct modal bases.
 
     double projectionWorkerSeconds{ 0 };        ///< Aggregate worker time used to apply modes and construct residuals.
@@ -51,6 +57,9 @@ struct ReductionTiming
         temporalSamplingWorkerSeconds = 0;
         gramWorkerSeconds = 0;
         eigensolveWorkerSeconds = 0;
+        baseFactorWorkerSeconds = 0;
+        deletionWorkerSeconds = 0;
+        explicitFallbackWorkerSeconds = 0;
         modeWorkerSeconds = 0;
         projectionWorkerSeconds = 0;
         psfWorkerSeconds = 0;

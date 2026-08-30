@@ -188,6 +188,9 @@ class p4Reduce : public mx::app::application
         total.temporalSamplingWorkerSeconds += value.temporalSamplingWorkerSeconds;
         total.gramWorkerSeconds += value.gramWorkerSeconds;
         total.eigensolveWorkerSeconds += value.eigensolveWorkerSeconds;
+        total.baseFactorWorkerSeconds += value.baseFactorWorkerSeconds;
+        total.deletionWorkerSeconds += value.deletionWorkerSeconds;
+        total.explicitFallbackWorkerSeconds += value.explicitFallbackWorkerSeconds;
         total.modeWorkerSeconds += value.modeWorkerSeconds;
         total.projectionWorkerSeconds += value.projectionWorkerSeconds;
         total.psfWorkerSeconds += value.psfWorkerSeconds;
@@ -565,6 +568,9 @@ class p4Reduce : public mx::app::application
                       << "    samplingWorkerSeconds: " << result.timing.samplingWorkerSeconds << "\n"
                       << "    gramWorkerSeconds: " << result.timing.gramWorkerSeconds << "\n"
                       << "    eigensolveWorkerSeconds: " << result.timing.eigensolveWorkerSeconds << "\n"
+                      << "    baseFactorWorkerSeconds: " << result.timing.baseFactorWorkerSeconds << "\n"
+                      << "    deletionWorkerSeconds: " << result.timing.deletionWorkerSeconds << "\n"
+                      << "    explicitFallbackWorkerSeconds: " << result.timing.explicitFallbackWorkerSeconds << "\n"
                       << "    projectionWorkerSeconds: " << result.timing.projectionWorkerSeconds << "\n";
         summaryStream << "  jackknife:\n"
                       << "    requestedBlocks: " << jackknife.requestedBlocks << "\n"
@@ -780,6 +786,9 @@ class p4Reduce : public mx::app::application
                   << "      Sampling: " << result.timing.samplingWorkerSeconds << " worker sec\n"
                   << "      Gram construction: " << result.timing.gramWorkerSeconds << " worker sec\n"
                   << "      EigenDecomposition: " << result.timing.eigensolveWorkerSeconds << " worker sec\n"
+                  << "        Base factorization: " << result.timing.baseFactorWorkerSeconds << " worker sec\n"
+                  << "        Row deletion: " << result.timing.deletionWorkerSeconds << " worker sec\n"
+                  << "      Explicit fallback: " << result.timing.explicitFallbackWorkerSeconds << " worker sec\n"
                   << "      Projection/residual: " << result.timing.projectionWorkerSeconds << " worker sec\n";
     }
 
@@ -797,6 +806,9 @@ class p4Reduce : public mx::app::application
                   << "      Sampling: " << jackknife.timing.samplingWorkerSeconds << " worker sec\n"
                   << "      Gram construction: " << jackknife.timing.gramWorkerSeconds << " worker sec\n"
                   << "      EigenDecomposition: " << jackknife.timing.eigensolveWorkerSeconds << " worker sec\n"
+                  << "        Base factorization: " << jackknife.timing.baseFactorWorkerSeconds << " worker sec\n"
+                  << "        Row deletion: " << jackknife.timing.deletionWorkerSeconds << " worker sec\n"
+                  << "      Explicit fallback: " << jackknife.timing.explicitFallbackWorkerSeconds << " worker sec\n"
                   << "      Projection/residual: " << jackknife.timing.projectionWorkerSeconds << " worker sec\n";
     }
 

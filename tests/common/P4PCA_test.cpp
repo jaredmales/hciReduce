@@ -330,6 +330,35 @@ void failFactorValidationAllocation(
     }
 }
 
+/// Number of deterministic structured deletion failures supplied by the test hook.
+int structuredDeletionSolveCalls{ 0 };
+
+/// LAPACK status returned by the deterministic structured deletion test hook.
+MXLAPACK_INT structuredDeletionSolveInfo{ 73 };
+
+/// Return a deterministic LAPACK failure from the structured deletion eigensolver seam.
+MXLAPACK_INT
+failStructuredDeletionSolve( double *eigenvalues,      /**< [out] unused updated eigenvalues */
+                             double *eigenvectors,     /**< [out] unused updated eigenvectors */
+                             double *secularWorkspace, /**< [out] unused secular-equation workspace */
+                             MXLAPACK_INT dimension,   /**< [in] unused secular-equation dimension */
+                             MXLAPACK_INT outputRank,  /**< [in] unused requested output rank */
+                             double updateMagnitude,   /**< [in] unused rank-one update magnitude */
+                             double *diagonal,         /**< [in] unused diagonal spectrum */
+                             double *deflationAdjustedUpdate /**< [in] unused deflation-adjusted update vector */ )
+{
+    ++structuredDeletionSolveCalls;
+    static_cast<void>( eigenvalues );
+    static_cast<void>( eigenvectors );
+    static_cast<void>( secularWorkspace );
+    static_cast<void>( dimension );
+    static_cast<void>( outputRank );
+    static_cast<void>( updateMagnitude );
+    static_cast<void>( diagonal );
+    static_cast<void>( deflationAdjustedUpdate );
+    return structuredDeletionSolveInfo;
+}
+
 /// Restore mxlib's process-wide SVD-deletion hooks after a controlled failure test.
 struct svdDeletionHookReset
 {
@@ -465,15 +494,27 @@ TEST_CASE( "P4PCA reports numerical-stage timing", "[P4PCA][timing]" )
 
     resultT result;
     pcaT::workspaceT workspace;
-    timingT timing{ -1, -1, -1 };
+    timingT timing;
+    timing.gramWorkerSeconds = -1;
+    timing.eigensolveWorkerSeconds = -1;
+    timing.baseFactorWorkerSeconds = -1;
+    timing.deletionWorkerSeconds = -1;
+    timing.explicitFallbackWorkerSeconds = -1;
+    timing.projectionWorkerSeconds = -1;
     pcaT::calculate( result, predictors, target, { 1, 2 }, 1e-12, workspace, &timing );
 
     REQUIRE( result.numericalRank == 2 );
     REQUIRE( std::isfinite( timing.gramWorkerSeconds ) );
     REQUIRE( std::isfinite( timing.eigensolveWorkerSeconds ) );
+    REQUIRE( std::isfinite( timing.baseFactorWorkerSeconds ) );
+    REQUIRE( std::isfinite( timing.deletionWorkerSeconds ) );
+    REQUIRE( std::isfinite( timing.explicitFallbackWorkerSeconds ) );
     REQUIRE( std::isfinite( timing.projectionWorkerSeconds ) );
     REQUIRE( timing.gramWorkerSeconds >= 0 );
     REQUIRE( timing.eigensolveWorkerSeconds >= 0 );
+    REQUIRE( timing.baseFactorWorkerSeconds == 0 );
+    REQUIRE( timing.deletionWorkerSeconds == 0 );
+    REQUIRE( timing.explicitFallbackWorkerSeconds == 0 );
     REQUIRE( timing.projectionWorkerSeconds >= 0 );
 }
 
@@ -489,9 +530,13 @@ TEST_CASE( "ReductionTiming resets all measurements", "[P4PCA][timing]" )
     timing.temporalSamplingWorkerSeconds = 5;
     timing.gramWorkerSeconds = 6;
     timing.eigensolveWorkerSeconds = 7;
-    timing.modeWorkerSeconds = 8;
-    timing.projectionWorkerSeconds = 9;
-    timing.psfWorkerSeconds = 10;
+    timing.baseFactorWorkerSeconds = 8;
+    timing.deletionWorkerSeconds = 9;
+    timing.explicitFallbackWorkerSeconds = 10;
+    timing.modeWorkerSeconds = 11;
+    timing.projectionWorkerSeconds = 12;
+    timing.psfWorkerSeconds = 13;
+    timing.psfReconstructionElapsedSeconds = 14;
 
     timing.reset();
 
@@ -502,9 +547,13 @@ TEST_CASE( "ReductionTiming resets all measurements", "[P4PCA][timing]" )
     REQUIRE( timing.temporalSamplingWorkerSeconds == 0 );
     REQUIRE( timing.gramWorkerSeconds == 0 );
     REQUIRE( timing.eigensolveWorkerSeconds == 0 );
+    REQUIRE( timing.baseFactorWorkerSeconds == 0 );
+    REQUIRE( timing.deletionWorkerSeconds == 0 );
+    REQUIRE( timing.explicitFallbackWorkerSeconds == 0 );
     REQUIRE( timing.modeWorkerSeconds == 0 );
     REQUIRE( timing.projectionWorkerSeconds == 0 );
     REQUIRE( timing.psfWorkerSeconds == 0 );
+    REQUIRE( timing.psfReconstructionElapsedSeconds == 0 );
 }
 
 /// Verify P4PCA sends the smaller shape-dependent Gram matrix to its eigensolver seam.
@@ -1322,6 +1371,276 @@ TEST_CASE( "P4PCA exact factor downdate matches explicit held-out refits", "[P4P
         REQUIRE( result.numericalRank == 0 );
         REQUIRE( allNan( result.residuals ) );
         REQUIRE( result.sampleValidity.count() == 0 );
+    }
+}
+
+/// Verify structured one-row deletion agrees with dense deletion and explicit refits in every Gram orientation.
+/** This directly exercises mx::improc::P4PCA::calculateHeldOutDowndated() with
+ * mx::math::svdDeletionBackend::rankOneSecular for every target-row position when T is less than, equal to, and
+ * greater than K.
+ *
+ * \ingroup P4PCA_unit_tests
+ */
+TEST_CASE( "P4PCA structured one-row deletion matches dense and explicit held-out refits",
+           "[P4PCA][held-out][downdate][structured][exact]" )
+{
+    const auto compare = []( const pcaT::matrixT &predictors, const pcaT::vectorT &target )
+    {
+        std::vector<std::vector<Eigen::Index>> deleted( static_cast<std::size_t>( predictors.rows() ) );
+        for( Eigen::Index targetIndex = 0; targetIndex < predictors.rows(); ++targetIndex )
+        {
+            deleted[static_cast<std::size_t>( targetIndex )].push_back( targetIndex );
+        }
+        const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( predictors.rows(), deleted );
+        const int retainedRank = static_cast<int>( std::min( predictors.rows() - 1, predictors.cols() ) );
+        std::vector<int> modes;
+        for( int mode = 1; mode <= retainedRank; ++mode )
+        {
+            modes.push_back( mode );
+        }
+
+        resultT explicitResult;
+        resultT denseResult;
+        resultT structuredResult;
+        pcaT::workspaceT explicitWorkspace;
+        pcaT::workspaceT denseBaseWorkspace;
+        pcaT::workspaceT structuredBaseWorkspace;
+        mx::improc::P4PCADowndateWorkspace denseDowndateWorkspace;
+        mx::improc::P4PCADowndateWorkspace structuredDowndateWorkspace;
+        mx::improc::P4PCA::calculateHeldOut( explicitResult,
+                                             predictors,
+                                             target,
+                                             exclusions,
+                                             modes,
+                                             1e-12,
+                                             explicitWorkspace );
+        mx::improc::P4PCA::calculateHeldOutDowndated( denseResult,
+                                                      predictors,
+                                                      target,
+                                                      exclusions,
+                                                      modes,
+                                                      1e-12,
+                                                      mx::math::svdDeletionBackend::leadingCovariance,
+                                                      denseBaseWorkspace,
+                                                      denseDowndateWorkspace );
+        mx::improc::P4PCA::calculateHeldOutDowndated( structuredResult,
+                                                      predictors,
+                                                      target,
+                                                      exclusions,
+                                                      modes,
+                                                      1e-12,
+                                                      mx::math::svdDeletionBackend::rankOneSecular,
+                                                      structuredBaseWorkspace,
+                                                      structuredDowndateWorkspace );
+
+        REQUIRE( denseResult.explicitFallbackCount == 0 );
+        REQUIRE( denseResult.explicitFallbackReason == mx::improc::P4PCAFallbackReason::none );
+        REQUIRE( structuredResult.explicitFallbackCount == 0 );
+        REQUIRE( structuredResult.explicitFallbackReason == mx::improc::P4PCAFallbackReason::none );
+        REQUIRE( structuredResult.baseRank == denseResult.baseRank );
+        REQUIRE( structuredResult.numericalRank == explicitResult.numericalRank );
+        REQUIRE( structuredResult.numericalRank == denseResult.numericalRank );
+        REQUIRE( structuredResult.modeStatus == explicitResult.modeStatus );
+        REQUIRE( structuredResult.modeStatus == denseResult.modeStatus );
+        REQUIRE( ( structuredResult.sampleValidity == explicitResult.sampleValidity ).all() );
+        REQUIRE( ( structuredResult.sampleValidity == denseResult.sampleValidity ).all() );
+        for( Eigen::Index mode = 0; mode < structuredResult.residuals.cols(); ++mode )
+        {
+            for( Eigen::Index sample = 0; sample < structuredResult.residuals.rows(); ++sample )
+            {
+                CAPTURE( sample, mode, predictors.rows(), predictors.cols() );
+                REQUIRE( structuredResult.sampleSupported( sample, static_cast<std::size_t>( mode ) ) );
+                REQUIRE( structuredResult.residuals( sample, mode ) ==
+                         Approx( explicitResult.residuals( sample, mode ) ).margin( 1e-8 ) );
+                REQUIRE( structuredResult.residuals( sample, mode ) ==
+                         Approx( denseResult.residuals( sample, mode ) ).margin( 1e-8 ) );
+            }
+        }
+    };
+
+    SECTION( "T is less than K" )
+    {
+        pcaT::matrixT predictors( 4, 6 );
+        predictors << 4, 0.2, 0.1, 0, 0.3, -0.2, 0.1, 3, 0.4, 0.2, 0, 0.1, 0.2, -0.1, 2, 0.3, 0.1, 0.2, 0.1, 0.2, 0.3,
+            1.5, -0.2, 0.1;
+        pcaT::vectorT target( 4 );
+        target << 2, -1, 3, 0.5;
+        compare( predictors, target );
+    }
+
+    SECTION( "T equals K" )
+    {
+        pcaT::matrixT predictors( 4, 4 );
+        predictors << 4, 0.2, 0.1, 0, 0.1, 3, 0.4, 0.2, 0.2, -0.1, 2, 0.3, 0.1, 0.2, 0.3, 1.5;
+        pcaT::vectorT target( 4 );
+        target << 1, 4, -2, 3;
+        compare( predictors, target );
+    }
+
+    SECTION( "K is less than T" )
+    {
+        pcaT::matrixT predictors( 6, 4 );
+        predictors << 4, 0.2, 0.1, 0, 0.1, 3, 0.4, 0.2, 0.2, -0.1, 2, 0.3, 0.1, 0.2, 0.3, 1.5, 1, -0.4, 0.2, 0.7, -0.3,
+            0.5, 1.1, -0.2;
+        pcaT::vectorT target( 6 );
+        target << 2, -1, 3, 0.5, 4, -2;
+        compare( predictors, target );
+    }
+}
+
+/// Verify the structured backend rejects active multi-row deletion while preserving an all-rows-deleted target.
+/** This directly exercises mx::improc::P4PCA::calculateHeldOutDowndated() with the one-row deletion contract and
+ * compares the supported mixed edge case with mx::improc::P4PCA::calculateHeldOut().
+ * \ingroup P4PCA_unit_tests
+ */
+TEST_CASE( "P4PCA structured deletion validates active deletion counts",
+           "[P4PCA][held-out][downdate][structured][validation]" )
+{
+    pcaT::matrixT predictors( 3, 4 );
+    predictors << 4, 0.2, 0.1, 0, 0.1, 3, 0.4, 0.2, 0.2, -0.1, 2, 0.3;
+    pcaT::vectorT target( 3 );
+    target << 2, -1, 3;
+
+    SECTION( "active multi-row deletion is rejected" )
+    {
+        const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( 3, { { 0 }, { 0, 1 }, { 2 } } );
+        resultT result;
+        pcaT::workspaceT baseWorkspace;
+        mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+        REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateHeldOutDowndated( result,
+                                                                         predictors,
+                                                                         target,
+                                                                         exclusions,
+                                                                         { 1, 2 },
+                                                                         1e-12,
+                                                                         mx::math::svdDeletionBackend::rankOneSecular,
+                                                                         baseWorkspace,
+                                                                         downdateWorkspace ),
+                           std::invalid_argument );
+    }
+
+    SECTION( "an all-rows-deleted target is skipped" )
+    {
+        const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( 3, { { 0 }, { 0, 1, 2 }, { 2 } } );
+        resultT explicitResult;
+        resultT structuredResult;
+        pcaT::workspaceT explicitWorkspace;
+        pcaT::workspaceT baseWorkspace;
+        mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+        mx::improc::P4PCA::calculateHeldOut( explicitResult,
+                                             predictors,
+                                             target,
+                                             exclusions,
+                                             { 1, 2 },
+                                             1e-12,
+                                             explicitWorkspace );
+        mx::improc::P4PCA::calculateHeldOutDowndated( structuredResult,
+                                                      predictors,
+                                                      target,
+                                                      exclusions,
+                                                      { 1, 2 },
+                                                      1e-12,
+                                                      mx::math::svdDeletionBackend::rankOneSecular,
+                                                      baseWorkspace,
+                                                      downdateWorkspace );
+
+        REQUIRE( structuredResult.explicitFallbackCount == 0 );
+        REQUIRE( structuredResult.explicitFallbackReason == mx::improc::P4PCAFallbackReason::none );
+        REQUIRE( ( structuredResult.sampleValidity == explicitResult.sampleValidity ).all() );
+        REQUIRE_FALSE( structuredResult.sampleSupported( 1, 0 ) );
+        REQUIRE_FALSE( structuredResult.sampleSupported( 1, 1 ) );
+        REQUIRE( allNan( structuredResult.residuals.row( 1 ) ) );
+        for( const Eigen::Index sample : { Eigen::Index{ 0 }, Eigen::Index{ 2 } } )
+        {
+            for( Eigen::Index mode = 0; mode < structuredResult.residuals.cols(); ++mode )
+            {
+                REQUIRE( structuredResult.residuals( sample, mode ) ==
+                         Approx( explicitResult.residuals( sample, mode ) ).margin( 1e-8 ) );
+            }
+        }
+    }
+}
+
+/// Verify a structured secular-solver failure recomputes the complete search pixel with the explicit oracle.
+/** This directly exercises mx::improc::P4PCA::calculateHeldOutDowndated() through mxlib's LAED9 test seam and
+ * compares the fallback product with mx::improc::P4PCA::calculateHeldOut().
+ * \ingroup P4PCA_unit_tests
+ */
+TEST_CASE( "P4PCA structured deletion solver failure uses the explicit held-out oracle",
+           "[P4PCA][held-out][downdate][structured][fallback]" )
+{
+    pcaT::matrixT predictors( 3, 4 );
+    predictors << 4, 0.2, 0.1, 0, 0.1, 3, 0.4, 0.2, 0.2, -0.1, 2, 0.3;
+    pcaT::vectorT target( 3 );
+    target << 2, -1, 3;
+    const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( 3, { { 0 }, { 1 }, { 2 } } );
+
+    resultT explicitResult;
+    pcaT::workspaceT explicitWorkspace;
+    mx::improc::P4PCA::calculateHeldOut( explicitResult,
+                                         predictors,
+                                         target,
+                                         exclusions,
+                                         { 1, 2 },
+                                         1e-12,
+                                         explicitWorkspace );
+
+    resultT structuredResult;
+    pcaT::workspaceT baseWorkspace;
+    mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+    timingT timing;
+    svdDeletionHookReset reset;
+    structuredDeletionSolveCalls = 0;
+    structuredDeletionSolveInfo = 73;
+    mx::math::detail::svdDeletionHooks<double>().laed9 = &failStructuredDeletionSolve;
+    REQUIRE_NOTHROW( mx::improc::P4PCA::calculateHeldOutDowndated( structuredResult,
+                                                                   predictors,
+                                                                   target,
+                                                                   exclusions,
+                                                                   { 1, 2 },
+                                                                   1e-12,
+                                                                   mx::math::svdDeletionBackend::rankOneSecular,
+                                                                   baseWorkspace,
+                                                                   downdateWorkspace,
+                                                                   &timing ) );
+
+    REQUIRE( structuredDeletionSolveCalls == 1 );
+    REQUIRE( structuredResult.explicitFallbackCount == static_cast<std::size_t>( predictors.rows() ) );
+    REQUIRE( structuredResult.explicitFallbackReason == mx::improc::P4PCAFallbackReason::deletionSolver );
+    REQUIRE( structuredResult.modeStatus == explicitResult.modeStatus );
+    REQUIRE( ( structuredResult.sampleValidity == explicitResult.sampleValidity ).all() );
+    for( Eigen::Index mode = 0; mode < structuredResult.residuals.cols(); ++mode )
+    {
+        for( Eigen::Index sample = 0; sample < structuredResult.residuals.rows(); ++sample )
+        {
+            REQUIRE( structuredResult.residuals( sample, mode ) ==
+                     Approx( explicitResult.residuals( sample, mode ) ).margin( 1e-11 ) );
+        }
+    }
+    REQUIRE( timing.baseFactorWorkerSeconds >= 0 );
+    REQUIRE( timing.deletionWorkerSeconds >= 0 );
+    REQUIRE( timing.explicitFallbackWorkerSeconds >= 0 );
+
+    SECTION( "an illegal LAPACK argument remains fatal" )
+    {
+        resultT contractFailureResult;
+        pcaT::workspaceT contractFailureBaseWorkspace;
+        mx::improc::P4PCADowndateWorkspace contractFailureDowndateWorkspace;
+        structuredDeletionSolveCalls = 0;
+        structuredDeletionSolveInfo = -7;
+        REQUIRE_THROWS_WITH( mx::improc::P4PCA::calculateHeldOutDowndated( contractFailureResult,
+                                                                           predictors,
+                                                                           target,
+                                                                           exclusions,
+                                                                           { 1, 2 },
+                                                                           1e-12,
+                                                                           mx::math::svdDeletionBackend::rankOneSecular,
+                                                                           contractFailureBaseWorkspace,
+                                                                           contractFailureDowndateWorkspace ),
+                             Catch::Matchers::Contains( "status solverFailure" ) &&
+                                 Catch::Matchers::Contains( "LAPACK status -7" ) );
+        REQUIRE( structuredDeletionSolveCalls == 1 );
+        REQUIRE( contractFailureResult.explicitFallbackReason == mx::improc::P4PCAFallbackReason::none );
     }
 }
 

@@ -85,6 +85,9 @@ struct P4RegionStatistics
 
     std::size_t factorValidationFallbackPixelCount{ 0 }; ///< Search pixels explicitly refit after factor validation.
 
+    /// Search pixels explicitly refit after deletion-solver failure.
+    std::size_t deletionSolverFallbackPixelCount{ 0 };
+
     double maximumFactorOrthogonalityDefect{ 0 }; ///< Largest factor defect among validation-fallback search pixels.
 
     double factorOrthogonalityToleranceAtMaximumDefect{ 0 }; ///< Tolerance paired with the largest factor defect.
@@ -192,9 +195,12 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     P4ExclusionSolver m_exclusionSolver{ P4ExclusionSolver::explicitRefit }; ///< Target-frame exclusion solver.
 
-    realT m_orDeltaRadiusInner{ std::numeric_limits<realT>::quiet_NaN() };   ///< Inward OR radial extent in pixels.
+    mx::math::svdDeletionBackend m_deletionBackend{ mx::math::svdDeletionBackend::leadingCovariance };
+    ///< mxlib row-deletion backend used by the exact factor solver.
 
-    realT m_orDeltaRadiusOuter{ std::numeric_limits<realT>::quiet_NaN() };   ///< Outward OR radial extent in pixels.
+    realT m_orDeltaRadiusInner{ std::numeric_limits<realT>::quiet_NaN() }; ///< Inward OR radial extent in pixels.
+
+    realT m_orDeltaRadiusOuter{ std::numeric_limits<realT>::quiet_NaN() }; ///< Outward OR radial extent in pixels.
 
     realT m_orArcHalfWidth{ std::numeric_limits<realT>::quiet_NaN() }; ///< OR azimuthal half-width in pixels; zero uses
                                                                        ///< only the angular cap.
@@ -392,6 +398,14 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     /// Parse an exact target-frame exclusion-solver spelling.
     static P4ExclusionSolver parseExclusionSolver( const std::string &value /**< [in] configuration spelling */ );
+
+    /// Convert a supported mxlib row-deletion backend to its stable configuration spelling.
+    static std::string
+    deletionBackendString( mx::math::svdDeletionBackend backend /**< [in] supported row-deletion backend */ );
+
+    /// Parse an exact supported mxlib row-deletion-backend spelling.
+    static mx::math::svdDeletionBackend
+    parseDeletionBackend( const std::string &value /**< [in] configuration spelling */ );
 
     /// Convert a supported regression frame to its stable configuration spelling.
     static std::string regressionFrameString( P4RegressionFrame frame /**< [in] supported regression frame */ );
