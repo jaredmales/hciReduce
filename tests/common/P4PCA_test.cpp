@@ -168,6 +168,8 @@ enum class fakeSolverBehavior
     unsortedEigenvalues,
     nonpositiveEigenvalues,
     tinyEigenvalue,
+    marginallyNonorthonormalEigenvectors,
+    excessivelyNonorthonormalEigenvectors,
     nonorthonormalEigenvectors,
     residualOverflow
 };
@@ -249,6 +251,16 @@ MXLAPACK_INT fakeEigenSolver( pcaT::matrixT &eigenvectors, /**< [out] controlled
     {
         eigenvalues( 0 ) = std::numeric_limits<double>::denorm_min();
         eigenvalues( 1 ) = 1;
+    }
+    else if( solverBehavior == fakeSolverBehavior::marginallyNonorthonormalEigenvectors )
+    {
+        const double defect = 96.0 * std::numeric_limits<double>::epsilon() * predictorCount;
+        eigenvectors.col( 0 ) *= std::sqrt( 1.0 + defect );
+    }
+    else if( solverBehavior == fakeSolverBehavior::excessivelyNonorthonormalEigenvectors )
+    {
+        const double defect = 160.0 * std::numeric_limits<double>::epsilon() * predictorCount;
+        eigenvectors.col( 0 ) *= std::sqrt( 1.0 + defect );
     }
     else if( solverBehavior == fakeSolverBehavior::nonorthonormalEigenvectors )
     {
@@ -1260,40 +1272,107 @@ TEST_CASE( "P4PCA exact factor downdate matches explicit held-out refits", "[P4P
     }
 }
 
-/// Verify factor-validation failures report the measured defect and the automatic tolerance.
+/// Verify P4 accepts ordinary eigensolver orthogonality error but diagnoses materially invalid factors.
 /** This directly exercises mx::improc::P4PCA::calculateHeldOutDowndated() through its controlled eigensolver seam.
  * \ingroup P4PCA_unit_tests
  */
 TEST_CASE( "P4PCA exact factor downdate diagnoses nonorthonormal factors", "[P4PCA][held-out][downdate][validation]" )
 {
     pcaT::matrixT predictors( 3, 4 );
-    predictors << 1, 0, 2, -1, 0, 1, -1, 2, 2, 1, 0, 1;
+    predictors << 1, 0, 0, 0, 0, std::sqrt( 2.0 ), 0, 0, 0, 0, std::sqrt( 3.0 ), 0;
     pcaT::vectorT target( 3 );
     target << 2, -1, 3;
     const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( 3, { { 0 }, { 1 }, { 2 } } );
-    resultT result;
-    pcaT::workspaceT eigensolverWorkspace;
-    mx::improc::P4PCADowndateWorkspace downdateWorkspace;
-    solverReset reset( fakeSolverBehavior::nonorthonormalEigenvectors );
+    SECTION( "DSYEVR-scale defect is accepted" )
+    {
+        resultT explicitResult;
+        pcaT::workspaceT explicitWorkspace;
+        mx::improc::P4PCA::calculateHeldOut( explicitResult,
+                                             predictors,
+                                             target,
+                                             exclusions,
+                                             { 1, 2 },
+                                             1e-12,
+                                             explicitWorkspace );
 
-    try
-    {
-        mx::improc::P4PCA::calculateHeldOutDowndated( result,
-                                                      predictors,
-                                                      target,
-                                                      exclusions,
-                                                      { 1, 2 },
-                                                      1e-12,
-                                                      eigensolverWorkspace,
-                                                      downdateWorkspace );
-        FAIL( "expected temporal-factor validation failure" );
+        resultT downdatedResult;
+        pcaT::workspaceT baseWorkspace;
+        mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+        solverReset reset( fakeSolverBehavior::marginallyNonorthonormalEigenvectors );
+
+        REQUIRE_NOTHROW( mx::improc::P4PCA::calculateHeldOutDowndated( downdatedResult,
+                                                                       predictors,
+                                                                       target,
+                                                                       exclusions,
+                                                                       { 1, 2 },
+                                                                       1e-12,
+                                                                       baseWorkspace,
+                                                                       downdateWorkspace ) );
+        REQUIRE( downdatedResult.modeStatus == explicitResult.modeStatus );
+        REQUIRE( ( downdatedResult.sampleValidity == explicitResult.sampleValidity ).all() );
+        for( Eigen::Index mode = 0; mode < downdatedResult.residuals.cols(); ++mode )
+        {
+            for( Eigen::Index sample = 0; sample < downdatedResult.residuals.rows(); ++sample )
+            {
+                REQUIRE( downdatedResult.residuals( sample, mode ) ==
+                         Approx( explicitResult.residuals( sample, mode ) ).margin( 1e-11 ) );
+            }
+        }
     }
-    catch( const std::runtime_error &error )
+
+    SECTION( "defect above the P4 acceptance bound is rejected" )
     {
-        const std::string message = error.what();
-        REQUIRE( message.find( "status factorNotOrthonormal" ) != std::string::npos );
-        REQUIRE( message.find( "max|L^T L-I|=3" ) != std::string::npos );
-        REQUIRE( message.find( "defaultTolerance=" ) != std::string::npos );
+        resultT result;
+        pcaT::workspaceT eigensolverWorkspace;
+        mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+        solverReset reset( fakeSolverBehavior::excessivelyNonorthonormalEigenvectors );
+
+        try
+        {
+            mx::improc::P4PCA::calculateHeldOutDowndated( result,
+                                                          predictors,
+                                                          target,
+                                                          exclusions,
+                                                          { 1, 2 },
+                                                          1e-12,
+                                                          eigensolverWorkspace,
+                                                          downdateWorkspace );
+            FAIL( "expected above-tolerance temporal-factor validation failure" );
+        }
+        catch( const std::runtime_error &error )
+        {
+            const std::string message = error.what();
+            REQUIRE( message.find( "status factorNotOrthonormal" ) != std::string::npos );
+            REQUIRE( message.find( "acceptedTolerance=" ) != std::string::npos );
+        }
+    }
+
+    SECTION( "material defect is rejected" )
+    {
+        resultT result;
+        pcaT::workspaceT eigensolverWorkspace;
+        mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+        solverReset reset( fakeSolverBehavior::nonorthonormalEigenvectors );
+
+        try
+        {
+            mx::improc::P4PCA::calculateHeldOutDowndated( result,
+                                                          predictors,
+                                                          target,
+                                                          exclusions,
+                                                          { 1, 2 },
+                                                          1e-12,
+                                                          eigensolverWorkspace,
+                                                          downdateWorkspace );
+            FAIL( "expected temporal-factor validation failure" );
+        }
+        catch( const std::runtime_error &error )
+        {
+            const std::string message = error.what();
+            REQUIRE( message.find( "status factorNotOrthonormal" ) != std::string::npos );
+            REQUIRE( message.find( "max|L^T L-I|=3" ) != std::string::npos );
+            REQUIRE( message.find( "acceptedTolerance=" ) != std::string::npos );
+        }
     }
 }
 

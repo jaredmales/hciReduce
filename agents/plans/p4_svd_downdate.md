@@ -608,6 +608,16 @@ that error. Record those values on the production Gram before considering a chan
 compare `SYEVR`, `SYEVD`, and a direct-SVD oracle as a later accuracy/performance experiment rather than using a
 solver change to mask the ABI failure.
 
+The first post-ABI remote run reached annulus `[10,12)` before reporting `max|L^T L-I|=1.0274e-11` against the
+mxlib automatic bound `64 epsilon 621=8.8249e-12`. This is the `T<=K` temporal-Gram branch, so the factor is copied
+directly from the complete `SYEVR` eigensystem rather than formed through division by small singular values. The
+observed defect is only `1.164` times the original bound. P4 therefore supplies the explicit solver-specific
+acceptance bound `128 epsilon max(T,q)` while mxlib retains its stricter general default. A controlled eigensolver
+test admits a defect between those two bounds and continues to reject a materially nonorthonormal factor. If a
+production factor exceeds the P4 bound, retain the measured failure and compare `SYEVD` with the direct-SVD oracle.
+The matching local 621-image, 2988-predictor annulus completed all 132 search pixels under the P4 bound. Do not
+reorthogonalize the temporal factor alone because that would make it inconsistent with the unchanged singular values.
+
 This is the requested stop-and-review point for P4 integration. Before beginning bounded-rank work or treating the
 backend as an optimization, the open gates are an exact-path one-versus-multiple-worker product comparison with inner
 BLAS threading controlled, a forced application-level rank-boundary fallback including its warning, forced

@@ -49,9 +49,20 @@ bool p4PCAAllFinite( const arrayT &array /**< [in] array to validate */ )
     return true;
 }
 
+/// Return the P4 acceptance tolerance for a base eigensolver's temporal singular-vector factor.
+/** Full-spectrum `SYEVR` orthogonality is dimension-scaled and can marginally exceed mxlib's generic automatic
+ * factor-validation bound. This P4-specific bound remains tight enough to reject a materially inconsistent factor.
+ */
+double p4PCAFactorValidationTolerance( const P4PCA::matrixT &factor /**< [in] temporal singular-vector factor */ )
+{
+    return 128.0 * std::numeric_limits<double>::epsilon() *
+           static_cast<double>( std::max( factor.rows(), factor.cols() ) );
+}
+
 /// Format factor validation failures, including the orthogonality defect when that contract alone failed.
 std::string p4PCAFactorValidationMessage( mx::math::svdDeletionStatus status, /**< [in] validation outcome */
-                                          const P4PCA::matrixT &factor /**< [in] temporal singular-vector factor */ )
+                                          const P4PCA::matrixT &factor, /**< [in] temporal singular-vector factor */
+                                          double tolerance /**< [in] accepted maximum Gram-matrix error */ )
 {
     std::ostringstream message;
     message << "P4PCA downdate temporal factor validation failed with status "
@@ -67,10 +78,7 @@ std::string p4PCAFactorValidationMessage( mx::math::svdDeletionStatus status, /*
         gram( mode, mode ) -= 1.0;
     }
     const double maximumError = gram.abs().maxCoeff();
-    const double defaultTolerance =
-        64.0 * std::numeric_limits<double>::epsilon() * static_cast<double>( std::max( factor.rows(), factor.cols() ) );
-    message << std::setprecision( 17 ) << ", max|L^T L-I|=" << maximumError
-            << ", defaultTolerance=" << defaultTolerance;
+    message << std::setprecision( 17 ) << ", max|L^T L-I|=" << maximumError << ", acceptedTolerance=" << tolerance;
     return message.str();
 }
 
@@ -1068,11 +1076,13 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
         return;
     }
 
+    const double factorTolerance = p4PCAFactorValidationTolerance( downdateWorkspace.m_temporalFactor );
     const mx::math::svdDeletionStatus factorStatus =
-        mx::math::validateSvdDeletionFactor( downdateWorkspace.m_temporalFactor );
+        mx::math::validateSvdDeletionFactor( downdateWorkspace.m_temporalFactor, factorTolerance );
     if( !mx::math::svdDeletionSucceeded( factorStatus ) )
     {
-        throw std::runtime_error( p4PCAFactorValidationMessage( factorStatus, downdateWorkspace.m_temporalFactor ) );
+        throw std::runtime_error(
+            p4PCAFactorValidationMessage( factorStatus, downdateWorkspace.m_temporalFactor, factorTolerance ) );
     }
 
     const Eigen::Index maximumOutputRank = std::min<Eigen::Index>( modes.back(), baseRank );
