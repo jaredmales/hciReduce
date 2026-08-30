@@ -57,9 +57,10 @@
  *
  * \section hcianalyze_measurement SNR measurement
  *
- * After filtering, the radial standard-deviation profile is calculated in the configured annulus after excluding
- * invalid pixels and every signal mask. The reported SNR is the maximum value inside `snr.apertureR` centered on the
- * signal.
+ * After filtering, radial mean and standard-deviation profiles are calculated in the configured annulus after
+ * excluding invalid pixels and every signal mask. Each SNR-map pixel is its value minus the interpolated radial mean,
+ * divided by the interpolated radial standard deviation. The reported SNR is the maximum value inside
+ * `snr.apertureR` centered on the signal.
  *
  * hciAnalyze corrects the raw radial-noise SNR for the small number of independent resolution elements at close
  * separations following Mawet et al. (2014) \cite mawet_2014. For pixel radius \f$r_{\rm pix}\f$ and configured

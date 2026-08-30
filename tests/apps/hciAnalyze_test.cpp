@@ -206,6 +206,7 @@ TEST_CASE( "hciAnalyze config-file SNR dispatch", "[hciAnalyze][config][execute]
     REQUIRE( snrHeader["SNRMAXR"].value<float>() == Approx( 6 ) );
     REQUIRE( snrHeader["SNRAPER"].value<float>() == Approx( 1 ) );
     REQUIRE( snrHeader["LAMBDAD"].value<float>() == Approx( 2.5 ) );
+    REQUIRE( snrHeader["SNRMEAN"].value<int>() == 1 );
     REQUIRE( snrHeader["SNRSMALL"].value<int>() == 1 );
     REQUIRE( snrHeader["HPFGFW"].value<float>() == Approx( 0 ) );
     REQUIRE( snrHeader["LPFGFW"].value<float>() == Approx( 0 ) );

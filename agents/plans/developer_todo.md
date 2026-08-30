@@ -203,9 +203,12 @@ Completed by `3b26865` and `c4dd646`
 
 ## SNR calculation with mean
 
-[] We aren't calculating the mean noise and subtracting it, but should be
-   - we're doing S/stdev(noise - mean) instead of (S-mean)/stdev(noise-mean)
-   - this should be a straightforward addition to stddevImage where we calculate the mean after accumulation at the same time we calculate the variance (and re-use it in the variance for efficiency)
+[x] Calculate SNR relative to the annular mean noise.
+   - `stddevImage` now calculates each bin's mean once and reuses it for the variance, returning
+     `(S - mean)/stdev(noise - mean)` in S/N-map mode.
+   - `hciAnalyze` records `SNRMEAN=1` in SNR FITS products, and the application and mxlib tests cover the result.
+   - The mxlib coverage tests exercise `zeroNaNCube`, `parseStringVector`, and all branches added to the mean SNR
+     calculation; its PSD Monte Carlo tests now use fixed seeds.
 
 ## Matched Filtering Updates
 

@@ -1122,6 +1122,7 @@ hciAnalyze::writeSNRMap( const cubeT &snrCube, fitsHeaderT &header, realT minRad
     addHeader( "SNRMAXR", maxRadius, "SNR annulus outer radius [pix]" );
     addHeader( "SNRAPER", m_snrApertureRadius, "SNR aperture radius [pix]" );
     addHeader( "LAMBDAD", m_lambdaD, "image scale [pix per lambda/D]" );
+    addHeader( "SNRMEAN", 1, "annular mean subtracted" );
     addHeader( "SNRSMALL", 1, "Mawet small-sample correction applied" );
     addHeader( "HPFGFW", m_highPassFwhm, "high-pass Gaussian FWHM [pix]" );
     addHeader( "LPFGFW", m_lowPassFwhm, "low-pass Gaussian FWHM [pix]" );

@@ -52,8 +52,9 @@
  * Per-pixel PSF filtering runs first, followed by high-pass filtering and then low-pass smoothing when those Gaussian
  * filters are also enabled. At image edges and beside invalid input samples, the Gaussian filters use partial valid
  * in-bounds kernels and renormalize by their retained weights.
- * The reported `snr` is the aperture maximum inside `snr.apertureR`; `planet.R` or `fake.R` only excludes the signal
- * from the noise estimate. At pixel radius \f$r_{\rm pix}\f$, hciAnalyze uses
+ * The reported `snr` is the aperture maximum inside `snr.apertureR`; it is calculated as the signal pixel minus the
+ * interpolated annular mean, divided by the interpolated annular standard deviation. `planet.R` or `fake.R` only
+ * excludes the signal from the noise estimate. At pixel radius \f$r_{\rm pix}\f$, hciAnalyze uses
  * \f$n_2=2\pi r_{\rm pix}/{\tt lambdaD}-1\f$ comparison samples and multiplies the raw SNR by
  * \f$1/\sqrt{1+1/n_2}\f$. Pixels with \f$n_2\leq0\f$ are statistically undefined and set to zero. Omitting
  * `lambdaD` uses `2.5` pixels per \f$\lambda/D\f$ and prints a warning; explicitly setting `lambdaD=2.5` suppresses
