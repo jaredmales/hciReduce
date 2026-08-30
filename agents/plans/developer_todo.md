@@ -142,13 +142,21 @@ implemented, before adopting either result as a calibrated science uncertainty.
 
 Right now we do an inversion for all the images at once.  This means that when we are predictiog x_t[n] the pixels' in OR(x_t) are included in the basis, as is the true value of x_t[n] included in the b vector
 
-[] implement excluding the target image from the basis set
+[x] implement excluding the target image from the basis set
    - ideally we should exclude x_t from it's own basis set
    - if we do this we may also consider having a configurable temporal exclusion region as we do with numberImages > 0.
-   
-[] this will be much slower, probably on the order of T times slower. So we should look into 
+
+Implemented for ordinary, pixel-local, negative-companion/jackknife, and frozen-PSF response paths. The direct CPU
+oracle was added in `07a45a8`; exact reusable factor deletion and the rank-one secular backend were integrated through
+`97d3a4b` and `8465ee4`.
+
+[x] this will be much slower, probably on the order of T times slower. So we should look into
       -- using the downdate algorithm of Long and Males 2021 (https://arxiv.org/abs/2101.11634).  This will require restructuring the algo to use SVD of the data instead of the CV.
       -- batch GPU processing.  I.e. load the CV into GPU memory once then do the decomposition T times, once for each t removed.   Should be able to download from GPU only the predicted pixel values (per mode).
+
+The resident GPU eigensolver benchmark in `e052ddd` showed that direct batched GPU decomposition was slower than the
+parallel CPU baseline on the tested RTX 3050 Ti. The production CPU path now uses the Long--Males factor-deletion
+formulation; the direct GPU decomposition remains a comparison benchmark rather than a production backend.
 
 ## Other solvers
 

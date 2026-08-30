@@ -7,8 +7,8 @@
  * @{
  *
  * Pixel-local processing evaluates one finite-amplitude trial companion over a bounded sky stamp. It uses the
- * ordinary detector-frame P4 algorithm and complete temporal sample set, but avoids fitting detector pixels that
- * cannot contribute to the requested result. This is the evaluation path used by
+ * ordinary detector-frame P4 algorithm and the configured retained temporal sample set, but avoids fitting detector
+ * pixels that cannot contribute to the requested result. This is the evaluation path used by
  * \ref p4_optimizer_user_guide "negative-planet optimization".
  *
  * \section p4_local_algorithm Exact finite-amplitude refitting
@@ -28,6 +28,10 @@
  * search pixel is fit once with its complete configured time sequence, while only the residual rows needed by the
  * local derotation footprints are retained. Cubic footprints are unioned over the complete field rotation, so the
  * number of fitted detector pixels is generally greater than `W*W` but much smaller than a complete output field.
+ * When `adi.excludeMethod` is non-`none`, every requested target residual is calculated from its own retained-row
+ * fit through the configured `p4.exclusionSolver` and `p4.deletionBackend`. Per-target rank support is propagated into
+ * the sparse local validity product. For an evaluation using an explicit frame subset, including a jackknife refit,
+ * `imno` distances index that ordered retained subset rather than the original pre-subset cube.
  *
  * The source center is never quantized. Full images and the source template use the geometric center
  * `0.5*(N-1)` in each axis. For final-sky separation \f$r\f$ and position angle \f$\theta\f$, the continuous source
@@ -59,7 +63,8 @@
  *
  * - `preProcess.skip=true` and a template representing the already-preprocessed P4 input stage;
  * - detector-frame P4, enabled derotation, and a final `combine.method`;
- * - `adi.postMedSub=false` and `output.outputPSFSub=false`; and
+ * - `adi.postMedSub=false` and `output.outputPSFSub=false`;
+ * - `p4.numberImages=0` when target-frame exclusion is enabled; and
  * - no frozen-model settings (`p4.psfFile`, `p4.outputPSFModels`, or `p4.psfFilter`).
  *
  * Inherited fake injection is inactive when preprocessing is skipped. Pixel-local P4 samples the trial on demand, so

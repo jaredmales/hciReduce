@@ -218,7 +218,14 @@ struct P4PCADowndateWorkspace
 
     Eigen::Array<double, Eigen::Dynamic, 1> m_scaledHeldOutRow;         ///< `Sigma l_t^T` scratch.
 
-    std::vector<Eigen::Index> m_deletedRows;                            ///< Materialized contiguous deletion indices.
+    Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic> m_probeBaseFactor;
+    ///< Optional frozen-probe response of the base predictor-side singular factor.
+
+    Eigen::Array<double, Eigen::Dynamic, 1> m_probePrediction;  ///< Accumulated target-specific probe prediction.
+
+    Eigen::Array<double, Eigen::Dynamic, 1> m_probeMode;        ///< One target-specific frozen-probe mode response.
+
+    std::vector<Eigen::Index> m_deletedRows;                    ///< Materialized contiguous deletion indices.
 
     mx::math::svdDeletionResult<double> m_deletionResult;       ///< Published spectrum and preserved-side rotation.
 
@@ -278,6 +285,27 @@ struct P4PCA
         workspaceT &workspace,                /**< [in,out] caller-owned, non-shared LAPACK workspace */
         P4PCATiming *timing = nullptr /**< [out] optional aggregate worker timing for all refits */ );
 
+    /// Calculate exact target-held-out residuals and the response of an arbitrary frozen linear probe.
+    /** The probe has `P` response samples: \p probeTarget supplies its direct target response and each row of
+     * \p probePredictors supplies the corresponding response of all `K` regression predictors. The returned
+     * \p probeResiduals has `P` rows and `T*M` target-major columns, with column `target*M+mode` equal to
+     * `probeTarget-probePredictors*beta(target,mode)`. Unsupported target/mode columns are quiet NaNs and share
+     * P4PCAResult::sampleValidity with the ordinary residuals. This interface evaluates target-specific responses
+     * without retaining the distinct `K`-element coefficient vector for every target.
+     */
+    static void calculateHeldOutProbe(
+        P4PCAResult &output,            /**< [out] held-out residuals, aggregate mode states, and minimum solved rank */
+        matrixT &probeResiduals,        /**< [out] P-by-(T*M) target-major frozen-probe responses */
+        const matrixT &predictors,      /**< [in] finite full T-by-K predictor matrix */
+        const vectorT &target,          /**< [in] finite full T-sample regression target */
+        const matrixT &probePredictors, /**< [in] finite P-by-K frozen predictor responses */
+        const vectorT &probeTarget,     /**< [in] finite P-sample direct target response */
+        const P4TargetExclusions &exclusions, /**< [in] compact deleted-row pattern for every target row */
+        const std::vector<int> &modes,        /**< [in] positive, strictly increasing retained counts */
+        double rankTolerance,                 /**< [in] finite nonnegative threshold relative to lambdaMax */
+        workspaceT &workspace,                /**< [in,out] caller-owned, non-shared LAPACK workspace */
+        P4PCATiming *timing = nullptr /**< [out] optional aggregate worker timing for all refits */ );
+
     /// Calculate exact target-held-out residuals with the default dense deletion backend.
     /** The base keeps every safely representable singular triplet independently of \p rankTolerance. Each target's
      * compact exclusion set is passed to mxlib's full-spectrum leading-covariance deletion backend, after which the
@@ -310,6 +338,26 @@ struct P4PCA
         P4PCAResult &output,                          /**< [out] held-out residuals and deletion diagnostics */
         const matrixT &predictors,                    /**< [in] finite full T-by-K predictor matrix */
         const vectorT &target,                        /**< [in] finite full T-sample target time series */
+        const P4TargetExclusions &exclusions,         /**< [in] compact deleted-row pattern for every target row */
+        const std::vector<int> &modes,                /**< [in] positive, strictly increasing retained counts */
+        double rankTolerance,                         /**< [in] finite nonnegative threshold relative to lambdaMax */
+        mx::math::svdDeletionBackend deletionBackend, /**< [in] supported dense or one-row structured backend */
+        workspaceT &eigensolverWorkspace,             /**< [in,out] reusable base eigensolver workspace */
+        P4PCADowndateWorkspace &downdateWorkspace,    /**< [in,out] reusable factor-deletion storage */
+        P4PCATiming *timing = nullptr /**< [out] optional aggregate base, deletion, and projection timing */ );
+
+    /// Calculate exact factor-downdated residuals and a target-specific frozen linear-probe response.
+    /** Probe inputs and output layout match calculateHeldOutProbe(). Recoverable factor or structured-solver
+     * failures recompute both the science residuals and probe responses with the explicit oracle, so no partial
+     * downdated response can survive a fallback.
+     */
+    static void calculateHeldOutProbeDowndated(
+        P4PCAResult &output,                          /**< [out] held-out residuals and deletion diagnostics */
+        matrixT &probeResiduals,                      /**< [out] P-by-(T*M) target-major frozen-probe responses */
+        const matrixT &predictors,                    /**< [in] finite full T-by-K predictor matrix */
+        const vectorT &target,                        /**< [in] finite full T-sample regression target */
+        const matrixT &probePredictors,               /**< [in] finite P-by-K frozen predictor responses */
+        const vectorT &probeTarget,                   /**< [in] finite P-sample direct target response */
         const P4TargetExclusions &exclusions,         /**< [in] compact deleted-row pattern for every target row */
         const std::vector<int> &modes,                /**< [in] positive, strictly increasing retained counts */
         double rankTolerance,                         /**< [in] finite nonnegative threshold relative to lambdaMax */
@@ -355,6 +403,23 @@ struct P4PCA
         workspaceT &workspace,         /**< [in,out] caller-owned, non-shared LAPACK workspace */
         P4PCATiming *timing = nullptr, /**< [out] optional per-call worker timing */
         matrixT *coefficients = nullptr /**< [out] optional K-by-mode predictor coefficients */ );
+
+  private:
+    /// Implement exact factor deletion with an optional frozen linear-probe response.
+    static void calculateHeldOutDowndatedImpl(
+        P4PCAResult &output,                          /**< [out] held-out residuals and deletion diagnostics */
+        matrixT *probeResiduals,                      /**< [out] optional P-by-(T*M) probe responses */
+        const matrixT &predictors,                    /**< [in] finite full T-by-K predictor matrix */
+        const vectorT &target,                        /**< [in] finite full T-sample regression target */
+        const matrixT *probePredictors,               /**< [in] optional finite P-by-K probe responses */
+        const vectorT *probeTarget,                   /**< [in] optional finite P-sample direct response */
+        const P4TargetExclusions &exclusions,         /**< [in] compact deleted rows for every target */
+        const std::vector<int> &modes,                /**< [in] positive, strictly increasing retained counts */
+        double rankTolerance,                         /**< [in] finite nonnegative relative rank threshold */
+        mx::math::svdDeletionBackend deletionBackend, /**< [in] supported row-deletion backend */
+        workspaceT &eigensolverWorkspace,             /**< [in,out] reusable base eigensolver workspace */
+        P4PCADowndateWorkspace &downdateWorkspace,    /**< [in,out] reusable factor-deletion storage */
+        P4PCATiming *timing /**< [out] optional aggregate base, deletion, and projection timing */ );
 };
 
 /// \cond P4PCA_test_detail

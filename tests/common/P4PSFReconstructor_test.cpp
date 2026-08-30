@@ -595,6 +595,128 @@ TEST_CASE( "P4 compact response stack matches direct combination", "[P4PSFRecons
     }
 }
 
+/// Verify target-specific compact columns reproduce explicit per-frame reconstruction and combination.
+/** This exercises mx::improc::P4PSFReconstructor::reconstructCombinedTargeted() against an oracle assembled from
+ * mx::improc::P4PSFReconstructor::reconstructFrame() and mx::improc::P4PSFReconstructor::combineFrames(), including
+ * search-major/target-major model layout, distinct response columns, and target-specific invalid search pixels.
+ * \ingroup P4PSFReconstructor_unit_tests
+ */
+TEST_CASE( "P4 targeted response matches per-frame reconstruction oracle",
+           "[P4PSFReconstructor][targeted][oracle][combine]" )
+{
+    constexpr int detectorRows = 43;
+    constexpr int detectorColumns = 45;
+    constexpr double centerRow = 21.0;
+    constexpr double centerColumn = 22.0;
+    constexpr int outputSize = 3;
+    constexpr int localRows = 19;
+    constexpr int localColumns = 20;
+    constexpr double sourceSkyRow = 21.0;
+    constexpr double sourceSkyColumn = 29.0;
+    const std::vector<double> angles{ 0.0, 0.23, -0.31, 0.11 };
+
+    gridT grid;
+    grid.resize( detectorRows, detectorColumns, centerRow, centerColumn );
+    grid.region( testRegion(), nullptr );
+    const imageT psfTemplate = asymmetricTemplate( 15, 16 );
+    const modelT model( psfTemplate, localRows, localColumns );
+    imageT sharedModels;
+    validityT sharedValidity;
+    searchIndexT searchIndex;
+    std::vector<coefficientT> coefficients;
+    prepareCompactModels( sharedModels, sharedValidity, searchIndex, coefficients, model, grid );
+
+    const Eigen::Index targetCount = static_cast<Eigen::Index>( angles.size() );
+    imageT targetedModels( sharedModels.rows(), sharedModels.cols() * targetCount );
+    validityT targetedValidity( sharedValidity.rows(), targetCount );
+    targetedValidity.setZero();
+    for( Eigen::Index search = 0; search < sharedModels.cols(); ++search )
+    {
+        for( Eigen::Index target = 0; target < targetCount; ++target )
+        {
+            targetedModels.col( search * targetCount + target ) =
+                sharedModels.col( search ) * static_cast<float>( 1.0 + 0.2 * target );
+            targetedValidity( search, target ) = sharedValidity( search, 0 );
+        }
+    }
+    const int firstInvalidSearch = searchIndex( 21, 29 );
+    const int secondInvalidSearch = searchIndex( 22, 28 );
+    REQUIRE( firstInvalidSearch >= 0 );
+    REQUIRE( secondInvalidSearch >= 0 );
+    targetedValidity( firstInvalidSearch, 1 ) = 0;
+    targetedValidity( secondInvalidSearch, 2 ) = 0;
+
+    reconstructorT
+        reconstructor( detectorRows, detectorColumns, centerRow, centerColumn, outputSize, localRows, localColumns );
+    reconstructorT::cubeT frames;
+    reconstructorT::cubeT frameValidity;
+    frames.resize( outputSize, outputSize, static_cast<int>( angles.size() ) );
+    frameValidity.resize( outputSize, outputSize, static_cast<int>( angles.size() ) );
+    frames.setZero();
+    frameValidity.setZero();
+    for( std::size_t target = 0; target < angles.size(); ++target )
+    {
+        imageT frame;
+        validityT validity;
+        reconstructor.reconstructFrame( frame,
+                                        validity,
+                                        targetedModels,
+                                        targetedValidity,
+                                        searchIndex,
+                                        target,
+                                        sourceSkyRow,
+                                        sourceSkyColumn,
+                                        angles[target] );
+        frames.image( static_cast<int>( target ) ) = frame;
+        frameValidity.image( static_cast<int>( target ) ) = validity.cast<float>();
+    }
+    REQUIRE( frameValidity.image( 1 ).sum() < frameValidity.image( 0 ).sum() );
+
+    const mx::improc::HCI::combine method = GENERATE( mx::improc::HCI::combine::mean,
+                                                      mx::improc::HCI::combine::median,
+                                                      mx::improc::HCI::combine::sigmaMean );
+    const float sigmaThreshold = method == mx::improc::HCI::combine::sigmaMean ? 1.25F : 0.0F;
+    const std::vector<float> weights = method == mx::improc::HCI::combine::median
+                                           ? std::vector<float>{}
+                                           : std::vector<float>{ 0.1F, 0.2F, 0.3F, 0.4F };
+    constexpr float minimumGoodFraction = 0.5F;
+    imageT expected;
+    validityT expectedValidity;
+    reconstructorT::combineFrames( expected,
+                                   expectedValidity,
+                                   frames,
+                                   frameValidity,
+                                   method,
+                                   weights,
+                                   sigmaThreshold,
+                                   minimumGoodFraction );
+
+    imageT actual;
+    validityT actualValidity;
+    reconstructor.reconstructCombinedTargeted( actual,
+                                               actualValidity,
+                                               targetedModels,
+                                               targetedValidity,
+                                               searchIndex,
+                                               sourceSkyRow,
+                                               sourceSkyColumn,
+                                               angles,
+                                               method,
+                                               weights,
+                                               sigmaThreshold,
+                                               minimumGoodFraction );
+    REQUIRE( actualValidity.rows() == expectedValidity.rows() );
+    REQUIRE( actualValidity.cols() == expectedValidity.cols() );
+    for( int column = 0; column < outputSize; ++column )
+    {
+        for( int row = 0; row < outputSize; ++row )
+        {
+            REQUIRE( actualValidity( row, column ) == expectedValidity( row, column ) );
+            REQUIRE( actual( row, column ) == Approx( expected( row, column ) ).margin( 1e-6 ) );
+        }
+    }
+}
+
 /// Verify reconstruction validity follows complete detector and local-model support.
 /** This exercises mx::improc::P4PSFReconstructor::reconstructFrame() invalid propagation and contract validation.
  * \ingroup P4PSFReconstructor_unit_tests

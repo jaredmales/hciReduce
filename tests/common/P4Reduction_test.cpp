@@ -66,8 +66,9 @@ class P4ReductionTestAccess
                                              bool exactHeldOut = false,        /**< [in] include held-out scratch */
                                              P4ExclusionSolver exclusionSolver = P4ExclusionSolver::explicitRefit,
                                              /**< [in] held-out numerical implementation */
-                                             std::size_t maximumDeletedRows = 0, /**< [in] largest deletion count */
-                                             std::size_t maximumRetainedMode = 0 /**< [in] largest retained mode */ )
+                                             std::size_t maximumDeletedRows = 0,  /**< [in] largest deletion count */
+                                             std::size_t maximumRetainedMode = 0, /**< [in] largest retained mode */
+                                             std::size_t probeSampleCount = 0 /**< [in] frozen-probe sample count */ )
     {
         return P4Reductionf::estimatedWorkerBytes( targetImageCount,
                                                    predictorCount,
@@ -77,7 +78,8 @@ class P4ReductionTestAccess
                                                    exactHeldOut,
                                                    exclusionSolver,
                                                    maximumDeletedRows,
-                                                   maximumRetainedMode );
+                                                   maximumRetainedMode,
+                                                   probeSampleCount );
     }
 
     /// Invoke the production phase-matched local-model dimension calculation.
@@ -763,12 +765,24 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
                                                                  mx::improc::P4ExclusionSolver::factorDowndateExact,
                                                                  3,
                                                                  20 );
+    const std::size_t heldOutProbeWorkerBytes =
+        mx::improc::P4ReductionTestAccess::estimatedWorkerBytes( 30,
+                                                                 80,
+                                                                 2,
+                                                                 false,
+                                                                 0,
+                                                                 true,
+                                                                 mx::improc::P4ExclusionSolver::factorDowndateExact,
+                                                                 3,
+                                                                 20,
+                                                                 121 );
     REQUIRE( smallWorkerBytes >= 1024 * 1024 );
     REQUIRE( largeWorkerBytes > smallWorkerBytes );
     REQUIRE( coefficientWorkerBytes > largeWorkerBytes );
     REQUIRE( psfWorkerBytes > coefficientWorkerBytes );
     REQUIRE( heldOutWorkerBytes > largeWorkerBytes );
     REQUIRE( factorHighModeWorkerBytes > factorLowModeWorkerBytes );
+    REQUIRE( heldOutProbeWorkerBytes > factorHighModeWorkerBytes );
     REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 11, 256 ) == 22 );
     REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 11, 255 ) == 23 );
     REQUIRE( mx::improc::P4ReductionTestAccess::localPSFModelDimension( 4, 10 ) == 12 );
@@ -1367,6 +1381,189 @@ TEST_CASE( "P4 pixel-local finite-amplitude refit matches full reduction",
     }
 }
 
+/// Verify pixel-local target exclusion matches the full-frame oracle and both exact exclusion solvers agree.
+/** This exercises mx::improc::P4Reduction::reduce(), mx::improc::P4PCA::calculateHeldOut(), and
+ * mx::improc::P4PCA::calculateHeldOutDowndated() through the deferred-injection pixel-local path.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 pixel-local exact target exclusion matches full reduction",
+           "[P4Reduction][local][held-out][integration][equivalence]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    constexpr int imageCount = 7;
+    constexpr int rows = 32;
+    constexpr int columns = 32;
+    constexpr int stampSize = 5;
+    constexpr float separation = 6.4F;
+    constexpr float positionAngle = 37.0F;
+    constexpr float contrast = -0.35F;
+    const std::vector<float> angles{ -0.25F, -0.13F, -0.03F, 0.08F, 0.19F, 0.31F, 0.42F };
+
+    reductionT::imageT sourceTemplate = reductionT::imageT::Zero( 8, 8 );
+    for( int column = 1; column < 7; ++column )
+    {
+        for( int row = 1; row < 7; ++row )
+        {
+            const double deltaRow = static_cast<double>( row ) - 3.5;
+            const double deltaColumn = static_cast<double>( column ) - 3.5;
+            sourceTemplate( row, column ) =
+                static_cast<float>( std::exp( -0.35 * deltaRow * deltaRow - 0.22 * deltaColumn * deltaColumn ) *
+                                    ( 1.0 + 0.06 * deltaRow - 0.04 * deltaColumn ) );
+        }
+    }
+    const std::filesystem::path sourcePath = directory.file( "held-out-local-source.fits" );
+    mx::fits::fitsFile<float, mx::verbose::vv> writer;
+    REQUIRE( writer.write( sourcePath.string(), sourceTemplate ) == mx::error_t::noerror );
+
+    const auto prepareHeldOut = [&]( reductionHarness &reduction )
+    {
+        prepareReduction( reduction, imageCount, rows, columns );
+        reduction.m_minRadius = { 2 };
+        reduction.m_maxRadius = { 11 };
+        reduction.m_modeFractions = { 0.25F, 0.5F };
+        reduction.m_derotF.m_angles = angles;
+        reduction.m_doDerotate = true;
+        reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+        reduction.m_skipPreProcess = true;
+        reduction.m_memoryFraction = 0;
+        reduction.m_excludeMethod = mx::improc::HCI::exclude::imno;
+        reduction.m_minDPx = 0;
+        for( int image = 0; image < imageCount; ++image )
+        {
+            for( int column = 0; column < columns; ++column )
+            {
+                for( int row = 0; row < rows; ++row )
+                {
+                    reduction.m_tgtIms.image( image )( row, column ) =
+                        0.003F * static_cast<float>( row * row ) - 0.002F * static_cast<float>( column * column ) +
+                        0.01F * static_cast<float>( row * column ) + 0.07F * static_cast<float>( image * row ) -
+                        0.04F * static_cast<float>( ( image + 1 ) * column ) +
+                        0.001F * static_cast<float>( ( image % 3 ) * row * column );
+                }
+            }
+        }
+    };
+
+    const auto configureLocal = [&]( reductionHarness &reduction )
+    {
+        reduction.m_localStampSize = stampSize;
+        reduction.m_fakeMethod = mx::improc::HCI::fake::single;
+        reduction.m_fakeFileName = sourcePath.string();
+        reduction.m_fakeSep = { separation };
+        reduction.m_fakePA = { positionAngle };
+        reduction.m_fakeContrast = { contrast };
+    };
+
+    reductionT::imageT centeredTemplate = reductionT::imageT::Zero( rows, columns );
+    centeredTemplate.block( 13, 13, 6, 6 ) = sourceTemplate.block( 1, 1, 6, 6 );
+
+    reductionHarness full;
+    prepareHeldOut( full );
+    for( int image = 0; image < imageCount; ++image )
+    {
+        const float sourceAngle = mx::math::dtor( -positionAngle ) + full.m_derotF.derotAngle( image );
+        reductionT::imageT shifted;
+        mx::improc::imageShift( shifted,
+                                centeredTemplate,
+                                separation * std::sin( sourceAngle ),
+                                separation * std::cos( sourceAngle ),
+                                mx::improc::cubicConvolTransform<float>() );
+        full.m_tgtIms.image( image ) += shifted * contrast;
+    }
+    REQUIRE( full.reduce() == 0 );
+
+    reductionHarness explicitLocal;
+    prepareHeldOut( explicitLocal );
+    configureLocal( explicitLocal );
+    REQUIRE( explicitLocal.reduce() == 0 );
+    REQUIRE( explicitLocal.m_regionStatistics.size() == 1 );
+    REQUIRE( explicitLocal.m_regionStatistics[0].maximumExcludedRows == 1 );
+    REQUIRE( explicitLocal.m_regionStatistics[0].exclusionStorageBytes > 0 );
+    REQUIRE( explicitLocal.m_finim.rows() == stampSize );
+    REQUIRE( explicitLocal.m_finim.cols() == stampSize );
+    REQUIRE( explicitLocal.m_finim.planes() == full.m_finim.planes() );
+
+    for( int output = 0; output < explicitLocal.m_finim.planes(); ++output )
+    {
+        for( int stampColumn = 0; stampColumn < stampSize; ++stampColumn )
+        {
+            for( int stampRow = 0; stampRow < stampSize; ++stampRow )
+            {
+                const float fullValue = full.m_finim.image( output )( explicitLocal.m_localOriginRow + stampRow,
+                                                                      explicitLocal.m_localOriginColumn + stampColumn );
+                const bool fullValid = mx::math::isFinite( fullValue );
+                REQUIRE( explicitLocal.m_localFinalValidity.image( output )( stampRow, stampColumn ) ==
+                         static_cast<float>( fullValid ) );
+                if( fullValid )
+                {
+                    REQUIRE( explicitLocal.m_finim.image( output )( stampRow, stampColumn ) ==
+                             Approx( fullValue ).margin( 1e-4 ) );
+                }
+                else
+                {
+                    REQUIRE( mx::math::isNan( explicitLocal.m_finim.image( output )( stampRow, stampColumn ) ) );
+                }
+            }
+        }
+    }
+
+    reductionHarness structuredLocal;
+    prepareHeldOut( structuredLocal );
+    configureLocal( structuredLocal );
+    structuredLocal.m_exclusionSolver = mx::improc::P4ExclusionSolver::factorDowndateExact;
+    structuredLocal.m_deletionBackend = mx::math::svdDeletionBackend::rankOneSecular;
+    REQUIRE( structuredLocal.reduce() == 0 );
+    REQUIRE( structuredLocal.m_localOriginRow == explicitLocal.m_localOriginRow );
+    REQUIRE( structuredLocal.m_localOriginColumn == explicitLocal.m_localOriginColumn );
+    REQUIRE( structuredLocal.m_regionStatistics.size() == 1 );
+    const auto &structuredStatistics = structuredLocal.m_regionStatistics[0];
+    REQUIRE( structuredStatistics.maximumExcludedRows == 1 );
+    REQUIRE( structuredStatistics.exclusionStorageBytes > 0 );
+    REQUIRE( structuredStatistics.minimumBaseRank > 0 );
+    REQUIRE( structuredStatistics.explicitFallbackCount == 0 );
+    REQUIRE( structuredStatistics.rankBoundaryFallbackPixelCount == 0 );
+    REQUIRE( structuredStatistics.factorValidationFallbackPixelCount == 0 );
+    REQUIRE( structuredStatistics.deletionSolverFallbackPixelCount == 0 );
+    REQUIRE( structuredStatistics.validLocalFitCount == explicitLocal.m_regionStatistics[0].validLocalFitCount );
+    REQUIRE( structuredStatistics.rankInvalidCounts == explicitLocal.m_regionStatistics[0].rankInvalidCounts );
+
+    for( int output = 0; output < explicitLocal.m_finim.planes(); ++output )
+    {
+        REQUIRE( structuredLocal.m_localFinalValidity.image( output ).isApprox(
+            explicitLocal.m_localFinalValidity.image( output ),
+            0 ) );
+        for( int stampColumn = 0; stampColumn < stampSize; ++stampColumn )
+        {
+            for( int stampRow = 0; stampRow < stampSize; ++stampRow )
+            {
+                if( explicitLocal.m_localFinalValidity.image( output )( stampRow, stampColumn ) > 0.5F )
+                {
+                    REQUIRE( structuredLocal.m_finim.image( output )( stampRow, stampColumn ) ==
+                             Approx( explicitLocal.m_finim.image( output )( stampRow, stampColumn ) ).margin( 1e-4 ) );
+                }
+                else
+                {
+                    REQUIRE( mx::math::isNan( structuredLocal.m_finim.image( output )( stampRow, stampColumn ) ) );
+                }
+            }
+        }
+    }
+
+    reductionT::fitsHeaderT structuredHeader;
+    structuredLocal.appendReductionHeader( structuredHeader );
+    REQUIRE( structuredHeader["P4 IN SAMPLE"].Int() == 0 );
+    REQUIRE( structuredHeader["P4 EXCLUSION SOLVER"].String().starts_with( "factorDowndateExact" ) );
+    REQUIRE( structuredHeader["P4 DELETION BACKEND"].String().starts_with( "rankOneSecular" ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4Reductionf doxygenReduction;
+    doxygenReduction.reduce();
+#endif
+    // clang-format on
+}
+
 /// Verify opt-in frozen-model calculation captures compact local stamps without changing science residuals.
 /** This exercises mx::improc::P4Reduction::reduce(), mx::improc::P4PCA::calculate(), and
  * mx::improc::P4PSFModel::calculateLocalResponse() through the detector-frame integration path.
@@ -1835,6 +2032,282 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
             }
         }
     }
+}
+
+/// Verify target-held-out frozen PSF products and filtering agree between both exact exclusion solvers.
+/** This exercises mx::improc::P4Reduction::reduce() through the target-held-out frozen-probe path,
+ * mx::improc::P4PCA::calculateHeldOutProbe(), mx::improc::P4PCA::calculateHeldOutProbeDowndated(), and
+ * mx::improc::P4PSFReconstructor::reconstructCombinedTargeted().
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 target-held-out PSF products agree between exact solvers",
+           "[P4Reduction][PSF][held-out][filter][integration][equivalence]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    constexpr int imageCount = 5;
+    constexpr int rows = 31;
+    constexpr int columns = 31;
+
+    reductionT::imageT psfTemplate( 9, 10 );
+    for( int column = 0; column < psfTemplate.cols(); ++column )
+    {
+        for( int row = 0; row < psfTemplate.rows(); ++row )
+        {
+            const double deltaRow = static_cast<double>( row ) - 4.0;
+            const double deltaColumn = static_cast<double>( column ) - 4.5;
+            psfTemplate( row, column ) =
+                static_cast<float>( std::exp( -0.24 * deltaRow * deltaRow - 0.16 * deltaColumn * deltaColumn ) *
+                                    ( 1.0 + 0.03 * deltaRow - 0.02 * deltaColumn ) );
+        }
+    }
+    mx::fits::fitsFile<float, mx::verbose::vv> fits;
+    const std::filesystem::path psfPath = directory.file( "held-out-template.fits" );
+    REQUIRE( fits.write( psfPath.string(), psfTemplate ) == mx::error_t::noerror );
+
+    const auto preparePSFReduction = [&]( reductionHarness &reduction,
+                                          const std::filesystem::path &outputDirectory,
+                                          const std::string &productPrefix )
+    {
+        prepareReduction( reduction, imageCount, rows, columns );
+        reduction.m_minRadius = { 5 };
+        reduction.m_maxRadius = { 10 };
+        reduction.m_modeFractions = { 0.25F, 0.5F };
+        reduction.m_memoryFraction = 0;
+        reduction.m_excludeMethod = mx::improc::HCI::exclude::imno;
+        reduction.m_minDPx = 0;
+        reduction.m_numberImages = 0;
+        reduction.m_psfFile = psfPath.string();
+        reduction.m_psfStampSize = 3;
+        reduction.m_outputPSFModels = true;
+        reduction.m_psfFilter = true;
+        reduction.m_psfFilterMinGoodFract = 0.4F;
+        reduction.m_psfOutputPrefix = productPrefix;
+        reduction.m_outputDir = outputDirectory.string();
+        reduction.m_finimName = "science.fits";
+        reduction.m_exactFinimName = true;
+        reduction.m_doWriteFinim = true;
+        reduction.m_doDerotate = true;
+        reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+        reduction.m_derotF.m_angles = { -0.25F, -0.11F, 0.02F, 0.17F, 0.34F };
+        for( int image = 0; image < imageCount; ++image )
+        {
+            for( int column = 0; column < columns; ++column )
+            {
+                for( int row = 0; row < rows; ++row )
+                {
+                    const double phase = static_cast<double>( image + 1 );
+                    reduction.m_tgtIms.image( image )( row, column ) =
+                        static_cast<float>( std::sin( 0.037 * phase * static_cast<double>( row + 1 ) ) +
+                                            std::cos( 0.041 * ( phase + 1.0 ) * static_cast<double>( column + 1 ) ) +
+                                            0.002 * phase * static_cast<double>( row * column ) );
+                }
+            }
+        }
+    };
+
+    const std::filesystem::path explicitDirectory = directory.file( "explicit" );
+    reductionHarness explicitReduction;
+    preparePSFReduction( explicitReduction, explicitDirectory, "explicit_" );
+    REQUIRE( explicitReduction.reduce() == 0 );
+    REQUIRE( explicitReduction.m_psfModeBatchSize == 2 );
+    REQUIRE( explicitReduction.m_localPSFModels.empty() );
+    REQUIRE( explicitReduction.m_localPSFValidity.empty() );
+    REQUIRE( explicitReduction.m_localPSFBytes > 0 );
+
+    const std::filesystem::path downdatedDirectory = directory.file( "downdated" );
+    reductionHarness downdatedReduction;
+    preparePSFReduction( downdatedReduction, downdatedDirectory, "downdated_" );
+    downdatedReduction.m_exclusionSolver = mx::improc::P4ExclusionSolver::factorDowndateExact;
+    downdatedReduction.m_deletionBackend = mx::math::svdDeletionBackend::rankOneSecular;
+    REQUIRE( downdatedReduction.reduce() == 0 );
+    REQUIRE( downdatedReduction.m_psfModeBatchSize == 2 );
+    REQUIRE( downdatedReduction.m_localPSFModels.empty() );
+    REQUIRE( downdatedReduction.m_localPSFValidity.empty() );
+    REQUIRE( downdatedReduction.m_regionStatistics.size() == 1 );
+    REQUIRE( downdatedReduction.m_regionStatistics[0].maximumExcludedRows == 1 );
+    REQUIRE( downdatedReduction.m_regionStatistics[0].explicitFallbackCount == 0 );
+    REQUIRE( downdatedReduction.m_psfDowndateClampCount > 0 );
+    REQUIRE( downdatedReduction.m_psfExplicitFallbackCount == 0 );
+    REQUIRE( downdatedReduction.m_psfRankBoundaryFallbackPixelCount == 0 );
+    REQUIRE( downdatedReduction.m_psfFactorValidationFallbackPixelCount == 0 );
+    REQUIRE( downdatedReduction.m_psfDeletionSolverFallbackPixelCount == 0 );
+
+    const std::filesystem::path explicitProducts = explicitDirectory / "science_outputs";
+    const std::filesystem::path downdatedProducts = downdatedDirectory / "science_outputs";
+    const std::filesystem::path explicitModelPath = explicitProducts / "explicit_model_0000.fits";
+    const std::filesystem::path downdatedModelPath = downdatedProducts / "downdated_model_0000.fits";
+    const std::filesystem::path explicitValidityPath = explicitProducts / "explicit_validity_0000.fits";
+    const std::filesystem::path downdatedValidityPath = downdatedProducts / "downdated_validity_0000.fits";
+    REQUIRE( std::filesystem::exists( explicitModelPath ) );
+    REQUIRE( std::filesystem::exists( downdatedModelPath ) );
+    REQUIRE( std::filesystem::exists( explicitValidityPath ) );
+    REQUIRE( std::filesystem::exists( downdatedValidityPath ) );
+    REQUIRE( std::filesystem::exists( explicitProducts / "explicit_model_0001.fits" ) );
+    REQUIRE( std::filesystem::exists( downdatedProducts / "downdated_model_0001.fits" ) );
+    REQUIRE( std::filesystem::exists( explicitProducts / "explicit_validity_0001.fits" ) );
+    REQUIRE( std::filesystem::exists( downdatedProducts / "downdated_validity_0001.fits" ) );
+
+    reductionT::imageT downdatedManifest;
+    reductionT::fitsHeaderT downdatedManifestHeader;
+    REQUIRE( fits.read( downdatedManifest,
+                        downdatedManifestHeader,
+                        ( downdatedProducts / "downdated_manifest.fits" ).string() ) == mx::error_t::noerror );
+    REQUIRE( downdatedManifest( 0, 0 ) == 1 );
+    REQUIRE( downdatedManifestHeader["P4 PSF COMPLETE"].value<int>() == 1 );
+    REQUIRE( downdatedManifestHeader["P4 PSF MODE BATCH"].value<int>() == 2 );
+    REQUIRE( downdatedManifestHeader["P4 PSF DOWNDATE CLAMPS"].String().starts_with(
+        std::to_string( downdatedReduction.m_psfDowndateClampCount ) ) );
+    REQUIRE( downdatedManifestHeader["P4 PSF EXPLICIT FALLBACK ROWS"].String().starts_with( "0" ) );
+    REQUIRE( downdatedManifestHeader["P4 PSF RANK FALLBACK FITS"].String().starts_with( "0" ) );
+    REQUIRE( downdatedManifestHeader["P4 PSF FACTOR FALLBACK FITS"].String().starts_with( "0" ) );
+    REQUIRE( downdatedManifestHeader["P4 PSF SOLVER FALLBACK FITS"].String().starts_with( "0" ) );
+    REQUIRE( downdatedManifestHeader["P4 PSF MAX FACTOR DEFECT"].value<double>() == 0 );
+    REQUIRE( downdatedManifestHeader["P4 PSF FACTOR DEFECT TOLERANCE"].value<double>() == 0 );
+
+    mx::improc::eigenCube<float> explicitModels;
+    mx::improc::eigenCube<float> downdatedModels;
+    reductionT::fitsHeaderT explicitModelHeader;
+    reductionT::fitsHeaderT downdatedModelHeader;
+    REQUIRE( fits.read( explicitModels, explicitModelHeader, explicitModelPath.string() ) == mx::error_t::noerror );
+    REQUIRE( fits.read( downdatedModels, downdatedModelHeader, downdatedModelPath.string() ) == mx::error_t::noerror );
+    REQUIRE( explicitModels.rows() == downdatedModels.rows() );
+    REQUIRE( explicitModels.cols() == downdatedModels.cols() );
+    REQUIRE( explicitModels.planes() == downdatedModels.planes() );
+    REQUIRE( explicitModelHeader["P4 PSF COEFFICIENT SCOPE"].String().starts_with( "TARGET_HELD_OUT" ) );
+    REQUIRE( downdatedModelHeader["P4 PSF COEFFICIENT SCOPE"].String().starts_with( "TARGET_HELD_OUT" ) );
+    REQUIRE( explicitModelHeader["P4 PSF MODE BATCH"].value<int>() == 2 );
+    REQUIRE( downdatedModelHeader["P4 PSF MODE BATCH"].value<int>() == 2 );
+    REQUIRE( explicitModelHeader["P4 IN SAMPLE"].value<int>() == 0 );
+    REQUIRE( downdatedModelHeader["P4 IN SAMPLE"].value<int>() == 0 );
+    REQUIRE( explicitModelHeader["P4 EXCLUSION SOLVER"].String().starts_with( "explicitRefit" ) );
+    REQUIRE( downdatedModelHeader["P4 EXCLUSION SOLVER"].String().starts_with( "factorDowndateExact" ) );
+
+    reductionT::imageT explicitValidity;
+    reductionT::imageT downdatedValidity;
+    reductionT::fitsHeaderT explicitValidityHeader;
+    reductionT::fitsHeaderT downdatedValidityHeader;
+    REQUIRE( fits.read( explicitValidity, explicitValidityHeader, explicitValidityPath.string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( fits.read( downdatedValidity, downdatedValidityHeader, downdatedValidityPath.string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( explicitValidity.isApprox( downdatedValidity, 0 ) );
+    REQUIRE( explicitValidity.sum() > 0 );
+    for( int plane = 0; plane < explicitModels.planes(); ++plane )
+    {
+        for( int column = 0; column < explicitModels.cols(); ++column )
+        {
+            for( int row = 0; row < explicitModels.rows(); ++row )
+            {
+                const float expected = explicitModels.image( plane )( row, column );
+                const float actual = downdatedModels.image( plane )( row, column );
+                if( mx::math::isNan( expected ) )
+                {
+                    REQUIRE( mx::math::isNan( actual ) );
+                }
+                else
+                {
+                    REQUIRE( actual == Approx( expected ).margin( 2e-4 ) );
+                }
+            }
+        }
+    }
+
+    const auto compareFilteredProduct =
+        [&]( const std::filesystem::path &explicitPath, const std::filesystem::path &downdatedPath, float tolerance )
+    {
+        mx::improc::eigenCube<float> explicitProduct;
+        mx::improc::eigenCube<float> downdatedProduct;
+        reductionT::fitsHeaderT explicitHeader;
+        reductionT::fitsHeaderT downdatedHeader;
+        REQUIRE( fits.read( explicitProduct, explicitHeader, explicitPath.string() ) == mx::error_t::noerror );
+        REQUIRE( fits.read( downdatedProduct, downdatedHeader, downdatedPath.string() ) == mx::error_t::noerror );
+        REQUIRE( explicitProduct.rows() == downdatedProduct.rows() );
+        REQUIRE( explicitProduct.cols() == downdatedProduct.cols() );
+        REQUIRE( explicitProduct.planes() == downdatedProduct.planes() );
+        for( int plane = 0; plane < explicitProduct.planes(); ++plane )
+        {
+            for( int column = 0; column < explicitProduct.cols(); ++column )
+            {
+                for( int row = 0; row < explicitProduct.rows(); ++row )
+                {
+                    const float expected = explicitProduct.image( plane )( row, column );
+                    const float actual = downdatedProduct.image( plane )( row, column );
+                    if( mx::math::isNan( expected ) )
+                    {
+                        REQUIRE( mx::math::isNan( actual ) );
+                    }
+                    else
+                    {
+                        REQUIRE( actual == Approx( expected ).margin( tolerance ) );
+                    }
+                }
+            }
+        }
+    };
+    compareFilteredProduct( explicitDirectory / "science_filtered.fits",
+                            downdatedDirectory / "science_filtered.fits",
+                            3e-4F );
+    compareFilteredProduct( explicitProducts / "science_filter_normalization.fits",
+                            downdatedProducts / "science_filter_normalization.fits",
+                            3e-4F );
+    compareFilteredProduct( explicitProducts / "science_filter_support.fits",
+                            downdatedProducts / "science_filter_support.fits",
+                            0 );
+    compareFilteredProduct( explicitProducts / "science_filter_validity.fits",
+                            downdatedProducts / "science_filter_validity.fits",
+                            0 );
+
+    const std::filesystem::path unpublishedDirectory = directory.file( "unpublished" );
+    reductionHarness unpublishedReduction;
+    preparePSFReduction( unpublishedReduction, unpublishedDirectory, "unpublished_" );
+    unpublishedReduction.m_outputPSFModels = false;
+    unpublishedReduction.m_psfFilter = false;
+    REQUIRE( unpublishedReduction.reduce() == 0 );
+    REQUIRE( unpublishedReduction.m_psfModeBatchSize == 2 );
+    REQUIRE( unpublishedReduction.m_localPSFModels.empty() );
+    REQUIRE( unpublishedReduction.m_localPSFValidity.empty() );
+    REQUIRE( unpublishedReduction.m_timing.psfWorkerSeconds > 0 );
+    REQUIRE_FALSE( std::filesystem::exists( unpublishedDirectory / "science_outputs/unpublished_manifest.fits" ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4Reductionf doxygenReduction;
+    doxygenReduction.reduce();
+    mx::improc::P4PCA pca;
+    mx::improc::P4PCAResult pcaResult;
+    mx::improc::P4PCA::matrixT probeResiduals;
+    mx::improc::P4PCA::matrixT predictors;
+    mx::improc::P4PCA::vectorT target;
+    mx::improc::P4PCA::matrixT probePredictors;
+    mx::improc::P4PCA::vectorT probeTarget;
+    mx::improc::P4TargetExclusions exclusions;
+    mx::improc::P4PCA::workspaceT workspace;
+    mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+    pca.calculateHeldOutProbe( pcaResult,
+                               probeResiduals,
+                               predictors,
+                               target,
+                               probePredictors,
+                               probeTarget,
+                               exclusions,
+                               { 1 },
+                               1e-12,
+                               workspace );
+    pca.calculateHeldOutProbeDowndated( pcaResult,
+                                        probeResiduals,
+                                        predictors,
+                                        target,
+                                        probePredictors,
+                                        probeTarget,
+                                        exclusions,
+                                        { 1 },
+                                        1e-12,
+                                        mx::math::svdDeletionBackend::rankOneSecular,
+                                        workspace,
+                                        downdateWorkspace );
+#endif
+    // clang-format on
 }
 
 /// Verify compact combined finalization matches retained-cube combination and releases full-frame intermediates.

@@ -736,6 +736,25 @@ local verification passes 1,121 assertions in the 28-case `P4PCA` suite and 65,3
 the whole-pixel explicit result, warning, counters, and FITS provenance. A remote wall-time comparison remains the
 promotion evidence for this opt-in backend; multiple-row structured deletion remains future work.
 
+### ROC structured-backend result
+
+The first full ROC run with `p4.deletionBackend=rankOneSecular`, `finim_0060.fits`, completed all 5,024 search pixels
+in 1,174.409 seconds of regression wall time and 1,189.372 seconds total. Relative to the otherwise comparable dense
+`leadingCovariance` run `finim_0059.fits`, this is a 2.590-fold regression speedup and a 2.570-fold total speedup,
+saving 1,867.109 seconds (31 minutes 7 seconds) in regression. Search-pixel throughput increased from 1.652 to 4.278
+pixels per second.
+
+The eigensolve/deletion worker total fell from 132,504.042 to 49,188.419 worker seconds, a 62.878% reduction which
+accounts for essentially the entire wall-time improvement. Geometry and Gram-construction timings remained within
+0.2% of the dense baseline. Within the new eigensolve total, reusable base factorization consumed 194.068 worker
+seconds and row deletion still consumed 48,975.871 worker seconds, or 99.568%; row deletion therefore remains the
+dominant optimization target.
+
+FITS provenance shows no structured deletion-solver fallback. Both 0059 and 0060 used one factor-validation fallback
+in annulus 6, recomputing its 621 target rows; the complete explicit-fallback cost in 0060 was only 18.908 worker
+seconds. An exact `fitsdiff` data comparison found no differing float32 science pixels across the 15 output planes.
+The files differ only in headers, including the selected deletion backend and the new deletion-solver fallback card.
+
 ## Work sequence
 
 ### 1. Freeze the math with a standalone oracle
@@ -884,6 +903,26 @@ not details to defer until after making the backend default.
 - Rejection of rotated frame, positive `numberImages`, local processing, and frozen-PSF products in the first slice.
 - Complete AF Lep final products, science SNR/merit, wall time, and peak memory against the accepted exact baseline.
 
+## Consumer extension after the initial slice
+
+The initial validation boundary above deliberately rejected pixel-local and frozen-PSF consumers. The completed CPU
+extension now preserves the same exact deletion contract in both paths while continuing to reject rotated-frame and
+positive-`numberImages` combinations:
+
+- Pixel-local requests pass the annulus's compact target exclusions through `fitDetectorSearch()`. Sparse residual
+  copyout uses per-target/per-mode rank validity, and explicit fallback diagnostics are aggregated like the full path.
+- `P4PSFModel::responseInputs()` constructs the frozen direct response `f` and predictor operator `Q` for every local
+  stamp sample. `P4PCA::calculateHeldOutProbe()` and `calculateHeldOutProbeDowndated()` evaluate `f-Q beta_t,m` while
+  each target-specific fit is live, including whole-search explicit fallback.
+- Target-specific local responses and validity are retained in an automatically selected output-mode batch.
+  `P4PSFReconstructor::reconstructCombinedTargeted()` selects the response column matching each target frame before
+  applying the configured mean, weighted mean, median, or sigma-clipped combination.
+- The ordinary PSF product filenames and manifest layout remain unchanged. New provenance distinguishes
+  `TARGET_HELD_OUT` from `SHARED_IN_SAMPLE` coefficient scope and records the selected mode-batch count.
+- Unit oracles cover both P4PCA Gram branches, explicit/dense/secular deletion, probe algebra, target-specific
+  reconstruction, and full-vs-local excluded fits. A small complete product test compares explicit and structured
+  response outputs.
+
 ## Acceptance criteria
 
 1. Full-rank factor deletion reproduces explicit held-out P4 predictions and validity in both matrix-shape regimes;
@@ -899,7 +938,9 @@ not details to defer until after making the backend default.
    `O(T^2)` index lists.
 6. Solver, base rank, full/truncated state, rank/clamp/fallback diagnostics, and timing are recorded without changing
    science-plane meanings.
-7. `adi.excludeMethod=none` and every unsupported held-out combination retain their current behavior.
+7. `adi.excludeMethod=none` retains its current behavior. Rotated-frame and positive-`numberImages` held-out
+   combinations remain explicit validation errors, while pixel-local and frozen-response consumers preserve the same
+   deleted rows, numerical backend, fallback, and per-target validity as the ordinary reduction.
 
 ## References
 

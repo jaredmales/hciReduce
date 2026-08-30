@@ -22,6 +22,8 @@ using modelT = mx::improc::P4PSFModel;
 using gridT = modelT::gridT;
 using imageT = modelT::imageT;
 using coefficientT = modelT::coefficientT;
+using probeMatrixT = modelT::probeMatrixT;
+using probeVectorT = modelT::probeVectorT;
 
 /// Return a compact region safely contained by the test detector image.
 mx::improc::P4PixelGridRegion testRegion()
@@ -302,6 +304,54 @@ TEST_CASE( "P4 local PSF response matches brute-force detector sampling", "[P4PS
         imageT compact;
         model.calculateLocalResponse( compact, grid, searchIndex, coefficients );
         requireApprox( compact, bruteForceResponse( psfTemplate, grid, searchIndex, coefficients, 7 ) );
+    }
+}
+
+/// Verify frozen probe inputs reproduce the ordinary compact residual operator.
+/** This exercises mx::improc::P4PSFModel::responseInputs() and
+ * mx::improc::P4PSFModel::calculateLocalResponse() with finite asymmetric coefficients, fractional predictor
+ * phases, rectangular odd/even stamps, and template-edge zero padding.
+ * \ingroup P4PSFModel_unit_tests
+ */
+TEST_CASE( "P4 PSF probe inputs reproduce local response", "[P4PSFModel][probe][oracle][geometry]" )
+{
+    gridT grid;
+    grid.resize( 41, 43, 20.0, 21.0 );
+    grid.region( testRegion(), nullptr );
+    const std::size_t searchIndex = findSearch( grid, 23, 25 );
+
+    coefficientT coefficients( static_cast<Eigen::Index>( grid.predictorCount() ) );
+    for( Eigen::Index predictor = 0; predictor < coefficients.rows(); ++predictor )
+    {
+        coefficients( predictor ) = 0.013 * std::sin( 0.17 * static_cast<double>( predictor + 1 ) ) -
+                                    0.007 * std::cos( 0.11 * static_cast<double>( 2 * predictor + 3 ) );
+    }
+
+    const int stampRows = GENERATE( 4, 5, 7 );
+    const int stampColumns = GENERATE( 5, 6 );
+    const int templateRows = stampRows == 7 ? 3 : 10;
+    const int templateColumns = stampRows == 7 ? 4 : 13;
+    const imageT psfTemplate = asymmetricTemplate( templateRows, templateColumns );
+    const modelT model( psfTemplate, stampRows, stampColumns );
+
+    probeVectorT probeTarget;
+    probeMatrixT probePredictors;
+    model.responseInputs( probeTarget, probePredictors, grid, searchIndex );
+    REQUIRE( probeTarget.rows() == stampRows * stampColumns );
+    REQUIRE( probePredictors.rows() == stampRows * stampColumns );
+    REQUIRE( probePredictors.cols() == coefficients.rows() );
+
+    const probeVectorT probeResidual =
+        ( probeTarget.matrix() - probePredictors.matrix() * coefficients.matrix() ).array();
+    imageT localResponse;
+    model.calculateLocalResponse( localResponse, grid, searchIndex, coefficients );
+    for( int stampColumn = 0; stampColumn < stampColumns; ++stampColumn )
+    {
+        for( int stampRow = 0; stampRow < stampRows; ++stampRow )
+        {
+            const Eigen::Index stampPixel = stampRow + stampRows * stampColumn;
+            REQUIRE( probeResidual( stampPixel ) == Approx( localResponse( stampRow, stampColumn ) ).margin( 2e-6 ) );
+        }
     }
 }
 

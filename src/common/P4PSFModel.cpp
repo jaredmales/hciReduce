@@ -200,6 +200,64 @@ float P4PSFModel::shiftedTemplateValue( std::int64_t rowIndex, std::int64_t colu
     return m_shiftedTemplate( static_cast<Eigen::Index>( storedRow ), static_cast<Eigen::Index>( storedColumn ) );
 }
 
+void P4PSFModel::responseInputs( probeVectorT &probeTarget,
+                                 probeMatrixT &probePredictors,
+                                 const gridT &grid,
+                                 std::size_t searchIndex ) const
+{
+    if( !grid.regionConfigured() )
+    {
+        throw std::invalid_argument( "P4 PSF probe calculation requires a complete detector-frame pixel grid" );
+    }
+    const P4SearchPixelRecord &search = grid.searchPixel( searchIndex );
+    if( !search.valid() )
+    {
+        throw std::invalid_argument( "P4 PSF probe calculation requires a valid local fit" );
+    }
+    if( grid.predictorCount() > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) )
+    {
+        throw std::length_error( "P4 PSF probe predictor count exceeds Eigen range" );
+    }
+
+    const P4PixelCoordinate &target = search.coordinate();
+    const Eigen::Index stampPixels =
+        static_cast<Eigen::Index>( m_stampRows ) * static_cast<Eigen::Index>( m_stampColumns );
+    probeTarget.resize( stampPixels );
+    probePredictors.resize( stampPixels, static_cast<Eigen::Index>( grid.predictorCount() ) );
+    for( int stampColumn = 0; stampColumn < m_stampColumns; ++stampColumn )
+    {
+        for( int stampRow = 0; stampRow < m_stampRows; ++stampRow )
+        {
+            const Eigen::Index stampPixel =
+                static_cast<Eigen::Index>( stampRow ) + static_cast<Eigen::Index>( m_stampRows ) * stampColumn;
+            probeTarget( stampPixel ) = static_cast<double>( shiftedTemplateValue( stampRow, stampColumn ) );
+            for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+            {
+                const gridT::interpolationRecordT &record = grid.interpolation( searchIndex, predictor );
+                float predictorSample{ 0 };
+                for( int rowOffset = 0; rowOffset < gridT::width; ++rowOffset )
+                {
+                    const std::int64_t rowIndex =
+                        static_cast<std::int64_t>( stampRow ) + record.footprintRow() + rowOffset - target.row();
+                    for( int columnOffset = 0; columnOffset < gridT::width; ++columnOffset )
+                    {
+                        const std::int64_t columnIndex = static_cast<std::int64_t>( stampColumn ) +
+                                                         record.footprintColumn() + columnOffset - target.column();
+                        predictorSample +=
+                            shiftedTemplateValue( rowIndex, columnIndex ) * record.kernel()( rowOffset, columnOffset );
+                    }
+                }
+                probePredictors( stampPixel, static_cast<Eigen::Index>( predictor ) ) =
+                    static_cast<double>( predictorSample );
+            }
+        }
+    }
+    if( !p4PSFAllFinite( probeTarget ) || !p4PSFAllFinite( probePredictors ) )
+    {
+        throw std::runtime_error( "P4 PSF probe calculation produced nonfinite values" );
+    }
+}
+
 void P4PSFModel::calculateLocalResponse( imageT &output,
                                          const gridT &grid,
                                          std::size_t searchIndex,

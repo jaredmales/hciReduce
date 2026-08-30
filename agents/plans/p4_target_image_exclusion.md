@@ -352,16 +352,17 @@ details below where they differ.
   error. Each target should normally be derived independently from the same full SVD, not from a long chain of
   destructive downdates.
 
-### 6. Extend all P4 consumers
+### 6. Extend all P4 consumers — CPU implementation complete
 
 - Normal compact and retained-cube output paths receive held-out residuals directly.
-- Pixel-local and negative-companion optimization reuse a persistent GPU context, but trial-dependent `X` and `y`
-  invalidate any affected Gram/SVD state.
-- PSF response calculation cannot retain one `K x M` coefficient matrix per search pixel anymore: coefficients vary
-  with target `t`. Calculate each held-out PSF response on the device and retain only the requested response stamp or
-  combined product.
-- Jackknife refits must state whether target exclusion applies inside each block refit and avoid nesting an accidental
-  brute-force exclusion loop inside the current optimizer loop.
+- Pixel-local and negative-companion optimization rebuild each trial-dependent base factor and apply the same compact
+  annular deletion patterns. Jackknife refits rebuild those patterns on the ordered retained-frame subset; `imno`
+  therefore measures compact-row distance inside that subset.
+- Frozen PSF calculation applies a direct target/predictor response operator while each target-specific explicit or
+  downdated fit is live. It retains a memory-selected batch of target-frame response stamps instead of one `K x M`
+  coefficient matrix per target, and reconstructs each frame with matching per-target validity.
+- The initial GPU-context direction is deferred. The implemented CPU consumers share the exact solver contract and
+  explicit fallback; future GPU work can replace that numerical backend without changing their output semantics.
 
 ## Configuration and provenance direction
 
@@ -405,9 +406,10 @@ tile sizes. `HIERARCH P4 IN SAMPLE` should become zero for these products.
 6. PSF response and optimizer products are computed with the same held-out model rather than quietly reverting to the
    in-sample coefficients.
 
-## Current recommendation
+## Current status and recommendation
 
-Complete the exact CPU leave-out oracle in step 1, then move directly to the Long-Males SVD downdate in step 5. Use
-the resident benchmark to validate future machines, but do not integrate direct repeated eigendecomposition into P4.
-GPU work should now target batched downdates and held-out projections, with streams reconsidered only after measuring
-those smaller operations; the full batched eigensolver did not benefit from concurrent streams on the first device.
+The exact CPU oracle, reusable Long--Males factor deletion, rank-one secular backend, and ordinary, pixel-local, and
+frozen-response P4 consumers are implemented. The resident benchmark remains useful on future machines, but direct
+repeated GPU eigendecomposition should not be integrated without a materially different result. Any renewed GPU work
+should target batched downdates and held-out projections, with streams reconsidered only after measuring those smaller
+operations; the full batched eigensolver did not benefit from concurrent streams on the first device.

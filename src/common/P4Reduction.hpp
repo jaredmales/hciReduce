@@ -271,17 +271,33 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> m_ownership; ///< Owning annulus index, or -1 outside support.
 
-    std::size_t m_availableMemoryBytes{ 0 };   ///< Linux available-memory snapshot, or zero when unavailable/disabled.
+    std::size_t m_availableMemoryBytes{ 0 };  ///< Linux available-memory snapshot, or zero when unavailable/disabled.
 
-    std::size_t m_memoryBudgetBytes{ 0 };      ///< Bytes selected from available memory for future P4 allocations.
+    std::size_t m_memoryBudgetBytes{ 0 };     ///< Bytes selected from available memory for future P4 allocations.
 
-    std::size_t m_compactResidualBytes{ 0 };   ///< Estimated bytes retained by compact residual and validity arrays.
+    std::size_t m_compactResidualBytes{ 0 };  ///< Estimated bytes retained by compact residual and validity arrays.
 
-    std::size_t m_targetExclusionBytes{ 0 };   ///< Bytes retained by compact target-specific deletion patterns.
+    std::size_t m_targetExclusionBytes{ 0 };  ///< Bytes retained by compact target-specific deletion patterns.
 
-    std::size_t m_materializationBytes{ 0 };   ///< Estimated bytes in one full residual/validity materialization pair.
+    std::size_t m_materializationBytes{ 0 };  ///< Estimated bytes in one full residual/validity materialization pair.
 
-    std::size_t m_localPSFBytes{ 0 };          ///< Bytes retained by opt-in compact local PSF stamps and validity.
+    std::size_t m_localPSFBytes{ 0 };         ///< Bytes retained by opt-in compact local PSF stamps and validity.
+
+    std::size_t m_psfModeBatchSize{ 0 };      ///< Target-held-out PSF modes retained in one memory-bounded batch.
+
+    std::size_t m_psfDowndateClampCount{ 0 }; ///< Eigenvalue clamps accumulated by held-out PSF response passes.
+
+    std::size_t m_psfExplicitFallbackCount{ 0 }; ///< Row-refit invocations across held-out PSF response batches.
+
+    std::size_t m_psfRankBoundaryFallbackPixelCount{ 0 }; ///< PSF search/batch fits falling back at a rank boundary.
+
+    std::size_t m_psfFactorValidationFallbackPixelCount{ 0 }; ///< PSF search/batch fits with invalid base factors.
+
+    std::size_t m_psfDeletionSolverFallbackPixelCount{ 0 }; ///< PSF search/batch fits with structured-solver fallback.
+
+    double m_psfMaximumFactorOrthogonalityDefect{ 0 };      ///< Largest PSF-pass base-factor orthogonality defect.
+
+    double m_psfFactorOrthogonalityToleranceAtMaximumDefect{ 0 }; ///< Tolerance paired with the largest PSF defect.
 
     std::size_t m_psfModelBytes{ 0 };          ///< Bytes retained by the shared precomputed PSF-template model.
 
@@ -452,7 +468,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                              std::size_t maximumDeletedRows = 0,
                                              /**< [in] maximum deletion count for factor workspace */
                                              std::size_t maximumRetainedMode = 0
-                                             /**< [in] largest retained mode, or zero for a conservative maximum */ );
+                                             /**< [in] largest retained mode, or zero for a conservative maximum */,
+                                             std::size_t probeSampleCount = 0
+                                             /**< [in] frozen-probe response samples, or zero when disabled */ );
 
     /// Return the phase-matched local-model dimension needed for final-stamp reconstruction.
     static int localPSFModelDimension( int outputStampSize, /**< [in] positive square final-stamp size */
@@ -498,6 +516,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         P4PCA::matrixT &predictors,                      /**< [in,out] reusable target-by-predictor matrix */
         P4PCA::vectorT &target,                          /**< [in,out] reusable target time-series vector */
         P4PCA::matrixT *coefficients,                    /**< [out] optional predictor coefficients, or nullptr */
+        P4PCA::matrixT *probeResiduals,                  /**< [out] optional held-out frozen-probe responses */
         const pixelGridT &grid,                          /**< [in] configured detector-frame P4 geometry */
         std::size_t search,                              /**< [in] annulus-local search-pixel index */
         const std::vector<std::vector<int>> &selections, /**< [in] central and neighboring images per PCA row */
@@ -512,6 +531,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         double &temporalSamplingSeconds,  /**< [out] additional-image sampling worker seconds */
         const P4TargetExclusions *exclusions,
         /**< [in] optional per-target deleted rows; nullptr selects in-sample fitting */
+        const P4PCA::matrixT *probePredictors, /**< [in] optional frozen predictor responses */
+        const P4PCA::vectorT *probeTarget,     /**< [in] optional direct frozen target response */
         const P4TrialSource *trialSource = nullptr /**< [in] optional finite-amplitude trial perturbation */ ) const;
 
     /// Load one finite per-frame fake scale vector using the inherited filename-matching convention.
@@ -522,7 +543,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         const std::vector<pixelGridT> &grids, /**< [in] configured detector-frame annular geometry */
         const std::vector<P4PixelCoordinate> &temporalOffsets,
         /**< [in] direct additional-image predictor offsets */
-        const std::vector<double> &derotationAngles /**< [in] one finite radians angle per target frame */ );
+        const std::vector<double> &derotationAngles, /**< [in] one finite radians angle per target frame */
+        const std::vector<P4TargetExclusions> &regionExclusions
+        /**< [in] optional target-specific deleted rows by annulus */ );
 
     /// Atomically write the combined local validity cube next to its final residual product.
     void writeLocalValidity( const std::string &finalImagePath, /**< [in] resolved local residual FITS path */
@@ -532,8 +555,23 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     void processPSFProducts(
         const std::vector<pixelGridT> &grids, /**< [in] retained detector-frame annulus geometry */
         const P4PSFModel &psfModel,           /**< [in] prepared full-support source template */
-        const std::string &finalImagePath,    /**< [in] resolved path supplying filter naming and provenance */
+        const std::vector<P4TargetExclusions> &regionExclusions,
+        /**< [in] optional target-specific deleted rows by annulus */
+        const std::string &finalImagePath, /**< [in] resolved path supplying filter naming and provenance */
         const fitsHeaderT &finalHeader /**< [in] ADI and P4 cards mirrored from the ordinary final image */ );
+
+    /// Calculate one memory-bounded batch of target-held-out frozen PSF responses.
+    void calculateHeldOutPSFBatch(
+        std::vector<imageT> &localModels,         /**< [out] one stamp matrix per requested output mode */
+        std::vector<psfValidityT> &localValidity, /**< [out] one search-by-target validity matrix per mode */
+        const std::vector<pixelGridT> &grids,     /**< [in] retained detector-frame annulus geometry */
+        const P4PSFModel &psfModel,               /**< [in] prepared full-support source template */
+        const std::vector<P4TargetExclusions> &regionExclusions,
+        /**< [in] nonempty target-specific deleted rows by annulus */
+        const std::vector<std::size_t> &regionOffsets, /**< [in] global first-search index by annulus */
+        std::size_t searchPixelCount,                  /**< [in] total global search-pixel count */
+        std::size_t firstOutput,                       /**< [in] first requested output-mode index */
+        std::size_t outputCount /**< [in] positive number of consecutive modes in this batch */ );
 
     /// Write one enabled image-like diagnostic with P4 provenance and checked directory and FITS errors.
     template <typename dataT>

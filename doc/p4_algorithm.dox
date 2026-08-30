@@ -19,7 +19,7 @@
  * \ref mx::improc::P4PCA::calculateHeldOutDowndated "P4PCA::calculateHeldOutDowndated()" for deletion from an
  * immutable complete base factor. All paths preserve the same Gram construction, rank-selection, residual, and
  * validity contracts. Pixel-local processing schedules only the unique detector fits needed by the requested sky
- * stamp, but uses the same in-sample regression kernel.
+ * stamp and passes the same annular deletion pattern through that shared regression kernel.
  *
  * The factor path chooses its mxlib deletion implementation once per calculation. `leadingCovariance` constructs a
  * dense covariance core and supports one or more deleted rows. `rankOneSecular` exploits the one-row
@@ -27,6 +27,16 @@
  * count before worker execution, and `P4PCA::calculateHeldOutDowndated()` independently enforces the same one-row
  * contract. A recoverable structured numerical failure calls the direct oracle once for the complete search pixel;
  * it never combines target rows produced by different solvers.
+ *
+ * Frozen response calculation under exclusion uses
+ * \ref mx::improc::P4PSFModel::responseInputs "P4PSFModel::responseInputs()" to build a direct template vector and
+ * predictor-response operator. \ref mx::improc::P4PCA::calculateHeldOutProbe "P4PCA::calculateHeldOutProbe()" or
+ * \ref mx::improc::P4PCA::calculateHeldOutProbeDowndated "P4PCA::calculateHeldOutProbeDowndated()" applies each
+ * target-specific fit without materializing its complete coefficient vector. `P4Reduction` retains a memory-selected
+ * batch of output modes, and
+ * \ref mx::improc::P4PSFReconstructor::reconstructCombinedTargeted() "P4PSFReconstructor::reconstructCombinedTargeted()"
+ * uses the matching model and validity
+ * column for each target frame before final combination.
  *
  * \section developer_p4_flow Processing diagram
  *

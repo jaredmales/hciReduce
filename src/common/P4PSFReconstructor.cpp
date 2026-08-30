@@ -522,6 +522,58 @@ void P4PSFReconstructor::reconstructCombined( imageT &output,
                    minimumGoodFraction );
 }
 
+void P4PSFReconstructor::reconstructCombinedTargeted( imageT &output,
+                                                      validityT &outputValidity,
+                                                      const imageT &localModels,
+                                                      const validityT &localValidity,
+                                                      const searchIndexT &searchIndex,
+                                                      double sourceSkyRow,
+                                                      double sourceSkyColumn,
+                                                      const std::vector<double> &derotationAngles,
+                                                      HCI::combine method,
+                                                      const std::vector<float> &weights,
+                                                      float sigmaThreshold,
+                                                      float minimumGoodFraction ) const
+{
+    if( derotationAngles.empty() ||
+        derotationAngles.size() > static_cast<std::size_t>( std::numeric_limits<int>::max() ) ||
+        localValidity.cols() != static_cast<Eigen::Index>( derotationAngles.size() ) )
+    {
+        throw std::invalid_argument( "P4 target-specific reconstruction requires one model column per frame" );
+    }
+
+    cubeT frames;
+    cubeT frameValidity;
+    frames.resize( m_outputStampSize, m_outputStampSize, static_cast<int>( derotationAngles.size() ) );
+    frameValidity.resize( m_outputStampSize, m_outputStampSize, static_cast<int>( derotationAngles.size() ) );
+    frames.setZero();
+    frameValidity.setZero();
+    imageT frame;
+    validityT validity;
+    for( std::size_t image = 0; image < derotationAngles.size(); ++image )
+    {
+        reconstructFrame( frame,
+                          validity,
+                          localModels,
+                          localValidity,
+                          searchIndex,
+                          image,
+                          sourceSkyRow,
+                          sourceSkyColumn,
+                          derotationAngles[image] );
+        frames.image( static_cast<int>( image ) ) = frame;
+        frameValidity.image( static_cast<int>( image ) ) = validity.cast<float>();
+    }
+    combineFrames( output,
+                   outputValidity,
+                   frames,
+                   frameValidity,
+                   method,
+                   weights,
+                   sigmaThreshold,
+                   minimumGoodFraction );
+}
+
 void P4PSFReconstructor::reconstructCombinedTemporal( imageT &output,
                                                       validityT &outputValidity,
                                                       const imageT &localModels,

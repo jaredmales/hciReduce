@@ -21,10 +21,22 @@
  *   G_{q,m}(s) = F_s(q) - \sum_{k=1}^{K} \beta_{q,m,k}\, S_k[F_s].
  * \f]
  *
- * \f$\beta_m\f$ is the truncated minimum-norm pseudoinverse solution already used by the science regression. It is
- * accumulated while retained eigenmodes are available; no dense pseudoinverse is formed. Template calculation and
- * predictor sampling use float values, while coefficient formation retains P4's current double-precision PCA
- * arithmetic. Invalid and rank-unsupported fits have explicit zero validity and are never interpreted as a zero PSF.
+ * \f$\beta_m\f$ is the truncated minimum-norm pseudoinverse solution already used by an in-sample science
+ * regression. It is accumulated while retained eigenmodes are available; no dense pseudoinverse is formed.
+ *
+ * With target-frame exclusion, the coefficients depend on target frame \f$t\f$. If \f$E_t\f$ is that target's
+ * deleted-row set, P4 trains \f$\beta_{q,t,m}\f$ from \f$X_{E_t^c}\f$ and \f$y_{E_t^c}\f$, and calculates
+ *
+ * \f[
+ *   G_{q,t,m}(s) = F_s(q) - \sum_{k=1}^{K} \beta_{q,t,m,k}\, S_k[F_s].
+ * \f]
+ *
+ * The implementation flattens all local source offsets into a direct-response vector \f$f\f$ and predictor-response
+ * matrix \f$Q\f$, then evaluates \f$f-Q\beta_{q,t,m}\f$ while each explicit or factor-downdated target fit is live.
+ * It therefore does not substitute the shared in-sample coefficients or retain a separate `K`-element coefficient
+ * vector for every target. Template calculation and final response storage use float values; \f$Q\f$, coefficient
+ * application, and P4's PCA arithmetic remain double precision. Invalid and rank-unsupported target/mode fits have
+ * explicit zero validity and are never interpreted as a zero PSF.
  *
  * The response is `FROZEN_SIGNED`: it is the fitted linear predictor's signed output with its coefficients held
  * fixed. The stored template scale is preserved; P4 applies no peak or integral normalization and no preprocessing to
@@ -47,6 +59,10 @@
  * every selected additional-image slot. Those coefficients are evaluated against the full prepared template during
  * reconstruction, so large field rotations are not truncated by the compact same-image stamp. Its size is independent
  * of frame count.
+ *
+ * Target-frame exclusion and positive `p4.numberImages` are deliberately mutually exclusive. With a non-`none`
+ * `adi.excludeMethod`, `p4.numberImages` must be zero and each target response uses the same deleted rows, solver,
+ * rank decision, and explicit-fallback policy as its science residual.
  *
  * The implementation requires detector-frame P4 and `adi.postMedSub=false`. A complete final PSF field additionally
  * requires a final combination method; `combine.method=none` does not define a combined response.
@@ -90,11 +106,28 @@
  * psfFilterMinGoodFract=0.8
  * \endcode
  *
+ * To calculate leave-one-out science and response products together, add:
+ *
+ * \code{.ini}
+ * [adi]
+ * excludeMethod=imno
+ * minDPx=0
+ *
+ * [p4]
+ * numberImages=0
+ * exclusionSolver=factorDowndateExact
+ * deletionBackend=rankOneSecular
+ * \endcode
+ *
  * The template is sampled with zero exterior padding, while the retained local response expands as needed to
  * preserve odd/even sampling phase and arbitrary derotation angles. The P4 memory policy includes the local response,
  * prepared template, one output-mode field, coordinate/index maps, and bounded per-worker frame-stamp scratch.
- * Filtering additionally accounts for four full-frame output cubes. Reconstruction independently lowers its worker
- * count when needed and never increases the `OMP_NUM_THREADS` limit.
+ * Filtering additionally accounts for four full-frame output cubes. Under target exclusion, local response storage
+ * also scales with target count. P4 selects a bounded output-mode batch from `p4.memoryFraction`; a smaller batch
+ * repeats the immutable held-out fit for later modes, while a sufficiently large budget evaluates all modes in one
+ * response pass. Response fitting and reconstruction independently lower their worker counts when needed and never
+ * increase the `OMP_NUM_THREADS` limit. Setting `p4.memoryFraction=0` disables this protection and attempts one batch
+ * containing every requested mode.
  *
  * \section p4_psf_products Products and completion contract
  *
@@ -113,6 +146,17 @@
  * NaN even when the source center is valid. Model-only sets use schema version 1; enabling filtering uses schema
  * version 2. Every product records its role, template identity/stage/normalization, `FROZEN_SIGNED` convention,
  * combination policy, support geometry, storage estimates, source count, and mode identity where applicable.
+ * `HIERARCH P4 PSF COEFFICIENT SCOPE` is `SHARED_IN_SAMPLE` for the ordinary model or `TARGET_HELD_OUT` when every
+ * frame uses its own deleted-row fit; `HIERARCH P4 PSF MODE BATCH` records the selected maximum held-out batch size.
+ * Zero identifies the shared in-sample path, and the final held-out batch may contain fewer modes.
+ *
+ * For a completed target-held-out set, the manifest also records response-pass downdate clamps, explicit target-row
+ * refit invocations, fallback search/batch fits separated by rank-boundary, factor-validation, and deletion-solver
+ * cause, and the largest factor-orthogonality defect with its paired tolerance. Counts accumulate over response
+ * batches: if the same search fit falls back in two batches, its row refits and fallback fit are counted twice. These
+ * totals describe the frozen-response calculation, not the earlier science-image regression. Recoverable response
+ * failures are recomputed with the explicit retained-row oracle and reported as warnings; the published model never
+ * mixes a partial failed downdate with explicit results.
  *
  * With `p4.psfFilter=true`, four full-image cubes follow the resolved ordinary final-image name and sequence number.
  * The filtered science product remains beside the ordinary final image:
@@ -132,7 +176,8 @@
  *
  * Every file is published by temporary-file rename. The manifest is initially published with
  * `HIERARCH P4 PSF COMPLETE = 0` and replaced with value `1` only after the entire configured set is written.
- * Consumers must require value `1`, use the manifest mode count, and ignore stale extra files from an earlier run.
+ * Response diagnostics in the completed manifest are final totals over every output-mode batch. Consumers must
+ * require value `1`, use the manifest mode count, and ignore stale extra files from an earlier run.
  *
  * @}
  */

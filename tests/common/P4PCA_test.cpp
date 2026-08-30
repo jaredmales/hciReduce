@@ -157,6 +157,94 @@ bool allNan( const arrayT &array /**< [in] values to inspect */ )
     return true;
 }
 
+/// Verify held-out science and probe responses against independently assembled retained-row fits.
+void requireHeldOutProbeMatchesIndependent(
+    const resultT &result,                                 /**< [in] held-out science result to verify */
+    const pcaT::matrixT &probeResiduals,                   /**< [in] target-major frozen-probe responses to verify */
+    const pcaT::matrixT &predictors,                       /**< [in] full predictor matrix */
+    const pcaT::vectorT &target,                           /**< [in] full regression target */
+    const pcaT::matrixT &probePredictors,                  /**< [in] frozen predictor-probe responses */
+    const pcaT::vectorT &probeTarget,                      /**< [in] direct frozen target-probe response */
+    const std::vector<std::vector<std::size_t>> &retained, /**< [in] target-specific retained rows */
+    const std::vector<int> &modes,                         /**< [in] retained-mode counts */
+    double tolerance /**< [in] absolute comparison tolerance */ )
+{
+    REQUIRE( result.residuals.rows() == predictors.rows() );
+    REQUIRE( result.residuals.cols() == static_cast<Eigen::Index>( modes.size() ) );
+    REQUIRE( result.sampleValidity.rows() == predictors.rows() );
+    REQUIRE( result.sampleValidity.cols() == static_cast<Eigen::Index>( modes.size() ) );
+    REQUIRE( probeResiduals.rows() == probePredictors.rows() );
+    REQUIRE( probeResiduals.cols() == predictors.rows() * static_cast<Eigen::Index>( modes.size() ) );
+    REQUIRE( retained.size() == static_cast<std::size_t>( predictors.rows() ) );
+
+    std::vector<bool> anySupported( modes.size(), false );
+    for( Eigen::Index heldOut = 0; heldOut < predictors.rows(); ++heldOut )
+    {
+        const std::vector<std::size_t> &rows = retained[static_cast<std::size_t>( heldOut )];
+        const int structuralRank =
+            static_cast<int>( std::min<std::size_t>( rows.size(), static_cast<std::size_t>( predictors.cols() ) ) );
+        const auto supportedEnd = std::upper_bound( modes.begin(), modes.end(), structuralRank );
+        const std::vector<int> supportedModes( modes.begin(), supportedEnd );
+
+        resultT independent;
+        pcaT::matrixT coefficients;
+        if( !supportedModes.empty() )
+        {
+            pcaT::matrixT trainingPredictors( static_cast<Eigen::Index>( rows.size() ), predictors.cols() );
+            pcaT::vectorT trainingTarget( static_cast<Eigen::Index>( rows.size() ) );
+            for( std::size_t training = 0; training < rows.size(); ++training )
+            {
+                const Eigen::Index source = static_cast<Eigen::Index>( rows[training] );
+                trainingPredictors.row( static_cast<Eigen::Index>( training ) ) = predictors.row( source );
+                trainingTarget( static_cast<Eigen::Index>( training ) ) = target( source );
+            }
+
+            pcaT::workspaceT workspace;
+            mx::improc::P4PCA::calculate( independent,
+                                          trainingPredictors,
+                                          trainingTarget,
+                                          supportedModes,
+                                          1e-12,
+                                          workspace,
+                                          nullptr,
+                                          &coefficients );
+        }
+
+        for( std::size_t mode = 0; mode < modes.size(); ++mode )
+        {
+            const bool independentSupported =
+                mode < supportedModes.size() && independent.modeStatus[mode] == statusT::rankSupported;
+            const Eigen::Index probeColumn =
+                heldOut * static_cast<Eigen::Index>( modes.size() ) + static_cast<Eigen::Index>( mode );
+            CAPTURE( heldOut, mode, predictors.rows(), predictors.cols() );
+            REQUIRE( result.sampleSupported( heldOut, mode ) == independentSupported );
+            if( independentSupported )
+            {
+                anySupported[mode] = true;
+                const double expectedResidual =
+                    target( heldOut ) - predictors.row( heldOut ).matrix().dot( coefficients.col( mode ).matrix() );
+                const pcaT::vectorT expectedProbe =
+                    ( probeTarget.matrix() - probePredictors.matrix() * coefficients.col( mode ).matrix() ).array();
+                REQUIRE( result.residuals( heldOut, static_cast<Eigen::Index>( mode ) ) ==
+                         Approx( expectedResidual ).margin( tolerance ) );
+                requireApprox( probeResiduals.col( probeColumn ), expectedProbe, tolerance );
+                REQUIRE( allFinite( probeResiduals.col( probeColumn ) ) );
+            }
+            else
+            {
+                REQUIRE( mx::math::isNan( result.residuals( heldOut, static_cast<Eigen::Index>( mode ) ) ) );
+                REQUIRE( allNan( probeResiduals.col( probeColumn ) ) );
+            }
+        }
+    }
+
+    for( std::size_t mode = 0; mode < modes.size(); ++mode )
+    {
+        REQUIRE( result.modeStatus[mode] ==
+                 ( anySupported[mode] ? statusT::rankSupported : statusT::rankInsufficient ) );
+    }
+}
+
 /// Controlled eigensolver outcomes used to exercise P4PCA's post-solver validation.
 enum class fakeSolverBehavior
 {
@@ -1229,6 +1317,235 @@ TEST_CASE( "P4PCA temporal Gram held-out regression matches explicit refits", "[
     }
 }
 
+/// Verify target-specific frozen-probe responses reproduce independent retained-row coefficient fits.
+/** This directly exercises mx::improc::P4PCA::calculateHeldOutProbe() in both adaptive Gram orientations with
+ * target-specific multi-row exclusions and rank-insufficient target/mode combinations.
+ *
+ * \ingroup P4PCA_unit_tests
+ */
+TEST_CASE( "P4PCA held-out frozen probe matches independent retained-row fits", "[P4PCA][held-out][probe][reference]" )
+{
+    const auto compare = []( const pcaT::matrixT &predictors,
+                             const pcaT::vectorT &target,
+                             const pcaT::matrixT &probePredictors,
+                             const pcaT::vectorT &probeTarget,
+                             const std::vector<std::vector<std::size_t>> &retained,
+                             const std::vector<int> &modes )
+    {
+        resultT result;
+        pcaT::matrixT probeResiduals;
+        pcaT::workspaceT workspace;
+        const mx::improc::P4TargetExclusions exclusions = exclusionsFromRetained( retained );
+        mx::improc::P4PCA::calculateHeldOutProbe( result,
+                                                  probeResiduals,
+                                                  predictors,
+                                                  target,
+                                                  probePredictors,
+                                                  probeTarget,
+                                                  exclusions,
+                                                  modes,
+                                                  1e-12,
+                                                  workspace );
+
+        requireHeldOutProbeMatchesIndependent( result,
+                                               probeResiduals,
+                                               predictors,
+                                               target,
+                                               probePredictors,
+                                               probeTarget,
+                                               retained,
+                                               modes,
+                                               2e-10 );
+    };
+
+    SECTION( "T is no greater than K" )
+    {
+        pcaT::matrixT predictors( 4, 6 );
+        predictors << 4, 0.2, 0.1, 0, 0.3, -0.2, 0.1, 3, 0.4, 0.2, 0, 0.1, 0.2, -0.1, 2, 0.3, 0.1, 0.2, 0.1, 0.2, 0.3,
+            1.5, -0.2, 0.1;
+        pcaT::vectorT target( 4 );
+        target << 2, -1, 3, 0.5;
+        pcaT::matrixT probePredictors( 3, 6 );
+        probePredictors << 0.3, -0.2, 0.7, 0.1, -0.4, 0.5, -0.1, 0.8, 0.2, -0.3, 0.6, 0.4, 0.5, 0.1, -0.2, 0.9, 0.3,
+            -0.6;
+        pcaT::vectorT probeTarget( 3 );
+        probeTarget << 1.2, -0.7, 0.3;
+        const std::vector<std::vector<std::size_t>> retained{ { 1, 2, 3 }, { 0, 2 }, { 3 }, {} };
+
+        compare( predictors, target, probePredictors, probeTarget, retained, { 1, 2, 3, 4 } );
+    }
+
+    SECTION( "K is less than T" )
+    {
+        pcaT::matrixT predictors( 6, 3 );
+        predictors << 4, 0.2, 0.1, 0.1, 3, 0.4, 0.2, -0.1, 2, 0.1, 0.2, 0.3, 1, -0.4, 0.2, -0.3, 0.5, 1.1;
+        pcaT::vectorT target( 6 );
+        target << 2, -1, 3, 0.5, 4, -2;
+        pcaT::matrixT probePredictors( 4, 3 );
+        probePredictors << 0.3, -0.2, 0.7, -0.1, 0.8, 0.2, 0.5, 0.1, -0.2, -0.4, 0.6, 0.9;
+        pcaT::vectorT probeTarget( 4 );
+        probeTarget << 1.2, -0.7, 0.3, 0.8;
+        const std::vector<std::vector<std::size_t>> retained{ { 1, 2, 3, 4, 5 },
+                                                              { 0, 2, 3 },
+                                                              { 0, 1 },
+                                                              { 4 },
+                                                              {},
+                                                              { 0, 1, 2 } };
+
+        compare( predictors, target, probePredictors, probeTarget, retained, { 1, 2, 3 } );
+    }
+}
+
+/// Verify explicit, dense-downdated, and secular-downdated frozen-probe responses agree target by target.
+/** This directly compares mx::improc::P4PCA::calculateHeldOutProbe() and
+ * mx::improc::P4PCA::calculateHeldOutProbeDowndated() with both supported row-deletion backends against independent
+ * retained-row coefficient fits. It covers both Gram orientations, non-contiguous modes, and structurally
+ * unsupported response columns.
+ *
+ * \ingroup P4PCA_unit_tests
+ */
+TEST_CASE( "P4PCA downdated held-out frozen probe matches explicit retained-row fits",
+           "[P4PCA][held-out][probe][downdate][structured][exact]" )
+{
+    const auto compare = []( const pcaT::matrixT &predictors,
+                             const pcaT::vectorT &target,
+                             const pcaT::matrixT &probePredictors,
+                             const pcaT::vectorT &probeTarget,
+                             const std::vector<int> &modes )
+    {
+        std::vector<std::vector<Eigen::Index>> deleted( static_cast<std::size_t>( predictors.rows() ) );
+        std::vector<std::vector<std::size_t>> retained( static_cast<std::size_t>( predictors.rows() ) );
+        for( Eigen::Index heldOut = 0; heldOut < predictors.rows(); ++heldOut )
+        {
+            deleted[static_cast<std::size_t>( heldOut )].push_back( heldOut );
+            for( Eigen::Index row = 0; row < predictors.rows(); ++row )
+            {
+                if( row != heldOut )
+                {
+                    retained[static_cast<std::size_t>( heldOut )].push_back( static_cast<std::size_t>( row ) );
+                }
+            }
+        }
+        const mx::improc::P4TargetExclusions exclusions =
+            mx::improc::P4TargetExclusions::fromExplicit( predictors.rows(), deleted );
+
+        resultT explicitResult;
+        resultT denseResult;
+        resultT structuredResult;
+        pcaT::matrixT explicitProbe;
+        pcaT::matrixT denseProbe;
+        pcaT::matrixT structuredProbe;
+        pcaT::workspaceT explicitWorkspace;
+        pcaT::workspaceT denseWorkspace;
+        pcaT::workspaceT structuredWorkspace;
+        mx::improc::P4PCADowndateWorkspace denseDowndateWorkspace;
+        mx::improc::P4PCADowndateWorkspace structuredDowndateWorkspace;
+
+        mx::improc::P4PCA::calculateHeldOutProbe( explicitResult,
+                                                  explicitProbe,
+                                                  predictors,
+                                                  target,
+                                                  probePredictors,
+                                                  probeTarget,
+                                                  exclusions,
+                                                  modes,
+                                                  1e-12,
+                                                  explicitWorkspace );
+        mx::improc::P4PCA::calculateHeldOutProbeDowndated( denseResult,
+                                                           denseProbe,
+                                                           predictors,
+                                                           target,
+                                                           probePredictors,
+                                                           probeTarget,
+                                                           exclusions,
+                                                           modes,
+                                                           1e-12,
+                                                           mx::math::svdDeletionBackend::leadingCovariance,
+                                                           denseWorkspace,
+                                                           denseDowndateWorkspace );
+        mx::improc::P4PCA::calculateHeldOutProbeDowndated( structuredResult,
+                                                           structuredProbe,
+                                                           predictors,
+                                                           target,
+                                                           probePredictors,
+                                                           probeTarget,
+                                                           exclusions,
+                                                           modes,
+                                                           1e-12,
+                                                           mx::math::svdDeletionBackend::rankOneSecular,
+                                                           structuredWorkspace,
+                                                           structuredDowndateWorkspace );
+
+        REQUIRE( denseResult.explicitFallbackCount == 0 );
+        REQUIRE( denseResult.explicitFallbackReason == mx::improc::P4PCAFallbackReason::none );
+        REQUIRE( structuredResult.explicitFallbackCount == 0 );
+        REQUIRE( structuredResult.explicitFallbackReason == mx::improc::P4PCAFallbackReason::none );
+        REQUIRE( denseResult.modeStatus == explicitResult.modeStatus );
+        REQUIRE( structuredResult.modeStatus == explicitResult.modeStatus );
+        REQUIRE( ( denseResult.sampleValidity == explicitResult.sampleValidity ).all() );
+        REQUIRE( ( structuredResult.sampleValidity == explicitResult.sampleValidity ).all() );
+
+        requireHeldOutProbeMatchesIndependent( explicitResult,
+                                               explicitProbe,
+                                               predictors,
+                                               target,
+                                               probePredictors,
+                                               probeTarget,
+                                               retained,
+                                               modes,
+                                               2e-10 );
+        requireHeldOutProbeMatchesIndependent( denseResult,
+                                               denseProbe,
+                                               predictors,
+                                               target,
+                                               probePredictors,
+                                               probeTarget,
+                                               retained,
+                                               modes,
+                                               2e-8 );
+        requireHeldOutProbeMatchesIndependent( structuredResult,
+                                               structuredProbe,
+                                               predictors,
+                                               target,
+                                               probePredictors,
+                                               probeTarget,
+                                               retained,
+                                               modes,
+                                               2e-8 );
+    };
+
+    SECTION( "T is no greater than K" )
+    {
+        pcaT::matrixT predictors( 4, 6 );
+        predictors << 4, 0.2, 0.1, 0, 0.3, -0.2, 0.1, 3, 0.4, 0.2, 0, 0.1, 0.2, -0.1, 2, 0.3, 0.1, 0.2, 0.1, 0.2, 0.3,
+            1.5, -0.2, 0.1;
+        pcaT::vectorT target( 4 );
+        target << 2, -1, 3, 0.5;
+        pcaT::matrixT probePredictors( 3, 6 );
+        probePredictors << 0.3, -0.2, 0.7, 0.1, -0.4, 0.5, -0.1, 0.8, 0.2, -0.3, 0.6, 0.4, 0.5, 0.1, -0.2, 0.9, 0.3,
+            -0.6;
+        pcaT::vectorT probeTarget( 3 );
+        probeTarget << 1.2, -0.7, 0.3;
+
+        compare( predictors, target, probePredictors, probeTarget, { 1, 2, 3, 4 } );
+    }
+
+    SECTION( "K is less than T" )
+    {
+        pcaT::matrixT predictors( 6, 4 );
+        predictors << 4, 0.2, 0.1, 0, 0.1, 3, 0.4, 0.2, 0.2, -0.1, 2, 0.3, 0.1, 0.2, 0.3, 1.5, 1, -0.4, 0.2, 0.7, -0.3,
+            0.5, 1.1, -0.2;
+        pcaT::vectorT target( 6 );
+        target << 2, -1, 3, 0.5, 4, -2;
+        pcaT::matrixT probePredictors( 3, 4 );
+        probePredictors << 0.3, -0.2, 0.7, 0.1, -0.1, 0.8, 0.2, -0.3, 0.5, 0.1, -0.2, 0.9;
+        pcaT::vectorT probeTarget( 3 );
+        probeTarget << 1.2, -0.7, 0.3;
+
+        compare( predictors, target, probePredictors, probeTarget, { 1, 2, 4 } );
+    }
+}
+
 /// Verify full-rank factor deletion reproduces explicit held-out P4 regression across matrix orientations.
 /** This directly compares mx::improc::P4PCA::calculateHeldOutDowndated() with
  * mx::improc::P4PCA::calculateHeldOut() for wide, square, and tall predictor matrices, variable deletion sets,
@@ -1562,8 +1879,8 @@ TEST_CASE( "P4PCA structured deletion validates active deletion counts",
 }
 
 /// Verify a structured secular-solver failure recomputes the complete search pixel with the explicit oracle.
-/** This directly exercises mx::improc::P4PCA::calculateHeldOutDowndated() through mxlib's LAED9 test seam and
- * compares the fallback product with mx::improc::P4PCA::calculateHeldOut().
+/** This directly exercises mx::improc::P4PCA::calculateHeldOutProbeDowndated() through mxlib's LAED9 test seam and
+ * compares both fallback products with mx::improc::P4PCA::calculateHeldOutProbe().
  * \ingroup P4PCA_unit_tests
  */
 TEST_CASE( "P4PCA structured deletion solver failure uses the explicit held-out oracle",
@@ -1573,19 +1890,28 @@ TEST_CASE( "P4PCA structured deletion solver failure uses the explicit held-out 
     predictors << 4, 0.2, 0.1, 0, 0.1, 3, 0.4, 0.2, 0.2, -0.1, 2, 0.3;
     pcaT::vectorT target( 3 );
     target << 2, -1, 3;
+    pcaT::matrixT probePredictors( 2, 4 );
+    probePredictors << 0.3, -0.2, 0.7, 0.1, -0.1, 0.8, 0.2, -0.3;
+    pcaT::vectorT probeTarget( 2 );
+    probeTarget << 1.2, -0.7;
     const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( 3, { { 0 }, { 1 }, { 2 } } );
 
     resultT explicitResult;
+    pcaT::matrixT explicitProbe;
     pcaT::workspaceT explicitWorkspace;
-    mx::improc::P4PCA::calculateHeldOut( explicitResult,
-                                         predictors,
-                                         target,
-                                         exclusions,
-                                         { 1, 2 },
-                                         1e-12,
-                                         explicitWorkspace );
+    mx::improc::P4PCA::calculateHeldOutProbe( explicitResult,
+                                              explicitProbe,
+                                              predictors,
+                                              target,
+                                              probePredictors,
+                                              probeTarget,
+                                              exclusions,
+                                              { 1, 2 },
+                                              1e-12,
+                                              explicitWorkspace );
 
     resultT structuredResult;
+    pcaT::matrixT structuredProbe;
     pcaT::workspaceT baseWorkspace;
     mx::improc::P4PCADowndateWorkspace downdateWorkspace;
     timingT timing;
@@ -1593,16 +1919,19 @@ TEST_CASE( "P4PCA structured deletion solver failure uses the explicit held-out 
     structuredDeletionSolveCalls = 0;
     structuredDeletionSolveInfo = 73;
     mx::math::detail::svdDeletionHooks<double>().laed9 = &failStructuredDeletionSolve;
-    REQUIRE_NOTHROW( mx::improc::P4PCA::calculateHeldOutDowndated( structuredResult,
-                                                                   predictors,
-                                                                   target,
-                                                                   exclusions,
-                                                                   { 1, 2 },
-                                                                   1e-12,
-                                                                   mx::math::svdDeletionBackend::rankOneSecular,
-                                                                   baseWorkspace,
-                                                                   downdateWorkspace,
-                                                                   &timing ) );
+    REQUIRE_NOTHROW( mx::improc::P4PCA::calculateHeldOutProbeDowndated( structuredResult,
+                                                                        structuredProbe,
+                                                                        predictors,
+                                                                        target,
+                                                                        probePredictors,
+                                                                        probeTarget,
+                                                                        exclusions,
+                                                                        { 1, 2 },
+                                                                        1e-12,
+                                                                        mx::math::svdDeletionBackend::rankOneSecular,
+                                                                        baseWorkspace,
+                                                                        downdateWorkspace,
+                                                                        &timing ) );
 
     REQUIRE( structuredDeletionSolveCalls == 1 );
     REQUIRE( structuredResult.explicitFallbackCount == static_cast<std::size_t>( predictors.rows() ) );
@@ -1615,6 +1944,15 @@ TEST_CASE( "P4PCA structured deletion solver failure uses the explicit held-out 
         {
             REQUIRE( structuredResult.residuals( sample, mode ) ==
                      Approx( explicitResult.residuals( sample, mode ) ).margin( 1e-11 ) );
+        }
+    }
+    REQUIRE( structuredProbe.rows() == explicitProbe.rows() );
+    REQUIRE( structuredProbe.cols() == explicitProbe.cols() );
+    for( Eigen::Index column = 0; column < structuredProbe.cols(); ++column )
+    {
+        for( Eigen::Index row = 0; row < structuredProbe.rows(); ++row )
+        {
+            REQUIRE( structuredProbe( row, column ) == Approx( explicitProbe( row, column ) ).margin( 1e-11 ) );
         }
     }
     REQUIRE( timing.baseFactorWorkerSeconds >= 0 );

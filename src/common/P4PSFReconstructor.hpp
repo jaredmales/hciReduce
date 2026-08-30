@@ -121,6 +121,25 @@ class P4PSFReconstructor
                               float sigmaThreshold,              /**< [in] configured sigma threshold */
                               float minimumGoodFraction /**< [in] required valid-frame fraction in `[0,1]` */ ) const;
 
+    /// Reconstruct and combine a response with one distinct compact model column per target frame.
+    /** `localValidity` has one row per global search pixel and one column per target frame; `localModels` is
+     * search-major then target-major. Frame `t` is reconstructed with column `search*T+t`, preserving target-specific
+     * rank validity before applying the configured final estimator.
+     */
+    void reconstructCombinedTargeted(
+        imageT &output,                              /**< [out] combined response stamp */
+        validityT &outputValidity,                   /**< [out] finite combined-sample validity */
+        const imageT &localModels,                   /**< [in] search-major target-specific response stamps */
+        const validityT &localValidity,              /**< [in] search-pixel by target-frame validity */
+        const searchIndexT &searchIndex,             /**< [in] detector-to-search-index lookup */
+        double sourceSkyRow,                         /**< [in] finite final-frame source-center row */
+        double sourceSkyColumn,                      /**< [in] finite final-frame source-center column */
+        const std::vector<double> &derotationAngles, /**< [in] one finite image rotation per target column */
+        HCI::combine method,                         /**< [in] supported final estimator other than none */
+        const std::vector<float> &weights,           /**< [in] empty or one normalized weight per frame */
+        float sigmaThreshold,                        /**< [in] configured sigma threshold */
+        float minimumGoodFraction /**< [in] required valid-frame fraction in `[0,1]` */ ) const;
+
     /// Reconstruct and combine a response whose compact coefficients use distinct selected temporal images.
     /** `localModels` stores the same-image response for one output mode. Temporal predictor coefficients are retained
      * separately and evaluated against the full prepared template at the source position in each selected image.

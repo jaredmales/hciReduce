@@ -1002,16 +1002,6 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                            "P4 target-frame exclusion initially requires p4.numberImages=0" );
         }
-        if( m_localStampSize > 0 )
-        {
-            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "P4 target-frame exclusion does not yet support pixel-local processing" );
-        }
-        if( !m_psfFile.empty() || m_outputPSFModels || m_psfFilter )
-        {
-            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "P4 target-frame exclusion does not yet support frozen-PSF products" );
-        }
     }
     else if( m_exclusionSolver != P4ExclusionSolver::explicitRefit )
     {
@@ -1382,7 +1372,8 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::estimatedWorkerBytes( s
                                                                                bool exactHeldOut,
                                                                                P4ExclusionSolver exclusionSolver,
                                                                                std::size_t maximumDeletedRows,
-                                                                               std::size_t maximumRetainedMode )
+                                                                               std::size_t maximumRetainedMode,
+                                                                               std::size_t probeSampleCount )
 {
     if( targetImageCount == 0 || predictorCount == 0 || modeCount == 0 )
     {
@@ -1392,6 +1383,7 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::estimatedWorkerBytes( s
     const long double predictors = static_cast<long double>( predictorCount );
     const long double modes = static_cast<long double>( modeCount );
     const long double dimension = std::min( targets, predictors );
+    const long double probeSamples = static_cast<long double>( probeSampleCount );
     const long double maximumDeleted = static_cast<long double>( maximumDeletedRows );
     long double heldOutValues{ 0 };
     if( exactHeldOut )
@@ -1410,9 +1402,13 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::estimatedWorkerBytes( s
                                                   : targets * predictors + predictors * modes + targets * modes;
         }
     }
-    const long double doubleValues = targets * predictors + targets * modes + 2 * dimension * dimension + 5 * targets +
-                                     2 * predictors + 70 * dimension +
-                                     ( includeCoefficients ? predictors * ( modes + 2 ) : 0 ) + heldOutValues;
+    const long double probeFactorValues =
+        exclusionSolver == P4ExclusionSolver::explicitRefit && targets <= predictors ? 2 * targets : dimension;
+    const long double probeValues =
+        probeSamples == 0 ? 0 : probeSamples * ( predictors + targets * modes + probeFactorValues + 3 );
+    const long double doubleValues =
+        targets * predictors + targets * modes + 2 * dimension * dimension + 5 * targets + 2 * predictors +
+        70 * dimension + ( includeCoefficients ? predictors * ( modes + 2 ) : 0 ) + heldOutValues + probeValues;
     constexpr long double safetyFactor = 1.25L;
     constexpr std::size_t fixedMargin = 1024 * 1024;
     const long double estimated = safetyFactor * ( sizeof( double ) * doubleValues +
@@ -1549,6 +1545,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
     P4PCA::matrixT &predictors,
     P4PCA::vectorT &target,
     P4PCA::matrixT *coefficients,
+    P4PCA::matrixT *probeResiduals,
     const pixelGridT &grid,
     std::size_t search,
     const std::vector<std::vector<int>> &selections,
@@ -1560,6 +1557,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
     double &sameImageSamplingSeconds,
     double &temporalSamplingSeconds,
     const P4TargetExclusions *exclusions,
+    const P4PCA::matrixT *probePredictors,
+    const P4PCA::vectorT *probeTarget,
     const P4TrialSource *trialSource ) const
 {
     if( selections.empty() || modes.empty() || search >= grid.searchPixelCount() ||
@@ -1658,31 +1657,79 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
             {
                 throw std::invalid_argument( "P4 exact factor deletion requires a worker-private workspace" );
             }
-            P4PCA::calculateHeldOutDowndated( result,
-                                              predictors,
-                                              target,
-                                              *exclusions,
-                                              modes,
-                                              m_rankTolerance,
-                                              m_deletionBackend,
-                                              workspace,
-                                              *downdateWorkspace,
-                                              &timing );
+            if( probeResiduals || probePredictors || probeTarget )
+            {
+                if( !probeResiduals || !probePredictors || !probeTarget )
+                {
+                    throw std::invalid_argument( "P4 held-out fitting requires a complete frozen-probe request" );
+                }
+                P4PCA::calculateHeldOutProbeDowndated( result,
+                                                       *probeResiduals,
+                                                       predictors,
+                                                       target,
+                                                       *probePredictors,
+                                                       *probeTarget,
+                                                       *exclusions,
+                                                       modes,
+                                                       m_rankTolerance,
+                                                       m_deletionBackend,
+                                                       workspace,
+                                                       *downdateWorkspace,
+                                                       &timing );
+            }
+            else
+            {
+                P4PCA::calculateHeldOutDowndated( result,
+                                                  predictors,
+                                                  target,
+                                                  *exclusions,
+                                                  modes,
+                                                  m_rankTolerance,
+                                                  m_deletionBackend,
+                                                  workspace,
+                                                  *downdateWorkspace,
+                                                  &timing );
+            }
         }
         else
         {
-            P4PCA::calculateHeldOut( result,
-                                     predictors,
-                                     target,
-                                     *exclusions,
-                                     modes,
-                                     m_rankTolerance,
-                                     workspace,
-                                     &timing );
+            if( probeResiduals || probePredictors || probeTarget )
+            {
+                if( !probeResiduals || !probePredictors || !probeTarget )
+                {
+                    throw std::invalid_argument( "P4 held-out fitting requires a complete frozen-probe request" );
+                }
+                P4PCA::calculateHeldOutProbe( result,
+                                              *probeResiduals,
+                                              predictors,
+                                              target,
+                                              *probePredictors,
+                                              *probeTarget,
+                                              *exclusions,
+                                              modes,
+                                              m_rankTolerance,
+                                              workspace,
+                                              &timing );
+            }
+            else
+            {
+                P4PCA::calculateHeldOut( result,
+                                         predictors,
+                                         target,
+                                         *exclusions,
+                                         modes,
+                                         m_rankTolerance,
+                                         workspace,
+                                         &timing );
+            }
         }
     }
     else
     {
+        if( probeResiduals || probePredictors || probeTarget )
+        {
+            throw std::invalid_argument( "P4 frozen-probe fitting requires target exclusions" );
+        }
         P4PCA::calculate( result, predictors, target, modes, m_rankTolerance, workspace, &timing, coefficients );
     }
 }
@@ -1742,10 +1789,12 @@ template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
     const std::vector<pixelGridT> &grids,
     const std::vector<P4PixelCoordinate> &temporalOffsets,
-    const std::vector<double> &derotationAngles )
+    const std::vector<double> &derotationAngles,
+    const std::vector<P4TargetExclusions> &regionExclusions )
 {
     if( grids.size() != m_regionStatistics.size() || grids.size() != m_temporalSelections.size() ||
-        grids.size() != m_realizedModes.size() || derotationAngles.size() != static_cast<std::size_t>( this->m_Nims ) )
+        grids.size() != m_realizedModes.size() || grids.size() != regionExclusions.size() ||
+        derotationAngles.size() != static_cast<std::size_t>( this->m_Nims ) )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr,
                                        "P4 local processing state does not match the configured reduction" );
@@ -1903,11 +1952,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
     }
 
     if( m_compactResidualBytes > std::numeric_limits<std::size_t>::max() - m_psfModelBytes ||
-        m_compactResidualBytes + m_psfModelBytes > std::numeric_limits<std::size_t>::max() - m_localGeometryBytes )
+        m_compactResidualBytes + m_psfModelBytes > std::numeric_limits<std::size_t>::max() - m_localGeometryBytes ||
+        m_compactResidualBytes + m_psfModelBytes + m_localGeometryBytes >
+            std::numeric_limits<std::size_t>::max() - m_targetExclusionBytes )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 local persistent byte count overflow" );
     }
-    const std::size_t persistentBytes = m_compactResidualBytes + m_psfModelBytes + m_localGeometryBytes;
+    const std::size_t persistentBytes =
+        m_compactResidualBytes + m_psfModelBytes + m_localGeometryBytes + m_targetExclusionBytes;
     if( m_memoryBudgetBytes != 0 &&
         ( persistentBytes > m_memoryBudgetBytes || m_materializationBytes > m_memoryBudgetBytes - persistentBytes ) )
     {
@@ -1932,8 +1984,21 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
     for( std::size_t region = 0; region < grids.size(); ++region )
     {
         P4RegionStatistics &statistics = m_regionStatistics[region];
+        const std::size_t estimatedMaximumExcludedRows =
+            m_exclusionSolver == P4ExclusionSolver::factorDowndateExact &&
+                    m_deletionBackend == mx::math::svdDeletionBackend::rankOneSecular
+                ? 1
+                : statistics.maximumExcludedRows;
         statistics.estimatedWorkerBytes =
-            estimatedWorkerBytes( statistics.targetImageCount, statistics.predictorCount, m_modeFractions.size() );
+            estimatedWorkerBytes( statistics.targetImageCount,
+                                  statistics.predictorCount,
+                                  m_modeFractions.size(),
+                                  false,
+                                  0,
+                                  m_excludeMethod != HCI::exclude::none,
+                                  m_exclusionSolver,
+                                  estimatedMaximumExcludedRows,
+                                  static_cast<std::size_t>( m_realizedModes[region].back() ) );
         maximumWorkerBytes = std::max( maximumWorkerBytes, statistics.estimatedWorkerBytes );
     }
     const int requestedWorkers =
@@ -1964,6 +2029,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
         statistics.maskedLocalFitCount = 0;
         statistics.supportInvalidLocalFitCount = 0;
         statistics.minimumNumericalRank = 0;
+        statistics.minimumBaseRank = 0;
+        statistics.downdateClampCount = 0;
+        statistics.explicitFallbackCount = 0;
+        statistics.rankBoundaryFallbackPixelCount = 0;
+        statistics.factorValidationFallbackPixelCount = 0;
+        statistics.deletionSolverFallbackPixelCount = 0;
+        statistics.maximumFactorOrthogonalityDefect = 0;
+        statistics.factorOrthogonalityToleranceAtMaximumDefect = 0;
         statistics.rankInvalidCounts.assign( m_modeFractions.size(), 0 );
     }
 
@@ -1973,10 +2046,17 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
               << " sparse residual samples\n";
     std::cerr << "P4 local memory: " << static_cast<double>( m_compactResidualBytes ) / bytesPerMiB
               << " MiB residuals, " << static_cast<double>( m_localGeometryBytes ) / bytesPerMiB
-              << " MiB sparse geometry, " << static_cast<double>( m_materializationBytes ) / bytesPerMiB
+              << " MiB sparse geometry, " << static_cast<double>( m_targetExclusionBytes ) / bytesPerMiB
+              << " MiB target exclusions, " << static_cast<double>( m_materializationBytes ) / bytesPerMiB
               << " MiB output materialization, workers " << effectiveWorkers << " / " << requestedWorkers << '\n';
 
     std::vector<int> requestRanks( m_localSearchCount, 0 );
+    std::vector<int> requestBaseRanks( m_localSearchCount, 0 );
+    std::vector<std::size_t> requestDowndateClampCounts( m_localSearchCount, 0 );
+    std::vector<std::size_t> requestExplicitFallbackCounts( m_localSearchCount, 0 );
+    std::vector<P4PCAFallbackReason> requestFallbackReasons( m_localSearchCount, P4PCAFallbackReason::none );
+    std::vector<double> requestFactorDefects( m_localSearchCount, 0 );
+    std::vector<double> requestFactorTolerances( m_localSearchCount, 0 );
     std::vector<std::uint8_t> requestAttempted( m_localSearchCount, 0 );
     std::exception_ptr workerException;
     std::atomic<bool> failed{ false };
@@ -1988,6 +2068,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
     // clang-format on
     {
         P4PCA::workspaceT workspace;
+        P4PCADowndateWorkspace downdateWorkspace;
         P4PCA::matrixT predictors;
         P4PCA::vectorT target;
         P4PCAResult result;
@@ -2029,9 +2110,12 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
                 double sameImageSamplingSeconds{ 0 };
                 double temporalSamplingSeconds{ 0 };
                 P4PCATiming pcaTiming;
+                const P4TargetExclusions *exclusions =
+                    regionExclusions[region].empty() ? nullptr : &regionExclusions[region];
                 fitDetectorSearch( result,
                                    predictors,
                                    target,
+                                   nullptr,
                                    nullptr,
                                    grid,
                                    request.searchIndex(),
@@ -2039,10 +2123,12 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
                                    temporalOffsets,
                                    m_realizedModes[region],
                                    workspace,
-                                   nullptr,
+                                   &downdateWorkspace,
                                    pcaTiming,
                                    sameImageSamplingSeconds,
                                    temporalSamplingSeconds,
+                                   exclusions,
+                                   nullptr,
                                    nullptr,
                                    &trialSource );
                 threadSamplingSeconds += sameImageSamplingSeconds + temporalSamplingSeconds;
@@ -2056,19 +2142,21 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
                 threadProjectionSeconds += pcaTiming.projectionWorkerSeconds;
                 requestAttempted[requestIndex] = 1;
                 requestRanks[requestIndex] = result.numericalRank;
+                requestBaseRanks[requestIndex] = result.baseRank;
+                requestDowndateClampCounts[requestIndex] = result.downdateClampCount;
+                requestExplicitFallbackCounts[requestIndex] = result.explicitFallbackCount;
+                requestFallbackReasons[requestIndex] = result.explicitFallbackReason;
+                requestFactorDefects[requestIndex] = result.factorOrthogonalityDefect;
+                requestFactorTolerances[requestIndex] = result.factorOrthogonalityTolerance;
 
                 const double residualApplyBegin = omp_get_wtime();
                 for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
                 {
-                    if( result.modeStatus[output] == P4PCAModeStatus::rankInsufficient )
-                    {
-                        continue;
-                    }
                     for( std::size_t frameOffset = 0; frameOffset < request.frames().size(); ++frameOffset )
                     {
                         const int frame = request.frames()[frameOffset];
                         const int targetRow = targetRowByFrame[region][static_cast<std::size_t>( frame )];
-                        if( targetRow < 0 )
+                        if( targetRow < 0 || !result.sampleSupported( static_cast<Eigen::Index>( targetRow ), output ) )
                         {
                             continue;
                         }
@@ -2135,13 +2223,46 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
             continue;
         }
         ++statistics.validLocalFitCount;
-        if( statistics.minimumNumericalRank == 0 )
+        if( statistics.validLocalFitCount == 1 )
         {
             statistics.minimumNumericalRank = requestRanks[requestIndex];
+            if( m_exclusionSolver == P4ExclusionSolver::factorDowndateExact )
+            {
+                statistics.minimumBaseRank = requestBaseRanks[requestIndex];
+            }
         }
         else
         {
             statistics.minimumNumericalRank = std::min( statistics.minimumNumericalRank, requestRanks[requestIndex] );
+            if( m_exclusionSolver == P4ExclusionSolver::factorDowndateExact )
+            {
+                statistics.minimumBaseRank = std::min( statistics.minimumBaseRank, requestBaseRanks[requestIndex] );
+            }
+        }
+        if( m_exclusionSolver == P4ExclusionSolver::factorDowndateExact )
+        {
+            statistics.downdateClampCount += requestDowndateClampCounts[requestIndex];
+            statistics.explicitFallbackCount += requestExplicitFallbackCounts[requestIndex];
+            switch( requestFallbackReasons[requestIndex] )
+            {
+            case P4PCAFallbackReason::none:
+                break;
+            case P4PCAFallbackReason::rankBoundary:
+                ++statistics.rankBoundaryFallbackPixelCount;
+                break;
+            case P4PCAFallbackReason::factorValidation:
+                ++statistics.factorValidationFallbackPixelCount;
+                if( statistics.factorValidationFallbackPixelCount == 1 ||
+                    requestFactorDefects[requestIndex] > statistics.maximumFactorOrthogonalityDefect )
+                {
+                    statistics.maximumFactorOrthogonalityDefect = requestFactorDefects[requestIndex];
+                    statistics.factorOrthogonalityToleranceAtMaximumDefect = requestFactorTolerances[requestIndex];
+                }
+                break;
+            case P4PCAFallbackReason::deletionSolver:
+                ++statistics.deletionSolverFallbackPixelCount;
+                break;
+            }
         }
         for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
         {
@@ -2154,6 +2275,37 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
             if( !modeValid )
             {
                 ++statistics.rankInvalidCounts[output];
+            }
+        }
+    }
+
+    for( std::size_t region = 0; region < grids.size(); ++region )
+    {
+        const P4RegionStatistics &statistics = m_regionStatistics[region];
+        if( statistics.explicitFallbackCount != 0 )
+        {
+            std::ostringstream fallbackWarning;
+            fallbackWarning << "WARNING: P4 local region " << region << " recomputed "
+                            << statistics.explicitFallbackCount << " target rows with the explicit oracle at "
+                            << statistics.rankBoundaryFallbackPixelCount << " rank-boundary search pixels and "
+                            << statistics.factorValidationFallbackPixelCount << " factor-validation search pixels and "
+                            << statistics.deletionSolverFallbackPixelCount << " deletion-solver search pixels";
+            if( statistics.factorValidationFallbackPixelCount != 0 )
+            {
+                fallbackWarning << "; maximum factor defect " << std::setprecision( 17 )
+                                << statistics.maximumFactorOrthogonalityDefect << " at tolerance "
+                                << statistics.factorOrthogonalityToleranceAtMaximumDefect;
+            }
+            std::cerr << fallbackWarning.str() << '\n';
+        }
+        for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+        {
+            if( statistics.rankInvalidCounts[output] != 0 )
+            {
+                std::cerr << "WARNING: P4 local region " << region << " output " << output << " requested "
+                          << m_realizedModes[region][output]
+                          << " modes above numerical rank for every requested target at "
+                          << statistics.rankInvalidCounts[output] << " search pixels\n";
             }
         }
     }
@@ -2450,6 +2602,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_targetExclusionBytes = 0;
     m_materializationBytes = 0;
     m_localPSFBytes = 0;
+    m_psfModeBatchSize = 0;
+    m_psfDowndateClampCount = 0;
+    m_psfExplicitFallbackCount = 0;
+    m_psfRankBoundaryFallbackPixelCount = 0;
+    m_psfFactorValidationFallbackPixelCount = 0;
+    m_psfDeletionSolverFallbackPixelCount = 0;
+    m_psfMaximumFactorOrthogonalityDefect = 0;
+    m_psfFactorOrthogonalityToleranceAtMaximumDefect = 0;
     m_psfModelBytes = 0;
     m_psfReconstructionBytes = 0;
     m_psfFilterBytes = 0;
@@ -2519,6 +2679,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
 
     const bool calculatePSF = !m_psfFile.empty();
     const bool processPSF = m_outputPSFModels || m_psfFilter;
+    const bool targetHeldOutPSF = calculatePSF && m_excludeMethod != HCI::exclude::none;
+    const bool sharedPSF = calculatePSF && !targetHeldOutPSF;
     std::optional<P4PSFModel> psfModel;
     if( calculatePSF )
     {
@@ -2723,11 +2885,6 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     }
     m_timing.geometryElapsedSeconds = omp_get_wtime() - geometryBegin;
 
-    if( m_localStampSize > 0 )
-    {
-        return processLocalTrial( grids, temporalPredictorOffsets, derotationAngles );
-    }
-
     std::vector<P4TargetExclusions> regionExclusions( m_regionStatistics.size() );
     if( m_excludeMethod != HCI::exclude::none )
     {
@@ -2768,6 +2925,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
     }
 
+    if( m_localStampSize > 0 )
+    {
+        return processLocalTrial( grids, temporalPredictorOffsets, derotationAngles, regionExclusions );
+    }
+
     std::size_t totalSearchPixels{ 0 };
     for( const P4RegionStatistics &statistics : m_regionStatistics )
     {
@@ -2781,6 +2943,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     std::vector<compactValidityT> compactValidity;
 
     std::size_t psfStampPixels{ 0 };
+    std::size_t heldOutPSFModeBytes{ 0 };
     if( calculatePSF )
     {
         const long double localStampPixels =
@@ -2793,17 +2956,39 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
         {
             const P4RegionStatistics &statistics = m_regionStatistics[region];
-            const std::size_t regionBytes =
-                localPSFBytes( statistics.searchPixelCount,
-                               m_modeFractions.size(),
-                               ( m_localPSFComponentCounts[region] - 1 ) * temporalPredictorOffsets.size(),
-                               m_localPSFRows,
-                               m_localPSFColumns );
-            if( m_localPSFBytes > std::numeric_limits<std::size_t>::max() - regionBytes )
+            std::size_t retainedSearchCount = statistics.searchPixelCount;
+            std::size_t retainedModeCount = m_modeFractions.size();
+            std::size_t temporalCoefficientCount =
+                ( m_localPSFComponentCounts[region] - 1 ) * temporalPredictorOffsets.size();
+            if( targetHeldOutPSF )
+            {
+                if( statistics.targetImageCount != static_cast<std::size_t>( this->m_Nims ) ||
+                    retainedSearchCount > std::numeric_limits<std::size_t>::max() / statistics.targetImageCount )
+                {
+                    throw mx::exception<verboseT>(
+                        mx::error_t::sizeerr,
+                        "P4 target-held-out PSF dimensions require one target row per loaded image" );
+                }
+                retainedSearchCount *= statistics.targetImageCount;
+                retainedModeCount = 1;
+                temporalCoefficientCount = 0;
+            }
+            const std::size_t regionBytes = localPSFBytes( retainedSearchCount,
+                                                           retainedModeCount,
+                                                           temporalCoefficientCount,
+                                                           m_localPSFRows,
+                                                           m_localPSFColumns );
+            std::size_t &totalBytes = targetHeldOutPSF ? heldOutPSFModeBytes : m_localPSFBytes;
+            if( totalBytes > std::numeric_limits<std::size_t>::max() - regionBytes )
             {
                 throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 local PSF byte count overflow" );
             }
-            m_localPSFBytes += regionBytes;
+            totalBytes += regionBytes;
+        }
+        if( targetHeldOutPSF )
+        {
+            m_localPSFBytes = heldOutPSFModeBytes;
+            m_psfModeBatchSize = 1;
         }
         if( processPSF )
         {
@@ -2950,7 +3135,91 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
     }
 
-    if( calculatePSF )
+    if( targetHeldOutPSF )
+    {
+        const std::size_t outputCount = m_modeFractions.size();
+        std::size_t selectedBatch = outputCount;
+        if( m_memoryBudgetBytes != 0 )
+        {
+            const long double fixedBytes = static_cast<long double>( m_compactResidualBytes ) +
+                                           static_cast<long double>( m_targetExclusionBytes ) + m_psfModelBytes +
+                                           m_psfReconstructionBytes;
+            long double bestWork = std::numeric_limits<long double>::infinity();
+            selectedBatch = 0;
+            for( std::size_t batch = 1; batch <= outputCount; ++batch )
+            {
+                const long double batchBytes = static_cast<long double>( heldOutPSFModeBytes ) * batch;
+                if( fixedBytes + batchBytes >= static_cast<long double>( m_memoryBudgetBytes ) )
+                {
+                    continue;
+                }
+                const std::size_t persistentBytes = static_cast<std::size_t>( fixedBytes + batchBytes );
+                long double regionWork{ 0 };
+                bool supported{ true };
+                for( std::size_t region = 0; region < m_regionStatistics.size(); ++region )
+                {
+                    const P4RegionStatistics &statistics = m_regionStatistics[region];
+                    const std::size_t maximumDeletedRows =
+                        m_exclusionSolver == P4ExclusionSolver::factorDowndateExact &&
+                                m_deletionBackend == mx::math::svdDeletionBackend::rankOneSecular
+                            ? 1
+                            : statistics.maximumExcludedRows;
+                    const std::size_t workerBytes =
+                        estimatedWorkerBytes( statistics.targetImageCount,
+                                              statistics.predictorCount,
+                                              batch,
+                                              false,
+                                              0,
+                                              true,
+                                              m_exclusionSolver,
+                                              maximumDeletedRows,
+                                              static_cast<std::size_t>( m_realizedModes[region].back() ),
+                                              psfStampPixels );
+                    const int requestedWorkers =
+                        std::max( 1,
+                                  std::min( omp_get_max_threads(),
+                                            static_cast<int>( std::min<std::size_t>(
+                                                statistics.searchPixelCount,
+                                                static_cast<std::size_t>( std::numeric_limits<int>::max() ) ) ) ) );
+                    const int workers =
+                        memoryLimitedWorkerCount( requestedWorkers, m_memoryBudgetBytes, persistentBytes, workerBytes );
+                    if( workers == 0 )
+                    {
+                        supported = false;
+                        break;
+                    }
+                    regionWork += static_cast<long double>( statistics.searchPixelCount ) / workers;
+                }
+                if( !supported )
+                {
+                    continue;
+                }
+                const std::size_t passes = ( outputCount + batch - 1 ) / batch;
+                const long double work = static_cast<long double>( passes ) * regionWork;
+                if( work < bestWork || ( work == bestWork && batch > selectedBatch ) )
+                {
+                    bestWork = work;
+                    selectedBatch = batch;
+                }
+            }
+            if( selectedBatch == 0 )
+            {
+                throw mx::exception<verboseT>(
+                    mx::error_t::allocerr,
+                    "one target-held-out P4 PSF response mode and worker do not fit the automatic memory budget; "
+                    "increase p4.memoryFraction, reduce the frame/search/stamp size, or set p4.memoryFraction=0 to "
+                    "disable the automatic budget" );
+            }
+        }
+        if( heldOutPSFModeBytes > std::numeric_limits<std::size_t>::max() / selectedBatch )
+        {
+            throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 target-held-out PSF batch byte count overflow" );
+        }
+        m_psfModeBatchSize = selectedBatch;
+        m_localPSFBytes = heldOutPSFModeBytes * selectedBatch;
+    }
+
+    if( sharedPSF )
     {
         m_localPSFModels.resize( m_regionStatistics.size() );
         m_localPSFTemporalCoefficients.resize( m_regionStatistics.size() );
@@ -2997,8 +3266,13 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                   << static_cast<double>( m_materializationBytes ) / bytesPerGiB << " GiB output materialization";
         if( calculatePSF )
         {
-            std::cerr << ", " << static_cast<double>( m_localPSFBytes ) / bytesPerGiB << " GiB local PSFs, "
+            std::cerr << ", " << static_cast<double>( m_localPSFBytes ) / bytesPerGiB
+                      << ( targetHeldOutPSF ? " GiB held-out PSF batch, " : " GiB local PSFs, " )
                       << static_cast<double>( m_psfModelBytes ) / bytesPerGiB << " GiB PSF template model";
+            if( targetHeldOutPSF )
+            {
+                std::cerr << ", " << m_psfModeBatchSize << " PSF modes per batch";
+            }
             if( processPSF )
             {
                 std::cerr << ", " << static_cast<double>( m_psfReconstructionBytes ) / bytesPerGiB
@@ -3024,8 +3298,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             estimatedWorkerBytes( statistics.targetImageCount,
                                   statistics.predictorCount,
                                   m_modeFractions.size(),
-                                  calculatePSF,
-                                  psfStampPixels,
+                                  sharedPSF,
+                                  sharedPSF ? psfStampPixels : 0,
                                   m_excludeMethod != HCI::exclude::none,
                                   m_exclusionSolver,
                                   estimatedMaximumExcludedRows,
@@ -3042,7 +3316,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             statistics.effectiveWorkerCount = memoryLimitedWorkerCount(
                 statistics.maximumWorkerCount,
                 m_memoryBudgetBytes,
-                m_compactResidualBytes + m_targetExclusionBytes + m_localPSFBytes + m_psfModelBytes,
+                m_compactResidualBytes + m_targetExclusionBytes + ( sharedPSF ? m_localPSFBytes : 0 ) + m_psfModelBytes,
                 statistics.estimatedWorkerBytes );
             if( statistics.effectiveWorkerCount == 0 )
             {
@@ -3201,7 +3475,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                 fitDetectorSearch( result,
                                                    predictors,
                                                    target,
-                                                   calculatePSF ? &coefficients : nullptr,
+                                                   sharedPSF ? &coefficients : nullptr,
+                                                   nullptr,
                                                    grid,
                                                    search,
                                                    temporalSelections,
@@ -3212,7 +3487,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                    pcaTiming,
                                                    sameImageSamplingSeconds,
                                                    temporalSamplingSeconds,
-                                                   exclusions );
+                                                   exclusions,
+                                                   nullptr,
+                                                   nullptr );
                             }
 
                             threadSamplingSeconds += sameImageSamplingSeconds + temporalSamplingSeconds;
@@ -3228,7 +3505,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                                  m_rankTolerance,
                                                                  workspace,
                                                                  &pcaTiming,
-                                                                 calculatePSF ? &coefficients : nullptr );
+                                                                 sharedPSF ? &coefficients : nullptr );
                             }
                             threadGramSeconds += pcaTiming.gramWorkerSeconds;
                             threadEigensolveSeconds += pcaTiming.eigensolveWorkerSeconds;
@@ -3302,7 +3579,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                             }
                             threadProjectionSeconds += omp_get_wtime() - residualApplyBegin;
 
-                            if( calculatePSF )
+                            if( sharedPSF )
                             {
                                 const double psfBegin = omp_get_wtime();
                                 for( std::size_t output = 0; output < modes.size(); ++output )
@@ -3622,6 +3899,32 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         writeDiagnostic( "p4Timing.fits", timing, &timingHeader );
     };
 
+    if( targetHeldOutPSF && !processPSF )
+    {
+        std::vector<std::size_t> regionOffsets( grids.size(), 0 );
+        std::size_t regionOffset{ 0 };
+        for( std::size_t region = 0; region < grids.size(); ++region )
+        {
+            regionOffsets[region] = regionOffset;
+            regionOffset += grids[region].searchPixelCount();
+        }
+        for( std::size_t firstOutput = 0; firstOutput < m_modeFractions.size(); firstOutput += m_psfModeBatchSize )
+        {
+            const std::size_t outputCount = std::min( m_psfModeBatchSize, m_modeFractions.size() - firstOutput );
+            std::vector<imageT> unpublishedModels;
+            std::vector<psfValidityT> unpublishedValidity;
+            calculateHeldOutPSFBatch( unpublishedModels,
+                                      unpublishedValidity,
+                                      grids,
+                                      *psfModel,
+                                      regionExclusions,
+                                      regionOffsets,
+                                      totalSearchPixels,
+                                      firstOutput,
+                                      outputCount );
+        }
+    }
+
     fitsHeaderT finalHeader;
     this->stdFitsHeader( &finalHeader );
     appendReductionHeader( finalHeader );
@@ -3633,7 +3936,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         if( result == 0 && processPSF )
         {
             const double reconstructionBegin = omp_get_wtime();
-            processPSFProducts( grids, *psfModel, finalImagePath, finalHeader );
+            processPSFProducts( grids, *psfModel, regionExclusions, finalImagePath, finalHeader );
             m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
         }
         writeTimingDiagnostic();
@@ -3731,7 +4034,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         if( processPSF )
         {
             const double reconstructionBegin = omp_get_wtime();
-            processPSFProducts( grids, *psfModel, finalImagePath, finalHeader );
+            processPSFProducts( grids, *psfModel, regionExclusions, finalImagePath, finalHeader );
             m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
         }
         writeTimingDiagnostic();
@@ -3750,17 +4053,352 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std::vector<pixelGridT> &grids,
-                                                                      const P4PSFModel &psfModel,
-                                                                      const std::string &finalImagePath,
-                                                                      const fitsHeaderT &finalHeader )
+void P4Reduction<realT, derotFunctObj, verboseT>::calculateHeldOutPSFBatch(
+    std::vector<imageT> &localModels,
+    std::vector<psfValidityT> &localValidity,
+    const std::vector<pixelGridT> &grids,
+    const P4PSFModel &psfModel,
+    const std::vector<P4TargetExclusions> &regionExclusions,
+    const std::vector<std::size_t> &regionOffsets,
+    std::size_t searchPixelCount,
+    std::size_t firstOutput,
+    std::size_t outputCount )
 {
-    if( grids.size() != m_regionStatistics.size() || m_localPSFModels.size() != grids.size() ||
-        m_localPSFTemporalCoefficients.size() != grids.size() || m_localPSFValidity.size() != grids.size() ||
-        m_localPSFComponentCounts.size() != grids.size() )
+    if( outputCount == 0 || firstOutput >= m_modeFractions.size() ||
+        outputCount > m_modeFractions.size() - firstOutput || grids.size() != m_regionStatistics.size() ||
+        regionExclusions.size() != grids.size() || regionOffsets.size() != grids.size() || searchPixelCount == 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "P4 held-out PSF batch dimensions do not match the reduction state" );
+    }
+    const std::size_t targetCount = static_cast<std::size_t>( this->m_Nims );
+    const Eigen::Index localPixels =
+        static_cast<Eigen::Index>( m_localPSFRows ) * static_cast<Eigen::Index>( m_localPSFColumns );
+    if( targetCount == 0 || outputCount > std::numeric_limits<std::size_t>::max() / targetCount ||
+        targetCount * outputCount > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) ||
+        searchPixelCount > std::numeric_limits<std::size_t>::max() / targetCount ||
+        searchPixelCount * targetCount > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "P4 held-out PSF batch dimensions exceed the Eigen index range" );
+    }
+    const Eigen::Index modelColumns = static_cast<Eigen::Index>( searchPixelCount * targetCount );
+    localModels.resize( outputCount );
+    localValidity.resize( outputCount );
+    for( std::size_t output = 0; output < outputCount; ++output )
+    {
+        localModels[output].resize( localPixels, modelColumns );
+        localModels[output].setZero();
+        localValidity[output].resize( static_cast<Eigen::Index>( searchPixelCount ),
+                                      static_cast<Eigen::Index>( targetCount ) );
+        localValidity[output].setZero();
+    }
+
+    const imageT *mask = this->m_mask.size() == 0 ? nullptr : &this->m_mask;
+    const std::vector<P4PixelCoordinate> temporalOffsets = p4TemporalPredictorOffsets( m_psfRadius );
+    for( std::size_t region = 0; region < grids.size(); ++region )
+    {
+        const pixelGridT &grid = grids[region];
+        const P4RegionStatistics &statistics = m_regionStatistics[region];
+        const std::vector<std::vector<int>> &selections = m_temporalSelections[region];
+        if( selections.size() != targetCount || regionOffsets[region] > searchPixelCount ||
+            grid.searchPixelCount() > searchPixelCount - regionOffsets[region] ||
+            regionExclusions[region].targetCount() != static_cast<Eigen::Index>( targetCount ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                           "P4 held-out PSF annulus does not retain one row per target frame" );
+        }
+        for( std::size_t target = 0; target < targetCount; ++target )
+        {
+            if( selections[target].size() != 1 || selections[target][0] != static_cast<int>( target ) )
+            {
+                throw mx::exception<verboseT>(
+                    mx::error_t::invalidconfig,
+                    "P4 held-out PSF reconstruction requires p4.numberImages=0 and ordered target rows" );
+            }
+        }
+        std::vector<int> modes;
+        modes.reserve( outputCount );
+        for( std::size_t output = 0; output < outputCount; ++output )
+        {
+            modes.push_back( m_realizedModes[region][firstOutput + output] );
+        }
+
+        const std::size_t maximumDeletedRows = m_exclusionSolver == P4ExclusionSolver::factorDowndateExact &&
+                                                       m_deletionBackend == mx::math::svdDeletionBackend::rankOneSecular
+                                                   ? 1
+                                                   : statistics.maximumExcludedRows;
+        const std::size_t workerBytes = estimatedWorkerBytes( targetCount,
+                                                              statistics.predictorCount,
+                                                              outputCount,
+                                                              false,
+                                                              0,
+                                                              true,
+                                                              m_exclusionSolver,
+                                                              maximumDeletedRows,
+                                                              static_cast<std::size_t>( modes.back() ),
+                                                              static_cast<std::size_t>( localPixels ) );
+        const int requestedWorkers =
+            std::max( 1,
+                      std::min( omp_get_max_threads(),
+                                static_cast<int>( std::min<std::size_t>(
+                                    grid.searchPixelCount(),
+                                    static_cast<std::size_t>( std::numeric_limits<int>::max() ) ) ) ) );
+        int effectiveWorkers = requestedWorkers;
+        if( m_memoryBudgetBytes != 0 )
+        {
+            const long double persistent = static_cast<long double>( m_compactResidualBytes ) + m_targetExclusionBytes +
+                                           m_psfModelBytes + m_localPSFBytes + m_psfReconstructionBytes;
+            if( persistent > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 held-out PSF persistent byte count overflow" );
+            }
+            effectiveWorkers = memoryLimitedWorkerCount( requestedWorkers,
+                                                         m_memoryBudgetBytes,
+                                                         static_cast<std::size_t>( persistent ),
+                                                         workerBytes );
+            if( effectiveWorkers == 0 )
+            {
+                throw mx::exception<verboseT>( mx::error_t::allocerr,
+                                               "one P4 held-out PSF worker does not fit the automatic memory budget" );
+            }
+        }
+        std::cerr << "P4 held-out PSF batch " << firstOutput + 1 << '-' << firstOutput + outputCount << " / "
+                  << m_modeFractions.size() << ", annulus " << region + 1 << " / " << grids.size() << ": workers "
+                  << effectiveWorkers << " / " << requestedWorkers << '\n';
+
+        std::exception_ptr workerException;
+        std::atomic<bool> failed{ false };
+        double responseWorkerSeconds{ 0 };
+        std::size_t batchDowndateClampCount{ 0 };
+        std::size_t batchExplicitFallbackCount{ 0 };
+        std::size_t batchRankBoundaryFallbackPixelCount{ 0 };
+        std::size_t batchFactorValidationFallbackPixelCount{ 0 };
+        std::size_t batchDeletionSolverFallbackPixelCount{ 0 };
+        double batchMaximumFactorDefect{ 0 };
+        double batchFactorToleranceAtMaximumDefect{ 0 };
+        // clang-format off
+#pragma omp parallel num_threads(effectiveWorkers)
+        // clang-format on
+        {
+            P4PCA::workspaceT workspace;
+            P4PCADowndateWorkspace downdateWorkspace;
+            P4PCA::matrixT predictors;
+            P4PCA::vectorT target;
+            P4PCA::matrixT probePredictors;
+            P4PCA::vectorT probeTarget;
+            P4PCA::matrixT probeResiduals;
+            P4PCAResult result;
+            double threadResponseSeconds{ 0 };
+            std::size_t threadDowndateClampCount{ 0 };
+            std::size_t threadExplicitFallbackCount{ 0 };
+            std::size_t threadRankBoundaryFallbackPixelCount{ 0 };
+            std::size_t threadFactorValidationFallbackPixelCount{ 0 };
+            std::size_t threadDeletionSolverFallbackPixelCount{ 0 };
+            double threadMaximumFactorDefect{ 0 };
+            double threadFactorToleranceAtMaximumDefect{ 0 };
+
+            // clang-format off
+#pragma omp for schedule(static)
+            // clang-format on
+            for( std::size_t search = 0; search < grid.searchPixelCount(); ++search )
+            {
+                if( failed.load( std::memory_order_acquire ) )
+                {
+                    continue;
+                }
+                try
+                {
+                    const P4PixelCoordinate &coordinate = grid.searchPixel( search ).coordinate();
+                    const bool temporalValid =
+                        statistics.temporalNumberImages == 0 ||
+                        p4TemporalPredictorsValid( coordinate, temporalOffsets, this->m_Nrows, this->m_Ncols, mask );
+                    if( !grid.searchPixel( search ).valid() || !temporalValid )
+                    {
+                        continue;
+                    }
+                    const double responseBegin = omp_get_wtime();
+                    psfModel.responseInputs( probeTarget, probePredictors, grid, search );
+                    double sameImageSamplingSeconds{ 0 };
+                    double temporalSamplingSeconds{ 0 };
+                    P4PCATiming timing;
+                    fitDetectorSearch( result,
+                                       predictors,
+                                       target,
+                                       nullptr,
+                                       &probeResiduals,
+                                       grid,
+                                       search,
+                                       selections,
+                                       temporalOffsets,
+                                       modes,
+                                       workspace,
+                                       &downdateWorkspace,
+                                       timing,
+                                       sameImageSamplingSeconds,
+                                       temporalSamplingSeconds,
+                                       &regionExclusions[region],
+                                       &probePredictors,
+                                       &probeTarget );
+                    threadDowndateClampCount += result.downdateClampCount;
+                    threadExplicitFallbackCount += result.explicitFallbackCount;
+                    switch( result.explicitFallbackReason )
+                    {
+                    case P4PCAFallbackReason::none:
+                        break;
+                    case P4PCAFallbackReason::rankBoundary:
+                        ++threadRankBoundaryFallbackPixelCount;
+                        break;
+                    case P4PCAFallbackReason::factorValidation:
+                        ++threadFactorValidationFallbackPixelCount;
+                        if( threadFactorValidationFallbackPixelCount == 1 ||
+                            result.factorOrthogonalityDefect > threadMaximumFactorDefect )
+                        {
+                            threadMaximumFactorDefect = result.factorOrthogonalityDefect;
+                            threadFactorToleranceAtMaximumDefect = result.factorOrthogonalityTolerance;
+                        }
+                        break;
+                    case P4PCAFallbackReason::deletionSolver:
+                        ++threadDeletionSolverFallbackPixelCount;
+                        break;
+                    }
+                    const std::size_t globalSearch = regionOffsets[region] + search;
+                    for( std::size_t targetIndex = 0; targetIndex < targetCount; ++targetIndex )
+                    {
+                        const Eigen::Index modelColumn =
+                            static_cast<Eigen::Index>( globalSearch * targetCount + targetIndex );
+                        for( std::size_t output = 0; output < outputCount; ++output )
+                        {
+                            if( !result.sampleSupported( static_cast<Eigen::Index>( targetIndex ), output ) )
+                            {
+                                continue;
+                            }
+                            const Eigen::Index probeColumn =
+                                static_cast<Eigen::Index>( targetIndex * outputCount + output );
+                            for( Eigen::Index pixel = 0; pixel < localPixels; ++pixel )
+                            {
+                                localModels[output]( pixel, modelColumn ) =
+                                    checkedResidualCast( probeResiduals( pixel, probeColumn ) );
+                            }
+                            localValidity[output]( static_cast<Eigen::Index>( globalSearch ),
+                                                   static_cast<Eigen::Index>( targetIndex ) ) = 1;
+                        }
+                    }
+                    threadResponseSeconds += omp_get_wtime() - responseBegin;
+                }
+                catch( ... )
+                {
+                    // clang-format off
+#pragma omp critical(P4HeldOutPSFException)
+                    // clang-format on
+                    {
+                        if( !workerException )
+                        {
+                            workerException = std::current_exception();
+                        }
+                    }
+                    failed.store( true, std::memory_order_release );
+                }
+            }
+
+            // clang-format off
+#pragma omp critical(P4HeldOutPSFDiagnostics)
+            // clang-format on
+            {
+                responseWorkerSeconds += threadResponseSeconds;
+                batchDowndateClampCount += threadDowndateClampCount;
+                batchExplicitFallbackCount += threadExplicitFallbackCount;
+                batchRankBoundaryFallbackPixelCount += threadRankBoundaryFallbackPixelCount;
+                batchFactorValidationFallbackPixelCount += threadFactorValidationFallbackPixelCount;
+                batchDeletionSolverFallbackPixelCount += threadDeletionSolverFallbackPixelCount;
+                if( threadFactorValidationFallbackPixelCount != 0 &&
+                    ( batchFactorValidationFallbackPixelCount == threadFactorValidationFallbackPixelCount ||
+                      threadMaximumFactorDefect > batchMaximumFactorDefect ) )
+                {
+                    batchMaximumFactorDefect = threadMaximumFactorDefect;
+                    batchFactorToleranceAtMaximumDefect = threadFactorToleranceAtMaximumDefect;
+                }
+            }
+        }
+        if( workerException )
+        {
+            try
+            {
+                std::rethrow_exception( workerException );
+            }
+            catch( const std::exception &error )
+            {
+                std::throw_with_nested(
+                    mx::exception<verboseT>( mx::error_t::exception,
+                                             "P4 held-out PSF response calculation failed in annulus " +
+                                                 std::to_string( region ) + ": " + error.what() ) );
+            }
+            catch( ... )
+            {
+                std::throw_with_nested( mx::exception<verboseT>(
+                    mx::error_t::exception,
+                    "P4 held-out PSF response calculation failed in annulus " + std::to_string( region ) ) );
+            }
+        }
+        m_psfDowndateClampCount += batchDowndateClampCount;
+        m_psfExplicitFallbackCount += batchExplicitFallbackCount;
+        m_psfRankBoundaryFallbackPixelCount += batchRankBoundaryFallbackPixelCount;
+        m_psfFactorValidationFallbackPixelCount += batchFactorValidationFallbackPixelCount;
+        m_psfDeletionSolverFallbackPixelCount += batchDeletionSolverFallbackPixelCount;
+        if( batchFactorValidationFallbackPixelCount != 0 &&
+            ( m_psfFactorValidationFallbackPixelCount == batchFactorValidationFallbackPixelCount ||
+              batchMaximumFactorDefect > m_psfMaximumFactorOrthogonalityDefect ) )
+        {
+            m_psfMaximumFactorOrthogonalityDefect = batchMaximumFactorDefect;
+            m_psfFactorOrthogonalityToleranceAtMaximumDefect = batchFactorToleranceAtMaximumDefect;
+        }
+        if( batchExplicitFallbackCount != 0 )
+        {
+            std::cerr << "WARNING: P4 held-out PSF batch " << firstOutput + 1 << '-' << firstOutput + outputCount
+                      << " annulus " << region + 1 << " / " << grids.size() << " recomputed "
+                      << batchExplicitFallbackCount << " target rows with the explicit oracle at "
+                      << batchRankBoundaryFallbackPixelCount << " rank-boundary search pixels and "
+                      << batchFactorValidationFallbackPixelCount << " factor-validation search pixels and "
+                      << batchDeletionSolverFallbackPixelCount << " deletion-solver search pixels";
+            if( batchFactorValidationFallbackPixelCount != 0 )
+            {
+                std::cerr << "; maximum factor defect " << std::setprecision( 17 ) << batchMaximumFactorDefect
+                          << " at tolerance " << batchFactorToleranceAtMaximumDefect;
+            }
+            std::cerr << '\n';
+        }
+        m_timing.psfWorkerSeconds += responseWorkerSeconds;
+    }
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
+    const std::vector<pixelGridT> &grids,
+    const P4PSFModel &psfModel,
+    const std::vector<P4TargetExclusions> &regionExclusions,
+    const std::string &finalImagePath,
+    const fitsHeaderT &finalHeader )
+{
+    const bool targetHeldOutPSF = m_excludeMethod != HCI::exclude::none;
+    const bool sharedStateValid = m_localPSFModels.size() == grids.size() &&
+                                  m_localPSFTemporalCoefficients.size() == grids.size() &&
+                                  m_localPSFValidity.size() == grids.size();
+    if( grids.size() != m_regionStatistics.size() || m_localPSFComponentCounts.size() != grids.size() ||
+        regionExclusions.size() != grids.size() || ( targetHeldOutPSF ? m_psfModeBatchSize == 0 : !sharedStateValid ) )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr,
                                        "P4 local PSF state does not match detector-region geometry" );
+    }
+    if( targetHeldOutPSF )
+    {
+        for( const P4TargetExclusions &exclusions : regionExclusions )
+        {
+            if( exclusions.empty() )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                               "P4 target-held-out PSF state is missing annular exclusions" );
+            }
+        }
     }
     if( m_psfFilter && ( this->m_finim.rows() != this->m_Nrows || this->m_finim.cols() != this->m_Ncols ||
                          this->m_finim.planes() != static_cast<int>( m_modeFractions.size() ) ) )
@@ -3879,8 +4517,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
     int effectiveWorkers = requestedWorkers;
     if( m_memoryBudgetBytes != 0 )
     {
-        const long double baseBytes = static_cast<long double>( m_compactResidualBytes ) + m_localPSFBytes +
-                                      m_psfModelBytes + globalReconstructionBytes;
+        const long double baseBytes = static_cast<long double>( m_compactResidualBytes ) + m_targetExclusionBytes +
+                                      m_localPSFBytes + m_psfModelBytes + globalReconstructionBytes;
         if( baseBytes > static_cast<long double>( m_memoryBudgetBytes ) )
         {
             throw mx::exception<verboseT>( mx::error_t::allocerr,
@@ -3899,7 +4537,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 PSF reconstruction worker byte count overflow" );
     }
-    m_psfReconstructionBytes = static_cast<std::size_t>( selectedReconstructionBytes );
+    const std::size_t selectedReconstructionByteCount = static_cast<std::size_t>( selectedReconstructionBytes );
     std::cerr << "P4 PSF reconstruction workers: " << effectiveWorkers << " / " << requestedWorkers << '\n';
 
     const std::filesystem::path productDirectory = p4AuxiliaryProductDirectory( finalImagePath );
@@ -3948,6 +4586,36 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
         header.template append<std::string>( "P4 PSF TEMPLATE STAGE", "P4_INPUT", "template processing stage" );
         header.template append<std::string>( "P4 PSF NORMALIZATION", "STORED", "template normalization convention" );
         header.template append<std::string>( "P4 PSF RESPONSE", "FROZEN_SIGNED", "forward-model convention" );
+        header.template append<std::string>( "P4 PSF COEFFICIENT SCOPE",
+                                             targetHeldOutPSF ? "TARGET_HELD_OUT" : "SHARED_IN_SAMPLE",
+                                             "training-row scope of the fitted PSF response" );
+        header.template append<int>( "P4 PSF MODE BATCH",
+                                     static_cast<int>( targetHeldOutPSF ? m_psfModeBatchSize : 0 ),
+                                     "held-out response modes retained per bounded batch" );
+        if( product == "MANIFEST" && targetHeldOutPSF )
+        {
+            header.template append<std::string>( "P4 PSF DOWNDATE CLAMPS",
+                                                 std::to_string( m_psfDowndateClampCount ),
+                                                 "held-out response deletion eigenvalue clamps" );
+            header.template append<std::string>( "P4 PSF EXPLICIT FALLBACK ROWS",
+                                                 std::to_string( m_psfExplicitFallbackCount ),
+                                                 "held-out response row-refit invocations" );
+            header.template append<std::string>( "P4 PSF RANK FALLBACK FITS",
+                                                 std::to_string( m_psfRankBoundaryFallbackPixelCount ),
+                                                 "held-out response search/batch rank fallbacks" );
+            header.template append<std::string>( "P4 PSF FACTOR FALLBACK FITS",
+                                                 std::to_string( m_psfFactorValidationFallbackPixelCount ),
+                                                 "held-out response search/batch factor fallbacks" );
+            header.template append<std::string>( "P4 PSF SOLVER FALLBACK FITS",
+                                                 std::to_string( m_psfDeletionSolverFallbackPixelCount ),
+                                                 "held-out response search/batch solver fallbacks" );
+            header.template append<double>( "P4 PSF MAX FACTOR DEFECT",
+                                            m_psfMaximumFactorOrthogonalityDefect,
+                                            "largest held-out response factor defect" );
+            header.template append<double>( "P4 PSF FACTOR DEFECT TOLERANCE",
+                                            m_psfFactorOrthogonalityToleranceAtMaximumDefect,
+                                            "tolerance paired with largest PSF factor defect" );
+        }
         header.template append<int>( "P4 PSF TEMPLATE ROWS", m_psfTemplateRows, "input template row count" );
         header.template append<int>( "P4 PSF TEMPLATE COLUMNS", m_psfTemplateColumns, "input template column count" );
         header.template append<double>( "P4 PSF TEMPLATE CENTER ROW",
@@ -3986,7 +4654,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
                                              std::to_string( m_localPSFBytes ),
                                              "retained compact local PSF bytes" );
         header.template append<std::string>( "P4 PSF RECONSTRUCTION BYTES",
-                                             std::to_string( m_psfReconstructionBytes ),
+                                             std::to_string( selectedReconstructionByteCount ),
                                              "estimated PSF-product peak scratch" );
         header.template append<int>( "P4 PSF MODEL OUTPUT", m_outputPSFModels ? 1 : 0, "compact models enabled" );
         header.template append<int>( "P4 PSF FILTER", m_psfFilter ? 1 : 0, "normalized filtering enabled" );
@@ -4065,189 +4733,263 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 final PSF component dimensions exceed Eigen range" );
     }
-    for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+    const std::size_t modeBatchSize = targetHeldOutPSF ? m_psfModeBatchSize : 1;
+    for( std::size_t firstOutput = 0; firstOutput < m_modeFractions.size(); firstOutput += modeBatchSize )
     {
-        std::cerr << "reconstructing P4 PSF model " << output + 1 << " / " << m_modeFractions.size() << '\n';
-        imageT localModels( localPixels, static_cast<Eigen::Index>( searchPixelCount ) );
-        localModels.setZero();
-        imageT temporalCoefficients( static_cast<Eigen::Index>( temporalCoefficientCount ),
-                                     static_cast<Eigen::Index>( searchPixelCount ) );
-        temporalCoefficients.setZero();
-        reconstructorT::validityT localValidity( static_cast<Eigen::Index>( searchPixelCount ), 1 );
-        localValidity.setZero();
-        for( std::size_t region = 0; region < grids.size(); ++region )
+        const std::size_t currentBatchSize = std::min( modeBatchSize, m_modeFractions.size() - firstOutput );
+        std::vector<imageT> heldOutModels;
+        std::vector<psfValidityT> heldOutValidity;
+        if( targetHeldOutPSF )
         {
-            for( std::size_t search = 0; search < grids[region].searchPixelCount(); ++search )
+            calculateHeldOutPSFBatch( heldOutModels,
+                                      heldOutValidity,
+                                      grids,
+                                      psfModel,
+                                      regionExclusions,
+                                      regionOffsets,
+                                      searchPixelCount,
+                                      firstOutput,
+                                      currentBatchSize );
+        }
+        for( std::size_t batchOutput = 0; batchOutput < currentBatchSize; ++batchOutput )
+        {
+            const std::size_t output = firstOutput + batchOutput;
+            std::cerr << "reconstructing P4 PSF model " << output + 1 << " / " << m_modeFractions.size() << '\n';
+            imageT localModels;
+            imageT temporalCoefficients( static_cast<Eigen::Index>( temporalCoefficientCount ),
+                                         static_cast<Eigen::Index>( searchPixelCount ) );
+            temporalCoefficients.setZero();
+            reconstructorT::validityT localValidity;
+            if( targetHeldOutPSF )
             {
-                const Eigen::Index globalSearchIndex = static_cast<Eigen::Index>( regionOffsets[region] + search );
-                const Eigen::Index sourceColumn = static_cast<Eigen::Index>( search * m_modeFractions.size() + output );
-                localModels.col( globalSearchIndex ) = m_localPSFModels[region].col( sourceColumn );
-                if( m_localPSFTemporalCoefficients[region].rows() != 0 )
-                {
-                    temporalCoefficients.col( globalSearchIndex )
-                        .head( m_localPSFTemporalCoefficients[region].rows() ) =
-                        m_localPSFTemporalCoefficients[region].col( sourceColumn );
-                }
-                localValidity( globalSearchIndex, 0 ) =
-                    m_localPSFValidity[region]( static_cast<Eigen::Index>( search ),
-                                                static_cast<Eigen::Index>( output ) );
+                localModels = std::move( heldOutModels[batchOutput] );
+                localValidity = std::move( heldOutValidity[batchOutput] );
             }
-        }
-
-        eigenCube<realT> finalModels;
-        imageT finalValidity;
-        if( m_outputPSFModels )
-        {
-            finalModels.resize( m_psfStampSize, m_psfStampSize, static_cast<int>( searchPixelCount ) );
-            finalValidity.resize( static_cast<Eigen::Index>( searchPixelCount ), 1 );
-            finalValidity.setZero();
-        }
-        std::atomic<bool> reconstructionFailed{ false };
-        std::exception_ptr reconstructionException;
-        // clang-format off
-#pragma omp parallel num_threads(effectiveWorkers)
-        // clang-format on
-        {
-            imageT combined;
-            reconstructorT::validityT combinedValidity;
-            imageT centerCombined;
-            reconstructorT::validityT centerValidity;
-
-            // clang-format off
-#pragma omp for schedule(static)
-            // clang-format on
-            for( std::size_t source = 0; source < searchPixelCount; ++source )
+            else
             {
-                if( reconstructionFailed.load( std::memory_order_acquire ) )
+                localModels.resize( localPixels, static_cast<Eigen::Index>( searchPixelCount ) );
+                localModels.setZero();
+                localValidity.resize( static_cast<Eigen::Index>( searchPixelCount ), 1 );
+                localValidity.setZero();
+                for( std::size_t region = 0; region < grids.size(); ++region )
                 {
-                    continue;
-                }
-                try
-                {
-                    const double sourceRow =
-                        static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 0 ) );
-                    const double sourceColumn =
-                        static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 1 ) );
-                    reconstructor.reconstructCombinedTemporal( combined,
-                                                               combinedValidity,
-                                                               localModels,
-                                                               temporalCoefficients,
-                                                               temporalOffsets,
-                                                               psfModel,
-                                                               localValidity,
-                                                               searchIndex,
-                                                               searchRegions,
-                                                               m_localPSFComponentCounts,
-                                                               m_temporalSelections,
-                                                               sourceRow,
-                                                               sourceColumn,
-                                                               derotationAngles,
-                                                               this->m_combineMethod,
-                                                               this->m_comboWeights,
-                                                               this->m_sigmaThreshold,
-                                                               this->m_minGoodFract );
-                    const int imageRow = static_cast<int>( sourceRow );
-                    const int imageColumn = static_cast<int>( sourceColumn );
-                    if( m_psfFilter )
+                    for( std::size_t search = 0; search < grids[region].searchPixelCount(); ++search )
                     {
-                        const P4PSFFilterResult filterResult = P4PSFFilter::calculate( this->m_finim.image( output ),
-                                                                                       combined,
-                                                                                       combinedValidity,
-                                                                                       imageRow,
-                                                                                       imageColumn,
-                                                                                       m_psfFilterMinGoodFract );
-                        filterSupport.image( static_cast<int>( output ) )( imageRow, imageColumn ) =
-                            static_cast<realT>( filterResult.supportFraction );
-                        if( mx::math::isFinite( filterResult.normalization ) && filterResult.normalization >= 0 &&
-                            filterResult.normalization <= std::numeric_limits<realT>::max() )
+                        const Eigen::Index globalSearchIndex =
+                            static_cast<Eigen::Index>( regionOffsets[region] + search );
+                        const Eigen::Index sourceColumn =
+                            static_cast<Eigen::Index>( search * m_modeFractions.size() + output );
+                        localModels.col( globalSearchIndex ) = m_localPSFModels[region].col( sourceColumn );
+                        if( m_localPSFTemporalCoefficients[region].rows() != 0 )
                         {
-                            filterNormalization.image( static_cast<int>( output ) )( imageRow, imageColumn ) =
-                                static_cast<realT>( filterResult.normalization );
+                            temporalCoefficients.col( globalSearchIndex )
+                                .head( m_localPSFTemporalCoefficients[region].rows() ) =
+                                m_localPSFTemporalCoefficients[region].col( sourceColumn );
                         }
-                        if( filterResult.valid && mx::math::isFinite( filterResult.amplitude ) &&
-                            std::abs( filterResult.amplitude ) <= std::numeric_limits<realT>::max() )
-                        {
-                            filtered.image( static_cast<int>( output ) )( imageRow, imageColumn ) =
-                                static_cast<realT>( filterResult.amplitude );
-                            filterValidity.image( static_cast<int>( output ) )( imageRow, imageColumn ) = 1;
-                        }
+                        localValidity( globalSearchIndex, 0 ) =
+                            m_localPSFValidity[region]( static_cast<Eigen::Index>( search ),
+                                                        static_cast<Eigen::Index>( output ) );
                     }
-                    if( m_outputPSFModels )
+                }
+            }
+
+            eigenCube<realT> finalModels;
+            imageT finalValidity;
+            if( m_outputPSFModels )
+            {
+                finalModels.resize( m_psfStampSize, m_psfStampSize, static_cast<int>( searchPixelCount ) );
+                finalValidity.resize( static_cast<Eigen::Index>( searchPixelCount ), 1 );
+                finalValidity.setZero();
+            }
+            std::atomic<bool> reconstructionFailed{ false };
+            std::exception_ptr reconstructionException;
+            // clang-format off
+#pragma omp parallel num_threads(effectiveWorkers)
+            // clang-format on
+            {
+                imageT combined;
+                reconstructorT::validityT combinedValidity;
+                imageT centerCombined;
+                reconstructorT::validityT centerValidity;
+
+                // clang-format off
+#pragma omp for schedule(static)
+                // clang-format on
+                for( std::size_t source = 0; source < searchPixelCount; ++source )
+                {
+                    if( reconstructionFailed.load( std::memory_order_acquire ) )
                     {
-                        centerReconstructor.reconstructCombinedTemporal( centerCombined,
-                                                                         centerValidity,
-                                                                         localModels,
-                                                                         temporalCoefficients,
-                                                                         temporalOffsets,
-                                                                         psfModel,
-                                                                         localValidity,
-                                                                         searchIndex,
-                                                                         searchRegions,
-                                                                         m_localPSFComponentCounts,
-                                                                         m_temporalSelections,
-                                                                         sourceRow,
-                                                                         sourceColumn,
-                                                                         derotationAngles,
-                                                                         this->m_combineMethod,
-                                                                         this->m_comboWeights,
-                                                                         this->m_sigmaThreshold,
-                                                                         this->m_minGoodFract );
-                        finalValidity( static_cast<Eigen::Index>( source ), 0 ) = centerValidity( 0, 0 );
-                        for( int column = 0; column < combined.cols(); ++column )
+                        continue;
+                    }
+                    try
+                    {
+                        const double sourceRow =
+                            static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 0 ) );
+                        const double sourceColumn =
+                            static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 1 ) );
+                        if( targetHeldOutPSF )
                         {
-                            for( int row = 0; row < combined.rows(); ++row )
+                            reconstructor.reconstructCombinedTargeted( combined,
+                                                                       combinedValidity,
+                                                                       localModels,
+                                                                       localValidity,
+                                                                       searchIndex,
+                                                                       sourceRow,
+                                                                       sourceColumn,
+                                                                       derotationAngles,
+                                                                       this->m_combineMethod,
+                                                                       this->m_comboWeights,
+                                                                       this->m_sigmaThreshold,
+                                                                       this->m_minGoodFract );
+                        }
+                        else
+                        {
+                            reconstructor.reconstructCombinedTemporal( combined,
+                                                                       combinedValidity,
+                                                                       localModels,
+                                                                       temporalCoefficients,
+                                                                       temporalOffsets,
+                                                                       psfModel,
+                                                                       localValidity,
+                                                                       searchIndex,
+                                                                       searchRegions,
+                                                                       m_localPSFComponentCounts,
+                                                                       m_temporalSelections,
+                                                                       sourceRow,
+                                                                       sourceColumn,
+                                                                       derotationAngles,
+                                                                       this->m_combineMethod,
+                                                                       this->m_comboWeights,
+                                                                       this->m_sigmaThreshold,
+                                                                       this->m_minGoodFract );
+                        }
+                        const int imageRow = static_cast<int>( sourceRow );
+                        const int imageColumn = static_cast<int>( sourceColumn );
+                        if( m_psfFilter )
+                        {
+                            const P4PSFFilterResult filterResult =
+                                P4PSFFilter::calculate( this->m_finim.image( output ),
+                                                        combined,
+                                                        combinedValidity,
+                                                        imageRow,
+                                                        imageColumn,
+                                                        m_psfFilterMinGoodFract );
+                            filterSupport.image( static_cast<int>( output ) )( imageRow, imageColumn ) =
+                                static_cast<realT>( filterResult.supportFraction );
+                            if( mx::math::isFinite( filterResult.normalization ) && filterResult.normalization >= 0 &&
+                                filterResult.normalization <= std::numeric_limits<realT>::max() )
                             {
-                                if( combinedValidity( row, column ) == 0 )
-                                {
-                                    combined( row, column ) = invalidNumber<realT>();
-                                }
+                                filterNormalization.image( static_cast<int>( output ) )( imageRow, imageColumn ) =
+                                    static_cast<realT>( filterResult.normalization );
+                            }
+                            if( filterResult.valid && mx::math::isFinite( filterResult.amplitude ) &&
+                                std::abs( filterResult.amplitude ) <= std::numeric_limits<realT>::max() )
+                            {
+                                filtered.image( static_cast<int>( output ) )( imageRow, imageColumn ) =
+                                    static_cast<realT>( filterResult.amplitude );
+                                filterValidity.image( static_cast<int>( output ) )( imageRow, imageColumn ) = 1;
                             }
                         }
-                        finalModels.image( static_cast<int>( source ) ) = combined;
+                        if( m_outputPSFModels )
+                        {
+                            if( targetHeldOutPSF )
+                            {
+                                centerReconstructor.reconstructCombinedTargeted( centerCombined,
+                                                                                 centerValidity,
+                                                                                 localModels,
+                                                                                 localValidity,
+                                                                                 searchIndex,
+                                                                                 sourceRow,
+                                                                                 sourceColumn,
+                                                                                 derotationAngles,
+                                                                                 this->m_combineMethod,
+                                                                                 this->m_comboWeights,
+                                                                                 this->m_sigmaThreshold,
+                                                                                 this->m_minGoodFract );
+                            }
+                            else
+                            {
+                                centerReconstructor.reconstructCombinedTemporal( centerCombined,
+                                                                                 centerValidity,
+                                                                                 localModels,
+                                                                                 temporalCoefficients,
+                                                                                 temporalOffsets,
+                                                                                 psfModel,
+                                                                                 localValidity,
+                                                                                 searchIndex,
+                                                                                 searchRegions,
+                                                                                 m_localPSFComponentCounts,
+                                                                                 m_temporalSelections,
+                                                                                 sourceRow,
+                                                                                 sourceColumn,
+                                                                                 derotationAngles,
+                                                                                 this->m_combineMethod,
+                                                                                 this->m_comboWeights,
+                                                                                 this->m_sigmaThreshold,
+                                                                                 this->m_minGoodFract );
+                            }
+                            finalValidity( static_cast<Eigen::Index>( source ), 0 ) = centerValidity( 0, 0 );
+                            for( int column = 0; column < combined.cols(); ++column )
+                            {
+                                for( int row = 0; row < combined.rows(); ++row )
+                                {
+                                    if( combinedValidity( row, column ) == 0 )
+                                    {
+                                        combined( row, column ) = invalidNumber<realT>();
+                                    }
+                                }
+                            }
+                            finalModels.image( static_cast<int>( source ) ) = combined;
+                        }
                     }
+                    catch( ... )
+                    {
+                        // clang-format off
+#pragma omp critical(P4PSFReconstructionException)
+                        // clang-format on
+                        {
+                            if( !reconstructionException )
+                            {
+                                reconstructionException = std::current_exception();
+                            }
+                        }
+                        reconstructionFailed.store( true, std::memory_order_release );
+                    }
+                }
+            }
+            if( reconstructionException )
+            {
+                try
+                {
+                    std::rethrow_exception( reconstructionException );
+                }
+                catch( const std::exception &error )
+                {
+                    std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception,
+                                                                     "P4 final PSF reconstruction failed for output " +
+                                                                         std::to_string( output ) + ": " +
+                                                                         error.what() ) );
                 }
                 catch( ... )
                 {
-                    // clang-format off
-#pragma omp critical(P4PSFReconstructionException)
-                    // clang-format on
-                    {
-                        if( !reconstructionException )
-                        {
-                            reconstructionException = std::current_exception();
-                        }
-                    }
-                    reconstructionFailed.store( true, std::memory_order_release );
+                    std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception,
+                                                                     "P4 final PSF reconstruction failed for output " +
+                                                                         std::to_string( output ) ) );
                 }
             }
-        }
-        if( reconstructionException )
-        {
-            try
-            {
-                std::rethrow_exception( reconstructionException );
-            }
-            catch( const std::exception &error )
-            {
-                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception,
-                                                                 "P4 final PSF reconstruction failed for output " +
-                                                                     std::to_string( output ) + ": " + error.what() ) );
-            }
-            catch( ... )
-            {
-                std::throw_with_nested( mx::exception<verboseT>( mx::error_t::exception,
-                                                                 "P4 final PSF reconstruction failed for output " +
-                                                                     std::to_string( output ) ) );
-            }
-        }
 
-        if( m_outputPSFModels )
-        {
-            fitsHeaderT modelHeader = productHeader( "MODEL", output );
-            modelHeader.template append<std::string>( "P4 PSF PLANE ORDER", "COORDINATES", "plane mapping product" );
-            writeProduct( productPath( "model_" + p4Index( output, 4 ) + ".fits" ), finalModels, modelHeader );
-            fitsHeaderT validityHeader = productHeader( "VALIDITY", output );
-            writeProduct( productPath( "validity_" + p4Index( output, 4 ) + ".fits" ), finalValidity, validityHeader );
+            if( m_outputPSFModels )
+            {
+                fitsHeaderT modelHeader = productHeader( "MODEL", output );
+                modelHeader.template append<std::string>( "P4 PSF PLANE ORDER",
+                                                          "COORDINATES",
+                                                          "plane mapping product" );
+                writeProduct( productPath( "model_" + p4Index( output, 4 ) + ".fits" ), finalModels, modelHeader );
+                fitsHeaderT validityHeader = productHeader( "VALIDITY", output );
+                writeProduct( productPath( "validity_" + p4Index( output, 4 ) + ".fits" ),
+                              finalValidity,
+                              validityHeader );
+            }
         }
     }
 
@@ -4275,6 +5017,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts( const std:
     fitsHeaderT completeHeader = productHeader( "MANIFEST", m_modeFractions.size() );
     completeHeader.template append<int>( "P4 PSF COMPLETE", 1, "complete product set available" );
     writeProduct( productPath( "manifest.fits" ), completion, completeHeader );
+    m_psfReconstructionBytes = selectedReconstructionByteCount;
 }
 
 template <typename realT, class derotFunctObj, class verboseT>

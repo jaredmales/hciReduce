@@ -85,8 +85,9 @@
  *
  * P4 rejects configured RDI input, overlapping annuli, and nonfinite target input as hard errors. The geometry must
  * fit its configured detector-frame interpolation footprints. Target-frame exclusion requires detector-frame
- * regression, `p4.numberImages=0`, no pixel-local processing, and no frozen-model PSF calculation. Rank support is
- * tracked independently for every target and output mode.
+ * regression and `p4.numberImages=0`. The same deleted-row pattern is honored by complete-field reductions,
+ * pixel-local finite-amplitude fits, and frozen-model PSF responses. Pixel-local fitting and frozen-model products
+ * remain mutually exclusive modes. Rank support is tracked independently for every target and output mode.
  *
  * \subsection p4reduce_exclusion_solvers Target-frame exclusion solvers
  *

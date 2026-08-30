@@ -36,6 +36,12 @@ class P4PSFModel
     /// Double-precision predictor coefficient vector.
     using coefficientT = Eigen::Array<double, Eigen::Dynamic, 1>;
 
+    /// Double-precision frozen-probe predictor response matrix.
+    using probeMatrixT = Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic>;
+
+    /// Double-precision flattened direct target response.
+    using probeVectorT = Eigen::Array<double, Eigen::Dynamic, 1>;
+
     /// Detector-frame P4 geometry using the production float interpolation transform.
     using gridT = P4PixelGridf;
 
@@ -66,6 +72,17 @@ class P4PSFModel
     /// Sample the prepared template at a detector offset from its geometric center.
     float sampleTemplate( double deltaRow, /**< [in] detector row offset from the source center */
                           double deltaColumn /**< [in] detector column offset from the source center */ ) const;
+
+    /// Construct the exact frozen target and same-image predictor responses for one local regression.
+    /** Rows flatten the configured response stamp in column-major order. \p probeTarget is the direct shifted
+     * template response, while \p probePredictors contains the response of every same-image optimization-region
+     * predictor. Their combination `probeTarget-probePredictors*coefficients` is identical to
+     * calculateLocalResponse() and can also be supplied directly to P4PCA's target-held-out probe interface.
+     */
+    void responseInputs( probeVectorT &probeTarget,     /**< [out] flattened direct target response */
+                         probeMatrixT &probePredictors, /**< [out] stamp-pixel by predictor response matrix */
+                         const gridT &grid,             /**< [in] complete detector-frame P4 geometry */
+                         std::size_t searchIndex /**< [in] zero-based search-pixel index */ ) const;
 
     /// Calculate one compact local residual PSF stamp from a frozen coefficient vector.
     /** The grid must contain a complete valid detector-frame region, \p searchIndex must select a valid local fit,

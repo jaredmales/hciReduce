@@ -282,6 +282,16 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Add focused mxlib instantiation/coverage for the exact `mx::math::dtor<float>()` specialization called by
+      `P4Reduction::targetExclusions()` and `P4Reduction::processLocalTrial()`. The current filtered LCOV trace contains
+      covered double conversion records but no emitted float specialization, so the hciReduce exclusion integration
+      cannot yet demonstrate exact-type 100% executable-line coverage.
+
+- [ ] Add focused mxlib instantiation/coverage for the exact `mx::improc::eigenCube<float>::setZero()` specialization
+      used by P4 pixel-local and frozen-response allocation. The current trace emits covered double and integer
+      specializations but no float `setZero()` record. Exercise float cube zeroing directly, regenerate the filtered
+      report, and confirm the specialization reaches 100% before closing this ownership gate.
+
 - [x] Replace P4PCA's unnecessary `calcEigenVecs<double>()` conversion/copy wrapper with its underlying
       `mx::math::eigenSYEVR()` call on the already-double Gram matrix. The current mxlib LCOV trace records all 60/60
       executable lines in the exact reusable-`syevrMem<double>` API, while the P4 numerical and complete local FITS

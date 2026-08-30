@@ -65,8 +65,8 @@
  * retained only as a numerical reference.
  *
  * P4 automatically uses the smaller temporal or predictor Gram formulation and performs the normal-equation work in
- * double precision. The Gram choice is not a configurable backend. Exact target exclusion currently requires
- * detector-frame regression with `p4.numberImages=0` and does not support pixel-local or frozen-PSF products.
+ * double precision. The Gram choice is not a configurable backend. Exact target exclusion requires detector-frame
+ * regression with `p4.numberImages=0`; it is applied consistently to ordinary, pixel-local, and frozen-PSF fits.
  * `p4.deletionBackend` applies only to `p4.exclusionSolver=factorDowndateExact`; selecting `rankOneSecular` with the
  * explicit solver is rejected rather than ignored. P4 checks the realized compact exclusion pattern before
  * regression. With `rankOneSecular`, each target which retains any reference rows must delete exactly one row. A
@@ -89,6 +89,10 @@
  * in the resolved final image's `_outputs` directory. P4 records the available-memory snapshot, selected budget,
  * compact-storage and materialization estimates, per-annulus worker estimate, maximum worker count, and effective
  * worker count in `HIERARCH P4 ...` FITS cards. `OMP_NUM_THREADS` remains a valid upper limit and is never increased.
+ * A frozen response under target exclusion retains a distinct local response for every target frame. P4 selects the
+ * number of output modes held simultaneously from the same budget, reruns the immutable held-out fit for each mode
+ * batch, and lowers the response-fit and reconstruction worker counts independently. Thus a smaller budget can add
+ * mode-batch passes but never substitutes shared in-sample coefficients.
  *
  * \section p4_exclusion_dictionary Signal exclusion
  *
