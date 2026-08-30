@@ -313,7 +313,7 @@ Known non-blocking ownership follow-ups:
       (329--350 and 367--388) as hit. The mean-subtracting `stddevImage` test also covers its defensive skipped-radius
       and exhausted-bin branches (1465 and 1469). Header-level percentages remain lower because they include
       unrelated APIs. `maskCircle` remains at 92.9% function coverage and should be checked alongside future image
-      analysis changes.
+      analysis changes. Completed by mxlib `030bdbb`; hciReduce integration is recorded in `c6ecfe1`.
 
 - [x] Bring `mx::improc::cutImageRegion()` and `mx::improc::insertImageRegion()` to 100% executable-line coverage.
       Commit `b3635f4` adds indexed cut/insert tests covering automatic allocation, caller-owned storage, Eigen views,

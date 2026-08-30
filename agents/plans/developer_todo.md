@@ -209,6 +209,7 @@ Completed by `3b26865` and `c4dd646`
    - `hciAnalyze` records `SNRMEAN=1` in SNR FITS products, and the application and mxlib tests cover the result.
    - The mxlib coverage tests exercise `zeroNaNCube`, `parseStringVector`, and all branches added to the mean SNR
      calculation; its PSD Monte Carlo tests now use fixed seeds.
+   - Completed by hciReduce `c6ecfe1` and mxlib `030bdbb`.
 
 ## Matched Filtering Updates
 
