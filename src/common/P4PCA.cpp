@@ -7,11 +7,13 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
-#include <chrono>
+#include <iomanip>
 #include <limits>
 #include <numeric>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -45,6 +47,31 @@ bool p4PCAAllFinite( const arrayT &array /**< [in] array to validate */ )
     }
 
     return true;
+}
+
+/// Format factor validation failures, including the orthogonality defect when that contract alone failed.
+std::string p4PCAFactorValidationMessage( mx::math::svdDeletionStatus status, /**< [in] validation outcome */
+                                          const P4PCA::matrixT &factor /**< [in] temporal singular-vector factor */ )
+{
+    std::ostringstream message;
+    message << "P4PCA downdate temporal factor validation failed with status "
+            << mx::math::svdDeletionStatusName( status );
+    if( status != mx::math::svdDeletionStatus::factorNotOrthonormal )
+    {
+        return message.str();
+    }
+
+    P4PCA::matrixT gram = ( factor.matrix().transpose() * factor.matrix() ).array();
+    for( Eigen::Index mode = 0; mode < gram.rows(); ++mode )
+    {
+        gram( mode, mode ) -= 1.0;
+    }
+    const double maximumError = gram.abs().maxCoeff();
+    const double defaultTolerance =
+        64.0 * std::numeric_limits<double>::epsilon() * static_cast<double>( std::max( factor.rows(), factor.cols() ) );
+    message << std::setprecision( 17 ) << ", max|L^T L-I|=" << maximumError
+            << ", defaultTolerance=" << defaultTolerance;
+    return message.str();
 }
 
 /// Invoke the installed test solver or the production all-double mxlib eigensolver.
@@ -1045,8 +1072,7 @@ void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
         mx::math::validateSvdDeletionFactor( downdateWorkspace.m_temporalFactor );
     if( !mx::math::svdDeletionSucceeded( factorStatus ) )
     {
-        throw std::runtime_error( "P4PCA downdate temporal factor validation failed with status " +
-                                  std::string( mx::math::svdDeletionStatusName( factorStatus ) ) );
+        throw std::runtime_error( p4PCAFactorValidationMessage( factorStatus, downdateWorkspace.m_temporalFactor ) );
     }
 
     const Eigen::Index maximumOutputRank = std::min<Eigen::Index>( modes.back(), baseRank );

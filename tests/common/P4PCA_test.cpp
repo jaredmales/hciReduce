@@ -12,6 +12,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace unitTest
@@ -167,6 +168,7 @@ enum class fakeSolverBehavior
     unsortedEigenvalues,
     nonpositiveEigenvalues,
     tinyEigenvalue,
+    nonorthonormalEigenvectors,
     residualOverflow
 };
 
@@ -247,6 +249,10 @@ MXLAPACK_INT fakeEigenSolver( pcaT::matrixT &eigenvectors, /**< [out] controlled
     {
         eigenvalues( 0 ) = std::numeric_limits<double>::denorm_min();
         eigenvalues( 1 ) = 1;
+    }
+    else if( solverBehavior == fakeSolverBehavior::nonorthonormalEigenvectors )
+    {
+        eigenvectors.col( 0 ) *= 2.0;
     }
     else if( solverBehavior == fakeSolverBehavior::residualOverflow )
     {
@@ -1251,6 +1257,43 @@ TEST_CASE( "P4PCA exact factor downdate matches explicit held-out refits", "[P4P
         REQUIRE( result.numericalRank == 0 );
         REQUIRE( allNan( result.residuals ) );
         REQUIRE( result.sampleValidity.count() == 0 );
+    }
+}
+
+/// Verify factor-validation failures report the measured defect and the automatic tolerance.
+/** This directly exercises mx::improc::P4PCA::calculateHeldOutDowndated() through its controlled eigensolver seam.
+ * \ingroup P4PCA_unit_tests
+ */
+TEST_CASE( "P4PCA exact factor downdate diagnoses nonorthonormal factors", "[P4PCA][held-out][downdate][validation]" )
+{
+    pcaT::matrixT predictors( 3, 4 );
+    predictors << 1, 0, 2, -1, 0, 1, -1, 2, 2, 1, 0, 1;
+    pcaT::vectorT target( 3 );
+    target << 2, -1, 3;
+    const auto exclusions = mx::improc::P4TargetExclusions::fromExplicit( 3, { { 0 }, { 1 }, { 2 } } );
+    resultT result;
+    pcaT::workspaceT eigensolverWorkspace;
+    mx::improc::P4PCADowndateWorkspace downdateWorkspace;
+    solverReset reset( fakeSolverBehavior::nonorthonormalEigenvectors );
+
+    try
+    {
+        mx::improc::P4PCA::calculateHeldOutDowndated( result,
+                                                      predictors,
+                                                      target,
+                                                      exclusions,
+                                                      { 1, 2 },
+                                                      1e-12,
+                                                      eigensolverWorkspace,
+                                                      downdateWorkspace );
+        FAIL( "expected temporal-factor validation failure" );
+    }
+    catch( const std::runtime_error &error )
+    {
+        const std::string message = error.what();
+        REQUIRE( message.find( "status factorNotOrthonormal" ) != std::string::npos );
+        REQUIRE( message.find( "max|L^T L-I|=3" ) != std::string::npos );
+        REQUIRE( message.find( "defaultTolerance=" ) != std::string::npos );
     }
 }
 

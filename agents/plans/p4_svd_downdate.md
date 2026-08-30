@@ -549,7 +549,8 @@ Preserve existing aggregate timing fields or advance the timing schema deliberat
 
 The first P4 integration slice now has a concrete code boundary, but it is not yet a promoted performance backend:
 
-- The reusable mxlib SVD deletion system and its 100%-covered focused test are committed as `f4aea38`.
+- The first reusable mxlib SVD deletion implementation and focused test were committed as `f4aea38`; the ABI-v2
+  correction described below supersedes that shared-library boundary and was committed as `b9bac77`.
 
 - `P4TargetExclusions` represents `imno` deletions as per-target spans and arbitrary `angle`/`pixel` deletions as
   flattened index storage. The direct oracle materializes retained complements only on demand.
@@ -567,21 +568,45 @@ The first P4 integration slice now has a concrete code boundary, but it is not y
   ambiguous search pixel contributes `T`; the configured solver and deletion-backend cards remain
   `factorDowndateExact` and `leadingCovariance`.
 
-The first external-consumer verification exposed an Eigen ABI hazard rather than a downdate-equation failure: mxlib
-was compiled with `-march=native`, while the ordinary hciReduce build was generic, and public Eigen-owned result and
-workspace members could consequently be allocated and released under different alignment configurations. The mxlib
-objects now keep all Eigen/LAPACK-owned state behind out-of-line opaque storage and publish unaligned read-only views.
-A generic optimized hciReduce consumer now passes against the native-SIMD mxlib build without requiring matching
-consumer flags. The argument-order convention was also made explicit in `mxlib/AGENTS.md`: output-only arguments
-precede semantic inputs, analogous to `y = f(x)`, while reusable input/output workspaces may follow the inputs.
-The observed mixed-build combination is verified manually at this checkpoint; an automated producer/consumer test
-with deliberately different Eigen alignment settings in both directions remains an mxlib hardening follow-up.
+The first external-consumer verification exposed an Eigen ABI hazard rather than a downdate-equation failure. mxlib
+was compiled with `-march=native`, while the ordinary hciReduce build was generic. On the 48-core ROC run this first
+appeared as `free(): invalid pointer` while worker workspaces were unwinding. All installed and build-tree libraries
+contained the same mxlib source hash, ruling out stale headers or libraries. ASan/UBSan then located the earlier
+undefined behavior: mxlib executed AVX aligned loads/stores against storage that satisfied only the generic
+consumer's 16-byte Eigen alignment contract. Rebuilding hciReduce with matching native alignment made the focused
+suite and reduced application clean, which isolated the failure from OpenMP and the eigensolver.
 
-At this checkpoint the optimized mxlib suite passes 368 assertions in 13 test cases. Fresh generic Release consumers
-pass 852 assertions in 24 focused `P4PCA` cases and 56,598 assertions in 20 focused `P4Reduction` cases against the
-native-SIMD mxlib installation. Completed comparisons cover wide, square, and tall designs, rank-deficient and
-all-deleted cases, rank-boundary fallback, compact exclusions, application dispatch, the worker-memory estimate, and
-FITS provenance.
+Opaque out-of-line result/workspace state alone was not a sufficient fix because the compiled shared-library API
+still carried Eigen reference objects and alignment-sensitive header implementations across the boundary. The
+second-generation ABI keeps the convenient Eigen-facing source API only in hidden inline consumer adapters. Those
+adapters pass standard-layout, trivially-copyable pointer/dimension/stride/index descriptors to versioned compiled
+entry points; mxlib maps all borrowed arrays explicitly unaligned and uses `DontAlign` for its owned Eigen storage.
+The result and workspace types also carry an ABI-v2 tag, so mixing old and new headers/libraries fails at symbol
+resolution before a differently laid-out object can be constructed. The implementation translation unit hides its
+Eigen inline symbols as additional hardening. The argument-order convention remains explicit in `mxlib/AGENTS.md`:
+output-only arguments precede semantic inputs, analogous to `y = f(x)`, while reusable input/output workspaces may
+follow the inputs.
+
+The permanent CMake fixture compiles the real shared-library producer translation unit with an explicit 32-byte Eigen
+alignment contract and its consumer translation unit with a 16-byte cap. It exercises under-aligned inputs and
+numerical reads from returned rotations and spectra, plus empty and malformed ABI descriptors. The ordinary focused
+target and `MXLIB_ONE_TEST` path use the same mismatch, and a Linux symbol test requires the ABI-v2 exports while
+rejecting obsolete Eigen-facing, untagged-handle, and consumer-adapter exports. A separate forced
+64-byte-producer/16-byte-consumer test exercised both cores, both row-deletion backends, preparation, validation,
+output views, and moves. The legacy GNU Make source list and target-scoped visibility flag are also covered by a
+direct object build.
+
+At this checkpoint the focused mxlib suite passes 399 assertions in 16 test cases with 841/841 executable
+SVD-downdate lines covered. Matched and mismatched optimized hciReduce consumers each pass 855 assertions in 25
+focused `P4PCA` cases, and the final staged mismatch passes all 56,598 assertions in 20 `P4Reduction` cases. The
+mixed-alignment ASan/UBSan consumer also passes the 855 `P4PCA` assertions, and the reduced application completes all
+four regressions and writes its final output without a sanitizer diagnostic.
+
+A `factorNotOrthonormal` status, if it occurs after this memory-safety fix, is a separate numerical question rather
+than another allocator symptom. P4 now includes the measured `max|L^T L-I|` defect and the automatic tolerance in
+that error. Record those values on the production Gram before considering a change from the current `SYEVR` driver;
+compare `SYEVR`, `SYEVD`, and a direct-SVD oracle as a later accuracy/performance experiment rather than using a
+solver change to mask the ABI failure.
 
 This is the requested stop-and-review point for P4 integration. Before beginning bounded-rank work or treating the
 backend as an optimization, the open gates are an exact-path one-versus-multiple-worker product comparison with inner
