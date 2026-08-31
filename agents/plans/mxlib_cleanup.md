@@ -282,15 +282,13 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
-- [ ] Add focused mxlib instantiation/coverage for the exact `mx::math::dtor<float>()` specialization called by
-      `P4Reduction::targetExclusions()` and `P4Reduction::processLocalTrial()`. The current filtered LCOV trace contains
-      covered double conversion records but no emitted float specialization, so the hciReduce exclusion integration
-      cannot yet demonstrate exact-type 100% executable-line coverage.
+- [x] Add focused mxlib instantiation/coverage for the exact `mx::math::dtor<float>()` specialization called by
+      `P4Reduction::targetExclusions()` and `P4Reduction::processLocalTrial()`. `geo_test` explicitly instantiates and
+      verifies the float conversion; its focused LCOV trace records both executable lines at 1 hit.
 
-- [ ] Add focused mxlib instantiation/coverage for the exact `mx::improc::eigenCube<float>::setZero()` specialization
-      used by P4 pixel-local and frozen-response allocation. The current trace emits covered double and integer
-      specializations but no float `setZero()` record. Exercise float cube zeroing directly, regenerate the filtered
-      report, and confirm the specialization reaches 100% before closing this ownership gate.
+- [x] Add focused mxlib instantiation/coverage for the exact `mx::improc::eigenCube<float>::setZero()` specialization
+      used by P4 pixel-local and frozen-response allocation. `eigenCube_test` directly zeroes a float cube; its focused
+      LCOV trace records all five executable lines at one or more hits.
 
 - [x] Replace P4PCA's unnecessary `calcEigenVecs<double>()` conversion/copy wrapper with its underlying
       `mx::math::eigenSYEVR()` call on the already-double Gram matrix. The current mxlib LCOV trace records all 60/60
@@ -333,20 +331,21 @@ Known non-blocking ownership follow-ups:
       every executable line in the default `invalidNumber()` and `isInvalidPixel()` specializations is covered.
 
 - [~] Continue closing mxlib coverage gaps exposed by hciReduce integration tests.
-  - [ ] Cover the exact `mx::improc::eigenCube<float>::mean(imageT&)` and unmasked
+  - [x] Cover the exact `mx::improc::eigenCube<float>::mean(imageT&)` and unmasked
         `mx::improc::eigenCube<float>::median(imageT&)` specializations called by
-        `HCIobservation<float>::coaddImages()`, including the float `imageMedian` dependency.  The current mxlib LCOV
-        trace contains only the corresponding double mean/median instantiations; the wrap-aware coadd metadata edit
-        therefore exposes an exact-call coverage gap even though the surrounding cube and metadata APIs are covered.
-  - [ ] Cover the exact `mx::improc::eigenCube<float>::median()` specializations called by
+        `HCIobservation<float>::coaddImages()`, including the float `imageMedian` dependency. `eigenCube_test`
+        explicitly instantiates the exact float specializations; its focused LCOV trace records all four mean lines,
+        all four unmasked-median lines, and all 30 `imageMedian<float>` dependency lines with one or more hits.
+  - [x] Cover the exact `mx::improc::eigenCube<float>::median()` specializations called by
         `ADIobservation<float>::finalProcess()`: both the unmasked output-image overload and the validity-cube/masked
-        overload. The current mxlib LCOV trace contains only the corresponding `eigenCube<double>` median
-        specializations, so aggregate source-line coverage does not yet satisfy hciReduce's exact-call ownership
-        gate for the new detector/sky final-processing entry point.
-  - [ ] Bring the exact `mx::app::appConfigurator::readConfig()` path used by the permanent p4Reduce prototype-config
-        regression and the p4Reduce/klipReduce malformed dotted-key regressions to 100% executable-line coverage. The
-        current mxlib trace records 30/38 lines in this function; missing cases include quiet file-not-found handling,
-        parser/allocation failures, and recognized/unrecognized source tracking.
+        overload. The focused float-cube trace records every executable line in both specializations: four unmasked and
+        five validity-cube/masked lines.
+  - [x] Bring the exact `mx::app::appConfigurator::readConfig()` path used by the permanent p4Reduce prototype-config
+        regression and the p4Reduce/klipReduce malformed dotted-key regressions to 100% executable-line coverage.
+        `appConfigurator_test` now verifies empty input, quiet and reported missing files, syntax and injected parser
+        allocation errors, recognized and unused entries, and source tracking. A detail-scoped parser hook makes the
+        otherwise non-deterministic fixed-size parser allocation failure testable; the focused LCOV trace hits every
+        executable `readConfig()` line.
   - [x] Repair the P4 annulus pixel-buffer path.
     - [x] Forward the documented `pixbuf` argument from `annulusCoords` and `annulusIndices` to
       `annulusCoordsWorker`.
@@ -393,10 +392,10 @@ Known non-blocking ownership follow-ups:
         scoped hciReduce report contains ten production files at 3,766/3,768 executable lines and 100% of reportable
         functions; every new P4 production source is 100%, and the only two aggregate line misses are a pre-existing
         `HCIobservation::readPSFSub()` filesystem-iterator error branch.
-    - [ ] Decide whether to delete `syevrMem` copy construction/assignment and optionally add move operations. The
-      workspace owns five raw allocations but remains implicitly copyable, so a copy can double-free and copy
-      assignment can also leak the destination's prior allocations. This is a pre-existing source-API defect; P4
-      avoids it by constructing one workspace per worker and passing it only by reference.
+    - [x] Make `syevrMem` non-copyable. Its explicit deleted copy construction and copy assignment prevent the
+      pre-existing double-free/leak hazards from its five raw allocations; `eigenLapack_test` verifies both type
+      traits. Move support remains intentionally out of scope because existing P4 workers construct a workspace and
+      pass it only by reference.
   - [ ] Prepare the exact mxlib CUDA eigensolver path required by the deferred P4 backend before adding a CUDA caller
         in hciReduce. The P4 backend will use `mx::cuda::cusolverDnHandle`, `mx::cuda::cusolverDnParams`, and
         `mx::cuda::syevdxT<double>` only; `cudaPtr`, cuBLAS, and the prototype's disabled device-projection path are
@@ -428,14 +427,16 @@ Known non-blocking ownership follow-ups:
     - [ ] Commit, install, and identify the mxlib revision carrying the safety/coverage work before the hciReduce CUDA
           translation unit is added. P4 will call the repaired mxlib wrapper rather than duplicate direct cuSOLVER
           handle, workspace, buffer, and error ownership in hciReduce.
-  - [ ] Bring `mx::improc::rotateMask()` to 100% executable-line coverage. The `ADIobservation::makeMaskCube()`
-    integration suite now exercises zero- and nonzero-angle masks, but the current mxlib LCOV trace has no
-    `rotateMask` record at all; add focused binary-threshold, allocation, and rotation-direction tests and then add
-    the instantiated implementation to the permanent coverage manifest.
+  - [x] Bring `mx::improc::rotateMask()` to 100% executable-line coverage. `imageMasks_test` explicitly instantiates
+    the binary-mask specialization and verifies allocation, zero- and quarter-turn rotation direction, and both
+    threshold outcomes. Its focused LCOV trace records all eight executable lines with one or more hits; the existing
+    `imageMasks.hpp` coverage-manifest entry retains the instantiated implementation permanently.
   - Completed mxlib `dev` commits, each verified under its focused normal or coverage-instrumented target:
     - `57488e0`, `a081b61`, `7f37f22`, `81124f0`, and `0906081`: application lifecycle, configuration reload, and
       command-line/help coverage.
     - `5be0c4c`: command-line configurator state.
+    - `3a03627`: non-CUDA hciReduce coverage gaps: `appConfigurator::readConfig()`, float `eigenCube` statistics,
+      `rotateMask()`, float `dtor()`, and non-copyable `syevrMem`.
     - `32b583f`: path helpers.
     - `f6d4459` and `12a34fa`: HCI filename/value-column parsing.
     - `37a7fe6`: short filename filters.
