@@ -26,14 +26,14 @@ using coefficientT = modelT::coefficientT;
 using validityT = reconstructorT::validityT;
 using searchIndexT = reconstructorT::searchIndexT;
 
-/// Return a broad annulus whose search pixels exercise spatially variable reconstruction.
+/// Return a compact annulus whose search pixels exercise spatially variable reconstruction.
 mx::improc::P4PixelGridRegion testRegion()
 {
     return mx::improc::P4PixelGridRegion( 2.0,
-                                          14.0,
-                                          2.0,
-                                          2.0,
-                                          3.0,
+                                          12.0,
+                                          1.0,
+                                          1.0,
+                                          1.5,
                                           50.0,
                                           0.5,
                                           mx::improc::P4ExclusionPolicy::sampleCenter,
@@ -215,8 +215,6 @@ TEST_CASE( "P4 compact sky reconstruction matches direct frozen injection", "[P4
     grid.resize( detectorRows, detectorColumns, centerRow, centerColumn );
     grid.region( testRegion(), nullptr );
 
-    const int outputSize = GENERATE( 3, 4 );
-    const double angle = GENERATE( 0.0, 0.23, -0.31 );
     const imageT psfTemplate = asymmetricTemplate( 15, 16 );
     constexpr int localRows = 19;
     constexpr int localColumns = 20;
@@ -229,66 +227,82 @@ TEST_CASE( "P4 compact sky reconstruction matches direct frozen injection", "[P4
 
     constexpr double sourceSkyRow = 21.0;
     constexpr double sourceSkyColumn = 29.0;
-    const std::pair<double, double> sourceDetector =
-        inverseRotate( sourceSkyRow, sourceSkyColumn, centerRow, centerColumn, angle );
-    const imageT directDetector =
-        directDetectorResponse( psfTemplate, grid, coefficients, sourceDetector.first, sourceDetector.second );
-
-    reconstructorT
-        reconstructor( detectorRows, detectorColumns, centerRow, centerColumn, outputSize, localRows, localColumns );
-    imageT compact;
-    validityT compactValidity;
-    reconstructor.reconstructFrame( compact,
-                                    compactValidity,
-                                    localModels,
-                                    localValidity,
-                                    searchIndex,
-                                    0,
-                                    sourceSkyRow,
-                                    sourceSkyColumn,
-                                    angle );
-
-    const double outputCenter = 0.5 * static_cast<double>( outputSize - 1 );
-    std::size_t validCount{ 0 };
-    for( int stampColumn = 0; stampColumn < outputSize; ++stampColumn )
+    const std::vector<int> outputSizes{ 3, 4 };
+    const std::vector<double> angles{ 0.0, 0.23, -0.31 };
+    for( const int outputSize : outputSizes )
     {
-        for( int stampRow = 0; stampRow < outputSize; ++stampRow )
+        for( const double angle : angles )
         {
-            const std::pair<double, double> detector = inverseRotate( sourceSkyRow + stampRow - outputCenter,
-                                                                      sourceSkyColumn + stampColumn - outputCenter,
-                                                                      centerRow,
-                                                                      centerColumn,
-                                                                      angle );
-            const int footprintRow = static_cast<int>( std::floor( detector.first ) ) - gridT::leftBuffer;
-            const int footprintColumn = static_cast<int>( std::floor( detector.second ) ) - gridT::leftBuffer;
-            bool expectedValid = footprintRow >= 0 && footprintColumn >= 0 &&
-                                 footprintRow + gridT::width <= detectorRows &&
-                                 footprintColumn + gridT::width <= detectorColumns;
-            for( int columnOffset = 0; columnOffset < gridT::width && expectedValid; ++columnOffset )
+            CAPTURE( outputSize, angle );
+            const std::pair<double, double> sourceDetector =
+                inverseRotate( sourceSkyRow, sourceSkyColumn, centerRow, centerColumn, angle );
+            const imageT directDetector =
+                directDetectorResponse( psfTemplate, grid, coefficients, sourceDetector.first, sourceDetector.second );
+
+            reconstructorT reconstructor( detectorRows,
+                                          detectorColumns,
+                                          centerRow,
+                                          centerColumn,
+                                          outputSize,
+                                          localRows,
+                                          localColumns );
+            imageT compact;
+            validityT compactValidity;
+            reconstructor.reconstructFrame( compact,
+                                            compactValidity,
+                                            localModels,
+                                            localValidity,
+                                            searchIndex,
+                                            0,
+                                            sourceSkyRow,
+                                            sourceSkyColumn,
+                                            angle );
+
+            const double outputCenter = 0.5 * static_cast<double>( outputSize - 1 );
+            std::size_t validCount{ 0 };
+            for( int stampColumn = 0; stampColumn < outputSize; ++stampColumn )
             {
-                for( int rowOffset = 0; rowOffset < gridT::width; ++rowOffset )
+                for( int stampRow = 0; stampRow < outputSize; ++stampRow )
                 {
-                    if( searchIndex( footprintRow + rowOffset, footprintColumn + columnOffset ) < 0 )
+                    const std::pair<double, double> detector =
+                        inverseRotate( sourceSkyRow + stampRow - outputCenter,
+                                       sourceSkyColumn + stampColumn - outputCenter,
+                                       centerRow,
+                                       centerColumn,
+                                       angle );
+                    const int footprintRow = static_cast<int>( std::floor( detector.first ) ) - gridT::leftBuffer;
+                    const int footprintColumn = static_cast<int>( std::floor( detector.second ) ) - gridT::leftBuffer;
+                    bool expectedValid = footprintRow >= 0 && footprintColumn >= 0 &&
+                                         footprintRow + gridT::width <= detectorRows &&
+                                         footprintColumn + gridT::width <= detectorColumns;
+                    for( int columnOffset = 0; columnOffset < gridT::width && expectedValid; ++columnOffset )
                     {
-                        expectedValid = false;
-                        break;
+                        for( int rowOffset = 0; rowOffset < gridT::width; ++rowOffset )
+                        {
+                            if( searchIndex( footprintRow + rowOffset, footprintColumn + columnOffset ) < 0 )
+                            {
+                                expectedValid = false;
+                                break;
+                            }
+                        }
+                    }
+                    REQUIRE( compactValidity( stampRow, stampColumn ) == static_cast<std::uint8_t>( expectedValid ) );
+                    if( expectedValid )
+                    {
+                        ++validCount;
+                        REQUIRE( compact( stampRow, stampColumn ) ==
+                                 Approx( sampleImageZero( directDetector, detector.first, detector.second ) )
+                                     .margin( 1e-6 ) );
+                    }
+                    else
+                    {
+                        REQUIRE( compact( stampRow, stampColumn ) == 0 );
                     }
                 }
             }
-            REQUIRE( compactValidity( stampRow, stampColumn ) == static_cast<std::uint8_t>( expectedValid ) );
-            if( expectedValid )
-            {
-                ++validCount;
-                REQUIRE( compact( stampRow, stampColumn ) ==
-                         Approx( sampleImageZero( directDetector, detector.first, detector.second ) ).margin( 1e-6 ) );
-            }
-            else
-            {
-                REQUIRE( compact( stampRow, stampColumn ) == 0 );
-            }
+            REQUIRE( validCount == static_cast<std::size_t>( outputSize * outputSize ) );
         }
     }
-    REQUIRE( validCount == static_cast<std::size_t>( outputSize * outputSize ) );
 }
 
 /// Verify temporal response components follow the selected physical image in every central frame.
@@ -531,66 +545,84 @@ TEST_CASE( "P4 compact response stack matches direct combination", "[P4PSFRecons
         }
     }
 
-    const mx::improc::HCI::combine method = GENERATE( mx::improc::HCI::combine::mean,
-                                                      mx::improc::HCI::combine::median,
-                                                      mx::improc::HCI::combine::sigmaMean );
-    const bool weighted = GENERATE( false, true );
-    if( method == mx::improc::HCI::combine::median && weighted )
+    const std::vector<mx::improc::HCI::combine> methods{ mx::improc::HCI::combine::mean,
+                                                         mx::improc::HCI::combine::median,
+                                                         mx::improc::HCI::combine::sigmaMean };
+    for( const mx::improc::HCI::combine method : methods )
     {
-        SUCCEED( "median does not use configured weights" );
-        return;
-    }
-    const float sigmaThreshold = method == mx::improc::HCI::combine::sigmaMean ? GENERATE( -1.0F, 1.25F ) : 0.0F;
-    std::vector<float> weights = weighted ? std::vector<float>{ 0.1F, 0.2F, 0.3F, 0.4F } : std::vector<float>{};
+        const std::vector<float> sigmaThresholds = method == mx::improc::HCI::combine::sigmaMean
+                                                       ? std::vector<float>{ -1.0F, 1.25F }
+                                                       : std::vector<float>{ 0.0F };
+        for( const float sigmaThreshold : sigmaThresholds )
+        {
+            for( const bool weighted : { false, true } )
+            {
+                if( method == mx::improc::HCI::combine::median && weighted )
+                {
+                    continue;
+                }
+                CAPTURE( method, sigmaThreshold, weighted );
+                std::vector<float> weights =
+                    weighted ? std::vector<float>{ 0.1F, 0.2F, 0.3F, 0.4F } : std::vector<float>{};
 
-    reconstructorT
-        reconstructor( detectorRows, detectorColumns, centerRow, centerColumn, outputSize, localRows, localColumns );
-    imageT compact;
-    validityT compactValidity;
-    reconstructor.reconstructCombined( compact,
-                                       compactValidity,
-                                       localModels,
-                                       localValidity,
-                                       searchIndex,
-                                       0,
-                                       sourceSkyRow,
-                                       sourceSkyColumn,
-                                       angles,
-                                       method,
-                                       weights,
-                                       sigmaThreshold,
-                                       1.0F );
+                reconstructorT reconstructor( detectorRows,
+                                              detectorColumns,
+                                              centerRow,
+                                              centerColumn,
+                                              outputSize,
+                                              localRows,
+                                              localColumns );
+                imageT compact;
+                validityT compactValidity;
+                reconstructor.reconstructCombined( compact,
+                                                   compactValidity,
+                                                   localModels,
+                                                   localValidity,
+                                                   searchIndex,
+                                                   0,
+                                                   sourceSkyRow,
+                                                   sourceSkyColumn,
+                                                   angles,
+                                                   method,
+                                                   weights,
+                                                   sigmaThreshold,
+                                                   1.0F );
 
-    imageT expected;
-    if( method == mx::improc::HCI::combine::median )
-    {
-        directFrames.median( expected, directValidity, 1.0F );
-    }
-    else if( method == mx::improc::HCI::combine::mean || sigmaThreshold <= 0 )
-    {
-        if( weights.empty() )
-        {
-            directFrames.mean( expected, directValidity, 1.0F );
-        }
-        else
-        {
-            directFrames.mean( expected, weights, directValidity, 1.0F );
-        }
-    }
-    else if( weights.empty() )
-    {
-        directFrames.sigmaMean( expected, directValidity, sigmaThreshold, 1.0F );
-    }
-    else
-    {
-        directFrames.sigmaMean( expected, weights, directValidity, sigmaThreshold, 1.0F );
-    }
-    REQUIRE( compactValidity.sum() == outputSize * outputSize );
-    for( int column = 0; column < outputSize; ++column )
-    {
-        for( int row = 0; row < outputSize; ++row )
-        {
-            REQUIRE( compact( row, column ) == Approx( expected( row, column ) ).margin( 1e-6 ) );
+                reconstructorT::cubeT expectedFrames = directFrames;
+                reconstructorT::cubeT expectedFrameValidity = directValidity;
+                imageT expected;
+                if( method == mx::improc::HCI::combine::median )
+                {
+                    expectedFrames.median( expected, expectedFrameValidity, 1.0F );
+                }
+                else if( method == mx::improc::HCI::combine::mean || sigmaThreshold <= 0 )
+                {
+                    if( weights.empty() )
+                    {
+                        expectedFrames.mean( expected, expectedFrameValidity, 1.0F );
+                    }
+                    else
+                    {
+                        expectedFrames.mean( expected, weights, expectedFrameValidity, 1.0F );
+                    }
+                }
+                else if( weights.empty() )
+                {
+                    expectedFrames.sigmaMean( expected, expectedFrameValidity, sigmaThreshold, 1.0F );
+                }
+                else
+                {
+                    expectedFrames.sigmaMean( expected, weights, expectedFrameValidity, sigmaThreshold, 1.0F );
+                }
+                REQUIRE( compactValidity.sum() == outputSize * outputSize );
+                for( int column = 0; column < outputSize; ++column )
+                {
+                    for( int row = 0; row < outputSize; ++row )
+                    {
+                        REQUIRE( compact( row, column ) == Approx( expected( row, column ) ).margin( 1e-6 ) );
+                    }
+                }
+            }
         }
     }
 }
@@ -672,47 +704,53 @@ TEST_CASE( "P4 targeted response matches per-frame reconstruction oracle",
     }
     REQUIRE( frameValidity.image( 1 ).sum() < frameValidity.image( 0 ).sum() );
 
-    const mx::improc::HCI::combine method = GENERATE( mx::improc::HCI::combine::mean,
-                                                      mx::improc::HCI::combine::median,
-                                                      mx::improc::HCI::combine::sigmaMean );
-    const float sigmaThreshold = method == mx::improc::HCI::combine::sigmaMean ? 1.25F : 0.0F;
-    const std::vector<float> weights = method == mx::improc::HCI::combine::median
-                                           ? std::vector<float>{}
-                                           : std::vector<float>{ 0.1F, 0.2F, 0.3F, 0.4F };
-    constexpr float minimumGoodFraction = 0.5F;
-    imageT expected;
-    validityT expectedValidity;
-    reconstructorT::combineFrames( expected,
-                                   expectedValidity,
-                                   frames,
-                                   frameValidity,
-                                   method,
-                                   weights,
-                                   sigmaThreshold,
-                                   minimumGoodFraction );
-
-    imageT actual;
-    validityT actualValidity;
-    reconstructor.reconstructCombinedTargeted( actual,
-                                               actualValidity,
-                                               targetedModels,
-                                               targetedValidity,
-                                               searchIndex,
-                                               sourceSkyRow,
-                                               sourceSkyColumn,
-                                               angles,
-                                               method,
-                                               weights,
-                                               sigmaThreshold,
-                                               minimumGoodFraction );
-    REQUIRE( actualValidity.rows() == expectedValidity.rows() );
-    REQUIRE( actualValidity.cols() == expectedValidity.cols() );
-    for( int column = 0; column < outputSize; ++column )
+    const std::vector<mx::improc::HCI::combine> methods{ mx::improc::HCI::combine::mean,
+                                                         mx::improc::HCI::combine::median,
+                                                         mx::improc::HCI::combine::sigmaMean };
+    for( const mx::improc::HCI::combine method : methods )
     {
-        for( int row = 0; row < outputSize; ++row )
+        CAPTURE( method );
+        const float sigmaThreshold = method == mx::improc::HCI::combine::sigmaMean ? 1.25F : 0.0F;
+        const std::vector<float> weights = method == mx::improc::HCI::combine::median
+                                               ? std::vector<float>{}
+                                               : std::vector<float>{ 0.1F, 0.2F, 0.3F, 0.4F };
+        constexpr float minimumGoodFraction = 0.5F;
+        reconstructorT::cubeT expectedFrames = frames;
+        reconstructorT::cubeT expectedFrameValidity = frameValidity;
+        imageT expected;
+        validityT expectedValidity;
+        reconstructorT::combineFrames( expected,
+                                       expectedValidity,
+                                       expectedFrames,
+                                       expectedFrameValidity,
+                                       method,
+                                       weights,
+                                       sigmaThreshold,
+                                       minimumGoodFraction );
+
+        imageT actual;
+        validityT actualValidity;
+        reconstructor.reconstructCombinedTargeted( actual,
+                                                   actualValidity,
+                                                   targetedModels,
+                                                   targetedValidity,
+                                                   searchIndex,
+                                                   sourceSkyRow,
+                                                   sourceSkyColumn,
+                                                   angles,
+                                                   method,
+                                                   weights,
+                                                   sigmaThreshold,
+                                                   minimumGoodFraction );
+        REQUIRE( actualValidity.rows() == expectedValidity.rows() );
+        REQUIRE( actualValidity.cols() == expectedValidity.cols() );
+        for( int column = 0; column < outputSize; ++column )
         {
-            REQUIRE( actualValidity( row, column ) == expectedValidity( row, column ) );
-            REQUIRE( actual( row, column ) == Approx( expected( row, column ) ).margin( 1e-6 ) );
+            for( int row = 0; row < outputSize; ++row )
+            {
+                REQUIRE( actualValidity( row, column ) == expectedValidity( row, column ) );
+                REQUIRE( actual( row, column ) == Approx( expected( row, column ) ).margin( 1e-6 ) );
+            }
         }
     }
 }

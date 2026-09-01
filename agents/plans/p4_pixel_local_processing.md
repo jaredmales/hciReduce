@@ -253,6 +253,12 @@ passes in 8.45 seconds in the optimized suite), so a fresh aggregate LCOV artifa
 maintained current mxlib LCOV trace records 100% executable-line coverage for every mxlib API called by the edited
 functions, including the exact float shift/rotation/kernel ranges.
 
+Follow-up (2026-08-31): the coverage timeout is resolved. The reconstruction tests now prepare each expensive
+synthetic grid/model fixture once per `TEST_CASE` and iterate the same angle, stamp-size, combination, weighting, and
+sigma-threshold cases over that fixture. The synthetic optimization wedge was also reduced to the support actually
+needed by these reconstruction checks. The instrumented `P4PSFReconstructor` target passes in 66.99 seconds, and the
+complete 26-target coverage run passes in 208.38 seconds before successfully generating the LCOV and HTML reports.
+
 The first CLI deliberately remains one trial per run and requires `preProcess.skip=true`. Repeated-trial optimizer
 control, broader inverse predictor-footprint closure, post-median subtraction, rotated regression, and optional
 full-image patch products remain deferred as described below.
