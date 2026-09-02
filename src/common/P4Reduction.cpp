@@ -584,20 +584,20 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "string",
                 "Target-frame exclusion method: none, pixel, angle, or imno; default none" );
-    config.add( "p4.exclusionSolver",
+    config.add( "solver.exclusionSolver",
                 "",
-                "p4.exclusionSolver",
+                "solver.exclusionSolver",
                 mx::app::argType::Required,
-                "p4",
+                "solver",
                 "exclusionSolver",
                 false,
                 "string",
                 "Target-exclusion solver: explicitRefit or factorDowndateExact; default explicitRefit" );
-    config.add( "p4.deletionBackend",
+    config.add( "solver.deletionBackend",
                 "",
-                "p4.deletionBackend",
+                "solver.deletionBackend",
                 mx::app::argType::Required,
-                "p4",
+                "solver",
                 "deletionBackend",
                 false,
                 "string",
@@ -791,7 +791,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     }
 
     std::string deletionBackend = deletionBackendString( m_deletionBackend );
-    config( deletionBackend, "p4.deletionBackend" );
+    config( deletionBackend, "solver.deletionBackend" );
     try
     {
         m_deletionBackend = parseDeletionBackend( deletionBackend );
@@ -799,7 +799,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     catch( ... )
     {
         std::throw_with_nested(
-            mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.deletionBackend is not valid" ) );
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "solver.deletionBackend is not valid" ) );
     }
 
     config( m_numberImages, "p4.numberImages" );
@@ -809,7 +809,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     m_excludeMethod = HCI::excludeFmStr<verboseT>( excludeMethod );
 
     std::string exclusionSolver = exclusionSolverString( m_exclusionSolver );
-    config( exclusionSolver, "p4.exclusionSolver" );
+    config( exclusionSolver, "solver.exclusionSolver" );
     try
     {
         m_exclusionSolver = parseExclusionSolver( exclusionSolver );
@@ -817,7 +817,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     catch( ... )
     {
         std::throw_with_nested(
-            mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.exclusionSolver is not valid" ) );
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "solver.exclusionSolver is not valid" ) );
     }
 
     config( m_orDeltaRadiusInner, "p4.orDeltaRadiusInner" );
@@ -1006,14 +1006,14 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     else if( m_exclusionSolver != P4ExclusionSolver::explicitRefit )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                       "p4.exclusionSolver requires adi.excludeMethod other than none" );
+                                       "solver.exclusionSolver requires adi.excludeMethod other than none" );
     }
     if( m_deletionBackend == mx::math::svdDeletionBackend::rankOneSecular &&
         m_exclusionSolver != P4ExclusionSolver::factorDowndateExact )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                       "p4.deletionBackend=rankOneSecular requires "
-                                       "p4.exclusionSolver=factorDowndateExact" );
+                                       "solver.deletionBackend=rankOneSecular requires "
+                                       "solver.exclusionSolver=factorDowndateExact" );
     }
     if( m_localStampSize < 0 )
     {
@@ -2909,7 +2909,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                     {
                         throw mx::exception<verboseT>(
                             mx::error_t::invalidconfig,
-                            "p4.deletionBackend=rankOneSecular requires exactly one excluded row for every "
+                            "solver.deletionBackend=rankOneSecular requires exactly one excluded row for every "
                             "retained target; annulus " +
                                 std::to_string( region ) + ", target row " + std::to_string( target ) + " excludes " +
                                 std::to_string( deletedCount ) );

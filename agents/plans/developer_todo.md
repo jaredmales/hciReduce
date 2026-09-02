@@ -155,10 +155,13 @@ oracle was added in `07a45a8`; exact reusable factor deletion and the rank-one s
       -- batch GPU processing.  I.e. load the CV into GPU memory once then do the decomposition T times, once for each t removed.   Should be able to download from GPU only the predicted pixel values (per mode).
 
 The resident GPU eigensolver benchmark in `e052ddd` showed that direct batched GPU decomposition was slower than the
-parallel CPU baseline on the tested RTX 3050 Ti. The production CPU path now uses the Long--Males factor-deletion
-formulation; the direct GPU decomposition remains a comparison benchmark rather than a production backend.
+parallel CPU baseline on the tested RTX 3050 Ti. The production CPU path supports the Long--Males factor-deletion
+formulation as an opt-in solver; the direct GPU decomposition remains a comparison benchmark rather than a production
+backend.
 
-[] Add the factor-deletion method to klip processing for image exclusion.
+[x] Add the factor-deletion method to klip processing for image exclusion.
+
+Implementation plan: `agents/plans/klip_downdate.md`.
 
 ## Other solvers
 

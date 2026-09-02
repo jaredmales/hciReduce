@@ -226,12 +226,16 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( config.m_targets.at( "klip.pixelTSSigma" ).helpType == "float" );
     REQUIRE( config.m_targets.at( "klip.includeMethod" ).clType == mx::app::argType::Required );
     REQUIRE( config.m_targets.at( "klip.includeMethod" ).helpType == "string" );
+    REQUIRE( config.m_targets.at( "solver.exclusionSolver" ).helpType == "string" );
+    REQUIRE( config.m_targets.at( "solver.deletionBackend" ).helpType == "string" );
 
     defaults.loadConfig( config );
     REQUIRE_FALSE( defaults.m_writeDiagnostics );
     REQUIRE( defaults.m_diagnosticDirectory == "." );
     REQUIRE( defaults.m_includeMethod == mx::improc::HCI::include::all );
     REQUIRE( defaults.m_includeRefNum == 0 );
+    REQUIRE( defaults.m_exclusionSolver == mx::improc::KLIPExclusionSolver::explicitRefit );
+    REQUIRE( defaults.m_deletionBackend == mx::math::svdDeletionBackend::leadingCovariance );
 
     TestDirectory directory;
     reductionT configured;
@@ -263,6 +267,9 @@ TEST_CASE( "KLIP configuration loading", "[KLIPreduction][config]" )
                          "minAngle=-45,30\n"
                          "maxAngle=15,75\n"
                          "nWedges=6\n"
+                         "[solver]\n"
+                         "exclusionSolver=factorDowndateExact\n"
+                         "deletionBackend=rankOneSecular\n"
                          "[klip]\n"
                          "meanSubMethod=imageMedian\n"
                          "pixelTSNormMethod=rms\n"
@@ -282,6 +289,8 @@ TEST_CASE( "KLIP configuration loading", "[KLIPreduction][config]" )
     REQUIRE( reduction.m_minAngle == std::vector<float>{ -45, 30 } );
     REQUIRE( reduction.m_maxAngle == std::vector<float>{ 15, 75 } );
     REQUIRE( reduction.m_nWedges == 6 );
+    REQUIRE( reduction.m_exclusionSolver == mx::improc::KLIPExclusionSolver::factorDowndateExact );
+    REQUIRE( reduction.m_deletionBackend == mx::math::svdDeletionBackend::rankOneSecular );
     REQUIRE( reduction.m_meanSubMethod == mx::improc::HCI::meanSub::imageMedian );
     REQUIRE( reduction.m_pixelTSNormMethod == mx::improc::HCI::pixelTSNorm::rms );
     REQUIRE( reduction.m_pixelTSSigma == Approx( 2.25 ) );
@@ -346,6 +355,21 @@ TEST_CASE( "KLIP invalid configuration methods", "[KLIPreduction][config][valida
     REQUIRE_THROWS( readReductionConfig( negativeReferenceCount,
                                          directory.file( "negative-reference-count.conf" ),
                                          "[klip]\nincludeRefNum=-1\n" ) );
+
+    reductionT badExclusionSolver;
+    REQUIRE_THROWS( readReductionConfig( badExclusionSolver,
+                                         directory.file( "bad-exclusion-solver.conf" ),
+                                         "[solver]\nexclusionSolver=projected\n" ) );
+
+    reductionT badDeletionBackend;
+    REQUIRE_THROWS( readReductionConfig( badDeletionBackend,
+                                         directory.file( "bad-deletion-backend.conf" ),
+                                         "[solver]\ndeletionBackend=projected\n" ) );
+
+    reductionT incompatibleDeletionBackend;
+    REQUIRE_THROWS( readReductionConfig( incompatibleDeletionBackend,
+                                         directory.file( "incompatible-deletion-backend.conf" ),
+                                         "[solver]\ndeletionBackend=rankOneSecular\n" ) );
 
     mx::app::appConfigurator config;
     reductionT badCurrentMean;
@@ -1359,6 +1383,231 @@ TEST_CASE( "KLIP adaptive basis workspace reuse", "[KLIPreduction][basis][worksp
     requireApprox( modeProjector( modes, 3 ), svdProjector( largerWideReferences, 3 ) );
 }
 
+/// Verify KLIP factor deletion preserves the direct selected-library spatial projector.
+/** This exercises mx::improc::makeKlipSvdDeletionBase(), mx::improc::calcKLModesFactorDeleted(), and the direct
+ * mx::improc::calcKLModesAdaptive() oracle for wide and tall reference libraries.
+ * \ingroup KLIPreduction_unit_tests
+ */
+TEST_CASE( "KLIP factor-deletion modes", "[KLIPreduction][basis][downdate]" )
+{
+    const auto compareDeletedLibrary =
+        []( const reductionT::imageT &references,
+            const std::vector<Eigen::Index> &deletedIndices,
+            int maximumModeCount,
+            mx::math::svdDeletionBackend backend = mx::math::svdDeletionBackend::leadingCovariance )
+    {
+        mx::improc::klipSvdDeletionBase base;
+        REQUIRE( mx::improc::makeKlipSvdDeletionBase( base, references ) );
+
+        mx::math::svdDeletionResult<double> deletionResult;
+        mx::math::svdDeletionWorkspace<double> deletionWorkspace;
+        const Eigen::Index outputRank = std::min<Eigen::Index>(
+            std::min<Eigen::Index>( base.leftFactor.cols(),
+                                    references.cols() - static_cast<Eigen::Index>( deletedIndices.size() ) ),
+            maximumModeCount );
+        REQUIRE( mx::math::svdDeletionSucceeded( deletionResult.prepare( base.leftFactor.cols(), outputRank ) ) );
+        const Eigen::Index maximumDeleted = backend == mx::math::svdDeletionBackend::rankOneSecular
+                                                ? 1
+                                                : static_cast<Eigen::Index>( references.cols() );
+        REQUIRE( mx::math::svdDeletionSucceeded(
+            deletionWorkspace.prepare( base.leftFactor.cols(), maximumDeleted, backend ) ) );
+
+        reductionT::imageT factorModes;
+        REQUIRE( mx::improc::calcKLModesFactorDeleted( factorModes,
+                                                       base,
+                                                       deletedIndices,
+                                                       maximumModeCount,
+                                                       deletionResult,
+                                                       deletionWorkspace,
+                                                       backend ) );
+
+        std::vector<size_t> retainedIndices;
+        for( Eigen::Index reference = 0; reference < references.cols(); ++reference )
+        {
+            if( std::find( deletedIndices.begin(), deletedIndices.end(), reference ) == deletedIndices.end() )
+            {
+                retainedIndices.push_back( static_cast<size_t>( reference ) );
+            }
+        }
+        reductionT::imageT retainedReferences;
+        mx::improc::extractCols( retainedReferences, references, retainedIndices );
+        reductionT::imageT covariance;
+        mx::math::eigenSYRK( covariance, retainedReferences );
+        reductionT::imageT directModes;
+        mx::math::syevrMem<double> directWorkspace;
+        REQUIRE( mx::improc::calcKLModesAdaptive<double>( directModes,
+                                                          covariance,
+                                                          retainedReferences,
+                                                          maximumModeCount,
+                                                          &directWorkspace ) == 0 );
+        REQUIRE( factorModes.rows() == directModes.rows() );
+        for( int modeCount = 1; modeCount <= factorModes.rows(); ++modeCount )
+        {
+            requireApprox( modeProjector( factorModes, modeCount ), modeProjector( directModes, modeCount ), 4e-5 );
+        }
+    };
+
+    SECTION( "wide library with no and noncontiguous deletions" )
+    {
+        reductionT::imageT references( 3, 5 );
+        references << 3, 0.2, 1, -0.5, 0.3, 0.1, 2, -0.3, 0.8, 1.1, 0.7, -0.2, 1.5, 0.4, -0.6;
+        compareDeletedLibrary( references, {}, 3 );
+        compareDeletedLibrary( references, { 0, 3 }, 3 );
+    }
+
+    SECTION( "tall library with an endpoint deletion" )
+    {
+        reductionT::imageT references( 5, 4 );
+        references << 3, 0.2, 1, -0.5, 0.1, 2, -0.3, 0.8, 0.7, -0.2, 1.5, 0.4, -1.1, 0.6, 0.2, 1.3, 0.5, -0.1, 0.3,
+            -0.7;
+        compareDeletedLibrary( references, { 3 }, 3 );
+    }
+
+    SECTION( "production-scale rank-one deletion" )
+    {
+        constexpr Eigen::Index pixelCount = 384;
+        constexpr Eigen::Index referenceCount = 128;
+        reductionT::imageT references( pixelCount, referenceCount );
+        for( Eigen::Index reference = 0; reference < referenceCount; ++reference )
+        {
+            for( Eigen::Index pixel = 0; pixel < pixelCount; ++pixel )
+            {
+                references( pixel, reference ) =
+                    static_cast<float>( std::sin( 0.013 * static_cast<double>( ( pixel + 1 ) * ( reference + 3 ) ) ) +
+                                        std::cos( 0.017 * static_cast<double>( ( pixel + 5 ) * ( reference + 1 ) ) ) );
+            }
+        }
+        compareDeletedLibrary( references, { 47 }, 64, mx::math::svdDeletionBackend::rankOneSecular );
+    }
+
+    SECTION( "rank-deficient base selects the direct fallback" )
+    {
+        reductionT::imageT references( 3, 4 );
+        references << 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1;
+        mx::improc::klipSvdDeletionBase base;
+        REQUIRE_FALSE( mx::improc::makeKlipSvdDeletionBase( base, references ) );
+    }
+}
+
+/// Verify KLIPreduction::worker uses exact factor deletion for ordinary ADI image exclusion.
+/** This exercises KLIPreduction::worker() through its same-cube image-number exclusion path and compares the
+ * resulting residuals against the direct selected-library KLIP oracle.
+ * \ingroup KLIPreduction_unit_tests
+ */
+TEST_CASE( "KLIP worker factor deletion", "[KLIPreduction][worker][exclude][downdate][OpenMP]" )
+{
+    const std::vector<int> modeCounts{ 1, 2 };
+    mx::improc::eigenCube<float> input( 2, 1, 4 );
+    input.image( 0 ) << 3, 0.2;
+    input.image( 1 ) << 0.1, 2;
+    input.image( 2 ) << 1, -0.3;
+    input.image( 3 ) << -0.5, 0.8;
+    const reductionT::imageT referenceMatrix = input.cube();
+    reductionT::imageT mask;
+    std::vector<size_t> indices{ 0, 1 };
+
+    const auto prepareExcludedReduction = [&modeCounts]( reductionHarness &reduction )
+    {
+        prepareWorkerReduction( reduction, 2, 4, 4, modeCounts );
+        reduction.m_excludeMethod = mx::improc::HCI::exclude::imno;
+        reduction.m_exclusionSolver = mx::improc::KLIPExclusionSolver::factorDowndateExact;
+    };
+
+    reductionHarness serial;
+    prepareExcludedReduction( serial );
+    mx::improc::eigenCube<float> serialInput = input;
+    {
+        OpenMPThreadGuard threads( 1 );
+        serial.worker( serialInput, serialInput, mask, indices, 0, 0 );
+    }
+
+    reductionHarness parallel;
+    prepareExcludedReduction( parallel );
+    mx::improc::eigenCube<float> parallelInput = input;
+    {
+        OpenMPThreadGuard threads( 3 );
+        parallel.worker( parallelInput, parallelInput, mask, indices, 0, 0 );
+    }
+
+    reductionHarness structured;
+    prepareExcludedReduction( structured );
+    structured.m_deletionBackend = mx::math::svdDeletionBackend::rankOneSecular;
+    mx::improc::eigenCube<float> structuredInput = input;
+    {
+        OpenMPThreadGuard threads( 1 );
+        structured.worker( structuredInput, structuredInput, mask, indices, 0, 0 );
+    }
+
+    for( int target = 0; target < 4; ++target )
+    {
+        std::vector<size_t> retainedIndices;
+        for( int reference = 0; reference < 4; ++reference )
+        {
+            if( reference != target )
+            {
+                retainedIndices.push_back( static_cast<size_t>( reference ) );
+            }
+        }
+        reductionT::imageT retainedReferences;
+        mx::improc::extractCols( retainedReferences, referenceMatrix, retainedIndices );
+        for( size_t modeIndex = 0; modeIndex < modeCounts.size(); ++modeIndex )
+        {
+            const reductionT::imageT expected =
+                projectedResidual( svdProjector( retainedReferences, modeCounts[modeIndex] ),
+                                   referenceMatrix.col( target ) );
+            requireApprox( serial.m_psfsub[modeIndex].cube().col( target ), expected, 4e-5 );
+            requireApprox( parallel.m_psfsub[modeIndex].cube().col( target ), expected, 4e-5 );
+            requireApprox( structured.m_psfsub[modeIndex].cube().col( target ), expected, 4e-5 );
+        }
+    }
+    requireApprox( serial.m_psfsub[0].cube(), parallel.m_psfsub[0].cube(), 4e-5 );
+    requireApprox( serial.m_psfsub[1].cube(), parallel.m_psfsub[1].cube(), 4e-5 );
+    requireApprox( serial.m_psfsub[0].cube(), structured.m_psfsub[0].cube(), 4e-5 );
+    requireApprox( serial.m_psfsub[1].cube(), structured.m_psfsub[1].cube(), 4e-5 );
+
+    for( const reductionHarness *result : { &serial, &parallel } )
+    {
+        REQUIRE( result->algorithmTiming().baseFactorWorkerSeconds >= 0 );
+        REQUIRE( result->algorithmTiming().deletionWorkerSeconds > 0 );
+        REQUIRE( result->algorithmTiming().explicitFallbackWorkerSeconds == 0 );
+    }
+
+    reductionHarness::fitsHeaderT header;
+    serial.appendReductionHeader( header );
+    REQUIRE( header["KLEXCLSV"].String().starts_with( "factor-deletion" ) );
+    REQUIRE( header["KLEXCLFT"].value<long>() == 4 );
+    REQUIRE( header["KLEXCLFB"].value<long>() == 0 );
+    REQUIRE( header["KLEXCLBK"].String().starts_with( "leadingCovariance" ) );
+
+    reductionHarness::fitsHeaderT structuredHeader;
+    structured.appendReductionHeader( structuredHeader );
+    REQUIRE( structuredHeader["KLEXCLSV"].String().starts_with( "factor-deletion" ) );
+    REQUIRE( structuredHeader["KLEXCLFT"].value<long>() == 4 );
+    REQUIRE( structuredHeader["KLEXCLFB"].value<long>() == 0 );
+    REQUIRE( structuredHeader["KLEXCLBK"].String().starts_with( "rankOneSecular" ) );
+
+    reductionHarness rankDeficient;
+    prepareWorkerReduction( rankDeficient, 3, 4, 4, { 1 } );
+    rankDeficient.m_excludeMethod = mx::improc::HCI::exclude::imno;
+    rankDeficient.m_exclusionSolver = mx::improc::KLIPExclusionSolver::factorDowndateExact;
+    mx::improc::eigenCube<float> rankDeficientInput( 3, 1, 4 );
+    rankDeficientInput.image( 0 ) << 1, 0, 1;
+    rankDeficientInput.image( 1 ) << 0, 1, 1;
+    rankDeficientInput.image( 2 ) << 1, 1, 2;
+    rankDeficientInput.image( 3 ) << 2, -1, 1;
+    std::vector<size_t> rankDeficientIndices{ 0, 1, 2 };
+    {
+        OpenMPThreadGuard threads( 1 );
+        rankDeficient.worker( rankDeficientInput, rankDeficientInput, mask, rankDeficientIndices, 0, 0 );
+    }
+    reductionHarness::fitsHeaderT fallbackHeader;
+    rankDeficient.appendReductionHeader( fallbackHeader );
+    REQUIRE( fallbackHeader["KLEXCLSV"].String().starts_with( "direct" ) );
+    REQUIRE( fallbackHeader["KLEXCLFT"].value<long>() == 0 );
+    REQUIRE( fallbackHeader["KLEXCLFB"].value<long>() == 4 );
+    REQUIRE( fallbackHeader["KLEXCLBK"].String().starts_with( "leadingCovariance" ) );
+}
+
 /// Verify KLIPreduction::worker uses the spatial Gram basis once for an unfiltered image library.
 /** \ingroup KLIPreduction_unit_tests */
 TEST_CASE( "KLIP worker adaptive master basis", "[KLIPreduction][worker][basis][OpenMP]" )
@@ -2076,7 +2325,11 @@ TEST_CASE( "KLIP final output metadata", "[KLIPreduction][finalProcess][output][
                                                             "EXMTHDMX",
                                                             "MAXDPX",
                                                             "INMTHDMX",
-                                                            "INCLREFN" } );
+                                                            "INCLREFN",
+                                                            "KLEXCLSV",
+                                                            "KLEXCLFT",
+                                                            "KLEXCLFB",
+                                                            "KLEXCLBK" } );
 
     REQUIRE( reduction.finalProcess() == 0 );
 
@@ -2105,6 +2358,10 @@ TEST_CASE( "KLIP final output metadata", "[KLIPreduction][finalProcess][output][
     REQUIRE( header["MAXDPX"].value<float>() == Approx( 4 ) );
     REQUIRE( header["INMTHDMX"].String().starts_with( "corr" ) );
     REQUIRE( header["INCLREFN"].value<int>() == 7 );
+    REQUIRE( header["KLEXCLSV"].String().starts_with( "direct" ) );
+    REQUIRE( header["KLEXCLFT"].value<long>() == 0 );
+    REQUIRE( header["KLEXCLFB"].value<long>() == 0 );
+    REQUIRE( header["KLEXCLBK"].String().starts_with( "none" ) );
 
     size_t adiPosition = header.size();
     size_t klipPosition = header.size();

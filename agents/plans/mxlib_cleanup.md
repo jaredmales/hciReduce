@@ -282,6 +282,15 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [x] Recheck the exact-double KLIP factor-deletion dependencies in the current LCOV report:
+      `validateSvdDeletionFactor`, `svdDeletionResult<double>::prepare`,
+      `svdDeletionWorkspace<double>::prepare`, and `svdRemoveColumns<double>` using both the
+      `leadingCovariance` and `rankOneSecular` backends. The current filtered trace records 75/75 executable lines in
+      `svdDowndate.hpp` and 1,044/1,044 in `svdDowndate.cpp`; the exact `eigenSYRK`, `calcEigenVecs`, and
+      `calcKLModes` ranges used by the KLIP worker also have complete executable-line coverage. Direct per-target
+      refits remain the default for numerical conservatism and workload-dependent performance, not as a coverage
+      workaround.
+
 - [x] Add focused mxlib instantiation/coverage for the exact `mx::math::dtor<float>()` specialization called by
       `P4Reduction::targetExclusions()` and `P4Reduction::processLocalTrial()`. `geo_test` explicitly instantiates and
       verifies the float conversion; its focused LCOV trace records both executable lines at 1 hit.

@@ -11,13 +11,17 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <exception>
 #include <limits>
 #include <map>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <Eigen/SVD>
 
 #include <omp.h>
 
@@ -26,6 +30,7 @@
 #include <mx/math/eigenLapack.hpp>
 #include <mx/math/floatUtils.hpp>
 #include <mx/math/geo.hpp>
+#include <mx/math/svdDowndate.hpp>
 #include <mx/sigproc/gramSchmidt.hpp>
 using namespace mx::sigproc;
 
@@ -36,6 +41,68 @@ namespace mx
 {
 namespace improc
 {
+
+/// Numerical implementation used for target-specific KLIP reference exclusion.
+/** \ingroup programming_library */
+enum class KLIPExclusionSolver : std::uint8_t
+{
+    explicitRefit,      ///< Refit the retained reference library independently for every target.
+    factorDowndateExact ///< Delete target references from one complete safely represented base factorization.
+};
+
+/// Convert a supported KLIP exclusion solver to its stable configuration spelling.
+inline std::string klipExclusionSolverString( KLIPExclusionSolver solver /**< [in] supported exclusion solver */ )
+{
+    if( solver == KLIPExclusionSolver::explicitRefit )
+    {
+        return "explicitRefit";
+    }
+    if( solver == KLIPExclusionSolver::factorDowndateExact )
+    {
+        return "factorDowndateExact";
+    }
+    throw std::invalid_argument( "unsupported KLIP target-exclusion solver" );
+}
+
+/// Parse an exact KLIP exclusion-solver configuration spelling.
+inline KLIPExclusionSolver klipExclusionSolverFromString( const std::string &value /**< [in] configuration spelling */ )
+{
+    if( value == "explicitRefit" )
+    {
+        return KLIPExclusionSolver::explicitRefit;
+    }
+    if( value == "factorDowndateExact" )
+    {
+        return KLIPExclusionSolver::factorDowndateExact;
+    }
+    throw std::invalid_argument( "unsupported KLIP target-exclusion solver: " + value );
+}
+
+/// Convert a supported KLIP factor-deletion backend to its stable configuration spelling.
+inline std::string
+klipDeletionBackendString( math::svdDeletionBackend backend /**< [in] supported factor-deletion backend */ )
+{
+    if( backend == math::svdDeletionBackend::leadingCovariance || backend == math::svdDeletionBackend::rankOneSecular )
+    {
+        return math::svdDeletionBackendName( backend );
+    }
+    throw std::invalid_argument( "unsupported KLIP factor-deletion backend" );
+}
+
+/// Parse an exact KLIP factor-deletion-backend configuration spelling.
+inline math::svdDeletionBackend
+klipDeletionBackendFromString( const std::string &value /**< [in] configuration spelling */ )
+{
+    if( value == "leadingCovariance" )
+    {
+        return math::svdDeletionBackend::leadingCovariance;
+    }
+    if( value == "rankOneSecular" )
+    {
+        return math::svdDeletionBackend::rankOneSecular;
+    }
+    throw std::invalid_argument( "unsupported KLIP factor-deletion backend: " + value );
+}
 
 // double t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, tf;
 // double dcut, dscv, dklims, dgemm, dsyevr, dcfs, drot, dcombo, dread;
@@ -214,6 +281,12 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     int m_maxNmodes{ 0 };
 
+    /// Target-specific reference-exclusion solver selected from the shared `[solver]` configuration section.
+    KLIPExclusionSolver m_exclusionSolver{ KLIPExclusionSolver::explicitRefit };
+
+    /// mxlib factor-deletion backend selected from the shared `[solver]` configuration section.
+    math::svdDeletionBackend m_deletionBackend{ math::svdDeletionBackend::leadingCovariance };
+
     /// Specify the minimum pixel difference at the inner edge of the search
     /// region
     realT m_minDPx{ 0 };
@@ -370,6 +443,12 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Instance-owned KLIP algorithm timing record for the current reduction.
     ReductionTiming m_algorithmTiming;
 
+    /// Number of eligible ADI targets solved through exact factor deletion in the current reduction.
+    std::size_t m_factorDeletionTargetCount{ 0 };
+
+    /// Number of eligible ADI targets recomputed through the direct KLIP oracle in the current reduction.
+    std::size_t m_factorDeletionFallbackCount{ 0 };
+
   public:
     /// Return the current instance-owned KLIP algorithm timing snapshot.
     const ReductionTiming &algorithmTiming() const
@@ -389,13 +468,24 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         printf( "      Az USM: %f sec\n", this->t_azusm_end - this->t_azusm_begin );
         printf( "      Gauss USM: %f sec\n", this->t_gaussusm_end - this->t_gaussusm_begin );
         printf( "    KLIP algorithm: %f elapsed real sec\n", m_algorithmTiming.regressionElapsedSeconds );
-        const double klipWorker = m_algorithmTiming.eigensolveWorkerSeconds + m_algorithmTiming.modeWorkerSeconds +
-                                  m_algorithmTiming.projectionWorkerSeconds;
+        const double klipWorker = m_algorithmTiming.eigensolveWorkerSeconds +
+                                  m_algorithmTiming.baseFactorWorkerSeconds + m_algorithmTiming.deletionWorkerSeconds +
+                                  m_algorithmTiming.explicitFallbackWorkerSeconds +
+                                  m_algorithmTiming.modeWorkerSeconds + m_algorithmTiming.projectionWorkerSeconds;
         const auto percentage = [klipWorker]( double seconds )
         { return klipWorker > 0 ? seconds / klipWorker * 100 : 0; };
         printf( "      EigenDecomposition %f cpu sec (%f%%)\n",
                 m_algorithmTiming.eigensolveWorkerSeconds,
                 percentage( m_algorithmTiming.eigensolveWorkerSeconds ) );
+        printf( "      Base factorization %f cpu sec (%f%%)\n",
+                m_algorithmTiming.baseFactorWorkerSeconds,
+                percentage( m_algorithmTiming.baseFactorWorkerSeconds ) );
+        printf( "      Factor deletion %f cpu sec (%f%%)\n",
+                m_algorithmTiming.deletionWorkerSeconds,
+                percentage( m_algorithmTiming.deletionWorkerSeconds ) );
+        printf( "      Direct fallback %f cpu sec (%f%%)\n",
+                m_algorithmTiming.explicitFallbackWorkerSeconds,
+                percentage( m_algorithmTiming.explicitFallbackWorkerSeconds ) );
         printf( "      KL image calc %f cpu sec (%f%%)\n",
                 m_algorithmTiming.modeWorkerSeconds,
                 percentage( m_algorithmTiming.modeWorkerSeconds ) );
@@ -461,6 +551,26 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::setupConfig( mx::ap
                 false,
                 "string",
                 "Method for maximum exclusion.  Values are none (default), pixel, angle, imno." );
+
+    config.add( "solver.exclusionSolver",
+                "",
+                "solver.exclusionSolver",
+                mx::app::argType::Required,
+                "solver",
+                "exclusionSolver",
+                false,
+                "string",
+                "Target-exclusion solver: explicitRefit or factorDowndateExact; default explicitRefit" );
+
+    config.add( "solver.deletionBackend",
+                "",
+                "solver.deletionBackend",
+                mx::app::argType::Required,
+                "solver",
+                "deletionBackend",
+                false,
+                "string",
+                "Factor-deletion backend: leadingCovariance or rankOneSecular; default leadingCovariance" );
 
     ADIobservation<realT, derotFunctObj, verboseT>::setupConfig( config );
 
@@ -634,6 +744,37 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::loadConfig( mx::app
     em = HCI::excludeToStr<verboseT>( m_excludeMethodMax );
     config( em, "adi.excludeMethodMax" );
     m_excludeMethodMax = HCI::excludeFmStr<verboseT>( em );
+
+    std::string exclusionSolver = klipExclusionSolverString( m_exclusionSolver );
+    config( exclusionSolver, "solver.exclusionSolver" );
+    try
+    {
+        m_exclusionSolver = klipExclusionSolverFromString( exclusionSolver );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "solver.exclusionSolver is not valid" ) );
+    }
+
+    std::string deletionBackend = klipDeletionBackendString( m_deletionBackend );
+    config( deletionBackend, "solver.deletionBackend" );
+    try
+    {
+        m_deletionBackend = klipDeletionBackendFromString( deletionBackend );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "solver.deletionBackend is not valid" ) );
+    }
+    if( m_deletionBackend == math::svdDeletionBackend::rankOneSecular &&
+        m_exclusionSolver != KLIPExclusionSolver::factorDowndateExact )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "solver.deletionBackend=rankOneSecular requires "
+                                       "solver.exclusionSolver=factorDowndateExact" );
+    }
 
     ADIobservation<realT, derotFunctObj, verboseT>::loadConfig( config );
 
@@ -997,6 +1138,8 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
                                                                      const std::vector<realT> &maxq )
 {
     m_algorithmTiming.reset();
+    m_factorDeletionTargetCount = 0;
+    m_factorDeletionFallbackCount = 0;
 
     const bool preprocessingOnly = this->preprocessingOnly();
 
@@ -1368,7 +1511,8 @@ void collapseCovar( eigenT &cutCV,                           /**< [out] selected
                     const targetDerotT &targetDerotF,        /**< [in] target derotator */
                     const std::vector<double> &referenceMJD, /**< [in] reference timestamps */
                     const std::vector<double> &targetMJD,    /**< [in] target timestamps */
-                    eigenImage<int> &imsIncluded /**< [out] per-target inclusion flags */ )
+                    eigenImage<int> &imsIncluded,            /**< [out] per-target inclusion flags */
+                    std::vector<size_t> *keepIndices = nullptr /**< [out] optional selected reference indices */ )
 {
     const int referenceCount = rims.cols();
     const int targetCount = tims.cols();
@@ -1525,6 +1669,134 @@ void collapseCovar( eigenT &cutCV,                           /**< [out] selected
 
     extractRowsAndCols( cutCV, CV, keepidx );
     extractCols( rimsCut, rims, keepidx );
+    if( keepIndices != nullptr )
+    {
+        *keepIndices = keepidx;
+    }
+}
+
+/// Immutable complete thin-SVD factors used by KLIP column deletion.
+struct klipSvdDeletionBase
+{
+    math::svdDeletionMatrix<double> leftFactor;     ///< Pixel-by-rank left singular factor `U`.
+
+    math::svdDeletionMatrix<double> rightFactor;    ///< Image-by-rank right singular factor `V`.
+
+    math::svdDeletionVector<double> singularValues; ///< Descending positive base singular values.
+};
+
+/// Build and validate a complete positive-rank KLIP base singular system.
+template <typename eigenT>
+bool makeKlipSvdDeletionBase( klipSvdDeletionBase &base, /**< [out] validated base SVD factors */
+                              const eigenT &references /**< [in] processed pixel-by-image reference library */ )
+{
+    const Eigen::Index pixelCount = references.rows();
+    const Eigen::Index referenceCount = references.cols();
+    const Eigen::Index structuralRank = std::min( pixelCount, referenceCount );
+    if( pixelCount <= 0 || referenceCount <= 0 || structuralRank <= 0 || !references.isFinite().all() )
+    {
+        return false;
+    }
+
+    Eigen::MatrixXd referenceMatrix = references.matrix().template cast<double>();
+    Eigen::JacobiSVD<Eigen::MatrixXd> decomposition( referenceMatrix, Eigen::ComputeThinU | Eigen::ComputeThinV );
+    if( decomposition.info() != Eigen::Success || decomposition.singularValues().size() != structuralRank ||
+        decomposition.matrixU().rows() != pixelCount || decomposition.matrixU().cols() != structuralRank ||
+        decomposition.matrixV().rows() != referenceCount || decomposition.matrixV().cols() != structuralRank ||
+        !decomposition.singularValues().allFinite() || !decomposition.matrixU().allFinite() ||
+        !decomposition.matrixV().allFinite() )
+    {
+        return false;
+    }
+
+    const double largestSingularValue = decomposition.singularValues()( 0 );
+    const double rankTolerance = 64.0 * std::numeric_limits<double>::epsilon() *
+                                 static_cast<double>( std::max( pixelCount, referenceCount ) ) * largestSingularValue;
+    if( !std::isfinite( largestSingularValue ) || largestSingularValue <= 0 )
+    {
+        return false;
+    }
+    for( Eigen::Index mode = 0; mode < structuralRank; ++mode )
+    {
+        if( !std::isfinite( decomposition.singularValues()( mode ) ) ||
+            decomposition.singularValues()( mode ) <= rankTolerance )
+        {
+            return false;
+        }
+    }
+
+    base.leftFactor = decomposition.matrixU().array();
+    base.rightFactor = decomposition.matrixV().array();
+    base.singularValues = decomposition.singularValues().array();
+    return math::svdDeletionSucceeded( math::validateSvdDeletionFactor( base.leftFactor ) ) &&
+           math::svdDeletionSucceeded( math::validateSvdDeletionFactor( base.rightFactor ) );
+}
+
+/// Calculate ascending KLIP mode rows by removing target-specific reference columns from a base SVD.
+template <typename eigenT>
+bool calcKLModesFactorDeleted(
+    eigenT &klModes,                                       /**< [out] ascending KL modes stored by row */
+    const klipSvdDeletionBase &base,                       /**< [in] validated complete base singular system */
+    std::span<const Eigen::Index> deletedIndices,          /**< [in] sorted unique reference columns to remove */
+    int maximumModeCount,                                  /**< [in] maximum number of leading modes to return */
+    math::svdDeletionResult<double> &deletionResult,       /**< [in,out] target-specific deletion result */
+    math::svdDeletionWorkspace<double> &deletionWorkspace, /**< [in,out] worker-private deletion scratch */
+    math::svdDeletionBackend backend =
+        math::svdDeletionBackend::leadingCovariance,       /**< [in] deletion backend for the target update */
+    math::svdDeletionStatus *deletionStatus = nullptr /**< [out] optional operation status */ )
+{
+    const Eigen::Index retainedCount = base.rightFactor.rows() - static_cast<Eigen::Index>( deletedIndices.size() );
+    const Eigen::Index outputRank = std::min<Eigen::Index>(
+        std::min<Eigen::Index>( base.leftFactor.cols(), retainedCount ),
+        maximumModeCount <= 0 ? base.leftFactor.cols() : static_cast<Eigen::Index>( maximumModeCount ) );
+    if( retainedCount <= 0 || outputRank <= 0 )
+    {
+        if( deletionStatus != nullptr )
+        {
+            *deletionStatus = math::svdDeletionStatus::invalidInput;
+        }
+        return false;
+    }
+
+    const math::svdDeletionStatus status = math::svdRemoveColumns<double>( deletionResult,
+                                                                           base.singularValues,
+                                                                           base.rightFactor,
+                                                                           deletedIndices,
+                                                                           outputRank,
+                                                                           deletionWorkspace,
+                                                                           backend );
+    if( deletionStatus != nullptr )
+    {
+        *deletionStatus = status;
+    }
+    if( !math::svdDeletionSucceeded( status ) || !deletionResult.singularValues().allFinite() ||
+        !deletionResult.rotation().allFinite() )
+    {
+        return false;
+    }
+
+    const Eigen::MatrixXd updatedModes = base.leftFactor.matrix() * deletionResult.rotation().matrix();
+    if( !updatedModes.allFinite() )
+    {
+        return false;
+    }
+
+    klModes.resize( outputRank, base.leftFactor.rows() );
+    const auto singularValues = deletionResult.singularValues();
+    for( Eigen::Index mode = 0; mode < outputRank; ++mode )
+    {
+        const Eigen::Index descendingMode = outputRank - 1 - mode;
+        if( singularValues( descendingMode ) > 0 )
+        {
+            klModes.row( mode ) =
+                updatedModes.col( descendingMode ).transpose().array().template cast<typename eigenT::Scalar>();
+        }
+        else
+        {
+            klModes.row( mode ).setZero();
+        }
+    }
+    return klModes.isFinite().all();
 }
 
 template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
@@ -1541,6 +1813,8 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         m_excludeMethod == HCI::exclude::pixel || m_excludeMethod == HCI::exclude::angle ||
         m_excludeMethodMax == HCI::exclude::pixel || m_excludeMethodMax == HCI::exclude::angle;
     const bool useAllReferences = !exclusionActive && !selectionActive;
+    const bool factorDeletionEligible =
+        m_exclusionSolver == KLIPExclusionSolver::factorDowndateExact && !isRDI && exclusionActive && !selectionActive;
 
     if( rims.planes() <= 0 || tims.planes() <= 0 )
     {
@@ -1629,6 +1903,14 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
     imageT cv;
     const int pixelCount = rims.cube().rows();
     const int referenceCount = rims.cube().cols();
+    klipSvdDeletionBase factorDeletionBase;
+    bool factorDeletionBaseAvailable{ false };
+    if( factorDeletionEligible )
+    {
+        const double baseFactorStart = sys::get_curr_time();
+        factorDeletionBaseAvailable = makeKlipSvdDeletionBase( factorDeletionBase, rims.cube() );
+        m_algorithmTiming.baseFactorWorkerSeconds += sys::get_curr_time() - baseFactorStart;
+    }
     const bool formReferenceCovariance = !useAllReferences || referenceCount <= pixelCount || m_writeDiagnostics;
     if( formReferenceCovariance )
     {
@@ -1715,10 +1997,14 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
     std::atomic<bool> workerFailed{ false };
     double parallelEigenSeconds{ 0 };
     double parallelModeSeconds{ 0 };
+    double parallelDeletionSeconds{ 0 };
+    double parallelFallbackSeconds{ 0 };
     double parallelPsfSeconds{ 0 };
+    std::size_t parallelFactorDeletionTargets{ 0 };
+    std::size_t parallelFactorDeletionFallbacks{ 0 };
 
     // clang-format off
-    #pragma omp parallel reduction( + : parallelEigenSeconds, parallelModeSeconds, parallelPsfSeconds )
+    #pragma omp parallel reduction( + : parallelEigenSeconds, parallelModeSeconds, parallelDeletionSeconds, parallelFallbackSeconds, parallelPsfSeconds, parallelFactorDeletionTargets, parallelFactorDeletionFallbacks )
     // clang-format on
     {
         imageT cfs; // The coefficients
@@ -1727,8 +2013,27 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
         imageT cv_cut;
         imageT localKlims;
         imageT localProjMat;
+        std::vector<size_t> keepIndices;
+        std::vector<Eigen::Index> deletedIndices;
 
         math::syevrMem<evCalcT> mem;
+        math::svdDeletionResult<double> deletionResult;
+        math::svdDeletionWorkspace<double> deletionWorkspace;
+        bool factorDeletionAvailable = factorDeletionBaseAvailable;
+        if( factorDeletionBaseAvailable )
+        {
+            const Eigen::Index maximumOutputRank = std::min<Eigen::Index>(
+                factorDeletionBase.leftFactor.cols(),
+                m_maxNmodes <= 0 ? factorDeletionBase.leftFactor.cols() : static_cast<Eigen::Index>( m_maxNmodes ) );
+            const mx::math::svdDeletionStatus resultStatus =
+                deletionResult.prepare( factorDeletionBase.leftFactor.cols(), maximumOutputRank );
+            const mx::math::svdDeletionStatus workspaceStatus = deletionWorkspace.prepare(
+                factorDeletionBase.leftFactor.cols(),
+                m_deletionBackend == math::svdDeletionBackend::rankOneSecular ? 1 : referenceCount,
+                m_deletionBackend );
+            factorDeletionAvailable =
+                math::svdDeletionSucceeded( resultStatus ) && math::svdDeletionSucceeded( workspaceStatus );
+        }
 
         // clang-format off
         #pragma omp for
@@ -1763,7 +2068,8 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
                                           this->m_derotF,
                                           referenceMJD,
                                           this->m_imageMJD,
-                                          m_imsIncluded );
+                                          m_imsIncluded,
+                                          &keepIndices );
                     if( rims_cut.cols() <= 0 )
                     {
                         throw mx::exception<verboseT>( mx::error_t::invalidarg,
@@ -1771,20 +2077,67 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
                                                            " has no admissible references" );
                     }
 
-                    double teigenv{ 0 };
-                    double tklim{ 0 };
-                    const MXLAPACK_INT solverStatus = calcKLModesAdaptive<evCalcT>( localKlims,
-                                                                                    cv_cut,
-                                                                                    rims_cut,
-                                                                                    m_maxNmodes,
-                                                                                    &mem,
-                                                                                    &teigenv,
-                                                                                    &tklim );
-                    if( solverStatus != 0 )
+                    deletedIndices.clear();
+                    size_t kept = 0;
+                    for( int reference = 0; reference < referenceCount; ++reference )
                     {
-                        throw mx::exception<verboseT>( mx::error_t::lapackerr,
-                                                       "KLIP eigensolver failed for target " + std::to_string( imno ) +
-                                                           " with status " + std::to_string( solverStatus ) );
+                        if( kept < keepIndices.size() && keepIndices[kept] == static_cast<size_t>( reference ) )
+                        {
+                            ++kept;
+                        }
+                        else
+                        {
+                            deletedIndices.push_back( reference );
+                        }
+                    }
+
+                    bool usedFactorDeletion{ false };
+                    if( factorDeletionAvailable )
+                    {
+                        const double deletionStart = sys::get_curr_time();
+                        usedFactorDeletion = calcKLModesFactorDeleted( localKlims,
+                                                                       factorDeletionBase,
+                                                                       deletedIndices,
+                                                                       m_maxNmodes,
+                                                                       deletionResult,
+                                                                       deletionWorkspace,
+                                                                       m_deletionBackend );
+                        parallelDeletionSeconds += sys::get_curr_time() - deletionStart;
+                        if( usedFactorDeletion )
+                        {
+                            ++parallelFactorDeletionTargets;
+                        }
+                    }
+
+                    if( !usedFactorDeletion )
+                    {
+                        if( factorDeletionEligible )
+                        {
+                            ++parallelFactorDeletionFallbacks;
+                        }
+                        const double fallbackStart = sys::get_curr_time();
+                        double teigenv{ 0 };
+                        double tklim{ 0 };
+                        const MXLAPACK_INT solverStatus = calcKLModesAdaptive<evCalcT>( localKlims,
+                                                                                        cv_cut,
+                                                                                        rims_cut,
+                                                                                        m_maxNmodes,
+                                                                                        &mem,
+                                                                                        &teigenv,
+                                                                                        &tklim );
+                        if( solverStatus != 0 )
+                        {
+                            throw mx::exception<verboseT>( mx::error_t::lapackerr,
+                                                           "KLIP eigensolver failed for target " +
+                                                               std::to_string( imno ) + " with status " +
+                                                               std::to_string( solverStatus ) );
+                        }
+                        parallelEigenSeconds += teigenv;
+                        parallelModeSeconds += tklim;
+                        if( factorDeletionEligible )
+                        {
+                            parallelFallbackSeconds += sys::get_curr_time() - fallbackStart;
+                        }
                     }
 
                     if( m_rightReason )
@@ -1793,8 +2146,6 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
                         localProjMat *= rrMask;
                     }
 
-                    parallelEigenSeconds += teigenv;
-                    parallelModeSeconds += tklim;
                     activeKlims = &localKlims;
                     activeProjMat = &localProjMat;
                 }
@@ -1860,7 +2211,11 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
 
     m_algorithmTiming.eigensolveWorkerSeconds += parallelEigenSeconds;
     m_algorithmTiming.modeWorkerSeconds += parallelModeSeconds;
+    m_algorithmTiming.deletionWorkerSeconds += parallelDeletionSeconds;
+    m_algorithmTiming.explicitFallbackWorkerSeconds += parallelFallbackSeconds;
     m_algorithmTiming.projectionWorkerSeconds += parallelPsfSeconds;
+    m_factorDeletionTargetCount += parallelFactorDeletionTargets;
+    m_factorDeletionFallbackCount += parallelFactorDeletionFallbacks;
     if( workerException != nullptr )
     {
         std::rethrow_exception( workerException );
@@ -1942,6 +2297,20 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::appendReductionHead
 
     head.template append<std::string>( "INMTHDMX", HCI::includeToStr<verboseT>( m_includeMethod ), "inclusion method" );
     head.template append<int>( "INCLREFN", m_includeRefNum, "number of images included by INMTHDMX" );
+    head.template append<std::string>( "KLEXCLSV",
+                                       m_factorDeletionTargetCount > 0 ? "factor-deletion" : "direct",
+                                       "ADI exclusion solver used" );
+    head.template append<long>( "KLEXCLFT",
+                                static_cast<long>( m_factorDeletionTargetCount ),
+                                "ADI targets solved by factor deletion" );
+    head.template append<long>( "KLEXCLFB",
+                                static_cast<long>( m_factorDeletionFallbackCount ),
+                                "ADI factor-deletion direct fallbacks" );
+    head.template append<std::string>( "KLEXCLBK",
+                                       m_exclusionSolver == KLIPExclusionSolver::factorDowndateExact
+                                           ? klipDeletionBackendString( m_deletionBackend )
+                                           : "none",
+                                       "configured factor-deletion backend" );
 }
 
 template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>

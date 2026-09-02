@@ -36,6 +36,24 @@
  * `key=true` or `key=false`. Repeating one boolean option on a command line is rejected as ambiguous. Lists are
  * comma-separated, for example `minRadius=6,8,10`.
  *
+ * \section common_solver_dictionary Target-exclusion solvers
+ *
+ * `klipReduce` and `p4Reduce` use the same `[solver]` controls when target-specific ADI exclusion is enabled. The
+ * direct solver is the default because it refits the physically retained library and is the conservative performance
+ * and numerical reference. The factor solver is exact when its complete base factorization is valid, but it is an
+ * opt-in workload-dependent alternative. Each reduction records the configured solver/backend and its realized
+ * fallback outcome in its science-product FITS header.
+ *
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--solver.exclusionSolver` | `solver.exclusionSolver=explicitRefit` | `explicitRefit`, `factorDowndateExact` | `explicitRefit` | Select a direct refit of each retained target library or exact deletion from a complete base factorization. `factorDowndateExact` requires target-specific exclusion. |
+ * | `--solver.deletionBackend` | `solver.deletionBackend=leadingCovariance` | `leadingCovariance`, `rankOneSecular` | `leadingCovariance` | Select the mxlib implementation used by `factorDowndateExact`. `leadingCovariance` supports one or more deleted rows. `rankOneSecular` supports one deleted row; P4 rejects other active patterns and KLIP refits those targets directly. |
+ *
+ * Start with `explicitRefit` for a new reduction and compare throughput on the intended machine before changing the
+ * solver. `rankOneSecular` is a specialized single-deletion path; P4 rejects incompatible active patterns and KLIP
+ * records a direct fallback instead. KLIP-specific timing guidance is in
+ * \ref klip_solver_dictionary "the KLIP solver section".
+ *
  * \section common_input_dictionary Input target sequence
  *
  * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |

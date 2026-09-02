@@ -68,8 +68,8 @@
  * | `geom.minRadius`, `geom.maxRadius` | Matching, ordered, non-overlapping full-annulus bounds. Inner radii are inclusive and outer radii are exclusive. |
  * | `adi.excludeMethod` | `none` preserves the in-sample fit. `pixel`, `angle`, and `imno` select references for target-frame exclusion within the inclusive `adi.minDPx` threshold, with the same semantics as KLIP. |
  * | `adi.minDPx` | Nonnegative exclusion threshold: pixels at the annulus inner radius for `pixel`, degrees for `angle`, or target-row distance for `imno`. A non-`none` method with zero excludes exactly the target row. |
- * | `p4.exclusionSolver` | Held-out regression solver: `explicitRefit` (default) or the opt-in `factorDowndateExact` correctness backend. This target requires a non-`none` `adi.excludeMethod`. |
- * | `p4.deletionBackend` | Factor-deletion implementation: `leadingCovariance` (default, dense, supports one or more deleted rows) or the opt-in `rankOneSecular` structured backend. The structured backend requires `p4.exclusionSolver=factorDowndateExact` and exactly one deleted row for every active target. |
+ * | `solver.exclusionSolver` | Held-out regression solver: `explicitRefit` (default) or the opt-in `factorDowndateExact` correctness backend. This target requires a non-`none` `adi.excludeMethod`. |
+ * | `solver.deletionBackend` | Factor-deletion implementation: `leadingCovariance` (default, dense, supports one or more deleted rows) or the opt-in `rankOneSecular` structured backend. The structured backend requires `solver.exclusionSolver=factorDowndateExact` and exactly one deleted row for every active target. |
  * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames added to each predictor row; `0` is the compatibility default. |
  * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |

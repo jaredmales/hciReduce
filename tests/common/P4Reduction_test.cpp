@@ -554,8 +554,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.numberImages" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "adi.minDPx" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "adi.excludeMethod" ).helpType == "string" );
-    REQUIRE( registered.m_targets.at( "p4.exclusionSolver" ).helpType == "string" );
-    REQUIRE( registered.m_targets.at( "p4.deletionBackend" ).helpType == "string" );
+    REQUIRE( registered.m_targets.at( "solver.exclusionSolver" ).helpType == "string" );
+    REQUIRE( registered.m_targets.at( "solver.deletionBackend" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfFile" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::Optional );
@@ -582,9 +582,9 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
                          directory.file( "p4.conf" ),
                          "[geom]\nminRadius=5,8\nmaxRadius=6,9\n"
                          "[adi]\nminDPx=1.5\nexcludeMethod=angle\n"
-                         "[p4]\nmodeFractions=0.25,0.5\nregressionFrame=rotated\n"
-                         "exclusionSolver=factorDowndateExact\n"
+                         "[solver]\nexclusionSolver=factorDowndateExact\n"
                          "deletionBackend=rankOneSecular\n"
+                         "[p4]\nmodeFractions=0.25,0.5\nregressionFrame=rotated\n"
                          "orDeltaRadiusInner=2\norDeltaRadiusOuter=3\n"
                          "orArcHalfWidth=4\norMaxHalfAngle=90\npsfRadius=1.5\n"
                          "exclusionPolicy=sampleCenter\nexclusionRadiusBuffer=0.5\nrankTolerance=1e-8\n"
@@ -653,17 +653,17 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     reductionHarness invalidExclusionSolver;
     REQUIRE_THROWS( readReductionConfig( invalidExclusionSolver,
                                          directory.file( "invalid-exclusion-solver.conf" ),
-                                         "[p4]\nexclusionSolver=projected\n" ) );
+                                         "[solver]\nexclusionSolver=projected\n" ) );
 
     reductionHarness invalidDeletionBackend;
     REQUIRE_THROWS( readReductionConfig( invalidDeletionBackend,
                                          directory.file( "invalid-deletion-backend.conf" ),
-                                         "[p4]\ndeletionBackend=projected\n" ) );
+                                         "[solver]\ndeletionBackend=projected\n" ) );
 
     reductionHarness inactiveDeletionBackend;
     REQUIRE_NOTHROW( readReductionConfig( inactiveDeletionBackend,
                                           directory.file( "inactive-deletion-backend.conf" ),
-                                          "[p4]\ndeletionBackend=rankOneSecular\n" ) );
+                                          "[solver]\ndeletionBackend=rankOneSecular\n" ) );
     REQUIRE_THROWS( inactiveDeletionBackend.reduce() );
 
     // clang-format off

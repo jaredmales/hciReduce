@@ -58,6 +58,36 @@
  * `pixel` expresses motion at the inner search radius, `angle` uses field rotation, `imno` uses image-number spacing,
  * and `time` uses configured FITS dates. A missing/disabled date key cannot support meaningful time selection.
  *
+ * \section klip_solver_dictionary Target-exclusion solver choice
+ *
+ * The shared \ref common_solver_dictionary "solver configuration" controls the KLIP implementation used after an
+ * ADI exclusion. `explicitRefit` is the default. `factorDowndateExact` is eligible only for same-cube ADI exclusion
+ * with `klip.includeMethod=all`; RDI, limited-reference selection, and an unusable complete base continue through the
+ * direct retained-library solve. `KLEXCLSV`, `KLEXCLFT`, `KLEXCLFB`, and `KLEXCLBK` in the science output distinguish
+ * the realized solver, target count, fallbacks, and configured factor backend.
+ *
+ * Use `leadingCovariance` when more than one reference may be excluded. Use `rankOneSecular` only when every target
+ * is expected to exclude exactly one reference, normally `adi.excludeMethod=imno` with the target frame itself held
+ * out. Other target patterns retain exactness by falling back to `explicitRefit` and incrementing `KLEXCLFB`:
+ *
+ * \code{.ini}
+ * [adi]
+ * excludeMethod=imno
+ *
+ * [solver]
+ * exclusionSolver=factorDowndateExact
+ * deletionBackend=rankOneSecular
+ * \endcode
+ *
+ * Controlled single-image KLIP measurements on the NACO reference configuration found that `rankOneSecular` can win
+ * only for compact regions with a sufficiently large reference library. With one BLAS thread, a region of about 200
+ * pixels was faster from 16 references upward; at about 1,100 pixels it broke even around 64 references and became
+ * clearly favorable near 128; at roughly 5,000 pixels and above it remained two to five times slower through the
+ * tested 256 references. With 20 outer workers, contention moves the useful compact-region crossover to roughly 256
+ * references. These are workload measurements, not a universal threshold: retain `explicitRefit` for ordinary or
+ * large regions, and benchmark a representative annulus, mode count, OpenMP setting, and BLAS-thread setting before
+ * adopting the structured backend.
+ *
  * \section klip_pca_dictionary KL basis and residual products
  *
  * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
