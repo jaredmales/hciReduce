@@ -197,9 +197,12 @@ Completed by `3b26865` and `c4dd646`
 
 ## Propagation of Pre-processing
 
-[] when pre-processing is skipped because we are using pre-pre-processed files, we want to inherit the pre-processing settings from those files and write them to the output FITS
-   - maybe a flag like preprocess.inherit=true/false that only has meaning on skip
-   - when inheriting, validate that all files have the same settings, etc
+[x] when pre-processing is skipped because we are using pre-pre-processed files, inherit the pre-processing settings
+    from those files and write them to the science-output FITS.
+   - `preProcess.inherit=true` requires `preProcess.skip=true`; target and RDI provenance are validated independently.
+   - preprocessed target/RDI FITS carry `HCIREDUCE PREPROCESSED=1`; all selected upstream files must carry the marker
+     and agree on preprocessing and coadd cards.
+   - science headers retain inherited target and RDI cards separately, including upstream coadd settings.
 
 ## SNR calculation with mean
 

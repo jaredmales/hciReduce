@@ -63,6 +63,8 @@ TEST_CASE( "HCIobservation configuration metadata", "[HCIobservation][config]" )
     REQUIRE( config.m_targets.count( "preProcess.azUSM_azHalfWidth" ) == 1 );
     REQUIRE( config.m_targets.count( "preProcess.azUSM_radHalfWidth" ) == 1 );
     REQUIRE( config.m_targets.count( "preProcess.pixelTSSigma" ) == 1 );
+    REQUIRE( config.m_targets.count( "preProcess.inherit" ) == 1 );
+    REQUIRE( config.m_targets.count( "rdi.preProcess.gaussUSM_fwhm" ) == 1 );
 
     REQUIRE( observation.loadConfig( config ) == 0 );
     REQUIRE( observation.m_extension == ".fits" );
@@ -220,6 +222,20 @@ TEST_CASE( "HCIobservation configuration loading", "[HCIobservation][config]" )
                            "pixelTSSigma=2.75\n"
                            "outputPrefix=/tmp/pre-\n"
                            "only=true\n"
+                           "inherit=true\n"
+                           "[rdi.preProcess]\n"
+                           "beforeCoadd=false\n"
+                           "mask=true\n"
+                           "subradprof=false\n"
+                           "azUSM_azHalfWidth=9\n"
+                           "azUSM_maxAz=20\n"
+                           "azUSM_radHalfWidth=3\n"
+                           "medianUSM_fwhm=5\n"
+                           "gaussUSM_fwhm=2.5\n"
+                           "meanSubMethod=meanImage\n"
+                           "pixelTSNormMethod=none\n"
+                           "pixelTSSigma=1.5\n"
+                           "outputPrefix=/tmp/rdi-pre-\n"
                            "[combine]\n"
                            "method=sigmaMean\n"
                            "weightFile=weights.txt\n"
@@ -280,6 +296,19 @@ TEST_CASE( "HCIobservation configuration loading", "[HCIobservation][config]" )
     REQUIRE( observation.m_pixelTSSigma == Approx( 2.75 ) );
     REQUIRE( observation.m_preProcess_outputPrefix == "/tmp/pre-" );
     REQUIRE( observation.m_preProcess_only );
+    REQUIRE( observation.m_preProcess_inherit );
+    REQUIRE_FALSE( observation.m_RDIpreProcess_beforeCoadd );
+    REQUIRE( observation.m_RDIpreProcess_mask );
+    REQUIRE_FALSE( observation.m_RDIpreProcess_subradprof );
+    REQUIRE( observation.m_RDIpreProcess_azUSM_azHalfWidth == Approx( 9 ) );
+    REQUIRE( observation.m_RDIpreProcess_azUSM_maxAz == Approx( 20 ) );
+    REQUIRE( observation.m_RDIpreProcess_azUSM_radHalfWidth == Approx( 3 ) );
+    REQUIRE( observation.m_RDIpreProcess_medianUSM_fwhm == 5 );
+    REQUIRE( observation.m_RDIpreProcess_gaussUSM_fwhm == Approx( 2.5 ) );
+    REQUIRE( observation.m_RDIpreProcess_meanSubMethod == mx::improc::HCI::meanSub::meanImage );
+    REQUIRE( observation.m_RDIpreProcess_pixelTSNormMethod == mx::improc::HCI::pixelTSNorm::none );
+    REQUIRE( observation.m_RDIpixelTSSigma == Approx( 1.5 ) );
+    REQUIRE( observation.m_RDIpreProcess_outputPrefix == "/tmp/rdi-pre-" );
 
     REQUIRE( observation.m_combineMethod == mx::improc::HCI::combine::sigmaMean );
     REQUIRE( observation.m_weightFile == "weights.txt" );
@@ -323,6 +352,11 @@ TEST_CASE( "HCIobservation invalid configuration methods", "[HCIobservation][con
     REQUIRE_THROWS( readObservationConfig( observation4,
                                            directory.file( "bad-combine.conf" ),
                                            "[combine]\nmethod=not-a-method\n" ) );
+
+    HCIobservationTestHarness observation5;
+    REQUIRE_THROWS( readObservationConfig( observation5,
+                                           directory.file( "inherit-without-skip.conf" ),
+                                           "[preProcess]\ninherit=true\nskip=false\n" ) );
 
     {
         HCIobservationTestHarness invalidCurrentMean;

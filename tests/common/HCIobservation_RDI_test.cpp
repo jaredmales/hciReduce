@@ -258,8 +258,8 @@ TEST_CASE( "HCIobservation RDI delegated failures", "[HCIobservation][readRDIFil
     configureTargetSize( beforeCoaddFailure );
     beforeCoaddFailure.m_RDIfileList = { imagePath.string() };
     beforeCoaddFailure.m_RDIdateKeyword.clear();
-    beforeCoaddFailure.m_preProcess_beforeCoadd = true;
-    beforeCoaddFailure.m_preProcess_meanSubMethod = static_cast<mx::improc::HCI::meanSub>( 99 );
+    beforeCoaddFailure.m_RDIpreProcess_beforeCoadd = true;
+    beforeCoaddFailure.m_RDIpreProcess_meanSubMethod = static_cast<mx::improc::HCI::meanSub>( 99 );
     REQUIRE_THROWS( beforeCoaddFailure.readRDIFiles() );
 
     HCIobservationTestHarness coaddFailure;
@@ -283,7 +283,7 @@ TEST_CASE( "HCIobservation RDI delegated failures", "[HCIobservation][readRDIFil
     configureTargetSize( afterCoaddFailure );
     afterCoaddFailure.m_RDIfileList = { imagePath.string() };
     afterCoaddFailure.m_RDIdateKeyword.clear();
-    afterCoaddFailure.m_preProcess_meanSubMethod = static_cast<mx::improc::HCI::meanSub>( 99 );
+    afterCoaddFailure.m_RDIpreProcess_meanSubMethod = static_cast<mx::improc::HCI::meanSub>( 99 );
     REQUIRE_THROWS( afterCoaddFailure.readRDIFiles() );
 }
 

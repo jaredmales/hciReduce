@@ -67,6 +67,7 @@ struct HCIobservationTestHarness : public mx::improc::HCIobservation<float, mx::
     using baseT::m_preProcess_azUSM_radHalfWidth;
     using baseT::m_preProcess_beforeCoadd;
     using baseT::m_preProcess_gaussUSM_fwhm;
+    using baseT::m_preProcess_inherit;
     using baseT::m_preProcess_mask;
     using baseT::m_preProcess_meanSubMethod;
     using baseT::m_preProcess_medianUSM_fwhm;
@@ -96,7 +97,19 @@ struct HCIobservationTestHarness : public mx::improc::HCIobservation<float, mx::
     using baseT::m_RDImaskCube;
     using baseT::m_RDImaskFile;
     using baseT::m_RDImaskUseInput;
+    using baseT::m_RDIpixelTSSigma;
     using baseT::m_RDIprefix;
+    using baseT::m_RDIpreProcess_azUSM_azHalfWidth;
+    using baseT::m_RDIpreProcess_azUSM_maxAz;
+    using baseT::m_RDIpreProcess_azUSM_radHalfWidth;
+    using baseT::m_RDIpreProcess_beforeCoadd;
+    using baseT::m_RDIpreProcess_gaussUSM_fwhm;
+    using baseT::m_RDIpreProcess_mask;
+    using baseT::m_RDIpreProcess_meanSubMethod;
+    using baseT::m_RDIpreProcess_medianUSM_fwhm;
+    using baseT::m_RDIpreProcess_outputPrefix;
+    using baseT::m_RDIpreProcess_pixelTSNormMethod;
+    using baseT::m_RDIpreProcess_subradprof;
     using baseT::m_RDIqualityFile;
     using baseT::m_RDIqualityThreshold;
     using baseT::m_refIms;

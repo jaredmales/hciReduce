@@ -389,7 +389,10 @@ struct HCIobservation
      * @{
      */
 
-    bool m_skipPreProcess{ false };         ///< Don't do any of the pre-processing steps (including coadding).
+    bool m_skipPreProcess{ false }; ///< Don't do any of the pre-processing steps (including coadding).
+
+    /// Whether skipped target and RDI preprocessing inherits validated upstream FITS provenance.
+    bool m_preProcess_inherit{ false };
 
     bool m_preProcess_beforeCoadd{ false }; ///< controls whether pre-processing takes place before or after coadding
 
@@ -445,6 +448,48 @@ struct HCIobservation
 
     /// If true, then we stop after pre-processing.
     bool m_preProcess_only{ false };
+
+    /// Reference-image pre-processing placement relative to coadding.
+    bool m_RDIpreProcess_beforeCoadd{ false };
+
+    /// Whether each reference pre-processing stage reapplies its configured mask.
+    bool m_RDIpreProcess_mask{ true };
+
+    /// Whether reference images have their radial profiles subtracted during pre-processing.
+    bool m_RDIpreProcess_subradprof{ false };
+
+    /// Reference azimuthal-USM azimuthal half-width in pixels.
+    realT m_RDIpreProcess_azUSM_azHalfWidth{ 0 };
+
+    /// Reference azimuthal-USM maximum azimuthal width in degrees.
+    realT m_RDIpreProcess_azUSM_maxAz{ 45 };
+
+    /// Reference azimuthal-USM radial half-width in pixels.
+    realT m_RDIpreProcess_azUSM_radHalfWidth{ 0 };
+
+    /// Reference median-USM kernel full width at half maximum in pixels.
+    int m_RDIpreProcess_medianUSM_fwhm{ 0 };
+
+    /// Reference Gaussian-USM kernel full width at half maximum in pixels.
+    realT m_RDIpreProcess_gaussUSM_fwhm{ 0 };
+
+    /// Reference-image mean-subtraction method.
+    HCI::meanSub m_RDIpreProcess_meanSubMethod{ HCI::meanSub::none };
+
+    /// Reference-image pixel time-series normalization method.
+    HCI::pixelTSNorm m_RDIpreProcess_pixelTSNormMethod{ HCI::pixelTSNorm::none };
+
+    /// Reference-image sigma-clipping parameter for pixel time-series normalization.
+    realT m_RDIpixelTSSigma{ 3 };
+
+    /// Prefix used for preprocessing-only reference-image products.
+    std::string m_RDIpreProcess_outputPrefix;
+
+    /// Validated upstream target preprocessing and coadd cards inherited by this reduction.
+    std::map<std::string, std::string> m_inheritedTargetPreProcess;
+
+    /// Validated upstream reference preprocessing and coadd cards inherited by this reduction.
+    std::map<std::string, std::string> m_inheritedRDIPreProcess;
 
     ///@}
     //--pre-processing configuration
@@ -645,14 +690,16 @@ struct HCIobservation
      * @{
      */
     /// Do the pre-processing
-    void preProcess( eigenCube<realT> &ims /**< [in] the image cube, should be either m_tgtIms or m_refIms */ );
+    void preProcess( eigenCube<realT> &ims, /**< [in] the image cube to preprocess */
+                     bool rdi = false /**< [in] whether to apply reference-image settings */ );
 
     /// Do mean subtraction as part of pre-processing
-    void preProcess_meanSub( eigenCube<realT> &ims /**< [in] the image cube, should be either m_tgtIms or m_refIms */ );
+    void preProcess_meanSub( eigenCube<realT> &ims, /**< [in] the image cube to preprocess */
+                             bool rdi = false /**< [in] whether to apply reference-image settings */ );
 
     /// Do pixel time-series normalization as part of pre-processing
-    void
-    preProcess_pixelTSNorm( eigenCube<realT> &ims /**< [in] the image cube, should be either m_tgtIms or m_refIms */ );
+    void preProcess_pixelTSNorm( eigenCube<realT> &ims, /**< [in] the image cube to preprocess */
+                                 bool rdi = false /**< [in] whether to apply reference-image settings */ );
 
     ///@}
 
@@ -768,9 +815,24 @@ struct HCIobservation
      */
     virtual void appendPreprocessedFitsHeader( fitsHeaderT &head /**< [in,out] header receiving derived cards */ );
 
+    /// Validate and retain common preprocessing provenance from one target or RDI input set.
+    void inheritPreProcessFitsHeader( const std::vector<std::string> &fileList, /**< [in] selected input filenames */
+                                      std::map<std::string, std::string> &inherited, /**< [out] validated card values */
+                                      const std::string &inputName /**< [in] human-readable input-set name */ );
+
+    /// Append configured target or RDI preprocessing settings under the supplied FITS-card prefix.
+    void appendPreProcessFitsHeader( fitsHeaderT &head, /**< [in,out] header receiving preprocessing cards */
+                                     bool rdi,          /**< [in] whether to append reference-image settings */
+                                     const std::string &prefix /**< [in] FITS-card prefix */ ) const;
+
+    /// Append validated upstream preprocessing and coadd provenance to a science-product FITS header.
+    void
+    appendInheritedPreProcessFitsHeader( fitsHeaderT &head /**< [in,out] header receiving inherited cards */ ) const;
+
     /// Append the standard HCIobservation reduction metadata to a FITS header.
-    void stdFitsHeader( fitsHeaderT &head /**< [in.out] the fitsHeader structure which will
-                                                             have cards appended to it. */
+    void
+    stdFitsHeader( fitsHeaderT &head, /**< [in.out] the fitsHeader structure which will have cards appended to it */
+                   bool rdiPreprocessingProduct = false /**< [in] whether this is a reference preprocessing product */
     );
 
     /// Resolve and retain the exact or next monotonic sequential final-image output path.
@@ -1195,6 +1257,17 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 "bool",
                 "If true, then pre-processing is skipped.  Default is false." );
 
+    config.add( "preProcess.inherit",
+                "",
+                "preProcess.inherit",
+                mx::app::argType::Optional,
+                "preProcess",
+                "inherit",
+                false,
+                "bool",
+                "When preProcess.skip is true, inherit validated preprocessing and coadd provenance from input FITS "
+                "files." );
+
     config.add( "preProcess.beforeCoadd",
                 "",
                 "preProcess.beforeCoadd",
@@ -1348,6 +1421,127 @@ int HCIobservation<_realT, verboseT>::setupConfig( mx::app::appConfigurator &con
                 false,
                 "bool",
                 "If true, stop after pre-processing.  Default is false." );
+
+    config.add( "rdi.preProcess.beforeCoadd",
+                "",
+                "rdi.preProcess.beforeCoadd",
+                mx::app::argType::Optional,
+                "rdi.preProcess",
+                "beforeCoadd",
+                false,
+                "bool",
+                "Reference pre-processing placement; defaults to preProcess.beforeCoadd." );
+
+    config.add( "rdi.preProcess.mask",
+                "",
+                "rdi.preProcess.mask",
+                mx::app::argType::Optional,
+                "rdi.preProcess",
+                "mask",
+                false,
+                "bool",
+                "Reference pre-processing mask setting; defaults to preProcess.mask." );
+
+    config.add( "rdi.preProcess.subradprof",
+                "",
+                "rdi.preProcess.subradprof",
+                mx::app::argType::Optional,
+                "rdi.preProcess",
+                "subradprof",
+                false,
+                "bool",
+                "Reference radial-profile subtraction setting; defaults to preProcess.subradprof." );
+
+    config.add( "rdi.preProcess.azUSM_azHalfWidth",
+                "",
+                "rdi.preProcess.azUSM_azHalfWidth",
+                mx::app::argType::Required,
+                "rdi.preProcess",
+                "azUSM_azHalfWidth",
+                false,
+                "float",
+                "Reference azimuthal-USM azimuthal half-width; defaults to preProcess.azUSM_azHalfWidth." );
+
+    config.add( "rdi.preProcess.azUSM_maxAz",
+                "",
+                "rdi.preProcess.azUSM_maxAz",
+                mx::app::argType::Required,
+                "rdi.preProcess",
+                "azUSM_maxAz",
+                false,
+                "float",
+                "Reference azimuthal-USM maximum width; defaults to preProcess.azUSM_maxAz." );
+
+    config.add( "rdi.preProcess.azUSM_radHalfWidth",
+                "",
+                "rdi.preProcess.azUSM_radHalfWidth",
+                mx::app::argType::Required,
+                "rdi.preProcess",
+                "azUSM_radHalfWidth",
+                false,
+                "float",
+                "Reference azimuthal-USM radial half-width; defaults to preProcess.azUSM_radHalfWidth." );
+
+    config.add( "rdi.preProcess.medianUSM_fwhm",
+                "",
+                "rdi.preProcess.medianUSM_fwhm",
+                mx::app::argType::Required,
+                "rdi.preProcess",
+                "medianUSM_fwhm",
+                false,
+                "int",
+                "Reference median-USM width; defaults to preProcess.medianUSM_fwhm." );
+
+    config.add( "rdi.preProcess.gaussUSM_fwhm",
+                "",
+                "rdi.preProcess.gaussUSM_fwhm",
+                mx::app::argType::Required,
+                "rdi.preProcess",
+                "gaussUSM_fwhm",
+                false,
+                "float",
+                "Reference Gaussian-USM width; defaults to preProcess.gaussUSM_fwhm." );
+
+    config.add( "rdi.preProcess.meanSubMethod",
+                "",
+                "rdi.preProcess.meanSubMethod",
+                mx::app::argType::Required,
+                "rdi.preProcess",
+                "meanSubMethod",
+                false,
+                "string",
+                "Reference mean-subtraction method; defaults to preProcess.meanSubMethod." );
+
+    config.add( "rdi.preProcess.pixelTSNormMethod",
+                "",
+                "rdi.preProcess.pixelTSNormMethod",
+                mx::app::argType::Required,
+                "rdi.preProcess",
+                "pixelTSNormMethod",
+                false,
+                "string",
+                "Reference pixel time-series normalization; defaults to preProcess.pixelTSNormMethod." );
+
+    config.add( "rdi.preProcess.pixelTSSigma",
+                "",
+                "rdi.preProcess.pixelTSSigma",
+                mx::app::argType::Required,
+                "rdi.preProcess",
+                "pixelTSSigma",
+                false,
+                "float",
+                "Reference pixel time-series sigma setting; defaults to preProcess.pixelTSSigma." );
+
+    config.add( "rdi.preProcess.outputPrefix",
+                "",
+                "rdi.preProcess.outputPrefix",
+                mx::app::argType::Required,
+                "rdi.preProcess",
+                "outputPrefix",
+                false,
+                "string",
+                "Reference preprocessing-output prefix. Empty by default, so target-only preprocessing output remains "
+                "the legacy behavior." );
 
     config.add( "combine.method",
                 "",
@@ -1573,6 +1767,66 @@ int HCIobservation<_realT, verboseT>::loadConfig( mx::app::appConfigurator &conf
 
     loadBoolConfig<verboseT>( config, m_preProcess_only, "preProcess.only" );
     loadBoolConfig<verboseT>( config, m_skipPreProcess, "preProcess.skip" );
+    loadBoolConfig<verboseT>( config, m_preProcess_inherit, "preProcess.inherit" );
+
+    m_RDIpreProcess_beforeCoadd = m_preProcess_beforeCoadd;
+    m_RDIpreProcess_mask = m_preProcess_mask;
+    m_RDIpreProcess_subradprof = m_preProcess_subradprof;
+    m_RDIpreProcess_azUSM_azHalfWidth = m_preProcess_azUSM_azHalfWidth;
+    m_RDIpreProcess_azUSM_maxAz = m_preProcess_azUSM_maxAz;
+    m_RDIpreProcess_azUSM_radHalfWidth = m_preProcess_azUSM_radHalfWidth;
+    m_RDIpreProcess_medianUSM_fwhm = m_preProcess_medianUSM_fwhm;
+    m_RDIpreProcess_gaussUSM_fwhm = m_preProcess_gaussUSM_fwhm;
+    m_RDIpreProcess_meanSubMethod = m_preProcess_meanSubMethod;
+    m_RDIpreProcess_pixelTSNormMethod = m_preProcess_pixelTSNormMethod;
+    m_RDIpixelTSSigma = m_pixelTSSigma;
+
+    loadBoolConfig<verboseT>( config, m_RDIpreProcess_beforeCoadd, "rdi.preProcess.beforeCoadd" );
+    loadBoolConfig<verboseT>( config, m_RDIpreProcess_mask, "rdi.preProcess.mask" );
+    loadBoolConfig<verboseT>( config, m_RDIpreProcess_subradprof, "rdi.preProcess.subradprof" );
+    config( m_RDIpreProcess_azUSM_azHalfWidth, "rdi.preProcess.azUSM_azHalfWidth" );
+    config( m_RDIpreProcess_azUSM_maxAz, "rdi.preProcess.azUSM_maxAz" );
+    config( m_RDIpreProcess_azUSM_radHalfWidth, "rdi.preProcess.azUSM_radHalfWidth" );
+    config( m_RDIpreProcess_medianUSM_fwhm, "rdi.preProcess.medianUSM_fwhm" );
+    config( m_RDIpreProcess_gaussUSM_fwhm, "rdi.preProcess.gaussUSM_fwhm" );
+
+    std::string rdiMeanSubMethod = HCI::meanSubToStr<verboseT>( m_RDIpreProcess_meanSubMethod );
+    config( rdiMeanSubMethod, "rdi.preProcess.meanSubMethod" );
+    try
+    {
+        m_RDIpreProcess_meanSubMethod = HCI::meanSubFmStr<verboseT>( rdiMeanSubMethod );
+        if( m_RDIpreProcess_meanSubMethod != HCI::meanSub::none &&
+            m_RDIpreProcess_meanSubMethod != HCI::meanSub::meanImage &&
+            m_RDIpreProcess_meanSubMethod != HCI::meanSub::medianImage )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "reference mean-subtraction method is not supported in pre-processing" );
+        }
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                                         "invalid reference pre-processing mean subtraction" ) );
+    }
+
+    std::string rdiPixelTSNormMethod = HCI::pixelTSNormToStr<verboseT>( m_RDIpreProcess_pixelTSNormMethod );
+    config( rdiPixelTSNormMethod, "rdi.preProcess.pixelTSNormMethod" );
+    try
+    {
+        m_RDIpreProcess_pixelTSNormMethod = HCI::pixelTSNormFmStr<verboseT>( rdiPixelTSNormMethod );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested( mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                                         "invalid reference pixel time-series normalization" ) );
+    }
+    config( m_RDIpixelTSSigma, "rdi.preProcess.pixelTSSigma" );
+    config( m_RDIpreProcess_outputPrefix, "rdi.preProcess.outputPrefix" );
+
+    if( m_preProcess_inherit && !m_skipPreProcess )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig, "preProcess.inherit requires preProcess.skip=true" );
+    }
 
     std::string cmbm;
     try
@@ -1878,6 +2132,15 @@ void HCIobservation<realT, verboseT>::readFiles()
         {
             std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "reading weights" ) );
         }
+    }
+
+    if( m_preProcess_inherit )
+    {
+        inheritPreProcessFitsHeader( m_fileList, m_inheritedTargetPreProcess, "target" );
+    }
+    else
+    {
+        m_inheritedTargetPreProcess.clear();
     }
 
     /*----- Append the HCI keywords to propagate them if needed -----*/
@@ -2219,6 +2482,15 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
         std::cerr << "Done.  Selected " << m_RDIfileList.size() << " out of " << origsize << "\n";
     }
 
+    if( m_preProcess_inherit )
+    {
+        inheritPreProcessFitsHeader( m_RDIfileList, m_inheritedRDIPreProcess, "RDI" );
+    }
+    else
+    {
+        m_inheritedRDIPreProcess.clear();
+    }
+
     /*----- Append the HCI keywords to propagate them if needed -----*/
 
     fitsHeaderT head;
@@ -2348,11 +2620,11 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
     if( !m_skipPreProcess )
     {
         /*** Now do any pre-processing ***/
-        if( m_preProcess_beforeCoadd )
+        if( m_RDIpreProcess_beforeCoadd )
         {
             try
             {
-                preProcess( m_refIms );
+                preProcess( m_refIms, true );
             }
             catch( ... )
             {
@@ -2399,11 +2671,11 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
         }
 
         /*** Now do any pre-processing if not done already***/
-        if( !m_preProcess_beforeCoadd )
+        if( !m_RDIpreProcess_beforeCoadd )
         {
             try
             {
-                preProcess( m_refIms );
+                preProcess( m_refIms, true );
             }
             catch( ... )
             {
@@ -2411,7 +2683,10 @@ void HCIobservation<_realT, verboseT>::readRDIFiles()
             }
         }
 
-        // outputRDIPreProcessed();
+        if( !m_RDIpreProcess_outputPrefix.empty() )
+        {
+            outputRDIPreProcessed();
+        }
     }
 
     m_RDIfilesRead = true;
@@ -2844,13 +3119,20 @@ HCIobservation<realT, verboseT>::preProcessMask( const eigenCube<realT> &ims ) c
 }
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
+void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims, bool rdi )
 {
+    const bool preProcessMaskEnabled = rdi ? m_RDIpreProcess_mask : m_preProcess_mask;
+    const bool subradprof = rdi ? m_RDIpreProcess_subradprof : m_preProcess_subradprof;
+    const realT azUSMAzHalfWidth = rdi ? m_RDIpreProcess_azUSM_azHalfWidth : m_preProcess_azUSM_azHalfWidth;
+    const realT azUSMMaxAz = rdi ? m_RDIpreProcess_azUSM_maxAz : m_preProcess_azUSM_maxAz;
+    const realT azUSMRadHalfWidth = rdi ? m_RDIpreProcess_azUSM_radHalfWidth : m_preProcess_azUSM_radHalfWidth;
+    const int medianUSMFwhm = rdi ? m_RDIpreProcess_medianUSM_fwhm : m_preProcess_medianUSM_fwhm;
+    const realT gaussUSMFwhm = rdi ? m_RDIpreProcess_gaussUSM_fwhm : m_preProcess_gaussUSM_fwhm;
     t_preproc_begin = sys::get_curr_time();
     const imageT *mask = preProcessMask( ims );
 
     // The mask is applied first, and then after each subsequent P.P. step.
-    if( mask != nullptr && m_preProcess_mask )
+    if( mask != nullptr && preProcessMaskEnabled )
     {
         std::cerr << "Masking . . .\n";
 #pragma omp parallel for
@@ -2861,7 +3143,7 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         std::cerr << "done\n";
     }
 
-    if( m_preProcess_subradprof )
+    if( subradprof )
     {
         std::cerr << "subtracting radial profile . . .\n";
 
@@ -2873,7 +3155,7 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
             for( int i = 0; i < ims.planes(); ++i )
             {
                 Eigen::Map<Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic>> imRef( ims.image( i ) );
-                if( mask != nullptr && m_preProcess_mask )
+                if( mask != nullptr && preProcessMaskEnabled )
                 {
                     imageT radius;
                     radius.resize( imRef.rows(), imRef.cols() );
@@ -2890,7 +3172,7 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
 
         std::cerr << "done\n";
 
-        if( mask != nullptr && m_preProcess_mask )
+        if( mask != nullptr && preProcessMaskEnabled )
         {
             std::cerr << "Masking . . .\n";
 #pragma omp parallel for
@@ -2902,9 +3184,9 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         }
     }
 
-    if( m_preProcess_medianUSM_fwhm > 0 )
+    if( medianUSMFwhm > 0 )
     {
-        if( m_preProcess_medianUSM_fwhm > ims.rows() || m_preProcess_medianUSM_fwhm > ims.cols() )
+        if( medianUSMFwhm > ims.rows() || medianUSMFwhm > ims.cols() )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                            "The median USM width cannot exceed the image dimensions." );
@@ -2916,8 +3198,8 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         medmask.resize( ims.rows(), ims.cols() );
         medmask.setConstant( 1 );
 
-        const int before = m_preProcess_medianUSM_fwhm / 2;
-        const int after = m_preProcess_medianUSM_fwhm - before - 1;
+        const int before = medianUSMFwhm / 2;
+        const int after = medianUSMFwhm - before - 1;
         for( int z = 0; z < before; ++z )
         {
             medmask.row( z ) = 0;
@@ -2941,12 +3223,12 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
             {
                 im = ims.image( i );
                 // Width and output dimensions were validated above, which is medianSmooth's complete error contract.
-                static_cast<void>( medianSmooth( fim, im, m_preProcess_medianUSM_fwhm ) );
+                static_cast<void>( medianSmooth( fim, im, medianUSMFwhm ) );
                 ims.image( i ) = ( im - fim ) * medmask;
             }
         }
 
-        if( mask != nullptr && m_preProcess_mask )
+        if( mask != nullptr && preProcessMaskEnabled )
         {
             std::cerr << "Masking . . .\n";
 #pragma omp parallel for
@@ -2958,15 +3240,15 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         std::cerr << "done\n";
     }
 
-    if( !std::isfinite( m_preProcess_gaussUSM_fwhm ) || m_preProcess_gaussUSM_fwhm < 0 )
+    if( !std::isfinite( gaussUSMFwhm ) || gaussUSMFwhm < 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                        "The Gaussian USM FWHM must be finite and nonnegative." );
     }
 
-    if( m_preProcess_gaussUSM_fwhm > 0 )
+    if( gaussUSMFwhm > 0 )
     {
-        const realT scaledWidth = 2 * m_preProcess_gaussUSM_fwhm;
+        const realT scaledWidth = 2 * gaussUSMFwhm;
         if( scaledWidth > std::numeric_limits<int>::max() )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
@@ -2986,7 +3268,7 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
 
         std::cerr << "applying Gauss USM . . .\n";
         t_gaussusm_begin = sys::get_curr_time();
-        const gaussKernel<eigenImage<_realT>, 2> kernel( m_preProcess_gaussUSM_fwhm );
+        const gaussKernel<eigenImage<_realT>, 2> kernel( gaussUSMFwhm );
 #pragma omp parallel for
         for( int i = 0; i < ims.planes(); ++i )
         {
@@ -2994,15 +3276,12 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
             im = ims.image( i );
             // gaussKernel::setKernel always succeeds, so this filter specialization cannot return an error.
             static_cast<void>(
-                filterImage( fim,
-                             im,
-                             kernel,
-                             0.5 * ( std::min( ims.rows(), ims.cols() ) - 1 ) - m_preProcess_gaussUSM_fwhm * 4 ) );
+                filterImage( fim, im, kernel, 0.5 * ( std::min( ims.rows(), ims.cols() ) - 1 ) - gaussUSMFwhm * 4 ) );
             im = ( im - fim );
             ims.image( i ) = im;
         }
 
-        if( mask != nullptr && m_preProcess_mask )
+        if( mask != nullptr && preProcessMaskEnabled )
         {
             std::cerr << "Masking . . .\n";
             // clang-format off
@@ -3016,16 +3295,14 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         std::cerr << "done\n";
     }
 
-    if( m_preProcess_azUSM_azHalfWidth && m_preProcess_azUSM_radHalfWidth )
+    if( azUSMAzHalfWidth && azUSMRadHalfWidth )
     {
         ipc::ompLoopWatcher<> status( ims.planes(), std::cerr );
 
         std::cerr << "applying azimuthal USM . . .\n";
         t_azusm_begin = sys::get_curr_time();
 
-        azBoxKernel<eigenImage<realT>> azbK( m_preProcess_azUSM_radHalfWidth,
-                                             m_preProcess_azUSM_azHalfWidth,
-                                             m_preProcess_azUSM_maxAz );
+        azBoxKernel<eigenImage<realT>> azbK( azUSMRadHalfWidth, azUSMAzHalfWidth, azUSMMaxAz );
 
         precalcKernel pcK( azbK, ims.rows(), ims.cols(), 0.5 * ( ims.rows() - 1 ), 0.5 * ( ims.cols() - 1 ) );
 
@@ -3046,7 +3323,7 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         status.outputFinalStatus();
         std::cerr << '\n';
 
-        if( mask != nullptr && m_preProcess_mask )
+        if( mask != nullptr && preProcessMaskEnabled )
         {
             std::cerr << "Masking . . .\n";
 #pragma omp parallel for
@@ -3060,39 +3337,41 @@ void HCIobservation<_realT, verboseT>::preProcess( eigenCube<realT> &ims )
         std::cerr << "done (" << t_azusm_end - t_azusm_begin << " sec)                                \n";
     }
 
-    preProcess_meanSub( ims );
+    preProcess_meanSub( ims, rdi );
 
-    preProcess_pixelTSNorm( ims );
+    preProcess_pixelTSNorm( ims, rdi );
 
     t_preproc_end = sys::get_curr_time();
 
 } // void HCIobservation<_realT,verboseT>::preProcess()
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT, verboseT>::preProcess_meanSub( eigenCube<realT> &ims )
+void HCIobservation<_realT, verboseT>::preProcess_meanSub( eigenCube<realT> &ims, bool rdi )
 {
-    if( m_preProcess_meanSubMethod == HCI::meanSub::none )
+    const HCI::meanSub meanSubMethod = rdi ? m_RDIpreProcess_meanSubMethod : m_preProcess_meanSubMethod;
+    const bool preProcessMaskEnabled = rdi ? m_RDIpreProcess_mask : m_preProcess_mask;
+
+    if( meanSubMethod == HCI::meanSub::none )
     {
         return;
     }
-    else if( m_preProcess_meanSubMethod != HCI::meanSub::meanImage &&
-             m_preProcess_meanSubMethod != HCI::meanSub::medianImage )
+    else if( meanSubMethod != HCI::meanSub::meanImage && meanSubMethod != HCI::meanSub::medianImage )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                        std::format( "Mean subtraction by {} "
                                                     "can't be done in pre-processing. "
                                                     "Only meanImage or medianImage can be used in pre.",
-                                                    HCI::meanSubToStr<verboseT>( m_preProcess_meanSubMethod ) ) );
+                                                    HCI::meanSubToStr<verboseT>( meanSubMethod ) ) );
     }
 
     imageT mean;
     const imageT *mask = preProcessMask( ims );
 
-    if( m_preProcess_meanSubMethod == HCI::meanSub::meanImage )
+    if( meanSubMethod == HCI::meanSub::meanImage )
     {
         ims.mean( mean );
     }
-    else if( m_preProcess_meanSubMethod == HCI::meanSub::medianImage )
+    else if( meanSubMethod == HCI::meanSub::medianImage )
     {
         ims.median( mean );
     }
@@ -3102,7 +3381,7 @@ void HCIobservation<_realT, verboseT>::preProcess_meanSub( eigenCube<realT> &ims
     {
         ims.image( n ) -= mean;
 
-        if( mask != nullptr && m_preProcess_mask )
+        if( mask != nullptr && preProcessMaskEnabled )
         {
             ims.image( n ) *= *mask;
         }
@@ -3110,20 +3389,24 @@ void HCIobservation<_realT, verboseT>::preProcess_meanSub( eigenCube<realT> &ims
 }
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> &ims )
+void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> &ims, bool rdi )
 {
-    if( m_preProcess_pixelTSNormMethod == HCI::pixelTSNorm::none )
+    const HCI::pixelTSNorm pixelTSNormMethod = rdi ? m_RDIpreProcess_pixelTSNormMethod : m_preProcess_pixelTSNormMethod;
+    const HCI::meanSub meanSubMethod = rdi ? m_RDIpreProcess_meanSubMethod : m_preProcess_meanSubMethod;
+    const bool preProcessMaskEnabled = rdi ? m_RDIpreProcess_mask : m_preProcess_mask;
+
+    if( pixelTSNormMethod == HCI::pixelTSNorm::none )
     {
         return;
     }
 
-    if( m_preProcess_pixelTSNormMethod == HCI::pixelTSNorm::rmsSigmaClipped )
+    if( pixelTSNormMethod == HCI::pixelTSNorm::rmsSigmaClipped )
     {
         throw mx::exception<verboseT>( mx::error_t::notimpl,
                                        "pixelTSNormMethod is rmsSigmaClipped, which is not implemented" );
     }
 
-    if( m_preProcess_pixelTSNormMethod != HCI::pixelTSNorm::rms )
+    if( pixelTSNormMethod != HCI::pixelTSNorm::rms )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                        "pixelTSNormMethod is not a supported normalization method" );
@@ -3134,7 +3417,7 @@ void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> 
         return;
     }
 
-    if( m_preProcess_meanSubMethod == HCI::meanSub::none )
+    if( meanSubMethod == HCI::meanSub::none )
     {
         std::cerr << "WARNING: preProcess.pixelTSNormMethod=rms is enabled without preprocessing mean subtraction; "
                      "RMS normalization will be calculated about zero. Set preProcess.meanSubMethod=meanImage or "
@@ -3155,7 +3438,7 @@ void HCIobservation<_realT, verboseT>::preProcess_pixelTSNorm( eigenCube<realT> 
         {
             for( int rr = 0; rr < ims.rows(); ++rr )
             {
-                if( mask != nullptr && m_preProcess_mask )
+                if( mask != nullptr && preProcessMaskEnabled )
                 {
                     if( ( *mask )( rr, cc ) == 0 )
                     {
@@ -3484,6 +3767,7 @@ void HCIobservation<_realT, verboseT>::outputPreProcessed()
         fitsHeaderT fh = m_heads[i];
         stdFitsHeader( fh );
         appendPreprocessedFitsHeader( fh );
+        fh.template append<int>( "HCIREDUCE PREPROCESSED", 1, "HCIreduce preprocessing-stage product" );
         const mx::error_t result =
             ff.write( fname, m_tgtIms.image( i ).data(), m_tgtIms.rows(), m_tgtIms.cols(), 1, fh );
         if( result != mx::error_t::noerror )
@@ -3502,12 +3786,14 @@ void HCIobservation<_realT, verboseT>::appendPreprocessedFitsHeader( fitsHeaderT
 template <typename _realT, class verboseT>
 void HCIobservation<_realT, verboseT>::outputRDIPreProcessed()
 {
-    if( m_preProcess_outputPrefix.empty() )
+    const std::string &outputPrefix =
+        m_RDIpreProcess_outputPrefix.empty() ? m_preProcess_outputPrefix : m_RDIpreProcess_outputPrefix;
+    if( outputPrefix.empty() )
     {
         return;
     }
 
-    const std::string dir = ioutils::parentPath( m_preProcess_outputPrefix );
+    const std::string dir = ioutils::parentPath( outputPrefix );
     if( !dir.empty() )
     {
         const mx::error_t result = ioutils::createDirectories( dir );
@@ -3529,10 +3815,11 @@ void HCIobservation<_realT, verboseT>::outputRDIPreProcessed()
     fitsFileT ff;
     for( int i = 0; i < m_refIms.planes(); ++i )
     {
-        const std::string fname = std::format( "{}RDI_{:06}.fits", m_preProcess_outputPrefix, i );
+        const std::string fname = std::format( "{}RDI_{:06}.fits", outputPrefix, i );
         fitsHeaderT head = m_RDIheads[i];
-        stdFitsHeader( head );
+        stdFitsHeader( head, true );
         appendPreprocessedFitsHeader( head );
+        head.template append<int>( "HCIREDUCE PREPROCESSED", 1, "HCIreduce preprocessing-stage product" );
         const mx::error_t result =
             ff.write( fname, m_refIms.image( i ).data(), m_refIms.rows(), m_refIms.cols(), 1, head );
         if( result != mx::error_t::noerror )
@@ -3543,7 +3830,141 @@ void HCIobservation<_realT, verboseT>::outputRDIPreProcessed()
 } // void HCIobservation<_realT,verboseT>::outputRDIPreProcessed()
 
 template <typename _realT, class verboseT>
-void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head )
+void HCIobservation<_realT, verboseT>::inheritPreProcessFitsHeader( const std::vector<std::string> &fileList,
+                                                                    std::map<std::string, std::string> &inherited,
+                                                                    const std::string &inputName )
+{
+    if( fileList.empty() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "cannot inherit preprocessing provenance from an empty " + inputName + " set" );
+    }
+
+    std::vector<fitsHeaderT> headers( fileList.size() );
+    fitsFileT file;
+    const mx::error_t result = file.readHeader( headers, fileList );
+    if( result != mx::error_t::noerror )
+    {
+        throw mx::exception<verboseT>( result, "reading " + inputName + " preprocessing provenance" );
+    }
+
+    const std::vector<std::string> cards{ "COADMTHD",
+                                          "COADIMNO",
+                                          "COADTIME",
+                                          "COADANGL",
+                                          "MASKFILE",
+                                          "PREPROC BEFORE",
+                                          "PREPROC MASK",
+                                          "PREPROC SUBRADPROF",
+                                          "PREPROC AZUSM AZWIDTH",
+                                          "PREPROC AZUSM MAXAZ",
+                                          "PREPROC AZUSM RADWIDTH",
+                                          "PREPROC MEDIANUSM FWHM",
+                                          "PREPROC GAUSSUSM FWHM",
+                                          "PREPROC MEANSUB METHOD",
+                                          "PREPROC PIXELTSNORM METHOD",
+                                          "PREPROC PIXELTSNORM SIGMA" };
+
+    inherited.clear();
+    for( size_t index = 0; index < headers.size(); ++index )
+    {
+        fitsHeaderT &header = headers[index];
+        if( header.count( "HCIREDUCE PREPROCESSED" ) == 0 ||
+            header["HCIREDUCE PREPROCESSED"].template value<int>() != 1 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                           inputName + " input " + fileList[index] +
+                                               " is not marked HCIREDUCE PREPROCESSED" );
+        }
+
+        for( const std::string &card : cards )
+        {
+            if( header.count( card ) == 0 )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               inputName + " input " + fileList[index] + " is missing " + card );
+            }
+
+            const std::string value = header[card].String();
+            const auto [iterator, inserted] = inherited.emplace( card, value );
+            if( !inserted && iterator->second != value )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               inputName + " input " + fileList[index] + " disagrees on " + card );
+            }
+        }
+    }
+}
+
+template <typename _realT, class verboseT>
+void HCIobservation<_realT, verboseT>::appendPreProcessFitsHeader( fitsHeaderT &head,
+                                                                   bool rdi,
+                                                                   const std::string &prefix ) const
+{
+    const bool beforeCoadd = rdi ? m_RDIpreProcess_beforeCoadd : m_preProcess_beforeCoadd;
+    const bool mask = rdi ? m_RDIpreProcess_mask : m_preProcess_mask;
+    const bool subradprof = rdi ? m_RDIpreProcess_subradprof : m_preProcess_subradprof;
+    const realT azUSMAzHalfWidth = rdi ? m_RDIpreProcess_azUSM_azHalfWidth : m_preProcess_azUSM_azHalfWidth;
+    const realT azUSMMaxAz = rdi ? m_RDIpreProcess_azUSM_maxAz : m_preProcess_azUSM_maxAz;
+    const realT azUSMRadHalfWidth = rdi ? m_RDIpreProcess_azUSM_radHalfWidth : m_preProcess_azUSM_radHalfWidth;
+    const int medianUSMFwhm = rdi ? m_RDIpreProcess_medianUSM_fwhm : m_preProcess_medianUSM_fwhm;
+    const realT gaussUSMFwhm = rdi ? m_RDIpreProcess_gaussUSM_fwhm : m_preProcess_gaussUSM_fwhm;
+    const HCI::meanSub meanSubMethod = rdi ? m_RDIpreProcess_meanSubMethod : m_preProcess_meanSubMethod;
+    const HCI::pixelTSNorm pixelTSNormMethod = rdi ? m_RDIpreProcess_pixelTSNormMethod : m_preProcess_pixelTSNormMethod;
+    const realT pixelTSSigma = rdi ? m_RDIpixelTSSigma : m_pixelTSSigma;
+
+    head.template append<int>( prefix + " BEFORE", beforeCoadd, "pre-process before coadd flag" );
+    head.template append<int>( prefix + " MASK", mask, "pre-process mask flag" );
+    head.template append<int>( prefix + " SUBRADPROF", subradprof, "pre-process subtract radial profile flag" );
+    head.template append<realT>( prefix + " AZUSM AZWIDTH",
+                                 azUSMAzHalfWidth,
+                                 "pre-process azimuthal USM azimuthal half-width [pixels]" );
+    head.template append<realT>( prefix + " AZUSM MAXAZ",
+                                 azUSMMaxAz,
+                                 "pre-process azimuthal USM maximum azimuthal width [degrees]" );
+    head.template append<realT>( prefix + " AZUSM RADWIDTH",
+                                 azUSMRadHalfWidth,
+                                 "pre-process azimuthal USM radial half-width [pixels]" );
+    head.template append<int>( prefix + " MEDIANUSM FWHM", medianUSMFwhm, "pre-process median USM fwhm [pixels]" );
+    head.template append<realT>( prefix + " GAUSSUSM FWHM", gaussUSMFwhm, "pre-process Gaussian USM fwhm [pixels]" );
+    head.template append<std::string>( prefix + " MEANSUB METHOD",
+                                       HCI::meanSubToStr<verboseT>( meanSubMethod ),
+                                       "pre-process mean subtraction method" );
+    head.template append<std::string>( prefix + " PIXELTSNORM METHOD",
+                                       HCI::pixelTSNormToStr<verboseT>( pixelTSNormMethod ),
+                                       "pre-process pixel time-series norm method" );
+    head.template append<realT>( prefix + " PIXELTSNORM SIGMA",
+                                 pixelTSSigma,
+                                 "pre-process pixel time-series sigma-clipping threshold" );
+}
+
+template <typename _realT, class verboseT>
+void HCIobservation<_realT, verboseT>::appendInheritedPreProcessFitsHeader( fitsHeaderT &head ) const
+{
+    const auto append = [&head]( const std::map<std::string, std::string> &inherited, const std::string &inputName )
+    {
+        if( inherited.empty() )
+        {
+            return;
+        }
+
+        head.template append<int>( "HCIREDUCE INHERIT " + inputName,
+                                   1,
+                                   "validated upstream preprocessing provenance was inherited" );
+        for( const auto &[card, value] : inherited )
+        {
+            head.template append<std::string>( "HCIREDUCE " + inputName + " " + card,
+                                               value,
+                                               "inherited upstream preprocessing provenance" );
+        }
+    };
+
+    append( m_inheritedTargetPreProcess, "TARGET" );
+    append( m_inheritedRDIPreProcess, "RDI" );
+}
+
+template <typename _realT, class verboseT>
+void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head, bool rdiPreprocessingProduct )
 {
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
     head.append( "", fits::fitsCommentType(), "mx::HCIobservation parameters:" );
@@ -3574,34 +3995,16 @@ void HCIobservation<_realT, verboseT>::stdFitsHeader( fitsHeaderT &head )
         head.template append<realT>( "COADANGL", 0, "max field-angle span in each coadd [degrees]" );
     }
 
-    head.append( "MASKFILE", m_maskFile, "mask file" );
+    const std::string &maskFile =
+        rdiPreprocessingProduct ? ( m_RDImaskUseInput ? m_maskFile : m_RDImaskFile ) : m_maskFile;
+    head.append( "MASKFILE", maskFile, "mask file" );
 
-    head.template append<int>( "PREPROC BEFORE", m_preProcess_beforeCoadd, "pre-process before coadd flag" );
-    head.template append<int>( "PREPROC MASK", m_preProcess_mask, "pre-process mask flag" );
-    head.template append<int>( "PREPROC SUBRADPROF",
-                               m_preProcess_subradprof,
-                               "pre-process subtract radial profile flag" );
-    head.template append<realT>( "PREPROC AZUSM AZWIDTH",
-                                 m_preProcess_azUSM_azHalfWidth,
-                                 "pre-process azimuthal USM azimuthal half-width [pixels]" );
-    head.template append<realT>( "PREPROC AZUSM MAXAZ",
-                                 m_preProcess_azUSM_maxAz,
-                                 "pre-process azimuthal USM maximum azimuthal width [degrees]" );
-    head.template append<realT>( "PREPROC AZUSM RADWIDTH",
-                                 m_preProcess_azUSM_radHalfWidth,
-                                 "pre-process azimuthal USM radial half-width [pixels]" );
-    head.template append<realT>( "PREPROC MEDIANUSM FWHM",
-                                 m_preProcess_medianUSM_fwhm,
-                                 "pre-process median USM fwhm [pixels]" );
-    head.template append<realT>( "PREPROC GAUSSUSM FWHM",
-                                 m_preProcess_gaussUSM_fwhm,
-                                 "pre-process Gaussian USM fwhm [pixels]" );
-    head.template append<std::string>( "PREPROC MEANSUB METHOD",
-                                       HCI::meanSubToStr<verboseT>( m_preProcess_meanSubMethod ),
-                                       "pre-process mean subtraction method" );
-    head.template append<std::string>( "PREPROC PIXELTSNORM METHOD",
-                                       HCI::pixelTSNormToStr<verboseT>( m_preProcess_pixelTSNormMethod ),
-                                       "pre-process pixel time-series norm method" );
+    appendPreProcessFitsHeader( head, rdiPreprocessingProduct, "PREPROC" );
+    if( !rdiPreprocessingProduct )
+    {
+        appendPreProcessFitsHeader( head, true, "RDI PREPROC" );
+        appendInheritedPreProcessFitsHeader( head );
+    }
 }
 
 template <typename _realT, class verboseT>

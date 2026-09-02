@@ -119,6 +119,7 @@ TEST_CASE( "HCIobservation standard FITS header", "[HCIobservation][output][stdF
     REQUIRE( header["PREPROC GAUSSUSM FWHM"].value<float>() == Approx( 1.5F ) );
     REQUIRE( header["PREPROC MEANSUB METHOD"].String() == "medianImage" );
     REQUIRE( header["PREPROC PIXELTSNORM METHOD"].String() == "rms" );
+    REQUIRE( header["PREPROC PIXELTSNORM SIGMA"].value<float>() == Approx( 3 ) );
 
     HCIobservationTestHarness noCoadd;
     HCIobservationTestHarness::fitsHeaderT noCoaddHeader;
@@ -127,6 +128,99 @@ TEST_CASE( "HCIobservation standard FITS header", "[HCIobservation][output][stdF
     REQUIRE( noCoaddHeader["COADIMNO"].Int() == 0 );
     REQUIRE( noCoaddHeader["COADTIME"].value<float>() == 0 );
     REQUIRE( noCoaddHeader["COADANGL"].value<float>() == 0 );
+}
+
+/// Verify HCIobservation keeps target and reference preprocessing independent and marks preprocessing products.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation independent RDI preprocessing provenance", "[HCIobservation][output][preprocess][RDI]" )
+{
+    TestDirectory directory;
+    HCIobservationTestHarness observation;
+    observation.m_dateKeyword.clear();
+    observation.m_RDIpreProcess_meanSubMethod = mx::improc::HCI::meanSub::meanImage;
+    observation.m_RDIpreProcess_outputPrefix = directory.file( "rdi_" ).string();
+    observation.m_refIms.resize( 2, 2, 2 );
+    observation.m_refIms.image( 0 ).setConstant( 1 );
+    observation.m_refIms.image( 1 ).setConstant( 3 );
+    observation.m_RDIheads.resize( 2 );
+
+    observation.preProcess( observation.m_refIms, true );
+    REQUIRE( observation.m_refIms.image( 0 ).isConstant( -1 ) );
+    REQUIRE( observation.m_refIms.image( 1 ).isConstant( 1 ) );
+
+    observation.outputRDIPreProcessed();
+    HCIobservationTestHarness::imageT image;
+    HCIobservationTestHarness::fitsHeaderT header;
+    readFitsImage( directory.file( "rdi_RDI_000000.fits" ), image, header );
+    REQUIRE( header["HCIREDUCE PREPROCESSED"].Int() == 1 );
+    REQUIRE( header["PREPROC MEANSUB METHOD"].String() == "meanImage" );
+}
+
+/// Verify HCIobservation validates marked upstream products and records inherited target coadd provenance.
+/** \ingroup HCIobservation_unit_tests */
+TEST_CASE( "HCIobservation inherited preprocessing provenance", "[HCIobservation][output][preprocess][inherit]" )
+{
+    TestDirectory directory;
+    HCIobservationTestHarness upstream;
+    upstream.m_coaddMethod = mx::improc::HCI::coadd::mean;
+    upstream.m_coaddMaxImno = 3;
+    upstream.m_preProcess_gaussUSM_fwhm = 2.5F;
+    upstream.m_preProcess_meanSubMethod = mx::improc::HCI::meanSub::meanImage;
+    HCIobservationTestHarness::fitsHeaderT upstreamHeader;
+    upstream.stdFitsHeader( upstreamHeader );
+    upstreamHeader.append<int>( "HCIREDUCE PREPROCESSED", 1, "test upstream preprocessing product" );
+
+    HCIobservationTestHarness::imageT image( 2, 2 );
+    image.setOnes();
+    const auto firstPath = directory.file( "upstream_000.fits" );
+    const auto secondPath = directory.file( "upstream_001.fits" );
+    writeFitsImage( firstPath, image, &upstreamHeader );
+    writeFitsImage( secondPath, image, &upstreamHeader );
+
+    HCIobservationTestHarness inherited;
+    inherited.m_dateKeyword.clear();
+    inherited.m_skipPreProcess = true;
+    inherited.m_preProcess_inherit = true;
+    inherited.m_fileList = { firstPath.string(), secondPath.string() };
+    inherited.readFiles();
+
+    HCIobservationTestHarness rdiUpstream;
+    rdiUpstream.m_coaddMethod = mx::improc::HCI::coadd::median;
+    rdiUpstream.m_RDIpreProcess_gaussUSM_fwhm = 4.5F;
+    rdiUpstream.m_RDIpreProcess_meanSubMethod = mx::improc::HCI::meanSub::medianImage;
+    HCIobservationTestHarness::fitsHeaderT rdiUpstreamHeader;
+    rdiUpstream.stdFitsHeader( rdiUpstreamHeader, true );
+    rdiUpstreamHeader.append<int>( "HCIREDUCE PREPROCESSED", 1, "test upstream RDI preprocessing product" );
+    const auto rdiFirstPath = directory.file( "rdi-upstream_000.fits" );
+    const auto rdiSecondPath = directory.file( "rdi-upstream_001.fits" );
+    writeFitsImage( rdiFirstPath, image, &rdiUpstreamHeader );
+    writeFitsImage( rdiSecondPath, image, &rdiUpstreamHeader );
+    inherited.m_RDIdateKeyword.clear();
+    inherited.m_RDIfileList = { rdiFirstPath.string(), rdiSecondPath.string() };
+    inherited.readRDIFiles();
+
+    HCIobservationTestHarness::fitsHeaderT scienceHeader;
+    inherited.finalImageHeader( scienceHeader );
+    REQUIRE( scienceHeader["HCIREDUCE INHERIT TARGET"].Int() == 1 );
+    REQUIRE( scienceHeader["HCIREDUCE TARGET COADMTHD"].String() == "mean" );
+    REQUIRE( scienceHeader["HCIREDUCE TARGET COADIMNO"].String() == "3" );
+    REQUIRE( scienceHeader["HCIREDUCE TARGET PREPROC GAUSSUSM FWHM"].String() == "2.5" );
+    REQUIRE( scienceHeader["HCIREDUCE INHERIT RDI"].Int() == 1 );
+    REQUIRE( scienceHeader["HCIREDUCE RDI COADMTHD"].String() == "median" );
+    REQUIRE( scienceHeader["HCIREDUCE RDI PREPROC GAUSSUSM FWHM"].String() == "4.5" );
+
+    HCIobservationTestHarness::fitsHeaderT mismatchedHeader;
+    upstream.m_preProcess_gaussUSM_fwhm = 3.5F;
+    upstream.stdFitsHeader( mismatchedHeader );
+    mismatchedHeader.append<int>( "HCIREDUCE PREPROCESSED", 1, "test upstream preprocessing product" );
+    writeFitsImage( secondPath, image, &mismatchedHeader );
+
+    HCIobservationTestHarness mismatch;
+    mismatch.m_dateKeyword.clear();
+    mismatch.m_skipPreProcess = true;
+    mismatch.m_preProcess_inherit = true;
+    mismatch.m_fileList = { firstPath.string(), secondPath.string() };
+    REQUIRE_THROWS( mismatch.readFiles() );
 }
 
 /// Verify HCIobservation::outputPreProcessed writes rectangular target images, copied headers, and nested paths.
@@ -162,6 +256,7 @@ TEST_CASE( "HCIobservation target preprocessed output", "[HCIobservation][output
         REQUIRE( image.isApprox( observation.m_tgtIms.image( plane ) ) );
         REQUIRE( header["ORIGINAL"].Int() == 10 * ( plane + 1 ) );
         REQUIRE( header["NUMIMS"].Int() == 2 );
+        REQUIRE( header["HCIREDUCE PREPROCESSED"].Int() == 1 );
     }
 
     observation.m_heads.pop_back();
