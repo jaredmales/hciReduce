@@ -79,14 +79,18 @@
  * deletionBackend=rankOneSecular
  * \endcode
  *
- * Controlled single-image KLIP measurements on the NACO reference configuration found that `rankOneSecular` can win
- * only for compact regions with a sufficiently large reference library. With one BLAS thread, a region of about 200
- * pixels was faster from 16 references upward; at about 1,100 pixels it broke even around 64 references and became
- * clearly favorable near 128; at roughly 5,000 pixels and above it remained two to five times slower through the
- * tested 256 references. With 20 outer workers, contention moves the useful compact-region crossover to roughly 256
- * references. These are workload measurements, not a universal threshold: retain `explicitRefit` for ordinary or
- * large regions, and benchmark a representative annulus, mode count, OpenMP setting, and BLAS-thread setting before
- * adopting the structured backend.
+ * Controlled single-image KLIP measurements show that `rankOneSecular` is strongly hardware- and parallelism-dependent.
+ * With one BLAS thread, a region of about 200 pixels was faster from 16 references upward; at about 1,100 pixels it
+ * broke even around 64 references and became clearly favorable near 128; at roughly 5,000 pixels and above it remained
+ * two to five times slower through the tested 256 references. For the NACO _AF Lep_ reference configuration, the selected
+ * factor path completed in 46.9 seconds rather than 110.9 seconds (2.36x _faster_) on an older 20 thread Intel Laptop, with science-product SNR
+ * differences of order 1e-5 relative. The identical configuration on a newer 48 thread AMD workstation completed in 16.5
+ * seconds rather than 2.93 seconds (6.45x _slower_): direct eigensolves scaled much better there.
+ *
+ * These are workload measurements, not a universal threshold. Retain `explicitRefit` by default, and benchmark both
+ * solvers for a representative annulus, mode count, OpenMP worker count, and BLAS-thread setting on every intended
+ * production host. Do not transfer a solver choice from a desktop or modest-core machine to a many-core host without
+ * that comparison.
  *
  * \section klip_pca_dictionary KL basis and residual products
  *

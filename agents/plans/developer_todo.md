@@ -74,9 +74,11 @@ response-normalization trough and filtered ring at the true companion separation
 response localization, detection ranking, validity at annulus/image boundaries, and preservation of ordinary
 unfiltered results when PSF calculation/filtering is disabled.
 
-## Evaluate extend of double vs float in P4.
+## Evaluate extent of double vs float in P4.
 
 [] In P4 double precision is carried through to more than just matrix decomposition.  We should evaluate if there are performance gains for switching to float for more of the algorithm.
+
+[] We should also evaluate using FP32 for all of KLIP.  
 
 ## P4 Pixel Local Processing 
 
