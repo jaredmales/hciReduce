@@ -512,8 +512,9 @@ not blockers on the accepted M32D64 implementation unless the production change 
       selection, mode/factor construction, projection/residual formation, and optional coefficients/probes separately.
       It must build and run without enabling the hciReduce CUDA benchmark. Repeat the portability check with a
       non-CUDA mxlib build when one is available.
-- [ ] Make P4 worker-memory estimates scalar-aware and test the formula, but measure candidates first at an equal fixed
-      worker count so changed automatic concurrency does not contaminate the arithmetic comparison.
+- [x] Make P4 worker-memory estimates scalar-aware and test the formula. The production estimate includes simultaneous
+      FP32 ingress, Gram/eigenvector, projection, coefficient, centering, and probe scratch while leaving exact FP64
+      factor deletion free of mixed-policy storage. Candidate measurements used an equal fixed worker count.
 - [~] Emit machine-readable raw rows plus a human-readable summary. The covered P4 and KLIP cases now emit validated,
       contract-bound v2 rows and reject output/identity failures; the full required case sets are not yet present.
 
@@ -573,14 +574,22 @@ not blockers on the accepted M32D64 implementation unless the production change 
 
 This is the production follow-on checklist for the accepted M32D64 policy.
 
-- [~] Promote the fixed M32D64 policy without a runtime precision selector. Record effective
-      calculation/eigensolver/deletion precision in FITS provenance.
-- [~] Retain the authoritative all-double P4 baseline for regression tests and factor-deletion operation while the new path gains
-      production experience.
+- [x] Promote the fixed M32D64 policy without a runtime precision selector. Record effective
+      calculation/eigensolver/deletion precision in FITS provenance, including experimental benchmark products.
+- [x] Retain the authoritative all-double P4 baseline for regression tests and factor-deletion operation while the new
+      path gains production experience.
 - [~] Update numerical documentation, memory accounting, configuration docs, application help, and every affected
       benchmark/test oracle.
 - [ ] Run focused Release, Debug/coverage, ASan/UBSan, full CTest, documentation, downstream shared/static consumer,
       and real-data product comparisons. Apply the mxlib coverage gate to every edited caller.
+
+The 2026-09-03 review follow-up closed the production memory-accounting underestimate, made experimental diagnostic
+FITS cards follow the active D64/M32D64/F32 dispatch, added an always-on reduction-level Gram-routing discriminator,
+and applied `clang-format` to the mixed-precision blocks. The default Release build passed all 26 CTest targets; its
+P4Reduction executable passed 75,478 assertions. The experimental Release P4Reduction executable passed 294,180
+assertions across 28 cases, and the experimental benchmark target built successfully. The edited FITS-header caller's
+mxlib dependencies remained at 100% executable-line coverage. Debug/coverage, sanitizers, documentation, downstream
+consumers, and additional real-data comparisons remain open under the aggregate validation item above.
 
 ## Promotion gates
 
@@ -613,7 +622,7 @@ treat the M32D64 decision as evidence that these broader gates passed.
 - A CPU benchmark and machine-readable raw results for every precision configuration and matrix/path regime.
 - A frozen tolerance table plus synthetic numerical, real-product, and injected-source comparison reports.
 - [x] A P4 decision and a separate KLIP decision, including FP64 factor-deletion exceptions and platform limitations.
-- [~] The accepted production implementation, precision provenance, numerical documentation, and validation record.
+- [x] The accepted production implementation, precision provenance, numerical documentation, and validation record.
 
 ## Risks and deferred decisions
 

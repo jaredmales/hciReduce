@@ -143,9 +143,9 @@ struct P4LocalEvaluation
 /// Target-only Pixel Prediction Post-Processing reduction orchestrator.
 /** P4 learns one temporal regression per search pixel. Predictor geometry is fixed within each annulus,
  * while numerical workspaces are private to OpenMP workers. The initial supported implementation uses float image
- * storage, all-double normal equations, and float cubic-convolution interpolation. Detector-frame regression is the
- * compatibility default; rotated-frame regression directly samples fixed sky coordinates from each preprocessed,
- * unrotated detector frame.
+ * storage and cubic-convolution interpolation, FP32 normal equations and projection, and an FP64 eigensolve.
+ * Detector-frame regression is the compatibility default; rotated-frame regression directly samples fixed sky
+ * coordinates from each preprocessed, unrotated detector frame. Exact factor deletion remains an FP64 exception.
  *
  * \tparam _realT image-storage arithmetic type
  * \tparam _derotFunctObj ADI derotation policy
@@ -450,8 +450,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Promote one sampled predictor only when float interpolation remained finite.
     static double checkedPredictorPromotion( realT value /**< [in] sampled predictor value */ );
 
-    /// Convert one all-double residual only when it remains finite in image storage.
-    static realT checkedResidualCast( double value /**< [in] all-double residual value */ );
+    /// Convert one calculation result only when it remains finite in image storage.
+    static realT checkedResidualCast( double value /**< [in] residual value returned through common FP64 storage */ );
 
     /// Return the structurally available degrees of freedom after checking the P4PCA integer boundary.
     static int checkedMaximumDegreesOfFreedom( int imageCount, /**< [in] positive temporal sample count */
@@ -604,8 +604,8 @@ namespace detail
 {
 
 /// Run one P4 reduction through an explicitly selected experimental PCA scalar policy.
-/** Non-DD policies currently require disabled automatic memory limiting and reject factor deletion, shared PSF
- * coefficients, and local-trial processing before the reduction object is mutated.
+/** FP32 eigensolve rejects exact factor deletion because the deletion implementation remains FP64. Other policies use
+ * the same memory limiting, shared-PSF, and local-trial orchestration as production.
  */
 int p4ReductionReduceExperimental(
     P4Reductionf &reduction, /**< [in,out] configured production-layout reduction object */

@@ -264,6 +264,7 @@ void prepareReduction( reductionHarness &reduction, /**< [out] configured reduct
     reduction.m_Nrows = rows;
     reduction.m_Ncols = columns;
     reduction.m_Npix = rows * columns;
+    reduction.m_imSize = rows;
     reduction.m_tgtIms.resize( rows, columns, imageCount );
     for( int image = 0; image < imageCount; ++image )
     {
@@ -410,6 +411,29 @@ MXLAPACK_INT failingEigenSolver( mx::improc::P4PCA::matrixT &eigenvectors, /**< 
     static_cast<void>( covariance );
     static_cast<void>( modeCount );
     static_cast<void>( workspace );
+    return 73;
+}
+
+/// Number of production-route eigensolver calls observed by the Gram-capture seam.
+std::size_t capturedProductionGramCalls{ 0 };
+
+/// FP64 eigensolver input captured from one production reduction fit.
+mx::improc::P4PCA::matrixT capturedProductionGram;
+
+/// Capture the production eigensolver input and stop the reduction before projection.
+MXLAPACK_INT
+captureProductionGramEigenSolver( mx::improc::P4PCA::matrixT &eigenvectors, /**< [out] unused eigenvectors */
+                                  mx::improc::P4PCA::matrixT &eigenvalues,  /**< [out] unused eigenvalues */
+                                  mx::improc::P4PCA::matrixT &covariance,   /**< [in] promoted production Gram matrix */
+                                  int modeCount,                            /**< [in] unused mode count */
+                                  mx::improc::P4PCA::workspaceT &workspace /**< [in,out] unused workspace */ )
+{
+    static_cast<void>( eigenvectors );
+    static_cast<void>( eigenvalues );
+    static_cast<void>( modeCount );
+    static_cast<void>( workspace );
+    ++capturedProductionGramCalls;
+    capturedProductionGram = covariance;
     return 73;
 }
 
@@ -817,7 +841,7 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
                                                                  20,
                                                                  121 );
     const std::size_t expectedSmallWorkerBytes = static_cast<std::size_t>(
-        std::ceil( 1.25L * ( sizeof( double ) * 289.0L + sizeof( float ) * 27.0L ) + 1024.0L * 1024.0L ) );
+        std::ceil( 1.25L * ( sizeof( double ) * 289.0L + sizeof( float ) * 101.0L ) + 1024.0L * 1024.0L ) );
     REQUIRE( smallWorkerBytes == expectedSmallWorkerBytes );
     REQUIRE( smallWorkerBytes >= 1024 * 1024 );
     REQUIRE( largeWorkerBytes > smallWorkerBytes );
@@ -3540,6 +3564,63 @@ TEST_CASE( "P4 reduction OpenMP determinism and exception capture", "[P4Reductio
     // clang-format on
 }
 
+/// Verify the ordinary reduction passes an FP32-built Gram matrix to the FP64 eigensolver.
+/** This exercises mx::improc::P4Reduction::reduce() through the production detector-frame regression path.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 production reduction routes through M32D64", "[P4Reduction][precision][routing]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    reductionHarness reduction;
+    prepareReduction( reduction );
+    for( int image = 0; image < reduction.m_Nims; ++image )
+    {
+        reduction.m_tgtIms.image( image ).setConstant( 0.1234567F * static_cast<float>( image + 1 ) );
+    }
+
+    const mx::improc::P4PixelGridRegion configuration( reduction.m_minRadius.front(),
+                                                       reduction.m_maxRadius.front(),
+                                                       reduction.m_orDeltaRadiusInner,
+                                                       reduction.m_orDeltaRadiusOuter,
+                                                       reduction.m_orArcHalfWidth,
+                                                       reduction.m_orMaxHalfAngle,
+                                                       reduction.m_psfRadius,
+                                                       *reduction.m_exclusionPolicy,
+                                                       reduction.m_exclusionRadiusBuffer );
+    reductionT::pixelGridT grid;
+    grid.resize( reduction.m_Nrows, reduction.m_Ncols );
+    grid.region( configuration, nullptr );
+    REQUIRE( grid.searchPixelCount() > 0 );
+    REQUIRE( grid.predictorCount() >= static_cast<std::size_t>( reduction.m_Nims ) );
+
+    mx::improc::P4PCA::matrixT ingress( reduction.m_Nims, static_cast<Eigen::Index>( grid.predictorCount() ) );
+    for( int image = 0; image < reduction.m_Nims; ++image )
+    {
+        for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+        {
+            ingress( image, static_cast<Eigen::Index>( predictor ) ) =
+                static_cast<double>( grid.sample( reduction.m_tgtIms.image( image ), 0, predictor ) );
+        }
+    }
+    const mx::improc::P4PCA::matrixT doubleGram = ( ingress.matrix() * ingress.matrix().transpose() ).array();
+    const mx::improc::detail::P4PCAFloatMatrixT floatIngress = ingress.cast<float>();
+    const mx::improc::P4PCA::matrixT expectedMixedGram =
+        ( floatIngress.matrix() * floatIngress.matrix().transpose() ).array().cast<double>();
+    REQUIRE_FALSE( ( doubleGram == expectedMixedGram ).all() );
+
+    capturedProductionGramCalls = 0;
+    capturedProductionGram.resize( 0, 0 );
+    eigenSolverReset solver( &captureProductionGramEigenSolver );
+    {
+        CerrCapture capture;
+        REQUIRE_THROWS( reduction.reduce() );
+    }
+    REQUIRE( capturedProductionGramCalls == 1 );
+    REQUIRE( capturedProductionGram.rows() == expectedMixedGram.rows() );
+    REQUIRE( capturedProductionGram.cols() == expectedMixedGram.cols() );
+    REQUIRE( ( capturedProductionGram == expectedMixedGram ).all() );
+}
+
 /// Verify P4Reduction diagnostics are opt-in, atomically published, science-neutral, and complete in FITS provenance.
 /** \ingroup P4Reduction_unit_tests */
 TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics][header][finalProcess]" )
@@ -3778,6 +3859,52 @@ TEST_CASE( "P4 production reduction is M32D64-exact", "[P4Reduction][experimenta
                 }
             }
         }
+    }
+}
+
+/// Verify experimental reduction products identify the precision policy that produced them.
+/** This exercises mx::improc::detail::p4ReductionReduceExperimental() and
+ * mx::improc::P4Reduction::appendReductionHeader() through diagnostic FITS publication.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 experimental FITS provenance follows precision dispatch",
+           "[P4Reduction][experimental][precision][header]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    using precisionT = mx::improc::detail::P4PCAPrecisionPolicy;
+    struct PrecisionExpectation
+    {
+        precisionT policy;       ///< Experimental dispatch selection.
+        std::string label;       ///< Expected effective policy card and output-directory name.
+        std::string calculation; ///< Expected calculation precision card.
+        std::string eigensolve;  ///< Expected eigensolve precision card.
+        std::string rank;        ///< Expected rank precision card.
+    };
+    const std::vector<PrecisionExpectation> expectations{ { precisionT::doubleDouble, "D64", "FP64", "FP64", "FP64" },
+                                                          { precisionT::floatDouble, "M32D64", "FP32", "FP64", "FP32" },
+                                                          { precisionT::floatFloat, "F32", "FP32", "FP32", "FP32" } };
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+
+    for( const PrecisionExpectation &expectation : expectations )
+    {
+        reductionHarness reduction;
+        preparePrecisionReduction( reduction );
+        reduction.m_writeDiagnostics = true;
+        reduction.m_diagnosticDirectory = directory.file( expectation.label ).string();
+        REQUIRE( mx::improc::detail::p4ReductionReduceExperimental( reduction, expectation.policy ) == 0 );
+
+        reductionT::imageT summary;
+        reductionT::fitsHeaderT header;
+        REQUIRE(
+            reader.read( summary, header, directory.file( expectation.label + "/p4RegionSummary.fits" ).string() ) ==
+            mx::error_t::noerror );
+        REQUIRE( header["P4POLCY"].String().starts_with( expectation.label ) );
+        REQUIRE( header["P4CALCPR"].String().starts_with( expectation.calculation ) );
+        REQUIRE( header["P4EIGPR"].String().starts_with( expectation.eigensolve ) );
+        REQUIRE( header["P4RANKPR"].String().starts_with( expectation.rank ) );
+        REQUIRE( header["P4OUTPR"].String().starts_with( "FP32" ) );
+        REQUIRE( header["P4FDELPR"].String().starts_with( "N/A" ) );
     }
 }
 

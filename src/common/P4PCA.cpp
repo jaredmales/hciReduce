@@ -1071,14 +1071,7 @@ void p4PCACalculateExperimental( P4PCAResult &output,
                                                 coefficients );
         return;
     case P4PCAPrecisionPolicy::floatDouble:
-        p4PCACalculateMixed( output,
-                             predictors,
-                             target,
-                             modes,
-                             rankTolerance,
-                             workspace,
-                             timing,
-                             coefficients );
+        p4PCACalculateMixed( output, predictors, target, modes, rankTolerance, workspace, timing, coefficients );
         return;
     case P4PCAPrecisionPolicy::floatFloat:
         workspace.floatPredictors = predictors.cast<float>();

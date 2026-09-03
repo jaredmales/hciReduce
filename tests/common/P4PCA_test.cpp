@@ -2824,8 +2824,7 @@ TEST_CASE( "P4PCA reuses one workspace across centered and uncentered paths", "[
  * mx::improc::detail::p4PCACalculateHeldOutMixed(), and
  * mx::improc::detail::p4PCACalculateHeldOutProbeMixed().
  */
-TEST_CASE( "P4PCA production policy is FP32 calculation with FP64 eigensolve",
-           "[P4PCA][precision][production][mixed]" )
+TEST_CASE( "P4PCA production policy is FP32 calculation with FP64 eigensolve", "[P4PCA][precision][production][mixed]" )
 {
     static_assert( std::is_same_v<typename mx::improc::detail::P4PCAFloatMatrixT::Scalar, float> );
 
@@ -2841,8 +2840,14 @@ TEST_CASE( "P4PCA production policy is FP32 calculation with FP64 eigensolve",
     static_assert( std::is_same_v<typename decltype( workspace.doubleEigensolver.cvd )::Scalar, double> );
     resultT direct;
     pcaT::matrixT coefficients;
-    mx::improc::detail::p4PCACalculateMixed(
-        direct, predictors, target, modes, 1e-7, workspace, nullptr, &coefficients );
+    mx::improc::detail::p4PCACalculateMixed( direct,
+                                             predictors,
+                                             target,
+                                             modes,
+                                             1e-7,
+                                             workspace,
+                                             nullptr,
+                                             &coefficients );
     REQUIRE( direct.numericalRank == 3 );
     REQUIRE( direct.modeStatus == std::vector<statusT>{ statusT::rankSupported, statusT::rankSupported } );
     for( Eigen::Index output = 0; output < static_cast<Eigen::Index>( modes.size() ); ++output )
@@ -2853,11 +2858,13 @@ TEST_CASE( "P4PCA production policy is FP32 calculation with FP64 eigensolve",
 
     pcaT::matrixT centeredPredictors = predictors;
     resultT centered;
-    mx::improc::detail::p4PCACalculateCenteredInPlaceMixed(
-        centered, centeredPredictors, target, modes, 1e-7, workspace );
-    requireApprox( centeredPredictors,
-                   centeredColumns( nativePredictors ).cast<double>(),
-                   2e-6 );
+    mx::improc::detail::p4PCACalculateCenteredInPlaceMixed( centered,
+                                                            centeredPredictors,
+                                                            target,
+                                                            modes,
+                                                            1e-7,
+                                                            workspace );
+    requireApprox( centeredPredictors, centeredColumns( nativePredictors ).cast<double>(), 2e-6 );
     for( Eigen::Index output = 0; output < static_cast<Eigen::Index>( modes.size() ); ++output )
     {
         requireApprox( centered.residuals.col( output ),
@@ -2873,8 +2880,7 @@ TEST_CASE( "P4PCA production policy is FP32 calculation with FP64 eigensolve",
     const mx::improc::P4TargetExclusions exclusions =
         mx::improc::P4TargetExclusions::fromSpans( predictors.rows(), spans );
     resultT heldOut;
-    mx::improc::detail::p4PCACalculateHeldOutMixed(
-        heldOut, predictors, target, exclusions, modes, 1e-7, workspace );
+    mx::improc::detail::p4PCACalculateHeldOutMixed( heldOut, predictors, target, exclusions, modes, 1e-7, workspace );
     resultT heldOutOracle;
     pcaT::workspaceT oracleWorkspace;
     pcaT::calculateHeldOut( heldOutOracle, predictors, target, exclusions, modes, 1e-7, oracleWorkspace );
@@ -2927,8 +2933,7 @@ TEST_CASE( "P4PCA production mixed policy preserves eigensolver failure status",
     mx::improc::detail::P4PCAMixedWorkspace workspace;
     resultT output;
     solverReset reset( fakeSolverBehavior::failure );
-    REQUIRE_THROWS_WITH( mx::improc::detail::p4PCACalculateMixed(
-                             output, predictors, target, { 1, 2 }, 0, workspace ),
+    REQUIRE_THROWS_WITH( mx::improc::detail::p4PCACalculateMixed( output, predictors, target, { 1, 2 }, 0, workspace ),
                          "P4PCA eigensolver failed with status 37" );
     REQUIRE( solverCalls == 1 );
 }

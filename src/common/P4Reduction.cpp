@@ -842,14 +842,20 @@ void p4ReductionDispatchDirect( P4PCAResult &output,              /**< [out] com
                                 P4PCA::workspaceT &workspace,     /**< [in,out] ordinary FP64 workspace */
                                 detail::P4PCAMixedWorkspace &mixedWorkspace,
                                 /**< [in,out] production mixed-precision workspace */
-                                P4PCATiming *timing,              /**< [out] optional stage timing */
+                                P4PCATiming *timing, /**< [out] optional stage timing */
                                 P4PCA::matrixT *coefficients /**< [out] optional predictor coefficients */ )
 {
     if( !p4ReductionWorkerPrecisionContext )
     {
         static_cast<void>( workspace );
-        detail::p4PCACalculateMixed(
-            output, predictors, target, modes, rankTolerance, mixedWorkspace, timing, coefficients );
+        detail::p4PCACalculateMixed( output,
+                                     predictors,
+                                     target,
+                                     modes,
+                                     rankTolerance,
+                                     mixedWorkspace,
+                                     timing,
+                                     coefficients );
         return;
     }
     p4ReductionWorkerPrecisionContext->dispatch->direct( output,
@@ -872,14 +878,20 @@ void p4ReductionDispatchCenteredInPlace( P4PCAResult &output,        /**< [out] 
                                          P4PCA::workspaceT &workspace,  /**< [in,out] ordinary FP64 workspace */
                                          detail::P4PCAMixedWorkspace &mixedWorkspace,
                                          /**< [in,out] production mixed-precision workspace */
-                                         P4PCATiming *timing,           /**< [out] optional stage timing */
+                                         P4PCATiming *timing, /**< [out] optional stage timing */
                                          P4PCA::matrixT *coefficients /**< [out] optional predictor coefficients */ )
 {
     if( !p4ReductionWorkerPrecisionContext )
     {
         static_cast<void>( workspace );
-        detail::p4PCACalculateCenteredInPlaceMixed(
-            output, predictors, target, modes, rankTolerance, mixedWorkspace, timing, coefficients );
+        detail::p4PCACalculateCenteredInPlaceMixed( output,
+                                                    predictors,
+                                                    target,
+                                                    modes,
+                                                    rankTolerance,
+                                                    mixedWorkspace,
+                                                    timing,
+                                                    coefficients );
         return;
     }
     p4ReductionWorkerPrecisionContext->dispatch->centeredInPlace( output,
@@ -908,8 +920,14 @@ void p4ReductionDispatchHeldOut( P4PCAResult &output,              /**< [out] co
     if( !p4ReductionWorkerPrecisionContext )
     {
         static_cast<void>( workspace );
-        detail::p4PCACalculateHeldOutMixed(
-            output, predictors, target, exclusions, modes, rankTolerance, mixedWorkspace, timing );
+        detail::p4PCACalculateHeldOutMixed( output,
+                                            predictors,
+                                            target,
+                                            exclusions,
+                                            modes,
+                                            rankTolerance,
+                                            mixedWorkspace,
+                                            timing );
         return;
     }
     p4ReductionWorkerPrecisionContext->dispatch->heldOut( output,
@@ -925,16 +943,16 @@ void p4ReductionDispatchHeldOut( P4PCAResult &output,              /**< [out] co
 
 /// Invoke the active held-out probe evaluator, falling back to the production path outside an experiment.
 void p4ReductionDispatchHeldOutProbe(
-    P4PCAResult &output,                   /**< [out] completed held-out regression result */
-    P4PCA::matrixT &probeResiduals,        /**< [out] frozen-probe residual responses */
-    const P4PCA::matrixT &predictors,      /**< [in] sampled predictor matrix */
-    const P4PCA::vectorT &target,          /**< [in] sampled target series */
-    const P4PCA::matrixT &probePredictors, /**< [in] frozen-probe predictor responses */
-    const P4PCA::vectorT &probeTarget,     /**< [in] frozen-probe direct response */
-    const P4TargetExclusions &exclusions,  /**< [in] target-specific deleted rows */
-    const std::vector<int> &modes,         /**< [in] requested retained-mode counts */
-    double rankTolerance,                  /**< [in] relative numerical-rank threshold */
-    P4PCA::workspaceT &workspace,          /**< [in,out] ordinary FP64 workspace */
+    P4PCAResult &output,                         /**< [out] completed held-out regression result */
+    P4PCA::matrixT &probeResiduals,              /**< [out] frozen-probe residual responses */
+    const P4PCA::matrixT &predictors,            /**< [in] sampled predictor matrix */
+    const P4PCA::vectorT &target,                /**< [in] sampled target series */
+    const P4PCA::matrixT &probePredictors,       /**< [in] frozen-probe predictor responses */
+    const P4PCA::vectorT &probeTarget,           /**< [in] frozen-probe direct response */
+    const P4TargetExclusions &exclusions,        /**< [in] target-specific deleted rows */
+    const std::vector<int> &modes,               /**< [in] requested retained-mode counts */
+    double rankTolerance,                        /**< [in] relative numerical-rank threshold */
+    P4PCA::workspaceT &workspace,                /**< [in,out] ordinary FP64 workspace */
     detail::P4PCAMixedWorkspace &mixedWorkspace, /**< [in,out] production mixed-precision workspace */
     P4PCATiming *timing /**< [out] optional stage timing */ )
 {
@@ -1898,15 +1916,15 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::estimatedWorkerBytes( s
         targets * predictors + targets * modes + 2 * dimension * dimension + 5 * targets + 2 * predictors +
         70 * dimension + ( includeCoefficients ? predictors * ( modes + 2 ) : 0 ) + heldOutValues + probeValues;
     const bool mixedCalculation = !exactHeldOut || exclusionSolver != P4ExclusionSolver::factorDowndateExact;
+    const long double mixedKernelValues =
+        mixedCalculation ? 2 * dimension * dimension + 4 * ( targets + predictors + dimension ) : 0;
     const long double floatValues =
-        mixedCalculation
-            ? targets * predictors + targets +
-                  ( probeSamples == 0 ? 0 : probeSamples * predictors + probeSamples )
-            : 0;
+        mixedCalculation ? targets * predictors + targets +
+                               ( probeSamples == 0 ? 0 : probeSamples * predictors + probeSamples ) + mixedKernelValues
+                         : 0;
     constexpr long double safetyFactor = 1.25L;
     constexpr std::size_t fixedMargin = 1024 * 1024;
-    const long double estimated = safetyFactor * ( sizeof( double ) * doubleValues +
-                                                   sizeof( float ) * floatValues +
+    const long double estimated = safetyFactor * ( sizeof( double ) * doubleValues + sizeof( float ) * floatValues +
                                                    sizeof( realT ) * static_cast<long double>( psfStampPixels ) ) +
                                   fixedMargin;
     if( estimated > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) )
@@ -2237,8 +2255,14 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
                                             &timing );
 #else
                 static_cast<void>( workspace );
-                detail::p4PCACalculateHeldOutMixed(
-                    result, predictors, target, *exclusions, modes, m_rankTolerance, mixedWorkspace, &timing );
+                detail::p4PCACalculateHeldOutMixed( result,
+                                                    predictors,
+                                                    target,
+                                                    *exclusions,
+                                                    modes,
+                                                    m_rankTolerance,
+                                                    mixedWorkspace,
+                                                    &timing );
 #endif
             }
         }
@@ -2261,8 +2285,14 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
                                    coefficients );
 #else
         static_cast<void>( workspace );
-        detail::p4PCACalculateMixed(
-            result, predictors, target, modes, m_rankTolerance, mixedWorkspace, &timing, coefficients );
+        detail::p4PCACalculateMixed( result,
+                                     predictors,
+                                     target,
+                                     modes,
+                                     m_rankTolerance,
+                                     mixedWorkspace,
+                                     &timing,
+                                     coefficients );
 #endif
     }
 }
@@ -5774,20 +5804,47 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
     const bool factorDeletionActive =
         m_excludeMethod != HCI::exclude::none && m_exclusionSolver == P4ExclusionSolver::factorDowndateExact;
+    std::string precisionPolicy{ "M32D64" };
+    std::string calculationPrecision{ "FP32" };
+    std::string eigensolvePrecision{ "FP64" };
+    std::string rankPrecision{ "FP32" };
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+    if( p4ReductionPrecisionSelection.active )
+    {
+        switch( p4ReductionPrecisionSelection.policy )
+        {
+        case detail::P4PCAPrecisionPolicy::doubleDouble:
+            precisionPolicy = "D64";
+            calculationPrecision = "FP64";
+            rankPrecision = "FP64";
+            break;
+        case detail::P4PCAPrecisionPolicy::floatDouble:
+            break;
+        case detail::P4PCAPrecisionPolicy::floatFloat:
+            precisionPolicy = "F32";
+            eigensolvePrecision = "FP32";
+            break;
+        }
+    }
+#endif
+    if( factorDeletionActive )
+    {
+        precisionPolicy = "D64-FACTOR-DOWNDATE";
+        calculationPrecision = "FP64";
+        eigensolvePrecision = "FP64";
+        rankPrecision = "FP64";
+    }
     head.template append<std::string>( "P4 ALGORITHM", "P4-PCA", "pixel prediction algorithm" );
-    head.template append<std::string>( "P4POLCY",
-                                       factorDeletionActive ? "D64-FACTOR-DOWNDATE" : "M32D64",
-                                       "effective numerical precision policy" );
-    head.template append<std::string>(
-        "P4CALCPR", factorDeletionActive ? "FP64" : "FP32", "normal-equation and projection precision" );
-    head.template append<std::string>( "P4EIGPR", "FP64", "symmetric eigensolve precision" );
-    head.template append<std::string>(
-        "P4RANKPR", factorDeletionActive ? "FP64" : "FP32", "eigenpair and rank-decision precision" );
+    head.template append<std::string>( "P4POLCY", precisionPolicy, "effective numerical precision policy" );
+    head.template append<std::string>( "P4CALCPR", calculationPrecision, "normal-equation and projection precision" );
+    head.template append<std::string>( "P4EIGPR", eigensolvePrecision, "symmetric eigensolve precision" );
+    head.template append<std::string>( "P4RANKPR", rankPrecision, "eigenpair and rank-decision precision" );
     head.template append<std::string>( "P4OUTPR",
                                        std::is_same_v<realT, float> ? "FP32" : "FP64",
                                        "reduction product storage precision" );
-    head.template append<std::string>(
-        "P4FDELPR", factorDeletionActive ? "FP64" : "N/A", "exact factor-deletion precision" );
+    head.template append<std::string>( "P4FDELPR",
+                                       factorDeletionActive ? "FP64" : "N/A",
+                                       "exact factor-deletion precision" );
     head.template append<std::string>( "P4 FRAME", regressionFrameString( m_regressionFrame ), "regression frame" );
     head.template append<int>( "P4 IN SAMPLE",
                                m_excludeMethod == HCI::exclude::none ? 1 : 0,
