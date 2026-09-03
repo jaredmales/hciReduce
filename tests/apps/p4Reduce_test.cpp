@@ -708,8 +708,8 @@ TEST_CASE( "p4Reduce normal FITS end-to-end", "[p4Reduce][execute][normal][FITS]
     mx::fits::fitsHeader<mx::verbose::vv> header;
     mx::fits::fitsFile<float, mx::verbose::vv> reader;
     REQUIRE( reader.read( output, header, ( outputDirectory / "p4-final.fits" ).string() ) == mx::error_t::noerror );
-    REQUIRE( output.rows() == 31 );
-    REQUIRE( output.cols() == 31 );
+    REQUIRE( output.rows() == 21 );
+    REQUIRE( output.cols() == 21 );
     REQUIRE( output.planes() == 1 );
 
     std::size_t finitePixels{ 0 };
@@ -949,11 +949,15 @@ TEST_CASE( "p4Reduce joint optimizer FITS outputs", "[p4Reduce][optimizer][posit
                                                 header["P4 OPT BEST CONTRAST"].value<double>() };
     const auto fittedOffset = mx::improc::p4TrialCartesianOffset( fittedTrial );
     const auto initialOffset = mx::improc::p4TrialCartesianOffset( { 5.4, 35, -0.005 } );
-    REQUIRE( header["P4 LOCAL SOURCE ROW"].value<double>() == Approx( 15 + fittedOffset.row ).margin( 1e-5 ) );
-    REQUIRE( header["P4 LOCAL SOURCE COLUMN"].value<double>() == Approx( 15 + fittedOffset.column ).margin( 1e-5 ) );
-    REQUIRE( header["P4 OPT APERTURE CENTER ROW"].value<double>() == Approx( 15 + initialOffset.row ).margin( 1e-5 ) );
+    const double outputCenter = 0.5 * static_cast<double>( header["IMSIZE"].value<int>() - 1 );
+    REQUIRE( header["P4 LOCAL SOURCE ROW"].value<double>() ==
+             Approx( outputCenter + fittedOffset.row ).margin( 1e-5 ) );
+    REQUIRE( header["P4 LOCAL SOURCE COLUMN"].value<double>() ==
+             Approx( outputCenter + fittedOffset.column ).margin( 1e-5 ) );
+    REQUIRE( header["P4 OPT APERTURE CENTER ROW"].value<double>() ==
+             Approx( outputCenter + initialOffset.row ).margin( 1e-5 ) );
     REQUIRE( header["P4 OPT APERTURE CENTER COLUMN"].value<double>() ==
-             Approx( 15 + initialOffset.column ).margin( 1e-5 ) );
+             Approx( outputCenter + initialOffset.column ).margin( 1e-5 ) );
 
     const std::string meritTable = readTextFile( meritPath );
     REQUIRE( meritTable.starts_with(

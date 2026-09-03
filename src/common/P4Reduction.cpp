@@ -42,6 +42,8 @@ namespace improc
 namespace
 {
 
+constexpr int p4AutomaticCropPadding{ 4 };
+
 /// Derive a filter-product path from the resolved final-image path.
 std::string p4FilterProductPath( const std::string &finalImagePath, /**< [in] resolved final-image output path */
                                  const std::string &role, /**< [in] filename role inserted before the sequence */
@@ -3127,6 +3129,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                        "P4 initially supports target-only ADI and rejects RDI input" );
+    }
+
+    if( !( this->m_preProcess_only && !this->m_skipPreProcess ) && this->m_imSize == 0 )
+    {
+        // The central detector pixel and local trial-source templates require an odd crop dimension.
+        this->m_imSize =
+            2 * ( *std::max_element( m_maxRadius.begin(), m_maxRadius.end() ) + p4AutomaticCropPadding ) + 1;
+        std::cerr << "set image size based on regions to " << this->m_imSize << '\n';
     }
 
     this->t_begin = mx::sys::get_curr_time();

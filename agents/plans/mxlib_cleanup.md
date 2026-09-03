@@ -282,6 +282,13 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Add mxlib coverage tests for the remaining executable paths in `ompLoopWatcher` and float `fitsFile::read` used
+      by `P4Reduction::regions()`. The current LCOV trace at
+      `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` reports 86/98 executable lines for
+      `include/ipc/ompLoopWatcher.hpp`, and the P4 optional PSF-template branch calls the float FITS reader. Cover
+      P4-equivalent progress completion/refresh paths and successful and failing float image reads before treating
+      these dependencies as 100%-covered.
+
 - [ ] Add focused mxlib behavioral/coverage tests for the exact FP32 eigensolver and BLAS paths used by the P4/KLIP
       precision experiments. The current 2026-08-30 filtered LCOV trace at mxlib commit
       `3a03627255b3ed5a9657b8082a0c6a79aef4365d` emits only the double `eigenSYRK`, `eigenSYEVR`, `syevrMem`, and
