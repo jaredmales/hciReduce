@@ -429,6 +429,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Center-crop the combined final residual to the configured automatic output size.
     void cropAutomaticFinalImage();
 
+    /// Center-crop residual cubes before ADI derotation when no full-frame PSF filter is configured.
+    void cropAutomaticFinalResiduals();
+
     /// Convert a supported regression frame to its stable configuration spelling.
     static std::string regressionFrameString( P4RegressionFrame frame /**< [in] supported regression frame */ );
 

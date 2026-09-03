@@ -756,7 +756,9 @@ TEST_CASE( "p4Reduce automatic output crop preserves OR input", "[p4Reduce][geom
     writeTextFile( configPath,
                    p4Configuration( directory.path(), outputDirectory, "normal", false ) + "[p4]\n"
                                                                                            "orDeltaRadiusOuter=4\n"
-                                                                                           "orArcHalfWidth=0\n" );
+                                                                                           "orArcHalfWidth=0\n"
+                                                                                           "[output]\n"
+                                                                                           "outputPSFSub=true\n" );
 
     appHarness application;
     std::string invokedName = "p4Reduce-test";
@@ -773,6 +775,13 @@ TEST_CASE( "p4Reduce automatic output crop preserves OR input", "[p4Reduce][geom
     REQUIRE( output.rows() == 21 );
     REQUIRE( output.rows() == output.cols() );
     REQUIRE( header["IMSIZE"].value<int>() == 65 );
+
+    mx::improc::eigenCube<float> derotatedResidual;
+    REQUIRE( reader.read( derotatedResidual,
+                         header,
+                         ( outputDirectory / "p4-final_outputs_000_00000.fits" ).string() ) == mx::error_t::noerror );
+    REQUIRE( derotatedResidual.rows() == 21 );
+    REQUIRE( derotatedResidual.cols() == 21 );
 }
 
 /// Verify p4Reduce runs an opt-in contrast search in memory and writes only named final optimizer products.

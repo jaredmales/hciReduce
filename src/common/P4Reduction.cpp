@@ -4537,8 +4537,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         return result;
     }
 
+    const int combinedImageSize = m_automaticOutputSize != 0 && !m_psfFilter ? m_automaticOutputSize : this->m_Nrows;
     eigenCube<realT> combinedImages;
-    combinedImages.resize( this->m_Nrows, this->m_Ncols, static_cast<int>( m_modeFractions.size() ) );
+    combinedImages.resize( combinedImageSize, combinedImageSize, static_cast<int>( m_modeFractions.size() ) );
     const int configuredWriteFinim = this->m_doWriteFinim;
     const bool configuredOutputPSFSub = this->m_doOutputPSFSub;
     this->m_doWriteFinim = false;
@@ -6039,6 +6040,46 @@ void P4Reduction<realT, derotFunctObj, verboseT>::cropAutomaticFinalImage()
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+void P4Reduction<realT, derotFunctObj, verboseT>::cropAutomaticFinalResiduals()
+{
+    if( m_automaticOutputSize == 0 || m_psfFilter )
+    {
+        return;
+    }
+
+    const auto crop = [this]( auto &cube )
+    {
+        if( m_automaticOutputSize > cube.rows() || m_automaticOutputSize > cube.cols() )
+        {
+            throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                           "automatic P4 residual crop exceeds the residual-cube dimensions" );
+        }
+
+        const int firstRow =
+            static_cast<int>( std::floor( 0.5 * ( cube.rows() - 1 ) - 0.5 * ( m_automaticOutputSize - 1 ) + 0.1 ) );
+        const int firstColumn =
+            static_cast<int>( std::floor( 0.5 * ( cube.cols() - 1 ) - 0.5 * ( m_automaticOutputSize - 1 ) + 0.1 ) );
+        std::remove_cvref_t<decltype( cube )> cropped;
+        cropped.resize( m_automaticOutputSize, m_automaticOutputSize, cube.planes() );
+        for( int plane = 0; plane < cube.planes(); ++plane )
+        {
+            cropped.image( plane ) =
+                cube.image( plane ).block( firstRow, firstColumn, m_automaticOutputSize, m_automaticOutputSize );
+        }
+        cube = std::move( cropped );
+    };
+
+    for( auto &cube : this->m_psfsub )
+    {
+        crop( cube );
+    }
+    for( auto &cube : this->m_psfsubValidity )
+    {
+        crop( cube );
+    }
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess( bool reportProgress )
 {
     static_cast<void>( regressionFrameString( m_regressionFrame ) );
@@ -6081,6 +6122,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess( bool reportProgre
     int result{ 0 };
     try
     {
+        cropAutomaticFinalResiduals();
         result = this->ADIobservation<realT, derotFunctObj, verboseT>::finalProcess( algorithmHeaderPointer,
                                                                                      dataFrame,
                                                                                      reportProgress );
