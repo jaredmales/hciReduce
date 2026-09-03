@@ -16,7 +16,10 @@ namespace klipReduce_test
 {
 
 /// \cond klipReduce_test_harness
-using appT = klipReduce<float, double, mx::verbose::vv>;
+using appT = klipReduceProductionT;
+
+static_assert( std::is_same_v<typename appT::realT, mx::improc::KLIPProductionCalculationT> );
+static_assert( std::is_same_v<typename appT::evCalcT, mx::improc::KLIPProductionEigensolverT> );
 
 struct appHarness : public appT
 {

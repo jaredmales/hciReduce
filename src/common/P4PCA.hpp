@@ -236,7 +236,8 @@ struct P4PCADowndateWorkspace
 /** This component forms the smaller of the temporal and predictor Gram matrices. calculate() uses the inputs directly,
  * while calculateCentered() centers the fit and applies the resulting coefficients to the uncentered predictors. A
  * caller-owned LAPACK workspace makes repeated calls efficient and permits one independent workspace per worker
- * thread.
+ * thread. P4Reduction uses a separate internal M32D64 adapter by default; this all-double API remains the numerical
+ * oracle and implements the exact factor-deletion path.
  *
  * \ingroup programming_library
  */
@@ -291,7 +292,8 @@ struct P4PCA
      * \p probeResiduals has `P` rows and `T*M` target-major columns, with column `target*M+mode` equal to
      * `probeTarget-probePredictors*beta(target,mode)`. Unsupported target/mode columns are quiet NaNs and share
      * P4PCAResult::sampleValidity with the ordinary residuals. This interface evaluates target-specific responses
-     * without retaining the distinct `K`-element coefficient vector for every target.
+     * without retaining the distinct `K`-element coefficient vector for every target. The \p probeResiduals output
+     * must not be the same matrix object as either \p predictors or \p probePredictors.
      */
     static void calculateHeldOutProbe(
         P4PCAResult &output,            /**< [out] held-out residuals, aggregate mode states, and minimum solved rank */
@@ -436,6 +438,189 @@ void p4PCASetEigenSolverForTesting(
 
 /// Restore the production P4PCA eigensolver.
 void p4PCAResetEigenSolverForTesting();
+
+/// Dynamic FP32 matrix used by the production mixed-precision P4 adapters.
+using P4PCAFloatMatrixT = Eigen::Array<float, Eigen::Dynamic, Eigen::Dynamic>;
+
+/// Dynamic FP32 column vector used by the production mixed-precision P4 adapters.
+using P4PCAFloatVectorT = Eigen::Array<float, Eigen::Dynamic, 1>;
+
+/// Caller-owned storage shared by successive production mixed-precision P4 evaluations.
+/** One workspace must not be shared by concurrent calls. FP64 ingress is converted into these FP32 buffers before
+ * the timed kernel; the FP32 Gram matrix is promoted into the reusable FP64 eigensolver workspace, and successful
+ * eigenpairs are cast back to FP32 before rank selection and projection.
+ */
+struct P4PCAMixedWorkspace
+{
+    P4PCAFloatMatrixT floatPredictors;      ///< FP32 calculation input and in-place centering storage.
+
+    P4PCAFloatVectorT floatTarget;          ///< FP32 calculation target storage.
+
+    P4PCAFloatMatrixT floatProbePredictors; ///< FP32 frozen-probe predictor responses.
+
+    P4PCAFloatVectorT floatProbeTarget;     ///< FP32 frozen-probe direct target response.
+
+    P4PCA::workspaceT doubleEigensolver;    ///< Reusable FP64 eigensolver and Gram-promotion storage.
+};
+
+/// Evaluate direct P4 PCA through the production FP32-calculation/FP64-eigensolve policy.
+void p4PCACalculateMixed(
+    P4PCAResult &output,              /**< [out] residuals, mode states, and numerical rank */
+    const P4PCA::matrixT &predictors, /**< [in] finite common T-by-K FP64 ingress matrix */
+    const P4PCA::vectorT &target,     /**< [in] finite common T-sample FP64 ingress target */
+    const std::vector<int> &modes,    /**< [in] positive, strictly increasing retained counts */
+    double rankTolerance,             /**< [in] finite nonnegative threshold relative to lambdaMax */
+    P4PCAMixedWorkspace &workspace,   /**< [in,out] caller-owned, non-shared mixed workspace */
+    P4PCATiming *timing = nullptr,    /**< [out] optional per-call worker timing excluding ingress conversion */
+    P4PCA::matrixT *coefficients = nullptr /**< [out] optional K-by-mode FP64 predictor coefficients */ );
+
+/// Evaluate centered P4 PCA through the production FP32-calculation/FP64-eigensolve policy.
+void p4PCACalculateCenteredMixed(
+    P4PCAResult &output,              /**< [out] residuals, mode states, and numerical rank */
+    const P4PCA::matrixT &predictors, /**< [in] finite common T-by-K uncentered FP64 ingress matrix */
+    const P4PCA::vectorT &target,     /**< [in] finite common T-sample uncentered FP64 ingress target */
+    const std::vector<int> &modes,    /**< [in] positive, strictly increasing retained counts */
+    double rankTolerance,             /**< [in] finite nonnegative threshold relative to lambdaMax */
+    P4PCAMixedWorkspace &workspace,   /**< [in,out] caller-owned, non-shared mixed workspace */
+    P4PCATiming *timing = nullptr,    /**< [out] optional per-call worker timing excluding ingress conversion */
+    P4PCA::matrixT *coefficients = nullptr /**< [out] optional K-by-mode FP64 predictor coefficients */ );
+
+/// Evaluate centered P4 PCA in place through the production FP32-calculation/FP64-eigensolve policy.
+void p4PCACalculateCenteredInPlaceMixed(
+    P4PCAResult &output,              /**< [out] residuals, mode states, and numerical rank */
+    P4PCA::matrixT &predictors,       /**< [in,out] ingress matrix, replaced by centered FP32 policy values */
+    const P4PCA::vectorT &target,     /**< [in] finite common T-sample uncentered FP64 ingress target */
+    const std::vector<int> &modes,    /**< [in] positive, strictly increasing retained counts */
+    double rankTolerance,             /**< [in] finite nonnegative threshold relative to lambdaMax */
+    P4PCAMixedWorkspace &workspace,   /**< [in,out] caller-owned, non-shared mixed workspace */
+    P4PCATiming *timing = nullptr,    /**< [out] optional per-call worker timing excluding ingress conversion */
+    P4PCA::matrixT *coefficients = nullptr /**< [out] optional K-by-mode FP64 predictor coefficients */ );
+
+/// Evaluate explicit target-held-out P4 fits through the production mixed-precision policy.
+void p4PCACalculateHeldOutMixed(
+    P4PCAResult &output,                    /**< [out] held-out residuals and sample-level rank validity */
+    const P4PCA::matrixT &predictors,       /**< [in] finite common T-by-K FP64 ingress matrix */
+    const P4PCA::vectorT &target,           /**< [in] finite common T-sample FP64 ingress target */
+    const P4TargetExclusions &exclusions,   /**< [in] compact deleted-row pattern for every target row */
+    const std::vector<int> &modes,          /**< [in] positive, strictly increasing retained counts */
+    double rankTolerance,                   /**< [in] finite nonnegative threshold relative to lambdaMax */
+    P4PCAMixedWorkspace &workspace,         /**< [in,out] caller-owned, non-shared mixed workspace */
+    P4PCATiming *timing = nullptr /**< [out] optional aggregate worker timing excluding ingress conversion */ );
+
+/// Evaluate held-out P4 fits and frozen-probe responses through the production mixed-precision policy.
+/** The \p probeResiduals output must not be the same matrix object as either \p predictors or \p probePredictors. */
+void p4PCACalculateHeldOutProbeMixed(
+    P4PCAResult &output,                   /**< [out] held-out residuals and sample-level rank validity */
+    P4PCA::matrixT &probeResiduals,        /**< [out] P-by-(T*M) target-major FP64 probe responses */
+    const P4PCA::matrixT &predictors,      /**< [in] finite common T-by-K FP64 ingress matrix */
+    const P4PCA::vectorT &target,          /**< [in] finite common T-sample FP64 ingress target */
+    const P4PCA::matrixT &probePredictors, /**< [in] finite common P-by-K FP64 probe responses */
+    const P4PCA::vectorT &probeTarget,     /**< [in] finite common P-sample direct probe response */
+    const P4TargetExclusions &exclusions,  /**< [in] compact deleted-row pattern for every target row */
+    const std::vector<int> &modes,         /**< [in] positive, strictly increasing retained counts */
+    double rankTolerance,                  /**< [in] finite nonnegative threshold relative to lambdaMax */
+    P4PCAMixedWorkspace &workspace,        /**< [in,out] caller-owned, non-shared mixed workspace */
+    P4PCATiming *timing = nullptr /**< [out] optional aggregate worker timing excluding ingress conversion */ );
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+
+/// Experimental calculation/eigensolver scalar policy for direct and centered P4 evaluation.
+enum class P4PCAPrecisionPolicy : std::uint8_t
+{
+    doubleDouble, ///< FP64 calculation with an FP64 eigensolve.
+    floatDouble,  ///< Production FP32 calculation with an FP64 eigensolve on the promoted FP32 Gram matrix.
+    floatFloat    ///< FP32 calculation with an FP32 eigensolve.
+};
+
+/// Signature of the FP32 eigensolver seam used by experimental failure tests.
+using P4PCAFloatEigenSolverT =
+    MXLAPACK_INT ( * )( P4PCAFloatMatrixT &eigenvectors, /**< [out] selected eigenvectors */
+                        P4PCAFloatMatrixT &eigenvalues,  /**< [out] selected eigenvalues */
+                        P4PCAFloatMatrixT &covariance,   /**< [in] lower-triangular covariance matrix */
+                        int modeCount,                   /**< [in] number of largest eigenpairs to calculate */
+                        mx::math::syevrMem<float> &workspace /**< [in,out] reusable LAPACK workspace */ );
+
+/// Caller-owned storage shared by successive experimental P4 precision-policy evaluations.
+/** One workspace must not be shared by concurrent calls. The FP32 ingress buffers keep conversion allocations out of
+ * the kernel timing fields; the mixed eigensolver reuses the FP64 workspace's matrix buffers for promotion.
+ */
+struct P4PCAExperimentalWorkspace : public P4PCAMixedWorkspace
+{
+    mx::math::syevrMem<float> floatEigensolver; ///< Reusable FP32 eigensolver storage.
+};
+
+/// Install a process-wide FP32 P4PCA test eigensolver.
+void p4PCASetFloatEigenSolverForTesting(
+    P4PCAFloatEigenSolverT solver /**< [in] test solver, or nullptr to select the production solver */ );
+
+/// Restore the production FP32 P4PCA eigensolver.
+void p4PCAResetFloatEigenSolverForTesting();
+
+/// Evaluate direct P4 PCA with an explicitly selected experimental scalar policy.
+void p4PCACalculateExperimental(
+    P4PCAResult &output,                   /**< [out] residuals, mode states, and numerical rank */
+    const P4PCA::matrixT &predictors,      /**< [in] finite common T-by-K FP64 ingress matrix */
+    const P4PCA::vectorT &target,          /**< [in] finite common T-sample FP64 ingress target */
+    const std::vector<int> &modes,         /**< [in] positive, strictly increasing retained counts */
+    double rankTolerance,                  /**< [in] finite nonnegative threshold relative to lambdaMax */
+    P4PCAPrecisionPolicy precisionPolicy,  /**< [in] calculation/eigensolver scalar combination */
+    P4PCAExperimentalWorkspace &workspace, /**< [in,out] caller-owned, non-shared policy workspace */
+    P4PCATiming *timing = nullptr,         /**< [out] optional per-call worker timing excluding ingress conversion */
+    P4PCA::matrixT *coefficients = nullptr /**< [out] optional K-by-mode FP64 predictor coefficients */ );
+
+/// Evaluate centered P4 PCA with an explicitly selected experimental scalar policy.
+void p4PCACalculateCenteredExperimental(
+    P4PCAResult &output,                   /**< [out] residuals, mode states, and numerical rank */
+    const P4PCA::matrixT &predictors,      /**< [in] finite common T-by-K uncentered FP64 ingress matrix */
+    const P4PCA::vectorT &target,          /**< [in] finite common T-sample uncentered FP64 ingress target */
+    const std::vector<int> &modes,         /**< [in] positive, strictly increasing retained counts */
+    double rankTolerance,                  /**< [in] finite nonnegative threshold relative to lambdaMax */
+    P4PCAPrecisionPolicy precisionPolicy,  /**< [in] calculation/eigensolver scalar combination */
+    P4PCAExperimentalWorkspace &workspace, /**< [in,out] caller-owned, non-shared policy workspace */
+    P4PCATiming *timing = nullptr,         /**< [out] optional per-call worker timing excluding ingress conversion */
+    P4PCA::matrixT *coefficients = nullptr /**< [out] optional K-by-mode FP64 predictor coefficients */ );
+
+/// Evaluate in-place centered P4 PCA with an explicitly selected experimental scalar policy.
+void p4PCACalculateCenteredInPlaceExperimental(
+    P4PCAResult &output,                   /**< [out] residuals, mode states, and numerical rank */
+    P4PCA::matrixT &predictors,            /**< [in,out] common ingress matrix, replaced by centered policy values */
+    const P4PCA::vectorT &target,          /**< [in] finite common T-sample uncentered FP64 ingress target */
+    const std::vector<int> &modes,         /**< [in] positive, strictly increasing retained counts */
+    double rankTolerance,                  /**< [in] finite nonnegative threshold relative to lambdaMax */
+    P4PCAPrecisionPolicy precisionPolicy,  /**< [in] calculation/eigensolver scalar combination */
+    P4PCAExperimentalWorkspace &workspace, /**< [in,out] caller-owned, non-shared policy workspace */
+    P4PCATiming *timing = nullptr,         /**< [out] optional per-call worker timing excluding ingress conversion */
+    P4PCA::matrixT *coefficients = nullptr /**< [out] optional K-by-mode FP64 predictor coefficients */ );
+
+/// Evaluate explicit target-held-out P4 fits with an explicitly selected experimental scalar policy.
+void p4PCACalculateHeldOutExperimental(
+    P4PCAResult &output,                   /**< [out] held-out residuals and sample-level rank validity */
+    const P4PCA::matrixT &predictors,      /**< [in] finite common T-by-K FP64 ingress matrix */
+    const P4PCA::vectorT &target,          /**< [in] finite common T-sample FP64 ingress target */
+    const P4TargetExclusions &exclusions,  /**< [in] compact deleted-row pattern for every target row */
+    const std::vector<int> &modes,         /**< [in] positive, strictly increasing retained counts */
+    double rankTolerance,                  /**< [in] finite nonnegative threshold relative to lambdaMax */
+    P4PCAPrecisionPolicy precisionPolicy,  /**< [in] calculation/eigensolver scalar combination */
+    P4PCAExperimentalWorkspace &workspace, /**< [in,out] caller-owned, non-shared policy workspace */
+    P4PCATiming *timing = nullptr /**< [out] optional aggregate worker timing excluding ingress conversion */ );
+
+/// Evaluate target-held-out P4 fits and frozen-probe responses through one experimental scalar policy.
+/** The \p probeResiduals output must not be the same matrix object as either \p predictors or \p probePredictors. */
+void p4PCACalculateHeldOutProbeExperimental(
+    P4PCAResult &output,                   /**< [out] held-out residuals and sample-level rank validity */
+    P4PCA::matrixT &probeResiduals,        /**< [out] P-by-(T*M) target-major FP64 probe responses */
+    const P4PCA::matrixT &predictors,      /**< [in] finite common T-by-K FP64 ingress matrix */
+    const P4PCA::vectorT &target,          /**< [in] finite common T-sample FP64 ingress target */
+    const P4PCA::matrixT &probePredictors, /**< [in] finite common P-by-K FP64 probe responses */
+    const P4PCA::vectorT &probeTarget,     /**< [in] finite common P-sample FP64 direct probe response */
+    const P4TargetExclusions &exclusions,  /**< [in] compact deleted-row pattern for every target row */
+    const std::vector<int> &modes,         /**< [in] positive, strictly increasing retained counts */
+    double rankTolerance,                  /**< [in] finite nonnegative threshold relative to lambdaMax */
+    P4PCAPrecisionPolicy precisionPolicy,  /**< [in] calculation/eigensolver scalar combination */
+    P4PCAExperimentalWorkspace &workspace, /**< [in,out] caller-owned, non-shared policy workspace */
+    P4PCATiming *timing = nullptr /**< [out] optional aggregate worker timing excluding ingress conversion */ );
+
+#endif // HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
 
 } // namespace detail
 /// \endcond

@@ -282,6 +282,17 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Add focused mxlib behavioral/coverage tests for the exact FP32 eigensolver and BLAS paths used by the P4/KLIP
+      precision experiments. The current 2026-08-30 filtered LCOV trace at mxlib commit
+      `3a03627255b3ed5a9657b8082a0c6a79aef4365d` emits only the double `eigenSYRK`, `eigenSYEVR`, `syevrMem`, and
+      `callSyevr` instantiations. It also records zero hits for all three executable lines in each of `syrk<float>()`
+      (`source/math/templateBLAS.cpp`:138,150--151) and `gemm<float>()` (`source/math/templateBLAS.cpp`:62,77--78),
+      even though the corresponding double specializations are covered. The lower-level `syevr<float>()` LAPACK
+      wrapper is covered, but that does not cover the public float Eigen adapter and workspace lifecycle. The
+      hciReduce precision benchmarks exercise `eigenSYRK<float>()`, `eigenSYEVR<float>()`, and `gemm<float>()` as
+      integration/capability checks, but downstream execution does not satisfy mxlib's own executable-line coverage
+      requirement.
+
 - [x] Recheck the exact-double KLIP factor-deletion dependencies in the current LCOV report:
       `validateSvdDeletionFactor`, `svdDeletionResult<double>::prepare`,
       `svdDeletionWorkspace<double>::prepare`, and `svdRemoveColumns<double>` using both the

@@ -31,6 +31,9 @@
  * The implementation automatically forms the smaller of the reference-image and pixel-space covariance matrices for
  * each realized library. This is an internal performance optimization: it preserves configured mode order and the
  * reduction interface, while making narrow regions with many reference images substantially faster.
+ * The direct KLIP calculation uses a fixed M32D64 policy: regional and covariance arithmetic is FP32 and the
+ * covariance is promoted for an FP64 eigensolve. This is not a configuration choice. The opt-in exact
+ * factor-deletion solver remains FP64 internally before returning modes to FP32 storage.
  *
  * \section klip_diagnostics Diagnostics
  *

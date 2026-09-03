@@ -18,6 +18,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -108,6 +109,67 @@ klipDeletionBackendFromString( const std::string &value /**< [in] configuration 
 // double dcut, dscv, dklims, dgemm, dsyevr, dcfs, drot, dcombo, dread;
 
 /// \cond KLIPreduction_detail
+/// Return the stable FITS-provenance label for a supported KLIP floating-point type.
+/** \returns `FP32` for `float`, `FP64` for `double`, and `other` for a non-production scalar type. */
+template <typename scalarT>
+constexpr const char *klipPrecisionLabel()
+{
+    if constexpr( std::is_same_v<scalarT, float> )
+    {
+        return "FP32";
+    }
+    else if constexpr( std::is_same_v<scalarT, double> )
+    {
+        return "FP64";
+    }
+    else
+    {
+        return "other";
+    }
+}
+
+/// Return the stable FITS-provenance label for a KLIP direct-solver scalar policy.
+/** \returns `M32D64` for the production policy, `F32` or `D64` for uniform precision, and `custom` otherwise. */
+template <typename calculationT, typename eigensolverT>
+constexpr const char *klipDirectPrecisionPolicyLabel()
+{
+    if constexpr( std::is_same_v<calculationT, float> && std::is_same_v<eigensolverT, double> )
+    {
+        return "M32D64";
+    }
+    else if constexpr( std::is_same_v<calculationT, float> && std::is_same_v<eigensolverT, float> )
+    {
+        return "F32";
+    }
+    else if constexpr( std::is_same_v<calculationT, double> && std::is_same_v<eigensolverT, double> )
+    {
+        return "D64";
+    }
+    else
+    {
+        return "custom";
+    }
+}
+
+/// Return the direct-path precision used to decide whether computed KL modes are valid.
+/** The production reference-Gram branch validates normalized eigenpairs in FP64 before its FP32 output cast. The
+ * pixel-Gram branch validates after the FP64 eigenpairs have been cast back to FP32.
+ *
+ * \returns a stable precision label suitable for FITS provenance.
+ */
+template <typename calculationT, typename eigensolverT>
+constexpr const char *klipDirectRankPrecisionLabel()
+{
+    if constexpr( std::is_same_v<calculationT, float> && std::is_same_v<eigensolverT, double> )
+    {
+        return "FP64/FP32";
+    }
+    else
+    {
+        return klipPrecisionLabel<calculationT>();
+    }
+}
+
 /// Calculate KL modes with the smaller of the reference- and pixel-space Gram matrices.
 template <typename _evCalcT = double, typename eigenT, typename eigenT1>
 MXLAPACK_INT calcKLModesAdaptive(
@@ -2232,6 +2294,28 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::appendReductionHead
     head.append( "MEAN SUB METHOD", HCI::meanSubToStr<verboseT>( m_meanSubMethod ), "PCA mean subtraction method" );
     head.append( "PIXTS NORM METHOD", HCI::pixelTSNormToStr<verboseT>( m_pixelTSNormMethod ), "Pixel TS norm method" );
 
+    const bool factorDeletionConfigured = m_exclusionSolver == KLIPExclusionSolver::factorDowndateExact;
+    head.template append<std::string>( "KLPOLCY",
+                                       klipDirectPrecisionPolicyLabel<realT, evCalcT>(),
+                                       "direct KLIP numerical precision policy" );
+    head.template append<std::string>( "KLCALCPR",
+                                       klipPrecisionLabel<realT>(),
+                                       "direct Gram, mode, and projection precision" );
+    head.template append<std::string>( "KLEIGPR",
+                                       klipPrecisionLabel<evCalcT>(),
+                                       "direct symmetric eigensolver precision" );
+    head.template append<std::string>( "KLRANKPR",
+                                       factorDeletionConfigured ? "FP64+FP64/FP32"
+                                                                : klipDirectRankPrecisionLabel<realT, evCalcT>(),
+                                       factorDeletionConfigured ? "rank checks: FP64 delete; direct ref/pixel FP64/FP32"
+                                                                : "direct ref-/pixel-Gram mode-validity precision" );
+    head.template append<std::string>( "KLOUTPR",
+                                       klipPrecisionLabel<realT>(),
+                                       "KL modes and residual-product precision" );
+    head.template append<std::string>( "KLFDELPR",
+                                       factorDeletionConfigured ? "FP64" : "N/A",
+                                       "exact factor-deletion arithmetic precision" );
+
     std::stringstream str;
 
     if( m_Nmodes.size() > 0 )
@@ -2517,7 +2601,28 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::processPSFSub( const
 template <typename realT, class verboseT>
 class ADIDerotator;
 
-extern template struct KLIPreduction<float, ADIDerotator<float, verbose::vv>, double, verbose::vv>;
+/// Scalar type used by the supported production KLIP calculation path.
+using KLIPProductionCalculationT = float;
+
+/// Scalar type used by the supported production KLIP symmetric eigensolver.
+using KLIPProductionEigensolverT = double;
+
+/// Derotator used by the supported production KLIP reduction.
+using KLIPProductionDerotator = ADIDerotator<KLIPProductionCalculationT, verbose::vv>;
+
+/// Supported production KLIP reduction with FP32 calculations and an FP64 direct eigensolve.
+using KLIPProductionReduction =
+    KLIPreduction<KLIPProductionCalculationT, KLIPProductionDerotator, KLIPProductionEigensolverT, verbose::vv>;
+
+static_assert( std::is_same_v<KLIPProductionCalculationT, float>,
+               "production KLIP calculation precision must remain FP32" );
+static_assert( std::is_same_v<KLIPProductionEigensolverT, double>,
+               "production KLIP eigensolver precision must remain FP64" );
+
+extern template struct KLIPreduction<KLIPProductionCalculationT,
+                                     KLIPProductionDerotator,
+                                     KLIPProductionEigensolverT,
+                                     verbose::vv>;
 
 } // namespace improc
 } // namespace mx

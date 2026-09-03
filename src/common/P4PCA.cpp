@@ -16,6 +16,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 #include <mx/math/floatUtils.hpp>
@@ -30,6 +31,11 @@ namespace
 
 /// Process-wide test override; production execution leaves this null.
 std::atomic<detail::P4PCAEigenSolverT> p4PCAEigenSolverForTesting{ nullptr };
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+/// Process-wide FP32 test override; production execution leaves this null.
+std::atomic<detail::P4PCAFloatEigenSolverT> p4PCAFloatEigenSolverForTesting{ nullptr };
+#endif
 
 /// Determine whether every coefficient in an Eigen-like array is finite under fast-math.
 template <typename arrayT>
@@ -109,6 +115,74 @@ MXLAPACK_INT p4PCAEigenSolve( P4PCA::matrixT &eigenvectors, /**< [out] selected 
                                  dimension,
                                  'L',
                                  &workspace );
+}
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+/// Invoke the installed FP32 test solver or the production FP32 mxlib eigensolver.
+MXLAPACK_INT p4PCAEigenSolve( detail::P4PCAFloatMatrixT &eigenvectors, /**< [out] selected eigenvectors */
+                              detail::P4PCAFloatMatrixT &eigenvalues,  /**< [out] selected eigenvalues */
+                              detail::P4PCAFloatMatrixT &covariance,   /**< [in] lower-triangular covariance matrix */
+                              int modeCount, /**< [in] number of largest eigenpairs to calculate */
+                              mx::math::syevrMem<float> &workspace /**< [in,out] reusable LAPACK workspace */ )
+{
+    const detail::P4PCAFloatEigenSolverT testSolver = p4PCAFloatEigenSolverForTesting.load( std::memory_order_acquire );
+    if( testSolver )
+    {
+        return testSolver( eigenvectors, eigenvalues, covariance, modeCount, workspace );
+    }
+
+    const int dimension = static_cast<int>( covariance.rows() );
+    return mx::math::eigenSYEVR( eigenvectors,
+                                 eigenvalues,
+                                 covariance,
+                                 dimension - modeCount,
+                                 dimension,
+                                 'L',
+                                 &workspace );
+}
+#endif
+
+/// Dynamic matrix used at one calculation or eigensolver precision.
+template <typename ScalarT>
+using P4PCADynamicMatrixT = Eigen::Array<ScalarT, Eigen::Dynamic, Eigen::Dynamic>;
+
+/// Dynamic column vector used at one calculation or eigensolver precision.
+template <typename ScalarT>
+using P4PCADynamicVectorT = Eigen::Array<ScalarT, Eigen::Dynamic, 1>;
+
+/// Invoke the native calculation-precision solver or promote an FP32 Gram matrix for an FP64 eigensolve.
+/** A mixed solve returns every nonzero native solver status without inspecting or converting its incomplete outputs.
+ * Successful mixed eigenpairs are deliberately cast back to the calculation scalar before rank selection and
+ * projection.
+ */
+template <typename CalculationT, typename EigensolverT>
+MXLAPACK_INT p4PCAEigenSolveAdapted(
+    P4PCADynamicMatrixT<CalculationT> &eigenvectors, /**< [out] selected calculation-precision eigenvectors */
+    P4PCADynamicMatrixT<CalculationT> &eigenvalues,  /**< [out] selected calculation-precision eigenvalues */
+    P4PCADynamicMatrixT<CalculationT> &covariance,   /**< [in] lower-triangular covariance matrix */
+    int modeCount,                                   /**< [in] number of largest eigenpairs to calculate */
+    mx::math::syevrMem<EigensolverT> &workspace /**< [in,out] reusable eigensolver and promotion storage */ )
+{
+    if constexpr( std::is_same_v<CalculationT, EigensolverT> )
+    {
+        return p4PCAEigenSolve( eigenvectors, eigenvalues, covariance, modeCount, workspace );
+    }
+    else
+    {
+        static_assert( std::is_same_v<CalculationT, float> && std::is_same_v<EigensolverT, double>,
+                       "P4PCA supports only the FP32-calculation/FP64-eigensolver mixed policy" );
+        workspace.cvd = covariance.template cast<EigensolverT>();
+        const MXLAPACK_INT solverStatus =
+            p4PCAEigenSolve( workspace.evecsd, workspace.evalsd, workspace.cvd, modeCount, workspace );
+        if( solverStatus != 0 )
+        {
+            return solverStatus;
+        }
+
+        eigenvectors = workspace.evecsd.template cast<CalculationT>();
+        eigenvalues = workspace.evalsd.template cast<CalculationT>();
+        return solverStatus;
+    }
 }
 
 /// Replace one recoverable factor-downdate attempt with the complete explicit held-out oracle result.
@@ -207,10 +281,11 @@ bool p4PCARecoverableStructuredFailure(
 }
 
 /// Validate one P4PCA request against its path-specific structural degree-of-freedom limit.
-void p4PCAValidateInputs( const P4PCA::matrixT &predictors, /**< [in] predictor matrix to validate */
-                          const P4PCA::vectorT &target,     /**< [in] target vector to validate */
-                          const std::vector<int> &modes,    /**< [in] requested retained-mode counts */
-                          double rankTolerance,             /**< [in] relative numerical-rank threshold */
+template <typename matrixT, typename vectorT>
+void p4PCAValidateInputs( const matrixT &predictors,     /**< [in] predictor matrix to validate */
+                          const vectorT &target,         /**< [in] target vector to validate */
+                          const std::vector<int> &modes, /**< [in] requested retained-mode counts */
+                          double rankTolerance,          /**< [in] relative numerical-rank threshold */
                           int maxDOF /**< [in] path-specific structural degree-of-freedom limit */ )
 {
     const Eigen::Index sampleCount = predictors.rows();
@@ -282,11 +357,13 @@ void p4PCARetainedRows( std::vector<Eigen::Index> &retainedRows, /**< [out] reta
     }
 }
 
-/// Subtract each column's double-precision temporal mean in place and optionally return those means.
+/// Subtract each column's calculation-precision temporal mean in place and optionally return those means.
 template <typename arrayT>
 void p4PCACenterColumns( arrayT &array, /**< [in,out] array whose columns are centered */
-                         P4PCA::matrixT *columnMeans = nullptr /**< [out] optional one-row array of removed means */ )
+                         arrayT *columnMeans = nullptr /**< [out] optional one-row array of removed means */ )
 {
+    using scalarT = typename arrayT::Scalar;
+
     if( columnMeans )
     {
         columnMeans->resize( 1, array.cols() );
@@ -295,7 +372,7 @@ void p4PCACenterColumns( arrayT &array, /**< [in,out] array whose columns are ce
 
     for( Eigen::Index column = 0; column < array.cols(); ++column )
     {
-        double scale{ 0 };
+        scalarT scale{ 0 };
         for( Eigen::Index row = 0; row < array.rows(); ++row )
         {
             scale = std::max( scale, std::abs( array( row, column ) ) );
@@ -306,14 +383,15 @@ void p4PCACenterColumns( arrayT &array, /**< [in,out] array whose columns are ce
             continue;
         }
 
-        double scaledSum{ 0 };
+        scalarT scaledSum{ 0 };
         for( Eigen::Index row = 0; row < array.rows(); ++row )
         {
             scaledSum += array( row, column ) / scale;
         }
 
-        const double scaledMean = std::clamp( scaledSum / static_cast<double>( array.rows() ), -1.0, 1.0 );
-        const double mean = scale * scaledMean;
+        const scalarT scaledMean =
+            std::clamp( scaledSum / static_cast<scalarT>( array.rows() ), scalarT{ -1 }, scalarT{ 1 } );
+        const scalarT mean = scale * scaledMean;
         if( columnMeans )
         {
             ( *columnMeans )( 0, column ) = mean;
@@ -322,19 +400,87 @@ void p4PCACenterColumns( arrayT &array, /**< [in,out] array whose columns are ce
     }
 }
 
-/// Calculate one already-validated P4PCA request using its selected fit and residual targets.
-void p4PCACalculateValidated(
-    P4PCAResult &output,                  /**< [out] completed regression result */
-    const P4PCA::matrixT &predictors,     /**< [in] predictors used to form the fit */
-    const P4PCA::vectorT &fitTarget,      /**< [in] target used to calculate projections */
-    const P4PCA::vectorT &residualTarget, /**< [in] initial target for output residuals */
-    const std::vector<int> &modes,        /**< [in] requested retained-mode counts */
-    double rankTolerance,                 /**< [in] relative numerical-rank threshold */
-    int maxDOF,                           /**< [in] structural degree-of-freedom limit and eigenpair count */
-    const P4PCA::matrixT *predictorMeans, /**< [in] optional means for uncentered application */
-    P4PCA::workspaceT &workspace,         /**< [in,out] reusable LAPACK workspace */
-    P4PCATiming *timing,                  /**< [out] optional per-call worker timing */
-    P4PCA::matrixT *coefficients /**< [out] optional predictor-space coefficient vectors */ )
+/// \cond P4PCA_detail
+
+/// Translation-unit-local scalar-policy seam for the direct and centered P4 PCA paths.
+/** Normal builds instantiate the all-double oracle and production mixed policy. The experimental precision option
+ * additionally instantiates the all-FP32 policy without exposing this implementation type.
+ *
+ * \tparam CalculationT scalar used for normal equations, projections, and centering
+ * \tparam EigensolverT scalar used by the reusable symmetric-eigensolver workspace
+ */
+template <typename CalculationT, typename EigensolverT>
+struct P4PCAKernel
+{
+    /// Dynamic matrix using the calculation scalar.
+    using matrixT = Eigen::Array<CalculationT, Eigen::Dynamic, Eigen::Dynamic>;
+
+    /// Dynamic column vector using the calculation scalar.
+    using vectorT = Eigen::Array<CalculationT, Eigen::Dynamic, 1>;
+
+    /// Reusable LAPACK workspace using the eigensolver scalar.
+    using workspaceT = mx::math::syevrMem<EigensolverT>;
+
+    /// Calculate direct truncated-PCA residuals through this scalar policy.
+    static void calculate( P4PCAResult &output,           /**< [out] residuals, mode states, and numerical rank */
+                           const matrixT &predictors,     /**< [in] finite T-by-K local predictor matrix */
+                           const vectorT &target,         /**< [in] finite T-sample target time series */
+                           const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
+                           double rankTolerance,  /**< [in] finite nonnegative threshold relative to lambdaMax */
+                           workspaceT &workspace, /**< [in,out] caller-owned, non-shared LAPACK workspace */
+                           P4PCATiming *timing,   /**< [out] optional per-call worker timing */
+                           P4PCA::matrixT *coefficients /**< [out] optional K-by-mode double coefficients */ );
+
+    /// Calculate a centered fit while preserving the caller's predictor matrix.
+    static void
+    calculateCentered( P4PCAResult &output,           /**< [out] residuals, mode states, and numerical rank */
+                       const matrixT &predictors,     /**< [in] finite T-by-K uncentered predictor matrix */
+                       const vectorT &target,         /**< [in] finite T-sample uncentered target time series */
+                       const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
+                       double rankTolerance,          /**< [in] finite nonnegative threshold relative to lambdaMax */
+                       workspaceT &workspace,         /**< [in,out] caller-owned, non-shared LAPACK workspace */
+                       P4PCATiming *timing,           /**< [out] optional per-call worker timing */
+                       P4PCA::matrixT *coefficients /**< [out] optional K-by-mode double coefficients */ );
+
+    /// Calculate a centered fit using the caller's predictor matrix as workspace.
+    static void
+    calculateCenteredInPlace( P4PCAResult &output,   /**< [out] residuals, mode states, and numerical rank */
+                              matrixT &predictors,   /**< [in,out] finite predictors, replaced by centered values */
+                              const vectorT &target, /**< [in] finite T-sample uncentered target time series */
+                              const std::vector<int> &modes, /**< [in] positive, strictly increasing retained counts */
+                              double rankTolerance,  /**< [in] finite nonnegative threshold relative to lambdaMax */
+                              workspaceT &workspace, /**< [in,out] caller-owned, non-shared LAPACK workspace */
+                              P4PCATiming *timing,   /**< [out] optional per-call worker timing */
+                              P4PCA::matrixT *coefficients /**< [out] optional K-by-mode double coefficients */ );
+
+  private:
+    /// Calculate one already-validated request using selected fit and residual targets.
+    static void
+    calculateValidated( P4PCAResult &output,           /**< [out] completed regression result */
+                        const matrixT &predictors,     /**< [in] predictors used to form the fit */
+                        const vectorT &fitTarget,      /**< [in] target used to calculate projections */
+                        const vectorT &residualTarget, /**< [in] initial target for output residuals */
+                        const std::vector<int> &modes, /**< [in] requested retained-mode counts */
+                        double rankTolerance,          /**< [in] relative numerical-rank threshold */
+                        int maxDOF, /**< [in] structural degree-of-freedom limit and eigenpair count */
+                        const matrixT *predictorMeans, /**< [in] optional means for uncentered application */
+                        workspaceT &workspace,         /**< [in,out] reusable LAPACK workspace */
+                        P4PCATiming *timing,           /**< [out] optional per-call worker timing */
+                        P4PCA::matrixT *coefficients /**< [out] optional predictor-space coefficient vectors */ );
+};
+
+template <typename CalculationT, typename EigensolverT>
+void P4PCAKernel<CalculationT, EigensolverT>::calculateValidated( P4PCAResult &output,
+                                                                  const matrixT &predictors,
+                                                                  const vectorT &fitTarget,
+                                                                  const vectorT &residualTarget,
+                                                                  const std::vector<int> &modes,
+                                                                  double rankTolerance,
+                                                                  int maxDOF,
+                                                                  const matrixT *predictorMeans,
+                                                                  workspaceT &workspace,
+                                                                  P4PCATiming *timing,
+                                                                  P4PCA::matrixT *coefficients )
 {
     if( timing )
     {
@@ -346,8 +492,8 @@ void p4PCACalculateValidated(
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
     const bool useTemporalGram = sampleCount <= predictorCount;
-    P4PCA::matrixT gram;
-    P4PCA::vectorT crossProduct;
+    matrixT gram;
+    vectorT crossProduct;
     const auto gramStart = std::chrono::steady_clock::now();
     if( useTemporalGram )
     {
@@ -368,7 +514,7 @@ void p4PCACalculateValidated(
         throw std::runtime_error( "P4PCA normal equations produced nonfinite values" );
     }
 
-    P4PCA::vectorT predictorMeanProjection;
+    vectorT predictorMeanProjection;
     if( predictorMeans )
     {
         if( useTemporalGram )
@@ -377,10 +523,11 @@ void p4PCACalculateValidated(
         }
     }
 
-    P4PCA::matrixT eigenvectors;
-    P4PCA::matrixT eigenvalues;
+    matrixT eigenvectors;
+    matrixT eigenvalues;
     const auto eigensolveStart = std::chrono::steady_clock::now();
-    const MXLAPACK_INT solverStatus = p4PCAEigenSolve( eigenvectors, eigenvalues, gram, maxDOF, workspace );
+    const MXLAPACK_INT solverStatus =
+        p4PCAEigenSolveAdapted<CalculationT, EigensolverT>( eigenvectors, eigenvalues, gram, maxDOF, workspace );
     if( solverStatus != 0 )
     {
         throw std::runtime_error( "P4PCA eigensolver failed with status " + std::to_string( solverStatus ) );
@@ -405,7 +552,7 @@ void p4PCACalculateValidated(
         }
     }
 
-    const double largestEigenvalue = eigenvalues( maxDOF - 1 );
+    const CalculationT largestEigenvalue = eigenvalues( maxDOF - 1 );
     int numericalRank{ 0 };
     if( largestEigenvalue > 0 )
     {
@@ -449,9 +596,9 @@ void p4PCACalculateValidated(
 
     const int largestSupportedMode = *( unsupported - 1 );
     const auto projectionStart = std::chrono::steady_clock::now();
-    P4PCA::vectorT residual = residualTarget;
-    P4PCA::vectorT accumulatedCoefficients;
-    P4PCA::vectorT coefficientUpdate;
+    vectorT residual = residualTarget;
+    vectorT accumulatedCoefficients;
+    vectorT coefficientUpdate;
     if( coefficients )
     {
         accumulatedCoefficients.resize( predictorCount );
@@ -466,11 +613,11 @@ void p4PCACalculateValidated(
     for( int retainedMode = 1; retainedMode <= largestSupportedMode; ++retainedMode )
     {
         const int eigenIndex = maxDOF - retainedMode;
-        const double eigenvalue = eigenvalues( eigenIndex );
-        const P4PCA::vectorT eigenvector = eigenvectors.col( eigenIndex );
-        double coefficient{ 0 };
-        double predictionMean{ 0 };
-        P4PCA::vectorT projectedMode;
+        const CalculationT eigenvalue = eigenvalues( eigenIndex );
+        const vectorT eigenvector = eigenvectors.col( eigenIndex );
+        CalculationT coefficient{ 0 };
+        CalculationT predictionMean{ 0 };
+        vectorT projectedMode;
         if( useTemporalGram )
         {
             coefficient = eigenvector.matrix().dot( fitTarget.matrix() );
@@ -521,11 +668,25 @@ void p4PCACalculateValidated(
 
         if( outputIndex < modes.size() && modes[outputIndex] == retainedMode )
         {
-            output.residuals.col( outputIndex ) = residual;
+            if constexpr( std::is_same_v<CalculationT, double> )
+            {
+                output.residuals.col( outputIndex ) = residual;
+            }
+            else
+            {
+                output.residuals.col( outputIndex ) = residual.template cast<double>();
+            }
             output.modeStatus[outputIndex] = P4PCAModeStatus::rankSupported;
             if( coefficients )
             {
-                coefficients->col( outputIndex ) = accumulatedCoefficients;
+                if constexpr( std::is_same_v<CalculationT, double> )
+                {
+                    coefficients->col( outputIndex ) = accumulatedCoefficients;
+                }
+                else
+                {
+                    coefficients->col( outputIndex ) = accumulatedCoefficients.template cast<double>();
+                }
             }
             ++outputIndex;
         }
@@ -536,6 +697,106 @@ void p4PCACalculateValidated(
     }
 }
 
+template <typename CalculationT, typename EigensolverT>
+void P4PCAKernel<CalculationT, EigensolverT>::calculate( P4PCAResult &output,
+                                                         const matrixT &predictors,
+                                                         const vectorT &target,
+                                                         const std::vector<int> &modes,
+                                                         double rankTolerance,
+                                                         workspaceT &workspace,
+                                                         P4PCATiming *timing,
+                                                         P4PCA::matrixT *coefficients )
+{
+    output.sampleValidity.resize( 0, 0 );
+    const Eigen::Index sampleCount = predictors.rows();
+    const Eigen::Index predictorCount = predictors.cols();
+    const int maxDOF = static_cast<int>( std::min( sampleCount, predictorCount ) );
+    p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
+    calculateValidated( output,
+                        predictors,
+                        target,
+                        target,
+                        modes,
+                        rankTolerance,
+                        maxDOF,
+                        nullptr,
+                        workspace,
+                        timing,
+                        coefficients );
+}
+
+template <typename CalculationT, typename EigensolverT>
+void P4PCAKernel<CalculationT, EigensolverT>::calculateCentered( P4PCAResult &output,
+                                                                 const matrixT &predictors,
+                                                                 const vectorT &target,
+                                                                 const std::vector<int> &modes,
+                                                                 double rankTolerance,
+                                                                 workspaceT &workspace,
+                                                                 P4PCATiming *timing,
+                                                                 P4PCA::matrixT *coefficients )
+{
+    matrixT centeredPredictors = predictors;
+    calculateCenteredInPlace( output,
+                              centeredPredictors,
+                              target,
+                              modes,
+                              rankTolerance,
+                              workspace,
+                              timing,
+                              coefficients );
+}
+
+template <typename CalculationT, typename EigensolverT>
+void P4PCAKernel<CalculationT, EigensolverT>::calculateCenteredInPlace( P4PCAResult &output,
+                                                                        matrixT &predictors,
+                                                                        const vectorT &target,
+                                                                        const std::vector<int> &modes,
+                                                                        double rankTolerance,
+                                                                        workspaceT &workspace,
+                                                                        P4PCATiming *timing,
+                                                                        P4PCA::matrixT *coefficients )
+{
+    output.sampleValidity.resize( 0, 0 );
+    const Eigen::Index sampleCount = predictors.rows();
+    const Eigen::Index predictorCount = predictors.cols();
+    if( sampleCount == 1 )
+    {
+        throw std::invalid_argument( "P4PCA centered regression requires at least two samples" );
+    }
+
+    const int maxDOF = static_cast<int>( std::min( predictorCount, sampleCount - 1 ) );
+    p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
+
+    vectorT centeredTarget = target;
+    matrixT predictorMeans;
+    p4PCACenterColumns( predictors, &predictorMeans );
+    p4PCACenterColumns( centeredTarget );
+    if( !p4PCAAllFinite( predictors ) || !p4PCAAllFinite( centeredTarget ) )
+    {
+        throw std::runtime_error( "P4PCA temporal centering produced nonfinite values" );
+    }
+
+    calculateValidated( output,
+                        predictors,
+                        centeredTarget,
+                        target,
+                        modes,
+                        rankTolerance,
+                        maxDOF,
+                        &predictorMeans,
+                        workspace,
+                        timing,
+                        coefficients );
+}
+
+template struct P4PCAKernel<double, double>;
+template struct P4PCAKernel<float, double>;
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+template struct P4PCAKernel<float, float>;
+#endif
+
+/// \endcond
 } // namespace
 
 P4TargetExclusions P4TargetExclusions::fromSpans( Eigen::Index sampleCount, const std::vector<P4ExclusionSpan> &spans )
@@ -699,6 +960,254 @@ void p4PCAResetEigenSolverForTesting()
 {
     p4PCAEigenSolverForTesting.store( nullptr, std::memory_order_release );
 }
+
+void p4PCACalculateMixed( P4PCAResult &output,
+                          const P4PCA::matrixT &predictors,
+                          const P4PCA::vectorT &target,
+                          const std::vector<int> &modes,
+                          double rankTolerance,
+                          P4PCAMixedWorkspace &workspace,
+                          P4PCATiming *timing,
+                          P4PCA::matrixT *coefficients )
+{
+    workspace.floatPredictors = predictors.cast<float>();
+    workspace.floatTarget = target.cast<float>();
+    P4PCAKernel<float, double>::calculate( output,
+                                           workspace.floatPredictors,
+                                           workspace.floatTarget,
+                                           modes,
+                                           rankTolerance,
+                                           workspace.doubleEigensolver,
+                                           timing,
+                                           coefficients );
+}
+
+void p4PCACalculateCenteredMixed( P4PCAResult &output,
+                                  const P4PCA::matrixT &predictors,
+                                  const P4PCA::vectorT &target,
+                                  const std::vector<int> &modes,
+                                  double rankTolerance,
+                                  P4PCAMixedWorkspace &workspace,
+                                  P4PCATiming *timing,
+                                  P4PCA::matrixT *coefficients )
+{
+    workspace.floatPredictors = predictors.cast<float>();
+    workspace.floatTarget = target.cast<float>();
+    P4PCAKernel<float, double>::calculateCentered( output,
+                                                   workspace.floatPredictors,
+                                                   workspace.floatTarget,
+                                                   modes,
+                                                   rankTolerance,
+                                                   workspace.doubleEigensolver,
+                                                   timing,
+                                                   coefficients );
+}
+
+void p4PCACalculateCenteredInPlaceMixed( P4PCAResult &output,
+                                         P4PCA::matrixT &predictors,
+                                         const P4PCA::vectorT &target,
+                                         const std::vector<int> &modes,
+                                         double rankTolerance,
+                                         P4PCAMixedWorkspace &workspace,
+                                         P4PCATiming *timing,
+                                         P4PCA::matrixT *coefficients )
+{
+    workspace.floatPredictors = predictors.cast<float>();
+    workspace.floatTarget = target.cast<float>();
+    if( !p4PCAAllFinite( workspace.floatPredictors ) || !p4PCAAllFinite( workspace.floatTarget ) )
+    {
+        throw std::invalid_argument( "P4PCA values and rank tolerance must be finite and valid" );
+    }
+    try
+    {
+        P4PCAKernel<float, double>::calculateCenteredInPlace( output,
+                                                              workspace.floatPredictors,
+                                                              workspace.floatTarget,
+                                                              modes,
+                                                              rankTolerance,
+                                                              workspace.doubleEigensolver,
+                                                              timing,
+                                                              coefficients );
+    }
+    catch( ... )
+    {
+        predictors = workspace.floatPredictors.cast<double>();
+        throw;
+    }
+    predictors = workspace.floatPredictors.cast<double>();
+}
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+void p4PCASetFloatEigenSolverForTesting( P4PCAFloatEigenSolverT solver )
+{
+    p4PCAFloatEigenSolverForTesting.store( solver, std::memory_order_release );
+}
+
+void p4PCAResetFloatEigenSolverForTesting()
+{
+    p4PCAFloatEigenSolverForTesting.store( nullptr, std::memory_order_release );
+}
+
+void p4PCACalculateExperimental( P4PCAResult &output,
+                                 const P4PCA::matrixT &predictors,
+                                 const P4PCA::vectorT &target,
+                                 const std::vector<int> &modes,
+                                 double rankTolerance,
+                                 P4PCAPrecisionPolicy precisionPolicy,
+                                 P4PCAExperimentalWorkspace &workspace,
+                                 P4PCATiming *timing,
+                                 P4PCA::matrixT *coefficients )
+{
+    switch( precisionPolicy )
+    {
+    case P4PCAPrecisionPolicy::doubleDouble:
+        P4PCAKernel<double, double>::calculate( output,
+                                                predictors,
+                                                target,
+                                                modes,
+                                                rankTolerance,
+                                                workspace.doubleEigensolver,
+                                                timing,
+                                                coefficients );
+        return;
+    case P4PCAPrecisionPolicy::floatDouble:
+        p4PCACalculateMixed( output,
+                             predictors,
+                             target,
+                             modes,
+                             rankTolerance,
+                             workspace,
+                             timing,
+                             coefficients );
+        return;
+    case P4PCAPrecisionPolicy::floatFloat:
+        workspace.floatPredictors = predictors.cast<float>();
+        workspace.floatTarget = target.cast<float>();
+        P4PCAKernel<float, float>::calculate( output,
+                                              workspace.floatPredictors,
+                                              workspace.floatTarget,
+                                              modes,
+                                              rankTolerance,
+                                              workspace.floatEigensolver,
+                                              timing,
+                                              coefficients );
+        return;
+    }
+
+    throw std::invalid_argument( "P4PCA experimental precision policy is invalid" );
+}
+
+void p4PCACalculateCenteredExperimental( P4PCAResult &output,
+                                         const P4PCA::matrixT &predictors,
+                                         const P4PCA::vectorT &target,
+                                         const std::vector<int> &modes,
+                                         double rankTolerance,
+                                         P4PCAPrecisionPolicy precisionPolicy,
+                                         P4PCAExperimentalWorkspace &workspace,
+                                         P4PCATiming *timing,
+                                         P4PCA::matrixT *coefficients )
+{
+    switch( precisionPolicy )
+    {
+    case P4PCAPrecisionPolicy::doubleDouble:
+        P4PCAKernel<double, double>::calculateCentered( output,
+                                                        predictors,
+                                                        target,
+                                                        modes,
+                                                        rankTolerance,
+                                                        workspace.doubleEigensolver,
+                                                        timing,
+                                                        coefficients );
+        return;
+    case P4PCAPrecisionPolicy::floatDouble:
+        p4PCACalculateCenteredMixed( output,
+                                     predictors,
+                                     target,
+                                     modes,
+                                     rankTolerance,
+                                     workspace,
+                                     timing,
+                                     coefficients );
+        return;
+    case P4PCAPrecisionPolicy::floatFloat:
+        workspace.floatPredictors = predictors.cast<float>();
+        workspace.floatTarget = target.cast<float>();
+        P4PCAKernel<float, float>::calculateCentered( output,
+                                                      workspace.floatPredictors,
+                                                      workspace.floatTarget,
+                                                      modes,
+                                                      rankTolerance,
+                                                      workspace.floatEigensolver,
+                                                      timing,
+                                                      coefficients );
+        return;
+    }
+
+    throw std::invalid_argument( "P4PCA experimental precision policy is invalid" );
+}
+
+void p4PCACalculateCenteredInPlaceExperimental( P4PCAResult &output,
+                                                P4PCA::matrixT &predictors,
+                                                const P4PCA::vectorT &target,
+                                                const std::vector<int> &modes,
+                                                double rankTolerance,
+                                                P4PCAPrecisionPolicy precisionPolicy,
+                                                P4PCAExperimentalWorkspace &workspace,
+                                                P4PCATiming *timing,
+                                                P4PCA::matrixT *coefficients )
+{
+    switch( precisionPolicy )
+    {
+    case P4PCAPrecisionPolicy::doubleDouble:
+        P4PCAKernel<double, double>::calculateCenteredInPlace( output,
+                                                               predictors,
+                                                               target,
+                                                               modes,
+                                                               rankTolerance,
+                                                               workspace.doubleEigensolver,
+                                                               timing,
+                                                               coefficients );
+        return;
+    case P4PCAPrecisionPolicy::floatDouble:
+        p4PCACalculateCenteredInPlaceMixed( output,
+                                            predictors,
+                                            target,
+                                            modes,
+                                            rankTolerance,
+                                            workspace,
+                                            timing,
+                                            coefficients );
+        return;
+    case P4PCAPrecisionPolicy::floatFloat:
+        workspace.floatPredictors = predictors.cast<float>();
+        workspace.floatTarget = target.cast<float>();
+        if( !p4PCAAllFinite( workspace.floatPredictors ) || !p4PCAAllFinite( workspace.floatTarget ) )
+        {
+            throw std::invalid_argument( "P4PCA values and rank tolerance must be finite and valid" );
+        }
+        try
+        {
+            P4PCAKernel<float, float>::calculateCenteredInPlace( output,
+                                                                 workspace.floatPredictors,
+                                                                 workspace.floatTarget,
+                                                                 modes,
+                                                                 rankTolerance,
+                                                                 workspace.floatEigensolver,
+                                                                 timing,
+                                                                 coefficients );
+        }
+        catch( ... )
+        {
+            predictors = workspace.floatPredictors.cast<double>();
+            throw;
+        }
+        predictors = workspace.floatPredictors.cast<double>();
+        return;
+    }
+
+    throw std::invalid_argument( "P4PCA experimental precision policy is invalid" );
+}
+#endif
 /// \endcond
 
 } // namespace detail
@@ -729,42 +1238,41 @@ void P4PCA::calculate( P4PCAResult &output,
                        P4PCATiming *timing,
                        matrixT *coefficients )
 {
-    output.sampleValidity.resize( 0, 0 );
-    const Eigen::Index sampleCount = predictors.rows();
-    const Eigen::Index predictorCount = predictors.cols();
-    const int maxDOF = static_cast<int>( std::min( sampleCount, predictorCount ) );
-    p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
-    p4PCACalculateValidated( output,
-                             predictors,
-                             target,
-                             target,
-                             modes,
-                             rankTolerance,
-                             maxDOF,
-                             nullptr,
-                             workspace,
-                             timing,
-                             coefficients );
+    P4PCAKernel<double,
+                double>::calculate( output, predictors, target, modes, rankTolerance, workspace, timing, coefficients );
 }
 
 namespace
 {
 
-/// Calculate explicit target-held-out science residuals and an optional frozen linear-probe response.
-void p4PCACalculateHeldOut( P4PCAResult &output,                   /**< [out] held-out science result */
-                            P4PCA::matrixT *probeResiduals,        /**< [out] optional held-out probe responses */
-                            const P4PCA::matrixT &predictors,      /**< [in] full predictor matrix */
-                            const P4PCA::vectorT &target,          /**< [in] full regression target */
-                            const P4PCA::matrixT *probePredictors, /**< [in] optional probe predictor responses */
-                            const P4PCA::vectorT *probeTarget,     /**< [in] optional direct probe response */
-                            const P4TargetExclusions &exclusions,  /**< [in] target-specific deleted rows */
-                            const std::vector<int> &modes,         /**< [in] requested retained-mode counts */
-                            double rankTolerance,                  /**< [in] relative numerical-rank threshold */
-                            P4PCA::workspaceT &workspace,          /**< [in,out] reusable eigensolver workspace */
-                            P4PCATiming *timing /**< [out] optional aggregate timing */ )
+/// Reject a frozen-probe output that is also one of its immutable matrix inputs.
+void p4PCAValidateProbeOutputAliasing( P4PCA::matrixT &probeResiduals,   /**< [out] proposed probe output */
+                                       const P4PCA::matrixT &predictors, /**< [in] science predictors */
+                                       const P4PCA::matrixT &probePredictors /**< [in] frozen-probe predictors */ )
 {
-    using matrixT = P4PCA::matrixT;
-    using vectorT = P4PCA::vectorT;
+    if( &probeResiduals == &predictors || &probeResiduals == &probePredictors )
+    {
+        throw std::invalid_argument( "P4PCA held-out probe output must not alias predictor inputs" );
+    }
+}
+
+/// Calculate explicit target-held-out science residuals and an optional frozen linear-probe response.
+template <typename CalculationT, typename EigensolverT>
+void p4PCACalculateHeldOut(
+    P4PCAResult &output,                                      /**< [out] held-out science result */
+    P4PCA::matrixT *probeResiduals,                           /**< [out] optional FP64 held-out probe responses */
+    const P4PCADynamicMatrixT<CalculationT> &predictors,      /**< [in] full predictor matrix */
+    const P4PCADynamicVectorT<CalculationT> &target,          /**< [in] full regression target */
+    const P4PCADynamicMatrixT<CalculationT> *probePredictors, /**< [in] optional probe predictor responses */
+    const P4PCADynamicVectorT<CalculationT> *probeTarget,     /**< [in] optional direct probe response */
+    const P4TargetExclusions &exclusions,                     /**< [in] target-specific deleted rows */
+    const std::vector<int> &modes,                            /**< [in] requested retained-mode counts */
+    double rankTolerance,                                     /**< [in] relative numerical-rank threshold */
+    mx::math::syevrMem<EigensolverT> &workspace,              /**< [in,out] reusable eigensolver workspace */
+    P4PCATiming *timing /**< [out] optional aggregate timing */ )
+{
+    using matrixT = P4PCADynamicMatrixT<CalculationT>;
+    using vectorT = P4PCADynamicVectorT<CalculationT>;
 
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
@@ -898,8 +1406,11 @@ void p4PCACalculateHeldOut( P4PCAResult &output,                   /**< [out] he
             }
 
             const auto eigensolveStart = std::chrono::steady_clock::now();
-            const MXLAPACK_INT solverStatus =
-                p4PCAEigenSolve( eigenvectors, eigenvalues, trainingGram, structuralRank, workspace );
+            const MXLAPACK_INT solverStatus = p4PCAEigenSolveAdapted<CalculationT, EigensolverT>( eigenvectors,
+                                                                                                  eigenvalues,
+                                                                                                  trainingGram,
+                                                                                                  structuralRank,
+                                                                                                  workspace );
             if( solverStatus != 0 )
             {
                 throw std::runtime_error( "P4PCA eigensolver failed with status " + std::to_string( solverStatus ) );
@@ -921,7 +1432,7 @@ void p4PCACalculateHeldOut( P4PCAResult &output,                   /**< [out] he
                 }
             }
 
-            const double largestEigenvalue = eigenvalues( structuralRank - 1 );
+            const CalculationT largestEigenvalue = eigenvalues( structuralRank - 1 );
             int numericalRank{ 0 };
             if( largestEigenvalue > 0 )
             {
@@ -948,7 +1459,7 @@ void p4PCACalculateHeldOut( P4PCAResult &output,                   /**< [out] he
             }
             const int largestSupportedMode = *( numericalEnd - 1 );
             const auto projectionStart = std::chrono::steady_clock::now();
-            double prediction{ 0 };
+            CalculationT prediction{ 0 };
             vectorT probePrediction;
             vectorT probeMode;
             if( calculateProbe )
@@ -961,8 +1472,8 @@ void p4PCACalculateHeldOut( P4PCAResult &output,                   /**< [out] he
             {
                 const int eigenIndex = structuralRank - retainedMode;
                 const auto eigenvector = eigenvectors.col( eigenIndex );
-                const double heldOutProjection = heldOutCrossProduct.matrix().dot( eigenvector.matrix() );
-                const double targetProjection = eigenvector.matrix().dot( trainingTarget.matrix() );
+                const CalculationT heldOutProjection = heldOutCrossProduct.matrix().dot( eigenvector.matrix() );
+                const CalculationT targetProjection = eigenvector.matrix().dot( trainingTarget.matrix() );
                 prediction += heldOutProjection * ( targetProjection / eigenvalues( eigenIndex ) );
                 if( calculateProbe )
                 {
@@ -975,22 +1486,31 @@ void p4PCACalculateHeldOut( P4PCAResult &output,                   /**< [out] he
                 }
                 if( outputIndex < modes.size() && modes[outputIndex] == retainedMode )
                 {
-                    const double residual = target( heldOut ) - prediction;
+                    const CalculationT residual = target( heldOut ) - prediction;
                     if( !mx::math::isFinite( residual ) )
                     {
                         throw std::runtime_error( "P4PCA held-out prediction produced a nonfinite residual" );
                     }
-                    output.residuals( heldOut, static_cast<Eigen::Index>( outputIndex ) ) = residual;
+                    output.residuals( heldOut, static_cast<Eigen::Index>( outputIndex ) ) =
+                        static_cast<double>( residual );
                     output.sampleValidity( heldOut, static_cast<Eigen::Index>( outputIndex ) ) = 1;
                     output.modeStatus[outputIndex] = P4PCAModeStatus::rankSupported;
                     if( calculateProbe )
                     {
                         const Eigen::Index probeColumn = heldOut * static_cast<Eigen::Index>( modes.size() ) +
                                                          static_cast<Eigen::Index>( outputIndex );
-                        probeResiduals->col( probeColumn ) = *probeTarget - probePrediction;
-                        if( !p4PCAAllFinite( probeResiduals->col( probeColumn ) ) )
+                        const vectorT probeResidual = *probeTarget - probePrediction;
+                        if( !p4PCAAllFinite( probeResidual ) )
                         {
                             throw std::runtime_error( "P4PCA held-out probe produced a nonfinite response" );
+                        }
+                        if constexpr( std::is_same_v<CalculationT, double> )
+                        {
+                            probeResiduals->col( probeColumn ) = probeResidual;
+                        }
+                        else
+                        {
+                            probeResiduals->col( probeColumn ) = probeResidual.template cast<double>();
                         }
                     }
                     ++outputIndex;
@@ -1006,7 +1526,8 @@ void p4PCACalculateHeldOut( P4PCAResult &output,                   /**< [out] he
 
     matrixT trainingPredictors;
     vectorT trainingTarget;
-    matrixT coefficients;
+    P4PCA::matrixT exportedCoefficients;
+    matrixT calculationCoefficients;
     for( Eigen::Index heldOut = 0; heldOut < sampleCount; ++heldOut )
     {
         const std::span<const Eigen::Index> excluded = exclusions.deletedRows( deletedRows, heldOut );
@@ -1037,14 +1558,24 @@ void p4PCACalculateHeldOut( P4PCAResult &output,                   /**< [out] he
 
         P4PCAResult fit;
         P4PCATiming fitTiming;
-        P4PCA::calculate( fit,
-                          trainingPredictors,
-                          trainingTarget,
-                          supportedModes,
-                          rankTolerance,
-                          workspace,
-                          &fitTiming,
-                          &coefficients );
+        P4PCAKernel<CalculationT, EigensolverT>::calculate( fit,
+                                                            trainingPredictors,
+                                                            trainingTarget,
+                                                            supportedModes,
+                                                            rankTolerance,
+                                                            workspace,
+                                                            &fitTiming,
+                                                            &exportedCoefficients );
+        const matrixT *coefficients = nullptr;
+        if constexpr( std::is_same_v<CalculationT, double> )
+        {
+            coefficients = &exportedCoefficients;
+        }
+        else
+        {
+            calculationCoefficients = exportedCoefficients.template cast<CalculationT>();
+            coefficients = &calculationCoefficients;
+        }
         output.numericalRank = std::min( output.numericalRank, fit.numericalRank );
         if( timing )
         {
@@ -1059,27 +1590,35 @@ void p4PCACalculateHeldOut( P4PCAResult &output,                   /**< [out] he
             {
                 continue;
             }
-            const double prediction = predictors.row( heldOut ).matrix().dot(
-                coefficients.col( static_cast<Eigen::Index>( mode ) ).matrix() );
-            const double residual = target( heldOut ) - prediction;
+            const CalculationT prediction = predictors.row( heldOut ).matrix().dot(
+                coefficients->col( static_cast<Eigen::Index>( mode ) ).matrix() );
+            const CalculationT residual = target( heldOut ) - prediction;
             if( !mx::math::isFinite( residual ) )
             {
                 throw std::runtime_error( "P4PCA held-out prediction produced a nonfinite residual" );
             }
-            output.residuals( heldOut, static_cast<Eigen::Index>( mode ) ) = residual;
+            output.residuals( heldOut, static_cast<Eigen::Index>( mode ) ) = static_cast<double>( residual );
             output.sampleValidity( heldOut, static_cast<Eigen::Index>( mode ) ) = 1;
             output.modeStatus[mode] = P4PCAModeStatus::rankSupported;
             if( calculateProbe )
             {
                 const Eigen::Index probeColumn =
                     heldOut * static_cast<Eigen::Index>( modes.size() ) + static_cast<Eigen::Index>( mode );
-                probeResiduals->col( probeColumn ) =
+                const vectorT probeResidual =
                     *probeTarget -
-                    ( probePredictors->matrix() * coefficients.col( static_cast<Eigen::Index>( mode ) ).matrix() )
+                    ( probePredictors->matrix() * coefficients->col( static_cast<Eigen::Index>( mode ) ).matrix() )
                         .array();
-                if( !p4PCAAllFinite( probeResiduals->col( probeColumn ) ) )
+                if( !p4PCAAllFinite( probeResidual ) )
                 {
                     throw std::runtime_error( "P4PCA held-out probe produced a nonfinite response" );
+                }
+                if constexpr( std::is_same_v<CalculationT, double> )
+                {
+                    probeResiduals->col( probeColumn ) = probeResidual;
+                }
+                else
+                {
+                    probeResiduals->col( probeColumn ) = probeResidual.template cast<double>();
                 }
             }
         }
@@ -1090,6 +1629,110 @@ void p4PCACalculateHeldOut( P4PCAResult &output,                   /**< [out] he
         }
     }
 }
+
+/// Dispatch one explicit held-out request through the production mixed-precision scalar policy.
+void p4PCACalculateHeldOutMixedImpl(
+    P4PCAResult &output,                    /**< [out] held-out science result */
+    P4PCA::matrixT *probeResiduals,         /**< [out] optional FP64 frozen-probe responses */
+    const P4PCA::matrixT &predictors,       /**< [in] common FP64 predictor ingress */
+    const P4PCA::vectorT &target,           /**< [in] common FP64 target ingress */
+    const P4PCA::matrixT *probePredictors,  /**< [in] optional common FP64 probe predictors */
+    const P4PCA::vectorT *probeTarget,      /**< [in] optional common FP64 direct probe response */
+    const P4TargetExclusions &exclusions,   /**< [in] target-specific deleted rows */
+    const std::vector<int> &modes,          /**< [in] requested retained-mode counts */
+    double rankTolerance,                   /**< [in] relative numerical-rank threshold */
+    detail::P4PCAMixedWorkspace &workspace, /**< [in,out] reusable mixed-policy workspace */
+    P4PCATiming *timing /**< [out] optional aggregate timing */ )
+{
+    workspace.floatPredictors = predictors.cast<float>();
+    workspace.floatTarget = target.cast<float>();
+    if( probePredictors && probeTarget )
+    {
+        workspace.floatProbePredictors = probePredictors->cast<float>();
+        workspace.floatProbeTarget = probeTarget->cast<float>();
+    }
+    p4PCACalculateHeldOut<float, double>( output,
+                                          probeResiduals,
+                                          workspace.floatPredictors,
+                                          workspace.floatTarget,
+                                          probePredictors ? &workspace.floatProbePredictors : nullptr,
+                                          probeTarget ? &workspace.floatProbeTarget : nullptr,
+                                          exclusions,
+                                          modes,
+                                          rankTolerance,
+                                          workspace.doubleEigensolver,
+                                          timing );
+}
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+/// Dispatch one explicit held-out request through the selected experimental scalar policy.
+void p4PCACalculateHeldOutExperimentalImpl(
+    P4PCAResult &output,                           /**< [out] held-out science result */
+    P4PCA::matrixT *probeResiduals,                /**< [out] optional FP64 frozen-probe responses */
+    const P4PCA::matrixT &predictors,              /**< [in] common FP64 predictor ingress */
+    const P4PCA::vectorT &target,                  /**< [in] common FP64 target ingress */
+    const P4PCA::matrixT *probePredictors,         /**< [in] optional common FP64 probe predictors */
+    const P4PCA::vectorT *probeTarget,             /**< [in] optional common FP64 direct probe response */
+    const P4TargetExclusions &exclusions,          /**< [in] target-specific deleted rows */
+    const std::vector<int> &modes,                 /**< [in] requested retained-mode counts */
+    double rankTolerance,                          /**< [in] relative numerical-rank threshold */
+    detail::P4PCAPrecisionPolicy precisionPolicy,  /**< [in] calculation/eigensolver scalar combination */
+    detail::P4PCAExperimentalWorkspace &workspace, /**< [in,out] reusable policy workspace */
+    P4PCATiming *timing /**< [out] optional aggregate timing */ )
+{
+    switch( precisionPolicy )
+    {
+    case detail::P4PCAPrecisionPolicy::doubleDouble:
+        p4PCACalculateHeldOut<double, double>( output,
+                                               probeResiduals,
+                                               predictors,
+                                               target,
+                                               probePredictors,
+                                               probeTarget,
+                                               exclusions,
+                                               modes,
+                                               rankTolerance,
+                                               workspace.doubleEigensolver,
+                                               timing );
+        return;
+    case detail::P4PCAPrecisionPolicy::floatDouble:
+        p4PCACalculateHeldOutMixedImpl( output,
+                                        probeResiduals,
+                                        predictors,
+                                        target,
+                                        probePredictors,
+                                        probeTarget,
+                                        exclusions,
+                                        modes,
+                                        rankTolerance,
+                                        workspace,
+                                        timing );
+        return;
+    case detail::P4PCAPrecisionPolicy::floatFloat:
+        workspace.floatPredictors = predictors.cast<float>();
+        workspace.floatTarget = target.cast<float>();
+        if( probePredictors && probeTarget )
+        {
+            workspace.floatProbePredictors = probePredictors->cast<float>();
+            workspace.floatProbeTarget = probeTarget->cast<float>();
+        }
+        p4PCACalculateHeldOut<float, float>( output,
+                                             probeResiduals,
+                                             workspace.floatPredictors,
+                                             workspace.floatTarget,
+                                             probePredictors ? &workspace.floatProbePredictors : nullptr,
+                                             probeTarget ? &workspace.floatProbeTarget : nullptr,
+                                             exclusions,
+                                             modes,
+                                             rankTolerance,
+                                             workspace.floatEigensolver,
+                                             timing );
+        return;
+    }
+
+    throw std::invalid_argument( "P4PCA experimental precision policy is invalid" );
+}
+#endif
 
 } // namespace
 
@@ -1102,17 +1745,17 @@ void P4PCA::calculateHeldOut( P4PCAResult &output,
                               workspaceT &workspace,
                               P4PCATiming *timing )
 {
-    p4PCACalculateHeldOut( output,
-                           nullptr,
-                           predictors,
-                           target,
-                           nullptr,
-                           nullptr,
-                           exclusions,
-                           modes,
-                           rankTolerance,
-                           workspace,
-                           timing );
+    p4PCACalculateHeldOut<double, double>( output,
+                                           nullptr,
+                                           predictors,
+                                           target,
+                                           nullptr,
+                                           nullptr,
+                                           exclusions,
+                                           modes,
+                                           rankTolerance,
+                                           workspace,
+                                           timing );
 }
 
 void P4PCA::calculateHeldOutProbe( P4PCAResult &output,
@@ -1127,18 +1770,135 @@ void P4PCA::calculateHeldOutProbe( P4PCAResult &output,
                                    workspaceT &workspace,
                                    P4PCATiming *timing )
 {
-    p4PCACalculateHeldOut( output,
-                           &probeResiduals,
-                           predictors,
-                           target,
-                           &probePredictors,
-                           &probeTarget,
-                           exclusions,
-                           modes,
-                           rankTolerance,
-                           workspace,
-                           timing );
+    p4PCAValidateProbeOutputAliasing( probeResiduals, predictors, probePredictors );
+    p4PCACalculateHeldOut<double, double>( output,
+                                           &probeResiduals,
+                                           predictors,
+                                           target,
+                                           &probePredictors,
+                                           &probeTarget,
+                                           exclusions,
+                                           modes,
+                                           rankTolerance,
+                                           workspace,
+                                           timing );
 }
+
+namespace detail
+{
+
+/// \cond P4PCA_test_detail
+void p4PCACalculateHeldOutMixed( P4PCAResult &output,
+                                 const P4PCA::matrixT &predictors,
+                                 const P4PCA::vectorT &target,
+                                 const P4TargetExclusions &exclusions,
+                                 const std::vector<int> &modes,
+                                 double rankTolerance,
+                                 P4PCAMixedWorkspace &workspace,
+                                 P4PCATiming *timing )
+{
+    p4PCACalculateHeldOutMixedImpl( output,
+                                    nullptr,
+                                    predictors,
+                                    target,
+                                    nullptr,
+                                    nullptr,
+                                    exclusions,
+                                    modes,
+                                    rankTolerance,
+                                    workspace,
+                                    timing );
+}
+
+void p4PCACalculateHeldOutProbeMixed( P4PCAResult &output,
+                                      P4PCA::matrixT &probeResiduals,
+                                      const P4PCA::matrixT &predictors,
+                                      const P4PCA::vectorT &target,
+                                      const P4PCA::matrixT &probePredictors,
+                                      const P4PCA::vectorT &probeTarget,
+                                      const P4TargetExclusions &exclusions,
+                                      const std::vector<int> &modes,
+                                      double rankTolerance,
+                                      P4PCAMixedWorkspace &workspace,
+                                      P4PCATiming *timing )
+{
+    p4PCAValidateProbeOutputAliasing( probeResiduals, predictors, probePredictors );
+    p4PCACalculateHeldOutMixedImpl( output,
+                                    &probeResiduals,
+                                    predictors,
+                                    target,
+                                    &probePredictors,
+                                    &probeTarget,
+                                    exclusions,
+                                    modes,
+                                    rankTolerance,
+                                    workspace,
+                                    timing );
+}
+/// \endcond
+
+} // namespace detail
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+namespace detail
+{
+
+/// \cond P4PCA_test_detail
+void p4PCACalculateHeldOutExperimental( P4PCAResult &output,
+                                        const P4PCA::matrixT &predictors,
+                                        const P4PCA::vectorT &target,
+                                        const P4TargetExclusions &exclusions,
+                                        const std::vector<int> &modes,
+                                        double rankTolerance,
+                                        P4PCAPrecisionPolicy precisionPolicy,
+                                        P4PCAExperimentalWorkspace &workspace,
+                                        P4PCATiming *timing )
+{
+    p4PCACalculateHeldOutExperimentalImpl( output,
+                                           nullptr,
+                                           predictors,
+                                           target,
+                                           nullptr,
+                                           nullptr,
+                                           exclusions,
+                                           modes,
+                                           rankTolerance,
+                                           precisionPolicy,
+                                           workspace,
+                                           timing );
+}
+
+void p4PCACalculateHeldOutProbeExperimental( P4PCAResult &output,
+                                             P4PCA::matrixT &probeResiduals,
+                                             const P4PCA::matrixT &predictors,
+                                             const P4PCA::vectorT &target,
+                                             const P4PCA::matrixT &probePredictors,
+                                             const P4PCA::vectorT &probeTarget,
+                                             const P4TargetExclusions &exclusions,
+                                             const std::vector<int> &modes,
+                                             double rankTolerance,
+                                             P4PCAPrecisionPolicy precisionPolicy,
+                                             P4PCAExperimentalWorkspace &workspace,
+                                             P4PCATiming *timing )
+{
+    p4PCAValidateProbeOutputAliasing( probeResiduals, predictors, probePredictors );
+    p4PCACalculateHeldOutExperimentalImpl( output,
+                                           &probeResiduals,
+                                           predictors,
+                                           target,
+                                           &probePredictors,
+                                           &probeTarget,
+                                           exclusions,
+                                           modes,
+                                           rankTolerance,
+                                           precisionPolicy,
+                                           workspace,
+                                           timing );
+}
+/// \endcond
+
+} // namespace detail
+#endif
 
 void P4PCA::calculateHeldOutDowndated( P4PCAResult &output,
                                        const matrixT &predictors,
@@ -1697,15 +2457,14 @@ void P4PCA::calculateCentered( P4PCAResult &output,
                                P4PCATiming *timing,
                                matrixT *coefficients )
 {
-    matrixT centeredPredictors = predictors;
-    calculateCenteredInPlace( output,
-                              centeredPredictors,
-                              target,
-                              modes,
-                              rankTolerance,
-                              workspace,
-                              timing,
-                              coefficients );
+    P4PCAKernel<double, double>::calculateCentered( output,
+                                                    predictors,
+                                                    target,
+                                                    modes,
+                                                    rankTolerance,
+                                                    workspace,
+                                                    timing,
+                                                    coefficients );
 }
 
 void P4PCA::calculateCenteredInPlace( P4PCAResult &output,
@@ -1717,37 +2476,14 @@ void P4PCA::calculateCenteredInPlace( P4PCAResult &output,
                                       P4PCATiming *timing,
                                       matrixT *coefficients )
 {
-    output.sampleValidity.resize( 0, 0 );
-    const Eigen::Index sampleCount = predictors.rows();
-    const Eigen::Index predictorCount = predictors.cols();
-    if( sampleCount == 1 )
-    {
-        throw std::invalid_argument( "P4PCA centered regression requires at least two samples" );
-    }
-
-    const int maxDOF = static_cast<int>( std::min( predictorCount, sampleCount - 1 ) );
-    p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
-
-    vectorT centeredTarget = target;
-    matrixT predictorMeans;
-    p4PCACenterColumns( predictors, &predictorMeans );
-    p4PCACenterColumns( centeredTarget );
-    if( !p4PCAAllFinite( predictors ) || !p4PCAAllFinite( centeredTarget ) )
-    {
-        throw std::runtime_error( "P4PCA temporal centering produced nonfinite values" );
-    }
-
-    p4PCACalculateValidated( output,
-                             predictors,
-                             centeredTarget,
-                             target,
-                             modes,
-                             rankTolerance,
-                             maxDOF,
-                             &predictorMeans,
-                             workspace,
-                             timing,
-                             coefficients );
+    P4PCAKernel<double, double>::calculateCenteredInPlace( output,
+                                                           predictors,
+                                                           target,
+                                                           modes,
+                                                           rankTolerance,
+                                                           workspace,
+                                                           timing,
+                                                           coefficients );
 }
 
 } // namespace improc

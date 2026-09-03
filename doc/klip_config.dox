@@ -106,6 +106,9 @@
  * For each realized reference library, KLIP automatically solves the smaller of the reference-image and pixel-space
  * Gram matrices. This has no configuration switch: it preserves the requested mode list while avoiding an expensive
  * large eigensolve for small regions with many references.
+ * Direct KLIP uses the fixed M32D64 precision policy: it forms the covariance and performs surrounding calculation in
+ * FP32, then promotes the covariance for an FP64 eigensolve. Precision is not a configuration backend. The opt-in
+ * `factorDowndateExact` solver remains FP64 internally before returning modes to FP32 storage.
  *
  * \section klip_diagnostics_dictionary Diagnostics
  *

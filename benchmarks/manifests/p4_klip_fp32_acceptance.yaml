@@ -1,0 +1,1129 @@
+schema: hcireduce-pca-precision-acceptance/v1
+version: 1
+created: "2026-09-02"
+status: kernel-gates-frozen-science-and-performance-owner-pending
+purpose: >-
+  Declare the acceptance contract for evaluating FP32 and mixed-precision P4
+  and KLIP candidates. This file contains definitions and limits only. Observed
+  results belong in run manifests and must not be used to revise a limit in
+  this version.
+
+decision_policy:
+  independent_algorithm_decisions: true
+  production_default_unchanged_during_evaluation: true
+  promotion_requires_all_applicable_blocking_gates: true
+  promotion_blocked_by_owner_tbd_science_gate: true
+  promotion_blocked_by_owner_tbd_performance_gate: true
+  unresolved_rank_ambiguity_blocks_promotion: true
+  report_only_metrics_do_not_establish_acceptance: true
+  threshold_change_policy: >-
+    Changing a frozen formula, limit, required case, or ambiguity rule requires
+    a new schema version and must occur before examining results governed by
+    that new version.
+  result_binding: >-
+    Every result manifest and raw metric row must record this file's path,
+    SHA-256, gate identifier, oracle identifier, metric denominator, units,
+    applicability, and pass state.
+
+precision_constants:
+  fp32_epsilon:
+    expression: std::numeric_limits<float>::epsilon()
+    value: 1.1920928955078125e-7
+  fp64_epsilon:
+    expression: std::numeric_limits<double>::epsilon()
+    value: 2.220446049250313e-16
+  protected_norm:
+    argument: >-
+      A nonnegative scalar norm already evaluated with the formula named by
+      the metric; matrix and vector arguments are not accepted implicitly.
+    expression: max(norm_value, std::numeric_limits<double>::min())
+    rationale: Prevent division by zero without adding an ordinary-scale floor.
+
+candidate_ids:
+  P4-D64: {calculation: fp64, eigensolve: fp64, role: authoritative-production-baseline}
+  P4-M32D64: {calculation: fp32, eigensolve: fp64, role: experimental-candidate}
+  P4-F32: {calculation: fp32, eigensolve: fp32, role: experimental-candidate}
+  KLIP-M32D64: {calculation: fp32, eigensolve: fp64, role: authoritative-production-baseline}
+  KLIP-F32: {calculation: fp32, eigensolve: fp32, role: experimental-candidate}
+
+oracles:
+  p4_production_d64:
+    kind: authoritative-production
+    description: >-
+      Current P4-D64 calculation on the identical FP32 source values, with the
+      existing rank threshold and operation ordering.
+  klip_production_m32d64:
+    kind: authoritative-production
+    description: >-
+      Current KLIP-M32D64 calculation on the identical FP32 source values,
+      preserving the reference-Gram and pixel-Gram branch contracts.
+  fp64_direct_thin_svd:
+    kind: independent-numerical
+    description: >-
+      FP64 direct thin SVD calculation from the original FP32 source values.
+      It must not reuse the candidate normal-equation eigensystem. This oracle
+      supplies squared singular values and leading-mode projectors; QR is not
+      a substitute.
+  fp64_qr_rank_cross_check:
+    kind: optional-independent-structural
+    description: >-
+      Optional FP64 rank-revealing QR cross-check for structural-rank cases.
+      It cannot supply the eigenvalue or retained-projector oracles.
+  analytic_spectrum:
+    kind: independent-structural
+    description: >-
+      Exact rank, nullity, and intended spectrum established by deterministic
+      synthetic construction, cross-checked with FP64 direct SVD.
+  stored_p4_d64:
+    kind: authoritative-stored-fp32
+    description: >-
+      P4-D64 internal science values rounded once at the existing IEEE FP32
+      storage boundary.
+  stored_klip_m32d64:
+    kind: authoritative-stored-fp32
+    description: Current KLIP-M32D64 FP32 science arrays.
+  production_api_same_policy:
+    kind: implementation-mapping
+    description: >-
+      The actual production API instantiated with the same scalar policy as a
+      benchmark-local staged calculation.
+  declared-run-case:
+    kind: experiment-control
+    description: The immutable case definition recorded before candidate execution.
+  algorithm-authoritative-production:
+    kind: authoritative-production-selector
+    description: Resolve to p4_production_d64 for P4 and klip_production_m32d64 for KLIP.
+  same-candidate-fixed-environment:
+    kind: repeatability
+    description: >-
+      Another execution of the identical candidate, executable, linked
+      libraries, input, and inner-thread policy on the same host.
+  fp64-direct-Gram-from-original-fp32-values:
+    kind: independent-numerical
+    description: >-
+      FP64 matrix product formed directly from the original FP32 source values,
+      independently of the candidate Gram matrix.
+  intrinsic-candidate-eigensystem:
+    kind: internal-consistency
+    description: The candidate Gram matrix and the eigenpairs returned for that matrix.
+  mathematical-identity:
+    kind: analytic
+    description: The exact identity matrix of the retained-subspace dimension.
+
+required_case_sets:
+  p4_d64_compatibility:
+    algorithms: [p4]
+    candidates: [P4-D64]
+    cases:
+      - direct T <= K
+      - direct T > K
+      - centered preserving input
+      - centered in place
+      - rank supported and rank insufficient modes
+      - eigensolver failure and malformed eigensolver output
+  p4_well_separated:
+    algorithms: [p4]
+    candidates: [P4-D64, P4-M32D64, P4-F32]
+    cases:
+      - well-conditioned full rank T <= K
+      - well-conditioned full rank T > K
+      - bounded AF Lep temporal-Gram numerical shape
+      - full AF Lep temporal-Gram numerical shape
+  klip_well_separated:
+    algorithms: [klip]
+    candidates: [KLIP-M32D64, KLIP-F32]
+    cases:
+      - shared reference-Gram basis with R <= P
+      - target-specific pixel-Gram basis with P < R
+  rank_nonzero_boundary:
+    algorithms: [p4]
+    candidates: [P4-D64, P4-M32D64, P4-F32]
+    cases:
+      - both Gram orientations
+      - exact structural zeros
+      - eigenvalue safely below the threshold
+      - eigenvalue at the threshold after source quantization
+      - eigenvalue just below the ambiguity boundary
+      - eigenvalue just above the ambiguity boundary
+      - eigenvalue safely above the ambiguity boundary
+  rank_zero_exact_dependencies:
+    algorithms: [p4, klip]
+    cases:
+      - both Gram orientations
+      - dense exact dependencies
+      - exact zero matrix
+      - one near-dependent but structurally positive direction
+  requested_mode_cluster:
+    algorithms: [p4, klip]
+    cases:
+      - repeated positive eigenvalues wholly inside the retained subspace
+      - tight cluster wholly outside the retained subspace
+      - tight cluster crossing each requested-mode boundary
+  stored_synthetic:
+    algorithms: [p4, klip]
+    cases:
+      - both Gram orientations
+      - every requested mode plane
+      - shared and target-specific KLIP workers
+  fixed_environment_determinism:
+    algorithms: [p4, klip]
+    cases:
+      - repeated identical invocation
+      - one outer worker versus multiple outer workers
+    controls:
+      inner_blas_lapack_threads: 1
+      executable_host_library_identity: identical
+  end_to_end_science:
+    algorithms: [p4, klip]
+    cases:
+      - owner-designated known-good configurations
+      - bounded AF Lep products
+      - complete AF Lep products
+      - injected sources across the owner-approved parameter grid
+      - every requested mode plane
+  end_to_end_performance:
+    algorithms: [p4, klip]
+    cases:
+      - owner-designated known-good bounded configurations
+      - complete owner-designated configurations
+      - equal fixed outer-worker count with one inner BLAS/LAPACK thread
+      - P4 automatic memory-policy worker count
+      - principal production CPU and one materially different CPU/BLAS platform
+    controls:
+      minimum_paired_repetitions_bounded: 5
+      minimum_paired_repetitions_complete: 3
+      candidate_order: balanced or alternated
+
+rank_ambiguity_contract:
+  id: rank.synthetic_band_v1
+  status: frozen
+  scope: bounded deterministic synthetic constructions
+  not_a_science_tolerance: true
+  machine_error_model:
+    gamma_expression: gamma_n(p) = (n * epsilon_p) / (1 - n * epsilon_p)
+    epsilon_convention: >-
+      Use machine epsilon rather than half epsilon as a conservative rounding
+      unit. A case is invalid when n * epsilon_p is not less than one.
+  half_width:
+    expression: >-
+      w = 2 * m * (gamma_n_dot(calculation) *
+      norm_frobenius(abs_product_gram) / lambda_max +
+      gamma_gram_dimension(eigensolver) * norm_frobenius(gram) / lambda_max)
+    multiplier_m: 8.0
+    scale_source: >-
+      lambda_max, norm_frobenius(gram), and
+      norm_frobenius(abs_product_gram) are FP64 oracle quantities formed
+      directly from the original FP32 source values. Candidate quantities do
+      not set the ambiguity width.
+    diagonal_boundary_n_dot: 1
+    dense_dependency_n_dot: inner_product_dimension
+    normalization_factor_rationale: >-
+      The leading factor of two covers normalization by the computed largest
+      eigenvalue. The multiplier covers conservative solver constants for the
+      bounded constructions.
+    absolute_product_gram: >-
+      Use abs(X) * abs(X)^T for a temporal or pixel Gram and
+      abs(X)^T * abs(X) for a predictor or reference Gram.
+  threshold_decision:
+    expression: retain when lambda_i > tau * lambda_1 using a strict comparison
+    normalization: >-
+      Oracle decisions use the oracle's own descending lambda_1; each
+      candidate decision uses that candidate's own descending lambda_1.
+    candidate_specific_band: >-
+      Compute and apply a separate w for every calculation/eigensolver policy;
+      a value may be unambiguous for one candidate and ambiguous for another.
+    outside_band:
+      condition: abs(lambda_i_oracle / lambda_max_oracle - tau) > w
+      required_result: exact retain-or-reject agreement
+      promotion_blocking: true
+    inside_band:
+      condition: abs(lambda_i_oracle / lambda_max_oracle - tau) <= w
+      required_result: diagnostic-and-explicit-resolution
+      automatically_passes: false
+      automatically_fails: false
+      promotion_blocking_until_resolved: true
+      required_resolution:
+        - retain FP64 for the decision
+        - approve and provenance a separately named rank policy
+        - demonstrate owner-approved product insensitivity
+        - reject the candidate
+  zero_threshold_rule:
+    oracle_structural_rank: >-
+      With descending FP64 direct-SVD singular values, classify sigma_i as
+      structurally positive exactly when sigma_i > max(T,K) * epsilon_fp64 *
+      sigma_1. Cross-check the result against the analytic construction.
+    candidate_raw_rank: Count candidate eigenvalues strictly greater than zero.
+    hard_gate: Every structurally positive oracle mode outside [0,w] remains retained.
+    diagnostic: Tiny positive or nonpositive candidate values for exact-null modes are recorded as ambiguous.
+  requested_mode_boundary:
+    indexing: >-
+      Eigenvalues are ordered descending and indexed from one. M is the
+      requested retained-mode count; the rule applies when M is less than the
+      available Gram dimension.
+    normalized_gap_expression: g_M = (lambda_M - lambda_(M+1)) / lambda_1
+    well_separated_condition: g_M > 2 * w
+    well_separated_rule: Apply the ordinary retained-projector gate.
+    clustered_condition: g_M <= 2 * w
+    clustered_rule: >-
+      Compare the projector of the complete cluster rather than individual
+      eigenvectors and record the residual or product envelope from valid
+      truncations through the cluster.
+    promotion_blocking_until_resolved: true
+  real_fit_use: >-
+    This construction-specific band may screen real fits for proximity to a
+    numerical boundary, but it is not asserted to be a universal forward-error
+    bound. Real-fit ambiguity frequency and product sensitivity remain science
+    policy inputs.
+  evidence_requirements:
+    - source-value hash and deterministic construction identifier
+    - calculation and eigensolver scalar types
+    - tau and strict comparison rule
+    - Gram orientation, Gram dimension, and inner-product dimension
+    - epsilon values, both gamma values, multiplier, and computed half-width
+    - lambda_max and every normalized oracle and candidate boundary eigenvalue
+    - absolute-product Gram norm and ordinary Gram norm
+    - designed and oracle structural rank and exact nullity
+    - oracle and candidate threshold ranks
+    - ambiguous indices, count, boundary ratios, and eigengap
+    - requested-mode cluster membership and complete-cluster projector error
+    - affected output modes and product-sensitivity metrics
+
+gates:
+  exact_structural:
+    - id: exact.p4_d64_compatibility
+      status: frozen
+      algorithms: [p4]
+      candidates: [P4-D64]
+      oracle: p4_production_d64
+      required_case_sets: [p4_d64_compatibility]
+      metric: >-
+        Public dynamic symbol names; residual, numerical-rank, and mode-status
+        values; failure status and message; stored science payload.
+      formula: exact equality; stored finite values require zero ULP difference
+      limit: {kind: exact}
+      ambiguity: none
+      exclusions: [timing values, timestamps, volatile FITS cards]
+      rationale: The compatibility-first scalar seam is not authorized to change FP64 behavior or ABI.
+      evidence_requirements:
+        - frozen pre-refactor executable hash
+        - before and after public dynamic symbol-name lists
+        - identical input-value hash
+        - per-case rank, status, and science-payload comparison
+      promotion_blocking: true
+
+    - id: exact.run_identity
+      status: frozen
+      algorithms: [p4, klip]
+      candidates: [P4-D64, P4-M32D64, P4-F32, KLIP-M32D64, KLIP-F32]
+      oracle: declared-run-case
+      required_case_sets:
+        - p4_d64_compatibility
+        - p4_well_separated
+        - klip_well_separated
+        - rank_nonzero_boundary
+        - rank_zero_exact_dependencies
+        - requested_mode_cluster
+        - stored_synthetic
+        - fixed_environment_determinism
+        - end_to_end_science
+        - end_to_end_performance
+      metric: >-
+        Configuration, input and mask checksums; dimensions; Gram orientation;
+        centering; requested modes; selection and exclusion policy; scalar
+        policy; outer and inner thread controls.
+      formula: exact equality with the case declaration
+      limit: {kind: exact}
+      ambiguity: none
+      rationale: Precision must be the only intentional numerical variable.
+      evidence_requirements:
+        - source, executable, configuration, input, and mask hashes
+        - resolved effective configuration
+        - T, K, P, R, requested modes, Gram orientation, and selection backend
+        - thread environment and affinity
+      promotion_blocking: true
+
+    - id: exact.output_layout
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: algorithm-authoritative-production
+      required_case_sets: [stored_synthetic, end_to_end_science]
+      metric: Output shape, plane count and order, requested and realized modes, ownership, and plane meaning.
+      formula: exact equality
+      limit: {kind: exact}
+      ambiguity: none
+      rationale: A precision change must not silently change product semantics.
+      evidence_requirements:
+        - ordered plane metadata
+        - realized mode list
+        - complete output dimensions and ownership maps
+      promotion_blocking: true
+
+    - id: exact.selection
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: algorithm-authoritative-production
+      required_case_sets: [stored_synthetic, end_to_end_science]
+      metric: Selected predictors or references and all inclusion or exclusion flags.
+      formula: exact elementwise and ordered-membership equality
+      limit: {kind: exact}
+      ambiguity: none
+      rationale: Library changes are algorithm changes, not floating-point error.
+      evidence_requirements:
+        - selected-index lists or their ordered hashes
+        - inclusion and exclusion matrices
+        - selection, exclusion, and collapse backend identifiers
+      promotion_blocking: true
+
+    - id: exact.validity
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: algorithm-authoritative-production
+      required_case_sets: [rank_nonzero_boundary, rank_zero_exact_dependencies, stored_synthetic, end_to_end_science]
+      metric: Finite, NaN, validity, rank-supported, and rank-insufficient state per sample, pixel, mode, and plane.
+      formula: exact equality outside declared rank-ambiguity cases
+      limit: {kind: exact}
+      ambiguity: rank.synthetic_band_v1
+      rationale: Silent validity or plane-meaning changes are not ordinary roundoff.
+      evidence_requirements:
+        - validity-mask hashes and mismatch coordinates
+        - finite and NaN counts by output plane
+        - complete P4 mode-status vectors
+        - ambiguity classification for every exempted mismatch
+      promotion_blocking: true
+
+    - id: exact.rank_unambiguous
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: [analytic_spectrum, fp64_direct_thin_svd]
+      required_case_sets: [rank_nonzero_boundary, rank_zero_exact_dependencies, requested_mode_cluster]
+      metric: Retain or reject decision for every oracle eigenvalue outside the ambiguity band.
+      formula: exact Boolean agreement under strict lambda > tau * lambda_max
+      limit: {kind: exact}
+      ambiguity: rank.synthetic_band_v1
+      rationale: Rank divergence outside the declared band is a numerical failure.
+      evidence_requirements:
+        - all rank_ambiguity_contract evidence
+        - per-eigenvalue oracle and candidate decisions
+      promotion_blocking: true
+
+    - id: exact.fallback_and_clamp
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: algorithm-authoritative-production
+      required_case_sets: [rank_nonzero_boundary, rank_zero_exact_dependencies, requested_mode_cluster]
+      metric: Solver status, realized clamp, fallback reason, fallback count, and selected fallback precision.
+      formula: exact equality unless the candidate is a separately named guarded policy
+      limit: {kind: exact}
+      ambiguity: >-
+        An ambiguity may trigger only the explicit resolution recorded under
+        rank.synthetic_band_v1; it cannot silently change fallback behavior.
+      rationale: A hidden fallback can invalidate both the precision label and performance result.
+      evidence_requirements:
+        - requested and realized mode counts
+        - status and fallback-reason enumeration
+        - per-reason counts and affected fit identifiers
+        - effective precision of every fallback
+      promotion_blocking: true
+
+    - id: exact.nonfinite_and_failure_contract
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: algorithm-authoritative-production
+      required_case_sets: [p4_d64_compatibility, rank_zero_exact_dependencies]
+      metric: Invalid-input disposition, solver status propagation, and unexpected nonfinite output count.
+      formula: exact failure category and zero unexpected nonfinite outputs
+      limit: {kind: exact}
+      ambiguity: none
+      rationale: Precision must not turn checked failures into silent science values.
+      evidence_requirements:
+        - injected failure identifier and returned or thrown status
+        - finite and nonfinite output counts
+        - failure message for compatibility-only paths
+      promotion_blocking: true
+
+    - id: exact.deterministic_structure
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: same-candidate-fixed-environment
+      required_case_sets: [fixed_environment_determinism]
+      metric: Rank, mode status, selection, validity, ownership, clamp, and fallback state.
+      formula: exact equality across repeats and one-versus-many outer workers
+      limit: {kind: exact}
+      ambiguity: >-
+        Any rank-sensitive difference must already be identified by the same
+        candidate's ambiguity record; scheduling is not an ambiguity source.
+      rationale: Independent worker scheduling must not change structural outcomes.
+      evidence_requirements:
+        - executable and linked-library hashes
+        - repeated-run and worker-count identifiers
+        - state hashes and first mismatch coordinates
+      promotion_blocking: true
+
+  engineering_smoke:
+    - id: smoke.gram_relative_frobenius
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: fp64-direct-Gram-from-original-fp32-values
+      required_case_sets: [p4_well_separated, klip_well_separated]
+      metric: Relative Frobenius error of the candidate Gram matrix.
+      formula: norm_frobenius(G_candidate - G_fp64) / protected_norm(norm_frobenius(G_fp64))
+      klip_reference_gram_rule: >-
+        Compare the stored lower triangle, including the diagonal, for both
+        numerator and denominator; count each off-diagonal coefficient once.
+        Do not replace this with a symmetrized full-matrix norm.
+      units: dimensionless
+      aggregation: maximum over required cases
+      limit: {op: less_than_or_equal, value: 5.0e-5}
+      ambiguity: Applies only to ordinary well-separated cases.
+      rationale: Existing capability-smoke gate; not a science tolerance.
+      evidence_requirements: [Gram orientation, compared triangle, numerator, denominator, result]
+      promotion_blocking: true
+
+    - id: smoke.retained_eigenvalue_relative_l2
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: fp64_direct_thin_svd
+      required_case_sets: [p4_well_separated, klip_well_separated]
+      metric: Relative L2 error of retained eigenvalues against squared singular values.
+      formula: norm_l2(lambda_candidate - lambda_oracle) / protected_norm(norm_l2(lambda_oracle))
+      units: dimensionless
+      aggregation: maximum over required cases and requested mode counts
+      limit: {op: less_than_or_equal, value: 5.0e-4}
+      ambiguity: Clustered and rank-boundary cases use their separate projector and ambiguity rules.
+      rationale: Existing capability-smoke gate; not a science tolerance.
+      evidence_requirements: [ordered retained eigenvalues, numerator, denominator, result]
+      promotion_blocking: true
+
+    - id: smoke.retained_projector_relative_frobenius
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: fp64_direct_thin_svd
+      required_case_sets: [p4_well_separated, klip_well_separated, requested_mode_cluster]
+      metric: Sign- and basis-invariant retained-subspace distance.
+      formula: >-
+        norm_frobenius(Q_candidate * Q_candidate^T - Q_oracle * Q_oracle^T) /
+        protected_norm(norm_frobenius(Q_oracle * Q_oracle^T))
+      units: dimensionless
+      aggregation: maximum over required cases and requested mode counts
+      limit: {op: less_than_or_equal, value: 2.0e-2}
+      ambiguity: >-
+        For a cluster crossing a requested-mode boundary, apply this gate to
+        the complete cluster projector and separately record truncation-product
+        sensitivity.
+      rationale: Existing capability-smoke gate; avoids eigenvector-sign comparisons.
+      evidence_requirements: [retained dimension, cluster membership, numerator, denominator, result]
+      promotion_blocking: true
+
+    - id: smoke.residual_over_oracle_residual
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: fp64_direct_thin_svd
+      required_case_sets: [p4_well_separated, klip_well_separated]
+      metric: Candidate residual error normalized by the oracle residual.
+      formula: norm_frobenius(r_candidate - r_oracle) / protected_norm(norm_frobenius(r_oracle))
+      inapplicable_when: norm_frobenius(r_oracle) == 0
+      units: dimensionless
+      aggregation: maximum over required cases, targets, and requested mode counts
+      limit: {op: less_than_or_equal, value: 2.0e-3}
+      ambiguity: Applies only to ordinary well-separated cases.
+      rationale: Existing P4 capability-smoke scaling; not a science tolerance.
+      evidence_requirements: [numerator, oracle residual norm, applicability, result]
+      promotion_blocking: true
+
+    - id: smoke.residual_over_target
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: fp64_direct_thin_svd
+      required_case_sets: [p4_well_separated, klip_well_separated]
+      metric: Candidate residual error normalized by the original target norm.
+      formula: norm_frobenius(r_candidate - r_oracle) / protected_norm(norm_frobenius(target_fp64))
+      units: dimensionless
+      aggregation: maximum over required cases, targets, and requested mode counts
+      limit: {op: less_than_or_equal, value: 2.0e-3}
+      ambiguity: Applies only to ordinary well-separated cases.
+      rationale: Existing KLIP capability-smoke scaling; remains defined for a nearly zero oracle residual.
+      evidence_requirements: [numerator, target norm, result]
+      promotion_blocking: true
+
+    - id: smoke.normalized_solver_residual
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: intrinsic-candidate-eigensystem
+      required_case_sets: [p4_well_separated, klip_well_separated]
+      metric: Backward residual of retained Gram eigenpairs.
+      formula: >-
+        norm_frobenius(G_candidate * Q_candidate - Q_candidate * Lambda_candidate) /
+        protected_norm(norm_frobenius(G_candidate) * norm_frobenius(Q_candidate))
+      units: dimensionless
+      aggregation: maximum over required cases and requested mode counts
+      limit: {op: less_than_or_equal, value: 2.0e-4}
+      ambiguity: Applies to the complete retained or clustered subspace as appropriate.
+      rationale: Existing P4 capability-smoke gate, extended to require the missing KLIP diagnostic.
+      evidence_requirements: [numerator, Gram norm, factor norm, result]
+      promotion_blocking: true
+
+    - id: smoke.retained_factor_orthogonality
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: mathematical-identity
+      required_case_sets: [p4_well_separated, klip_well_separated]
+      metric: Frobenius defect of the retained eigenvectors or spatial modes.
+      formula: norm_frobenius(Q_candidate^T * Q_candidate - identity)
+      units: dimensionless
+      aggregation: maximum over required cases and requested mode counts
+      limit: {op: less_than_or_equal, value: 2.0e-3}
+      ambiguity: Basis rotation within a cluster is allowed; loss of subspace orthonormality is not.
+      rationale: Existing capability-smoke gate; not a science tolerance.
+      evidence_requirements: [factor dimensions, result]
+      promotion_blocking: true
+
+    - id: smoke.production_mapping
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: production_api_same_policy
+      required_case_sets: [p4_well_separated, klip_well_separated]
+      metric: Staged-benchmark agreement with the actual same-policy production projector and residual.
+      formula:
+        projector: >-
+          norm_frobenius(projector_staged - projector_production) /
+          protected_norm(norm_frobenius(projector_production))
+        residual: >-
+          norm_frobenius(residual_staged - residual_production) /
+          protected_norm(norm_frobenius(original_target))
+      units: dimensionless
+      aggregation: maximum of projector and residual results over required cases
+      limit: {op: less_than_or_equal, value: 5.0e-5}
+      ambiguity: none for well-separated cases
+      rationale: Guards benchmark fidelity without claiming scientific equivalence.
+      evidence_requirements:
+        - production API and scalar specialization
+        - projector numerator and production-projector norm
+        - residual numerator and original-target norm
+        - both normalized results
+      promotion_blocking: true
+
+    - id: smoke.gram_maximum_absolute
+      status: frozen-report-only
+      algorithms: [p4, klip]
+      oracle: fp64-direct-Gram-from-original-fp32-values
+      required_case_sets: [p4_well_separated, klip_well_separated]
+      metric: Maximum absolute Gram-entry error.
+      formula: max(abs(G_candidate - G_fp64))
+      units: squared input units
+      aggregation: maximum over required cases
+      limit: null
+      ambiguity: none
+      rationale: Required diagnostic; no scale-independent engineering limit is justified yet.
+      evidence_requirements: [input RMS and maximum, numerator, units]
+      promotion_blocking: false
+
+    - id: smoke.residual_maximum_absolute
+      status: frozen-report-only
+      algorithms: [p4, klip]
+      oracle: fp64_direct_thin_svd
+      required_case_sets: [p4_well_separated, klip_well_separated]
+      metric: Maximum absolute residual error.
+      formula: max(abs(r_candidate - r_oracle))
+      units: input intensity units
+      aggregation: maximum over required cases, targets, and requested modes
+      limit: null
+      ambiguity: none
+      rationale: Required diagnostic; final absolute relevance is a science decision.
+      evidence_requirements: [target and oracle-residual RMS, numerator, units]
+      promotion_blocking: false
+
+    - id: smoke.maximum_principal_angle
+      status: frozen-report-only
+      algorithms: [p4, klip]
+      oracle: fp64_direct_thin_svd
+      required_case_sets: [p4_well_separated, klip_well_separated, requested_mode_cluster]
+      metric: Largest principal angle between candidate and oracle retained subspaces.
+      formula: acos(clamp(min(singular_values(Q_candidate^T * Q_oracle)), 0, 1))
+      units: radians
+      aggregation: maximum over required cases and requested mode counts
+      limit: null
+      ambiguity: Use complete-cluster subspaces when a requested-mode boundary is ambiguous.
+      rationale: Complements the Frobenius projector metric without inventing a science limit.
+      evidence_requirements: [singular values of cross factor, result]
+      promotion_blocking: false
+
+  stored_fp32:
+    - id: stored.structure
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: [stored_p4_d64, stored_klip_m32d64]
+      required_case_sets: [stored_synthetic, end_to_end_science]
+      metric: Stored shape, plane semantics, mode metadata, selection, and validity.
+      formula: exact equality
+      units: none
+      aggregation: every stored element and metadata field
+      limit: {kind: exact}
+      ambiguity: Only explicitly resolved rank-ambiguity cases may be exempted and must retain provenance.
+      rationale: FP32 storage does not permit structural product changes.
+      evidence_requirements: [science-array shape, ordered plane metadata, selection and validity hashes]
+      promotion_blocking: true
+
+    - id: stored.p4_d64_rounding
+      status: frozen
+      algorithms: [p4]
+      candidates: [P4-D64]
+      oracle: stored_p4_d64
+      required_case_sets: [p4_d64_compatibility, stored_synthetic]
+      metric: Stored value after the DD scalar-seam extraction.
+      formula: value_stored == static_cast<float>(authoritative_D64_internal_value)
+      units: FP32 ULP
+      aggregation: every finite science value
+      limit: {op: equal, value: 0}
+      ambiguity: none
+      rationale: The compatibility-only extraction must preserve the existing rounding boundary exactly.
+      evidence_requirements: [internal D64 value hash, stored FP32 value hash, maximum ULP distance]
+      promotion_blocking: true
+
+    - id: stored.synthetic_residual_norms
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: [stored_p4_d64, stored_klip_m32d64]
+      required_case_sets: [stored_synthetic]
+      metric: Stored candidate residual error under both declared normalizations.
+      formula: Apply smoke.residual_over_oracle_residual and smoke.residual_over_target after both results are FP32.
+      units: dimensionless
+      aggregation: maximum over candidates, cases, targets, and requested mode planes
+      limit:
+        residual_over_oracle_residual: {op: less_than_or_equal, value: 2.0e-3}
+        residual_over_target: {op: less_than_or_equal, value: 2.0e-3}
+      ambiguity: Rank- or requested-mode-boundary cases use rank.synthetic_band_v1 instead.
+      rationale: Separates internal arithmetic error from the actual production storage boundary.
+      evidence_requirements: [pre-cast and stored metrics, both denominators, applicability]
+      promotion_blocking: true
+
+    - id: stored.klip_fixture_mixed_to_svd
+      status: frozen
+      algorithms: [klip]
+      candidates: [KLIP-M32D64]
+      oracle: fp64_direct_thin_svd
+      required_case_sets: [stored_synthetic]
+      metric: Elementwise residual agreement on the existing order-one normalized worker fixtures.
+      formula: abs(a - b) <= c * epsilon_fp32 * (1 + max(abs(a), abs(b)))
+      units: input intensity units
+      aggregation: every finite stored fixture value
+      limit:
+        coefficient_c: 256.0
+        epsilon_scaled_limit: 3.0517578125e-5
+      ambiguity: Applies only to well-separated normalized fixtures.
+      rationale: Existing KLIP mixed-precision fixture regression, not a general real-product tolerance.
+      evidence_requirements: [fixture identifier, compared values, scale term, maximum normalized excess]
+      promotion_blocking: true
+
+    - id: stored.klip_fixture_f32_to_oracles
+      status: frozen
+      algorithms: [klip]
+      candidates: [KLIP-F32]
+      oracle: [fp64_direct_thin_svd, stored_klip_m32d64]
+      required_case_sets: [stored_synthetic]
+      metric: Elementwise residual agreement on the existing order-one normalized worker fixtures.
+      formula: abs(a - b) <= c * epsilon_fp32 * (1 + max(abs(a), abs(b)))
+      units: input intensity units
+      aggregation: every finite stored fixture value against both oracles
+      limit:
+        coefficient_c: 4096.0
+        epsilon_scaled_limit: 4.8828125e-4
+      ambiguity: Applies only to well-separated normalized fixtures.
+      rationale: Existing KLIP FP32 fixture regression, not a general real-product tolerance.
+      evidence_requirements: [fixture identifier, oracle identifier, compared values, scale term, maximum normalized excess]
+      promotion_blocking: true
+
+    - id: stored.same_backend_repeatability
+      status: frozen
+      algorithms: [p4, klip]
+      oracle: same-candidate-fixed-environment
+      required_case_sets: [fixed_environment_determinism]
+      metric: Stored science arrays from repeated identical invocations and one-versus-many outer workers.
+      formula: IEEE FP32 bit-pattern equality for corresponding finite values
+      units: FP32 ULP
+      aggregation: every corresponding stored science value
+      limit: {op: equal, value: 0}
+      ambiguity: NaN payload bits are ignored only when the validity and NaN location are exactly equal.
+      rationale: Outer workers operate on independent fits and must not reorder arithmetic within a fit.
+      evidence_requirements: [thread controls, payload hashes, maximum ULP distance, mismatch coordinates]
+      promotion_blocking: true
+
+    - id: stored.bit_diagnostics
+      status: frozen-report-only
+      algorithms: [p4, klip]
+      oracle: [stored_p4_d64, stored_klip_m32d64]
+      required_case_sets: [stored_synthetic, end_to_end_science]
+      metric: Distribution of stored FP32 differences on corresponding valid values.
+      formula:
+        exact_equal_fraction: equal_bit_patterns / compared_finite_values
+        maximum_ulp_distance: max(ordered_float_ulp_distance(candidate, baseline))
+        difference_rms: sqrt(mean((candidate - baseline)^2))
+        absolute_percentiles: [p50, p95, p99, p99.9, maximum]
+      units: [fraction, FP32 ULP, input intensity units]
+      aggregation: per product plane and global
+      limit: null
+      ambiguity: ULP distance near zero is diagnostic and is never a substitute for a science metric.
+      rationale: Quantifies whether differences survive FP32 storage without fitting a science threshold.
+      evidence_requirements: [valid comparison count, exact-equal count, ULP convention, every listed statistic]
+      promotion_blocking: false
+
+science_gates:
+  - id: science.residual_product
+    status: owner_tbd
+    owner: owner_tbd
+    algorithms: [p4, klip]
+    oracle: [stored_p4_d64, stored_klip_m32d64]
+    required_case_sets: [end_to_end_science]
+    metric:
+      difference_over_baseline_rms: rms(candidate - baseline) / rms(baseline)
+      difference_percentiles: percentiles(abs(candidate - baseline), [99, 99.9, 100])
+      correlation: pearson_correlation(candidate, baseline)
+      through_origin_slope: dot(candidate, baseline) / dot(baseline, baseline)
+    units: [dimensionless, input intensity units]
+    aggregation: owner_tbd
+    limit: null
+    ambiguity: Rank-ambiguous fits must also report the rank.synthetic_band_v1 evidence and sensitivity.
+    rationale: Final residual acceptability is a scientific, not kernel-smoke, decision.
+    evidence_requirements:
+      - per-plane and per-annulus metrics
+      - valid comparison counts and masks
+      - worst case plus owner-approved aggregation
+    promotion_blocking: true
+
+  - id: science.injected_source_throughput
+    status: owner_tbd
+    owner: owner_tbd
+    algorithms: [p4, klip]
+    oracle: algorithm-authoritative-production
+    required_case_sets: [end_to_end_science]
+    metric:
+      absolute_error: abs(throughput_candidate - throughput_baseline)
+      relative_error: abs(throughput_candidate - throughput_baseline) / abs(throughput_baseline)
+    units: [fraction, percent]
+    aggregation: owner_tbd
+    limit: null
+    ambiguity: Evaluate every rank- or mode-boundary-sensitive injection separately.
+    rationale: Companion preservation determines whether a numerically small residual change is scientifically acceptable.
+    evidence_requirements: [injection grid, mode, separation, position angle, contrast, recovered throughput]
+    promotion_blocking: true
+
+  - id: science.photometry_and_contrast
+    status: owner_tbd
+    owner: owner_tbd
+    algorithms: [p4, klip]
+    oracle: algorithm-authoritative-production
+    required_case_sets: [end_to_end_science]
+    metric:
+      aperture_flux_relative_error: abs(flux_candidate - flux_baseline) / abs(flux_baseline)
+      recovered_contrast_absolute_error: abs(contrast_candidate - contrast_baseline)
+      recovered_contrast_relative_error: abs(contrast_candidate - contrast_baseline) / abs(contrast_baseline)
+    units: [fraction, contrast]
+    aggregation: owner_tbd
+    limit: null
+    ambiguity: Near-zero denominators require an owner-approved absolute scale.
+    rationale: Stored image norms do not establish photometric equivalence.
+    evidence_requirements: [aperture definition, calibration, injection truth, per-case flux and contrast]
+    promotion_blocking: true
+
+  - id: science.astrometry
+    status: owner_tbd
+    owner: owner_tbd
+    algorithms: [p4, klip]
+    oracle: algorithm-authoritative-production
+    required_case_sets: [end_to_end_science]
+    metric:
+      centroid_offset: hypot(row_candidate - row_baseline, column_candidate - column_baseline)
+      peak_offset: hypot(peak_row_candidate - peak_row_baseline, peak_column_candidate - peak_column_baseline)
+      position_angle_error: wrapped_abs(pa_candidate - pa_baseline)
+    units: [pixels, milliarcseconds, degrees]
+    aggregation: owner_tbd
+    limit: null
+    ambiguity: Report fit validity and localization method for every case.
+    rationale: Astrometric tolerance depends on the science and plate scale.
+    evidence_requirements: [centroid and peak definitions, plate scale, per-injection positions]
+    promotion_blocking: true
+
+  - id: science.detection_behavior
+    status: owner_tbd
+    owner: owner_tbd
+    algorithms: [p4, klip]
+    oracle: algorithm-authoritative-production
+    required_case_sets: [end_to_end_science]
+    metric:
+      snr_absolute_error: abs(snr_candidate - snr_baseline)
+      snr_relative_error: abs(snr_candidate - snr_baseline) / abs(snr_baseline)
+      detection_rank_change: rank_candidate - rank_baseline
+    units: [SNR, fraction, integer rank]
+    aggregation: owner_tbd
+    limit: null
+    ambiguity: Detection ties require an owner-approved tie policy.
+    rationale: Candidate ranking and detection significance are direct science outcomes.
+    evidence_requirements: [SNR estimator, apertures, candidate list, tie policy, per-case ranks]
+    promotion_blocking: true
+
+  - id: science.p4_optimizer
+    status: owner_tbd
+    owner: owner_tbd
+    algorithms: [p4]
+    oracle: p4_production_d64
+    required_case_sets: [end_to_end_science]
+    metric:
+      separation_error: abs(separation_candidate - separation_baseline)
+      position_angle_error: wrapped_abs(pa_candidate - pa_baseline)
+      contrast_error: abs(contrast_candidate - contrast_baseline)
+      merit_relative_error: abs(merit_candidate - merit_baseline) / abs(merit_baseline)
+      convergence_and_basin: exact categorical comparison
+    units: [pixels, milliarcseconds, degrees, contrast, dimensionless]
+    aggregation: owner_tbd
+    limit: null
+    ambiguity: A different basin or convergence state is structural and cannot be hidden by a merit tolerance.
+    rationale: P4 local and optimizer products depend on repeated numerical evaluations.
+    evidence_requirements: [bounds, initial trial, fitted trial, merit, convergence, evaluation table]
+    promotion_blocking: true
+
+  - id: science.p4_model_products
+    status: owner_tbd
+    owner: owner_tbd
+    algorithms: [p4]
+    oracle: p4_production_d64
+    required_case_sets: [end_to_end_science]
+    metric:
+      coefficient_relative_l2: norm_l2(candidate - baseline) / protected_norm(norm_l2(baseline))
+      frozen_probe_relative_l2: norm_l2(candidate - baseline) / protected_norm(norm_l2(baseline))
+      psf_and_filter_response: owner_tbd
+      localization_error: owner_tbd
+    units: [dimensionless, input intensity units, pixels]
+    aggregation: owner_tbd
+    limit: null
+    ambiguity: Rank-ambiguous coefficient and probe cases must be identified fit by fit.
+    rationale: Residual agreement alone does not validate coefficients, probes, PSFs, or filtering.
+    evidence_requirements:
+      - coefficient and probe identities
+      - analytic and reconstructed PSF metrics
+      - filter amplitude, support, and localization metrics
+    promotion_blocking: true
+
+  - id: science.klip_path_products
+    status: owner_tbd
+    owner: owner_tbd
+    algorithms: [klip]
+    oracle: klip_production_m32d64
+    required_case_sets: [end_to_end_science]
+    metric: Apply the approved residual, throughput, photometry, astrometry, and detection metrics to every KLIP path.
+    units: inherited from referenced science metrics
+    aggregation: owner_tbd
+    limit: null
+    required_paths:
+      - ADI and RDI
+      - shared and target-specific bases
+      - all-reference and selected-reference libraries
+      - right-reason products
+      - every requested mode plane
+    ambiguity: Reference selection remains exact; numerical rank ambiguity is reported separately.
+    rationale: One well-conditioned shared basis cannot establish KLIP-wide science acceptance.
+    evidence_requirements: [path identifier, selection hash, mode list, all referenced science metrics]
+    promotion_blocking: true
+
+  - id: science.real_fit_rank_ambiguity
+    status: owner_tbd
+    owner: owner_tbd
+    algorithms: [p4, klip]
+    oracle: algorithm-authoritative-production
+    required_case_sets: [end_to_end_science]
+    metric:
+      affected_fit_fraction: ambiguous_fits / evaluated_fits
+      affected_plane_fraction: ambiguity_affected_planes / evaluated_planes
+      product_sensitivity: Apply all applicable science metrics to ambiguity-affected outputs.
+      guarded_fallback_fraction: guarded_fallback_fits / evaluated_fits
+    units: [fraction, inherited science units]
+    aggregation: owner_tbd
+    limit: null
+    ambiguity: >-
+      The synthetic band is a screening diagnostic for real fits, not proof of
+      a universal error bound. Every affected fit requires an explicit policy.
+    rationale: Promotion cannot rely on unexplained changes concentrated near numerical boundaries.
+    evidence_requirements:
+      - evaluated and affected fit identifiers and counts
+      - threshold distance and screening band per fit
+      - raw candidate and baseline ranks
+      - affected modes, validity, fallback, and product metrics
+    promotion_blocking: true
+
+performance_gates:
+  planning_proposal_not_a_limit: >-
+    The evaluation plan suggests reviewing a 20 percent regression-stage or
+    10 percent whole-application median improvement, paired uncertainty that
+    excludes a slowdown, and no greater than 5 percent unexplained regression
+    on another primary workload. These values are not frozen acceptance limits
+    until the owner approves them.
+
+  gates:
+    - id: performance.end_to_end_wall_time
+      status: owner_tbd
+      owner: owner_tbd
+      algorithms: [p4, klip]
+      candidates: [P4-M32D64, P4-F32, KLIP-F32]
+      oracle: algorithm-authoritative-production
+      required_case_sets: [end_to_end_performance]
+      metric:
+        paired_speedup: baseline_wall_seconds / candidate_wall_seconds
+        paired_fractional_improvement: 1 - candidate_wall_seconds / baseline_wall_seconds
+        uncertainty: owner_tbd paired interval or resampling rule
+      units: [ratio, fraction, seconds]
+      aggregation: owner_tbd
+      limit: null
+      ambiguity: Rank/fallback behavior must satisfy its separate gates; changed work is not a speedup.
+      rationale: Kernel throughput is insufficient when sampling, subtraction, finalization, or I/O dominates.
+      evidence_requirements:
+        - every paired wall-time sample and execution order
+        - median, range, MAD, and owner-approved uncertainty interval
+        - stage timing and fraction for the regression work
+        - CPU frequency, affinity, thread controls, and thermal/load anomalies
+      promotion_blocking: true
+
+    - id: performance.primary_workload_regression
+      status: owner_tbd
+      owner: owner_tbd
+      algorithms: [p4, klip]
+      candidates: [P4-M32D64, P4-F32, KLIP-F32]
+      oracle: algorithm-authoritative-production
+      required_case_sets: [end_to_end_performance]
+      metric: candidate_wall_seconds / baseline_wall_seconds - 1
+      units: fraction
+      aggregation: worst unexplained regression over owner-designated primary workloads
+      limit: null
+      ambiguity: A workload omitted because of capability or memory limits must be declared unavailable, not passing.
+      rationale: A gain in one Gram orientation must not hide a material loss in another primary regime.
+      evidence_requirements:
+        - complete owner-designated workload list
+        - paired samples and uncertainty per workload
+        - explanation for every regression
+      promotion_blocking: true
+
+    - id: performance.memory_and_concurrency
+      status: owner_tbd
+      owner: owner_tbd
+      algorithms: [p4, klip]
+      candidates: [P4-M32D64, P4-F32, KLIP-F32]
+      oracle: algorithm-authoritative-production
+      required_case_sets: [end_to_end_performance]
+      metric:
+        peak_rss_ratio: candidate_peak_rss / baseline_peak_rss
+        usable_worker_ratio: candidate_safe_workers / baseline_safe_workers
+        automatic_policy_speedup: baseline_wall_seconds / candidate_wall_seconds
+      units: [ratio, KiB, workers, seconds]
+      aggregation: owner_tbd
+      limit: null
+      ambiguity: >-
+        Lower memory alone is insufficient unless it enables an approved
+        previously infeasible workload or produces a measured concurrency and
+        wall-time benefit.
+      rationale: P4 may gain mainly through its automatic worker policy; KLIP currently has no automatic policy.
+      evidence_requirements:
+        - scalar-aware workspace byte accounting
+        - peak RSS with measurement method
+        - requested and realized outer-worker counts
+        - fixed-worker and P4 automatic-policy paired wall-time samples
+        - previously infeasible workload identity when claimed
+      promotion_blocking: true
+
+scope_exclusions:
+  factor_deletion: >-
+    Direct P4 and KLIP candidates may be decided without FP32 factor deletion.
+    Any factor-deletion candidate requires a separately versioned acceptance
+    block covering float factor construction, validation, row and column
+    deletion, clamp, rank boundary, failure, and matching-precision fallback.
+  guarded_hybrids: >-
+    A guarded candidate must have a distinct identifier, explicit trigger,
+    effective-precision provenance, ambiguity policy, fallback frequency, and
+    performance evidence. It cannot be reported as pure FP32.
+  other_arithmetic: [CUDA, TF32, FP16, BF16, fast-math changes, different eigensolver]
+
+raw_metric_contract:
+  representation_rules:
+    exact_metric_units: Use the literal string none when a quantity has no physical units.
+    denominator_not_applicable: >-
+      Use denominator_name: null and denominator_value: null together with a
+      nonempty denominator_not_applicable_reason. Do not invent a unit
+      denominator for a formula that has none, such as an exact categorical or
+      count metric. A report-only metric with an intrinsic denominator must
+      record it normally.
+    numerator_not_applicable: >-
+      When a formula has no meaningful numerator, use numerator_name: null and
+      numerator_value: null with a nonempty
+      numerator_not_applicable_reason. Exact, categorical, angle, and
+      distribution metrics must not invent a subtraction numerator.
+    report_only_pass_state: >-
+      For an applicable frozen-report-only metric, record passed: null because
+      no acceptance limit exists; applicable remains true and the value is
+      still required.
+    unavailable_metric: >-
+      Set applicable to false, value to null, passed to null, and provide a
+      nonempty not_applicable_reason; do not emit zero.
+  required_identity_fields:
+    - acceptance_contract_path
+    - acceptance_contract_sha256
+    - gate_id
+    - candidate_id
+    - oracle_id
+    - case_set_id
+    - case_id
+    - source_value_sha256
+    - executable_sha256
+    - repetition
+    - outer_worker_count
+    - inner_blas_lapack_threads
+    - Gram orientation
+    - matrix dimensions
+    - requested and realized modes
+  required_metric_fields:
+    - metric name
+    - numerator
+    - denominator name and value
+    - value
+    - units
+    - aggregation scope
+    - limit
+    - applicable
+    - passed
+  required_rank_fields:
+    - rank threshold
+    - calculation and eigensolver precision
+    - Gram and inner-product dimensions
+    - oracle and candidate normalized boundary eigenvalues
+    - oracle and candidate threshold ranks
+    - designed and oracle structural ranks
+    - exact nullity
+    - ambiguity half-width and its component terms
+    - ambiguous indices and count
+    - boundary eigengap and requested-mode cluster membership
+    - outside-band agreement
+    - affected modes and product-sensitivity record
+  required_stored_fields:
+    - valid comparison count
+    - exact-equal count and fraction
+    - maximum ULP distance
+    - difference RMS
+    - p50, p95, p99, p99.9, and maximum absolute difference
+    - baseline target and residual RMS
+  naming_rules:
+    residual_error_over_oracle_residual: >-
+      Must be distinct from residual_error_over_target; a generic
+      residual_relative_error field is prohibited.
+    Gram_triangle: >-
+      Every KLIP reference-Gram result must state that the authoritative lower
+      triangle was compared or that symmetrization occurred outside timing.
+    unavailable_metric: Follow raw_metric_contract.representation_rules.unavailable_metric.
+
+minimum_evidence_bundle:
+  - acceptance contract path and SHA-256
+  - hciReduce and mxlib commits and executable hashes
+  - compiler, flags, Eigen, BLAS, LAPACK, CPU, ISA, and affinity
+  - exact source/configuration/input/mask hashes
+  - candidate scalar policy and production-path identifier
+  - dimensions, Gram orientation, mode list, realized ranks, and selection backend
+  - raw metric rows with numerator, denominator, units, applicability, and gate ID
+  - rank ambiguity evidence for every rank-sensitive case
+  - repeated-run and one-versus-many-worker comparisons
+  - per-plane stored-FP32 diagnostics
+  - owner-approved science limits and complete science evidence before promotion
+  - owner-approved performance limits and complete paired timing, uncertainty, memory, and concurrency evidence

@@ -34,8 +34,10 @@
  * The implementation flattens all local source offsets into a direct-response vector \f$f\f$ and predictor-response
  * matrix \f$Q\f$, then evaluates \f$f-Q\beta_{q,t,m}\f$ while each explicit or factor-downdated target fit is live.
  * It therefore does not substitute the shared in-sample coefficients or retain a separate `K`-element coefficient
- * vector for every target. Template calculation and final response storage use float values; \f$Q\f$, coefficient
- * application, and P4's PCA arithmetic remain double precision. Invalid and rank-unsupported target/mode fits have
+ * vector for every target. Template calculation and final response storage use float values. The ordinary shared-
+ * coefficient and explicit-held-out probe calculations follow P4's M32D64 policy: predictor-response operands,
+ * coefficient application, and PCA arithmetic use FP32 around an FP64 eigensolve. The opt-in exact factor-deletion
+ * probe path and its whole-search-pixel fallback remain FP64. Invalid and rank-unsupported target/mode fits have
  * explicit zero validity and are never interpreted as a zero PSF.
  *
  * The response is `FROZEN_SIGNED`: it is the fitted linear predictor's signed output with its coefficients held

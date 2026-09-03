@@ -12,7 +12,10 @@ namespace mx
 namespace improc
 {
 
-template struct KLIPreduction<float, ADIDerotator<float, verbose::vv>, double, verbose::vv>;
+template struct KLIPreduction<KLIPProductionCalculationT,
+                              KLIPProductionDerotator,
+                              KLIPProductionEigensolverT,
+                              verbose::vv>;
 
 } // namespace improc
 } // namespace mx

@@ -9,11 +9,13 @@
 #include "src/common/ReductionTiming.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <new>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace unitTest
@@ -269,6 +271,9 @@ fakeSolverBehavior solverBehavior{ fakeSolverBehavior::failure };
 /// Number of invocations of the controlled eigensolver.
 int solverCalls{ 0 };
 
+/// Status returned by the controlled FP64 eigensolver's failure behavior.
+MXLAPACK_INT solverFailureStatus{ 37 };
+
 /// Whether controlled tests solve a diagonal oracle exactly after the first injected base result.
 bool solverUsesDiagonalOracleAfterFirst{ false };
 
@@ -310,7 +315,7 @@ MXLAPACK_INT fakeEigenSolver( pcaT::matrixT &eigenvectors, /**< [out] controlled
 
     if( solverBehavior == fakeSolverBehavior::failure )
     {
-        return 37;
+        return solverFailureStatus;
     }
 
     if( solverBehavior == fakeSolverBehavior::invalidDimensions )
@@ -394,6 +399,7 @@ struct solverReset
     {
         solverBehavior = behavior;
         solverCalls = 0;
+        solverFailureStatus = 37;
         solverUsesDiagonalOracleAfterFirst = diagonalOracleAfterFirst;
         solverGram.resize( 0, 0 );
         solverModeCount = 0;
@@ -405,8 +411,114 @@ struct solverReset
     {
         mx::improc::detail::p4PCAResetEigenSolverForTesting();
         solverUsesDiagonalOracleAfterFirst = false;
+        solverFailureStatus = 37;
     }
 };
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+
+/// Number of invocations of the controlled experimental FP32 eigensolver.
+int floatSolverCalls{ 0 };
+
+/// Status returned by the controlled experimental FP32 eigensolver.
+MXLAPACK_INT floatSolverStatus{ 37 };
+
+/// Gram matrix received by the controlled experimental FP32 eigensolver.
+mx::improc::detail::P4PCAFloatMatrixT floatSolverGram;
+
+/// Eigenpair count received by the controlled experimental FP32 eigensolver.
+int floatSolverModeCount{ 0 };
+
+/// Return a configured status from the experimental FP32 eigensolver seam.
+MXLAPACK_INT
+fakeFloatEigenSolver( mx::improc::detail::P4PCAFloatMatrixT &eigenvectors, /**< [out] unused controlled eigenvectors */
+                      mx::improc::detail::P4PCAFloatMatrixT &eigenvalues,  /**< [out] unused controlled eigenvalues */
+                      mx::improc::detail::P4PCAFloatMatrixT &covariance,   /**< [in] covariance matrix */
+                      int modeCount, /**< [in] requested largest eigenpair count */
+                      mx::math::syevrMem<float> &workspace /**< [in,out] unused caller workspace */ )
+{
+    static_cast<void>( eigenvectors );
+    static_cast<void>( eigenvalues );
+    static_cast<void>( workspace );
+    ++floatSolverCalls;
+    floatSolverGram = covariance;
+    floatSolverModeCount = modeCount;
+    return floatSolverStatus;
+}
+
+/// Restore both native eigensolvers after an experimental controlled-failure scope.
+struct experimentalSolverReset
+{
+    /// Install controlled native eigensolvers that return one exact status.
+    explicit experimentalSolverReset( MXLAPACK_INT status /**< [in] status returned by both native solvers */ )
+    {
+        solverBehavior = fakeSolverBehavior::failure;
+        solverCalls = 0;
+        solverFailureStatus = status;
+        solverGram.resize( 0, 0 );
+        solverModeCount = 0;
+        floatSolverCalls = 0;
+        floatSolverStatus = status;
+        floatSolverGram.resize( 0, 0 );
+        floatSolverModeCount = 0;
+        mx::improc::detail::p4PCASetEigenSolverForTesting( &fakeEigenSolver );
+        mx::improc::detail::p4PCASetFloatEigenSolverForTesting( &fakeFloatEigenSolver );
+    }
+
+    /// Restore both production native eigensolvers.
+    ~experimentalSolverReset()
+    {
+        mx::improc::detail::p4PCAResetEigenSolverForTesting();
+        mx::improc::detail::p4PCAResetFloatEigenSolverForTesting();
+        solverFailureStatus = 37;
+        floatSolverStatus = 37;
+    }
+};
+
+/// Compare held-out scalar-policy results while preserving NaN and sample-validity semantics.
+void requireExperimentalHeldOutApprox(
+    const resultT &actual,              /**< [in] scalar-policy held-out science result */
+    const pcaT::matrixT &actualProbe,   /**< [in] scalar-policy target-major probe response */
+    const resultT &expected,            /**< [in] all-double held-out science result */
+    const pcaT::matrixT &expectedProbe, /**< [in] all-double target-major probe response */
+    double tolerance /**< [in] absolute tolerance for supported values */ )
+{
+    REQUIRE( actual.residuals.rows() == expected.residuals.rows() );
+    REQUIRE( actual.residuals.cols() == expected.residuals.cols() );
+    REQUIRE( actual.sampleValidity.rows() == expected.sampleValidity.rows() );
+    REQUIRE( actual.sampleValidity.cols() == expected.sampleValidity.cols() );
+    REQUIRE( actualProbe.rows() == expectedProbe.rows() );
+    REQUIRE( actualProbe.cols() == expectedProbe.cols() );
+    REQUIRE( actual.modeStatus == expected.modeStatus );
+    REQUIRE( actual.numericalRank == expected.numericalRank );
+    REQUIRE( actual.baseRank == expected.baseRank );
+    REQUIRE( actual.numericalRankCapped == expected.numericalRankCapped );
+
+    for( Eigen::Index target = 0; target < expected.residuals.rows(); ++target )
+    {
+        for( Eigen::Index mode = 0; mode < expected.residuals.cols(); ++mode )
+        {
+            CAPTURE( target, mode );
+            REQUIRE( actual.sampleValidity( target, mode ) == expected.sampleValidity( target, mode ) );
+            const Eigen::Index probeColumn = target * expected.residuals.cols() + mode;
+            if( expected.sampleValidity( target, mode ) )
+            {
+                REQUIRE( actual.residuals( target, mode ) ==
+                         Approx( expected.residuals( target, mode ) ).margin( tolerance ) );
+                requireApprox( actualProbe.col( probeColumn ), expectedProbe.col( probeColumn ), tolerance );
+            }
+            else
+            {
+                REQUIRE( mx::math::isNan( actual.residuals( target, mode ) ) );
+                REQUIRE( mx::math::isNan( expected.residuals( target, mode ) ) );
+                REQUIRE( allNan( actualProbe.col( probeColumn ) ) );
+                REQUIRE( allNan( expectedProbe.col( probeColumn ) ) );
+            }
+        }
+    }
+}
+
+#endif // HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
 
 /// Inject an allocation failure only while mxlib validates the supplied temporal factor.
 void failFactorValidationAllocation(
@@ -2266,7 +2378,9 @@ TEST_CASE( "P4PCA exact factor downdate has no excluded-row leakage", "[P4PCA][h
 }
 
 /// Verify held-out deletion validation rejects target omission, duplicates, and inconsistent dimensions.
-/** This directly exercises mx::improc::P4TargetExclusions and mx::improc::P4PCA::calculateHeldOut(). */
+/** This directly exercises mx::improc::P4TargetExclusions, mx::improc::P4PCA::calculateHeldOut(), and
+ * mx::improc::P4PCA::calculateHeldOutProbe().
+ */
 TEST_CASE( "P4PCA held-out input validation", "[P4PCA][held-out][validation]" )
 {
     pcaT::matrixT predictors( 2, 1 );
@@ -2286,6 +2400,38 @@ TEST_CASE( "P4PCA held-out input validation", "[P4PCA][held-out][validation]" )
     REQUIRE_THROWS_AS(
         mx::improc::P4PCA::calculateHeldOut( result, widePredictors, target, mismatched, { 1 }, 0, workspace ),
         std::invalid_argument );
+
+    const auto exclusions = mx::improc::P4TargetExclusions::fromSpans( 2, { { 0, 1 }, { 1, 2 } } );
+    pcaT::matrixT probePredictors( 1, 1 );
+    probePredictors << 0.5;
+    pcaT::vectorT probeTarget( 1 );
+    probeTarget << 1;
+    const pcaT::matrixT originalPredictors = predictors;
+    const pcaT::matrixT originalProbePredictors = probePredictors;
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateHeldOutProbe( result,
+                                                                 predictors,
+                                                                 predictors,
+                                                                 target,
+                                                                 probePredictors,
+                                                                 probeTarget,
+                                                                 exclusions,
+                                                                 { 1 },
+                                                                 0,
+                                                                 workspace ),
+                       std::invalid_argument );
+    requireApprox( predictors, originalPredictors, 0 );
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateHeldOutProbe( result,
+                                                                 probePredictors,
+                                                                 predictors,
+                                                                 target,
+                                                                 probePredictors,
+                                                                 probeTarget,
+                                                                 exclusions,
+                                                                 { 1 },
+                                                                 0,
+                                                                 workspace ),
+                       std::invalid_argument );
+    requireApprox( probePredictors, originalProbePredictors, 0 );
 }
 
 /// Verify centered-fit P4PCA applies its coefficients to uncentered predictor data in both Gram branches.
@@ -2407,7 +2553,9 @@ TEST_CASE( "P4PCA in-place centered fit preserves results", "[P4PCA][centered][m
 }
 
 /// Verify centered P4PCA uses min(K,T-1) eigenpairs and the corresponding smaller Gram matrix.
-/** This directly exercises mx::improc::P4PCA::calculateCentered() structural-rank dispatch. */
+/** This directly exercises mx::improc::P4PCA::calculateCentered() and
+ * mx::improc::P4PCA::calculateCenteredInPlace() structural-rank dispatch through the controlled eigensolver seam.
+ */
 TEST_CASE( "P4PCA centered regression enforces structural degrees of freedom", "[P4PCA][centered][rank][solver]" )
 {
     resultT result;
@@ -2443,6 +2591,24 @@ TEST_CASE( "P4PCA centered regression enforces structural degrees of freedom", "
                              "P4PCA eigensolver failed with status 37" );
         REQUIRE( solverModeCount == 2 );
         REQUIRE( solverGram.rows() == 3 );
+        requireApprox( solverGram, expected );
+    }
+
+    SECTION( "in-place entry point" )
+    {
+        pcaT::matrixT predictors( 3, 5 );
+        predictors << 1, 2, 0, 4, -1, 3, -1, 2, 0, 5, -2, 4, 1, -3, 2;
+        pcaT::vectorT target( 3 );
+        target << 7, 1, 3;
+        const pcaT::matrixT centered = centeredColumns( predictors );
+        const pcaT::matrixT expected = ( centered.matrix() * centered.matrix().transpose() ).array();
+
+        solverReset reset( fakeSolverBehavior::failure );
+        REQUIRE_THROWS_WITH(
+            mx::improc::P4PCA::calculateCenteredInPlace( result, predictors, target, { 1, 2 }, 0, workspace ),
+            "P4PCA eigensolver failed with status 37" );
+        REQUIRE( solverCalls == 1 );
+        REQUIRE( solverModeCount == 2 );
         requireApprox( solverGram, expected );
     }
 }
@@ -2651,6 +2817,1078 @@ TEST_CASE( "P4PCA reuses one workspace across centered and uncentered paths", "[
     mx::improc::P4PCA::calculate( result, predictors, target, { 2 }, 1e-12, workspace );
     requireApprox( result.residuals.col( 0 ), svdResidual( predictors, target, 2 ) );
 }
+
+/** Verify the production mixed-precision adapters cover direct, centered, held-out, and frozen-probe fits.
+ * This exercises mx::improc::detail::p4PCACalculateMixed(),
+ * mx::improc::detail::p4PCACalculateCenteredInPlaceMixed(),
+ * mx::improc::detail::p4PCACalculateHeldOutMixed(), and
+ * mx::improc::detail::p4PCACalculateHeldOutProbeMixed().
+ */
+TEST_CASE( "P4PCA production policy is FP32 calculation with FP64 eigensolve",
+           "[P4PCA][precision][production][mixed]" )
+{
+    static_assert( std::is_same_v<typename mx::improc::detail::P4PCAFloatMatrixT::Scalar, float> );
+
+    mx::improc::detail::P4PCAFloatMatrixT nativePredictors( 5, 3 );
+    nativePredictors << 13, -4, 3, 8, 0, 2, 11, -5, 4, 10, -6, -2, 8, -5, 3;
+    mx::improc::detail::P4PCAFloatVectorT nativeTarget( 5 );
+    nativeTarget << 9, 4, 8, -1, 5;
+    const pcaT::matrixT predictors = nativePredictors.cast<double>();
+    const pcaT::vectorT target = nativeTarget.cast<double>();
+    const std::vector<int> modes{ 1, 2 };
+
+    mx::improc::detail::P4PCAMixedWorkspace workspace;
+    static_assert( std::is_same_v<typename decltype( workspace.doubleEigensolver.cvd )::Scalar, double> );
+    resultT direct;
+    pcaT::matrixT coefficients;
+    mx::improc::detail::p4PCACalculateMixed(
+        direct, predictors, target, modes, 1e-7, workspace, nullptr, &coefficients );
+    REQUIRE( direct.numericalRank == 3 );
+    REQUIRE( direct.modeStatus == std::vector<statusT>{ statusT::rankSupported, statusT::rankSupported } );
+    for( Eigen::Index output = 0; output < static_cast<Eigen::Index>( modes.size() ); ++output )
+    {
+        requireApprox( direct.residuals.col( output ), svdResidual( predictors, target, modes[output] ), 2e-4 );
+        requireApprox( coefficients.col( output ), svdCoefficients( predictors, target, modes[output] ), 2e-4 );
+    }
+
+    pcaT::matrixT centeredPredictors = predictors;
+    resultT centered;
+    mx::improc::detail::p4PCACalculateCenteredInPlaceMixed(
+        centered, centeredPredictors, target, modes, 1e-7, workspace );
+    requireApprox( centeredPredictors,
+                   centeredColumns( nativePredictors ).cast<double>(),
+                   2e-6 );
+    for( Eigen::Index output = 0; output < static_cast<Eigen::Index>( modes.size() ); ++output )
+    {
+        requireApprox( centered.residuals.col( output ),
+                       centeredFitUncenteredResidual( predictors, target, modes[output] ),
+                       2e-4 );
+    }
+
+    std::vector<mx::improc::P4ExclusionSpan> spans;
+    for( Eigen::Index row = 0; row < predictors.rows(); ++row )
+    {
+        spans.push_back( { row, row + 1 } );
+    }
+    const mx::improc::P4TargetExclusions exclusions =
+        mx::improc::P4TargetExclusions::fromSpans( predictors.rows(), spans );
+    resultT heldOut;
+    mx::improc::detail::p4PCACalculateHeldOutMixed(
+        heldOut, predictors, target, exclusions, modes, 1e-7, workspace );
+    resultT heldOutOracle;
+    pcaT::workspaceT oracleWorkspace;
+    pcaT::calculateHeldOut( heldOutOracle, predictors, target, exclusions, modes, 1e-7, oracleWorkspace );
+    REQUIRE( ( heldOut.sampleValidity == heldOutOracle.sampleValidity ).all() );
+    requireApprox( heldOut.residuals, heldOutOracle.residuals, 3e-4 );
+
+    pcaT::matrixT probePredictors( 2, predictors.cols() );
+    probePredictors << 1, -0.5, 0.25, -0.25, 0.75, 1.5;
+    pcaT::vectorT probeTarget( 2 );
+    probeTarget << 2, -1;
+    pcaT::matrixT probeResiduals;
+    resultT probe;
+    mx::improc::detail::p4PCACalculateHeldOutProbeMixed( probe,
+                                                         probeResiduals,
+                                                         predictors,
+                                                         target,
+                                                         probePredictors,
+                                                         probeTarget,
+                                                         exclusions,
+                                                         modes,
+                                                         1e-7,
+                                                         workspace );
+    pcaT::matrixT probeOracleResiduals;
+    resultT probeOracle;
+    pcaT::calculateHeldOutProbe( probeOracle,
+                                 probeOracleResiduals,
+                                 predictors,
+                                 target,
+                                 probePredictors,
+                                 probeTarget,
+                                 exclusions,
+                                 modes,
+                                 1e-7,
+                                 oracleWorkspace );
+    REQUIRE( ( probe.sampleValidity == probeOracle.sampleValidity ).all() );
+    requireApprox( probe.residuals, probeOracle.residuals, 3e-4 );
+    requireApprox( probeResiduals, probeOracleResiduals, 3e-4 );
+}
+
+/** Verify the production mixed adapter preserves native FP64 eigensolver failures.
+ * This exercises mx::improc::detail::p4PCACalculateMixed() through the production DSYEVR seam.
+ */
+TEST_CASE( "P4PCA production mixed policy preserves eigensolver failure status",
+           "[P4PCA][precision][production][mixed][solver][failure]" )
+{
+    pcaT::matrixT predictors( 4, 3 );
+    predictors << 1, 2, 0, 3, -1, 2, -2, 4, 1, 0, 1, -3;
+    pcaT::vectorT target( 4 );
+    target << 7, 1, 5, -2;
+    mx::improc::detail::P4PCAMixedWorkspace workspace;
+    resultT output;
+    solverReset reset( fakeSolverBehavior::failure );
+    REQUIRE_THROWS_WITH( mx::improc::detail::p4PCACalculateMixed(
+                             output, predictors, target, { 1, 2 }, 0, workspace ),
+                         "P4PCA eigensolver failed with status 37" );
+    REQUIRE( solverCalls == 1 );
+}
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+
+/** Verify every experimental scalar policy preserves direct-fit results and coefficients in both Gram orientations.
+ * This exercises mx::improc::detail::p4PCACalculateExperimental() on identical FP32-quantized ingress values.
+ */
+TEST_CASE( "P4PCA experimental precision policies agree for direct fits", "[P4PCA][precision][experimental][direct]" )
+{
+    using policyT = mx::improc::detail::P4PCAPrecisionPolicy;
+    constexpr std::array policies{ policyT::doubleDouble, policyT::floatDouble, policyT::floatFloat };
+
+    SECTION( "predictor Gram" )
+    {
+        mx::improc::detail::P4PCAFloatMatrixT floatPredictors( 5, 3 );
+        floatPredictors << 13, -4, 3, 8, 0, 2, 11, -5, 4, 10, -6, -2, 8, -5, 3;
+        mx::improc::detail::P4PCAFloatVectorT floatTarget( 5 );
+        floatTarget << 9, 4, 8, -1, 5;
+        const pcaT::matrixT predictors = floatPredictors.cast<double>();
+        const pcaT::vectorT target = floatTarget.cast<double>();
+        const std::vector<int> modes{ 1, 2, 3 };
+
+        resultT baseline;
+        pcaT::matrixT baselineCoefficients;
+        mx::improc::detail::P4PCAExperimentalWorkspace workspace;
+        mx::improc::detail::p4PCACalculateExperimental( baseline,
+                                                        predictors,
+                                                        target,
+                                                        modes,
+                                                        1e-7,
+                                                        policyT::doubleDouble,
+                                                        workspace,
+                                                        nullptr,
+                                                        &baselineCoefficients );
+
+        REQUIRE( baseline.numericalRank == 3 );
+        for( Eigen::Index output = 0; output < static_cast<Eigen::Index>( modes.size() ); ++output )
+        {
+            requireApprox( baseline.residuals.col( output ), svdResidual( predictors, target, modes[output] ), 1e-10 );
+            requireApprox( baselineCoefficients.col( output ),
+                           svdCoefficients( predictors, target, modes[output] ),
+                           1e-10 );
+        }
+
+        for( const policyT policy : policies )
+        {
+            INFO( "policy=" << static_cast<int>( policy ) );
+            resultT candidate;
+            pcaT::matrixT coefficients;
+            mx::improc::detail::p4PCACalculateExperimental( candidate,
+                                                            predictors,
+                                                            target,
+                                                            modes,
+                                                            1e-7,
+                                                            policy,
+                                                            workspace,
+                                                            nullptr,
+                                                            &coefficients );
+
+            REQUIRE( candidate.numericalRank == baseline.numericalRank );
+            REQUIRE( candidate.modeStatus == baseline.modeStatus );
+            requireApprox( candidate.residuals, baseline.residuals, 2e-4 );
+            requireApprox( coefficients, baselineCoefficients, 2e-4 );
+        }
+    }
+
+    SECTION( "temporal Gram" )
+    {
+        mx::improc::detail::P4PCAFloatMatrixT floatPredictors( 4, 5 );
+        floatPredictors << 1, 2, 0, 4, -1, 3, -1, 2, 0, 5, -2, 4, 1, -3, 2, 0, 1, -4, 2, 3;
+        mx::improc::detail::P4PCAFloatVectorT floatTarget( 4 );
+        floatTarget << 11, 3, 8, -2;
+        const pcaT::matrixT predictors = floatPredictors.cast<double>();
+        const pcaT::vectorT target = floatTarget.cast<double>();
+        const std::vector<int> modes{ 1, 2, 4 };
+
+        resultT baseline;
+        pcaT::matrixT baselineCoefficients;
+        mx::improc::detail::P4PCAExperimentalWorkspace workspace;
+        mx::improc::detail::p4PCACalculateExperimental( baseline,
+                                                        predictors,
+                                                        target,
+                                                        modes,
+                                                        0,
+                                                        policyT::doubleDouble,
+                                                        workspace,
+                                                        nullptr,
+                                                        &baselineCoefficients );
+
+        REQUIRE( baseline.numericalRank == 4 );
+        for( Eigen::Index output = 0; output < static_cast<Eigen::Index>( modes.size() ); ++output )
+        {
+            requireApprox( baseline.residuals.col( output ), svdResidual( predictors, target, modes[output] ), 1e-10 );
+            requireApprox( baselineCoefficients.col( output ),
+                           svdCoefficients( predictors, target, modes[output] ),
+                           1e-10 );
+        }
+
+        for( const policyT policy : policies )
+        {
+            INFO( "policy=" << static_cast<int>( policy ) );
+            resultT candidate;
+            pcaT::matrixT coefficients;
+            mx::improc::detail::p4PCACalculateExperimental( candidate,
+                                                            predictors,
+                                                            target,
+                                                            modes,
+                                                            0,
+                                                            policy,
+                                                            workspace,
+                                                            nullptr,
+                                                            &coefficients );
+
+            REQUIRE( candidate.numericalRank == baseline.numericalRank );
+            REQUIRE( candidate.modeStatus == baseline.modeStatus );
+            requireApprox( candidate.residuals, baseline.residuals, 2e-4 );
+            requireApprox( coefficients, baselineCoefficients, 2e-4 );
+        }
+    }
+}
+
+/** Verify every experimental scalar policy preserves exact rank loss and unsupported-plane semantics.
+ * This exercises mx::improc::detail::p4PCACalculateExperimental() at zero rank tolerance in both Gram orientations.
+ */
+TEST_CASE( "P4PCA experimental precision policies agree for exact rank deficiency",
+           "[P4PCA][precision][experimental][direct][rank]" )
+{
+    using policyT = mx::improc::detail::P4PCAPrecisionPolicy;
+    constexpr std::array policies{ policyT::doubleDouble, policyT::floatDouble, policyT::floatFloat };
+
+    const auto exerciseRankDeficiency = [&]( const mx::improc::detail::P4PCAFloatMatrixT &floatPredictors,
+                                             const mx::improc::detail::P4PCAFloatVectorT &floatTarget )
+    {
+        const pcaT::matrixT predictors = floatPredictors.cast<double>();
+        const pcaT::vectorT target = floatTarget.cast<double>();
+        const std::vector<int> modes{ 1, 2, 3 };
+        resultT baseline;
+        pcaT::matrixT baselineCoefficients;
+        mx::improc::detail::P4PCAExperimentalWorkspace workspace;
+        mx::improc::detail::p4PCACalculateExperimental( baseline,
+                                                        predictors,
+                                                        target,
+                                                        modes,
+                                                        0,
+                                                        policyT::doubleDouble,
+                                                        workspace,
+                                                        nullptr,
+                                                        &baselineCoefficients );
+
+        REQUIRE( baseline.numericalRank == 2 );
+        REQUIRE( baseline.modeStatus ==
+                 std::vector<statusT>{ statusT::rankSupported, statusT::rankSupported, statusT::rankInsufficient } );
+        REQUIRE( allNan( baseline.residuals.col( 2 ) ) );
+        REQUIRE( allNan( baselineCoefficients.col( 2 ) ) );
+
+        for( const policyT policy : policies )
+        {
+            INFO( "policy=" << static_cast<int>( policy ) );
+            resultT candidate;
+            pcaT::matrixT coefficients;
+            mx::improc::detail::p4PCACalculateExperimental( candidate,
+                                                            predictors,
+                                                            target,
+                                                            modes,
+                                                            0,
+                                                            policy,
+                                                            workspace,
+                                                            nullptr,
+                                                            &coefficients );
+
+            REQUIRE( candidate.numericalRank == baseline.numericalRank );
+            REQUIRE( candidate.modeStatus == baseline.modeStatus );
+            requireApprox( candidate.residuals.leftCols( 2 ), baseline.residuals.leftCols( 2 ), 2e-6 );
+            requireApprox( coefficients.leftCols( 2 ), baselineCoefficients.leftCols( 2 ), 2e-6 );
+            REQUIRE( allNan( candidate.residuals.col( 2 ) ) );
+            REQUIRE( allNan( coefficients.col( 2 ) ) );
+        }
+    };
+
+    SECTION( "predictor Gram" )
+    {
+        mx::improc::detail::P4PCAFloatMatrixT predictors( 5, 3 );
+        predictors << 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+        mx::improc::detail::P4PCAFloatVectorT target( 5 );
+        target << 3, 5, 7, -2, 1;
+        exerciseRankDeficiency( predictors, target );
+    }
+
+    SECTION( "temporal Gram" )
+    {
+        mx::improc::detail::P4PCAFloatMatrixT predictors( 3, 5 );
+        predictors << 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0;
+        mx::improc::detail::P4PCAFloatVectorT target( 3 );
+        target << 3, 5, 7;
+        exerciseRankDeficiency( predictors, target );
+    }
+}
+
+/** Verify every experimental scalar policy preserves centered and in-place results in both Gram orientations.
+ * This exercises mx::improc::detail::p4PCACalculateCenteredExperimental() and
+ * mx::improc::detail::p4PCACalculateCenteredInPlaceExperimental() on identical FP32-quantized ingress values.
+ */
+TEST_CASE( "P4PCA experimental precision policies agree for centered fits",
+           "[P4PCA][precision][experimental][centered]" )
+{
+    using policyT = mx::improc::detail::P4PCAPrecisionPolicy;
+    constexpr std::array policies{ policyT::doubleDouble, policyT::floatDouble, policyT::floatFloat };
+
+    const auto exerciseShape = [&]( const mx::improc::detail::P4PCAFloatMatrixT &floatPredictors,
+                                    const mx::improc::detail::P4PCAFloatVectorT &floatTarget,
+                                    const std::vector<int> &modes,
+                                    double rankTolerance )
+    {
+        const pcaT::matrixT predictors = floatPredictors.cast<double>();
+        const pcaT::vectorT target = floatTarget.cast<double>();
+        const pcaT::matrixT doubleCentered = centeredColumns( predictors );
+        const pcaT::matrixT floatCentered = centeredColumns( floatPredictors ).cast<double>();
+
+        resultT baseline;
+        pcaT::matrixT baselineCoefficients;
+        mx::improc::detail::P4PCAExperimentalWorkspace workspace;
+        mx::improc::detail::p4PCACalculateCenteredExperimental( baseline,
+                                                                predictors,
+                                                                target,
+                                                                modes,
+                                                                rankTolerance,
+                                                                policyT::doubleDouble,
+                                                                workspace,
+                                                                nullptr,
+                                                                &baselineCoefficients );
+
+        for( Eigen::Index output = 0; output < static_cast<Eigen::Index>( modes.size() ); ++output )
+        {
+            requireApprox( baseline.residuals.col( output ),
+                           centeredFitUncenteredResidual( predictors, target, modes[output] ),
+                           1e-10 );
+            requireApprox( baselineCoefficients.col( output ),
+                           centeredSvdCoefficients( predictors, target, modes[output] ),
+                           1e-10 );
+        }
+
+        for( const policyT policy : policies )
+        {
+            INFO( "policy=" << static_cast<int>( policy ) );
+            resultT preserving;
+            pcaT::matrixT preservingCoefficients;
+            mx::improc::detail::p4PCACalculateCenteredExperimental( preserving,
+                                                                    predictors,
+                                                                    target,
+                                                                    modes,
+                                                                    rankTolerance,
+                                                                    policy,
+                                                                    workspace,
+                                                                    nullptr,
+                                                                    &preservingCoefficients );
+
+            pcaT::matrixT inPlacePredictors = predictors;
+            resultT inPlace;
+            pcaT::matrixT inPlaceCoefficients;
+            mx::improc::detail::p4PCACalculateCenteredInPlaceExperimental( inPlace,
+                                                                           inPlacePredictors,
+                                                                           target,
+                                                                           modes,
+                                                                           rankTolerance,
+                                                                           policy,
+                                                                           workspace,
+                                                                           nullptr,
+                                                                           &inPlaceCoefficients );
+
+            REQUIRE( preserving.numericalRank == baseline.numericalRank );
+            REQUIRE( preserving.modeStatus == baseline.modeStatus );
+            REQUIRE( inPlace.numericalRank == preserving.numericalRank );
+            REQUIRE( inPlace.modeStatus == preserving.modeStatus );
+            requireApprox( preserving.residuals, baseline.residuals, 3e-4 );
+            requireApprox( preservingCoefficients, baselineCoefficients, 3e-4 );
+            requireApprox( inPlace.residuals, preserving.residuals, 1e-10 );
+            requireApprox( inPlaceCoefficients, preservingCoefficients, 1e-10 );
+            requireApprox( inPlacePredictors, policy == policyT::doubleDouble ? doubleCentered : floatCentered, 2e-6 );
+        }
+    };
+
+    SECTION( "predictor Gram" )
+    {
+        mx::improc::detail::P4PCAFloatMatrixT predictors( 5, 3 );
+        predictors << 13, -4, 3, 8, 0, 2, 11, -5, 4, 10, -6, -2, 8, -5, 3;
+        mx::improc::detail::P4PCAFloatVectorT target( 5 );
+        target << 9, 4, 8, -1, 5;
+        exerciseShape( predictors, target, { 1, 3 }, 1e-7 );
+    }
+
+    SECTION( "temporal Gram" )
+    {
+        mx::improc::detail::P4PCAFloatMatrixT predictors( 4, 5 );
+        predictors << 1, 2, 0, 4, -1, 3, -1, 2, 0, 5, -2, 4, 1, -3, 2, 0, 1, -4, 2, 3;
+        mx::improc::detail::P4PCAFloatVectorT target( 4 );
+        target << 11, 3, 8, -2;
+        exerciseShape( predictors, target, { 1, 2, 3 }, 0 );
+    }
+}
+
+/** Verify every experimental scalar policy preserves explicit held-out science and frozen-probe responses.
+ * This exercises mx::improc::detail::p4PCACalculateHeldOutExperimental() and
+ * mx::improc::detail::p4PCACalculateHeldOutProbeExperimental() in both adaptive Gram orientations, including
+ * non-contiguous mode requests, target-specific structural rank loss, and universally unsupported requested modes.
+ */
+TEST_CASE( "P4PCA experimental precision policies agree for held-out frozen probes",
+           "[P4PCA][precision][experimental][held-out][probe]" )
+{
+    using policyT = mx::improc::detail::P4PCAPrecisionPolicy;
+    constexpr std::array policies{ policyT::doubleDouble, policyT::floatDouble, policyT::floatFloat };
+
+    const auto exerciseShape = [&]( const mx::improc::detail::P4PCAFloatMatrixT &floatPredictors,
+                                    const mx::improc::detail::P4PCAFloatVectorT &floatTarget,
+                                    const mx::improc::detail::P4PCAFloatMatrixT &floatProbePredictors,
+                                    const mx::improc::detail::P4PCAFloatVectorT &floatProbeTarget,
+                                    const std::vector<std::vector<std::size_t>> &retained )
+    {
+        const pcaT::matrixT predictors = floatPredictors.cast<double>();
+        const pcaT::vectorT target = floatTarget.cast<double>();
+        const pcaT::matrixT probePredictors = floatProbePredictors.cast<double>();
+        const pcaT::vectorT probeTarget = floatProbeTarget.cast<double>();
+        const mx::improc::P4TargetExclusions exclusions = exclusionsFromRetained( retained );
+        const std::vector<int> modes{ 1, 3, 4 };
+
+        resultT baseline;
+        pcaT::matrixT baselineProbe;
+        pcaT::workspaceT baselineWorkspace;
+        mx::improc::P4PCA::calculateHeldOutProbe( baseline,
+                                                  baselineProbe,
+                                                  predictors,
+                                                  target,
+                                                  probePredictors,
+                                                  probeTarget,
+                                                  exclusions,
+                                                  modes,
+                                                  1e-6,
+                                                  baselineWorkspace );
+
+        REQUIRE( baseline.modeStatus.back() == statusT::rankInsufficient );
+        REQUIRE( allNan( baseline.residuals.col( static_cast<Eigen::Index>( modes.size() - 1 ) ) ) );
+        for( Eigen::Index targetIndex = 0; targetIndex < predictors.rows(); ++targetIndex )
+        {
+            REQUIRE( allNan( baselineProbe.col( targetIndex * static_cast<Eigen::Index>( modes.size() ) +
+                                                static_cast<Eigen::Index>( modes.size() - 1 ) ) ) );
+        }
+
+        mx::improc::detail::P4PCAExperimentalWorkspace workspace;
+        for( const policyT policy : policies )
+        {
+            INFO( "policy=" << static_cast<int>( policy ) );
+            resultT probeCandidate;
+            pcaT::matrixT probeCandidateResiduals;
+            mx::improc::detail::p4PCACalculateHeldOutProbeExperimental( probeCandidate,
+                                                                        probeCandidateResiduals,
+                                                                        predictors,
+                                                                        target,
+                                                                        probePredictors,
+                                                                        probeTarget,
+                                                                        exclusions,
+                                                                        modes,
+                                                                        1e-6,
+                                                                        policy,
+                                                                        workspace );
+            requireExperimentalHeldOutApprox( probeCandidate, probeCandidateResiduals, baseline, baselineProbe, 7e-4 );
+            requireHeldOutProbeMatchesIndependent( probeCandidate,
+                                                   probeCandidateResiduals,
+                                                   predictors,
+                                                   target,
+                                                   probePredictors,
+                                                   probeTarget,
+                                                   retained,
+                                                   modes,
+                                                   7e-4 );
+
+            resultT scienceCandidate;
+            mx::improc::detail::p4PCACalculateHeldOutExperimental( scienceCandidate,
+                                                                   predictors,
+                                                                   target,
+                                                                   exclusions,
+                                                                   modes,
+                                                                   1e-6,
+                                                                   policy,
+                                                                   workspace );
+            REQUIRE( scienceCandidate.modeStatus == probeCandidate.modeStatus );
+            REQUIRE( scienceCandidate.numericalRank == probeCandidate.numericalRank );
+            REQUIRE( ( scienceCandidate.sampleValidity == probeCandidate.sampleValidity ).all() );
+            for( Eigen::Index column = 0; column < scienceCandidate.residuals.cols(); ++column )
+            {
+                if( scienceCandidate.modeStatus[static_cast<std::size_t>( column )] == statusT::rankSupported )
+                {
+                    for( Eigen::Index row = 0; row < scienceCandidate.residuals.rows(); ++row )
+                    {
+                        if( scienceCandidate.sampleValidity( row, column ) )
+                        {
+                            REQUIRE( scienceCandidate.residuals( row, column ) ==
+                                     Approx( probeCandidate.residuals( row, column ) ).margin( 1e-10 ) );
+                        }
+                        else
+                        {
+                            REQUIRE( mx::math::isNan( scienceCandidate.residuals( row, column ) ) );
+                        }
+                    }
+                }
+                else
+                {
+                    REQUIRE( allNan( scienceCandidate.residuals.col( column ) ) );
+                }
+            }
+        }
+    };
+
+    SECTION( "predictor Gram" )
+    {
+        mx::improc::detail::P4PCAFloatMatrixT predictors( 6, 3 );
+        predictors << 4, 0.2F, 0.1F, 0.1F, 3, 0.4F, 0.2F, -0.1F, 2, 0.1F, 0.2F, 0.3F, 1, -0.4F, 0.2F, -0.3F, 0.5F, 1.1F;
+        mx::improc::detail::P4PCAFloatVectorT target( 6 );
+        target << 2, -1, 3, 0.5F, 4, -2;
+        mx::improc::detail::P4PCAFloatMatrixT probePredictors( 4, 3 );
+        probePredictors << 0.3F, -0.2F, 0.7F, -0.1F, 0.8F, 0.2F, 0.5F, 0.1F, -0.2F, -0.4F, 0.6F, 0.9F;
+        mx::improc::detail::P4PCAFloatVectorT probeTarget( 4 );
+        probeTarget << 1.2F, -0.7F, 0.3F, 0.8F;
+        const std::vector<std::vector<std::size_t>> retained{ { 1, 2, 3, 4, 5 },
+                                                              { 0, 2, 3 },
+                                                              { 0, 1 },
+                                                              { 4 },
+                                                              {},
+                                                              { 0, 1, 2 } };
+        exerciseShape( predictors, target, probePredictors, probeTarget, retained );
+    }
+
+    SECTION( "temporal Gram" )
+    {
+        mx::improc::detail::P4PCAFloatMatrixT predictors( 4, 6 );
+        predictors << 4, 0.2F, 0.1F, 0, 0.3F, -0.2F, 0.1F, 3, 0.4F, 0.2F, 0, 0.1F, 0.2F, -0.1F, 2, 0.3F, 0.1F, 0.2F,
+            0.1F, 0.2F, 0.3F, 1.5F, -0.2F, 0.1F;
+        mx::improc::detail::P4PCAFloatVectorT target( 4 );
+        target << 2, -1, 3, 0.5F;
+        mx::improc::detail::P4PCAFloatMatrixT probePredictors( 3, 6 );
+        probePredictors << 0.3F, -0.2F, 0.7F, 0.1F, -0.4F, 0.5F, -0.1F, 0.8F, 0.2F, -0.3F, 0.6F, 0.4F, 0.5F, 0.1F,
+            -0.2F, 0.9F, 0.3F, -0.6F;
+        mx::improc::detail::P4PCAFloatVectorT probeTarget( 3 );
+        probeTarget << 1.2F, -0.7F, 0.3F;
+        const std::vector<std::vector<std::size_t>> retained{ { 1, 2, 3 }, { 0, 2 }, { 3 }, {} };
+        exerciseShape( predictors, target, probePredictors, probeTarget, retained );
+    }
+}
+
+/** Verify positive rank thresholds retain only eigenvalues strictly above the boundary for every scalar policy.
+ * This exercises mx::improc::detail::p4PCACalculateExperimental() with exactly representable spectra in both Gram
+ * orientations.
+ */
+TEST_CASE( "P4PCA experimental precision policies preserve positive rank boundaries",
+           "[P4PCA][precision][experimental][rank][boundary]" )
+{
+    using policyT = mx::improc::detail::P4PCAPrecisionPolicy;
+    constexpr std::array policies{ policyT::doubleDouble, policyT::floatDouble, policyT::floatFloat };
+
+    const auto exerciseShape = [&]( const mx::improc::detail::P4PCAFloatMatrixT &floatPredictors,
+                                    const mx::improc::detail::P4PCAFloatVectorT &floatTarget )
+    {
+        const pcaT::matrixT predictors = floatPredictors.cast<double>();
+        const pcaT::vectorT target = floatTarget.cast<double>();
+        mx::improc::detail::P4PCAExperimentalWorkspace workspace;
+        for( const policyT policy : policies )
+        {
+            INFO( "policy=" << static_cast<int>( policy ) );
+            resultT output;
+            pcaT::matrixT coefficients;
+            mx::improc::detail::p4PCACalculateExperimental( output,
+                                                            predictors,
+                                                            target,
+                                                            { 1, 2 },
+                                                            0.25,
+                                                            policy,
+                                                            workspace,
+                                                            nullptr,
+                                                            &coefficients );
+            REQUIRE( output.numericalRank == 1 );
+            REQUIRE( output.modeStatus == std::vector<statusT>{ statusT::rankSupported, statusT::rankInsufficient } );
+            REQUIRE( allFinite( output.residuals.col( 0 ) ) );
+            REQUIRE( allNan( output.residuals.col( 1 ) ) );
+            REQUIRE( allFinite( coefficients.col( 0 ) ) );
+            REQUIRE( allNan( coefficients.col( 1 ) ) );
+        }
+    };
+
+    SECTION( "predictor Gram" )
+    {
+        mx::improc::detail::P4PCAFloatMatrixT predictors( 3, 2 );
+        predictors << 2, 0, 0, 1, 0, 0;
+        mx::improc::detail::P4PCAFloatVectorT target( 3 );
+        target << 3, -2, 1;
+        exerciseShape( predictors, target );
+    }
+
+    SECTION( "temporal Gram" )
+    {
+        mx::improc::detail::P4PCAFloatMatrixT predictors( 2, 3 );
+        predictors << 2, 0, 0, 0, 1, 0;
+        mx::improc::detail::P4PCAFloatVectorT target( 2 );
+        target << 3, -2;
+        exerciseShape( predictors, target );
+    }
+}
+
+/** Verify one experimental workspace can alternate scalar policies, dimensions, and Gram orientations.
+ * This repeatedly exercises mx::improc::detail::p4PCACalculateExperimental() and compares each reused-workspace
+ * result with the same policy in a fresh workspace.
+ */
+TEST_CASE( "P4PCA experimental precision workspace supports alternating policies and dimensions",
+           "[P4PCA][precision][experimental][workspace]" )
+{
+    using policyT = mx::improc::detail::P4PCAPrecisionPolicy;
+    mx::improc::detail::P4PCAExperimentalWorkspace reusedWorkspace;
+    const auto exercise = [&]( const pcaT::matrixT &predictors,
+                               const pcaT::vectorT &target,
+                               const std::vector<int> &modes,
+                               policyT policy )
+    {
+        resultT reused;
+        pcaT::matrixT reusedCoefficients;
+        mx::improc::detail::p4PCACalculateExperimental( reused,
+                                                        predictors,
+                                                        target,
+                                                        modes,
+                                                        1e-6,
+                                                        policy,
+                                                        reusedWorkspace,
+                                                        nullptr,
+                                                        &reusedCoefficients );
+
+        mx::improc::detail::P4PCAExperimentalWorkspace freshWorkspace;
+        resultT fresh;
+        pcaT::matrixT freshCoefficients;
+        mx::improc::detail::p4PCACalculateExperimental( fresh,
+                                                        predictors,
+                                                        target,
+                                                        modes,
+                                                        1e-6,
+                                                        policy,
+                                                        freshWorkspace,
+                                                        nullptr,
+                                                        &freshCoefficients );
+
+        REQUIRE( reused.numericalRank == fresh.numericalRank );
+        REQUIRE( reused.modeStatus == fresh.modeStatus );
+        requireApprox( reused.residuals, fresh.residuals, 0 );
+        requireApprox( reusedCoefficients, freshCoefficients, 0 );
+    };
+
+    pcaT::matrixT tall( 5, 3 );
+    tall << 13, -4, 3, 8, 0, 2, 11, -5, 4, 10, -6, -2, 8, -5, 3;
+    pcaT::vectorT tallTarget( 5 );
+    tallTarget << 9, 4, 8, -1, 5;
+    pcaT::matrixT wide( 4, 5 );
+    wide << 1, 2, 0, 4, -1, 3, -1, 2, 0, 5, -2, 4, 1, -3, 2, 0, 1, -4, 2, 3;
+    pcaT::vectorT wideTarget( 4 );
+    wideTarget << 11, 3, 8, -2;
+    pcaT::matrixT shortTall( 6, 2 );
+    shortTall << 4, 1, 3, -2, 2, 0.5, -1, 3, 0.25, -0.5, 2.5, 1.5;
+    pcaT::vectorT shortTallTarget( 6 );
+    shortTallTarget << 2, -1, 3, 0.5, 4, -2;
+
+    exercise( tall, tallTarget, { 1, 3 }, policyT::doubleDouble );
+    exercise( wide, wideTarget, { 1, 2, 4 }, policyT::floatFloat );
+    exercise( shortTall, shortTallTarget, { 1, 2 }, policyT::floatDouble );
+    exercise( wide, wideTarget, { 1, 3 }, policyT::doubleDouble );
+    exercise( tall, tallTarget, { 1, 2 }, policyT::floatDouble );
+    exercise( shortTall, shortTallTarget, { 1, 2 }, policyT::floatFloat );
+}
+
+/** Verify every experimental entry point rejects invalid policies and FP64 values outside FP32 range.
+ * This exercises the direct, centered, in-place, held-out, and frozen-probe adapters before unsafe FP32 arithmetic.
+ */
+TEST_CASE( "P4PCA experimental precision adapters reject invalid policies and FP32 overflow",
+           "[P4PCA][precision][experimental][validation]" )
+{
+    using policyT = mx::improc::detail::P4PCAPrecisionPolicy;
+    const policyT invalidPolicy = static_cast<policyT>( 255 );
+    pcaT::matrixT predictors( 3, 2 );
+    predictors << 2, 0, 0, 1, 1, -1;
+    pcaT::vectorT target( 3 );
+    target << 3, -2, 1;
+    pcaT::matrixT probePredictors( 2, 2 );
+    probePredictors << 0.5, -0.25, 1, 0.75;
+    pcaT::vectorT probeTarget( 2 );
+    probeTarget << 1, -1;
+    const mx::improc::P4TargetExclusions exclusions =
+        mx::improc::P4TargetExclusions::fromSpans( 3, { { 0, 1 }, { 1, 2 }, { 2, 3 } } );
+    mx::improc::detail::P4PCAExperimentalWorkspace workspace;
+    resultT output;
+    pcaT::matrixT probeResiduals;
+
+    REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateExperimental( output,
+                                                                       predictors,
+                                                                       target,
+                                                                       { 1 },
+                                                                       0,
+                                                                       invalidPolicy,
+                                                                       workspace ),
+                       std::invalid_argument );
+    REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateCenteredExperimental( output,
+                                                                               predictors,
+                                                                               target,
+                                                                               { 1 },
+                                                                               0,
+                                                                               invalidPolicy,
+                                                                               workspace ),
+                       std::invalid_argument );
+    pcaT::matrixT inPlacePredictors = predictors;
+    REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateCenteredInPlaceExperimental( output,
+                                                                                      inPlacePredictors,
+                                                                                      target,
+                                                                                      { 1 },
+                                                                                      0,
+                                                                                      invalidPolicy,
+                                                                                      workspace ),
+                       std::invalid_argument );
+    requireApprox( inPlacePredictors, predictors, 0 );
+    REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateHeldOutExperimental( output,
+                                                                              predictors,
+                                                                              target,
+                                                                              exclusions,
+                                                                              { 1 },
+                                                                              0,
+                                                                              invalidPolicy,
+                                                                              workspace ),
+                       std::invalid_argument );
+    REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateHeldOutProbeExperimental( output,
+                                                                                   probeResiduals,
+                                                                                   predictors,
+                                                                                   target,
+                                                                                   probePredictors,
+                                                                                   probeTarget,
+                                                                                   exclusions,
+                                                                                   { 1 },
+                                                                                   0,
+                                                                                   invalidPolicy,
+                                                                                   workspace ),
+                       std::invalid_argument );
+
+    pcaT::matrixT overflowingPredictors = predictors;
+    overflowingPredictors( 0, 0 ) = std::numeric_limits<double>::max();
+    pcaT::vectorT overflowingTarget = target;
+    overflowingTarget( 0 ) = std::numeric_limits<double>::max();
+    pcaT::matrixT overflowingProbePredictors = probePredictors;
+    overflowingProbePredictors( 0, 0 ) = std::numeric_limits<double>::max();
+    pcaT::vectorT overflowingProbeTarget = probeTarget;
+    overflowingProbeTarget( 0 ) = std::numeric_limits<double>::max();
+
+    for( const policyT policy : std::array{ policyT::doubleDouble, policyT::floatDouble, policyT::floatFloat } )
+    {
+        INFO( "alias policy=" << static_cast<int>( policy ) );
+        pcaT::matrixT aliasedPredictors = predictors;
+        const pcaT::matrixT originalAliasedPredictors = aliasedPredictors;
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateHeldOutProbeExperimental( output,
+                                                                                       aliasedPredictors,
+                                                                                       aliasedPredictors,
+                                                                                       target,
+                                                                                       probePredictors,
+                                                                                       probeTarget,
+                                                                                       exclusions,
+                                                                                       { 1 },
+                                                                                       0,
+                                                                                       policy,
+                                                                                       workspace ),
+                           std::invalid_argument );
+        requireApprox( aliasedPredictors, originalAliasedPredictors, 0 );
+
+        pcaT::matrixT aliasedProbePredictors = probePredictors;
+        const pcaT::matrixT originalAliasedProbePredictors = aliasedProbePredictors;
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateHeldOutProbeExperimental( output,
+                                                                                       aliasedProbePredictors,
+                                                                                       predictors,
+                                                                                       target,
+                                                                                       aliasedProbePredictors,
+                                                                                       probeTarget,
+                                                                                       exclusions,
+                                                                                       { 1 },
+                                                                                       0,
+                                                                                       policy,
+                                                                                       workspace ),
+                           std::invalid_argument );
+        requireApprox( aliasedProbePredictors, originalAliasedProbePredictors, 0 );
+    }
+
+    for( const policyT policy : std::array{ policyT::floatDouble, policyT::floatFloat } )
+    {
+        INFO( "policy=" << static_cast<int>( policy ) );
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateExperimental( output,
+                                                                           overflowingPredictors,
+                                                                           target,
+                                                                           { 1 },
+                                                                           0,
+                                                                           policy,
+                                                                           workspace ),
+                           std::invalid_argument );
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateExperimental( output,
+                                                                           predictors,
+                                                                           overflowingTarget,
+                                                                           { 1 },
+                                                                           0,
+                                                                           policy,
+                                                                           workspace ),
+                           std::invalid_argument );
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateCenteredExperimental( output,
+                                                                                   overflowingPredictors,
+                                                                                   target,
+                                                                                   { 1 },
+                                                                                   0,
+                                                                                   policy,
+                                                                                   workspace ),
+                           std::invalid_argument );
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateCenteredExperimental( output,
+                                                                                   predictors,
+                                                                                   overflowingTarget,
+                                                                                   { 1 },
+                                                                                   0,
+                                                                                   policy,
+                                                                                   workspace ),
+                           std::invalid_argument );
+
+        pcaT::matrixT inPlaceOverflowingPredictors = overflowingPredictors;
+        const pcaT::matrixT originalOverflowingPredictors = inPlaceOverflowingPredictors;
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateCenteredInPlaceExperimental( output,
+                                                                                          inPlaceOverflowingPredictors,
+                                                                                          target,
+                                                                                          { 1 },
+                                                                                          0,
+                                                                                          policy,
+                                                                                          workspace ),
+                           std::invalid_argument );
+        requireApprox( inPlaceOverflowingPredictors, originalOverflowingPredictors, 0 );
+
+        pcaT::matrixT inPlaceTargetOverflowPredictors = predictors;
+        REQUIRE_THROWS_AS(
+            mx::improc::detail::p4PCACalculateCenteredInPlaceExperimental( output,
+                                                                           inPlaceTargetOverflowPredictors,
+                                                                           overflowingTarget,
+                                                                           { 1 },
+                                                                           0,
+                                                                           policy,
+                                                                           workspace ),
+            std::invalid_argument );
+        requireApprox( inPlaceTargetOverflowPredictors, predictors, 0 );
+
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateHeldOutExperimental( output,
+                                                                                  overflowingPredictors,
+                                                                                  target,
+                                                                                  exclusions,
+                                                                                  { 1 },
+                                                                                  0,
+                                                                                  policy,
+                                                                                  workspace ),
+                           std::invalid_argument );
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateHeldOutExperimental( output,
+                                                                                  predictors,
+                                                                                  overflowingTarget,
+                                                                                  exclusions,
+                                                                                  { 1 },
+                                                                                  0,
+                                                                                  policy,
+                                                                                  workspace ),
+                           std::invalid_argument );
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateHeldOutProbeExperimental( output,
+                                                                                       probeResiduals,
+                                                                                       predictors,
+                                                                                       target,
+                                                                                       overflowingProbePredictors,
+                                                                                       probeTarget,
+                                                                                       exclusions,
+                                                                                       { 1 },
+                                                                                       0,
+                                                                                       policy,
+                                                                                       workspace ),
+                           std::invalid_argument );
+        REQUIRE_THROWS_AS( mx::improc::detail::p4PCACalculateHeldOutProbeExperimental( output,
+                                                                                       probeResiduals,
+                                                                                       predictors,
+                                                                                       target,
+                                                                                       probePredictors,
+                                                                                       overflowingProbeTarget,
+                                                                                       exclusions,
+                                                                                       { 1 },
+                                                                                       0,
+                                                                                       policy,
+                                                                                       workspace ),
+                           std::invalid_argument );
+    }
+}
+
+/** Verify held-out and frozen-probe experimental adapters preserve exact native eigensolver statuses.
+ * This exercises mx::improc::detail::p4PCACalculateHeldOutExperimental() and
+ * mx::improc::detail::p4PCACalculateHeldOutProbeExperimental() in both Gram orientations.
+ */
+TEST_CASE( "P4PCA experimental held-out adapters preserve eigensolver failures",
+           "[P4PCA][precision][experimental][held-out][probe][solver][failure]" )
+{
+    using policyT = mx::improc::detail::P4PCAPrecisionPolicy;
+    constexpr std::array policies{ policyT::doubleDouble, policyT::floatDouble, policyT::floatFloat };
+
+    const auto exerciseShape = [&]( const pcaT::matrixT &predictors, const pcaT::vectorT &target )
+    {
+        std::vector<mx::improc::P4ExclusionSpan> spans;
+        for( Eigen::Index row = 0; row < predictors.rows(); ++row )
+        {
+            spans.push_back( { row, row + 1 } );
+        }
+        const mx::improc::P4TargetExclusions exclusions =
+            mx::improc::P4TargetExclusions::fromSpans( predictors.rows(), spans );
+        pcaT::matrixT probePredictors( 2, predictors.cols() );
+        for( Eigen::Index column = 0; column < probePredictors.cols(); ++column )
+        {
+            probePredictors( 0, column ) = 0.25 * static_cast<double>( column + 1 );
+            probePredictors( 1, column ) = -0.1 * static_cast<double>( column + 2 );
+        }
+        pcaT::vectorT probeTarget( 2 );
+        probeTarget << 1, -1;
+
+        for( const MXLAPACK_INT status : std::array<MXLAPACK_INT, 2>{ 37, -1000 } )
+        {
+            INFO( "status=" << status );
+            experimentalSolverReset reset( status );
+            mx::improc::detail::P4PCAExperimentalWorkspace workspace;
+            const std::string expected = "P4PCA eigensolver failed with status " + std::to_string( status );
+            for( const policyT policy : policies )
+            {
+                INFO( "policy=" << static_cast<int>( policy ) );
+                resultT output;
+                REQUIRE_THROWS_WITH( mx::improc::detail::p4PCACalculateHeldOutExperimental( output,
+                                                                                            predictors,
+                                                                                            target,
+                                                                                            exclusions,
+                                                                                            { 1, 2 },
+                                                                                            0,
+                                                                                            policy,
+                                                                                            workspace ),
+                                     expected );
+                pcaT::matrixT probeResiduals;
+                REQUIRE_THROWS_WITH( mx::improc::detail::p4PCACalculateHeldOutProbeExperimental( output,
+                                                                                                 probeResiduals,
+                                                                                                 predictors,
+                                                                                                 target,
+                                                                                                 probePredictors,
+                                                                                                 probeTarget,
+                                                                                                 exclusions,
+                                                                                                 { 1, 2 },
+                                                                                                 0,
+                                                                                                 policy,
+                                                                                                 workspace ),
+                                     expected );
+            }
+        }
+    };
+
+    SECTION( "predictor Gram" )
+    {
+        pcaT::matrixT predictors( 4, 2 );
+        predictors << 2, 0, 0, 1, 1, -1, 0.5, 2;
+        pcaT::vectorT target( 4 );
+        target << 3, -2, 1, 0.5;
+        exerciseShape( predictors, target );
+    }
+
+    SECTION( "temporal Gram" )
+    {
+        pcaT::matrixT predictors( 3, 4 );
+        predictors << 2, 0, 1, -1, 0, 1, 2, 0.5, 1, -1, 0, 2;
+        pcaT::vectorT target( 3 );
+        target << 3, -2, 1;
+        exerciseShape( predictors, target );
+    }
+}
+
+/** Verify experimental DD, mixed, and FP32 adapters preserve native eigensolver statuses without remapping.
+ * This exercises all three experimental P4 entry points through both controlled native solver seams.
+ */
+TEST_CASE( "P4PCA experimental precision adapters preserve eigensolver failures",
+           "[P4PCA][precision][experimental][solver][failure]" )
+{
+    using policyT = mx::improc::detail::P4PCAPrecisionPolicy;
+    constexpr std::array policies{ policyT::doubleDouble, policyT::floatDouble, policyT::floatFloat };
+    pcaT::matrixT predictors( 4, 3 );
+    predictors << 1, 2, 0, 3, -1, 2, -2, 4, 1, 0, 1, -3;
+    pcaT::vectorT target( 4 );
+    target << 7, 1, 5, -2;
+
+    for( const MXLAPACK_INT status : std::array<MXLAPACK_INT, 2>{ 37, -1000 } )
+    {
+        INFO( "status=" << status );
+        experimentalSolverReset reset( status );
+        mx::improc::detail::P4PCAExperimentalWorkspace workspace;
+        const std::string expected = "P4PCA eigensolver failed with status " + std::to_string( status );
+
+        for( const policyT policy : policies )
+        {
+            INFO( "direct policy=" << static_cast<int>( policy ) );
+            resultT output;
+            REQUIRE_THROWS_WITH( mx::improc::detail::p4PCACalculateExperimental( output,
+                                                                                 predictors,
+                                                                                 target,
+                                                                                 { 1, 2 },
+                                                                                 0,
+                                                                                 policy,
+                                                                                 workspace ),
+                                 expected );
+        }
+
+        for( const policyT policy : policies )
+        {
+            INFO( "centered policy=" << static_cast<int>( policy ) );
+            resultT output;
+            REQUIRE_THROWS_WITH( mx::improc::detail::p4PCACalculateCenteredExperimental( output,
+                                                                                         predictors,
+                                                                                         target,
+                                                                                         { 1, 2 },
+                                                                                         0,
+                                                                                         policy,
+                                                                                         workspace ),
+                                 expected );
+
+            pcaT::matrixT inPlacePredictors = predictors;
+            REQUIRE_THROWS_WITH( mx::improc::detail::p4PCACalculateCenteredInPlaceExperimental( output,
+                                                                                                inPlacePredictors,
+                                                                                                target,
+                                                                                                { 1, 2 },
+                                                                                                0,
+                                                                                                policy,
+                                                                                                workspace ),
+                                 expected );
+            pcaT::matrixT expectedCentered;
+            if( policy == policyT::doubleDouble )
+            {
+                expectedCentered = centeredColumns( predictors );
+            }
+            else
+            {
+                const mx::improc::detail::P4PCAFloatMatrixT floatPredictors = predictors.cast<float>();
+                expectedCentered = centeredColumns( floatPredictors ).cast<double>();
+            }
+            requireApprox( inPlacePredictors, expectedCentered, 2e-6 );
+        }
+
+        REQUIRE( solverCalls == 6 );
+        REQUIRE( floatSolverCalls == 3 );
+        REQUIRE( solverModeCount == 3 );
+        REQUIRE( floatSolverModeCount == 3 );
+
+        const mx::improc::detail::P4PCAFloatMatrixT floatPredictors = predictors.cast<float>();
+        const mx::improc::detail::P4PCAFloatMatrixT floatCentered = centeredColumns( floatPredictors );
+        const pcaT::matrixT expectedMixedGram =
+            ( floatCentered.matrix().transpose() * floatCentered.matrix() ).template cast<double>().array();
+        requireApprox( solverGram, expectedMixedGram, 0 );
+        requireApprox( floatSolverGram, ( floatCentered.matrix().transpose() * floatCentered.matrix() ).array(), 0 );
+    }
+}
+
+#endif // HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
 
 } // namespace P4PCA_test
 } // namespace unitTest

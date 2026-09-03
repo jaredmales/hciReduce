@@ -1,0 +1,2376 @@
+schema: hcireduce-pca-precision-manifest/v1
+created: "2026-09-02"
+status: active-engineering-evaluation
+purpose: >-
+  Reproduce the AF Lep/NACO baseline and bounded precision experiments for
+  HCI-015. Application profiles and synthetic kernel measurements remain
+  engineering evidence, not a production precision decision.
+
+acceptance_contract:
+  path: benchmarks/manifests/p4_klip_fp32_acceptance.yaml
+  sha256: 255f70885da886504be1ab9ae43ef5e587cee1ef6454a946116e40da10d1135c
+  current_result_binding: mixed-legacy-contract-v1-and-descriptor-bound-incomplete
+  reason: >-
+    The archived 30-, 54-, and 33-field CSV rows predate the contract and remain
+    non-binding. The contract_v1 directory contains exact-hash-bound 94-field v2
+    rows for twelve covered cases. Descriptor-bound P4 matrices now add an
+    all-NaN bounded timing case, a finite detector-frame science-ROI case, and
+    a scoped exact one-versus-four-worker repeatability result. Required case
+    families and owner-TBD science/performance gates remain incomplete, so no
+    candidate is promotion-ready.
+  required_next_step: >-
+    Add the missing synthetic, production-mapping, real-fit ambiguity, science,
+    performance, automatic-memory concurrency, path, and platform cases against
+    this exact contract hash, and approve owner-TBD limits and aggregations
+    before making a promotion decision.
+
+source:
+  hcireduce_commit: 4869c2a52396a7fab45c0afa407ec3da78b5d01e
+  experiment_worktree: uncommitted benchmark-and-test patch over hcireduce_commit
+  initial_experiment_code_bundle_sha256: 5111569b9c6ea8e94585a5f931367d1030d7b8357ac3c8b5379443b731340762
+  initial_experiment_code_bundle_hash_method: >-
+    At run time, hash the stdout of `sha256sum CMakeLists.txt
+    benchmarks/CMakeLists.txt benchmarks/p4PrecisionBenchmark.cpp
+    tests/common/KLIPreduction_test.cpp`.
+  initial_experiment_code_bundle_reconstructible_from_current_paths: false
+  initial_experiment_code_bundle_note: >-
+    The files have since advanced; the recorded individual hashes and archived
+    executable identify the run, but those exact source bytes were not
+    archived and the bundle cannot be regenerated from the current paths.
+  current_experiment_code_bundle_sha256: d55d9866fb8d58a9ef43a5ff79eb74961012c5814eb942e2f9a5e00beb2ee8c4
+  current_experiment_code_bundle_hash_method: >-
+    Hash the stdout of `sha256sum CMakeLists.txt src/CMakeLists.txt
+    src/common/P4PCA.hpp src/common/P4PCA.cpp src/common/P4Reduction.hpp
+    src/common/P4Reduction.cpp benchmarks/CMakeLists.txt
+    benchmarks/p4PrecisionBenchmark.cpp benchmarks/klipPrecisionBenchmark.cpp
+    benchmarks/p4ReductionPrecisionBenchmark.cpp
+    tests/common/P4PCA_test.cpp tests/common/P4Reduction_test.cpp
+    tests/common/KLIPreduction_test.cpp` with SHA-256.
+  current_benchmark_cmake_source_sha256: a33c63aca7dca89b767d0a49787b1890f5ef19ee531da57ef2123cf04c040cb9
+  current_p4_precision_benchmark_source_sha256: 52b6dd8f8892a3d34cc9cd99a591a447b801577badd251fee7ae60411f777215
+  current_klip_precision_benchmark_source_sha256: 5d9bf20a38ff3c8e69b3757728b25353451ffd644792cc24156c4ab8d9cb91e5
+  current_p4_reduction_precision_benchmark_source_sha256: 1fef893ce004b1702b7be1596a50cc485cc35610a3f0daba04cd116ae432f0dd
+  contract_v1_p4_executable: working/fp32/benchmark/4869c2a/contract_v1/p4PrecisionBenchmark_v2
+  contract_v1_p4_executable_sha256: 8cf83f87a265e0579e275bfcc96ebdf1ebadc3966b5f539b6fa5fb306c74957e
+  contract_v1_klip_executable: working/fp32/benchmark/4869c2a/contract_v1/klipPrecisionBenchmark_v2
+  contract_v1_klip_executable_sha256: 2560cc04c2ce1c0dd44b5c2b6e5c9542e6f6ffcf714c9baa8d35498010c39aec
+  initial_cmake_source_sha256: d720a4f3cb0cab59efedf7e98993d5d3e90dfdb46a284a4c023c84d0d6c8e410
+  initial_benchmark_cmake_source_sha256: 12134efcff95b1727e8c13123bf8648008ed9ca6d7b6c2f7838c9291ad2be114
+  initial_p4_precision_benchmark_source_sha256: 649ddacce8d1946784b8aad9927e6f3fa767724d47d3aa6b130396230633ccc7
+  initial_p4_precision_benchmark_executable: working/fp32/benchmark/4869c2a/p4PrecisionBenchmark_initial
+  initial_p4_precision_benchmark_executable_sha256: 589fd30ad1642b464835b9ceedd50d0bb7ba4cd73834acd18da2aec42770c165
+  p4_rank_benchmark_source_sha256: 65c7a886764452872914f38d3ede4e6d979697120c07a48778fc42c6c2f47a25
+  p4_rank_benchmark_executable: working/fp32/benchmark/4869c2a/p4PrecisionBenchmark_rank
+  p4_rank_benchmark_executable_sha256: 04c25b3bd7adeb88f036587313f552bfe99d01f5059ebe1e661987ef19fc1c4e
+  klip_precision_benchmark_source_sha256: 3d475f3a13975d4bcb2af19b941cea96f3a457e19ecafdb1b8e93ec480ff7dbc
+  klip_precision_benchmark_executable: working/fp32/benchmark/4869c2a/klipPrecisionBenchmark_initial
+  klip_precision_benchmark_executable_sha256: a0a8394ff9e906c0fa383c21fa47ffb3bf513e2bd379836a18a2afdb12fa63a4
+  klip_test_source_sha256: bf1fe677ad5e2b2255c523751d9efa77495ee764b49f408c8f7a24403a78ef0c
+  klip_test_executable: working/fp32/benchmark/4869c2a/hcireduceTest_common_KLIPreduction_test_cpp_initial
+  klip_test_executable_sha256: 4654aea09eca6afb1a05c695a63552a93566a2fdd5690d53d45f4b5587a0cb0b
+  mxlib_commit: 3a03627255b3ed5a9657b8082a0c6a79aef4365d
+  mxlib_installed_header_matches_source: true
+  build_type: Release
+  compiler: GCC 15.2.0
+  cmake: 4.2.3
+  cxx_flags: >-
+    -O3 -DNDEBUG --std=c++20 -D_XOPEN_SOURCE=700 -fopenmp
+    -DEIGEN_DONT_PARALLELIZE -DHAS_QUAD -DMXLIB_MILK -DEIGEN_NO_CUDA
+    -DMXLIB_CUDA -DHAVE_CUDA
+  cpu_benchmark_build_options:
+    HCIREDUCE_BUILD_CPU_BENCHMARKS: true
+    HCIREDUCE_BUILD_CUDA_BENCHMARKS: false
+    note: >-
+      The CPU target does not compile a CUDA source or invoke hciReduce's
+      CUDAToolkit discovery. The installed mxlib was itself built with CUDA,
+      so its inherited definitions and link dependencies still mention CUDA;
+      repeat with a non-CUDA mxlib build to establish full portability.
+  eigen: 3.4.0
+  openblas: 0.3.32+ds
+  lapack: 3.12.1
+  linked_mxlib_sha256: a26b3d09859cde0a7d287b63b9f70cd4ea0d8368568b6c292d3e4090d6f1383c
+
+host:
+  name: mx11
+  kernel: 7.0.0-30-generic
+  architecture: x86_64
+  cpu: 12th Gen Intel(R) Core(TM) i9-12900HK
+  logical_cpus: 20
+  physical_cores: 14
+  sockets: 1
+  numa_nodes: 1
+  isa: [SSE2, SSE4.1, SSE4.2, AVX, AVX2, FMA]
+
+thread_policy:
+  smoke_profiles:
+    omp_num_threads: 1
+    openblas_num_threads: 1
+    p4_memory_fraction: 0
+  measured_bounded_runs:
+    repetitions: 6
+    warmups_per_candidate: 1
+    alternate_candidate_order: true
+    omp_dynamic: false
+    omp_proc_bind: close
+    omp_places: cores
+    openblas_num_threads: 1
+  pinned_microbenchmarks:
+    logical_cpu: 4
+    physical_core: 2
+    core_class: performance
+    cpuinfo_max_mhz: 5000
+    scaling_governor: powersave
+    observed_near_run_load_average_1m: 0.43
+    repetitions: 6
+    warmups: 2
+    alternate_candidate_order: true
+    omp_num_threads: 1
+    openblas_num_threads: 1
+    omp_dynamic: false
+    omp_proc_bind: close
+    omp_places: cores
+  note: >-
+    Use a distinct output directory for every candidate and repetition. Do not
+    run KLIP cases concurrently because they share /tmp/hciReduceAux sidecars.
+
+known_good_configs:
+  klip:
+    path: working/kr.conf
+    sha256: 780c25b356e70e247fdabac0777bbe4ba66f763c6e1ed92dade01589b845cee2
+    archived_copy: working/fp32/baseline/4869c2a/kr.conf
+    output_warning: >-
+      The file has no output section, so an unoverridden run writes a sequential
+      finim_NNNN.fits in the launch directory.
+  p4:
+    path: working/p4Reduce_afLepNaco.conf
+    sha256: e82cde94979e69752aede256b7531800f15fd5faa0bf946476b79d64ac002067
+    archived_copy: working/fp32/baseline/4869c2a/p4Reduce_afLepNaco.conf
+    rank_tolerance_note: >-
+      The active rankTolerance value is blank. The current parser resolves it
+      to 0, confirmed by the P4 RANK TOLERANCE=0 output card. Candidate runs
+      must pin 0 to preserve this baseline; a nonzero threshold is a separate
+      rank-policy experiment.
+    output_warning: >-
+      The file writes a sequential finim_NNNN.fits in the launch directory
+      unless output.directory and output.fileName are overridden.
+
+dataset:
+  id: aflep-naco-2011-10-21-coadd5-pp
+  directory: /home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp
+  ordered_glob: pp*.fits
+  first_file: pp_000000.fits
+  last_file: pp_000620.fits
+  file_count: 621
+  total_bytes: 169899840
+  bitpix: -32
+  shape: [256, 256]
+  angle_keyword: POSANG
+  posang_range_degrees: [-271.059, 88.8176]
+  filename_list_sha256: 498662d5d03eadb2492880fb74d8bf573cea58d6743e6832317d16e2545186ca
+  ordered_checksum_list_sha256: 0d73f1c13877a225e17a69b78ae6b4ee219e782916421d24b7b8a156d4d6bcd7
+  checksum_method: >-
+    In the dataset directory, hash the output of `sha256sum pp*.fits` with
+    SHA-256. Names in that intermediate stream are relative basenames.
+  first_file_sha256: f18d3cb16c8ed43841a4ffbbeeb28bae1fe0c17cdf26468722cd03b13fa85dfc
+  last_file_sha256: aaa0ccdd24c7e48763a8b4ce76e13f9cad48944c2de57b7ca23366b6590cd8a6
+  klip_mask:
+    path: /home/jrmales/Source/mxWork/NACO/AFLep/2011-10-21/out/sat_coremask.fits
+    sha256: 37c94117950e86a4caa2e3e5445eea41065b4e1e4670a46bbde156c476406336
+    shape: [256, 256]
+    zero_pixels: 124
+    one_pixels: 65412
+
+expected_full_workloads:
+  p4:
+    samples: 621
+    search_pixels: 5024
+    predictor_counts:
+      - 1776
+      - 2114
+      - 2471
+      - 2728
+      - 2988
+      - 3240
+      - 3496
+      - 3760
+      - 4016
+      - 4108
+      - 3978
+      - 3870
+      - 3768
+      - 3684
+      - 3610
+      - 3558
+      - 3506
+      - 3458
+      - 3406
+    output_shape: [256, 256, 15]
+  klip:
+    samples: 621
+    selected_references_per_target: 620
+    region_pixels: 11180
+    gram_orientation: reference
+    output_shape: [128, 128, 8]
+
+smoke_profiles:
+  p4_d64:
+    launch_directory: /home/jrmales/Source/mxApps/hciReduce
+    command_overrides:
+      input.deleteBack: 525
+      geom.minRadius: 10
+      geom.maxRadius: 12
+      p4.modeFractions: [0.05, 0.2, 0.5]
+      p4.memoryFraction: 0
+      p4.rankTolerance: 0
+      output.directory: working/fp32/baseline/4869c2a
+      output.fileName: p4_d64_bounded.fits
+      output.exactFName: true
+    samples: 96
+    predictor_count: 2988
+    search_pixels: 132
+    gram_orientation: temporal
+    realized_modes: [4, 19, 48]
+    minimum_rank: 96
+    output_shape: [256, 256, 3]
+    output_sha256: 9dff0820fe2f8390790a0c44499682b37f20f899c1d386013864cff439fd4774
+    artifact: working/fp32/baseline/4869c2a/p4_d64_bounded.fits
+    timing_seconds:
+      application: 1.666952
+      algorithm: 0.846043
+      geometry: 0.036403
+      sampling_worker: 0.365982
+      gram_worker: 0.384304
+      eigensolve_worker: 0.081432
+      projection_worker: 0.000872
+      derotation: 0.441274
+      combination: 0.076856
+      process_elapsed: 1.72
+    max_rss_kib: 326924
+  p4_d64_full_geometry:
+    launch_directory: /home/jrmales/Source/mxApps/hciReduce
+    command_overrides:
+      input.deleteBack: 525
+      p4.modeFractions: [0.05, 0.1, 0.2]
+      p4.memoryFraction: 0
+      p4.rankTolerance: 0
+      output.directory: working/fp32/baseline/4869c2a
+      output.fileName: p4_d64_bounded_fullgeometry.fits
+      output.exactFName: true
+    thread_overrides:
+      omp_num_threads: 4
+      omp_dynamic: false
+      omp_proc_bind: close
+      omp_places: cores
+      openblas_num_threads: 1
+    samples: 96
+    annuli: 19
+    predictor_count_by_annulus: [1776, 2114, 2471, 2728, 2988, 3240, 3496, 3760, 4016, 4108, 3978, 3870, 3768, 3684, 3610, 3558, 3506, 3458, 3406]
+    search_pixels: 5024
+    gram_orientation: temporal
+    realized_modes: [4, 9, 19]
+    minimum_rank: 96
+    output_shape: [256, 256, 3]
+    output_sha256: 2833a056ff09a7d9fd053697b506971c2c81ea2d3b17586dfd095352ad263cec
+    artifact: working/fp32/baseline/4869c2a/p4_d64_bounded_fullgeometry.fits
+    timing_seconds:
+      application: 14.056576
+      algorithm: 12.021237
+      geometry: 1.514363
+      sampling_worker: 20.968768
+      gram_worker: 21.726070
+      eigensolve_worker: 4.054012
+      projection_worker: 0.030752
+      process_elapsed: 14.18
+    max_rss_kib: 2006224
+  klip_m32d64_shared:
+    launch_directory: /home/jrmales/Source/mxApps/hciReduce
+    command_overrides:
+      input.deleteBack: 493
+      adi.excludeMethod: none
+      klip.Nmodes: [8, 32, 64]
+      output.directory: working/fp32/baseline/4869c2a
+      output.fileName: klip_m32d64_shared_bounded.fits
+      output.exactFName: true
+    samples: 128
+    region_pixels: 11180
+    gram_orientation: reference
+    exclusion_solver: direct
+    selected_references: all 128
+    valid_mode_rank: not persisted by the current KLIP product
+    output_shape: [128, 128, 3]
+    output_sha256: 9eac4e3995272c561b46242784265cb6b237290365fc6e196a066da21745ec12
+    artifact: working/fp32/baseline/4869c2a/klip_m32d64_shared_bounded.fits
+    timing_seconds:
+      application: 0.742488
+      algorithm: 0.452976
+      eigensolve_worker: 0.002539
+      mode_construction_worker: 0.002180
+      subtraction_worker: 0.443308
+      process_elapsed: 0.79
+    max_rss_kib: 272276
+  klip_m32d64_target_specific:
+    launch_directory: /home/jrmales/Source/mxApps/hciReduce
+    command_overrides:
+      input.deleteBack: 589
+      adi.excludeMethod: imno
+      adi.minDPx: 0
+      klip.Nmodes: [4, 8, 16]
+      output.directory: working/fp32/baseline/4869c2a
+      output.fileName: klip_m32d64_target_bounded.fits
+      output.exactFName: true
+    samples: 32
+    selected_references_per_target: 31
+    region_pixels: 11180
+    gram_orientation: reference
+    exclusion_solver: direct
+    selection: delete the same-image reference; 31 references per target
+    valid_mode_rank: not persisted by the current KLIP product
+    output_shape: [128, 128, 3]
+    output_sha256: 10020b289e596a795fdab10802ecebbe3ff374cf041f395f387f38d6e01148d1
+    artifact: working/fp32/baseline/4869c2a/klip_m32d64_target_bounded.fits
+    timing_seconds:
+      application: 0.080053
+      algorithm: 0.017048
+      eigensolve_worker: 0.003895
+      mode_construction_worker: 0.003873
+      subtraction_worker: 0.006306
+      process_elapsed: 0.13
+    max_rss_kib: 266264
+
+cpu_precision_microbenchmark:
+  status: engineering-capability-smoke
+  acceptance_binding: pre-contract-non-binding
+  source_path_at_run: benchmarks/p4PrecisionBenchmark.cpp
+  source_at_run_sha256: 649ddacce8d1946784b8aad9927e6f3fa767724d47d3aa6b130396230633ccc7
+  source_bytes_archived: false
+  current_source_differs_from_run: true
+  reproducibility_limit: >-
+    Exact raw rows and the run executable are archived, but the original
+    source bytes are not; use this section as historical exploration only.
+  scope: well-conditioned uncentered in-sample Gram/eigensolve/projection microkernel
+  excluded:
+    - numerical-rank selection and threshold-boundary behavior
+    - centered and held-out fits
+    - coefficients and probes
+    - output-plane materialization and end-to-end reduction work
+    - independent direct-SVD accuracy oracle
+  candidates:
+    P4-D64: {calculation: FP64, eigensolve: FP64}
+    P4-M32D64: {calculation: FP32, eigensolve: FP64}
+    P4-F32: {calculation: FP32, eigensolve: FP32}
+  common_environment:
+    openblas_num_threads: 1
+    omp_num_threads: 1
+    omp_dynamic: false
+    omp_proc_bind: close
+    omp_places: cores
+    process_allowed_cpu_affinity: 0-19
+    fixed_hybrid_core_pin: false
+    seed: 42
+    execution_order: rotating candidate order in complete balanced triplets
+    validation_scope: one separate execution before timed workspaces and warmups
+    command_template: >-
+      env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 OMP_DYNAMIC=FALSE
+      OMP_PROC_BIND=close OMP_PLACES=cores /usr/bin/time -v
+      _build_cpu_precision/benchmarks/p4PrecisionBenchmark --samples T
+      --predictors K --modes N --warmups W --repetitions R
+    peak_rss_measurement: /usr/bin/time -v; one shared-process value, not candidate-specific
+  engineering_smoke_gates:
+    final_science_tolerances: false
+    gram_relative: 5.0e-5
+    retained_eigenvalue_relative_l2: 5.0e-4
+    retained_projector_relative_frobenius: 2.0e-2
+    final_residual_relative_l2: 2.0e-3
+    normalized_solver_residual: 2.0e-4
+    retained_factor_orthogonality_frobenius: 2.0e-3
+  median_stage_order: [conversion, gram_cross_product, eigensolve, projection_residual, total]
+  runs:
+    temporal_smoke:
+      dimensions: {samples: 96, predictors: 384, modes: 32}
+      warmups: 2
+      repetitions: 9
+      median_milliseconds:
+        P4-D64: [0.008, 0.395, 0.647, 0.002, 1.064]
+        P4-M32D64: [0.005, 0.190, 0.648, 0.001, 0.839]
+        P4-F32: [0.005, 0.175, 0.554, 0.001, 0.735]
+      d64_over_candidate_total_speedup: {P4-M32D64: 1.269, P4-F32: 1.448}
+      total_millisecond_range:
+        P4-D64: [1.048, 1.084]
+        P4-M32D64: [0.824, 0.875]
+        P4-F32: [0.723, 0.753]
+      total_millisecond_mad: {P4-D64: 0.010, P4-M32D64: 0.006, P4-F32: 0.008}
+      process_max_rss_kib: 262672
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/p4_precision_t96_k384.csv
+        sha256: 44593e8b0c2b92233064d01892b05d107d127378e2193f9f2acbb8df689111d8
+      log:
+        path: working/fp32/benchmark/4869c2a/p4_precision_t96_k384.log
+        sha256: e90f94c90013806dcdf9d0d5e82a7e67c532b2d4e249792707e91d77377d057e
+    predictor_smoke:
+      dimensions: {samples: 384, predictors: 96, modes: 32}
+      warmups: 2
+      repetitions: 9
+      median_milliseconds:
+        P4-D64: [0.008, 0.417, 0.654, 0.109, 1.186]
+        P4-M32D64: [0.005, 0.185, 0.648, 0.052, 0.887]
+        P4-F32: [0.005, 0.167, 0.554, 0.052, 0.782]
+      d64_over_candidate_total_speedup: {P4-M32D64: 1.337, P4-F32: 1.516}
+      total_millisecond_range:
+        P4-D64: [1.171, 1.224]
+        P4-M32D64: [0.875, 0.920]
+        P4-F32: [0.770, 0.862]
+      total_millisecond_mad: {P4-D64: 0.009, P4-M32D64: 0.007, P4-F32: 0.006}
+      process_max_rss_kib: 262452
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/p4_precision_t384_k96.csv
+        sha256: 585316d3bf7ec9e02791f17dec2b09b745fb6b40f864b4e0cbe6411357431ae2
+      log:
+        path: working/fp32/benchmark/4869c2a/p4_precision_t384_k96.log
+        sha256: 4beb73e1abe63e7f286e9b99557b643d4081a812f0a4b17812bfb4dfbabc5aca
+    aflep_96_frame_shape:
+      dimensions: {samples: 96, predictors: 2988, modes: 48}
+      warmups: 2
+      repetitions: 9
+      median_milliseconds:
+        P4-D64: [0.068, 2.674, 0.618, 0.003, 3.371]
+        P4-M32D64: [0.044, 1.329, 0.623, 0.002, 1.998]
+        P4-F32: [0.044, 1.356, 0.556, 0.002, 1.943]
+      d64_over_candidate_total_speedup: {P4-M32D64: 1.687, P4-F32: 1.735}
+      total_millisecond_range:
+        P4-D64: [3.325, 3.608]
+        P4-M32D64: [1.971, 2.138]
+        P4-F32: [1.914, 2.064]
+      total_millisecond_mad: {P4-D64: 0.014, P4-M32D64: 0.016, P4-F32: 0.029}
+      process_max_rss_kib: 267728
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/p4_precision_t96_k2988.csv
+        sha256: a91590cf19154653d687edec8c04a2fc3753bbc679f26f0aeb57900ffd8877d0
+      log:
+        path: working/fp32/benchmark/4869c2a/p4_precision_t96_k2988.log
+        sha256: f0e0808fb38305e10d1500958346eea4b56179dd05597ab2b631e4a7b275db1f
+    aflep_full_frame_shape:
+      dimensions: {samples: 621, predictors: 2988, modes: 466}
+      warmups: 1
+      repetitions: 6
+      median_milliseconds:
+        P4-D64: [0.927, 110.632, 40.780, 0.153, 152.426]
+        P4-M32D64: [0.550, 54.877, 41.892, 0.116, 97.333]
+        P4-F32: [0.582, 55.887, 42.868, 0.078, 100.937]
+      d64_over_candidate_total_speedup: {P4-M32D64: 1.566, P4-F32: 1.510}
+      total_millisecond_range:
+        P4-D64: [151.704, 181.569]
+        P4-M32D64: [95.952, 117.158]
+        P4-F32: [97.014, 121.718]
+      total_millisecond_mad: {P4-D64: 0.550, P4-M32D64: 1.201, P4-F32: 3.660}
+      process_max_rss_kib: 292396
+      full_fp32_validation:
+        gram_relative: 3.1715e-7
+        retained_eigenvalue_relative_l2: 1.6676e-7
+        retained_projector_relative_frobenius: 2.3055e-5
+        final_residual_relative_l2: 4.9143e-5
+        final_residual_maximum_absolute: 2.2159e-5
+        normalized_solver_residual: 2.7330e-8
+        retained_factor_orthogonality_frobenius: 4.9428e-4
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/p4_precision_t621_k2988.csv
+        sha256: 46120ee897d89741bf9f86f22df084403bc020501db4b90ef33bd0c94b094525
+      log:
+        path: working/fp32/benchmark/4869c2a/p4_precision_t621_k2988.log
+        sha256: fb9f7794f46b0618d198d0f4faeb139a6370ed3597207b338064e310b09deb79
+  interpretation: >-
+    FP32 Gram construction is consistently about twice as fast in these
+    single-thread smoke cases. At the 621-by-2988 shape, the mixed candidate
+    is slightly faster than full FP32 because SSYEVR is not faster than the
+    promoted DSYEVR path at this dimension. These observations justify the
+    next rank-sensitive and production-path experiments but do not support a
+    production precision decision.
+
+p4_rank_precision_microbenchmark:
+  status: engineering-rank-diagnostic
+  source: benchmarks/p4PrecisionBenchmark.cpp
+  source_sha256: 65c7a886764452872914f38d3ede4e6d979697120c07a48778fc42c6c2f47a25
+  executable: working/fp32/benchmark/4869c2a/p4PrecisionBenchmark_rank
+  executable_sha256: 04c25b3bd7adeb88f036587313f552bfe99d01f5059ebe1e661987ef19fc1c4e
+  validation_oracles:
+    structural_rank_and_nullity: independent FP64 Jacobi thin SVD
+    numerical_error_metrics: P4-D64 normal-equation baseline
+  acceptance_binding: pre-contract-non-binding
+  common:
+    warmups: 2
+    repetitions: 6
+    seed: 42
+    fixed_logical_cpu: 4
+    openblas_num_threads: 1
+    omp_num_threads: 1
+    candidate_order: rotating balanced triplets
+    csv_fields: 54
+    csv_rows_including_header: 91
+  ambiguity_model:
+    id: rank.synthetic_band_v1
+    multiplier: 8
+    comparison: strict lambda greater than rankTolerance times lambdaMax
+    diagnostic: oracle agreement for retain/reject decisions outside the band
+    limitation: >-
+      Construction-specific rounding diagnostic only; not a general
+      eigensolver forward-error theorem or a science tolerance.
+  median_stage_order: [conversion, gram_cross_product, eigensolve, projection_residual, total]
+  runs:
+    boundary_tau_1e3_temporal:
+      dimensions: {samples: 64, predictors: 96, modes: 32, orientation: temporal}
+      rank_relative_threshold: 1.0e-3
+      ranks: {oracle: 58, P4-D64: 58, P4-M32D64: 58, P4-F32: 58}
+      ambiguous_eigenvalues: {P4-D64: 0, P4-M32D64: 1, P4-F32: 3}
+      benchmark_diagnostic_unambiguous_agreement: true
+      median_total_milliseconds: {P4-D64: 0.079916, P4-M32D64: 0.061771, P4-F32: 0.061180}
+      total_millisecond_range:
+        P4-D64: [0.078121, 0.107059]
+        P4-M32D64: [0.059754, 0.070207]
+        P4-F32: [0.058827, 0.070703]
+      total_millisecond_mad: {P4-D64: 0.001331, P4-M32D64: 0.000730, P4-F32: 0.001673}
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/p4_rank_boundary_t64_k96_tau1e-3.csv
+        sha256: 1da0e7bcbf8d7f009d40b84013d4a6c9518a4fb640112d3e5747400b849a0b75
+      log:
+        path: working/fp32/benchmark/4869c2a/p4_rank_boundary_t64_k96_tau1e-3.log
+        sha256: 628fc3f01eae5dac56a0990fce69d015a00597527a6d3be1139a1440555314a5
+    boundary_tau_1e3_predictor:
+      dimensions: {samples: 96, predictors: 64, modes: 32, orientation: predictor}
+      rank_relative_threshold: 1.0e-3
+      ranks: {oracle: 58, P4-D64: 58, P4-M32D64: 58, P4-F32: 58}
+      ambiguous_eigenvalues: {P4-D64: 0, P4-M32D64: 1, P4-F32: 3}
+      benchmark_diagnostic_unambiguous_agreement: true
+      median_total_milliseconds: {P4-D64: 0.099124, P4-M32D64: 0.070463, P4-F32: 0.071533}
+      total_millisecond_range:
+        P4-D64: [0.097668, 0.104188]
+        P4-M32D64: [0.068179, 0.091254]
+        P4-F32: [0.066952, 0.085311]
+      total_millisecond_mad: {P4-D64: 0.001358, P4-M32D64: 0.000726, P4-F32: 0.002069}
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/p4_rank_boundary_t96_k64_tau1e-3.csv
+        sha256: 57567f1b7822a75c664ce02ba5745acfcd6e56c327c467ee3cbf8512f6bd759f
+      log:
+        path: working/fp32/benchmark/4869c2a/p4_rank_boundary_t96_k64_tau1e-3.log
+        sha256: 0e9bf4b88589426fd478ae666fe797b829b7f4fcb828cdc1e63e5c11b5e1ba50
+    boundary_tau_1p1e3_temporal:
+      dimensions: {samples: 64, predictors: 96, modes: 32, orientation: temporal}
+      rank_relative_threshold: 1.1e-3
+      ranks: {oracle: 59, P4-D64: 59, P4-M32D64: 58, P4-F32: 58}
+      raw_rank_differs: {P4-D64: false, P4-M32D64: true, P4-F32: true}
+      ambiguous_eigenvalues: {P4-D64: 0, P4-M32D64: 1, P4-F32: 3}
+      benchmark_diagnostic_unambiguous_agreement: true
+      median_total_milliseconds: {P4-D64: 0.089836, P4-M32D64: 0.069471, P4-F32: 0.067764}
+      total_millisecond_range:
+        P4-D64: [0.087515, 0.093348]
+        P4-M32D64: [0.065713, 0.076179]
+        P4-F32: [0.064198, 0.070768]
+      total_millisecond_mad: {P4-D64: 0.002065, P4-M32D64: 0.001695, P4-F32: 0.001957}
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/p4_rank_boundary_t64_k96_tau1p1e-3.csv
+        sha256: 66f34a8caf554172f6cac2d6865b81a45f1363d80f7965414be37bb32bb6a1f6
+      log:
+        path: working/fp32/benchmark/4869c2a/p4_rank_boundary_t64_k96_tau1p1e-3.log
+        sha256: 4c15c00499d3954f1de0b049d199efb8b96d113c5b314668678ea4280ce3d9d3
+    boundary_tau_1p1e3_predictor:
+      dimensions: {samples: 96, predictors: 64, modes: 32, orientation: predictor}
+      rank_relative_threshold: 1.1e-3
+      ranks: {oracle: 59, P4-D64: 59, P4-M32D64: 58, P4-F32: 58}
+      raw_rank_differs: {P4-D64: false, P4-M32D64: true, P4-F32: true}
+      ambiguous_eigenvalues: {P4-D64: 0, P4-M32D64: 1, P4-F32: 3}
+      benchmark_diagnostic_unambiguous_agreement: true
+      median_total_milliseconds: {P4-D64: 0.113354, P4-M32D64: 0.081179, P4-F32: 0.080710}
+      total_millisecond_range:
+        P4-D64: [0.111561, 0.116917]
+        P4-M32D64: [0.079192, 0.083891]
+        P4-F32: [0.076845, 0.084791]
+      total_millisecond_mad: {P4-D64: 0.001372, P4-M32D64: 0.001466, P4-F32: 0.001820}
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/p4_rank_boundary_t96_k64_tau1p1e-3.csv
+        sha256: 1784051aeb75b1491c0ea0caf667e7cf8b3af164eedf09386eed21a0c64f8b37
+      log:
+        path: working/fp32/benchmark/4869c2a/p4_rank_boundary_t96_k64_tau1p1e-3.log
+        sha256: 3db09f7d27b262d5c22c729cda0869a141d4436c0eb469f0ec244b1aa46a39b8
+    exact_dependency_tau_zero_temporal:
+      dimensions: {samples: 64, predictors: 96, modes: 32, orientation: temporal}
+      rank_relative_threshold: 0
+      structural_rank: 60
+      exact_nullity: 4
+      ranks: {P4-D64: 63, P4-M32D64: 62, P4-F32: 62}
+      raw_rank_differs_from_structural: true
+      ambiguous_eigenvalues: {P4-D64: 4, P4-M32D64: 5, P4-F32: 5}
+      benchmark_diagnostic_unambiguous_agreement: true
+      median_total_milliseconds: {P4-D64: 0.270470, P4-M32D64: 0.250683, P4-F32: 0.231921}
+      total_millisecond_range:
+        P4-D64: [0.265717, 0.279300]
+        P4-M32D64: [0.249067, 0.259301]
+        P4-F32: [0.226053, 0.249758]
+      total_millisecond_mad: {P4-D64: 0.002922, P4-M32D64: 0.001128, P4-F32: 0.004001}
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/p4_rank_zero_t64_k96_tau0.csv
+        sha256: d0dd7eb9694b92b72d47366dc5b8d777aa1c8e86356ba103585c47b75b88a555
+      log:
+        path: working/fp32/benchmark/4869c2a/p4_rank_zero_t64_k96_tau0.log
+        sha256: 501be674a83cb7d61bc98ece1379fbd8c7f4da2d3cd29979b6a8d352c25b1aa6
+    exact_dependency_tau_zero_predictor:
+      dimensions: {samples: 96, predictors: 64, modes: 32, orientation: predictor}
+      rank_relative_threshold: 0
+      structural_rank: 60
+      exact_nullity: 4
+      ranks: {P4-D64: 61, P4-M32D64: 61, P4-F32: 62}
+      raw_rank_differs_from_structural: true
+      ambiguous_eigenvalues: {P4-D64: 4, P4-M32D64: 5, P4-F32: 5}
+      benchmark_diagnostic_unambiguous_agreement: true
+      median_total_milliseconds: {P4-D64: 0.296206, P4-M32D64: 0.264004, P4-F32: 0.256613}
+      total_millisecond_range:
+        P4-D64: [0.293749, 0.298089]
+        P4-M32D64: [0.260559, 0.267949]
+        P4-F32: [0.254592, 0.260721]
+      total_millisecond_mad: {P4-D64: 0.000619, P4-M32D64: 0.001431, P4-F32: 0.001202}
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/p4_rank_zero_t96_k64_tau0.csv
+        sha256: e5cafe161b061c51a14b43304385015c8c711e4de6a13987027f25e711fab3a6
+      log:
+        path: working/fp32/benchmark/4869c2a/p4_rank_zero_t96_k64_tau0.log
+        sha256: 517701f424215f316f7618c207a44c127d34932d0ab372fd0638d7eab35af332
+  interpretation: >-
+    Raw ranks can differ at threshold-adjacent and exact-null modes even when
+    every robust decision outside the diagnostic band agrees. In particular,
+    the known-good configuration's zero threshold is not naturally stable
+    under either FP64 or FP32 normal-equation rounding; real-fit ambiguity and
+    product-sensitivity reporting is required before promotion.
+
+klip_precision_microbenchmark:
+  status: engineering-capability-smoke
+  source: benchmarks/klipPrecisionBenchmark.cpp
+  source_sha256: 3d475f3a13975d4bcb2af19b941cea96f3a457e19ecafdb1b8e93ec480ff7dbc
+  executable: working/fp32/benchmark/4869c2a/klipPrecisionBenchmark_initial
+  executable_sha256: a0a8394ff9e906c0fa383c21fa47ffb3bf513e2bd379836a18a2afdb12fa63a4
+  candidates:
+    KLIP-M32D64: {calculation: FP32, eigensolve: FP64}
+    KLIP-F32: {calculation: FP32, eigensolve: FP32}
+  oracle: independent FP64 Jacobi thin SVD plus direct production API
+  acceptance_binding: pre-contract-non-binding
+  scope: uncentered direct single-mode product with warmed reusable in-memory buffers
+  excluded:
+    - reference selection and collapse
+    - OpenMP scheduling
+    - multi-mode-list output materialization
+    - factor deletion
+    - rank-boundary and ill-conditioned spectra
+    - complete application and science products
+  common:
+    warmups: 2
+    repetitions: 6
+    seed: 42
+    fixed_logical_cpu: 4
+    openblas_num_threads: 1
+    omp_num_threads: 1
+    candidate_order: balanced alternating order
+    csv_fields: 33
+    csv_rows_including_header: 61
+  median_stage_order: [gram, eigensolve, mode_construction, subtraction, total]
+  runs:
+    aflep_shared_reference_shape:
+      dimensions: {targets: 128, pixels: 11180, references: 128, modes: 64}
+      gram_orientation: reference_R_le_P
+      median_milliseconds:
+        KLIP-M32D64: [2.028399, 2.348681, 1.726190, 332.550103, 338.646903]
+        KLIP-F32: [2.012979, 1.095336, 1.693087, 329.144340, 333.951827]
+      mixed_over_full_total_speedup: 1.014059
+      mixed_over_full_eigensolve_speedup: 2.144256
+      total_millisecond_range:
+        KLIP-M32D64: [337.701402, 339.478514]
+        KLIP-F32: [332.944957, 335.052279]
+      total_millisecond_mad: {KLIP-M32D64: 0.450528, KLIP-F32: 0.658854}
+      validation:
+        KLIP-M32D64: [1.001e-7, 4.547e-8, 5.138e-7, 1.269e-6, 0, 0, 8.188e-7]
+        KLIP-F32: [1.001e-7, 6.481e-8, 2.928e-6, 2.416e-6, 0, 0, 5.064e-6]
+        order: [gram_relative, eigenvalue_relative, svd_projector_relative,
+                svd_residual_over_target, production_projector_relative,
+                production_residual_over_target, orthogonality_defect]
+        pre_contract_smoke_result: pass
+      process_max_rss_kib: 323756
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/klip_precision_shared_p11180_r128_t128_m64.csv
+        sha256: 9385d5bd5fbe0a6bced0f17104f46e21104a65774bd57006617767fbcc53e905
+      log:
+        path: working/fp32/benchmark/4869c2a/klip_precision_shared_p11180_r128_t128_m64.log
+        sha256: dc2a3a1976260de17c73388205a802d8d030bf3488ff227d8877dcccd7db6b51
+    target_pixel_shape:
+      dimensions: {targets: 32, pixels: 96, references: 384, modes: 32}
+      gram_orientation: pixel_P_lt_R
+      median_milliseconds:
+        KLIP-M32D64: [5.389008, 26.937143, 0.053653, 0.068632, 32.516233]
+        KLIP-F32: [5.522554, 14.166944, 0.054087, 0.068272, 19.810240]
+      mixed_over_full_total_speedup: 1.641385
+      mixed_over_full_eigensolve_speedup: 1.901408
+      total_millisecond_range:
+        KLIP-M32D64: [32.234975, 32.894915]
+        KLIP-F32: [19.662254, 19.847326]
+      total_millisecond_mad: {KLIP-M32D64: 0.150791, KLIP-F32: 0.035844}
+      validation:
+        KLIP-M32D64: [2.271e-7, 4.105e-8, 7.642e-7, 5.114e-7, 0, 0, 1.210e-7]
+        KLIP-F32: [2.271e-7, 7.574e-8, 1.445e-6, 9.089e-7, 0, 0, 3.259e-6]
+        order: [gram_relative, eigenvalue_relative, svd_projector_relative,
+                svd_residual_over_target, production_projector_relative,
+                production_residual_over_target, orthogonality_defect]
+        pre_contract_smoke_result: pass
+      process_max_rss_kib: 262404
+      raw_csv:
+        path: working/fp32/benchmark/4869c2a/klip_precision_pixel_p96_r384_t32_m32.csv
+        sha256: 6d78f7030a5af0b1f097eee358a75a43db148d1625dbfe7e209e9b8c349cfd43
+      log:
+        path: working/fp32/benchmark/4869c2a/klip_precision_pixel_p96_r384_t32_m32.log
+        sha256: 8e7638c7b5bcff02a606dd927cb28eea300ac509ed8b41ec2ee69416bcd92ad6
+  interpretation: >-
+    Full FP32 roughly halves eigensolve time in both branches. That changes
+    total arithmetic time by only 1.4 percent for the subtraction-dominated
+    AF Lep shared-basis shape, but by 39 percent for the deliberately
+    eigensolve-dominated target-pixel case. End-to-end and science evidence is
+    required before either observation can support production promotion.
+
+contract_bound_precision_microbenchmarks:
+  status: contract-v1-bound-incomplete-required-case-set
+  acceptance_binding: exact-contract-hash-partial-case-coverage
+  directory: working/fp32/benchmark/4869c2a/contract_v1
+  record_schema: hcireduce-pca-precision-metric/v2
+  acceptance_schema: hcireduce-pca-precision-acceptance/v1
+  column_count: 94
+  execution:
+    logical_cpu: 4
+    omp_num_threads: 1
+    omp_dynamic: false
+    omp_proc_bind: close
+    omp_places: cores
+    openblas_num_threads: 1
+    inner_blas_lapack_threads: 1
+    warmups: 2
+    measured_repetitions: 6
+    seed: 42
+  integrity_audit:
+    csv_files: 12
+    paired_logs: 12
+    data_rows_excluding_headers: 1218
+    exact_94_field_rows: 1218
+    exact_contract_hash_rows: 1218
+    exact_archived_executable_hash_rows: 1218
+    independently_regenerated_source_hashes: 12/12
+    promotion_ready_true_rows: 0
+    applicable_frozen_threshold_rows: 138
+    applicable_frozen_threshold_passes: 138
+    applicable_frozen_threshold_failures: 0
+    applicable_report_only_rows: 48
+    report_only_rows_with_value_and_null_pass: 48
+    unavailable_rows_with_null_value_pass_and_reason: 1032
+    identity_and_numerical_invariant_audit: pass
+  coverage_limitations:
+    - Required synthetic case sets remain incomplete, including exact-after-FP32-quantization,
+      exact-zero matrices, and requested-mode clusters.
+    - KLIP rank-boundary and stored-product case sets have not been emitted.
+    - P4 production-mapping rows are unavailable because this benchmark does not invoke the
+      reduction precision adapter.
+    - Timing rows are kernel diagnostics; the owner-TBD end-to-end performance gate is unavailable.
+    - Fourteen of eighteen nonzero/zero rank-gate candidate rows contain unresolved in-band
+      ambiguity even though all candidates agree with the oracle outside their declared bands.
+    - No row supplies the owner-TBD real-fit ambiguity, science-product, or application gate.
+  p4_well_separated:
+    timing_stage_order: [conversion, gram_cross_product, eigensolve, projection_residual, total]
+    timing_units: milliseconds
+    cases:
+      - id: p4.well.temporal.t96.k384.m32
+        shape: {samples: 96, predictors: 384, requested_modes: 32, gram_orientation: temporal_T_le_K}
+        median_by_candidate:
+          P4-D64: [0.008203, 0.419179, 0.688849, 0.001745, 1.118126]
+          P4-M32D64: [0.005475, 0.203512, 0.697310, 0.001174, 0.902164]
+          P4-F32: [0.004920, 0.183314, 0.585831, 0.001186, 0.787883]
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_well_temporal_t96_k384_m32.csv, sha256: db88c347b006000de8f86c400f5858c5221e8223e54599153f3d12be9cc80bec, rows: 123}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_well_temporal_t96_k384_m32.log, sha256: 3a1dde6860132f92f87aa8f71104f7f79736620fc1fd7830e18908aea6fbe9e0}
+        source_value_sha256: 609e452ad850ac0cb0fa6696d43df74a28a1b02aa5d15d43d34e4ce5dd2d9cd4
+      - id: p4.well.predictor.t384.k96.m32
+        shape: {samples: 384, predictors: 96, requested_modes: 32, gram_orientation: predictor_T_gt_K}
+        median_by_candidate:
+          P4-D64: [0.008462, 0.452186, 0.681715, 0.115234, 1.257650]
+          P4-M32D64: [0.005519, 0.179151, 0.686268, 0.057120, 0.928476]
+          P4-F32: [0.005006, 0.180051, 0.578018, 0.055410, 0.823142]
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_well_predictor_t384_k96_m32.csv, sha256: ade1d3d9b3b6f43bb73f8b3fcedce1af5d0965f2fc9a06fae643f240cab50f7c, rows: 123}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_well_predictor_t384_k96_m32.log, sha256: 7c7d79df5ae24cb89455900203159653d4db30edfeb6b9460788589021ed1d30}
+        source_value_sha256: 27b265f21770c848b4cfdd3429c88f20ab54b6f0d407f4d9cabcf595dce7001f
+      - id: p4.well.aflep-bounded.t96.k2988.m48
+        shape: {samples: 96, predictors: 2988, requested_modes: 48, gram_orientation: temporal_T_le_K}
+        median_by_candidate:
+          P4-D64: [0.086208, 2.876293, 0.686646, 0.002828, 3.673680]
+          P4-M32D64: [0.045864, 1.438288, 0.685043, 0.001852, 2.161077]
+          P4-F32: [0.054727, 1.439080, 0.601376, 0.001998, 2.101312]
+        total_speedup_over_d64: {P4-M32D64: 1.699930, P4-F32: 1.748279}
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_well_aflep_bounded_t96_k2988_m48.csv, sha256: 8386fe6edbbe36b3277d6c85a36818ca7f2fec1ac4f31d39e5578a497a916967, rows: 123}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_well_aflep_bounded_t96_k2988_m48.log, sha256: 27fa5bf0812af31df4f9da676cfe5b8103b8b51016f6735b216e867f99ac0e11}
+        source_value_sha256: 1d05ea4279ea98d1e67737a14a0fa23286d766439ea27e7aecb32dc9d4c15f14
+      - id: p4.well.aflep-full.t621.k2988.m466
+        shape: {samples: 621, predictors: 2988, requested_modes: 466, gram_orientation: temporal_T_le_K}
+        median_by_candidate:
+          P4-D64: [0.955067, 120.457916, 43.230854, 0.172043, 164.838635]
+          P4-M32D64: [0.557392, 60.286845, 43.352346, 0.142397, 104.445971]
+          P4-F32: [0.575378, 60.215322, 42.771206, 0.089626, 103.601466]
+        total_speedup_over_d64: {P4-M32D64: 1.578219, P4-F32: 1.591084}
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_well_aflep_full_t621_k2988_m466.csv, sha256: 00ad1f2dece67165e351cb7f3795cfd4e97bd4b8509511fc34f4f940b1143db8, rows: 123}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_well_aflep_full_t621_k2988_m466.log, sha256: ea7e284857e1d02d34757bd8cc682cf7fb00f46f7c5e6f2d5371697bf46e2e68}
+        source_value_sha256: bb09f1797081674640f37fea998eeead57b27880412778620a33775f94c3ddc8
+  p4_rank_sensitive:
+    result: all-candidates-agree-outside-band-with-unresolved-in-band-cases
+    cases:
+      - id: p4.rank-boundary.temporal.tau1e-3
+        ranks: {oracle: 58, P4-D64: 58, P4-M32D64: 58, P4-F32: 58}
+        ambiguity_counts: {P4-D64: 0, P4-M32D64: 1, P4-F32: 3}
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_boundary_temporal_tau1e-3.csv, sha256: b988b8c73a57144f673b235202dc9bb0f053e7f2239eb29d0caaaf5dc368219c, rows: 93}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_boundary_temporal_tau1e-3.log, sha256: 39a38fc869e5337eca7db81d2f54312d2a8a9aba2ecbabc867ad58891a4e3c33}
+        source_value_sha256: 039adf47bf2a5baff0dd537ce8a1249d6a252cf913969cc5b573ca6cde1caa21
+      - id: p4.rank-boundary.predictor.tau1e-3
+        ranks: {oracle: 58, P4-D64: 58, P4-M32D64: 58, P4-F32: 58}
+        ambiguity_counts: {P4-D64: 0, P4-M32D64: 1, P4-F32: 3}
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_boundary_predictor_tau1e-3.csv, sha256: af4f05d418b0807602e27618830e8f73ae6f8da1bdda1944e4da72c00a4fc590, rows: 93}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_boundary_predictor_tau1e-3.log, sha256: 965d05e17060ae8ba4f83a0e076e6cdaded45bbbe2c938f6e1cb953b65320587}
+        source_value_sha256: 5277db63a4fb4dd14803beeb5e21e4a7e8fdf32352ccbe73e09b14c2d79f20e6
+      - id: p4.rank-boundary.temporal.tau1p1e-3
+        ranks: {oracle: 59, P4-D64: 59, P4-M32D64: 58, P4-F32: 58}
+        ambiguity_counts: {P4-D64: 0, P4-M32D64: 1, P4-F32: 3}
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_boundary_temporal_tau1p1e-3.csv, sha256: a197e6f234bdb41640d8f41b9d8a5eab7d8651d94c29cd9fd536bd13286b96f5, rows: 93}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_boundary_temporal_tau1p1e-3.log, sha256: 6975b35ad37bbeabd1b92299b8c206f1e5d962e632760c4acb5d583e6e2a90ac}
+        source_value_sha256: dbdf830512c69d4c473f98fb16505f70f148d813e614cd9271bfe91553066246
+      - id: p4.rank-boundary.predictor.tau1p1e-3
+        ranks: {oracle: 59, P4-D64: 59, P4-M32D64: 58, P4-F32: 58}
+        ambiguity_counts: {P4-D64: 0, P4-M32D64: 1, P4-F32: 3}
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_boundary_predictor_tau1p1e-3.csv, sha256: 0b3c18a2011acf5c5c71148ecb21355e7856b65d281230f6400a026e2d2ff998, rows: 93}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_boundary_predictor_tau1p1e-3.log, sha256: b07272d112e7101edb9c1429853c8869e100c24f849ff8333de5a865577d0cb3}
+        source_value_sha256: 2d86c5bc3b440aa893f4e9037c7963725a6a72d9e990918cc9dc6c88841ab805
+      - id: p4.rank-zero.temporal.exact-dependencies
+        ranks: {oracle: 60, P4-D64: 63, P4-M32D64: 62, P4-F32: 62}
+        ambiguity_counts: {P4-D64: 4, P4-M32D64: 5, P4-F32: 5}
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_zero_temporal.csv, sha256: d9ca35ec6e8375a48eb93b25f48f738c7346c1683472c4e4247d0c8bf61eca33, rows: 93}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_zero_temporal.log, sha256: 406b3555e0224ffd522e8f10c74e194dcddd7b8a5d61f92aab85c118351c48ae}
+        source_value_sha256: 26013811a6541ea40ca96c357fb9aab778dd666dcc812415c5b91a49713cacf6
+      - id: p4.rank-zero.predictor.exact-dependencies
+        ranks: {oracle: 60, P4-D64: 61, P4-M32D64: 61, P4-F32: 62}
+        ambiguity_counts: {P4-D64: 4, P4-M32D64: 5, P4-F32: 5}
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_zero_predictor.csv, sha256: 4ba3e941e368f7acfe180fe3067b5ceae1d56344986a8f133cbc6fc87aa8bebb, rows: 93}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/p4_rank_zero_predictor.log, sha256: 329909d68c3a966a989668f670cbc3e2e1b56e55cf2a0a55638fbd72e8933851}
+        source_value_sha256: 1f3a6a037b14ebd150cfe7285388800c7c65faf1993a5f46a837ab101cd4df04
+  klip_well_separated:
+    timing_stage_order: [gram, eigensolve, mode_construction, subtraction, total]
+    timing_units: milliseconds
+    cases:
+      - id: klip.well.shared.aflep.p11180.r128.t128.m64
+        shape: {pixels: 11180, references: 128, targets: 128, requested_modes: 64, gram_orientation: reference}
+        median_by_candidate:
+          KLIP-M32D64: [2.165987, 2.488438, 1.759326, 354.731464, 361.009883]
+          KLIP-F32: [2.108170, 1.169926, 1.785751, 360.859151, 365.942169]
+        mixed_over_f32_total_speedup: 0.986522
+        mixed_over_f32_eigensolve_speedup: 2.127006
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/klip_well_shared_aflep_p11180_r128_t128_m64.csv, sha256: be9f3565fe9d55dbea7cbfb9ec19dd5aa983829178920666b1319a69ebd8fa7c, rows: 84}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/klip_well_shared_aflep_p11180_r128_t128_m64.log, sha256: 4c76f78bdc6e2333231feb0bc912fd00eeb21104067f70241be47a56da1d4561}
+        source_value_sha256: 92d31564419ad41f8f17290e22eb4fb9e3443b21418b44f1a4cea354b6d1b4dd
+      - id: klip.well.target-pixel.p96.r384.t32.m32
+        shape: {pixels: 96, references: 384, targets: 32, requested_modes: 32, gram_orientation: pixel}
+        median_by_candidate:
+          KLIP-M32D64: [5.683431, 28.288668, 0.057049, 0.072171, 34.094129]
+          KLIP-F32: [5.836466, 14.918257, 0.057907, 0.073116, 20.888574]
+        mixed_over_f32_total_speedup: 1.632190
+        mixed_over_f32_eigensolve_speedup: 1.896245
+        csv: {path: working/fp32/benchmark/4869c2a/contract_v1/klip_well_target_pixel_p96_r384_t32_m32.csv, sha256: 413ddbf51196b3786dfa1639ec33aefb8dcfbf870bb3915644cac57bee402450, rows: 84}
+        log: {path: working/fp32/benchmark/4869c2a/contract_v1/klip_well_target_pixel_p96_r384_t32_m32.log, sha256: 5274194b968daf400dc22010faa69018bf4b8a66d2672aa8df15b52b9285e0e7}
+        source_value_sha256: c863a6e0a2a402423a392f4bbcf4f0c02b561df72eee4a8774655faaae5f4027
+  interpretation: >-
+    Contract-bound numerical smoke evidence supports continuing both candidates.
+    It does not support promotion: performance is not an applicable gate here,
+    rank ambiguity is unresolved, and production/stored/science case sets are incomplete.
+
+p4_bounded_fixed1_end_to_end:
+  status: completed-engineering-timing-and-identity-only
+  acceptance_binding: frozen-case-descriptor-non-promotion-evidence
+  case_id: p4.e2e.aflep-bounded.fixed1.t96.k2988.m4-19-48.v1
+  descriptor:
+    path: benchmarks/manifests/p4_fp32_aflep_bounded_e2e_case.yaml
+    sha256: c49ca765c62caf555aad083eb5554780b5f8fb87555479b524d87e3008519ddb
+  acceptance_contract:
+    path: benchmarks/manifests/p4_klip_fp32_acceptance.yaml
+    schema: hcireduce-pca-precision-acceptance/v1
+    sha256: 255f70885da886504be1ab9ae43ef5e587cee1ef6454a946116e40da10d1135c
+  identities:
+    hcireduce_baseline_commit: 4869c2a52396a7fab45c0afa407ec3da78b5d01e
+    config:
+      path: working/fp32/baseline/4869c2a/p4Reduce_afLepNaco.conf
+      sha256: e82cde94979e69752aede256b7531800f15fd5faa0bf946476b79d64ac002067
+    input:
+      dataset_id: aflep-naco-2011-10-21-coadd5-pp.first-96
+      file_count: 96
+      total_bytes: 26265600
+      filename_list_sha256: 1549b537fa1e835d78451f0e9a4d43cb3d6ba96710568a9f9de816c03c19cbc0
+      ordered_checksum_list_sha256: dcef5559b17540abc403d4aea6b1d76d4f8231e0e57d7fd5fc2baccbbcea6d45
+      primary_array_float32_le_c_order_sha256: cc69e26886b11f058b8f93b269279fd465a770446f344db825f1e4adf4eff081
+      primary_array_finite_mask_uint8_c_order_sha256: 856a7d62e6bf8b1e8cd815bd086af8cd63158e81eeaacf2228e7179fe5f9dc7c
+    runner:
+      path: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/p4ReductionPrecisionBenchmark
+      sha256: 66f977874495a6a17d28dc6fb39387351aea303dc7fc968bfb086ff8a4f0e099
+    archived_hcireduce_library:
+      path: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/libhcireduce.so
+      sha256: baf7e7ed2c46468ef31331ac429f820f049d7ea064fc241770931e1735263794
+    linked_mxlib:
+      path: /usr/local/lib/libmxlib.so
+      sha256: a26b3d09859cde0a7d287b63b9f70cd4ea0d8368568b6c292d3e4090d6f1383c
+    runtime_binding: >-
+      Every environment snapshot records the exact runner, archived library,
+      config, descriptor, and oracle hashes. Every link map resolves the
+      archived libhcireduce.so and /usr/local/lib/libmxlib.so. The snapshots do
+      not independently record the mxlib hash or kernel affinity mask; the
+      current mxlib hash matches the descriptor and taskset invocation.
+  workload:
+    shape: {samples: 96, predictors: 2988, fits: 132, output: [256, 256, 3]}
+    annulus: {minimum_radius_inclusive: 10, maximum_radius_exclusive: 12}
+    gram_orientation: temporal_T_le_K
+    mode_fractions: [0.05, 0.2, 0.5]
+    realized_modes: [4, 19, 48]
+    rank_tolerance: 0
+    exclusion: {method: none, policy: sampleCenter, temporal_number_images: 0}
+    workers: {outer_openmp: 1, inner_blas_lapack: 1, p4_effective: 1}
+  controls:
+    logical_cpu: 4
+    physical_core: 2
+    omp_num_threads: 1
+    omp_dynamic: false
+    omp_proc_bind: close
+    omp_places: cores
+    openblas_num_threads: 1
+    mkl_num_threads: 1
+    memory_fraction: 0
+    sequential_execution: true
+    warmups_per_candidate: 1
+    measured_runs_per_candidate: 6
+    actual_invocation_note: >-
+      The timed argv additionally pins p4.writeDiagnostics=false and
+      output.outputPSFSub=false. Both values were already false in the archived
+      configuration, so the resolved case is unchanged, but the lexical argv
+      differs from the descriptor's command template.
+  schedule:
+    warmups:
+      - {schedule_index: 0, run_id: warmup-p4-d64, candidate: P4-D64}
+      - {schedule_index: 1, run_id: warmup-p4-m32d64, candidate: P4-M32D64}
+      - {schedule_index: 2, run_id: warmup-p4-f32, candidate: P4-F32}
+    measured_candidate_order_by_repetition:
+      - [P4-D64, P4-M32D64, P4-F32]
+      - [P4-M32D64, P4-F32, P4-D64]
+      - [P4-F32, P4-D64, P4-M32D64]
+      - [P4-F32, P4-M32D64, P4-D64]
+      - [P4-M32D64, P4-D64, P4-F32]
+      - [P4-D64, P4-F32, P4-M32D64]
+    measured_run_ids_by_repetition:
+      - [rep0-pos0-p4-d64, rep0-pos1-p4-m32d64, rep0-pos2-p4-f32]
+      - [rep1-pos0-p4-m32d64, rep1-pos1-p4-f32, rep1-pos2-p4-d64]
+      - [rep2-pos0-p4-f32, rep2-pos1-p4-d64, rep2-pos2-p4-m32d64]
+      - [rep3-pos0-p4-f32, rep3-pos1-p4-m32d64, rep3-pos2-p4-d64]
+      - [rep4-pos0-p4-m32d64, rep4-pos1-p4-d64, rep4-pos2-p4-f32]
+      - [rep5-pos0-p4-d64, rep5-pos1-p4-f32, rep5-pos2-p4-m32d64]
+  evidence_archive:
+    directory: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/runs
+    run_directories: 21
+    warmup_runs: 3
+    measured_runs: 18
+    files: 126
+    bytes: 17150483
+    sha256: f745e86a39a5e2eb8969ab3b5cfd2f8ec1ca540adae7e9e542291331601cebc6
+    sha256_method: >-
+      SHA-256 of stdout from `LC_ALL=C find
+      working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/runs -type f
+      -print0 | sort -z | xargs -0 sha256sum`, launched at the repository root.
+    artifact_manifest_bundle_sha256: 473e82073191926ba5022b21a6a4069511486c68279f1a6cbfbf7ef83d5477b0
+    artifact_manifest_bundle_method: >-
+      SHA-256 of sha256sum stdout for the 21 LC_ALL=C path-sorted
+      artifacts.sha256 files.
+    integrity: >-
+      All 21 directories contain exactly product.fits, stdout.log, stderr.log,
+      time.txt, environment.txt, and artifacts.sha256. All 105 records in the
+      per-run artifact manifests independently verify.
+  execution_checks:
+    schedule_identity: pass
+    runner_candidate_identity: 21/21 pass
+    runner_status_zero: 21/21
+    time_exit_status_zero: 21/21
+    completed_fit_count: 132/132 in every run
+    errors_or_warnings: none found
+    run_interval_utc: ["2026-09-03T04:13:08Z", "2026-09-03T04:13:48Z"]
+  timing_units:
+    wall_runner_reduction_and_elapsed_stages: seconds
+    worker_stages: worker-seconds; equal to seconds with one worker
+    max_rss: KiB
+  raw_samples_by_candidate:
+    sample_order: repetition 0 through 5
+    P4-D64:
+      wall_seconds: [1.84, 1.84, 1.83, 1.84, 1.85, 1.85]
+      runner_seconds: [1.78243276, 1.79030721, 1.779039389, 1.787385834, 1.799136049, 1.794381539]
+      reduction_total_seconds: [1.779874, 1.788163, 1.776965, 1.785353, 1.797069, 1.792262]
+      algorithm_seconds: [0.898983, 0.904886, 0.896986, 0.899569, 0.906926, 0.912154]
+      loading_seconds: [0.012849, 0.013388, 0.012268, 0.012998, 0.012372, 0.012489]
+      fake_injection_seconds: [0, 0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0, 0]
+      geometry_seconds: [0.035797, 0.036345, 0.035674, 0.035923, 0.036071, 0.035715]
+      sampling_worker_seconds: [0.397381, 0.401594, 0.394622, 0.396782, 0.39997, 0.408528]
+      same_image_sampling_worker_seconds: [0.397127, 0.40127, 0.394284, 0.39642, 0.399719, 0.408181]
+      additional_image_psf_disk_worker_seconds: [0.000254, 0.000325, 0.000338, 0.000362, 0.000251, 0.000347]
+      gram_worker_seconds: [0.403141, 0.403646, 0.403127, 0.403396, 0.40668, 0.40368]
+      eigensolve_worker_seconds: [0.08175, 0.082711, 0.082416, 0.082628, 0.083342, 0.083059]
+      projection_residual_worker_seconds: [0.000918, 0.000929, 0.000928, 0.00092, 0.000922, 0.000926]
+      derotation_seconds: [0.473234, 0.477916, 0.477228, 0.482072, 0.484965, 0.478256]
+      combination_seconds: [0.071117, 0.071261, 0.070642, 0.069451, 0.069825, 0.070776]
+      max_rss_kib: [327952, 327848, 327812, 327896, 327968, 327900]
+    P4-M32D64:
+      wall_seconds: [1.66, 1.67, 1.66, 1.68, 1.7, 1.68]
+      runner_seconds: [1.60869238, 1.608635541, 1.608476036, 1.621783525, 1.643974085, 1.628236866]
+      reduction_total_seconds: [1.606095, 1.605991, 1.606431, 1.619693, 1.641911, 1.626011]
+      algorithm_seconds: [0.725642, 0.721863, 0.727167, 0.727055, 0.732706, 0.731917]
+      loading_seconds: [0.013055, 0.013327, 0.012207, 0.012402, 0.012565, 0.012446]
+      fake_injection_seconds: [0, 0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0, 0]
+      geometry_seconds: [0.035746, 0.035769, 0.035486, 0.036149, 0.035782, 0.035994]
+      sampling_worker_seconds: [0.394866, 0.392324, 0.394848, 0.395364, 0.399333, 0.397378]
+      same_image_sampling_worker_seconds: [0.394608, 0.392033, 0.3945, 0.395058, 0.399036, 0.397018]
+      additional_image_psf_disk_worker_seconds: [0.000258, 0.000291, 0.000349, 0.000305, 0.000297, 0.00036]
+      gram_worker_seconds: [0.220937, 0.220312, 0.22235, 0.221764, 0.222989, 0.223169]
+      eigensolve_worker_seconds: [0.082618, 0.082449, 0.082771, 0.082749, 0.082893, 0.083766]
+      projection_residual_worker_seconds: [0.000839, 0.000872, 0.00083, 0.000869, 0.000899, 0.000857]
+      derotation_seconds: [0.4744, 0.473253, 0.480071, 0.480998, 0.487416, 0.486092]
+      combination_seconds: [0.070469, 0.07284, 0.069958, 0.073588, 0.080728, 0.070414]
+      max_rss_kib: [328216, 327980, 328076, 328012, 328084, 327960]
+    P4-F32:
+      wall_seconds: [1.66, 1.66, 1.66, 1.66, 1.67, 1.68]
+      runner_seconds: [1.602291629, 1.601492641, 1.611094547, 1.60245631, 1.612033329, 1.624096752]
+      reduction_total_seconds: [1.59967, 1.598998, 1.60902, 1.60043, 1.609931, 1.622004]
+      algorithm_seconds: [0.714915, 0.713019, 0.716664, 0.717525, 0.718405, 0.734497]
+      loading_seconds: [0.013207, 0.013098, 0.012207, 0.012031, 0.012562, 0.012708]
+      fake_injection_seconds: [0, 0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0, 0]
+      geometry_seconds: [0.035675, 0.036419, 0.036435, 0.03555, 0.03623, 0.035739]
+      sampling_worker_seconds: [0.398874, 0.394392, 0.396266, 0.398176, 0.396733, 0.410671]
+      same_image_sampling_worker_seconds: [0.398534, 0.394128, 0.395983, 0.397913, 0.396458, 0.41033]
+      additional_image_psf_disk_worker_seconds: [0.00034, 0.000264, 0.000282, 0.000263, 0.000274, 0.000342]
+      gram_worker_seconds: [0.219816, 0.220842, 0.222449, 0.221852, 0.224015, 0.225015]
+      eigensolve_worker_seconds: [0.069452, 0.070491, 0.070579, 0.069779, 0.070189, 0.070779]
+      projection_residual_worker_seconds: [0.000915, 0.000886, 0.000878, 0.000963, 0.000902, 0.000883]
+      derotation_seconds: [0.477482, 0.479446, 0.48319, 0.480665, 0.484675, 0.482519]
+      combination_seconds: [0.069902, 0.070257, 0.072602, 0.071211, 0.071095, 0.069359]
+      max_rss_kib: [327988, 327876, 327992, 327964, 328132, 328108]
+  summary_statistic_order: [median, minimum, maximum, range, unscaled_median_absolute_deviation]
+  summary_by_candidate:
+    P4-D64:
+      wall_seconds: [1.84, 1.83, 1.85, 0.02, 0.005]
+      runner_seconds: [1.788846522, 1.779039389, 1.799136049, 0.02009666, 0.0059743895]
+      reduction_total_seconds: [1.786758, 1.776965, 1.797069, 0.020104, 0.006194]
+      algorithm_seconds: [0.9022275, 0.896986, 0.912154, 0.015168, 0.0039715]
+      loading_seconds: [0.012669, 0.012268, 0.013388, 0.00112, 0.000313]
+      fake_injection_seconds: [0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0]
+      geometry_seconds: [0.03586, 0.035674, 0.036345, 0.000671, 0.0001655]
+      sampling_worker_seconds: [0.3986755, 0.394622, 0.408528, 0.013906, 0.002406]
+      same_image_sampling_worker_seconds: [0.398423, 0.394284, 0.408181, 0.013897, 0.002425]
+      additional_image_psf_disk_worker_seconds: [0.0003315, 0.000251, 0.000362, 0.000111, 2.3e-05]
+      gram_worker_seconds: [0.403521, 0.403127, 0.40668, 0.003553, 0.0002695]
+      eigensolve_worker_seconds: [0.0826695, 0.08175, 0.083342, 0.001592, 0.0003215]
+      projection_residual_worker_seconds: [0.000924, 0.000918, 0.000929, 1.1e-05, 4e-06]
+      derotation_seconds: [0.478086, 0.473234, 0.484965, 0.011731, 0.002422]
+      combination_seconds: [0.070709, 0.069451, 0.071261, 0.00181, 0.00048]
+      max_rss_kib: [327898, 327812, 327968, 156, 52]
+    P4-M32D64:
+      wall_seconds: [1.675, 1.66, 1.7, 0.04, 0.01]
+      runner_seconds: [1.6152379525, 1.608476036, 1.643974085, 0.035498049, 0.006682164]
+      reduction_total_seconds: [1.613062, 1.605991, 1.641911, 0.03592, 0.007019]
+      algorithm_seconds: [0.727111, 0.721863, 0.732706, 0.010843, 0.0031375]
+      loading_seconds: [0.0125055, 0.012207, 0.013327, 0.00112, 0.000201]
+      fake_injection_seconds: [0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0]
+      geometry_seconds: [0.0357755, 0.035486, 0.036149, 0.000663, 0.000124]
+      sampling_worker_seconds: [0.395115, 0.392324, 0.399333, 0.007009, 0.001265]
+      same_image_sampling_worker_seconds: [0.394833, 0.392033, 0.399036, 0.007003, 0.001259]
+      additional_image_psf_disk_worker_seconds: [0.000301, 0.000258, 0.00036, 0.000102, 2.65e-05]
+      gram_worker_seconds: [0.222057, 0.220312, 0.223169, 0.002857, 0.001022]
+      eigensolve_worker_seconds: [0.08276, 0.082449, 0.083766, 0.001317, 0.0001375]
+      projection_residual_worker_seconds: [0.000863, 0.00083, 0.000899, 6.9e-05, 1.65e-05]
+      derotation_seconds: [0.4805345, 0.473253, 0.487416, 0.014163, 0.005846]
+      combination_seconds: [0.0716545, 0.069958, 0.080728, 0.01077, 0.0014685]
+      max_rss_kib: [328044, 327960, 328216, 256, 52]
+    P4-F32:
+      wall_seconds: [1.66, 1.66, 1.68, 0.02, 0]
+      runner_seconds: [1.6067754285, 1.601492641, 1.624096752, 0.022604111, 0.00487085]
+      reduction_total_seconds: [1.604725, 1.598998, 1.622004, 0.023006, 0.0051305]
+      algorithm_seconds: [0.7170945, 0.713019, 0.734497, 0.021478, 0.001745]
+      loading_seconds: [0.012635, 0.012031, 0.013207, 0.001176, 0.0004455]
+      fake_injection_seconds: [0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0]
+      geometry_seconds: [0.0359845, 0.03555, 0.036435, 0.000885, 0.000372]
+      sampling_worker_seconds: [0.3974545, 0.394392, 0.410671, 0.016279, 0.001304]
+      same_image_sampling_worker_seconds: [0.3971855, 0.394128, 0.41033, 0.016202, 0.0012755]
+      additional_image_psf_disk_worker_seconds: [0.000278, 0.000263, 0.000342, 7.9e-05, 1.45e-05]
+      gram_worker_seconds: [0.2221505, 0.219816, 0.225015, 0.005199, 0.0015865]
+      eigensolve_worker_seconds: [0.07034, 0.069452, 0.070779, 0.001327, 0.000339]
+      projection_residual_worker_seconds: [0.000894, 0.000878, 0.000963, 8.5e-05, 1.35e-05]
+      derotation_seconds: [0.481592, 0.477482, 0.484675, 0.007193, 0.001872]
+      combination_seconds: [0.070676, 0.069359, 0.072602, 0.003243, 0.0006545]
+      max_rss_kib: [327990, 327876, 328132, 256, 70]
+  paired_comparisons:
+    pairing: same repetition index; P4-D64 is the numerator and baseline
+    sample_order: repetition 0 through 5
+    P4-M32D64:
+      wall_seconds:
+        speedup_samples: [1.108433734939759, 1.1017964071856288, 1.102409638554217, 1.0952380952380953, 1.0882352941176472, 1.1011904761904763]
+        median_speedup: 1.1014934416880524
+        fractional_improvement_samples: [0.09782608695652184, 0.09239130434782616, 0.09289617486338808, 0.08695652173913049, 0.08108108108108114, 0.09189189189189195]
+        median_fractional_improvement: 0.09214159811985906
+      runner_seconds:
+        speedup_samples: [1.1080009964366215, 1.1129352574711018, 1.1060403445140292, 1.102111229055678, 1.0943822444743707, 1.1020396211812589]
+        median_speedup: 1.1040757867848536
+        fractional_improvement_samples: [0.0974737358395501, 0.10147513677275533, 0.09587384858065107, 0.09265056589902465, 0.08624248515627397, 0.09259160852300763]
+        median_fractional_improvement: 0.09426220723983786
+      reduction_total_seconds:
+        speedup_samples: [1.1081997017611038, 1.1134327651898424, 1.1061570649470782, 1.1022786416932098, 1.0944984228743215, 1.1022446957615908]
+        median_speedup: 1.104217853320144
+        fractional_improvement_samples: [0.09763556296681675, 0.10187661863040454, 0.095969250941915, 0.09278837294361386, 0.08633947833945166, 0.09276043346341101]
+        median_fractional_improvement: 0.09437881194276443
+      algorithm_seconds:
+        speedup_samples: [1.2388795025646255, 1.2535425697119813, 1.2335350751615515, 1.2372777850368954, 1.2377761339473132, 1.246253332003492]
+        median_speedup: 1.2383278182559694
+        fractional_improvement_samples: [0.19281899657724333, 0.2022608372767397, 0.18932179543493433, 0.19177406068906322, 0.19209946566754077, 0.19759492366420583]
+        median_fractional_improvement: 0.19245923112239205
+      median_rss_ratio_candidate_over_d64: 1.000445260416349
+    P4-F32:
+      wall_seconds:
+        speedup_samples: [1.108433734939759, 1.108433734939759, 1.102409638554217, 1.108433734939759, 1.1077844311377247, 1.1011904761904763]
+        median_speedup: 1.108109083038742
+        fractional_improvement_samples: [0.09782608695652184, 0.09782608695652184, 0.09289617486338808, 0.09782608695652184, 0.09729729729729741, 0.09189189189189195]
+        median_fractional_improvement: 0.09756169212690963
+      runner_seconds:
+        speedup_samples: [1.1124271810072597, 1.1178991174646302, 1.1042426978061146, 1.115403785330035, 1.1160662851282772, 1.1048489178925467]
+        median_speedup: 1.1139154831686473
+        fractional_improvement_samples: [0.10106475545254234, 0.10546489895440891, 0.09440198066350969, 0.10346368449510712, 0.10399587074251326, 0.0948988736781693]
+        median_fractional_improvement: 0.10226421997382473
+      reduction_total_seconds:
+        speedup_samples: [1.1126507342139316, 1.118302211760115, 1.1043771985432127, 1.1155458220603212, 1.1162397643128805, 1.1049676819539287]
+        median_speedup: 1.1140982781371265
+        fractional_improvement_samples: [0.101245369054214, 0.10578733594196954, 0.09451227232950565, 0.10357783586775271, 0.10413512224627997, 0.0949961556959864]
+        median_fractional_improvement: 0.10241160246098335
+      algorithm_seconds:
+        speedup_samples: [1.257468370365708, 1.2690910059900227, 1.2516130292577832, 1.253711020521933, 1.262416046658918, 1.2418757326442451]
+        median_speedup: 1.2555896954438204
+        fractional_improvement_samples: [0.20475136904702318, 0.21203444411782257, 0.20103100828775478, 0.20236802290874856, 0.20786811713414333, 0.1947664539101951]
+        median_fractional_improvement: 0.20355969597788587
+      median_rss_ratio_candidate_over_d64: 1.0002805750568775
+  output_checks:
+    products_checked: 21
+    bytes_per_product: 803520
+    oracle_path: working/fp32/baseline/4869c2a/p4_d64_bounded.fits
+    oracle_and_every_product_sha256: 9dff0820fe2f8390790a0c44499682b37f20f899c1d386013864cff439fd4774
+    byte_comparison: all 21 products are identical to the oracle and to one another
+    same_candidate_repeatability: 7/7 products identical for each candidate, including its warmup
+    primary_hdu_count: 1
+    header_bytes: 14400
+    header_sha256: a30eb0e1e61ebc92502dd946670e584943445d8327874d465bbc7f26bbd41ff6
+    header:
+      bitpix: -32
+      axes: [256, 256, 3]
+      input_delete_back: 525
+      input_images: 96
+      predictor_count: 2988
+      search_pixels: 132
+      valid_fits: 132
+      minimum_rank: 96
+      realized_modes: [4, 19, 48]
+      rank_invalid_by_plane: [0, 0, 0]
+      maximum_workers: 1
+      effective_workers: 1
+      explicit_fallbacks: 0
+      deletion_clamps: 0
+      fits_checksum_cards: absent
+      precision_policy_card: absent
+    science_payload_bytes: 786432
+    science_payload_sha256: 4813c56f98b251ebd2f809ddef2b9e26b70706309bb0188dfbe257021d179799
+    per_plane_counts:
+      finite: [0, 0, 0]
+      nan: [65536, 65536, 65536]
+      infinity: [0, 0, 0]
+    total_counts: {finite: 0, nan: 196608, infinity: 0}
+    interpretation: >-
+      Hash, header, validity metadata, and fixed-environment determinism agree.
+      The science array is entirely NaN, however, so cross-policy payload
+      identity is vacuous and supplies no stored-value or science-accuracy
+      evidence. Precision identity is external in stdout/environment because
+      the FITS header does not record the benchmark policy.
+  environment_observations:
+    snapshots: 21/21
+    load_average_1m_range: [0.56, 1.13]
+    cpu4_scaling_frequency_khz_range: [399584, 3931300]
+    process_boundary_thermal_millicelsius:
+      TCPU_thermal_zone2: [64050, 99050]
+      x86_pkg_temp_thermal_zone13: [72000, 85000]
+    other_thermal_zones: retained in every environment.txt
+    interpretation: >-
+      The balanced matrix is preliminary and thermally limited. In particular,
+      the TCPU boundary samples reach 99.05 C and the CPU frequency varies
+      substantially, so these timings are an engineering signal rather than
+      an accepted performance conclusion.
+  gate_disposition:
+    engineering_checks:
+      run_identity_and_archived_binding: pass-with-recorded-provenance-limitations
+      status_and_completion: pass
+      output_hash_and_layout: pass
+      header_and_validity_metadata: pass
+      fixed_one_worker_repeatability: pass
+    frozen_contract_result: >-
+      No formal contract gate is adjudicated by this section alone. The
+      complete required case sets and evidence remain incomplete.
+    stored.bit_diagnostics: {applicable: false, value: null, passed: null, reason: no finite science-value pairs}
+    science.residual_product: {applicable: false, value: null, passed: null, reason: no finite science-value pairs}
+    science.real_fit_rank_ambiguity:
+      applicable: false
+      value: null
+      passed: null
+      reason: The runner does not export per-fit eigenvalues, screening bands, or affected-fit identities.
+    performance.end_to_end_wall_time:
+      applicable: false
+      value: null
+      passed: null
+      reason: Limits, aggregation, and uncertainty are owner-TBD; this first matrix is thermally limited.
+    performance.primary_workload_regression:
+      applicable: false
+      value: null
+      passed: null
+      reason: The owner-designated workload set and limit are TBD; only one bounded workload was run.
+    performance.memory_and_concurrency:
+      applicable: false
+      value: null
+      passed: null
+      reason: Only fixed-one-worker memoryFraction=0 was measured; automatic policy and limits remain owner-TBD.
+    remaining_owner_tbd_science_gates:
+      applicable: false
+      passed: null
+      ids:
+        - science.injected_source_throughput
+        - science.photometry_and_contrast
+        - science.astrometry
+        - science.detection_behavior
+        - science.p4_optimizer
+        - science.p4_model_products
+  promotion_ready: false
+  interpretation: >-
+    Mixed calculation precision reduces the paired median runner time by 9.43
+    percent and the P4 algorithm time by 19.25 percent; full FP32 reduces them
+    by 10.23 and 20.36 percent. Peak RSS is unchanged at this scale. These are
+    promising bounded engineering timings, but thermal conditions, the
+    all-NaN output, missing real-fit ambiguity evidence, owner-TBD thresholds,
+    and incomplete workload/platform coverage block any promotion decision.
+
+p4_science_roi_fixed1_end_to_end:
+  status: completed-engineering-finite-product-diagnostics-non-promotion
+  acceptance_binding: frozen-case-descriptor-owner-thresholds-unavailable
+  case_id: p4.e2e.aflep-science-roi.fixed1.t96.r7-15.m4-19-48.v1
+  descriptor:
+    path: benchmarks/manifests/p4_fp32_aflep_science_roi_e2e_case.yaml
+    sha256: ff9dc0c433066045ad37ae0d1effd9ed9fb59b52e9f17de6c5cb46011d7f4ea8
+  acceptance_contract:
+    path: benchmarks/manifests/p4_klip_fp32_acceptance.yaml
+    schema: hcireduce-pca-precision-acceptance/v1
+    sha256: 255f70885da886504be1ab9ae43ef5e587cee1ef6454a946116e40da10d1135c
+  identities:
+    hcireduce_baseline_commit: 4869c2a52396a7fab45c0afa407ec3da78b5d01e
+    config: {path: working/fp32/baseline/4869c2a/p4Reduce_afLepNaco.conf, sha256: e82cde94979e69752aede256b7531800f15fd5faa0bf946476b79d64ac002067}
+    input:
+      dataset_id: aflep-naco-2011-10-21-coadd5-pp.first-96
+      file_count: 96
+      total_bytes: 26265600
+      filename_list_sha256: 1549b537fa1e835d78451f0e9a4d43cb3d6ba96710568a9f9de816c03c19cbc0
+      ordered_checksum_list_sha256: dcef5559b17540abc403d4aea6b1d76d4f8231e0e57d7fd5fc2baccbbcea6d45
+      primary_array_float32_le_c_order_sha256: cc69e26886b11f058b8f93b269279fd465a770446f344db825f1e4adf4eff081
+      primary_array_finite_mask_uint8_c_order_sha256: 856a7d62e6bf8b1e8cd815bd086af8cd63158e81eeaacf2228e7179fe5f9dc7c
+    production_control:
+      executable: {path: working/fp32/end_to_end/4869c2a/aflep_science_roi_fixed1/p4Reduce_default_off, sha256: f1163b91432d2358b22066a092bb57e5d9df6b78d76be736997ebc208fb1d351}
+      hcireduce_library: {path: working/fp32/end_to_end/4869c2a/aflep_science_roi_fixed1/libhcireduce.so, sha256: abcb9d6c030014a49fa0bfddd4d9b69bd5d02383d02ee0bb17d5824681d5c84a}
+    experimental_runner:
+      executable: {path: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/p4ReductionPrecisionBenchmark, sha256: 66f977874495a6a17d28dc6fb39387351aea303dc7fc968bfb086ff8a4f0e099}
+      hcireduce_library: {path: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/libhcireduce.so, sha256: baf7e7ed2c46468ef31331ac429f820f049d7ea064fc241770931e1735263794}
+    mxlib_library: {path: /usr/local/lib/libmxlib.so, sha256: a26b3d09859cde0a7d287b63b9f70cd4ea0d8368568b6c292d3e4090d6f1383c}
+    runtime_binding: >-
+      Every recorded executable, adjacent libhcireduce, config, descriptor,
+      acceptance-contract, and runtime link-map identity matches its declaration.
+      The control resolves the archived default-off library; all 21 runner
+      processes resolve the archived experimental library.
+  workload:
+    shape: {samples: 96, predictors: 2988, local_fits: 560, output: [256, 256, 3]}
+    fit_annulus: {minimum_radius_inclusive: 7, maximum_radius_exclusive: 15}
+    science_roi: {center_row_column: [127.5, 127.5], minimum_radius_inclusive: 10, maximum_radius_exclusive: 12, pixels_per_plane: 132}
+    gram_orientation: temporal_T_le_K
+    mode_fractions: [0.05, 0.2, 0.5]
+    realized_modes: [4, 19, 48]
+    numerical_rank: 96
+    rank_tolerance: 0
+    exclusion: {method: none, policy: sampleCenter, temporal_number_images: 0}
+    invalid_fits: 0
+    rank_invalid_by_plane: [0, 0, 0]
+    explicit_fallbacks: 0
+    deletion_clamps: 0
+    workers: {outer_openmp: 1, inner_blas_lapack: 1, p4_effective: 1}
+    support_prediction_audit:
+      predeclared_finite_pixels_per_plane: 176
+      actual_finite_pixels_per_plane: 336
+      result: conservative-underprediction
+      roi_final_product_support: 132/132 finite in every plane
+      limitation: Per-frame interpolation support is not exported; only final-product ROI support is verified.
+  controls:
+    logical_cpu: 4
+    physical_core: 2
+    environment: {LC_ALL: C, OMP_NUM_THREADS: 1, OMP_DYNAMIC: false, OMP_PROC_BIND: close, OMP_PLACES: cores, OPENBLAS_NUM_THREADS: 1, MKL_NUM_THREADS: 1}
+    memory_fraction: 0
+    sequential_execution: true
+    thermal_admission:
+      thresholds_celsius: {TCPU_thermal_zone2: 65, x86_pkg_temp_thermal_zone13: 70}
+      poll_interval_seconds: 2
+      timeout_seconds: 60
+      admitted_processes: 22/22
+    warmups_per_candidate: 1
+    measured_runs_per_candidate: 6
+  schedule:
+    - {schedule_index: 0, run_id: control-default-off-p4-d64, implementation: production-default-off, candidate: P4-D64, role: control}
+    - {schedule_index: 1, run_id: warmup-p4-d64, implementation: experimental-runner, candidate: P4-D64, role: warmup}
+    - {schedule_index: 2, run_id: warmup-p4-m32d64, implementation: experimental-runner, candidate: P4-M32D64, role: warmup}
+    - {schedule_index: 3, run_id: warmup-p4-f32, implementation: experimental-runner, candidate: P4-F32, role: warmup}
+    - {schedule_index: 4, run_id: rep0-pos0-p4-d64, implementation: experimental-runner, candidate: P4-D64, role: measured}
+    - {schedule_index: 5, run_id: rep0-pos1-p4-m32d64, implementation: experimental-runner, candidate: P4-M32D64, role: measured}
+    - {schedule_index: 6, run_id: rep0-pos2-p4-f32, implementation: experimental-runner, candidate: P4-F32, role: measured}
+    - {schedule_index: 7, run_id: rep1-pos0-p4-m32d64, implementation: experimental-runner, candidate: P4-M32D64, role: measured}
+    - {schedule_index: 8, run_id: rep1-pos1-p4-f32, implementation: experimental-runner, candidate: P4-F32, role: measured}
+    - {schedule_index: 9, run_id: rep1-pos2-p4-d64, implementation: experimental-runner, candidate: P4-D64, role: measured}
+    - {schedule_index: 10, run_id: rep2-pos0-p4-f32, implementation: experimental-runner, candidate: P4-F32, role: measured}
+    - {schedule_index: 11, run_id: rep2-pos1-p4-d64, implementation: experimental-runner, candidate: P4-D64, role: measured}
+    - {schedule_index: 12, run_id: rep2-pos2-p4-m32d64, implementation: experimental-runner, candidate: P4-M32D64, role: measured}
+    - {schedule_index: 13, run_id: rep3-pos0-p4-f32, implementation: experimental-runner, candidate: P4-F32, role: measured}
+    - {schedule_index: 14, run_id: rep3-pos1-p4-m32d64, implementation: experimental-runner, candidate: P4-M32D64, role: measured}
+    - {schedule_index: 15, run_id: rep3-pos2-p4-d64, implementation: experimental-runner, candidate: P4-D64, role: measured}
+    - {schedule_index: 16, run_id: rep4-pos0-p4-m32d64, implementation: experimental-runner, candidate: P4-M32D64, role: measured}
+    - {schedule_index: 17, run_id: rep4-pos1-p4-d64, implementation: experimental-runner, candidate: P4-D64, role: measured}
+    - {schedule_index: 18, run_id: rep4-pos2-p4-f32, implementation: experimental-runner, candidate: P4-F32, role: measured}
+    - {schedule_index: 19, run_id: rep5-pos0-p4-d64, implementation: experimental-runner, candidate: P4-D64, role: measured}
+    - {schedule_index: 20, run_id: rep5-pos1-p4-f32, implementation: experimental-runner, candidate: P4-F32, role: measured}
+    - {schedule_index: 21, run_id: rep5-pos2-p4-m32d64, implementation: experimental-runner, candidate: P4-M32D64, role: measured}
+  evidence_archive:
+    directory: working/fp32/end_to_end/4869c2a/aflep_science_roi_fixed1/runs
+    run_directories: 22
+    files: 132
+    bytes: 18074661
+    all_files_stdout_sha256: 4bdf795bb1b47e0f32b6764813b7064172c18ee5685e3dafcd052e45511c1ab7
+    all_files_hash_method: >-
+      SHA-256 of stdout from `LC_ALL=C find
+      working/fp32/end_to_end/4869c2a/aflep_science_roi_fixed1/runs -type f
+      -print0 | sort -z | xargs -0 sha256sum`, launched at the repository root.
+    artifact_manifest_bundle_sha256: ebc10d898845c8bf5cc248bcfd1dbdfac9cbdae644902b4ddc3be1520c947a07
+    artifact_manifest_bundle_method: >-
+      SHA-256 of sha256sum stdout for the 22 LC_ALL=C path-sorted
+      artifacts.sha256 files.
+    integrity: >-
+      Every run directory contains exactly six expected artifacts. All 110
+      records in the 22 per-run artifacts.sha256 manifests independently verify.
+  execution_checks:
+    schedule_and_identity: 22/22 pass
+    time_exit_status_zero: 22/22
+    experimental_runner_status_zero: 21/21
+    completed_fit_count: 560/560 in every process
+    error_or_warning_tokens: none found
+    run_interval_utc: ["2026-09-03T04:23:18Z", "2026-09-03T04:27:47Z"]
+  timing_units:
+    wall_runner_reduction_and_elapsed_stages: seconds
+    worker_stages: worker-seconds; equal to seconds with one worker
+    max_rss: KiB
+    temperature: millicelsius
+    frequency: kHz
+  non_measured_raw_field_order: [wall_seconds, runner_seconds, reduction_total_seconds, algorithm_seconds, loading_seconds, fake_injection_seconds, coadding_seconds, preprocessing_seconds, az_usm_seconds, gauss_usm_seconds, geometry_seconds, sampling_worker_seconds, same_image_sampling_worker_seconds, additional_image_psf_disk_worker_seconds, gram_worker_seconds, eigensolve_worker_seconds, projection_residual_worker_seconds, derotation_seconds, combination_seconds, max_rss_kib, thermal_wait_seconds, TCPU_launch_millicelsius, package_launch_millicelsius, TCPU_end_millicelsius, package_end_millicelsius, cpu4_launch_frequency_khz, cpu4_end_frequency_khz, load1_launch, load1_end]
+  non_measured_raw_samples:
+    control-default-off-p4-d64: [5.03, null, 4.9645, 3.987651, 0.012874, 0, 0, 0, 0, 0, 0.142146, 1.739694, 1.738472, 0.001223, 1.823708, 0.348076, 0.003916, 0.469922, 0.073791, 447740, 0, 62050, 68000, 99050, 74000, 770381, 610289, 0.74, 0.76]
+    warmup-p4-d64: [4.99, 4.937602524, 4.928701, 3.947205, 0.011883, 0, 0, 0, 0, 0, 0.143473, 1.714071, 1.71279, 0.001281, 1.813377, 0.348074, 0.003998, 0.467903, 0.077208, 447920, 4, 64050, 64000, 99050, 78000, 4936586, 400262, 0.7, 0.88]
+    warmup-p4-m32d64: [4.03, 3.967415313, 3.961171, 2.983419, 0.012926, 0, 0, 0, 0, 0, 0.145193, 1.668922, 1.667494, 0.001428, 0.851809, 0.346515, 0.003684, 0.468709, 0.073474, 448052, 2, 64050, 66000, 99050, 74000, 400000, 1350630, 0.88, 0.89]
+    warmup-p4-f32: [4.01, 3.955872117, 3.947253, 2.945113, 0.0117, 0, 0, 0, 0, 0, 0.144134, 1.680306, 1.679006, 0.0013, 0.853496, 0.293905, 0.003639, 0.478132, 0.082928, 448132, 6, 63050, 64000, 99050, 77000, 2505452, 1691383, 0.98, 1.06]
+  raw_samples_by_candidate:
+    sample_order: repetition 0 through 5
+    P4-D64:
+      wall_seconds: [4.98, 5.05, 4.99, 5.01, 4.97, 5.0]
+      runner_seconds: [4.926179309, 4.993508971, 4.939353431, 4.953765186, 4.917267854, 4.949736742]
+      reduction_total_seconds: [4.91942, 4.98496, 4.932895, 4.946346, 4.910892, 4.943066]
+      algorithm_seconds: [3.934464, 3.993679, 3.944643, 3.941963, 3.920517, 3.963591]
+      loading_seconds: [0.012475, 0.011912, 0.012114, 0.012076, 0.011963, 0.012232]
+      fake_injection_seconds: [0, 0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0, 0]
+      geometry_seconds: [0.145096, 0.144597, 0.144098, 0.146165, 0.148566, 0.14449]
+      sampling_worker_seconds: [1.686989, 1.720183, 1.681257, 1.687263, 1.673759, 1.713833]
+      same_image_sampling_worker_seconds: [1.685704, 1.719052, 1.680083, 1.685826, 1.672364, 1.712394]
+      additional_image_psf_disk_worker_seconds: [0.001285, 0.001131, 0.001174, 0.001438, 0.001395, 0.001439]
+      gram_worker_seconds: [1.824993, 1.845804, 1.840137, 1.832125, 1.825044, 1.828563]
+      eigensolve_worker_seconds: [0.350074, 0.350193, 0.350999, 0.350092, 0.349915, 0.349165]
+      projection_residual_worker_seconds: [0.003959, 0.004074, 0.003947, 0.004065, 0.004086, 0.003964]
+      derotation_seconds: [0.473082, 0.473038, 0.476898, 0.481197, 0.474186, 0.469304]
+      combination_seconds: [0.075932, 0.078393, 0.072589, 0.075187, 0.074926, 0.07482]
+      max_rss_kib: [447916, 447928, 448004, 447828, 447968, 447888]
+      thermal_wait_seconds: [46, 8, 2, 2, 4, 4]
+      TCPU_launch_millicelsius: [64050, 64050, 64050, 64050, 64050, 64050]
+      package_launch_millicelsius: [67000, 65000, 67000, 66000, 63000, 65000]
+      TCPU_end_millicelsius: [99050, 99050, 99050, 99050, 99050, 99050]
+      package_end_millicelsius: [77000, 74000, 76000, 79000, 77000, 76000]
+      cpu4_launch_frequency_khz: [720230, 4760845, 618090, 834473, 872929, 563005]
+      cpu4_end_frequency_khz: [654901, 1120510, 928390, 4809016, 1870914, 2162174]
+      load1_launch: [1.29, 0.81, 0.95, 0.96, 1.11, 0.93]
+      load1_end: [1.26, 0.83, 1.03, 1.04, 1.1, 0.93]
+    P4-M32D64:
+      wall_seconds: [4.05, 4.08, 4.04, 4.04, 4.01, 4.02]
+      runner_seconds: [3.999972807, 4.02608627, 3.984961043, 3.983978627, 3.959986266, 3.965865377]
+      reduction_total_seconds: [3.993469, 4.020028, 3.978251, 3.977221, 3.953196, 3.958983]
+      algorithm_seconds: [3.009269, 3.029423, 2.993954, 2.995505, 2.968014, 2.978786]
+      loading_seconds: [0.012188, 0.012366, 0.012243, 0.012619, 0.011679, 0.011652]
+      fake_injection_seconds: [0, 0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0, 0]
+      geometry_seconds: [0.14547, 0.144045, 0.144775, 0.145182, 0.145056, 0.145035]
+      sampling_worker_seconds: [1.695901, 1.7122, 1.67161, 1.672239, 1.654878, 1.65986]
+      same_image_sampling_worker_seconds: [1.694772, 1.710999, 1.670169, 1.670838, 1.653426, 1.658699]
+      additional_image_psf_disk_worker_seconds: [0.001129, 0.001201, 0.001441, 0.001401, 0.001452, 0.00116]
+      gram_worker_seconds: [0.851781, 0.853382, 0.855262, 0.854907, 0.85111, 0.854169]
+      eigensolve_worker_seconds: [0.346245, 0.345965, 0.350278, 0.351201, 0.347088, 0.348148]
+      projection_residual_worker_seconds: [0.003558, 0.003737, 0.003606, 0.003651, 0.003525, 0.003523]
+      derotation_seconds: [0.471812, 0.474417, 0.472573, 0.470548, 0.472828, 0.469269]
+      combination_seconds: [0.076744, 0.078294, 0.075329, 0.073707, 0.076814, 0.07601]
+      max_rss_kib: [448064, 448132, 448088, 448268, 448272, 448252]
+      thermal_wait_seconds: [6, 6, 4, 2, 4, 4]
+      TCPU_launch_millicelsius: [64050, 64050, 64050, 64050, 63050, 64050]
+      package_launch_millicelsius: [67000, 63000, 66000, 66000, 66000, 67000]
+      TCPU_end_millicelsius: [99050, 99050, 99050, 99050, 99050, 99050]
+      package_end_millicelsius: [77000, 75000, 75000, 76000, 76000, 76000]
+      cpu4_launch_frequency_khz: [752607, 600722, 1067793, 736300, 1957998, 3721301]
+      cpu4_end_frequency_khz: [400274, 400083, 458000, 400184, 578910, 895728]
+      load1_launch: [1.07, 1.05, 0.95, 0.95, 1.12, 0.86]
+      load1_end: [1.07, 1.05, 1.04, 0.95, 1.12, 0.88]
+    P4-F32:
+      wall_seconds: [4.02, 4.06, 4.01, 4.07, 3.99, 4.0]
+      runner_seconds: [3.967449738, 4.004153013, 3.953837857, 4.018578851, 3.93751412, 3.943013184]
+      reduction_total_seconds: [3.960861, 3.998243, 3.947599, 4.011903, 3.9312, 3.936382]
+      algorithm_seconds: [2.972744, 2.991037, 2.962441, 3.023544, 2.946287, 2.953035]
+      loading_seconds: [0.011869, 0.012606, 0.012736, 0.011807, 0.011761, 0.011791]
+      fake_injection_seconds: [0, 0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0, 0]
+      geometry_seconds: [0.143851, 0.1476, 0.148139, 0.148213, 0.145267, 0.144331]
+      sampling_worker_seconds: [1.709307, 1.706714, 1.687903, 1.74481, 1.678106, 1.694166]
+      same_image_sampling_worker_seconds: [1.707895, 1.705487, 1.686769, 1.743323, 1.676744, 1.693046]
+      additional_image_psf_disk_worker_seconds: [0.001412, 0.001228, 0.001134, 0.001487, 0.001363, 0.00112]
+      gram_worker_seconds: [0.853209, 0.862327, 0.858182, 0.860801, 0.855176, 0.850245]
+      eigensolve_worker_seconds: [0.293523, 0.299867, 0.29814, 0.29979, 0.295231, 0.292554]
+      projection_residual_worker_seconds: [0.003748, 0.003835, 0.003757, 0.003856, 0.003775, 0.003707]
+      derotation_seconds: [0.473106, 0.484288, 0.46808, 0.472561, 0.470878, 0.470829]
+      combination_seconds: [0.076329, 0.080152, 0.074241, 0.075106, 0.076882, 0.075927]
+      max_rss_kib: [448096, 448132, 448128, 448108, 448096, 448028]
+      thermal_wait_seconds: [2, 12, 38, 6, 4, 4]
+      TCPU_launch_millicelsius: [64050, 64050, 64050, 63050, 64050, 63050]
+      package_launch_millicelsius: [65000, 65000, 67000, 66000, 68000, 66000]
+      TCPU_end_millicelsius: [99050, 99050, 99050, 99050, 99050, 99050]
+      package_end_millicelsius: [78000, 77000, 77000, 76000, 76000, 77000]
+      cpu4_launch_frequency_khz: [4311070, 4256577, 2991436, 2967663, 3275751, 624731]
+      cpu4_end_frequency_khz: [400253, 652126, 400169, 443789, 465805, 400214]
+      load1_launch: [0.98, 0.96, 0.95, 0.95, 1.01, 0.93]
+      load1_end: [1.14, 0.96, 0.95, 1.04, 1.01, 0.94]
+  thermal_admission_poll_field_order: [TCPU_millicelsius, x86_pkg_temp_millicelsius]
+  thermal_admission_poll_samples_by_run:
+    control-default-off-p4-d64: [[62050, 68000]]
+    warmup-p4-d64: [[99050, 75000], [67050, 67000], [64050, 64000]]
+    warmup-p4-m32d64: [[99050, 74000], [64050, 66000]]
+    warmup-p4-f32: [[99050, 72000], [64050, 87000], [65050, 66000], [63050, 64000]]
+    rep0-pos0-p4-d64: [[99050, 71000], [67050, 67000], [65050, 69000], [66050, 69000], [72050, 79000], [69050, 79000], [80050, 72000], [71050, 73000], [69050, 75000], [73050, 79000], [68050, 68000], [72050, 72000], [72050, 67000], [70050, 67000], [72050, 70000], [71050, 69000], [74050, 68000], [70050, 68000], [71050, 69000], [69050, 64000], [66050, 67000], [72050, 69000], [65050, 65000], [64050, 67000]]
+    rep0-pos1-p4-m32d64: [[99050, 70000], [65050, 69000], [65050, 66000], [64050, 67000]]
+    rep0-pos2-p4-f32: [[99050, 72000], [64050, 65000]]
+    rep1-pos0-p4-m32d64: [[99050, 73000], [65050, 66000], [65050, 66000], [64050, 63000]]
+    rep1-pos1-p4-f32: [[99050, 72000], [65050, 65000], [71050, 72000], [74050, 70000], [66050, 70000], [66050, 65000], [64050, 65000]]
+    rep1-pos2-p4-d64: [[99050, 72000], [66050, 67000], [66050, 69000], [65050, 65000], [64050, 65000]]
+    rep2-pos0-p4-f32: [[99050, 72000], [70050, 90000], [77050, 75000], [86050, 77000], [83050, 73000], [72050, 75000], [67050, 68000], [70050, 68000], [66050, 66000], [65050, 66000], [65050, 67000], [72050, 67000], [74050, 69000], [73050, 72000], [70050, 76000], [68050, 67000], [66050, 64000], [65050, 66000], [65050, 65000], [64050, 67000]]
+    rep2-pos1-p4-d64: [[99050, 73000], [64050, 67000]]
+    rep2-pos2-p4-m32d64: [[99050, 70000], [65050, 65000], [64050, 66000]]
+    rep3-pos0-p4-f32: [[99050, 72000], [65050, 67000], [68050, 66000], [63050, 66000]]
+    rep3-pos1-p4-m32d64: [[99050, 69000], [64050, 66000]]
+    rep3-pos2-p4-d64: [[99050, 72000], [64050, 66000]]
+    rep4-pos0-p4-m32d64: [[99050, 77000], [65050, 66000], [63050, 66000]]
+    rep4-pos1-p4-d64: [[99050, 76000], [66050, 64000], [64050, 63000]]
+    rep4-pos2-p4-f32: [[99050, 74000], [65050, 69000], [64050, 68000]]
+    rep5-pos0-p4-d64: [[99050, 71000], [66050, 67000], [64050, 65000]]
+    rep5-pos1-p4-f32: [[99050, 72000], [68050, 69000], [63050, 66000]]
+    rep5-pos2-p4-m32d64: [[99050, 72000], [65050, 65000], [64050, 67000]]
+  summary_statistic_order: [median, minimum, maximum, range, unscaled_median_absolute_deviation]
+  summary_by_candidate:
+    P4-D64:
+      wall_seconds: [4.995, 4.97, 5.05, 0.08, 0.015]
+      runner_seconds: [4.9445450865, 4.917267854, 4.993508971, 0.076241117, 0.0137929385]
+      reduction_total_seconds: [4.9379805, 4.910892, 4.98496, 0.074068, 0.013463]
+      algorithm_seconds: [3.943303, 3.920517, 3.993679, 0.073162, 0.0145635]
+      loading_seconds: [0.012095, 0.011912, 0.012475, 0.000563, 0.0001345]
+      fake_injection_seconds: [0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0]
+      geometry_seconds: [0.1448465, 0.144098, 0.148566, 0.004468, 0.0005525]
+      sampling_worker_seconds: [1.687126, 1.673759, 1.720183, 0.046424, 0.009618]
+      same_image_sampling_worker_seconds: [1.685765, 1.672364, 1.719052, 0.046688, 0.0095415]
+      additional_image_psf_disk_worker_seconds: [0.00134, 0.001131, 0.001439, 0.000308, 9.85e-05]
+      gram_worker_seconds: [1.830344, 1.824993, 1.845804, 0.020811, 0.0053255]
+      eigensolve_worker_seconds: [0.350083, 0.349165, 0.350999, 0.001834, 0.000139]
+      projection_residual_worker_seconds: [0.0040145, 0.003947, 0.004086, 0.000139, 5.75e-05]
+      derotation_seconds: [0.473634, 0.469304, 0.481197, 0.011893, 0.00193]
+      combination_seconds: [0.0750565, 0.072589, 0.078393, 0.005804, 0.000556]
+      max_rss_kib: [447922, 447828, 448004, 176, 40]
+      thermal_wait_seconds: [4, 2, 46, 44, 2]
+      TCPU_launch_millicelsius: [64050, 64050, 64050, 0, 0]
+      package_launch_millicelsius: [65500, 63000, 67000, 4000, 1000]
+      TCPU_end_millicelsius: [99050, 99050, 99050, 0, 0]
+      package_end_millicelsius: [76500, 74000, 79000, 5000, 500]
+      cpu4_launch_frequency_khz: [777351.5, 563005, 4760845, 4197840, 127419.5]
+      cpu4_end_frequency_khz: [1495712, 654901, 4809016, 4154115, 616892]
+      load1_launch: [0.955, 0.81, 1.29, 0.48, 0.085]
+      load1_end: [1.035, 0.83, 1.26, 0.43, 0.085]
+    P4-M32D64:
+      wall_seconds: [4.04, 4.01, 4.08, 0.07, 0.015]
+      runner_seconds: [3.984469835, 3.959986266, 4.02608627, 0.066100004, 0.017053715]
+      reduction_total_seconds: [3.977736, 3.953196, 4.020028, 0.066832, 0.017243]
+      algorithm_seconds: [2.9947295, 2.968014, 3.029423, 0.061409, 0.0152415]
+      loading_seconds: [0.0122155, 0.011652, 0.012619, 0.000967, 0.000277]
+      fake_injection_seconds: [0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0]
+      geometry_seconds: [0.1450455, 0.144045, 0.14547, 0.001425, 0.0002035]
+      sampling_worker_seconds: [1.6719245, 1.654878, 1.7122, 0.057322, 0.0145555]
+      same_image_sampling_worker_seconds: [1.6705035, 1.653426, 1.710999, 0.057573, 0.014441]
+      additional_image_psf_disk_worker_seconds: [0.001301, 0.001129, 0.001452, 0.000323, 0.0001405]
+      gram_worker_seconds: [0.8537755, 0.85111, 0.855262, 0.004152, 0.001309]
+      eigensolve_worker_seconds: [0.347618, 0.345965, 0.351201, 0.005236, 0.001513]
+      projection_residual_worker_seconds: [0.003582, 0.003523, 0.003737, 0.000214, 5.8e-05]
+      derotation_seconds: [0.4721925, 0.469269, 0.474417, 0.005148, 0.00114]
+      combination_seconds: [0.076377, 0.073707, 0.078294, 0.004587, 0.0007425]
+      max_rss_kib: [448192, 448064, 448272, 208, 78]
+      thermal_wait_seconds: [4, 2, 6, 4, 1]
+      TCPU_launch_millicelsius: [64050, 63050, 64050, 1000, 0]
+      package_launch_millicelsius: [66000, 63000, 67000, 4000, 500]
+      TCPU_end_millicelsius: [99050, 99050, 99050, 0, 0]
+      package_end_millicelsius: [76000, 75000, 77000, 2000, 500]
+      cpu4_launch_frequency_khz: [910200, 600722, 3721301, 3120579, 241689]
+      cpu4_end_frequency_khz: [429137, 400083, 895728, 495645, 29003.5]
+      load1_launch: [1.0, 0.86, 1.12, 0.26, 0.06]
+      load1_end: [1.045, 0.88, 1.12, 0.24, 0.05]
+    P4-F32:
+      wall_seconds: [4.015, 3.99, 4.07, 0.08, 0.02]
+      runner_seconds: [3.9606437975, 3.93751412, 4.018578851, 0.081064731, 0.0203801455]
+      reduction_total_seconds: [3.95423, 3.9312, 4.011903, 0.080703, 0.020439]
+      algorithm_seconds: [2.9675925, 2.946287, 3.023544, 0.077257, 0.0179315]
+      loading_seconds: [0.011838, 0.011761, 0.012736, 0.000975, 6.2e-05]
+      fake_injection_seconds: [0, 0, 0, 0, 0]
+      coadding_seconds: [0, 0, 0, 0, 0]
+      preprocessing_seconds: [0, 0, 0, 0, 0]
+      az_usm_seconds: [0, 0, 0, 0, 0]
+      gauss_usm_seconds: [0, 0, 0, 0, 0]
+      geometry_seconds: [0.1464335, 0.143851, 0.148213, 0.004362, 0.0017425]
+      sampling_worker_seconds: [1.70044, 1.678106, 1.74481, 0.066704, 0.010702]
+      same_image_sampling_worker_seconds: [1.6992665, 1.676744, 1.743323, 0.066579, 0.010563]
+      additional_image_psf_disk_worker_seconds: [0.0012955, 0.00112, 0.001487, 0.000367, 0.000139]
+      gram_worker_seconds: [0.856679, 0.850245, 0.862327, 0.012082, 0.003796]
+      eigensolve_worker_seconds: [0.2966855, 0.292554, 0.299867, 0.007313, 0.0031335]
+      projection_residual_worker_seconds: [0.003766, 0.003707, 0.003856, 0.000149, 3.85e-05]
+      derotation_seconds: [0.4717195, 0.46808, 0.484288, 0.016208, 0.0011385]
+      combination_seconds: [0.076128, 0.074241, 0.080152, 0.005911, 0.000888]
+      max_rss_kib: [448102, 448028, 448132, 104, 16]
+      thermal_wait_seconds: [5, 2, 38, 36, 2]
+      TCPU_launch_millicelsius: [64050, 63050, 64050, 1000, 0]
+      package_launch_millicelsius: [66000, 65000, 68000, 3000, 1000]
+      TCPU_end_millicelsius: [99050, 99050, 99050, 0, 0]
+      package_end_millicelsius: [77000, 76000, 78000, 2000, 500]
+      cpu4_launch_frequency_khz: [3133593.5, 624731, 4311070, 3686339, 644457]
+      cpu4_end_frequency_khz: [422021, 400169, 652126, 251957, 21829.5]
+      load1_launch: [0.955, 0.93, 1.01, 0.08, 0.015]
+      load1_end: [0.985, 0.94, 1.14, 0.2, 0.04]
+  paired_comparisons:
+    pairing: same repetition index; P4-D64 is the numerator and baseline
+    sample_order: repetition 0 through 5
+    P4-M32D64:
+      wall_seconds:
+        speedup_samples: [1.2296296296296299, 1.2377450980392157, 1.2351485148514851, 1.24009900990099, 1.2394014962593516, 1.2437810945273633]
+        median_speedup: 1.2385732971492835
+        fractional_improvement_samples: [0.18674698795180733, 0.19207920792079203, 0.19038076152304617, 0.1936127744510978, 0.19315895372233405, 0.19600000000000006]
+        median_fractional_improvement: 0.19261908082156304
+      runner_seconds:
+        speedup_samples: [1.2315531996565396, 1.240288616815953, 1.2394985490953518, 1.2434216269202891, 1.2417386131409376, 1.248084912489958]
+        median_speedup: 1.2410136149784452
+        fractional_improvement_samples: [0.18801721250946868, 0.19373604946308198, 0.19322212944109518, 0.19576756721145083, 0.19467753566063928, 0.19877246332144416]
+        median_fractional_improvement: 0.19420679256186063
+      reduction_total_seconds:
+        speedup_samples: [1.231866329749899, 1.240031163962042, 1.239965753794821, 1.2436688833735918, 1.2422586686822508, 1.2485696452851653]
+        median_speedup: 1.2411449163221464
+        fractional_improvement_samples: [0.18822361172658553, 0.1935686545127745, 0.19352611397566744, 0.1959274583702798, 0.19501467350534274, 0.1990835242742055]
+        median_fractional_improvement: 0.19429166400905862
+      algorithm_seconds:
+        speedup_samples: [1.307448420197729, 1.318296916607552, 1.3175362747724246, 1.3159594125197587, 1.320922677588448, 1.3306061596905585]
+        median_speedup: 1.3179165956899883
+        fractional_improvement_samples: [0.23515147171253825, 0.24144554432141396, 0.24100761463077902, 0.24009814399577056, 0.2429534166029632, 0.24846282070980585]
+        median_fractional_improvement: 0.2412265794760965
+      gram_worker_seconds:
+        speedup_samples: [2.1425612921631263, 2.1629282080006376, 2.1515477128645957, 2.143069363100314, 2.1443103711623643, 2.1407508350221094]
+        median_speedup: 2.1436898671313394
+        fractional_improvement_samples: [0.5332688947300073, 0.5376638039575166, 0.5352183016807988, 0.5333795456096063, 0.5336495996808844, 0.5328741749669003]
+        median_fractional_improvement: 0.5335145726452454
+      eigensolve_worker_seconds:
+        speedup_samples: [1.0110586434461146, 1.012220889396326, 1.00205836507003, 0.9968422641165601, 1.008144908495828, 1.0029211714558177]
+        median_speedup: 1.0055330399758229
+        fractional_improvement_samples: [0.010937687460365386, 0.012073342414040122, 0.0020541369063730164, -0.003167738765810002, 0.008079104925481806, 0.002912663067604071]
+        median_fractional_improvement: 0.0054958839965429385
+      median_rss_ratio_candidate_over_d64: 1.000602783520345
+    P4-F32:
+      wall_seconds:
+        speedup_samples: [1.238805970149254, 1.2438423645320198, 1.2443890274314215, 1.2309582309582308, 1.2456140350877192, 1.25]
+        median_speedup: 1.2441156959817206
+        fractional_improvement_samples: [0.19277108433734957, 0.1960396039603961, 0.19639278557114237, 0.18762475049900196, 0.19718309859154926, 0.19999999999999996]
+        median_fractional_improvement: 0.19621619476576924
+      runner_seconds:
+        speedup_samples: [1.2416488258987493, 1.2470824553377275, 1.2492554347556797, 1.2327156862350193, 1.248825452846884, 1.2553183342335992]
+        median_speedup: 1.247953954092306
+        fractional_improvement_samples: [0.19461930044820464, 0.19812840304197388, 0.19952319423323317, 0.1887829357844738, 0.1992475828224427, 0.20338931350785772]
+        median_fractional_improvement: 0.1986879929322083
+      reduction_total_seconds:
+        speedup_samples: [1.2420077351868697, 1.2467876514759109, 1.2495937403976443, 1.2329176453169481, 1.2492094017094015, 1.2557383912435327]
+        median_speedup: 1.247998526592656
+        fractional_improvement_samples: [0.19485203540254736, 0.19793879991012964, 0.19973990932302443, 0.1889158178582735, 0.1994936968681046, 0.20365578772365167]
+        median_fractional_improvement: 0.1987162483891171
+      algorithm_seconds:
+        speedup_samples: [1.3235125527122416, 1.3352155122119855, 1.3315515819555563, 1.3037557912171942, 1.3306636454629166, 1.3422092863782515]
+        median_speedup: 1.3311076137092366
+        fractional_improvement_samples: [0.2444348200923938, 0.25105723319275286, 0.24899642375748576, 0.2329851903734257, 0.24849528773883645, 0.2549597069929769]
+        median_fractional_improvement: 0.2487458557481611
+      gram_worker_seconds:
+        speedup_samples: [2.1389753272644803, 2.1404919479501396, 2.1442269821553004, 2.1283955292802865, 2.1341150827432016, 2.150630700562779]
+        median_speedup: 2.1397336376073097
+        fractional_improvement_samples: [0.5324864259753326, 0.5328176772831785, 0.5336314633095254, 0.5301625162038617, 0.5314217081889532, 0.5350201223583765]
+        median_fractional_improvement: 0.5326520516292556
+      eigensolve_worker_seconds:
+        speedup_samples: [1.192662925903592, 1.1678277369633872, 1.1772959012544442, 1.1677907868841524, 1.1852244513618149, 1.1935061561284412]
+        median_speedup: 1.1812601763081294
+        fractional_improvement_samples: [0.1615401315150512, 0.14370932600023412, 0.1505958706435061, 0.14368223209899111, 0.15627795321720983, 0.16213251614566182]
+        median_fractional_improvement: 0.15343691193035797
+      median_rss_ratio_candidate_over_d64: 1.00040185568023
+  cross_candidate_observation:
+    P4-F32_over_P4-M32D64_paired_median_speedup:
+      wall_seconds: 1.0050062656641603
+      runner_seconds: 1.0057514039508928
+      reduction_total_seconds: 1.0056684024217937
+      algorithm_seconds: 1.0096788462662114
+      eigensolve_worker_seconds: 1.175263236476486
+    interpretation: >-
+      Fully FP32 improves paired median wall time by only about 0.50 percent
+      beyond mixed precision in this case, despite a 14.91 percent eigensolve
+      improvement. Rep3 makes P4-F32 slower than P4-M32D64, consistent with
+      timing variability and the thermal limitation.
+  output_checks:
+    products_checked: 22
+    products_by_candidate: {P4-D64: 8, P4-M32D64: 7, P4-F32: 7}
+    bytes_per_product: 803520
+    product_bundle_sha256: 98c5a59e6b40b3b81d36bf163540c72d785b394a5d0ab27ce96150b07fd5265f
+    product_bundle_hash_method: >-
+      SHA-256 of sha256sum stdout for all 22 LC_ALL=C path-sorted product.fits files.
+    product_file_sha256:
+      P4-D64: 3934609b4364c7256b53dffd89900f4714a6bc5eb83993094849ec486276d93a
+      P4-M32D64: dc869541331235089b933af35d233f99c98cfb45be77c5e1d8fe0b04427e0c54
+      P4-F32: 49eeee61b61092b744d6f6688f51d3dbfe27174c6f908ca4688b36e7d0b32cf3
+    same_candidate_repeatability: >-
+      All products within each precision are byte-identical. The production
+      control and all seven experimental P4-D64 products are also byte-identical.
+    primary_hdu_count: 1
+    header_bytes: 14400
+    header_sha256: 234073304abf17f7839fd60a6be3c08a97465b811005433b7044df256f3e1c05
+    header_comparison: all 134 cards are exact across all 22 products
+    header:
+      bitpix: -32
+      axes: [256, 256, 3]
+      input_delete_back: 525
+      input_images: 96
+      predictor_count: 2988
+      search_pixels: 560
+      valid_fits: 560
+      minimum_rank: 96
+      realized_modes: [4, 19, 48]
+      rank_invalid_by_plane: [0, 0, 0]
+      maximum_workers: 1
+      effective_workers: 1
+      explicit_fallbacks: 0
+      deletion_clamps: 0
+      fits_checksum_cards: absent
+      precision_policy_card: absent
+    science_payload_bytes: 786432
+    science_payload_hash_method: >-
+      SHA-256 over contiguous big-endian FP32 primary-array bytes in FITS
+      logical [plane,row,column] order, excluding header and block padding.
+    science_payload_sha256:
+      P4-D64: cac350bba72e9941059dc160d5f6e9cdac5aa4f516a562dfae9d30b327aed6c0
+      P4-M32D64: ebf6b8d7fbd21776f2f8e9e27553b157aa66884c84314642c4727e9f797e7bf5
+      P4-F32: 983a4fc305b1bdf1acd7a8560e0a372035e0704d2d4592ed6fa0f7ef526e0d16
+    array_float32_le_c_order_sha256:
+      P4-D64: 5e6e32a7d46e936ac369202f16952be8de11917d74cf9ccf305e13a956e21423
+      P4-M32D64: 89d93e0fceafe8961d774aecf2aa917b5f68aafeeb6b08c6508fbecd17a351db
+      P4-F32: f51b27d765e2d666418be4842404a6efbca48e4f5a8c7d8d2bf271a3fa02706d
+    finite_masks:
+      exact_across_candidates: true
+      global_uint8_c_order_sha256: 169723d456732eb053bef4418b85f92dedcfda00b7d0cd0ee0f1694e7b45ab39
+      per_plane_uint8_c_order_sha256: 4573bf8247f232fe6a4a3d6d384a373363613c86b118a2474fc47202d18133ef
+      science_roi_selected_values_uint8_c_order_sha256: d08a47aa771d8fee050ad7fe6378906a6ddcee1e8aa8966118739eed0cffb477
+      science_roi_per_plane_uint8_c_order_sha256: 020f896d348ca41e79779709153cb7b7fbd01720edbb66dd17c496b83277ea05
+      hash_method: >-
+        SHA-256 over uint8 isfinite masks in C-order [plane,row,column].
+        The ROI hashes cover only selected ROI values, 396 pooled and 132 per plane.
+    counts:
+      per_plane: {finite: 336, nan: 65200, infinity: 0}
+      pooled: {finite: 1008, nan: 195600, infinity: 0}
+      science_roi_per_plane: {selected: 132, finite: 132, nan: 0, infinity: 0}
+      science_roi_pooled: {selected: 396, finite: 396, nan: 0, infinity: 0}
+    exact_outside_finite_support: >-
+      All 195600 values are canonical quiet NaN bits 0x7fc00000 in every candidate.
+    identity_limitation: >-
+      The FITS header does not record the precision policy; candidate identity
+      therefore depends on the archived stdout and environment records.
+  diagnostic_conventions:
+    oracle: stored P4-D64 FP32 science array
+    difference: candidate minus oracle after promotion of stored FP32 values to FP64
+    accumulation: FP64 for RMS, percentiles, correlation, and slope
+    percentile: NumPy linear interpolation
+    exact_equality: raw IEEE FP32 bit-pattern equality on corresponding finite values
+    ulp: >-
+      Interpret each FP32 value as uint32; map a negative value to the bitwise
+      complement and a nonnegative value by setting its sign bit, then take the
+      absolute signed-int64 distance between mapped values.
+    coordinate_order: zero-based [plane, row, column]
+    science_roi: center [127.5,127.5], radius at least 10 and less than 12 pixels
+    extrema_ties: every reported maximum is unique within its declared scope
+  stored_bit_diagnostics:
+    gate_id: stored.bit_diagnostics
+    status: frozen-report-only
+    metric_order: [valid_comparison_count, exact_equal_count, exact_equal_fraction, maximum_ulp_distance, difference_rms, abs_difference_p50, abs_difference_p95, abs_difference_p99, abs_difference_p99_9, maximum_absolute_difference]
+    metrics:
+      P4-M32D64:
+        global_finite_support:
+          pooled: [1008, 6, 0.005952380952380952, 8090099, 0.0013968601751613266, 5.635060369968414e-05, 0.0016939699649810788, 0.0058724153041839495, 0.018213287591934746, 0.020046234130859375]
+          mode_4: [336, 5, 0.01488095238095238, 18859, 1.0853753246130279e-05, 1.8477439880371094e-06, 1.621246337890625e-05, 3.652572631835933e-05, 0.00010326862335205135, 0.0001125335693359375]
+          mode_19: [336, 1, 0.002976190476190476, 598698, 0.0002133933687594305, 6.514973938465118e-05, 0.00031142495572566986, 0.0006967604160308816, 0.0020477867126464933, 0.00218963623046875]
+          mode_48: [336, 0, 0, 8090099, 0.002409979359468701, 0.0006046891212463379, 0.004584446549415588, 0.009443110227584824, 0.019439859390258826, 0.020046234130859375]
+        science_roi:
+          pooled: [396, 1, 0.0025252525252525255, 2087210, 0.0005438971271477247, 5.265325307846069e-05, 0.0011237356811761856, 0.0022174648940563213, 0.00345344323664906, 0.003971822559833527]
+          mode_4: [132, 1, 0.007575757575757576, 18859, 3.2597965167970205e-06, 1.5944242477416992e-06, 6.295740604400633e-06, 9.869933128356932e-06, 1.926705241203338e-05, 2.065300941467285e-05]
+          mode_19: [132, 0, 0, 194731, 9.80327114032642e-05, 6.324052810668945e-05, 0.00020127296447753875, 0.0002845121175050734, 0.00036656983941793633, 0.00037550926208496094]
+          mode_48: [132, 0, 0, 2087210, 0.0009369371462271299, 0.0005826279520988464, 0.0018843811005353915, 0.0025661541521549217, 0.003799904353916682, 0.003971822559833527]
+      P4-F32:
+        global_finite_support:
+          pooled: [1008, 2, 0.001984126984126984, 11899180, 0.001409132629135108, 6.309151649475098e-05, 0.001930188015103339, 0.0059149730205535845, 0.01551067864894872, 0.019391536712646484]
+          mode_4: [336, 2, 0.005952380952380952, 26112, 1.2661376849510258e-05, 2.6226043701171875e-06, 1.7240643501281738e-05, 4.682540893554657e-05, 0.00011086672544479392, 0.00011444091796875]
+          mode_19: [336, 0, 0, 549802, 0.0002381074162065293, 6.851553916931152e-05, 0.00038075633347034454, 0.0008928477764129622, 0.002132646441459656, 0.0021342039108276367]
+          mode_48: [336, 0, 0, 11899180, 0.0024290139660700576, 0.0006145499646663666, 0.005192674696445465, 0.009747049212455727, 0.018092167973518453, 0.019391536712646484]
+        science_roi:
+          pooled: [396, 2, 0.005050505050505051, 2159658, 0.0005836572789145422, 6.239116191864014e-05, 0.0013472773134708405, 0.00227915868163109, 0.003461544588208204, 0.003583177924156189]
+          mode_4: [132, 2, 0.015151515151515152, 26112, 3.966643132475861e-06, 1.8924474716186523e-06, 9.08076763153076e-06, 1.3881921768188475e-05, 1.417028903961182e-05, 1.4185905456542969e-05]
+          mode_19: [132, 0, 0, 159915, 0.0001098589563841767, 6.526708602905273e-05, 0.00020979158580303184, 0.0003715092688798903, 0.0004346554502844825, 0.00044143199920654297]
+          mode_48: [132, 0, 0, 2159658, 0.0010049292179722022, 0.0005896985530853271, 0.0020691324025392524, 0.0030464288964867576, 0.003542838767170915, 0.003583177924156189]
+    extremum_order: [coordinate, baseline_value, candidate_value, signed_difference, absolute_difference, ulp_distance]
+    extrema:
+      P4-M32D64:
+        global_finite_support:
+          pooled:
+            maximum_ulp: [[2, 127, 140], 0.0002623825566843152, 0.0005073896027170122, 0.00024500704603269696, 0.00024500704603269696, 8090099]
+            maximum_absolute_difference: [[2, 133, 134], 7.5763726234436035, 7.596418857574463, 0.020046234130859375, 0.020046234130859375, 42040]
+          mode_4:
+            maximum_ulp: [[0, 138, 123], -0.0013090968132019043, -0.0013069013366475701, 2.1954765543341637e-06, 2.1954765543341637e-06, 18859]
+            maximum_absolute_difference: [[0, 118, 137], 19.812238693237305, 19.81235122680664, 0.0001125335693359375, 0.0001125335693359375, 59]
+          mode_19:
+            maximum_ulp: [[1, 132, 139], -0.003746847389265895, -0.0038862426299601793, -0.00013939524069428444, 0.00013939524069428444, 598698]
+            maximum_absolute_difference: [[1, 140, 132], -1.111904263496399, -1.1140938997268677, -0.00218963623046875, 0.00218963623046875, 18368]
+          mode_48:
+            maximum_ulp: [[2, 127, 140], 0.0002623825566843152, 0.0005073896027170122, 0.00024500704603269696, 0.00024500704603269696, 8090099]
+            maximum_absolute_difference: [[2, 133, 134], 7.5763726234436035, 7.596418857574463, 0.020046234130859375, 0.020046234130859375, 42040]
+        science_roi:
+          pooled:
+            maximum_ulp: [[2, 117, 132], 0.0077480473555624485, 0.006776114460080862, -0.0009719328954815865, 0.0009719328954815865, 2087210]
+            maximum_absolute_difference: [[2, 134, 137], 0.08427691459655762, 0.08030509203672409, -0.003971822559833527, 0.003971822559833527, 533089]
+          mode_4:
+            maximum_ulp: [[0, 138, 123], -0.0013090968132019043, -0.0013069013366475701, 2.1954765543341637e-06, 2.1954765543341637e-06, 18859]
+            maximum_absolute_difference: [[0, 122, 136], -0.4114809036254883, -0.4114602506160736, 2.065300941467285e-05, 2.065300941467285e-05, 693]
+          mode_19:
+            maximum_ulp: [[1, 138, 128], 0.015291105024516582, 0.015109747648239136, -0.00018135737627744675, 0.00018135737627744675, 194731]
+            maximum_absolute_difference: [[1, 125, 138], -0.5019120573997498, -0.5022875666618347, -0.00037550926208496094, 0.00037550926208496094, 6300]
+          mode_48:
+            maximum_ulp: [[2, 117, 132], 0.0077480473555624485, 0.006776114460080862, -0.0009719328954815865, 0.0009719328954815865, 2087210]
+            maximum_absolute_difference: [[2, 134, 137], 0.08427691459655762, 0.08030509203672409, -0.003971822559833527, 0.003971822559833527, 533089]
+      P4-F32:
+        global_finite_support:
+          pooled:
+            maximum_ulp: [[2, 127, 140], 0.0002623825566843152, 0.0007291072979569435, 0.0004667247412726283, 0.0004667247412726283, 11899180]
+            maximum_absolute_difference: [[2, 133, 134], 7.5763726234436035, 7.59576416015625, 0.019391536712646484, 0.019391536712646484, 40667]
+          mode_4:
+            maximum_ulp: [[0, 138, 123], -0.0013090968132019043, -0.0013060569763183594, 3.039836883544922e-06, 3.039836883544922e-06, 26112]
+            maximum_absolute_difference: [[0, 118, 137], 19.812238693237305, 19.812353134155273, 0.00011444091796875, 0.00011444091796875, 60]
+          mode_19:
+            maximum_ulp: [[1, 132, 139], -0.003746847389265895, -0.0038748581428080797, -0.00012801075354218483, 0.00012801075354218483, 549802]
+            maximum_absolute_difference: [[1, 140, 132], -1.111904263496399, -1.1140384674072266, -0.0021342039108276367, 0.0021342039108276367, 17903]
+          mode_48:
+            maximum_ulp: [[2, 127, 140], 0.0002623825566843152, 0.0007291072979569435, 0.0004667247412726283, 0.0004667247412726283, 11899180]
+            maximum_absolute_difference: [[2, 133, 134], 7.5763726234436035, 7.59576416015625, 0.019391536712646484, 0.019391536712646484, 40667]
+        science_roi:
+          pooled:
+            maximum_ulp: [[2, 117, 132], 0.0077480473555624485, 0.006742378231137991, -0.0010056691244244576, 0.0010056691244244576, 2159658]
+            maximum_absolute_difference: [[2, 129, 117], -0.13028301298618317, -0.12669983506202698, 0.003583177924156189, 0.003583177924156189, 240463]
+          mode_4:
+            maximum_ulp: [[0, 138, 123], -0.0013090968132019043, -0.0013060569763183594, 3.039836883544922e-06, 3.039836883544922e-06, 26112]
+            maximum_absolute_difference: [[0, 118, 124], 0.7966383099555969, 0.7966524958610535, 1.4185905456542969e-05, 1.4185905456542969e-05, 238]
+          mode_19:
+            maximum_ulp: [[1, 124, 118], -0.006351351737976074, -0.006425817962735891, -7.446622475981712e-05, 7.446622475981712e-05, 159915]
+            maximum_absolute_difference: [[1, 125, 138], -0.5019120573997498, -0.5023534893989563, -0.00044143199920654297, 0.00044143199920654297, 7406]
+          mode_48:
+            maximum_ulp: [[2, 117, 132], 0.0077480473555624485, 0.006742378231137991, -0.0010056691244244576, 0.0010056691244244576, 2159658]
+            maximum_absolute_difference: [[2, 129, 117], -0.13028301298618317, -0.12669983506202698, 0.003583177924156189, 0.003583177924156189, 240463]
+  science_residual_product:
+    gate_id: science.residual_product
+    status: owner-tbd-report-only-until-limit-and-aggregation-are-approved
+    metric_order: [valid_comparison_count, baseline_rms, difference_rms, difference_over_baseline_rms, abs_difference_p99, abs_difference_p99_9, maximum_absolute_difference, pearson_correlation, through_origin_slope]
+    metrics:
+      P4-M32D64:
+        global_finite_support:
+          pooled: [1008, 2.2686512894061517, 0.0013968601751613266, 0.0006157227343330374, 0.0058724153041839495, 0.018213287591934746, 0.020046234130859375, 0.999999811567729, 1.0000466063806983]
+          mode_4: [336, 3.7065482151656415, 1.0853753246130279e-05, 2.9282644163972484e-06, 3.652572631835933e-05, 0.00010326862335205135, 0.0001125335693359375, 0.99999999999584, 1.0000005026407244]
+          mode_19: [336, 1.0292925739949301, 0.0002133933687594305, 0.00020732042001546743, 0.0006967604160308816, 0.0020477867126464933, 0.00218963623046875, 0.9999999787278417, 0.9999794731609217]
+          mode_48: [336, 0.8014943197202794, 0.002409979359468701, 0.003006857690906382, 0.009443110227584824, 0.019439859390258826, 0.020046234130859375, 0.9999961194793335, 1.0011433180374814]
+        science_roi:
+          pooled: [396, 0.5367349956297511, 0.0005438971271477247, 0.0010133438877216684, 0.0022174648940563213, 0.00345344323664906, 0.003971822559833527, 0.9999994857228631, 1.0000002775432526]
+          mode_4: [132, 0.8894573180321755, 3.2597965167970205e-06, 3.6649274233967226e-06, 9.869933128356932e-06, 1.926705241203338e-05, 2.065300941467285e-05, 0.9999999999933508, 1.0000000716478463]
+          mode_19: [132, 0.2421605692071406, 9.80327114032642e-05, 0.00040482524353256064, 0.0002845121175050734, 0.00036656983941793633, 0.00037550926208496094, 0.9999999183596717, 1.0000319980634285]
+          mode_48: [132, 0.12032167186874536, 0.0009369371462271299, 0.007786935900036374, 0.0025661541521549217, 0.003799904353916682, 0.003971822559833527, 0.9999696216691518, 0.9998830419356658]
+      P4-F32:
+        global_finite_support:
+          pooled: [1008, 2.2686512894061517, 0.001409132629135108, 0.0006211323158015908, 0.0059149730205535845, 0.01551067864894872, 0.019391536712646484, 0.9999998079518563, 1.0000404877260487]
+          mode_4: [336, 3.7065482151656415, 1.2661376849510258e-05, 3.4159482393093423e-06, 4.682540893554657e-05, 0.00011086672544479392, 0.00011444091796875, 0.9999999999943979, 1.0000006783341555]
+          mode_19: [336, 1.0292925739949301, 0.0002381074162065293, 0.00023133113190778944, 0.0008928477764129622, 0.002132646441459656, 0.0021342039108276367, 0.9999999739711328, 0.9999635626793598]
+          mode_48: [336, 0.8014943197202794, 0.0024290139660700576, 0.0030306065886003793, 0.009747049212455727, 0.018092167973518453, 0.019391536712646484, 0.9999959113623714, 1.0010187345218422]
+        science_roi:
+          pooled: [396, 0.5367349956297511, 0.0005836572789145422, 0.001087421695374525, 0.00227915868163109, 0.003461544588208204, 0.003583177924156189, 0.9999994078931773, 1.0000027244157108]
+          mode_4: [132, 0.8894573180321755, 3.966643132475861e-06, 4.459621672742671e-06, 1.3881921768188475e-05, 1.417028903961182e-05, 1.4185905456542969e-05, 0.9999999999901599, 1.0000000070544672]
+          mode_19: [132, 0.2421605692071406, 0.0001098589563841767, 0.0004536616210635224, 0.0003715092688798903, 0.0004346554502844825, 0.00044143199920654297, 0.999999897171438, 1.0000243368813502]
+          mode_48: [132, 0.12032167186874536, 0.0010049292179722022, 0.00835202172945572, 0.0030464288964867576, 0.003542838767170915, 0.003583177924156189, 0.999965081190205, 1.0000636753413037]
+    worst_case_source: stored_bit_diagnostics.extrema
+    disposition: >-
+      These complete requested diagnostics are available, but the contract has
+      no owner-approved aggregation or limit. They cannot be classified pass or fail.
+  environment_observations:
+    snapshots: 22/22
+    admission_poll_samples_recorded: true
+    measured_launch_ranges:
+      TCPU_millicelsius: [63050, 64050]
+      x86_pkg_temp_millicelsius: [63000, 68000]
+      load_average_1m: [0.81, 1.29]
+    measured_end_ranges:
+      TCPU_millicelsius: [99050, 99050]
+      x86_pkg_temp_millicelsius: [74000, 79000]
+      load_average_1m: [0.83, 1.26]
+    thermal_gate_result: all 18 measured processes admitted
+    thermal_limitation: >-
+      Every measured process ended at the TCPU sensor's 99.05 C reading despite
+      passing the launch admission gate. CPU frequency also varied widely.
+      The balanced timing matrix is thermally saturated, preliminary, and
+      nonbinding; no accepted performance conclusion is claimed.
+  gate_disposition:
+    engineering_checks:
+      descriptor_and_archived_binding: pass-with-recorded-provenance-limitations
+      schedule_status_and_completion: pass
+      output_structure_header_and_finite_masks: pass
+      production_control_to_runner_d64_byte_identity: pass
+      same_candidate_fixed_one_worker_repeatability: pass
+      support_prediction: conservative-underprediction-observed
+    stored.same_backend_repeatability:
+      applicable: true
+      fixed_one_worker_repeat_component: pass
+      passed: null
+      reason: The required one-versus-many worker comparison is recorded separately.
+    stored.bit_diagnostics:
+      applicable: true
+      value: available-above
+      passed: null
+      reason: This frozen-report-only gate has no limit and is not a pass/fail gate.
+    science.residual_product:
+      applicable: true
+      value: available-above
+      passed: null
+      reason: Aggregation and limits remain owner-TBD.
+    science.real_fit_rank_ambiguity:
+      applicable: false
+      value: null
+      passed: null
+      reason: Per-fit spectra, screening bands, and affected-fit identities are not exported.
+    performance.end_to_end_wall_time:
+      applicable: true
+      value: paired samples and diagnostics available above
+      passed: null
+      reason: Limits and uncertainty are owner-TBD, and all measured runs thermally saturated.
+    performance.primary_workload_regression:
+      applicable: false
+      value: null
+      passed: null
+      reason: The owner-designated workload set and limit remain TBD.
+    performance.memory_and_concurrency:
+      applicable: false
+      value: null
+      passed: null
+      reason: Only fixed-one-worker memoryFraction=0 was measured in this matrix.
+    remaining_owner_tbd_science_gates:
+      applicable: false
+      value: null
+      passed: null
+      ids:
+        - science.injected_source_throughput
+        - science.photometry_and_contrast
+        - science.astrometry
+        - science.detection_behavior
+        - science.p4_optimizer
+        - science.p4_model_products
+      reason: Required injections, calibrations, estimators, or model products were not produced.
+  promotion_ready: false
+  interpretation: >-
+    On this finite detector-frame case, mixed precision reduces paired median
+    wall time by 19.26 percent and P4 algorithm time by 24.12 percent; full
+    FP32 reduces them by 19.62 and 24.87 percent. Peak RSS is effectively
+    unchanged. Fully FP32 adds only about 0.50 percent wall-time improvement
+    over mixed precision. The numerical differences are now quantified on all
+    finite global and ROI values, but owner-TBD science limits, absent per-fit
+    ambiguity evidence, thermally saturated timing, and incomplete workload,
+    product, concurrency, and platform coverage prevent promotion.
+
+p4_science_roi_parallel4_cross_worker:
+  status: completed-scoped-cross-worker-repeatability-pass-non-promotion
+  acceptance_binding: frozen-case-descriptor-scoped-gate-evidence
+  case_id: p4.e2e.aflep-science-roi.parallel4.t96.r7-15.m4-19-48.v1
+  descriptor:
+    path: benchmarks/manifests/p4_fp32_aflep_science_roi_parallel_case.yaml
+    sha256: a6b93564c5ba0db6f49c1e834861f138b926fe7fc706d8ff1144ad0d043064b9
+  parent_fixed_one_case:
+    path: benchmarks/manifests/p4_fp32_aflep_science_roi_e2e_case.yaml
+    sha256: ff9dc0c433066045ad37ae0d1effd9ed9fb59b52e9f17de6c5cb46011d7f4ea8
+    result_section: p4_science_roi_fixed1_end_to_end
+  acceptance_contract:
+    path: benchmarks/manifests/p4_klip_fp32_acceptance.yaml
+    schema: hcireduce-pca-precision-acceptance/v1
+    sha256: 255f70885da886504be1ab9ae43ef5e587cee1ef6454a946116e40da10d1135c
+  identities:
+    hcireduce_baseline_commit: 4869c2a52396a7fab45c0afa407ec3da78b5d01e
+    config: {path: working/fp32/baseline/4869c2a/p4Reduce_afLepNaco.conf, sha256: e82cde94979e69752aede256b7531800f15fd5faa0bf946476b79d64ac002067}
+    runner: {path: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/p4ReductionPrecisionBenchmark, sha256: 66f977874495a6a17d28dc6fb39387351aea303dc7fc968bfb086ff8a4f0e099}
+    hcireduce_library: {path: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/libhcireduce.so, sha256: baf7e7ed2c46468ef31331ac429f820f049d7ea064fc241770931e1735263794}
+    mxlib_library: {path: /usr/local/lib/libmxlib.so, sha256: a26b3d09859cde0a7d287b63b9f70cd4ea0d8368568b6c292d3e4090d6f1383c}
+    runtime_binding: >-
+      All environment records match the descriptor, executable, library,
+      config, and candidate identities, and every link map resolves the
+      archived experimental libhcireduce and declared mxlib paths.
+  workload:
+    shape: {samples: 96, predictors: 2988, local_fits: 560, output: [256, 256, 3]}
+    fit_annulus: {minimum_radius_inclusive: 7, maximum_radius_exclusive: 15}
+    science_roi: {center_row_column: [127.5, 127.5], minimum_radius_inclusive: 10, maximum_radius_exclusive: 12, pixels_per_plane: 132}
+    realized_modes: [4, 19, 48]
+    numerical_rank: 96
+    invalid_fits: 0
+    rank_invalid_by_plane: [0, 0, 0]
+    explicit_fallbacks: 0
+    deletion_clamps: 0
+    workers: {outer_openmp: 4, inner_blas_lapack: 1, p4_effective: 4}
+  controls:
+    logical_cpus: [4, 6, 8, 10]
+    physical_cores: [2, 3, 4, 5]
+    environment: {LC_ALL: C, OMP_NUM_THREADS: 4, OMP_DYNAMIC: false, OMP_PROC_BIND: close, OMP_PLACES: "{4},{6},{8},{10}", OPENBLAS_NUM_THREADS: 1, MKL_NUM_THREADS: 1}
+    environment_confirmation: stderr records the requested OpenMP settings for all three runs
+    memory_fraction: 0
+    sequential_execution: true
+    timing_disposition: diagnostic-only single unpaired samples
+  schedule:
+    - {position: 0, run_id: parallel4-pos0-p4-d64, candidate: P4-D64}
+    - {position: 1, run_id: parallel4-pos1-p4-m32d64, candidate: P4-M32D64}
+    - {position: 2, run_id: parallel4-pos2-p4-f32, candidate: P4-F32}
+  evidence_archive:
+    directory: working/fp32/end_to_end/4869c2a/aflep_science_roi_parallel4/runs
+    run_directories: 3
+    files: 18
+    bytes: 2466962
+    all_files_stdout_sha256: 5b7defd2ff5576918134901fb8762bcd1c57a6aa68fc294b5b910d9add1011e4
+    all_files_hash_method: >-
+      SHA-256 of stdout from `LC_ALL=C find
+      working/fp32/end_to_end/4869c2a/aflep_science_roi_parallel4/runs
+      -type f -print0 | sort -z | xargs -0 sha256sum`.
+    artifact_manifest_bundle_sha256: 13a35dee456d002786b1ccc79505a0b6bb59b606435c7939b06b9c10f12bcdbc
+    integrity: All 15 records in the three per-run artifacts.sha256 manifests verify.
+  execution_checks:
+    schedule_and_identity: 3/3 pass
+    time_exit_status_zero: 3/3
+    runner_status_zero: 3/3
+    completed_fit_count: 560/560 in every process
+    error_or_warning_tokens: none found
+    run_interval_utc: ["2026-09-03T04:36:30Z", "2026-09-03T04:37:16Z"]
+  raw_sample_field_order: [wall_seconds, runner_seconds, reduction_total_seconds, algorithm_seconds, loading_seconds, fake_injection_seconds, coadding_seconds, preprocessing_seconds, az_usm_seconds, gauss_usm_seconds, geometry_seconds, sampling_worker_seconds, same_image_sampling_worker_seconds, additional_image_psf_disk_worker_seconds, gram_worker_seconds, eigensolve_worker_seconds, projection_residual_worker_seconds, derotation_seconds, combination_seconds, max_rss_kib, thermal_wait_seconds, TCPU_launch_millicelsius, package_launch_millicelsius, TCPU_end_millicelsius, package_end_millicelsius, load1_launch, load1_end]
+  raw_samples:
+    P4-D64: [1.86, 1.800951335, 1.793959, 1.13355, 0.012885, 0, 0, 0, 0, 0, 0.164873, 1.903828, 1.902304, 0.001524, 1.9988, 0.40424, 0.004585, 0.177453, 0.023028, 452772, 0, 61050, 66000, 99050, 93000, 0.24, 0.24]
+    P4-M32D64: [1.54, 1.485015843, 1.479377, 0.840994, 0.011303, 0, 0, 0, 0, 0, 0.141106, 1.815932, 1.814537, 0.001394, 0.966955, 0.419027, 0.003984, 0.180509, 0.023486, 451848, 32, 64050, 69000, 98050, 78000, 0.27, 0.65]
+    P4-F32: [1.56, 1.509569641, 1.503674, 0.86552, 0.011744, 0, 0, 0, 0, 0, 0.142583, 1.881157, 1.879885, 0.001273, 1.033368, 0.332787, 0.004105, 0.180394, 0.02338, 450376, 8, 64050, 66000, 98050, 78000, 0.68, 0.70]
+  thermal_admission_poll_field_order: [TCPU_millicelsius, x86_pkg_temp_millicelsius]
+  thermal_admission_poll_samples:
+    P4-D64: [[61050, 65000]]
+    P4-M32D64: [[99050, 91000], [98050, 66000], [68050, 68000], [69050, 65000], [65050, 64000], [65050, 68000], [65050, 68000], [68050, 70000], [68050, 68000], [68050, 68000], [68050, 68000], [68050, 70000], [71050, 72000], [68050, 68000], [65050, 67000], [65050, 69000], [64050, 63000]]
+    P4-F32: [[98050, 72000], [65050, 67000], [65050, 65000], [65050, 67000], [64050, 66000]]
+  output_comparison:
+    product_file_sha256:
+      P4-D64: ab685cba5a50691040dc66c82ad164c4ef9f9ad6bf475a0158199a935f8e2b48
+      P4-M32D64: ba7e8cc4b6af42c77af7d5c51a02202a2eed3e773724a3493f7ca4c80325e47c
+      P4-F32: c227b02b827a9d72bdceeb4f84600848a9ce46b8a1f257209a4259c50ab44484
+    science_payload_sha256:
+      P4-D64: cac350bba72e9941059dc160d5f6e9cdac5aa4f516a562dfae9d30b327aed6c0
+      P4-M32D64: ebf6b8d7fbd21776f2f8e9e27553b157aa66884c84314642c4727e9f797e7bf5
+      P4-F32: 983a4fc305b1bdf1acd7a8560e0a372035e0704d2d4592ed6fa0f7ef526e0d16
+    reference: same candidate in p4_science_roi_fixed1_end_to_end
+    fits_axes: [256, 256, 3]
+    array_shape_plane_row_column: [3, 256, 256]
+    finite_values: 1008
+    finite_mask_mismatch_count: 0
+    stored_bit_mismatch_count: 0
+    maximum_ulp_distance: 0
+    header_cards: 134
+    header_comparison: >-
+      Every card is exact except P4 MAXIMUM WORKERS and P4 EFFECTIVE WORKERS,
+      whose values change from 1 to 4 as predeclared.
+  gate_disposition:
+    stored.same_backend_repeatability:
+      status: frozen
+      applicable: true
+      case_scope: direct detector-frame AF Lep science-ROI path
+      passed: true
+      evidence: >-
+        Every candidate's four-worker science payload is bit-identical to its
+        fixed-one-worker reference, with exact finite masks and zero maximum ULP.
+      promotion_blocking_outside_scope: true
+      outside_scope: >-
+        Automatic-memory concurrency, other P4 paths and schedules, KLIP,
+        platforms, and complete fixed-environment determinism coverage remain open.
+    performance.end_to_end_wall_time:
+      applicable: false
+      value: null
+      passed: null
+      reason: Samples are single, sequential, and unpaired; timing is diagnostic only.
+    science.residual_product:
+      applicable: false
+      value: null
+      passed: null
+      reason: This run checks cross-worker equality, not candidate-to-D64 science accuracy.
+    science.real_fit_rank_ambiguity:
+      applicable: false
+      value: null
+      passed: null
+      reason: Per-fit spectra and rank-screening evidence are not exported.
+  thermal_note: >-
+    Thermal waits were 0, 32, and 8 seconds. Launch TCPU was 61.05 to 64.05 C
+    and package temperature 66 to 69 C; process ends reached 98.05 to 99.05 C
+    and 78 to 93 C. Single-run timings are nonbinding.
+  promotion_ready: false
+  interpretation: >-
+    The scoped direct detector-frame AF Lep science-ROI one-versus-four-worker
+    repeatability check passes exactly for all three precision policies. This
+    does not close automatic-memory concurrency, other paths, schedules, or
+    platforms, and does not alter the overall non-promotion disposition.
+
+p4_all_double_scalar_seam:
+  status: pre-contract-compatibility-check-pass
+  acceptance_binding: pre-contract-non-binding
+  scope: direct, centered, and centered-in-place P4PCA entry points
+  implementation: anonymous-namespace P4PCAKernel instantiated as double-double
+  production_default_changed: false
+  focused_test: {test_cases: 30, assertions: 2100, result: pass}
+  bounded_aflep_product:
+    comparison: byte-identical before and after scalar-seam extraction
+    sha256: 9dff0820fe2f8390790a0c44499682b37f20f899c1d386013864cff439fd4774
+  final_default_off_confirmation:
+    status: post-contract-manual-confirmation-pass
+    acceptance_binding: non-binding-incomplete-required-case-set
+    command: >-
+      env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+      _build_fresh/src/p4Reduce --config working/p4Reduce_afLepNaco.conf
+      --input.deleteBack 525 --geom.minRadius 10 --geom.maxRadius 12
+      --p4.modeFractions 0.05,0.2,0.5 --p4.memoryFraction 0
+      --p4.rankTolerance 0
+      --output.directory working/fp32/compatibility/4869c2a
+      --output.fileName p4_d64_bounded_after_experimental_default_off.fits
+      --output.exactFName=true --showTiming=true
+    before:
+      path: working/fp32/baseline/4869c2a/p4_d64_bounded.fits
+      sha256: 9dff0820fe2f8390790a0c44499682b37f20f899c1d386013864cff439fd4774
+    after:
+      path: working/fp32/compatibility/4869c2a/p4_d64_bounded_after_experimental_default_off.fits
+      sha256: 9dff0820fe2f8390790a0c44499682b37f20f899c1d386013864cff439fd4774
+    after_heldout_refactor:
+      path: working/fp32/compatibility/4869c2a/p4_d64_bounded_after_heldout_precision_refactor.fits
+      sha256: 9dff0820fe2f8390790a0c44499682b37f20f899c1d386013864cff439fd4774
+    after_reduction_dispatch:
+      path: working/fp32/compatibility/4869c2a/p4_d64_bounded_after_reduction_dispatch_default_off.fits
+      sha256: 9dff0820fe2f8390790a0c44499682b37f20f899c1d386013864cff439fd4774
+      application_seconds: 1.801173
+      algorithm_seconds: 0.902405
+    byte_comparison: identical
+    samples: 96
+    fits: 132
+    predictor_count: 2988
+    numerical_rank: 96
+    application_seconds: 1.699592
+    algorithm_seconds: 0.867658
+  dynamic_symbol_names:
+    full_library_count_before: 664
+    full_library_count_after: 664
+    p4pca_count_before: 11
+    p4pca_count_after: 11
+    comparison: exact name-set equality
+    full_library_before:
+      path: working/fp32/abi/4869c2a/all_dynamic_symbol_names_before.txt
+      sha256: b374a76030bd9e2a2e4f539cd3a4cfbc5edfb3f28b430313beca45610c6f536d
+    full_library_after_default_off:
+      path: working/fp32/abi/4869c2a/all_dynamic_symbol_names_after_experimental_default_off.txt
+      sha256: b374a76030bd9e2a2e4f539cd3a4cfbc5edfb3f28b430313beca45610c6f536d
+    baseline_p4pca_names:
+      path: working/fp32/abi/4869c2a/p4pca_dynamic_symbol_names_before.txt
+      sha256: e50c7775006e0a52c9f1c5ee4c540690b8fe52ec2708393662050c3ea37fb67d
+    p4pca_after_default_off:
+      path: working/fp32/abi/4869c2a/p4pca_dynamic_symbol_names_after_experimental_default_off.txt
+      sha256: e50c7775006e0a52c9f1c5ee4c540690b8fe52ec2708393662050c3ea37fb67d
+  evidence_limitations: >-
+    The initial check predates acceptance v1. A distinct final default-off
+    product now confirms the same byte identity after the experimental core
+    was added, but the command and FITS product do not carry the acceptance
+    hash themselves and the complete p4_d64_compatibility required case set
+    was not emitted as contract-shaped rows. The formal exact gate therefore
+    still requires a complete contract-bound rerun.
+
+p4_experimental_precision_core:
+  status: direct-centered-heldout-probe-capability-pass
+  acceptance_binding: pre-contract-capability-only
+  cmake_option: HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+  cmake_option_default: false
+  production_default_changed: false
+  runtime_configuration_changed: false
+  scope:
+    - direct
+    - centered preserving input
+    - centered in place
+    - predictor coefficients
+    - explicit target-held-out fits
+    - frozen-probe responses
+  excluded:
+    - centered held-out fits, for which no production API exists
+    - factor deletion and fallback
+    - typed P4Reduction worker storage and automatic memory accounting
+    - shared-PSF coefficient evaluation; target-held-out frozen probes are supported
+    - application dispatch and provenance
+  implementation:
+    kernel_visibility: anonymous translation-unit scope
+    normal_instantiation: [FP64, FP64]
+    experimental_instantiations: [[FP32, FP64], [FP32, FP32]]
+    mixed_solver: promote FP32 Gram into reusable FP64 SYEVR workspace
+    rank_decision: strict comparison on eigenvalues cast back to calculation precision
+    result_storage: explicit cast to existing FP64 P4PCAResult and coefficient arrays
+    lapack_status: returned unchanged before any failed-solve output cast
+  source_sha256:
+    root_cmake: 83256ed1f0bfb113e3ced8749f0e337948d9c80cc352b68757730c4206401548
+    source_cmake: b47ddd0e79199fdd9079899465f3945c421d5e5d1aafa6c2d80c60153982aca3
+    p4pca_header: 9850def9356eca18b839217f325edafb9a5f6d49626739025004a85bf70c1a3e
+    p4pca_source: 6230563c69c723f8bc76b2a17b05c02d53332881edefefa2a8b1fcf6510c66e3
+    p4pca_test: 1b62eabcbf83033c8ddb7a13083bfef67222834c73776ec62a7b20e2dd7ab5fc
+  verification:
+    release_option_off: {test_cases: 30, assertions: 2107, result: pass}
+    release_option_on: {test_cases: 39, assertions: 4564, result: pass}
+    experimental_tag_option_on: {test_cases: 9, assertions: 2457, result: pass}
+    asan_ubsan_option_on: {test_cases: 39, assertions: 4564, result: pass}
+    tested_gram_orientations: [temporal, predictor]
+    tested_paths: [direct, centered, centered-in-place, coefficients, explicit-held-out, frozen-probe]
+    tested_failures: [lapack_status_37, lapack_status_minus_1000]
+    tested_rank_case: exact_rank_2_at_zero_tolerance_with_mode_3_unsupported_and_nan
+    tested_adapter_robustness:
+      - exact positive rank boundary
+      - alternating policy and dimension workspace reuse
+      - invalid policy rejection
+      - FP64 ingress to FP32 overflow rejection
+      - held-out probe output/input alias rejection before mutation
+      - noncontiguous requested modes against independent retained-row SVD fits
+    normal_dynamic_symbol_name_count: 664
+    normal_dynamic_symbol_names_unchanged: true
+    experimental_symbols_present_when_option_off: false
+    enabled_build_unique_dynamic_symbol_additions: 15
+    enabled_build_symbol_note: >-
+      The opt-in build exposes Doxygen-hidden detail entry points plus linked
+      FP32 template instantiations; it is a developer evaluation ABI, not a
+      stable external interface.
+  coverage_note: >-
+    mxlib's isFinite<float> specialization is directly covered and its
+    floatUtils source has 20/20 executable lines. The public
+    eigenSYEVR<float>/syevrMem<float> adapter and workspace remain absent from
+    mxlib's LCOV trace; the hciReduce tests are linked integration coverage,
+    and the upstream gap remains in agents/plans/mxlib_cleanup.md.
+
+p4_experimental_reduction_dispatch:
+  status: internal-reduction-capability-pass
+  acceptance_binding: pre-contract-capability-only
+  cmake_option: HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+  production_default_changed: false
+  runtime_configuration_changed: false
+  public_p4reduction_specialization_changed: false
+  implementation:
+    policy_resolution: once before each OpenMP worker loop
+    policies: [P4-D64, P4-M32D64, P4-F32]
+    immutable_call_targets: [direct, centered-in-place, explicit-held-out, held-out-frozen-probe]
+    workspace_ownership: one typed experimental workspace per active worker
+    existing_boundary: FP64 sampled predictors, targets, results, coefficients, and downstream storage
+    supported_reduction_paths:
+      - detector-frame direct
+      - rotated-frame centered-in-place
+      - explicit target-held-out direct
+      - target-held-out frozen-probe and PSF batch
+    non_double_pre_mutation_rejections:
+      - automatic memory limiting until the worker-byte estimator is precision-aware
+      - exact factor deletion
+      - shared-PSF coefficients
+      - local trial evaluation
+      - invalid precision policy
+  source_sha256:
+    p4reduction_header: 04e7ee1ba59912e5f674691894df4ddc62a1238110e18fee385a6db9f20cf129
+    p4reduction_source: 1804dfff0b81d67294e741b51766a0714c82693a45494261d84dd9a896a71cf8
+    p4reduction_test: d953dbe8d923f171f957556c9ec5e02e3b22da98e8453d11842cc1d9fedb69f9
+  verification:
+    release_option_off: {test_cases: 22, assertions: 75452, result: pass}
+    release_option_on: {test_cases: 26, assertions: 294152, result: pass}
+    experimental_tag_option_on: {test_cases: 4, assertions: 218700, result: pass}
+    asan_ubsan_experimental_tag_option_on:
+      {test_cases: 4, assertions: 218700, result: pass, leak_detection: disabled_for_openmp_runtime}
+    tested_paths:
+      - DD exact against the ordinary production reduction call
+      - mixed and F32 detector-frame direct within declared bounds
+      - mixed and F32 rotated centered-in-place within declared bounds
+      - explicit-held-out rank-invalid validity and NaN propagation
+      - target-held-out frozen-probe response
+      - exact F32 structure and values with one versus four outer workers
+      - every unsupported-path rejection before output mutation
+    default_off_experimental_dynamic_symbols: 0
+    default_off_demangled_dynamic_symbol_names: {count: 664, comparison_to_baseline: exact}
+    option_on_demangled_dynamic_symbol_names: {count: 681, additional: 17}
+  final_default_off_product:
+    comparison: byte-identical to the known-good bounded AF Lep baseline
+    path: working/fp32/compatibility/4869c2a/p4_d64_bounded_after_reduction_dispatch_default_off.fits
+    sha256: 9dff0820fe2f8390790a0c44499682b37f20f899c1d386013864cff439fd4774
+    samples: 96
+    fits: 132
+    predictor_count: 2988
+    application_seconds: 1.801173
+    algorithm_seconds: 0.902405
+  evidence_limitations: >-
+    Candidate reduction tests are synthetic and not emitted as contract-v1
+    production or stored-product rows. Descriptor-bound AF Lep evidence now
+    includes finite detector-frame science-ROI products, complete report-only
+    residual diagnostics, and exact one-versus-four-worker repeatability for
+    that direct path. Owner-approved science limits, a precision-aware automatic
+    worker policy, other schedules and platforms, factor deletion, rotated,
+    held-out, shared-coefficient, local/optimizer, and other science-product
+    paths remain open. Enormous held-out/probe column products and LAPACK int
+    narrowing also remain unchecked because current production dimensions are
+    far below those limits.
+
+baseline_tests:
+  p4_pca_before_scalar_seam: {test_cases: 30, assertions: 2087, result: pass}
+  p4_pca_after_scalar_seam: {test_cases: 30, assertions: 2107, result: pass}
+  p4_reduction_option_off: {test_cases: 22, assertions: 75452, result: pass}
+  p4_reduction_option_on: {test_cases: 26, assertions: 294152, result: pass}
+  p4_application: {test_cases: 14, assertions: 571, result: pass}
+  klip_reduction_with_fp32_capability_cases:
+    {test_cases: 44, assertions: 9441428, result: pass}
+  klip_application: {test_cases: 7, assertions: 36, result: pass}
+
+capability:
+  fp32_syevr_source_api: true
+  linked_float_wrapper_symbol: "mx::math::syevr<float>"
+  linked_float_lapack_call: ssyevr_
+  linked_backend_exports_ssyevr: true
+  linked_backend_exports_dsyevr: true
+  direct_fp32_klip_test:
+    gram_orientations: [reference, pixel]
+    oracle: Eigen FP64 direct thin SVD
+    comparisons: [individual_mode_projector, retained_projector, target_residual]
+    result: pass
+  worker_fp32_klip_test:
+    gram_orientations: [reference, pixel]
+    library_paths: [shared, target-specific-selected]
+    oracle: Eigen FP64 direct thin SVD
+    comparisons: [worker_residual, finite_output, mode_clamping, inclusion_flags]
+    assertions: 790
+    result: pass
+  mxlib_lcov:
+    report_date: 2026-08-30
+    commit: 3a03627255b3ed5a9657b8082a0c6a79aef4365d
+    fully_covered_double_or_shared_source_ranges:
+      isFinite_all_emitted_scalars: 20/20
+      isFinite_float_function_hits: 1547
+      eigenSYRK_double: 10/10
+      syevrMem_double: 19/19
+      eigenSYEVR_double: 60/60
+      calcEigenVecs_relevant_ranges: 49/49
+      calcKLModes_relevant_ranges: 40/40
+      lower_level_syevr_float_wrapper: covered
+    uncovered_exact_fp32_paths:
+      eigenSYRK_float_adapter: specialization absent from trace
+      eigenSYEVR_float_adapter_and_workspace: specializations absent from trace
+      syrk_float_executable_lines: 0/3
+      gemm_float_executable_lines: 0/3
+    specialization_note: >-
+      hciReduce differential tests and benchmarks execute the linked float
+      specializations as integration checks, but downstream execution does
+      not satisfy mxlib's own executable-line coverage gate. The required
+      focused mxlib work is recorded in agents/plans/mxlib_cleanup.md.
+
+known_measurement_caveats:
+  - The four earlier application smoke profiles have only one observation each and cannot support a speed claim.
+  - Both balanced fixed-one-worker P4 matrices reached 99.05 C at TCPU process boundaries; their timings remain preliminary engineering evidence, not accepted performance results.
+  - The four-worker science-ROI timings are single unpaired diagnostics; process ends reached 98.05 to 99.05 C despite thermal admission.
+  - The managed execution environment printed stream-fd warnings during KLIP runs; repeat outside it for final timing.
+  - P4 and KLIP read the same 256x256 files, but KLIP crops to 128x128 from its configured maximum radius.
+  - The P4 smoke profile used the config's effective zero rank threshold; synthetic exact dependencies expose raw rank differences, and real-fit ambiguity/product sensitivity remains required.
+  - Production configs and archived products are ignored by Git; verify their hashes before every measured run.
+  - The initial well-conditioned P4 timing rows were not pinned to one homogeneous core class; rank-sensitive P4 and KLIP rows were pinned to logical CPU 4.
+  - The synthetic P4 ambiguity band is construction-specific and cannot be reused as a real-fit or science tolerance.
+  - Current KLIP timings exclude reference selection, collapse, OpenMP scheduling, and multi-mode product materialization.
+  - Formal acceptance cases not yet emitted include the exact-after-FP32-quantization threshold family, the exact-zero matrix, requested-mode clusters, and the complete KLIP rank-boundary and stored-product case sets.
+  - Contract-v1 timing rows are kernel diagnostics and intentionally leave the owner-TBD end-to-end performance gate unavailable; they cannot establish an application speedup.
+  - Fourteen of eighteen applicable rank rows retain unresolved in-band ambiguity despite exact outside-band agreement; every contract-bound row therefore remains promotion_ready=false.
+  - The wide explicit-held-out FP32 coefficient path currently exports coefficients through FP64 and recasts them to FP32 after the recorded PCA timing; account for that conversion or retain typed scratch before using held-out stage timing for a decision. The detector-frame AF Lep timings above do not use this path.
+  - Production probe-output alias rejection is covered indirectly through the experimental wrapper, and exact DD reduction-dispatch equivalence is direct-detector-only; add direct alias coverage plus centered, held-out, and frozen-probe DD equivalence cases before promotion.
+  - Huge synthetic held-out/probe dimensions could overflow result-column arithmetic or narrow into LAPACK int parameters; those boundaries need explicit checks before the experimental API can be supported externally.

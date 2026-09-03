@@ -82,6 +82,12 @@ target_link_libraries(klipReduce PUBLIC hcireduce-shared)
 target_link_libraries(hciAnalyze PUBLIC hcireduce-shared)
 target_link_libraries(p4Reduce PUBLIC hcireduce-shared)
 
+if(HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION)
+    target_compile_definitions(objlib PRIVATE HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION=1)
+    target_compile_definitions(hcireduce-shared INTERFACE HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION=1)
+    target_compile_definitions(hcireduce-static INTERFACE HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION=1)
+endif()
+
 # Keep installed executables paired with the libhcireduce from the same prefix.
 set_target_properties(klipReduce hciAnalyze p4Reduce PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 

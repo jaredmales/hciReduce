@@ -76,9 +76,23 @@ unfiltered results when PSF calculation/filtering is disabled.
 
 ## Evaluate extent of double vs float in P4.
 
-[] In P4 double precision is carried through to more than just matrix decomposition.  We should evaluate if there are performance gains for switching to float for more of the algorithm.
+Implementation plan: `agents/plans/p4_klip_fp32_evaluation.md`.
 
-[] We should also evaluate using FP32 for all of KLIP.  
+Decision accepted 2026-09-03. Promote P4's direct, centered, explicit-held-out, shared-coefficient, local-trial, and
+frozen-probe PCA work to M32D64: FP32 calculation and Gram construction with an FP64 eigensolve. Retain the public
+all-double P4 API as the regression oracle; exact factor deletion and its whole-search-pixel explicit fallback remain
+FP64. KLIP already uses M32D64 for its direct path and retains that production default; its exact factor-deletion path
+remains an FP64 internal exception.
+
+The decision uses the measured P4 result that M32D64 delivered about a 19.3% paired whole-process improvement, while
+fully FP32 improved about 19.6%. The owner acknowledged thermal throttling and the wider incomplete frozen gate set and
+selected the lower-risk FP64 eigensolve boundary. Frozen manifests remain historical records with
+`promotion_ready=false`; they are not retroactively marked as formal gate passes. Further FP32 eigensolve, rank-policy,
+factor-deletion, and guarded/runtime-policy exploration is tabled until GPU acceleration resumes.
+
+[x] Evaluate moving P4 arithmetic beyond matrix decomposition to FP32 and promote the M32D64 policy.
+
+[x] Evaluate an all-FP32 KLIP path and retain KLIP-M32D64 as the lower-risk production policy.
 
 ## P4 Pixel Local Processing 
 

@@ -1,0 +1,146 @@
+schema: hcireduce-p4-precision-end-to-end-case/v1
+created: "2026-09-02"
+status: predeclared-not-run
+case_id: p4.e2e.aflep-science-roi.parallel4.t96.r7-15.m4-19-48.v1
+purpose: >-
+  Test whether four outer P4 workers preserve each precision policy's stored
+  science bits from the completed fixed-one-worker AF Lep science-ROI case.
+predeclaration_statement: >-
+  No result from this parallel case was produced or inspected before this
+  descriptor was written. The fixed-one-worker reference products were known.
+
+acceptance_binding:
+  contract_path: benchmarks/manifests/p4_klip_fp32_acceptance.yaml
+  contract_schema: hcireduce-pca-precision-acceptance/v1
+  contract_sha256: 255f70885da886504be1ab9ae43ef5e587cee1ef6454a946116e40da10d1135c
+  case_sets: [fixed_environment_determinism, end_to_end_science]
+  primary_gate: stored.same_backend_repeatability
+  promotion_ready: false
+
+source_and_runtime:
+  hcireduce_baseline_commit: 4869c2a52396a7fab45c0afa407ec3da78b5d01e
+  experimental_runner:
+    path: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/p4ReductionPrecisionBenchmark
+    sha256: 66f977874495a6a17d28dc6fb39387351aea303dc7fc968bfb086ff8a4f0e099
+  hcireduce_library:
+    path: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/libhcireduce.so
+    sha256: baf7e7ed2c46468ef31331ac429f820f049d7ea064fc241770931e1735263794
+  mxlib_library:
+    path: /usr/local/lib/libmxlib.so
+    sha256: a26b3d09859cde0a7d287b63b9f70cd4ea0d8368568b6c292d3e4090d6f1383c
+  binding_rule: >-
+    Set LD_LIBRARY_PATH to the archived experimental-runner directory followed
+    by /usr/local/lib, and record the resolved link map for every process.
+
+configuration:
+  parent_case_descriptor:
+    path: benchmarks/manifests/p4_fp32_aflep_science_roi_e2e_case.yaml
+    sha256: ff9dc0c433066045ad37ae0d1effd9ed9fb59b52e9f17de6c5cb46011d7f4ea8
+  archived_run_path: working/fp32/baseline/4869c2a/p4Reduce_afLepNaco.conf
+  sha256: e82cde94979e69752aede256b7531800f15fd5faa0bf946476b79d64ac002067
+  exact_overrides:
+    input.deleteBack: 525
+    geom.minRadius: [7]
+    geom.maxRadius: [15]
+    p4.modeFractions: [0.05, 0.2, 0.5]
+    p4.memoryFraction: 0
+    p4.rankTolerance: 0
+    output.directory: "{run_directory}"
+    output.fileName: product.fits
+    output.exactFName: true
+    showTiming: true
+    benchmark.precision: "{candidate_id}"
+  workload:
+    samples: 96
+    fitted_source_pixels: 560
+    predictors_per_fit: 2988
+    gram_orientation: temporal_T_le_K
+    rank: 96
+    realized_modes: [4, 19, 48]
+    output: {bitpix: -32, shape: [256, 256, 3]}
+    finite_pixels_per_plane: 336
+    science_roi: {center: [127.5, 127.5], radii: [10, 12], pixels_per_plane: 132}
+
+fixed_one_worker_references:
+  science_payload_hash_method: >-
+    SHA-256 over the primary array's contiguous big-endian FP32 bytes in FITS
+    logical [plane,row,column] order, excluding header and FITS block padding.
+  P4-D64:
+    path: working/fp32/end_to_end/4869c2a/aflep_science_roi_fixed1/runs/rep0-pos0-p4-d64/product.fits
+    file_sha256: 3934609b4364c7256b53dffd89900f4714a6bc5eb83993094849ec486276d93a
+    science_payload_sha256: cac350bba72e9941059dc160d5f6e9cdac5aa4f516a562dfae9d30b327aed6c0
+  P4-M32D64:
+    path: working/fp32/end_to_end/4869c2a/aflep_science_roi_fixed1/runs/rep0-pos1-p4-m32d64/product.fits
+    file_sha256: dc869541331235089b933af35d233f99c98cfb45be77c5e1d8fe0b04427e0c54
+    science_payload_sha256: ebf6b8d7fbd21776f2f8e9e27553b157aa66884c84314642c4727e9f797e7bf5
+  P4-F32:
+    path: working/fp32/end_to_end/4869c2a/aflep_science_roi_fixed1/runs/rep0-pos2-p4-f32/product.fits
+    file_sha256: 49eeee61b61092b744d6f6688f51d3dbfe27174c6f908ca4688b36e7d0b32cf3
+    science_payload_sha256: 983a4fc305b1bdf1acd7a8560e0a372035e0704d2d4592ed6fa0f7ef526e0d16
+
+execution_control:
+  artifact_root: working/fp32/end_to_end/4869c2a/aflep_science_roi_parallel4/runs
+  sequential_only: true
+  affinity:
+    taskset_logical_cpus: [4, 6, 8, 10]
+    physical_cores: [2, 3, 4, 5]
+    core_class: performance
+    smt_siblings_excluded: [5, 7, 9, 11]
+  environment:
+    LC_ALL: C
+    OMP_NUM_THREADS: "4"
+    OMP_DYNAMIC: "FALSE"
+    OMP_PROC_BIND: close
+    OMP_PLACES: "{4},{6},{8},{10}"
+    OMP_DISPLAY_ENV: VERBOSE
+    OPENBLAS_NUM_THREADS: "1"
+    MKL_NUM_THREADS: "1"
+    LD_LIBRARY_PATH: /home/jrmales/Source/mxApps/hciReduce/working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1:/usr/local/lib
+  outer_openmp_threads: 4
+  inner_blas_lapack_threads: 1
+  thermal_admission:
+    poll_interval_seconds: 2
+    timeout_seconds: 60
+    condition: TCPU at most 65 C and x86_pkg_temp at most 70 C in the same poll
+    zones:
+      - {path: /sys/class/thermal/thermal_zone2, expected_type: TCPU, maximum_celsius: 65}
+      - {path: /sys/class/thermal/thermal_zone13, expected_type: x86_pkg_temp, maximum_celsius: 70}
+    failure_action: Stop without launching after timeout or a zone-type mismatch.
+  invocation_argv: >-
+    taskset -c 4,6,8,10 /usr/bin/time --verbose --output {time_report}
+    {runner} --config {archived_run_config} --precision {candidate_id}
+    --input.deleteBack 525 --geom.minRadius 7 --geom.maxRadius 15
+    --p4.modeFractions 0.05,0.2,0.5 --p4.memoryFraction 0
+    --p4.rankTolerance 0 --output.directory {run_directory}
+    --output.fileName product.fits --output.exactFName=true --showTiming=true
+
+schedule:
+  - {position: 0, run_id: parallel4-pos0-p4-d64, candidate_id: P4-D64}
+  - {position: 1, run_id: parallel4-pos1-p4-m32d64, candidate_id: P4-M32D64}
+  - {position: 2, run_id: parallel4-pos2-p4-f32, candidate_id: P4-F32}
+
+required_comparisons:
+  science_payload:
+    formula: exact bitwise equality to the same candidate's fixed-one-worker primary array
+    limit: {op: equal, maximum_ulp_distance: 0, mismatch_count: 0}
+    nan_rule: NaN payload bits are ignored only after exact NaN-location equality.
+    evidence: [payload hashes, finite-mask hashes, maximum ULP distance, first mismatch coordinate]
+  header:
+    permitted_differences:
+      - {keyword: P4 MAXIMUM WORKERS, fixed_one: "1", parallel_four: "4"}
+      - {keyword: P4 EFFECTIVE WORKERS, fixed_one: "1", parallel_four: "4"}
+    every_other_card: exact
+  structure:
+    exact: [BITPIX, shape, selection, predictor_count, fit_count, rank, modes, invalid_counts, fallback_counts]
+  timing_and_rss:
+    disposition: diagnostic-only single samples; no performance comparison or pass
+
+gate_disposition_before_run:
+  stored.same_backend_repeatability:
+    case_scope: detector-frame direct AF Lep science-ROI path
+    passed: to_be_measured
+    promotion_blocking_outside_scope: true
+  performance.end_to_end_wall_time: {available: false, passed: null, reason: single unpaired diagnostic samples}
+  science.residual_product: {available: false, passed: null, reason: cross-worker check only}
+  science.real_fit_rank_ambiguity: {available: false, passed: null, reason: per-fit spectra are not exported}
+  promotion_ready: false

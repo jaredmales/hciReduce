@@ -1,0 +1,260 @@
+schema: hcireduce-p4-precision-end-to-end-case/v1
+created: "2026-09-02"
+status: predeclared-not-run
+case_id: p4.e2e.aflep-bounded.fixed1.t96.k2988.m4-19-48.v1
+purpose: >-
+  Freeze one benchmark-only, bounded AF Lep/NACO end-to-end comparison of
+  P4-D64, P4-M32D64, and P4-F32 before any candidate measurements are made.
+
+acceptance_binding:
+  contract_path: benchmarks/manifests/p4_klip_fp32_acceptance.yaml
+  contract_schema: hcireduce-pca-precision-acceptance/v1
+  contract_sha256: 255f70885da886504be1ab9ae43ef5e587cee1ef6454a946116e40da10d1135c
+  case_sets: [end_to_end_science, end_to_end_performance, fixed_environment_determinism]
+  note: >-
+    This descriptor adds a predeclared case without changing acceptance v1.
+    Owner-TBD gates remain unavailable and no result from this case alone can
+    authorize a production precision change.
+  promotion_ready: false
+
+source_and_runtime:
+  hcireduce_baseline_commit: 4869c2a52396a7fab45c0afa407ec3da78b5d01e
+  experimental_worktree: uncommitted precision benchmark patch over the baseline commit
+  mxlib_commit: 3a03627255b3ed5a9657b8082a0c6a79aef4365d
+  build_type: Release
+  compiler: GCC 15.2.0
+  cmake: 4.2.3
+  runner:
+    path: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/p4ReductionPrecisionBenchmark
+    sha256: 66f977874495a6a17d28dc6fb39387351aea303dc7fc968bfb086ff8a4f0e099
+  shared_libraries:
+    hcireduce:
+      path: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/libhcireduce.so
+      sha256: baf7e7ed2c46468ef31331ac429f820f049d7ea064fc241770931e1735263794
+    mxlib:
+      path: /usr/local/lib/libmxlib.so
+      sha256: a26b3d09859cde0a7d287b63b9f70cd4ea0d8368568b6c292d3e4090d6f1383c
+  library_binding: >-
+    Set LD_LIBRARY_PATH to the archived end-to-end directory followed by
+    /usr/local/lib; verify the runtime link map and all hashes before running.
+
+configuration:
+  known_good_path: working/p4Reduce_afLepNaco.conf
+  archived_run_path: working/fp32/baseline/4869c2a/p4Reduce_afLepNaco.conf
+  sha256: e82cde94979e69752aede256b7531800f15fd5faa0bf946476b79d64ac002067
+  mode: normal
+  exact_overrides:
+    input.deleteBack: 525
+    geom.minRadius: [10]
+    geom.maxRadius: [12]
+    p4.modeFractions: [0.05, 0.2, 0.5]
+    p4.memoryFraction: 0
+    p4.rankTolerance: 0
+    output.directory: "{run_directory}"
+    output.fileName: product.fits
+    output.exactFName: true
+    showTiming: true
+    benchmark.precision: "{candidate_id}"
+  resolved_identity:
+    input_mask: none
+    rdi: disabled
+    coadd_method: none
+    preprocessing: {skip: true, inherit: true}
+    adi_exclude_method: none
+    p4_regression_frame: detector
+    p4_in_sample: true
+    p4_exclusion_policy: sampleCenter
+    p4_exclusion_radius_buffer: 0.0
+    p4_number_images: 0
+    p4_optimizer: disabled
+    p4_psf_and_filter_products: disabled
+    combine: {method: sigmaMean, sigma_threshold: 5, minimum_good_fraction: 0}
+
+bounded_input:
+  dataset_id: aflep-naco-2011-10-21-coadd5-pp.first-96
+  directory: /home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp
+  selection: first 96 lexically ordered pp_*.fits files after input.deleteBack=525
+  first_file: pp_000000.fits
+  last_file: pp_000095.fits
+  file_count: 96
+  total_bytes: 26265600
+  filename_list_sha256: 1549b537fa1e835d78451f0e9a4d43cb3d6ba96710568a9f9de816c03c19cbc0
+  ordered_checksum_list_sha256: dcef5559b17540abc403d4aea6b1d76d4f8231e0e57d7fd5fc2baccbbcea6d45
+  first_file_sha256: f18d3cb16c8ed43841a4ffbbeeb28bae1fe0c17cdf26468722cd03b13fa85dfc
+  last_file_sha256: 35fefbdfc692e345f976dfb449ca1811956c4cf43dccbdcc0ad58cb5528ddd22
+  primary_array_float32_le_c_order_sha256: cc69e26886b11f058b8f93b269279fd465a770446f344db825f1e4adf4eff081
+  primary_array_finite_mask_uint8_c_order_sha256: 856a7d62e6bf8b1e8cd815bd086af8cd63158e81eeaacf2228e7179fe5f9dc7c
+  primary_array_values: {count: 6291456, finite_count: 6291456, order: [frame, row, column]}
+  checksum_method: >-
+    With LC_ALL=C in the dataset directory, hash the newline-terminated sorted
+    relative basename list; separately hash the stdout of sha256sum over that
+    same ordered list.
+  image: {bitpix: -32, shape: [256, 256], angle_keyword: POSANG, angle_scale: 1, angle_constant: 1.6}
+
+expected_workload:
+  samples: 96
+  annuli: [[10, 12]]
+  fits: 132
+  search_pixels: 132
+  predictors_per_fit: 2988
+  gram_orientation: temporal_T_le_K
+  requested_mode_fractions: [0.05, 0.2, 0.5]
+  realized_modes: [4, 19, 48]
+  output: {bitpix: -32, shape: [256, 256, 3], plane_order: [4, 19, 48]}
+  d64_expected: {minimum_rank: 96, valid_fits: 132, rank_invalid_by_plane: [0, 0, 0]}
+
+candidates:
+  - id: P4-D64
+    slug: p4-d64
+    role: authoritative benchmark oracle
+    calculation_precision: FP64
+    eigensolve_precision: FP64
+  - id: P4-M32D64
+    slug: p4-m32d64
+    role: candidate
+    calculation_precision: FP32
+    eigensolve_precision: FP64
+  - id: P4-F32
+    slug: p4-f32
+    role: candidate
+    calculation_precision: FP32
+    eigensolve_precision: FP32
+
+execution_control:
+  launch_directory: /home/jrmales/Source/mxApps/hciReduce
+  sequential_only: true
+  affinity: {tool: taskset, logical_cpu: 4, physical_core: 2, core_class: performance}
+  environment:
+    LC_ALL: C
+    OMP_NUM_THREADS: "1"
+    OMP_DYNAMIC: "FALSE"
+    OMP_PROC_BIND: close
+    OMP_PLACES: cores
+    OPENBLAS_NUM_THREADS: "1"
+    MKL_NUM_THREADS: "1"
+    LD_LIBRARY_PATH: /home/jrmales/Source/mxApps/hciReduce/working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1:/usr/local/lib
+  inner_blas_lapack_threads: 1
+  outer_openmp_threads: 1
+  warmups_per_candidate: 1
+  measured_runs_per_candidate: 6
+  wall_and_rss_tool: /usr/bin/time --verbose
+  invocation_argv: >-
+    taskset -c 4 /usr/bin/time --verbose --output {time_report}
+    {runner} --config {archived_run_config} --precision {candidate_id}
+    --input.deleteBack 525 --geom.minRadius 10 --geom.maxRadius 12
+    --p4.modeFractions 0.05,0.2,0.5 --p4.memoryFraction 0
+    --p4.rankTolerance 0 --output.directory {run_directory}
+    --output.fileName product.fits --output.exactFName=true --showTiming=true
+  artifact_root: working/fp32/end_to_end/4869c2a/aflep_bounded_fixed1/runs
+  artifact_templates:
+    run_directory: "{artifact_root}/{run_id}"
+    product: "{run_directory}/product.fits"
+    stdout: "{run_directory}/stdout.log"
+    stderr: "{run_directory}/stderr.log"
+    time_report: "{run_directory}/time.txt"
+    environment_snapshot: "{run_directory}/environment.txt"
+  uniqueness_rule: Every scheduled run_id and expanded artifact path must be unique and absent before execution.
+
+schedule:
+  warmups:
+    - {run_id: warmup-p4-d64, candidate_id: P4-D64}
+    - {run_id: warmup-p4-m32d64, candidate_id: P4-M32D64}
+    - {run_id: warmup-p4-f32, candidate_id: P4-F32}
+  measured_balanced_order:
+    - repetition: 0
+      runs:
+        - {position: 0, run_id: rep0-pos0-p4-d64, candidate_id: P4-D64}
+        - {position: 1, run_id: rep0-pos1-p4-m32d64, candidate_id: P4-M32D64}
+        - {position: 2, run_id: rep0-pos2-p4-f32, candidate_id: P4-F32}
+    - repetition: 1
+      runs:
+        - {position: 0, run_id: rep1-pos0-p4-m32d64, candidate_id: P4-M32D64}
+        - {position: 1, run_id: rep1-pos1-p4-f32, candidate_id: P4-F32}
+        - {position: 2, run_id: rep1-pos2-p4-d64, candidate_id: P4-D64}
+    - repetition: 2
+      runs:
+        - {position: 0, run_id: rep2-pos0-p4-f32, candidate_id: P4-F32}
+        - {position: 1, run_id: rep2-pos1-p4-d64, candidate_id: P4-D64}
+        - {position: 2, run_id: rep2-pos2-p4-m32d64, candidate_id: P4-M32D64}
+    - repetition: 3
+      runs:
+        - {position: 0, run_id: rep3-pos0-p4-f32, candidate_id: P4-F32}
+        - {position: 1, run_id: rep3-pos1-p4-m32d64, candidate_id: P4-M32D64}
+        - {position: 2, run_id: rep3-pos2-p4-d64, candidate_id: P4-D64}
+    - repetition: 4
+      runs:
+        - {position: 0, run_id: rep4-pos0-p4-m32d64, candidate_id: P4-M32D64}
+        - {position: 1, run_id: rep4-pos1-p4-d64, candidate_id: P4-D64}
+        - {position: 2, run_id: rep4-pos2-p4-f32, candidate_id: P4-F32}
+    - repetition: 5
+      runs:
+        - {position: 0, run_id: rep5-pos0-p4-d64, candidate_id: P4-D64}
+        - {position: 1, run_id: rep5-pos1-p4-f32, candidate_id: P4-F32}
+        - {position: 2, run_id: rep5-pos2-p4-m32d64, candidate_id: P4-M32D64}
+
+oracle_product:
+  path: working/fp32/baseline/4869c2a/p4_d64_bounded.fits
+  sha256: 9dff0820fe2f8390790a0c44499682b37f20f899c1d386013864cff439fd4774
+  expected_compatibility: Every measured P4-D64 product must be byte-identical to this artifact.
+  known_limitation: >-
+    The FITS layout and header are valid and report 132 valid fits, but this
+    narrow sigmaMean product contains zero finite science values out of
+    196608. It is useful for timing, compatibility hashes, metadata/validity,
+    and fixed-environment repeatability, not residual-science comparison.
+
+required_diagnostics:
+  per_run:
+    - exit status and exact candidate/run identity
+    - product SHA-256, byte count, FITS header, BITPIX, shape, and ordered plane metadata
+    - finite, NaN, and validity counts and masks by plane
+    - whole-process wall seconds and maximum resident set size in KiB
+    - benchmark algorithm elapsed seconds and complete ReductionTiming output
+    - P4 geometry, sampling, Gram, eigensolve, projection, derotation, and combination timings
+    - realized modes, rank metadata, fit counts, fallback counts, and worker counts
+    - affinity, thread environment, runtime link map, load average, CPU frequency, and available thermal readings
+  aggregate:
+    - every raw measured sample in execution order
+    - per-candidate median, range, and median absolute deviation for wall, algorithm, and stage timing
+    - paired P4-D64-over-candidate speedup and fractional improvement, with pairing stated explicitly
+    - peak-RSS values and ratios
+    - exact output/header/plane/validity comparisons against P4-D64
+    - same-candidate repeat product hashes and mismatch coordinates
+
+gate_disposition_before_run:
+  frozen_exact_checks:
+    - exact.run_identity
+    - exact.output_layout
+    - exact.selection
+    - exact.validity
+    - stored.structure
+  diagnostic_only:
+    - id: stored.bit_diagnostics
+      available: false
+      passed: null
+      reason: The declared oracle product has no finite science-value pairs.
+    - id: science.residual_product
+      available: false
+      passed: null
+      reason: The declared oracle product has no finite science-value pairs.
+    - id: stored.same_backend_repeatability
+      available: partial
+      passed: null
+      reason: Fixed-one-worker repeats are measured; the required one-versus-many comparison is not.
+    - id: performance.end_to_end_wall_time
+      available: measurements-only
+      passed: null
+      reason: Samples and summary statistics are recorded, but aggregation, uncertainty, and limits are owner-TBD.
+  unavailable_owner_tbd:
+    - performance.primary_workload_regression
+    - performance.memory_and_concurrency
+    - science.injected_source_throughput
+    - science.photometry_and_contrast
+    - science.astrometry
+    - science.detection_behavior
+    - science.p4_optimizer
+    - science.p4_model_products
+  unavailable_real_fit:
+    - id: science.real_fit_rank_ambiguity
+      passed: null
+      reason: The benchmark runner does not export per-fit eigenvalues, screening bands, or affected-fit identities.
+  promotion_ready: false

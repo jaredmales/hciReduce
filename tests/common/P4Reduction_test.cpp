@@ -289,6 +289,38 @@ void prepareReduction( reductionHarness &reduction, /**< [out] configured reduct
     reduction.m_doOutputPSFSub = false;
 }
 
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+/// Configure a well-conditioned, spatially varying cube for reduction-level precision comparisons.
+void preparePrecisionReduction( reductionHarness &reduction, /**< [out] configured reduction */
+                                bool rotated = false /**< [in] whether to select rotated-frame regression */ )
+{
+    prepareReduction( reduction, 7 );
+    reduction.m_modeFractions = { 0.2F, 0.4F };
+    reduction.m_rankTolerance = 1e-5;
+    reduction.m_memoryFraction = 0;
+    reduction.m_derotF.m_angles = { -9, -6, -3, 0, 3, 6, 9 };
+    if( rotated )
+    {
+        reduction.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+    }
+    for( int image = 0; image < reduction.m_Nims; ++image )
+    {
+        const double phase = static_cast<double>( image + 1 );
+        for( int column = 0; column < reduction.m_Ncols; ++column )
+        {
+            for( int row = 0; row < reduction.m_Nrows; ++row )
+            {
+                reduction.m_tgtIms.image( image )( row, column ) =
+                    static_cast<float>( std::sin( 0.071 * phase * static_cast<double>( row + 1 ) ) +
+                                        std::cos( 0.053 * ( phase + 0.5 ) * static_cast<double>( column + 1 ) ) +
+                                        0.0017 * phase * static_cast<double>( row * column ) +
+                                        0.00013 * phase * phase * phase * static_cast<double>( row - column ) );
+            }
+        }
+    }
+}
+#endif
+
 /// Load one P4 configuration file through the production setup/load API.
 void readReductionConfig( reductionT &reduction,             /**< [out] configured reduction */
                           const std::filesystem::path &path, /**< [in] temporary configuration path */
@@ -305,8 +337,9 @@ void readReductionConfig( reductionT &reduction,             /**< [out] configur
 }
 
 /// Compare the science, validity, ownership, modes, and count outcomes of two completed reductions.
-void requireSameReduction( const reductionHarness &left, /**< [in] first completed reduction */
-                           const reductionHarness &right /**< [in] second completed reduction */ )
+void requireSameReduction( const reductionHarness &left,  /**< [in] first completed reduction */
+                           const reductionHarness &right, /**< [in] second completed reduction */
+                           double residualTolerance = 2e-5 /**< [in] absolute tolerance for valid residuals */ )
 {
     REQUIRE( left.m_realizedModes == right.m_realizedModes );
     REQUIRE( ( left.m_ownership == right.m_ownership ).all() );
@@ -351,7 +384,8 @@ void requireSameReduction( const reductionHarness &left, /**< [in] first complet
                     if( left.m_psfsubValidity[output].image( image )( row, column ) == 1 )
                     {
                         REQUIRE( left.m_psfsub[output].image( image )( row, column ) ==
-                                 Approx( right.m_psfsub[output].image( image )( row, column ) ).margin( 2e-5 ) );
+                                 Approx( right.m_psfsub[output].image( image )( row, column ) )
+                                     .margin( residualTolerance ) );
                     }
                     else
                     {
@@ -613,6 +647,12 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( configured.m_writeDiagnostics );
     reductionT::fitsHeaderT configuredHeader;
     configured.appendReductionHeader( configuredHeader );
+    REQUIRE( configuredHeader["P4POLCY"].String().starts_with( "D64-FACTOR-DOWNDATE" ) );
+    REQUIRE( configuredHeader["P4CALCPR"].String().starts_with( "FP64" ) );
+    REQUIRE( configuredHeader["P4EIGPR"].String().starts_with( "FP64" ) );
+    REQUIRE( configuredHeader["P4RANKPR"].String().starts_with( "FP64" ) );
+    REQUIRE( configuredHeader["P4OUTPR"].String().starts_with( "FP32" ) );
+    REQUIRE( configuredHeader["P4FDELPR"].String().starts_with( "FP64" ) );
     REQUIRE( configuredHeader["P4 FRAME"].String().starts_with( "rotated" ) );
     REQUIRE( configuredHeader["P4 IN SAMPLE"].Int() == 0 );
     REQUIRE( configuredHeader["P4 ADI EXCLUDE METHOD"].String().starts_with( "angle" ) );
@@ -776,6 +816,9 @@ TEST_CASE( "P4 reduction arithmetic boundaries", "[P4Reduction][finite][conversi
                                                                  3,
                                                                  20,
                                                                  121 );
+    const std::size_t expectedSmallWorkerBytes = static_cast<std::size_t>(
+        std::ceil( 1.25L * ( sizeof( double ) * 289.0L + sizeof( float ) * 27.0L ) + 1024.0L * 1024.0L ) );
+    REQUIRE( smallWorkerBytes == expectedSmallWorkerBytes );
     REQUIRE( smallWorkerBytes >= 1024 * 1024 );
     REQUIRE( largeWorkerBytes > smallWorkerBytes );
     REQUIRE( coefficientWorkerBytes > largeWorkerBytes );
@@ -923,6 +966,12 @@ TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][re
     reductionT::fitsHeaderT header;
     reduction.appendReductionHeader( header );
     REQUIRE( header["P4 IN SAMPLE"].Int() == 0 );
+    REQUIRE( header["P4POLCY"].String().starts_with( "M32D64" ) );
+    REQUIRE( header["P4CALCPR"].String().starts_with( "FP32" ) );
+    REQUIRE( header["P4EIGPR"].String().starts_with( "FP64" ) );
+    REQUIRE( header["P4RANKPR"].String().starts_with( "FP32" ) );
+    REQUIRE( header["P4OUTPR"].String().starts_with( "FP32" ) );
+    REQUIRE( header["P4FDELPR"].String().starts_with( "N/A" ) );
 
     reductionHarness downdated;
     prepareHeldOut( downdated );
@@ -965,6 +1014,11 @@ TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][re
 
     reductionT::fitsHeaderT downdatedHeader;
     downdated.appendReductionHeader( downdatedHeader );
+    REQUIRE( downdatedHeader["P4POLCY"].String().starts_with( "D64-FACTOR-DOWNDATE" ) );
+    REQUIRE( downdatedHeader["P4CALCPR"].String().starts_with( "FP64" ) );
+    REQUIRE( downdatedHeader["P4EIGPR"].String().starts_with( "FP64" ) );
+    REQUIRE( downdatedHeader["P4RANKPR"].String().starts_with( "FP64" ) );
+    REQUIRE( downdatedHeader["P4FDELPR"].String().starts_with( "FP64" ) );
     REQUIRE( downdatedHeader["P4 EXCLUSION SOLVER"].String().starts_with( "factorDowndateExact" ) );
     REQUIRE( downdatedHeader["P4 FULL BASE"].Int() == 1 );
     REQUIRE( downdatedHeader["P4 DELETION BACKEND"].String().starts_with( "leadingCovariance" ) );
@@ -3688,6 +3742,238 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
 #endif
     // clang-format on
 }
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+
+/// Verify ordinary production is exactly the internal reduction-level M32D64 dispatch.
+/** This exercises mx::improc::detail::p4ReductionReduceExperimental() and mx::improc::P4Reduction::reduce().
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 production reduction is M32D64-exact", "[P4Reduction][experimental][precision][equivalence]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    reductionHarness production;
+    reductionHarness experimental;
+    preparePrecisionReduction( production );
+    preparePrecisionReduction( experimental );
+
+    REQUIRE( production.reduce() == 0 );
+    REQUIRE( mx::improc::detail::p4ReductionReduceExperimental(
+                 experimental,
+                 mx::improc::detail::P4PCAPrecisionPolicy::floatDouble ) == 0 );
+    requireSameReduction( production, experimental, 0 );
+    for( std::size_t output = 0; output < production.m_psfsub.size(); ++output )
+    {
+        for( int image = 0; image < production.m_Nims; ++image )
+        {
+            for( int column = 0; column < production.m_Ncols; ++column )
+            {
+                for( int row = 0; row < production.m_Nrows; ++row )
+                {
+                    if( production.m_psfsubValidity[output].image( image )( row, column ) == 1 )
+                    {
+                        REQUIRE( production.m_psfsub[output].image( image )( row, column ) ==
+                                 experimental.m_psfsub[output].image( image )( row, column ) );
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Verify both FP32 policies preserve direct and rotated reduction outcomes and deterministic worker structure.
+/** This exercises mx::improc::detail::p4ReductionReduceExperimental() through detector direct and rotated centered
+ * P4PCA calls selected before each OpenMP loop.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 experimental FP32 direct and rotated reductions",
+           "[P4Reduction][experimental][precision][parallel][rotated]" )
+{
+    const std::vector<mx::improc::detail::P4PCAPrecisionPolicy> policies{
+        mx::improc::detail::P4PCAPrecisionPolicy::floatDouble,
+        mx::improc::detail::P4PCAPrecisionPolicy::floatFloat };
+
+    SECTION( "detector direct" )
+    {
+        OpenMPThreadGuard threads( 1 );
+        reductionHarness reference;
+        preparePrecisionReduction( reference );
+        REQUIRE( reference.reduce() == 0 );
+        for( const auto policy : policies )
+        {
+            reductionHarness candidate;
+            preparePrecisionReduction( candidate );
+            REQUIRE( mx::improc::detail::p4ReductionReduceExperimental( candidate, policy ) == 0 );
+            requireSameReduction( reference, candidate, 3e-3 );
+        }
+    }
+
+    SECTION( "rotated centered in place" )
+    {
+        OpenMPThreadGuard threads( 1 );
+        reductionHarness reference;
+        preparePrecisionReduction( reference, true );
+        REQUIRE( reference.reduce() == 0 );
+        for( const auto policy : policies )
+        {
+            reductionHarness candidate;
+            preparePrecisionReduction( candidate, true );
+            REQUIRE( mx::improc::detail::p4ReductionReduceExperimental( candidate, policy ) == 0 );
+            requireSameReduction( reference, candidate, 4e-3 );
+        }
+    }
+
+    SECTION( "serial and parallel FP32 structure" )
+    {
+        reductionHarness serial;
+        reductionHarness parallel;
+        preparePrecisionReduction( serial );
+        preparePrecisionReduction( parallel );
+        {
+            OpenMPThreadGuard threads( 1 );
+            REQUIRE( mx::improc::detail::p4ReductionReduceExperimental(
+                         serial,
+                         mx::improc::detail::P4PCAPrecisionPolicy::floatFloat ) == 0 );
+        }
+        {
+            OpenMPThreadGuard threads( 4 );
+            REQUIRE( mx::improc::detail::p4ReductionReduceExperimental(
+                         parallel,
+                         mx::improc::detail::P4PCAPrecisionPolicy::floatFloat ) == 0 );
+        }
+        requireSameReduction( serial, parallel, 0 );
+    }
+}
+
+/// Verify FP32 explicit held-out fits retain rank-invalid NaNs and support target-held-out frozen probes.
+/** This exercises mx::improc::detail::p4ReductionReduceExperimental() through the explicit held-out and held-out
+ * frozen-probe P4PCA adapters.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 experimental FP32 held-out reduction and probe",
+           "[P4Reduction][experimental][precision][held-out][PSF][validity]" )
+{
+    OpenMPThreadGuard threads( 1 );
+
+    SECTION( "rank-invalid held-out samples remain NaN" )
+    {
+        reductionHarness reference;
+        reductionHarness candidate;
+        preparePrecisionReduction( reference );
+        preparePrecisionReduction( candidate );
+        reference.m_modeFractions = { 0.2F, 1.0F };
+        candidate.m_modeFractions = reference.m_modeFractions;
+        reference.m_excludeMethod = mx::improc::HCI::exclude::imno;
+        candidate.m_excludeMethod = reference.m_excludeMethod;
+        reference.m_minDPx = 0;
+        candidate.m_minDPx = 0;
+
+        REQUIRE( reference.reduce() == 0 );
+        REQUIRE( mx::improc::detail::p4ReductionReduceExperimental(
+                     candidate,
+                     mx::improc::detail::P4PCAPrecisionPolicy::floatFloat ) == 0 );
+        requireSameReduction( reference, candidate, 3e-3 );
+        REQUIRE( candidate.m_regionStatistics[0].rankInvalidCounts[1] ==
+                 candidate.m_regionStatistics[0].searchPixelCount );
+        for( int image = 0; image < candidate.m_Nims; ++image )
+        {
+            REQUIRE( candidate.m_psfsubValidity[1].image( image ).maxCoeff() == 0 );
+            for( int column = 0; column < candidate.m_Ncols; ++column )
+            {
+                for( int row = 0; row < candidate.m_Nrows; ++row )
+                {
+                    REQUIRE( mx::math::isNan( candidate.m_psfsub[1].image( image )( row, column ) ) );
+                }
+            }
+        }
+    }
+
+    SECTION( "target-held-out frozen probe" )
+    {
+        TestDirectory directory;
+        reductionT::imageT psfTemplate( 9, 10 );
+        for( int column = 0; column < psfTemplate.cols(); ++column )
+        {
+            for( int row = 0; row < psfTemplate.rows(); ++row )
+            {
+                const double deltaRow = static_cast<double>( row ) - 4.0;
+                const double deltaColumn = static_cast<double>( column ) - 4.5;
+                psfTemplate( row, column ) =
+                    static_cast<float>( std::exp( -0.2 * deltaRow * deltaRow - 0.17 * deltaColumn * deltaColumn ) );
+            }
+        }
+        const std::filesystem::path psfPath = directory.file( "experimental-held-out-template.fits" );
+        mx::fits::fitsFile<float, mx::verbose::vv> fits;
+        REQUIRE( fits.write( psfPath.string(), psfTemplate ) == mx::error_t::noerror );
+
+        const auto prepareProbe = [&]( reductionHarness &reduction )
+        {
+            preparePrecisionReduction( reduction );
+            reduction.m_excludeMethod = mx::improc::HCI::exclude::imno;
+            reduction.m_minDPx = 0;
+            reduction.m_psfFile = psfPath.string();
+            reduction.m_psfStampSize = 3;
+            reduction.m_memoryFraction = 0;
+        };
+        reductionHarness reference;
+        reductionHarness candidate;
+        prepareProbe( reference );
+        prepareProbe( candidate );
+
+        REQUIRE( reference.reduce() == 0 );
+        REQUIRE( mx::improc::detail::p4ReductionReduceExperimental(
+                     candidate,
+                     mx::improc::detail::P4PCAPrecisionPolicy::floatDouble ) == 0 );
+        requireSameReduction( reference, candidate, 3e-3 );
+        REQUIRE( reference.m_timing.psfWorkerSeconds > 0 );
+        REQUIRE( candidate.m_timing.psfWorkerSeconds > 0 );
+    }
+}
+
+/// Verify unsupported experimental FP32-eigensolve requests fail before changing reduction-owned output state.
+/** This exercises mx::improc::detail::p4ReductionReduceExperimental() rejection of FP32 factor deletion and unknown
+ * policies. Production M32D64 supports automatic memory accounting, shared coefficients, and local trials.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 experimental FP32 eigensolve rejects excluded paths before mutation",
+           "[P4Reduction][experimental][precision][validation]" )
+{
+    const auto requireSentinel = []( const reductionHarness &reduction )
+    {
+        REQUIRE( reduction.m_realizedModes == std::vector<std::vector<int>>{ { 17 } } );
+        REQUIRE( reduction.m_regionStatistics.size() == 1 );
+        REQUIRE( reduction.m_regionStatistics[0].searchPixelCount == 23 );
+        REQUIRE( reduction.m_ownership.rows() == 1 );
+        REQUIRE( reduction.m_ownership.cols() == 1 );
+        REQUIRE( reduction.m_ownership( 0, 0 ) == 29 );
+    };
+    const auto prepareSentinel = []( reductionHarness &reduction )
+    {
+        prepareReduction( reduction );
+        reduction.m_realizedModes = { { 17 } };
+        reduction.m_regionStatistics.resize( 1 );
+        reduction.m_regionStatistics[0].searchPixelCount = 23;
+        reduction.m_ownership = Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic>::Constant( 1, 1, 29 );
+        reduction.m_memoryFraction = 0;
+    };
+
+    reductionHarness factorDeletion;
+    prepareSentinel( factorDeletion );
+    factorDeletion.m_exclusionSolver = mx::improc::P4ExclusionSolver::factorDowndateExact;
+    REQUIRE_THROWS(
+        mx::improc::detail::p4ReductionReduceExperimental( factorDeletion,
+                                                           mx::improc::detail::P4PCAPrecisionPolicy::floatFloat ) );
+    requireSentinel( factorDeletion );
+
+    reductionHarness unknownPolicy;
+    prepareSentinel( unknownPolicy );
+    REQUIRE_THROWS( mx::improc::detail::p4ReductionReduceExperimental(
+        unknownPolicy,
+        static_cast<mx::improc::detail::P4PCAPrecisionPolicy>( 255 ) ) );
+    requireSentinel( unknownPolicy );
+}
+
+#endif // HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
 
 } // namespace P4Reduction_test
 } // namespace unitTest

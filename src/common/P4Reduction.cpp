@@ -483,6 +483,492 @@ class P4ProgressOutput
 
 /** \endcond */
 
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+/** \cond P4Reduction_precision_experiment */
+
+/// Experimental direct-PCA dispatch signature shared by every reduction worker.
+using P4ReductionDirectFunction =
+    void ( * )( P4PCAResult &output,                                 /**< [out] completed regression result */
+                const P4PCA::matrixT &predictors,                    /**< [in] sampled predictor matrix */
+                const P4PCA::vectorT &target,                        /**< [in] sampled target series */
+                const std::vector<int> &modes,                       /**< [in] requested retained-mode counts */
+                double rankTolerance,                                /**< [in] relative numerical-rank threshold */
+                P4PCA::workspaceT &doubleWorkspace,                  /**< [in,out] ordinary FP64 workspace */
+                detail::P4PCAExperimentalWorkspace &policyWorkspace, /**< [in,out] typed experimental workspace */
+                P4PCATiming *timing,                                 /**< [out] optional stage timing */
+                P4PCA::matrixT *coefficients /**< [out] optional predictor coefficients */ );
+
+/// Experimental centered-PCA dispatch signature shared by every reduction worker.
+using P4ReductionCenteredFunction =
+    void ( * )( P4PCAResult &output,                /**< [out] completed centered regression result */
+                P4PCA::matrixT &predictors,         /**< [in,out] sampled predictors, centered in place */
+                const P4PCA::vectorT &target,       /**< [in] sampled target series */
+                const std::vector<int> &modes,      /**< [in] requested retained-mode counts */
+                double rankTolerance,               /**< [in] relative numerical-rank threshold */
+                P4PCA::workspaceT &doubleWorkspace, /**< [in,out] ordinary FP64 workspace */
+                detail::P4PCAExperimentalWorkspace &policyWorkspace, /**< [in,out] typed experimental workspace */
+                P4PCATiming *timing,                                 /**< [out] optional stage timing */
+                P4PCA::matrixT *coefficients /**< [out] optional predictor coefficients */ );
+
+/// Experimental held-out PCA dispatch signature shared by every reduction worker.
+using P4ReductionHeldOutFunction =
+    void ( * )( P4PCAResult &output,                                 /**< [out] completed held-out regression result */
+                const P4PCA::matrixT &predictors,                    /**< [in] sampled predictor matrix */
+                const P4PCA::vectorT &target,                        /**< [in] sampled target series */
+                const P4TargetExclusions &exclusions,                /**< [in] target-specific deleted rows */
+                const std::vector<int> &modes,                       /**< [in] requested retained-mode counts */
+                double rankTolerance,                                /**< [in] relative numerical-rank threshold */
+                P4PCA::workspaceT &doubleWorkspace,                  /**< [in,out] ordinary FP64 workspace */
+                detail::P4PCAExperimentalWorkspace &policyWorkspace, /**< [in,out] typed experimental workspace */
+                P4PCATiming *timing /**< [out] optional stage timing */ );
+
+/// Experimental held-out frozen-probe dispatch signature shared by every reduction worker.
+using P4ReductionHeldOutProbeFunction =
+    void ( * )( P4PCAResult &output,                                 /**< [out] completed held-out regression result */
+                P4PCA::matrixT &probeResiduals,                      /**< [out] frozen-probe residual responses */
+                const P4PCA::matrixT &predictors,                    /**< [in] sampled predictor matrix */
+                const P4PCA::vectorT &target,                        /**< [in] sampled target series */
+                const P4PCA::matrixT &probePredictors,               /**< [in] frozen-probe predictor responses */
+                const P4PCA::vectorT &probeTarget,                   /**< [in] frozen-probe direct response */
+                const P4TargetExclusions &exclusions,                /**< [in] target-specific deleted rows */
+                const std::vector<int> &modes,                       /**< [in] requested retained-mode counts */
+                double rankTolerance,                                /**< [in] relative numerical-rank threshold */
+                P4PCA::workspaceT &doubleWorkspace,                  /**< [in,out] ordinary FP64 workspace */
+                detail::P4PCAExperimentalWorkspace &policyWorkspace, /**< [in,out] typed experimental workspace */
+                P4PCATiming *timing /**< [out] optional stage timing */ );
+
+/// Immutable PCA call targets selected before entering a reduction worker loop.
+struct P4ReductionPCADispatch
+{
+    P4ReductionDirectFunction direct;             ///< Direct detector-frame evaluator.
+
+    P4ReductionCenteredFunction centeredInPlace;  ///< Destructive centered rotated-frame evaluator.
+
+    P4ReductionHeldOutFunction heldOut;           ///< Explicit held-out evaluator.
+
+    P4ReductionHeldOutProbeFunction heldOutProbe; ///< Explicit held-out frozen-probe evaluator.
+};
+
+/// Invoke one direct PCA policy without worker-loop policy selection.
+template <detail::P4PCAPrecisionPolicy precisionPolicy>
+void p4ReductionCalculateDirect(
+    P4PCAResult &output,                                       /**< [out] completed regression result */
+    const P4PCA::matrixT &predictors,                          /**< [in] sampled predictor matrix */
+    const P4PCA::vectorT &target,                              /**< [in] sampled target series */
+    const std::vector<int> &modes,                             /**< [in] requested retained-mode counts */
+    double rankTolerance,                                      /**< [in] relative numerical-rank threshold */
+    P4PCA::workspaceT &doubleWorkspace,                        /**< [in,out] ordinary FP64 workspace */
+    detail::P4PCAExperimentalWorkspace &experimentalWorkspace, /**< [in,out] typed experimental workspace */
+    P4PCATiming *timing,                                       /**< [out] optional stage timing */
+    P4PCA::matrixT *coefficients /**< [out] optional predictor coefficients */ )
+{
+    if constexpr( precisionPolicy == detail::P4PCAPrecisionPolicy::doubleDouble )
+    {
+        static_cast<void>( experimentalWorkspace );
+        P4PCA::calculate( output, predictors, target, modes, rankTolerance, doubleWorkspace, timing, coefficients );
+    }
+    else
+    {
+        static_cast<void>( doubleWorkspace );
+        detail::p4PCACalculateExperimental( output,
+                                            predictors,
+                                            target,
+                                            modes,
+                                            rankTolerance,
+                                            precisionPolicy,
+                                            experimentalWorkspace,
+                                            timing,
+                                            coefficients );
+    }
+}
+
+/// Invoke one centered PCA policy without worker-loop policy selection.
+template <detail::P4PCAPrecisionPolicy precisionPolicy>
+void p4ReductionCalculateCenteredInPlace(
+    P4PCAResult &output,                                       /**< [out] completed centered regression result */
+    P4PCA::matrixT &predictors,                                /**< [in,out] predictors, centered in place */
+    const P4PCA::vectorT &target,                              /**< [in] sampled target series */
+    const std::vector<int> &modes,                             /**< [in] requested retained-mode counts */
+    double rankTolerance,                                      /**< [in] relative numerical-rank threshold */
+    P4PCA::workspaceT &doubleWorkspace,                        /**< [in,out] ordinary FP64 workspace */
+    detail::P4PCAExperimentalWorkspace &experimentalWorkspace, /**< [in,out] typed experimental workspace */
+    P4PCATiming *timing,                                       /**< [out] optional stage timing */
+    P4PCA::matrixT *coefficients /**< [out] optional predictor coefficients */ )
+{
+    if constexpr( precisionPolicy == detail::P4PCAPrecisionPolicy::doubleDouble )
+    {
+        static_cast<void>( experimentalWorkspace );
+        P4PCA::calculateCenteredInPlace( output,
+                                         predictors,
+                                         target,
+                                         modes,
+                                         rankTolerance,
+                                         doubleWorkspace,
+                                         timing,
+                                         coefficients );
+    }
+    else
+    {
+        static_cast<void>( doubleWorkspace );
+        detail::p4PCACalculateCenteredInPlaceExperimental( output,
+                                                           predictors,
+                                                           target,
+                                                           modes,
+                                                           rankTolerance,
+                                                           precisionPolicy,
+                                                           experimentalWorkspace,
+                                                           timing,
+                                                           coefficients );
+    }
+}
+
+/// Invoke one explicit held-out PCA policy without worker-loop policy selection.
+template <detail::P4PCAPrecisionPolicy precisionPolicy>
+void p4ReductionCalculateHeldOut(
+    P4PCAResult &output,                                       /**< [out] completed held-out regression result */
+    const P4PCA::matrixT &predictors,                          /**< [in] sampled predictor matrix */
+    const P4PCA::vectorT &target,                              /**< [in] sampled target series */
+    const P4TargetExclusions &exclusions,                      /**< [in] target-specific deleted rows */
+    const std::vector<int> &modes,                             /**< [in] requested retained-mode counts */
+    double rankTolerance,                                      /**< [in] relative numerical-rank threshold */
+    P4PCA::workspaceT &doubleWorkspace,                        /**< [in,out] ordinary FP64 workspace */
+    detail::P4PCAExperimentalWorkspace &experimentalWorkspace, /**< [in,out] typed experimental workspace */
+    P4PCATiming *timing /**< [out] optional stage timing */ )
+{
+    if constexpr( precisionPolicy == detail::P4PCAPrecisionPolicy::doubleDouble )
+    {
+        static_cast<void>( experimentalWorkspace );
+        P4PCA::calculateHeldOut( output,
+                                 predictors,
+                                 target,
+                                 exclusions,
+                                 modes,
+                                 rankTolerance,
+                                 doubleWorkspace,
+                                 timing );
+    }
+    else
+    {
+        static_cast<void>( doubleWorkspace );
+        detail::p4PCACalculateHeldOutExperimental( output,
+                                                   predictors,
+                                                   target,
+                                                   exclusions,
+                                                   modes,
+                                                   rankTolerance,
+                                                   precisionPolicy,
+                                                   experimentalWorkspace,
+                                                   timing );
+    }
+}
+
+/// Invoke one explicit held-out frozen-probe policy without worker-loop policy selection.
+template <detail::P4PCAPrecisionPolicy precisionPolicy>
+void p4ReductionCalculateHeldOutProbe(
+    P4PCAResult &output,                                       /**< [out] completed held-out regression result */
+    P4PCA::matrixT &probeResiduals,                            /**< [out] frozen-probe residual responses */
+    const P4PCA::matrixT &predictors,                          /**< [in] sampled predictor matrix */
+    const P4PCA::vectorT &target,                              /**< [in] sampled target series */
+    const P4PCA::matrixT &probePredictors,                     /**< [in] frozen-probe predictor responses */
+    const P4PCA::vectorT &probeTarget,                         /**< [in] frozen-probe direct response */
+    const P4TargetExclusions &exclusions,                      /**< [in] target-specific deleted rows */
+    const std::vector<int> &modes,                             /**< [in] requested retained-mode counts */
+    double rankTolerance,                                      /**< [in] relative numerical-rank threshold */
+    P4PCA::workspaceT &doubleWorkspace,                        /**< [in,out] ordinary FP64 workspace */
+    detail::P4PCAExperimentalWorkspace &experimentalWorkspace, /**< [in,out] typed experimental workspace */
+    P4PCATiming *timing /**< [out] optional stage timing */ )
+{
+    if constexpr( precisionPolicy == detail::P4PCAPrecisionPolicy::doubleDouble )
+    {
+        static_cast<void>( experimentalWorkspace );
+        P4PCA::calculateHeldOutProbe( output,
+                                      probeResiduals,
+                                      predictors,
+                                      target,
+                                      probePredictors,
+                                      probeTarget,
+                                      exclusions,
+                                      modes,
+                                      rankTolerance,
+                                      doubleWorkspace,
+                                      timing );
+    }
+    else
+    {
+        static_cast<void>( doubleWorkspace );
+        detail::p4PCACalculateHeldOutProbeExperimental( output,
+                                                        probeResiduals,
+                                                        predictors,
+                                                        target,
+                                                        probePredictors,
+                                                        probeTarget,
+                                                        exclusions,
+                                                        modes,
+                                                        rankTolerance,
+                                                        precisionPolicy,
+                                                        experimentalWorkspace,
+                                                        timing );
+    }
+}
+
+/// Materialize immutable PCA call targets for one previously validated policy.
+P4ReductionPCADispatch
+p4ReductionPCADispatch( detail::P4PCAPrecisionPolicy precisionPolicy /**< [in] validated scalar policy */ )
+{
+    switch( precisionPolicy )
+    {
+    case detail::P4PCAPrecisionPolicy::doubleDouble:
+        return { &p4ReductionCalculateDirect<detail::P4PCAPrecisionPolicy::doubleDouble>,
+                 &p4ReductionCalculateCenteredInPlace<detail::P4PCAPrecisionPolicy::doubleDouble>,
+                 &p4ReductionCalculateHeldOut<detail::P4PCAPrecisionPolicy::doubleDouble>,
+                 &p4ReductionCalculateHeldOutProbe<detail::P4PCAPrecisionPolicy::doubleDouble> };
+    case detail::P4PCAPrecisionPolicy::floatDouble:
+        return { &p4ReductionCalculateDirect<detail::P4PCAPrecisionPolicy::floatDouble>,
+                 &p4ReductionCalculateCenteredInPlace<detail::P4PCAPrecisionPolicy::floatDouble>,
+                 &p4ReductionCalculateHeldOut<detail::P4PCAPrecisionPolicy::floatDouble>,
+                 &p4ReductionCalculateHeldOutProbe<detail::P4PCAPrecisionPolicy::floatDouble> };
+    case detail::P4PCAPrecisionPolicy::floatFloat:
+        return { &p4ReductionCalculateDirect<detail::P4PCAPrecisionPolicy::floatFloat>,
+                 &p4ReductionCalculateCenteredInPlace<detail::P4PCAPrecisionPolicy::floatFloat>,
+                 &p4ReductionCalculateHeldOut<detail::P4PCAPrecisionPolicy::floatFloat>,
+                 &p4ReductionCalculateHeldOutProbe<detail::P4PCAPrecisionPolicy::floatFloat> };
+    }
+    throw std::invalid_argument( "unknown experimental P4 precision policy" );
+}
+
+/// Thread-local precision selection active only while the internal entry point calls `reduce()`.
+struct P4ReductionPrecisionSelection
+{
+    bool active{ false }; ///< Whether the calling thread requested an experimental dispatch.
+
+    detail::P4PCAPrecisionPolicy policy{ detail::P4PCAPrecisionPolicy::doubleDouble }; ///< Selected policy.
+};
+
+/// Calling-thread selection inherited explicitly by each reduction worker binding.
+thread_local P4ReductionPrecisionSelection p4ReductionPrecisionSelection;
+
+/// Restore a calling thread's previous precision selection at scope exit.
+class P4ReductionPrecisionSelectionScope
+{
+  public:
+    /// Install one validated reduction-level precision selection.
+    explicit P4ReductionPrecisionSelectionScope(
+        detail::P4PCAPrecisionPolicy policy /**< [in] validated scalar policy to install */ )
+        : m_previous( p4ReductionPrecisionSelection )
+    {
+        p4ReductionPrecisionSelection = { true, policy };
+    }
+
+    /// Restore the selection that preceded this scope.
+    ~P4ReductionPrecisionSelectionScope()
+    {
+        p4ReductionPrecisionSelection = m_previous;
+    }
+
+    /// Prevent copying a scope that uniquely owns restoration of the calling-thread selection.
+    P4ReductionPrecisionSelectionScope(
+        const P4ReductionPrecisionSelectionScope &other /**< [in] disabled copy source */ ) = delete;
+
+    /// Prevent overwriting a scope that uniquely owns restoration of the calling-thread selection.
+    P4ReductionPrecisionSelectionScope &
+    operator=( const P4ReductionPrecisionSelectionScope &other /**< [in] disabled assignment source */ ) = delete;
+
+  private:
+    P4ReductionPrecisionSelection m_previous; ///< Calling-thread state restored at destruction.
+};
+
+/// Resolve the calling thread's selection once, before a worker loop begins.
+std::optional<P4ReductionPCADispatch> p4ReductionSelectedPCADispatch()
+{
+    if( !p4ReductionPrecisionSelection.active )
+    {
+        return std::nullopt;
+    }
+    return p4ReductionPCADispatch( p4ReductionPrecisionSelection.policy );
+}
+
+/// Worker-local binding of one immutable dispatch to one caller-owned typed workspace.
+struct P4ReductionWorkerPrecisionContext
+{
+    const P4ReductionPCADispatch *dispatch{ nullptr };        ///< Shared immutable call targets.
+
+    detail::P4PCAExperimentalWorkspace *workspace{ nullptr }; ///< Private typed policy storage.
+};
+
+/// Active worker-local experimental dispatch binding, or null for the ordinary production path.
+thread_local const P4ReductionWorkerPrecisionContext *p4ReductionWorkerPrecisionContext{ nullptr };
+
+/// Restore a worker thread's previous dispatch binding at scope exit.
+class P4ReductionWorkerPrecisionScope
+{
+  public:
+    /// Bind one worker-private experimental workspace to the preselected dispatch.
+    P4ReductionWorkerPrecisionScope(
+        const P4ReductionPCADispatch &dispatch, /**< [in] immutable selected call targets */
+        detail::P4PCAExperimentalWorkspace &workspace /**< [in,out] worker-private typed storage */ )
+        : m_previous( p4ReductionWorkerPrecisionContext ), m_context{ &dispatch, &workspace }
+    {
+        p4ReductionWorkerPrecisionContext = &m_context;
+    }
+
+    /// Restore the worker binding that preceded this scope.
+    ~P4ReductionWorkerPrecisionScope()
+    {
+        p4ReductionWorkerPrecisionContext = m_previous;
+    }
+
+    /// Prevent copying a scope that uniquely owns restoration of the worker binding.
+    P4ReductionWorkerPrecisionScope( const P4ReductionWorkerPrecisionScope &other /**< [in] disabled copy source */ ) =
+        delete;
+
+    /// Prevent overwriting a scope that uniquely owns restoration of the worker binding.
+    P4ReductionWorkerPrecisionScope &
+    operator=( const P4ReductionWorkerPrecisionScope &other /**< [in] disabled assignment source */ ) = delete;
+
+  private:
+    const P4ReductionWorkerPrecisionContext *m_previous; ///< Binding restored at destruction.
+
+    P4ReductionWorkerPrecisionContext m_context;         ///< Binding active for this scope.
+};
+
+/// Invoke the active direct evaluator, falling back to the production path outside an experiment.
+void p4ReductionDispatchDirect( P4PCAResult &output,              /**< [out] completed regression result */
+                                const P4PCA::matrixT &predictors, /**< [in] sampled predictor matrix */
+                                const P4PCA::vectorT &target,     /**< [in] sampled target series */
+                                const std::vector<int> &modes,    /**< [in] requested retained-mode counts */
+                                double rankTolerance,             /**< [in] relative numerical-rank threshold */
+                                P4PCA::workspaceT &workspace,     /**< [in,out] ordinary FP64 workspace */
+                                detail::P4PCAMixedWorkspace &mixedWorkspace,
+                                /**< [in,out] production mixed-precision workspace */
+                                P4PCATiming *timing,              /**< [out] optional stage timing */
+                                P4PCA::matrixT *coefficients /**< [out] optional predictor coefficients */ )
+{
+    if( !p4ReductionWorkerPrecisionContext )
+    {
+        static_cast<void>( workspace );
+        detail::p4PCACalculateMixed(
+            output, predictors, target, modes, rankTolerance, mixedWorkspace, timing, coefficients );
+        return;
+    }
+    p4ReductionWorkerPrecisionContext->dispatch->direct( output,
+                                                         predictors,
+                                                         target,
+                                                         modes,
+                                                         rankTolerance,
+                                                         workspace,
+                                                         *p4ReductionWorkerPrecisionContext->workspace,
+                                                         timing,
+                                                         coefficients );
+}
+
+/// Invoke the active centered evaluator, falling back to the production path outside an experiment.
+void p4ReductionDispatchCenteredInPlace( P4PCAResult &output,        /**< [out] completed centered regression result */
+                                         P4PCA::matrixT &predictors, /**< [in,out] predictors, centered in place */
+                                         const P4PCA::vectorT &target,  /**< [in] sampled target series */
+                                         const std::vector<int> &modes, /**< [in] requested retained-mode counts */
+                                         double rankTolerance,          /**< [in] relative numerical-rank threshold */
+                                         P4PCA::workspaceT &workspace,  /**< [in,out] ordinary FP64 workspace */
+                                         detail::P4PCAMixedWorkspace &mixedWorkspace,
+                                         /**< [in,out] production mixed-precision workspace */
+                                         P4PCATiming *timing,           /**< [out] optional stage timing */
+                                         P4PCA::matrixT *coefficients /**< [out] optional predictor coefficients */ )
+{
+    if( !p4ReductionWorkerPrecisionContext )
+    {
+        static_cast<void>( workspace );
+        detail::p4PCACalculateCenteredInPlaceMixed(
+            output, predictors, target, modes, rankTolerance, mixedWorkspace, timing, coefficients );
+        return;
+    }
+    p4ReductionWorkerPrecisionContext->dispatch->centeredInPlace( output,
+                                                                  predictors,
+                                                                  target,
+                                                                  modes,
+                                                                  rankTolerance,
+                                                                  workspace,
+                                                                  *p4ReductionWorkerPrecisionContext->workspace,
+                                                                  timing,
+                                                                  coefficients );
+}
+
+/// Invoke the active held-out evaluator, falling back to the production path outside an experiment.
+void p4ReductionDispatchHeldOut( P4PCAResult &output,              /**< [out] completed held-out regression result */
+                                 const P4PCA::matrixT &predictors, /**< [in] sampled predictor matrix */
+                                 const P4PCA::vectorT &target,     /**< [in] sampled target series */
+                                 const P4TargetExclusions &exclusions, /**< [in] target-specific deleted rows */
+                                 const std::vector<int> &modes,        /**< [in] requested retained-mode counts */
+                                 double rankTolerance,                 /**< [in] relative numerical-rank threshold */
+                                 P4PCA::workspaceT &workspace,         /**< [in,out] ordinary FP64 workspace */
+                                 detail::P4PCAMixedWorkspace &mixedWorkspace,
+                                 /**< [in,out] production mixed-precision workspace */
+                                 P4PCATiming *timing /**< [out] optional stage timing */ )
+{
+    if( !p4ReductionWorkerPrecisionContext )
+    {
+        static_cast<void>( workspace );
+        detail::p4PCACalculateHeldOutMixed(
+            output, predictors, target, exclusions, modes, rankTolerance, mixedWorkspace, timing );
+        return;
+    }
+    p4ReductionWorkerPrecisionContext->dispatch->heldOut( output,
+                                                          predictors,
+                                                          target,
+                                                          exclusions,
+                                                          modes,
+                                                          rankTolerance,
+                                                          workspace,
+                                                          *p4ReductionWorkerPrecisionContext->workspace,
+                                                          timing );
+}
+
+/// Invoke the active held-out probe evaluator, falling back to the production path outside an experiment.
+void p4ReductionDispatchHeldOutProbe(
+    P4PCAResult &output,                   /**< [out] completed held-out regression result */
+    P4PCA::matrixT &probeResiduals,        /**< [out] frozen-probe residual responses */
+    const P4PCA::matrixT &predictors,      /**< [in] sampled predictor matrix */
+    const P4PCA::vectorT &target,          /**< [in] sampled target series */
+    const P4PCA::matrixT &probePredictors, /**< [in] frozen-probe predictor responses */
+    const P4PCA::vectorT &probeTarget,     /**< [in] frozen-probe direct response */
+    const P4TargetExclusions &exclusions,  /**< [in] target-specific deleted rows */
+    const std::vector<int> &modes,         /**< [in] requested retained-mode counts */
+    double rankTolerance,                  /**< [in] relative numerical-rank threshold */
+    P4PCA::workspaceT &workspace,          /**< [in,out] ordinary FP64 workspace */
+    detail::P4PCAMixedWorkspace &mixedWorkspace, /**< [in,out] production mixed-precision workspace */
+    P4PCATiming *timing /**< [out] optional stage timing */ )
+{
+    if( !p4ReductionWorkerPrecisionContext )
+    {
+        static_cast<void>( workspace );
+        detail::p4PCACalculateHeldOutProbeMixed( output,
+                                                 probeResiduals,
+                                                 predictors,
+                                                 target,
+                                                 probePredictors,
+                                                 probeTarget,
+                                                 exclusions,
+                                                 modes,
+                                                 rankTolerance,
+                                                 mixedWorkspace,
+                                                 timing );
+        return;
+    }
+    p4ReductionWorkerPrecisionContext->dispatch->heldOutProbe( output,
+                                                               probeResiduals,
+                                                               predictors,
+                                                               target,
+                                                               probePredictors,
+                                                               probeTarget,
+                                                               exclusions,
+                                                               modes,
+                                                               rankTolerance,
+                                                               workspace,
+                                                               *p4ReductionWorkerPrecisionContext->workspace,
+                                                               timing );
+}
+
+/** \endcond */
+#endif // HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+
 /// Read Linux MemAvailable in bytes, or report that automatic discovery is unavailable.
 std::optional<std::size_t> p4AvailableMemoryBytes()
 {
@@ -1409,9 +1895,16 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::estimatedWorkerBytes( s
     const long double doubleValues =
         targets * predictors + targets * modes + 2 * dimension * dimension + 5 * targets + 2 * predictors +
         70 * dimension + ( includeCoefficients ? predictors * ( modes + 2 ) : 0 ) + heldOutValues + probeValues;
+    const bool mixedCalculation = !exactHeldOut || exclusionSolver != P4ExclusionSolver::factorDowndateExact;
+    const long double floatValues =
+        mixedCalculation
+            ? targets * predictors + targets +
+                  ( probeSamples == 0 ? 0 : probeSamples * predictors + probeSamples )
+            : 0;
     constexpr long double safetyFactor = 1.25L;
     constexpr std::size_t fixedMargin = 1024 * 1024;
     const long double estimated = safetyFactor * ( sizeof( double ) * doubleValues +
+                                                   sizeof( float ) * floatValues +
                                                    sizeof( realT ) * static_cast<long double>( psfStampPixels ) ) +
                                   fixedMargin;
     if( estimated > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) )
@@ -1552,6 +2045,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
     const std::vector<P4PixelCoordinate> &temporalOffsets,
     const std::vector<int> &modes,
     P4PCA::workspaceT &workspace,
+    detail::P4PCAMixedWorkspace &mixedWorkspace,
     P4PCADowndateWorkspace *downdateWorkspace,
     P4PCATiming &timing,
     double &sameImageSamplingSeconds,
@@ -1699,28 +2193,51 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
                 {
                     throw std::invalid_argument( "P4 held-out fitting requires a complete frozen-probe request" );
                 }
-                P4PCA::calculateHeldOutProbe( result,
-                                              *probeResiduals,
-                                              predictors,
-                                              target,
-                                              *probePredictors,
-                                              *probeTarget,
-                                              *exclusions,
-                                              modes,
-                                              m_rankTolerance,
-                                              workspace,
-                                              &timing );
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+                p4ReductionDispatchHeldOutProbe( result,
+                                                 *probeResiduals,
+                                                 predictors,
+                                                 target,
+                                                 *probePredictors,
+                                                 *probeTarget,
+                                                 *exclusions,
+                                                 modes,
+                                                 m_rankTolerance,
+                                                 workspace,
+                                                 mixedWorkspace,
+                                                 &timing );
+#else
+                static_cast<void>( workspace );
+                detail::p4PCACalculateHeldOutProbeMixed( result,
+                                                         *probeResiduals,
+                                                         predictors,
+                                                         target,
+                                                         *probePredictors,
+                                                         *probeTarget,
+                                                         *exclusions,
+                                                         modes,
+                                                         m_rankTolerance,
+                                                         mixedWorkspace,
+                                                         &timing );
+#endif
             }
             else
             {
-                P4PCA::calculateHeldOut( result,
-                                         predictors,
-                                         target,
-                                         *exclusions,
-                                         modes,
-                                         m_rankTolerance,
-                                         workspace,
-                                         &timing );
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+                p4ReductionDispatchHeldOut( result,
+                                            predictors,
+                                            target,
+                                            *exclusions,
+                                            modes,
+                                            m_rankTolerance,
+                                            workspace,
+                                            mixedWorkspace,
+                                            &timing );
+#else
+                static_cast<void>( workspace );
+                detail::p4PCACalculateHeldOutMixed(
+                    result, predictors, target, *exclusions, modes, m_rankTolerance, mixedWorkspace, &timing );
+#endif
             }
         }
     }
@@ -1730,7 +2247,21 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
         {
             throw std::invalid_argument( "P4 frozen-probe fitting requires target exclusions" );
         }
-        P4PCA::calculate( result, predictors, target, modes, m_rankTolerance, workspace, &timing, coefficients );
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+        p4ReductionDispatchDirect( result,
+                                   predictors,
+                                   target,
+                                   modes,
+                                   m_rankTolerance,
+                                   workspace,
+                                   mixedWorkspace,
+                                   &timing,
+                                   coefficients );
+#else
+        static_cast<void>( workspace );
+        detail::p4PCACalculateMixed(
+            result, predictors, target, modes, m_rankTolerance, mixedWorkspace, &timing, coefficients );
+#endif
     }
 }
 
@@ -1792,6 +2323,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
     const std::vector<double> &derotationAngles,
     const std::vector<P4TargetExclusions> &regionExclusions )
 {
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+    const std::optional<P4ReductionPCADispatch> experimentalDispatch = p4ReductionSelectedPCADispatch();
+#endif
     if( grids.size() != m_regionStatistics.size() || grids.size() != m_temporalSelections.size() ||
         grids.size() != m_realizedModes.size() || grids.size() != regionExclusions.size() ||
         derotationAngles.size() != static_cast<std::size_t>( this->m_Nims ) )
@@ -2068,6 +2602,16 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
     // clang-format on
     {
         P4PCA::workspaceT workspace;
+        detail::P4PCAMixedWorkspace mixedWorkspace;
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+        std::optional<detail::P4PCAExperimentalWorkspace> experimentalWorkspace;
+        std::optional<P4ReductionWorkerPrecisionScope> experimentalPrecisionScope;
+        if( experimentalDispatch )
+        {
+            experimentalWorkspace.emplace();
+            experimentalPrecisionScope.emplace( *experimentalDispatch, *experimentalWorkspace );
+        }
+#endif
         P4PCADowndateWorkspace downdateWorkspace;
         P4PCA::matrixT predictors;
         P4PCA::vectorT target;
@@ -2123,6 +2667,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::processLocalTrial(
                                    temporalOffsets,
                                    m_realizedModes[region],
                                    workspace,
+                                   mixedWorkspace,
                                    &downdateWorkspace,
                                    pcaTiming,
                                    sameImageSamplingSeconds,
@@ -2567,6 +3112,9 @@ template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<realT> &minimumRadii,
                                                           const std::vector<realT> &maximumRadii )
 {
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+    const std::optional<P4ReductionPCADispatch> experimentalDispatch = p4ReductionSelectedPCADispatch();
+#endif
     m_minRadius = minimumRadii;
     m_maxRadius = maximumRadii;
     if( !( this->m_preProcess_only && !this->m_skipPreProcess ) )
@@ -3379,6 +3927,16 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         // clang-format on
         {
             P4PCA::workspaceT workspace;
+            detail::P4PCAMixedWorkspace mixedWorkspace;
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+            std::optional<detail::P4PCAExperimentalWorkspace> experimentalWorkspace;
+            std::optional<P4ReductionWorkerPrecisionScope> experimentalPrecisionScope;
+            if( experimentalDispatch )
+            {
+                experimentalWorkspace.emplace();
+                experimentalPrecisionScope.emplace( *experimentalDispatch, *experimentalWorkspace );
+            }
+#endif
             P4PCADowndateWorkspace downdateWorkspace;
             P4PCA::matrixT predictors( static_cast<Eigen::Index>( targetImageCount ),
                                        static_cast<Eigen::Index>( predictorCount ) );
@@ -3483,6 +4041,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                    temporalPredictorOffsets,
                                                    modes,
                                                    workspace,
+                                                   mixedWorkspace,
                                                    &downdateWorkspace,
                                                    pcaTiming,
                                                    sameImageSamplingSeconds,
@@ -3498,14 +4057,27 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
 
                             if( rotated )
                             {
-                                P4PCA::calculateCenteredInPlace( result,
-                                                                 predictors,
-                                                                 target,
-                                                                 modes,
-                                                                 m_rankTolerance,
-                                                                 workspace,
-                                                                 &pcaTiming,
-                                                                 sharedPSF ? &coefficients : nullptr );
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+                                p4ReductionDispatchCenteredInPlace( result,
+                                                                    predictors,
+                                                                    target,
+                                                                    modes,
+                                                                    m_rankTolerance,
+                                                                    workspace,
+                                                                    mixedWorkspace,
+                                                                    &pcaTiming,
+                                                                    sharedPSF ? &coefficients : nullptr );
+#else
+                                static_cast<void>( workspace );
+                                detail::p4PCACalculateCenteredInPlaceMixed( result,
+                                                                            predictors,
+                                                                            target,
+                                                                            modes,
+                                                                            m_rankTolerance,
+                                                                            mixedWorkspace,
+                                                                            &pcaTiming,
+                                                                            sharedPSF ? &coefficients : nullptr );
+#endif
                             }
                             threadGramSeconds += pcaTiming.gramWorkerSeconds;
                             threadEigensolveSeconds += pcaTiming.eigensolveWorkerSeconds;
@@ -4064,6 +4636,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateHeldOutPSFBatch(
     std::size_t firstOutput,
     std::size_t outputCount )
 {
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+    const std::optional<P4ReductionPCADispatch> experimentalDispatch = p4ReductionSelectedPCADispatch();
+#endif
     if( outputCount == 0 || firstOutput >= m_modeFractions.size() ||
         outputCount > m_modeFractions.size() - firstOutput || grids.size() != m_regionStatistics.size() ||
         regionExclusions.size() != grids.size() || regionOffsets.size() != grids.size() || searchPixelCount == 0 )
@@ -4182,6 +4757,16 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateHeldOutPSFBatch(
         // clang-format on
         {
             P4PCA::workspaceT workspace;
+            detail::P4PCAMixedWorkspace mixedWorkspace;
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+            std::optional<detail::P4PCAExperimentalWorkspace> experimentalWorkspace;
+            std::optional<P4ReductionWorkerPrecisionScope> experimentalPrecisionScope;
+            if( experimentalDispatch )
+            {
+                experimentalWorkspace.emplace();
+                experimentalPrecisionScope.emplace( *experimentalDispatch, *experimentalWorkspace );
+            }
+#endif
             P4PCADowndateWorkspace downdateWorkspace;
             P4PCA::matrixT predictors;
             P4PCA::vectorT target;
@@ -4233,6 +4818,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateHeldOutPSFBatch(
                                        temporalOffsets,
                                        modes,
                                        workspace,
+                                       mixedWorkspace,
                                        &downdateWorkspace,
                                        timing,
                                        sameImageSamplingSeconds,
@@ -5158,7 +5744,22 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
     head.append( "", fits::fitsCommentType(), "P4 reduction parameters:" );
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
+    const bool factorDeletionActive =
+        m_excludeMethod != HCI::exclude::none && m_exclusionSolver == P4ExclusionSolver::factorDowndateExact;
     head.template append<std::string>( "P4 ALGORITHM", "P4-PCA", "pixel prediction algorithm" );
+    head.template append<std::string>( "P4POLCY",
+                                       factorDeletionActive ? "D64-FACTOR-DOWNDATE" : "M32D64",
+                                       "effective numerical precision policy" );
+    head.template append<std::string>(
+        "P4CALCPR", factorDeletionActive ? "FP64" : "FP32", "normal-equation and projection precision" );
+    head.template append<std::string>( "P4EIGPR", "FP64", "symmetric eigensolve precision" );
+    head.template append<std::string>(
+        "P4RANKPR", factorDeletionActive ? "FP64" : "FP32", "eigenpair and rank-decision precision" );
+    head.template append<std::string>( "P4OUTPR",
+                                       std::is_same_v<realT, float> ? "FP32" : "FP64",
+                                       "reduction product storage precision" );
+    head.template append<std::string>(
+        "P4FDELPR", factorDeletionActive ? "FP64" : "N/A", "exact factor-deletion precision" );
     head.template append<std::string>( "P4 FRAME", regressionFrameString( m_regressionFrame ), "regression frame" );
     head.template append<int>( "P4 IN SAMPLE",
                                m_excludeMethod == HCI::exclude::none ? 1 : 0,
@@ -5170,16 +5771,13 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
                                        exclusionSolverString( m_exclusionSolver ),
                                        "target-frame exclusion solver" );
     head.template append<std::string>( "P4 RANK MODEL",
-                                       m_exclusionSolver == P4ExclusionSolver::factorDowndateExact ? "completeBaseExact"
-                                                                                                   : "direct",
+                                       factorDeletionActive ? "completeBaseExact" : "direct",
                                        "held-out rank model" );
     head.template append<int>( "P4 FULL BASE",
-                               m_exclusionSolver == P4ExclusionSolver::factorDowndateExact ? 1 : 0,
+                               factorDeletionActive ? 1 : 0,
                                "whether factor solver retained a complete safe base" );
     head.template append<std::string>( "P4 DELETION BACKEND",
-                                       m_exclusionSolver == P4ExclusionSolver::factorDowndateExact
-                                           ? deletionBackendString( m_deletionBackend )
-                                           : "none",
+                                       factorDeletionActive ? deletionBackendString( m_deletionBackend ) : "none",
                                        "mxlib SVD deletion backend" );
     head.template append<realT>( "P4 ADI MIN DPX", m_minDPx, "minimum target/reference displacement" );
     head.template append<int>( "P4 RDI", 0, "target-only ADI implementation" );
@@ -5440,6 +6038,37 @@ int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess( bool reportProgre
     this->m_PSFSubPrefix = configuredPSFSubPrefix;
     return result;
 }
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+namespace detail
+{
+
+/** \cond P4Reduction_precision_experiment */
+int p4ReductionReduceExperimental( P4Reductionf &reduction, P4PCAPrecisionPolicy precisionPolicy )
+{
+    switch( precisionPolicy )
+    {
+    case P4PCAPrecisionPolicy::doubleDouble:
+    case P4PCAPrecisionPolicy::floatDouble:
+    case P4PCAPrecisionPolicy::floatFloat:
+        break;
+    default:
+        throw std::invalid_argument( "unknown experimental P4 precision policy" );
+    }
+
+    if( precisionPolicy == P4PCAPrecisionPolicy::floatFloat &&
+        reduction.m_exclusionSolver == P4ExclusionSolver::factorDowndateExact )
+    {
+        throw std::invalid_argument( "experimental FP32 eigensolve does not support exact factor deletion" );
+    }
+
+    P4ReductionPrecisionSelectionScope selectionScope( precisionPolicy );
+    return reduction.reduce();
+}
+/** \endcond */
+
+} // namespace detail
+#endif
 
 template struct P4Reduction<float, ADIDerotator<float, verbose::vv>, verbose::vv>;
 

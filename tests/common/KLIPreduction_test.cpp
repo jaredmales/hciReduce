@@ -19,8 +19,12 @@ namespace KLIPreduction_test
 {
 
 /// \cond KLIPreduction_test_harness
-using reductionT =
-    mx::improc::KLIPreduction<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, double, mx::verbose::vv>;
+using reductionT = mx::improc::KLIPProductionReduction;
+using fp32ReductionT =
+    mx::improc::KLIPreduction<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, float, mx::verbose::vv>;
+
+static_assert( std::is_same_v<typename reductionT::realT, float> );
+static_assert( std::is_same_v<typename reductionT::evCalcT, double> );
 
 void readReductionConfig( reductionT &reduction, const std::filesystem::path &path, const std::string &contents )
 {
@@ -75,6 +79,21 @@ struct reductionHarness : public reductionT
     }
 };
 
+/// Expose worker state for the experimental FP32 eigensolve specialization.
+struct fp32ReductionHarness : public fp32ReductionT
+{
+    using fp32ReductionT::m_Ncols;
+    using fp32ReductionT::m_Nims;
+    using fp32ReductionT::m_Npix;
+    using fp32ReductionT::m_Nrows;
+    using fp32ReductionT::m_psfsub;
+
+    /// Suppress file-backed post-read processing in the in-memory test harness.
+    void postReadFiles() override
+    {
+    }
+};
+
 void prepareRegionReduction( reductionHarness &reduction )
 {
     reduction.m_filesRead = true;
@@ -118,6 +137,28 @@ void requireApprox( const actualT &actual,     /**< [in] values produced by the 
     }
 }
 
+/// Compare two Eigen-like arrays with combined absolute and scale-relative FP32 bounds.
+template <typename actualT, typename expectedT>
+void requireScaleApprox( const actualT &actual,     /**< [in] values produced by the FP32 worker */
+                         const expectedT &expected, /**< [in] mixed-precision or FP64 reference values */
+                         double absoluteTolerance,  /**< [in] tolerance protecting values near zero */
+                         double relativeTolerance /**< [in] tolerance scaled to each coefficient magnitude */ )
+{
+    REQUIRE( actual.rows() == expected.rows() );
+    REQUIRE( actual.cols() == expected.cols() );
+    for( Eigen::Index column = 0; column < actual.cols(); ++column )
+    {
+        for( Eigen::Index row = 0; row < actual.rows(); ++row )
+        {
+            const double actualValue = static_cast<double>( actual( row, column ) );
+            const double expectedValue = static_cast<double>( expected( row, column ) );
+            const double scale = std::max( std::abs( actualValue ), std::abs( expectedValue ) );
+            CAPTURE( row, column, actualValue, expectedValue, scale );
+            REQUIRE( std::abs( actualValue - expectedValue ) <= absoluteTolerance + relativeTolerance * scale );
+        }
+    }
+}
+
 /// Form a spatial projector from the largest rows of an ascending KL-mode matrix.
 reductionT::imageT modeProjector( const reductionT::imageT &modes, /**< [in] ascending KL modes stored by row */
                                   int modeCount /**< [in] number of largest modes to retain */ )
@@ -140,6 +181,21 @@ reductionT::imageT svdProjector( const reductionT::imageT &references, /**< [in]
     return ( selected * selected.transpose() ).array();
 }
 
+/// Form a target residual with an independent FP64 thin-SVD oracle.
+template <typename referenceT, typename targetT>
+Eigen::ArrayXXd svdResidualDouble( const referenceT &references, /**< [in] pixels-by-references matrix */
+                                   const targetT &target,        /**< [in] target column */
+                                   int modeCount /**< [in] requested number of largest singular modes */ )
+{
+    const Eigen::MatrixXd doubleReferences = references.matrix().template cast<double>();
+    const Eigen::MatrixXd doubleTarget = target.matrix().template cast<double>();
+    const int effectiveModeCount =
+        std::min<int>( modeCount, std::min( doubleReferences.rows(), doubleReferences.cols() ) );
+    Eigen::JacobiSVD<Eigen::MatrixXd> decomposition( doubleReferences, Eigen::ComputeThinU );
+    const Eigen::MatrixXd selectedModes = decomposition.matrixU().leftCols( effectiveModeCount );
+    return ( doubleTarget - selectedModes * ( selectedModes.transpose() * doubleTarget ) ).array();
+}
+
 /// Form a target residual from a spatial projector.
 reductionT::imageT projectedResidual( const reductionT::imageT &projector, /**< [in] spatial projector */
                                       const reductionT::imageT &target /**< [in] target column */ )
@@ -148,10 +204,11 @@ reductionT::imageT projectedResidual( const reductionT::imageT &projector, /**< 
 }
 
 /// Initialize the direct-worker state shared by adaptive-basis tests.
-void prepareWorkerReduction( reductionHarness &reduction, /**< [out] configured reduction harness */
-                             int pixelCount,              /**< [in] flattened region size */
-                             int targetCount,             /**< [in] number of target images */
-                             int referenceCount,          /**< [in] number of reference images */
+template <typename reductionHarnessT>
+void prepareWorkerReduction( reductionHarnessT &reduction, /**< [out] configured reduction harness */
+                             int pixelCount,               /**< [in] flattened region size */
+                             int targetCount,              /**< [in] number of target images */
+                             int referenceCount,           /**< [in] number of reference images */
                              const std::vector<int> &modeCounts /**< [in] configured KL mode counts */ )
 {
     reduction.m_meanSubMethod = mx::improc::HCI::meanSub::none;
@@ -1247,6 +1304,99 @@ TEST_CASE( "KLIP adaptive basis shape equivalence", "[KLIPreduction][basis][refe
     }
 }
 
+/// Verify the FP32 calcKLModesAdaptive direct path agrees with the current mixed path and an FP64 SVD oracle.
+/** This exercises mx::improc::calcKLModesAdaptive() with both its reference-space and pixel-space Gram matrices.
+ * Sign-invariant individual-mode and retained-subspace projectors, plus projected target residuals, are compared so
+ * arbitrary eigenvector signs do not affect the result.
+ * \ingroup KLIPreduction_unit_tests
+ */
+TEST_CASE( "KLIP direct FP32 eigensolve differential", "[KLIPreduction][basis][precision][fp32]" )
+{
+    reductionT::imageT references;
+    reductionT::imageT target;
+
+    SECTION( "reference-space Gram matrix" )
+    {
+        references.resize( 7, 4 );
+        references << 8, 0.2, -0.1, 0.3, 0.1, 4, 0.2, -0.4, -0.2, 0.3, 2, 0.1, 0.3, -0.4, 0.1, 1, 0.5, 0.2, -0.3, 0.4,
+            -0.1, 0.6, 0.2, -0.2, 0.4, -0.3, 0.5, 0.1;
+        target.resize( 7, 1 );
+        target << 1.5, -2, 0.75, 3, -1, 0.5, 2.25;
+    }
+
+    SECTION( "pixel-space Gram matrix" )
+    {
+        references.resize( 4, 7 );
+        references << 8, 0.1, -0.2, 0.3, 0.5, -0.1, 0.4, 0.2, 4, 0.3, -0.4, 0.2, 0.6, -0.3, -0.1, 0.2, 2, 0.1, -0.3,
+            0.2, 0.5, 0.3, -0.4, 0.1, 1, 0.4, -0.2, 0.1;
+        target.resize( 4, 1 );
+        target << 1.5, -2, 0.75, 3;
+    }
+
+    constexpr int maximumModeCount = 4;
+    reductionT::imageT covariance;
+    mx::math::eigenSYRK( covariance, references );
+
+    reductionT::imageT mixedModes;
+    mx::math::syevrMem<double> mixedWorkspace;
+    REQUIRE( mx::improc::calcKLModesAdaptive<double>( mixedModes,
+                                                      covariance,
+                                                      references,
+                                                      maximumModeCount,
+                                                      &mixedWorkspace ) == 0 );
+
+    reductionT::imageT fp32Modes;
+    mx::math::syevrMem<float> fp32Workspace;
+    REQUIRE(
+        mx::improc::calcKLModesAdaptive<float>( fp32Modes, covariance, references, maximumModeCount, &fp32Workspace ) ==
+        0 );
+
+    REQUIRE( mixedModes.rows() == maximumModeCount );
+    REQUIRE( fp32Modes.rows() == maximumModeCount );
+    REQUIRE( mixedModes.cols() == references.rows() );
+    REQUIRE( fp32Modes.cols() == references.rows() );
+    REQUIRE( mixedModes.isFinite().all() );
+    REQUIRE( fp32Modes.isFinite().all() );
+
+    const Eigen::MatrixXd oracleReferences = references.matrix().cast<double>();
+    const Eigen::MatrixXd oracleTarget = target.matrix().cast<double>();
+    Eigen::JacobiSVD<Eigen::MatrixXd> oracleDecomposition( oracleReferences, Eigen::ComputeThinU );
+
+    for( int modeCount = 1; modeCount <= maximumModeCount; ++modeCount )
+    {
+        CAPTURE( modeCount );
+
+        const int storedMode = maximumModeCount - modeCount;
+        const Eigen::MatrixXf mixedMode = mixedModes.matrix().row( storedMode ).transpose();
+        const Eigen::MatrixXf fp32Mode = fp32Modes.matrix().row( storedMode ).transpose();
+        const reductionT::imageT mixedModeProjector = ( mixedMode * mixedMode.transpose() ).array();
+        const reductionT::imageT fp32ModeProjector = ( fp32Mode * fp32Mode.transpose() ).array();
+        const Eigen::MatrixXd oracleMode = oracleDecomposition.matrixU().col( modeCount - 1 );
+        const Eigen::ArrayXXd oracleModeProjector = ( oracleMode * oracleMode.transpose() ).array();
+
+        requireApprox( mixedModeProjector, oracleModeProjector, 2e-5 );
+        requireApprox( fp32ModeProjector, oracleModeProjector, 6e-5 );
+        requireApprox( fp32ModeProjector, mixedModeProjector, 6e-5 );
+
+        const reductionT::imageT mixedProjector = modeProjector( mixedModes, modeCount );
+        const reductionT::imageT fp32Projector = modeProjector( fp32Modes, modeCount );
+        const Eigen::MatrixXd oracleModes = oracleDecomposition.matrixU().leftCols( modeCount );
+        const Eigen::ArrayXXd oracleProjector = ( oracleModes * oracleModes.transpose() ).array();
+
+        requireApprox( mixedProjector, oracleProjector, 2e-5 );
+        requireApprox( fp32Projector, oracleProjector, 6e-5 );
+        requireApprox( fp32Projector, mixedProjector, 6e-5 );
+
+        const reductionT::imageT mixedResidual = projectedResidual( mixedProjector, target );
+        const reductionT::imageT fp32Residual = projectedResidual( fp32Projector, target );
+        const Eigen::ArrayXXd oracleResidual = ( oracleTarget - oracleProjector.matrix() * oracleTarget ).array();
+
+        requireApprox( mixedResidual, oracleResidual, 8e-5 );
+        requireApprox( fp32Residual, oracleResidual, 2e-4 );
+        requireApprox( fp32Residual, mixedResidual, 2e-4 );
+    }
+}
+
 /// Verify calcKLModesAdaptive preserves legacy mode clamping and exact-positive rank behavior.
 /** \ingroup KLIPreduction_unit_tests */
 TEST_CASE( "KLIP adaptive basis mode and rank behavior", "[KLIPreduction][basis][rank]" )
@@ -1489,6 +1639,187 @@ TEST_CASE( "KLIP factor-deletion modes", "[KLIPreduction][basis][downdate]" )
     }
 }
 
+/// Verify KLIPreduction::worker produces equivalent residuals with FP32 and mixed-precision eigensolves.
+/** Identical, well-conditioned FP32 inputs exercise the shared reference-space Gram path and the target-specific
+ * pixel-space Gram path. The FP32 bound is 4096 single-precision epsilons, allowing for Gram accumulation,
+ * eigensolution, and projector application while remaining substantially below the input scale. Results are also
+ * checked against an independent FP64 thin-SVD oracle. Mode clamping, finite outputs, and inclusion flags are part
+ * of the contract under test.
+ * \ingroup KLIPreduction_unit_tests
+ */
+TEST_CASE( "KLIP worker FP32 eigensolve differential", "[KLIPreduction][worker][precision][fp32]" )
+{
+    constexpr double mixedTolerance = 256.0 * std::numeric_limits<float>::epsilon();
+    constexpr double fp32Tolerance = 4096.0 * std::numeric_limits<float>::epsilon();
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    reductionT doxygenMixed;
+    fp32ReductionT doxygenFp32;
+    mx::improc::eigenCube<float> doxygenImages;
+    reductionT::imageT doxygenMask;
+    std::vector<size_t> doxygenIndices;
+    doxygenMixed.worker( doxygenImages, doxygenImages, doxygenMask, doxygenIndices, 0, 0 );
+    doxygenFp32.worker( doxygenImages, doxygenImages, doxygenMask, doxygenIndices, 0, 0 );
+#endif
+    // clang-format on
+
+    SECTION( "shared reference-space Gram basis" )
+    {
+        const std::vector<int> modeCounts{ 1, 2, 4, 9 };
+        mx::improc::eigenCube<float> input( 7, 1, 4 );
+        input.image( 0 ) << 3.2F, 0.1F, 1.1F, -0.4F, 0.7F, 1.5F, -0.2F;
+        input.image( 1 ) << 0.2F, 2.7F, -0.3F, 0.9F, 1.2F, -0.8F, 0.5F;
+        input.image( 2 ) << 1.0F, -0.4F, 2.3F, 0.2F, -1.1F, 0.6F, 0.8F;
+        input.image( 3 ) << -0.5F, 0.8F, 0.4F, 2.1F, 0.3F, -0.7F, 1.4F;
+        const reductionT::imageT referenceMatrix = input.cube();
+        reductionT::imageT mask;
+        std::vector<size_t> indices{ 0, 1, 2, 3, 4, 5, 6 };
+
+        reductionHarness mixed;
+        prepareWorkerReduction( mixed, 7, 4, 4, modeCounts );
+        mx::improc::eigenCube<float> mixedInput = input;
+        {
+            OpenMPThreadGuard threads( 1 );
+            mixed.worker( mixedInput, mixedInput, mask, indices, 0, 0 );
+        }
+
+        fp32ReductionHarness fp32;
+        prepareWorkerReduction( fp32, 7, 4, 4, modeCounts );
+        mx::improc::eigenCube<float> fp32Input = input;
+        {
+            OpenMPThreadGuard threads( 1 );
+            fp32.worker( fp32Input, fp32Input, mask, indices, 0, 0 );
+        }
+
+        REQUIRE( mixed.m_Nmodes == modeCounts );
+        REQUIRE( fp32.m_Nmodes == modeCounts );
+        REQUIRE( mixed.m_imsIncluded.isOnes() );
+        REQUIRE( fp32.m_imsIncluded.isOnes() );
+        REQUIRE( ( mixed.m_imsIncluded == fp32.m_imsIncluded ).all() );
+
+        for( size_t modeIndex = 0; modeIndex < modeCounts.size(); ++modeIndex )
+        {
+            CAPTURE( modeIndex, modeCounts[modeIndex] );
+            REQUIRE( mixed.m_psfsub[modeIndex].cube().isFinite().all() );
+            REQUIRE( fp32.m_psfsub[modeIndex].cube().isFinite().all() );
+            requireScaleApprox( fp32.m_psfsub[modeIndex].cube(),
+                                mixed.m_psfsub[modeIndex].cube(),
+                                fp32Tolerance,
+                                fp32Tolerance );
+            for( int target = 0; target < input.planes(); ++target )
+            {
+                const Eigen::ArrayXXd oracle =
+                    svdResidualDouble( referenceMatrix, referenceMatrix.col( target ), modeCounts[modeIndex] );
+                requireScaleApprox( mixed.m_psfsub[modeIndex].cube().col( target ),
+                                    oracle,
+                                    mixedTolerance,
+                                    mixedTolerance );
+                requireScaleApprox( fp32.m_psfsub[modeIndex].cube().col( target ),
+                                    oracle,
+                                    fp32Tolerance,
+                                    fp32Tolerance );
+            }
+        }
+
+        requireScaleApprox( mixed.m_psfsub[2].cube(), mixed.m_psfsub[3].cube(), mixedTolerance, mixedTolerance );
+        requireScaleApprox( fp32.m_psfsub[2].cube(), fp32.m_psfsub[3].cube(), fp32Tolerance, fp32Tolerance );
+    }
+
+    SECTION( "target-specific pixel-space Gram basis" )
+    {
+        const std::vector<int> modeCounts{ 1, 2, 3, 8 };
+        mx::improc::eigenCube<float> references( 3, 1, 7 );
+        references.image( 0 ) << 3.0F, 0.2F, 0.7F;
+        references.image( 1 ) << 0.1F, 2.5F, -0.4F;
+        references.image( 2 ) << 1.2F, -0.3F, 1.8F;
+        references.image( 3 ) << -0.6F, 0.9F, 2.2F;
+        references.image( 4 ) << 0.8F, 1.4F, -0.7F;
+        references.image( 5 ) << -1.1F, 0.5F, 1.0F;
+        references.image( 6 ) << 0.4F, -1.2F, 0.6F;
+        mx::improc::eigenCube<float> targets( 3, 1, 4 );
+        targets.image( 0 ) << 0.6F, -0.2F, 1.4F;
+        targets.image( 1 ) << -1.3F, 1.7F, 0.2F;
+        targets.image( 2 ) << 2.2F, 0.5F, -0.8F;
+        targets.image( 3 ) << 0.1F, -0.9F, 1.6F;
+        const reductionT::imageT referenceMatrix = references.cube();
+        const reductionT::imageT targetMatrix = targets.cube();
+        reductionT::imageT mask;
+        std::vector<size_t> indices{ 0, 1, 2 };
+
+        reductionHarness mixed;
+        prepareWorkerReduction( mixed, 3, 4, 7, modeCounts );
+        mixed.m_includeMethod = mx::improc::HCI::include::imno;
+        mixed.m_includeRefNum = 5;
+        mixed.m_imsIncluded.setConstant( -1 );
+        mx::improc::eigenCube<float> mixedReferences = references;
+        mx::improc::eigenCube<float> mixedTargets = targets;
+        {
+            OpenMPThreadGuard threads( 1 );
+            mixed.worker( mixedReferences, mixedTargets, mask, indices, 0, 0 );
+        }
+
+        fp32ReductionHarness fp32;
+        prepareWorkerReduction( fp32, 3, 4, 7, modeCounts );
+        fp32.m_includeMethod = mx::improc::HCI::include::imno;
+        fp32.m_includeRefNum = 5;
+        fp32.m_imsIncluded.setConstant( -1 );
+        mx::improc::eigenCube<float> fp32References = references;
+        mx::improc::eigenCube<float> fp32Targets = targets;
+        {
+            OpenMPThreadGuard threads( 1 );
+            fp32.worker( fp32References, fp32Targets, mask, indices, 0, 0 );
+        }
+
+        Eigen::ArrayXXi expectedIncluded( 4, 7 );
+        expectedIncluded << 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0;
+        REQUIRE( mixed.m_Nmodes == modeCounts );
+        REQUIRE( fp32.m_Nmodes == modeCounts );
+        REQUIRE( ( mixed.m_imsIncluded == expectedIncluded ).all() );
+        REQUIRE( ( fp32.m_imsIncluded == expectedIncluded ).all() );
+        REQUIRE( ( mixed.m_imsIncluded == fp32.m_imsIncluded ).all() );
+
+        for( int target = 0; target < targets.planes(); ++target )
+        {
+            reductionT::imageT selectedReferences( 3, 5 );
+            int selectedColumn = 0;
+            for( int reference = 0; reference < references.planes(); ++reference )
+            {
+                if( expectedIncluded( target, reference ) == 1 )
+                {
+                    selectedReferences.col( selectedColumn ) = referenceMatrix.col( reference );
+                    ++selectedColumn;
+                }
+            }
+            REQUIRE( selectedColumn == selectedReferences.cols() );
+
+            for( size_t modeIndex = 0; modeIndex < modeCounts.size(); ++modeIndex )
+            {
+                CAPTURE( target, modeIndex, modeCounts[modeIndex] );
+                REQUIRE( mixed.m_psfsub[modeIndex].cube().col( target ).isFinite().all() );
+                REQUIRE( fp32.m_psfsub[modeIndex].cube().col( target ).isFinite().all() );
+                const Eigen::ArrayXXd oracle =
+                    svdResidualDouble( selectedReferences, targetMatrix.col( target ), modeCounts[modeIndex] );
+                requireScaleApprox( fp32.m_psfsub[modeIndex].cube().col( target ),
+                                    mixed.m_psfsub[modeIndex].cube().col( target ),
+                                    fp32Tolerance,
+                                    fp32Tolerance );
+                requireScaleApprox( mixed.m_psfsub[modeIndex].cube().col( target ),
+                                    oracle,
+                                    mixedTolerance,
+                                    mixedTolerance );
+                requireScaleApprox( fp32.m_psfsub[modeIndex].cube().col( target ),
+                                    oracle,
+                                    fp32Tolerance,
+                                    fp32Tolerance );
+            }
+        }
+
+        requireScaleApprox( mixed.m_psfsub[2].cube(), mixed.m_psfsub[3].cube(), mixedTolerance, mixedTolerance );
+        requireScaleApprox( fp32.m_psfsub[2].cube(), fp32.m_psfsub[3].cube(), fp32Tolerance, fp32Tolerance );
+    }
+}
+
 /// Verify KLIPreduction::worker uses exact factor deletion for ordinary ADI image exclusion.
 /** This exercises KLIPreduction::worker() through its same-cube image-number exclusion path and compares the
  * resulting residuals against the direct selected-library KLIP oracle.
@@ -1578,6 +1909,12 @@ TEST_CASE( "KLIP worker factor deletion", "[KLIPreduction][worker][exclude][down
     REQUIRE( header["KLEXCLFT"].value<long>() == 4 );
     REQUIRE( header["KLEXCLFB"].value<long>() == 0 );
     REQUIRE( header["KLEXCLBK"].String().starts_with( "leadingCovariance" ) );
+    REQUIRE( header["KLPOLCY"].String().starts_with( "M32D64" ) );
+    REQUIRE( header["KLCALCPR"].String().starts_with( "FP32" ) );
+    REQUIRE( header["KLEIGPR"].String().starts_with( "FP64" ) );
+    REQUIRE( header["KLRANKPR"].String().starts_with( "FP64+FP64/FP32" ) );
+    REQUIRE( header["KLOUTPR"].String().starts_with( "FP32" ) );
+    REQUIRE( header["KLFDELPR"].String().starts_with( "FP64" ) );
 
     reductionHarness::fitsHeaderT structuredHeader;
     structured.appendReductionHeader( structuredHeader );
@@ -2313,6 +2650,12 @@ TEST_CASE( "KLIP final output metadata", "[KLIPreduction][finalProcess][output][
     }
     REQUIRE( reductionKeywords == std::vector<std::string>{ "MEAN SUB METHOD",
                                                             "PIXTS NORM METHOD",
+                                                            "KLPOLCY",
+                                                            "KLCALCPR",
+                                                            "KLEIGPR",
+                                                            "KLRANKPR",
+                                                            "KLOUTPR",
+                                                            "KLFDELPR",
                                                             "NMODES",
                                                             "RIGHT REASON",
                                                             "RIGHT REASON RADIUS",
@@ -2345,6 +2688,12 @@ TEST_CASE( "KLIP final output metadata", "[KLIPreduction][finalProcess][output][
     REQUIRE( output.image( 1 )( 0, 0 ) == Approx( 3 ) );
     REQUIRE( header["MEAN SUB METHOD"].String().starts_with( "imageMedian" ) );
     REQUIRE( header["PIXTS NORM METHOD"].String().starts_with( "rms" ) );
+    REQUIRE( header["KLPOLCY"].String().starts_with( "M32D64" ) );
+    REQUIRE( header["KLCALCPR"].String().starts_with( "FP32" ) );
+    REQUIRE( header["KLEIGPR"].String().starts_with( "FP64" ) );
+    REQUIRE( header["KLRANKPR"].String().starts_with( "FP64/FP32" ) );
+    REQUIRE( header["KLOUTPR"].String().starts_with( "FP32" ) );
+    REQUIRE( header["KLFDELPR"].String().starts_with( "N/A" ) );
     REQUIRE( header["NMODES"].String().starts_with( "1,2" ) );
     REQUIRE( header["RIGHT REASON"].value<char>() == 1 );
     REQUIRE( header["RIGHT REASON RADIUS"].value<float>() == Approx( 3.5 ) );

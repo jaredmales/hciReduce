@@ -326,13 +326,16 @@ class klipReduce : public application
     }
 };
 
+/// Supported production CLI specialization using FP32 calculations and an FP64 direct eigensolve.
+using klipReduceProductionT = klipReduce<KLIPProductionCalculationT, KLIPProductionEigensolverT, mx::verbose::vv>;
+
 #ifndef HCIREDUCE_KLIPREDUCE_NO_MAIN
 int main( int argc, char **argv )
 {
 
     std::string argv0 = argv[0];
 
-    klipReduce<float, double, mx::verbose::vv> kr;
+    klipReduceProductionT kr;
 
     try
     {

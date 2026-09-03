@@ -523,7 +523,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         const std::vector<P4PixelCoordinate> &temporalOffsets,
         /**< [in] direct additional-image predictor offsets */
         const std::vector<int> &modes, /**< [in] requested realized integer modes */
-        P4PCA::workspaceT &workspace,  /**< [in,out] reusable eigensolver workspace */
+        P4PCA::workspaceT &workspace,  /**< [in,out] reusable all-FP64 or factor-deletion workspace */
+        detail::P4PCAMixedWorkspace &mixedWorkspace,
+        /**< [in,out] reusable FP32-calculation and FP64-eigensolver workspace */
         P4PCADowndateWorkspace *downdateWorkspace,
         /**< [in,out] optional reusable factor-deletion workspace */
         P4PCATiming &timing,              /**< [out] PCA phase timing */
@@ -583,6 +585,23 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
 /// Supported production P4 reduction specialization.
 using P4Reductionf = P4Reduction<float, ADIDerotator<float, verbose::vv>, verbose::vv>;
+
+#ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+/** \cond P4Reduction_precision_experiment */
+namespace detail
+{
+
+/// Run one P4 reduction through an explicitly selected experimental PCA scalar policy.
+/** Non-DD policies currently require disabled automatic memory limiting and reject factor deletion, shared PSF
+ * coefficients, and local-trial processing before the reduction object is mutated.
+ */
+int p4ReductionReduceExperimental(
+    P4Reductionf &reduction, /**< [in,out] configured production-layout reduction object */
+    P4PCAPrecisionPolicy precisionPolicy /**< [in] PCA calculation/eigensolver scalar combination */ );
+
+} // namespace detail
+/** \endcond */
+#endif
 
 extern template struct P4Reduction<float, ADIDerotator<float, verbose::vv>, verbose::vv>;
 

@@ -14,7 +14,10 @@ option(HCIREDUCE_BUILD_TESTS "Whether or not to build hciReduce tests" OFF)
 option(HCIREDUCE_BUILD_COVERAGE "Whether or not to enable coverage instrumentation" OFF)
 set(HCIREDUCE_COVERAGE_TEST_TIMEOUT 300 CACHE STRING "CTest timeout (seconds) for the coverage target")
 option(HCIREDUCE_BUILD_DOCS "Whether or not to build Doxygen docs as part of the default build" OFF)
+option(HCIREDUCE_BUILD_CPU_BENCHMARKS "Whether or not to build standalone CPU performance benchmarks" OFF)
 option(HCIREDUCE_BUILD_CUDA_BENCHMARKS "Whether or not to build standalone CUDA performance benchmarks" OFF)
+option(HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+       "Whether or not to build internal P4 all-double and FP32-eigensolve comparison entry points" OFF)
 
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     if(HCIREDUCE_BUILD_COVERAGE)
@@ -49,6 +52,9 @@ add_subdirectory(src)
 
 if(HCIREDUCE_BUILD_CUDA_BENCHMARKS)
     find_package(CUDAToolkit 13.0 REQUIRED)
+endif()
+
+if(HCIREDUCE_BUILD_CPU_BENCHMARKS OR HCIREDUCE_BUILD_CUDA_BENCHMARKS)
     add_subdirectory(benchmarks)
 endif()
 

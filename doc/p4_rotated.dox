@@ -57,6 +57,8 @@
  * using the detector algorithm's truncated eigensolution and rank policy. Centering removes one temporal degree of
  * freedom, so mode fractions are realized against `min(K,T-1)`. At least two frames are required, and this structural
  * limit remains in force with `p4.rankTolerance=0`.
+ * The centered PCA calculation follows the production M32D64 policy: FP32 Gram and surrounding arithmetic with an
+ * FP64 eigensolve. Precision is fixed internally and does not change this experiment's negative scientific status.
  *
  * The centered matrices determine `c_m`, but the implementation applies it to the original uncentered predictor
  * matrix `U_m`:

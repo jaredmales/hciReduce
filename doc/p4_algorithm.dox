@@ -12,14 +12,16 @@
  * selections before choosing the full-frame or pixel-local path.
  *
  * Each detector-pixel fit enters `P4Reduction::fitDetectorSearch()` to sample the target time series and predictor
- * matrix. The in-sample path calls \ref mx::improc::P4PCA::calculate "P4PCA::calculate()". Target-frame exclusion
- * first builds one compact \ref mx::improc::P4TargetExclusions "P4TargetExclusions" pattern per annulus with
- * `P4Reduction::targetExclusions()`, then calls either
- * \ref mx::improc::P4PCA::calculateHeldOut "P4PCA::calculateHeldOut()" for the direct oracle or
- * \ref mx::improc::P4PCA::calculateHeldOutDowndated "P4PCA::calculateHeldOutDowndated()" for deletion from an
- * immutable complete base factor. All paths preserve the same Gram construction, rank-selection, residual, and
- * validity contracts. Pixel-local processing schedules only the unique detector fits needed by the requested sky
- * stamp and passes the same annular deletion pattern through that shared regression kernel.
+ * matrix. In-sample and explicit-held-out work dispatches through the fixed production M32D64 adapter: calculation,
+ * Gram construction, projection, residuals, coefficients, and probes use FP32 around an FP64 `SYEVR`. Successful
+ * eigenpairs return to FP32 before rank selection. Target-frame exclusion first builds one compact
+ * \ref mx::improc::P4TargetExclusions "P4TargetExclusions" pattern per annulus with
+ * `P4Reduction::targetExclusions()`. The opt-in factor path calls
+ * \ref mx::improc::P4PCA::calculateHeldOutDowndated "P4PCA::calculateHeldOutDowndated()" against an immutable complete
+ * FP64 base factor and retains an FP64 whole-search-pixel direct fallback. The public
+ * \ref mx::improc::P4PCA "P4PCA" API remains the all-double regression oracle. Pixel-local processing schedules only
+ * the unique detector fits needed by the requested sky stamp and passes the same annular deletion pattern through
+ * that shared regression kernel.
  *
  * The factor path chooses its mxlib deletion implementation once per calculation. `leadingCovariance` constructs a
  * dense covariance core and supports one or more deleted rows. `rankOneSecular` exploits the one-row

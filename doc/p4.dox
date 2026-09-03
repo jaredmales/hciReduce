@@ -38,6 +38,14 @@
  * and add no hidden centering or intercept. Mean-image subtraction and other preprocessing are controlled entirely
  * by the inherited hciReduce preprocessing configuration.
  *
+ * The production direct and explicit-refit policy is M32D64. P4 forms the Gram matrix and performs projection,
+ * residual, coefficient, and frozen-probe arithmetic in FP32, promotes the Gram matrix into an FP64 `SYEVR`
+ * workspace, and returns successful eigenpairs to FP32 before rank selection and projection. The same fixed policy
+ * covers ordinary detector regression, the retained rotated numerical reference, pixel-local trials, and shared PSF
+ * coefficients; it is not a runtime configuration choice. The opt-in `factorDowndateExact` path and its
+ * whole-search-pixel explicit fallback remain FP64 and are identified separately in product provenance. The public
+ * all-double numerical implementation remains the regression oracle.
+ *
  * With the compatibility default `p4.numberImages=0`, each predictor row contains only the `K` OR pixels from its
  * central image. A positive `p4.numberImages=N` appends `N` nearest qualifying earlier-image blocks and `N` nearest
  * qualifying later-image blocks. The central block retains its `K_OR` OR pixels, while each neighbor contributes
@@ -247,10 +255,10 @@
  * outputPSFSub=false
  * \endcode
  *
- * The comparison configuration does not promise bitwise-identical output. The prototype used float/CUDA PCA and
- * zero-filled unsupported pixels, whereas p4Reduce uses all-double CPU PCA and propagates authoritative validity
- * through derotation and combination. The prototype also wrote an unused `psf_mean.fits` sidecar that has no effect
- * on the reduction and is not reproduced by p4Reduce.
+ * The comparison configuration does not promise bitwise-identical output. The prototype used a fully FP32 CUDA/CPU
+ * eigensolve path and zero-filled unsupported pixels, whereas p4Reduce uses FP32 calculation with an FP64 CPU
+ * eigensolve and propagates authoritative validity through derotation and combination. The prototype also wrote an
+ * unused `psf_mean.fits` sidecar that has no effect on the reduction and is not reproduced by p4Reduce.
  *
  * For a new dataset, leave `preProcess.skip=false` and configure inherited preprocessing explicitly. Diagnostics do
  * not change the numerical result, but the ownership and region-summary products are useful when validating new

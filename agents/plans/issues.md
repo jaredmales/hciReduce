@@ -18,6 +18,7 @@ Use these states:
 - **Conditional**: do the work only if measurement demonstrates the stated need.
 - **External**: owned by mxlib or another dependency, but relevant to hciReduce.
 - **Untriaged**: the source note does not yet contain enough context or acceptance criteria.
+- **Resolved**: implemented or otherwise closed; retained only to preserve the stable issue ID and history.
 
 When resolving an issue, update this index and the linked source plan together. Keep issue IDs stable; mark an entry
 resolved rather than reusing its ID.
@@ -40,13 +41,13 @@ resolved rather than reusing its ID.
 | HCI-012 | Deferred | Extend structured SVD deletion beyond one removed row |
 | HCI-013 | Deferred | Stream P4 per-frame residual products one mode at a time |
 | HCI-014 | Open / Conditional | Calibrate P4 memory policy; add out-of-core input only if needed |
-| HCI-015 | Conditional | Evaluate a broader float-precision P4 path |
+| HCI-015 | Resolved | Evaluate FP32 arithmetic for P4 and KLIP |
 | HCI-016 | Conditional | Add bounded P4 interpolation-kernel caching |
 | HCI-017 | Decision required | Decide whether rotated P4 prunes mask-affected predictor columns |
 | HCI-018 | Open | Complete rotated-P4 scientific validation and release gates |
 | HCI-019 | Deferred | Investigate the original globally coupled rotated coefficient field |
 | HCI-020 | Deferred | Research improved temporal predictors |
-| HCI-021 | Deferred | Adapt factor deletion to KLIP image exclusion |
+| HCI-021 | Resolved | Adapt factor deletion to KLIP image exclusion |
 | HCI-022 | Deferred | Evaluate alternate P4 solvers and Tikhonov regularization |
 | HCI-023 | Deferred | Evaluate grouping neighboring P4 target pixels |
 | HCI-024 | Decision required | Inherit preprocessing provenance when preprocessing is skipped |
@@ -225,15 +226,33 @@ and preprocessing contracts. Keep general out-of-core preprocessing separate.
 Sources: [P4 input-retention step](p4_memory_management_optimization.md#6-reconsider-input-cube-retention-only-if-still-necessary)
 and [P4 deferred memory decisions](p4_memory_management_optimization.md#deferred-decisions).
 
-### HCI-015 — Evaluate a broader float-precision P4 path
+### HCI-015 — Evaluate FP32 arithmetic for P4 and KLIP
 
-**State:** Conditional.
+**State:** Resolved.
 
-Measure whether moving more non-decomposition P4 arithmetic from double to float provides a useful performance or
-memory benefit. Any change requires numerical, validity, and science-product equivalence bounds; the current
-all-double PCA contract remains authoritative unless separately changed.
+The 2026-09-03 owner decision promotes `P4-M32D64` and retains `KLIP-M32D64` as the production policies: FP32
+calculation and Gram construction with FP64 direct eigensolve. P4's public all-double API remains the regression
+oracle, and P4 exact factor deletion plus its whole-search-pixel fallback remain FP64. KLIP exact factor deletion also
+remains an FP64 internal exception. Fully FP32 eigensolve, rank-policy, factor-deletion, guarded/runtime-policy, and
+additional CPU promotion exploration is tabled until GPU acceleration resumes.
 
-Source: [developer TODO](developer_todo.md#evaluate-extend-of-double-vs-float-in-p4).
+The active engineering record now includes the ABI-neutral all-double P4 scalar seam, an opt-in typed core and
+reduction-worker dispatch, rank-sensitive P4 diagnostics, stage-resolved P4/KLIP benchmarks with contract-bound v2
+rows, and two predeclared real-reduction P4 matrices. In the finite-product bounded case, M32D64 and F32 improve paired
+whole-process time by about 19.3% and 19.6%; both preserve exact DD structure, rank, validity, and deterministic output
+within policy. Their pooled scored-ROI residual-change RMS is about 0.10% and 0.11% of DD, rising to about 0.78% and
+0.84% in the 48-mode plane. A predeclared direct-path cross-check also preserves each policy's stored science array
+and finite mask bit-for-bit between one and four outer workers. Full FP32 is 1.63x faster in the tested pixel-Gram KLIP
+regime but 1.35% slower in the subtraction-dominated shared-basis rerun; zero-threshold P4 tests expose raw near-null rank differences. These
+observations informed the accepted lower-risk M32D64 decision. The owner acknowledged that the P4 timing host reached
+thermal saturation and that real-fit ambiguity, complete-data, injected-source, automatic-memory, path, and
+cross-platform evidence remained open. The frozen manifests therefore remain unchanged historical evidence with
+`promotion_ready=false`; the decision does not retroactively turn their report-only measurements into formal passes.
+
+Sources: [FP32 evaluation plan](p4_klip_fp32_evaluation.md),
+[acceptance contract](../../benchmarks/manifests/p4_klip_fp32_acceptance.yaml),
+[AF Lep run manifest](../../benchmarks/manifests/p4_klip_fp32_aflep.yaml), and
+[developer TODO](developer_todo.md#evaluate-extent-of-double-vs-float-in-p4).
 
 ### HCI-016 — Add bounded P4 interpolation-kernel caching
 
@@ -296,12 +315,15 @@ Source: [developer TODO](developer_todo.md#better-temporal-prediction).
 
 ### HCI-021 — Adapt factor deletion to KLIP image exclusion
 
-**State:** Deferred.
+**State:** Resolved.
 
-Define KLIP's image-exclusion semantics and adapt the reusable factor-deletion machinery without assuming P4's
-predictor/response layout. Preserve KLIP mode, reference-selection, and output contracts.
+KLIP's image-exclusion semantics and exact factor-deletion path are implemented behind the configurable solver seam.
+The direct selected-library calculation remains the default because the measured dense and rank-one deletion paths
+did not pass their performance gate. Any future promotion or crossover selector is separate follow-up work rather
+than unfinished adaptation.
 
-Source: [developer TODO](developer_todo.md#exclusion-of-target-images).
+Sources: [developer TODO](developer_todo.md#exclusion-of-target-images) and
+[KLIP factor-deletion result](klip_downdate.md#implementation-sequence).
 
 ### HCI-022 — Evaluate alternate P4 solvers and Tikhonov regularization
 

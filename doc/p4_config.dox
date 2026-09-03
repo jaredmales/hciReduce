@@ -62,13 +62,17 @@
  * \ref p4_rotated_user_guide "rotated-frame negative-result page" separately documents an experimental configuration
  * retained only as a numerical reference.
  *
- * P4 automatically uses the smaller temporal or predictor Gram formulation and performs the normal-equation work in
- * double precision. The Gram choice is not a configurable backend. Exact target exclusion requires detector-frame
- * regression with `p4.numberImages=0`; it is applied consistently to ordinary, pixel-local, and frozen-PSF fits.
+ * P4 automatically uses the smaller temporal or predictor Gram formulation. Its fixed production direct/refit policy
+ * forms the Gram matrix and performs the surrounding PCA calculation in FP32, while promoting the Gram matrix for an
+ * FP64 eigensolve. Successful eigenpairs return to FP32 before rank selection and projection. Precision and Gram
+ * choice are not configurable backends. Exact target exclusion requires detector-frame regression with
+ * `p4.numberImages=0`; it is applied consistently to ordinary, pixel-local, and frozen-PSF fits.
  * `solver.deletionBackend` applies only to `solver.exclusionSolver=factorDowndateExact`; selecting `rankOneSecular` with the
  * explicit solver is rejected rather than ignored. P4 checks the realized compact exclusion pattern before
  * regression. With `rankOneSecular`, each target which retains any reference rows must delete exactly one row. A
  * target whose exclusion removes every row retains the ordinary rank-zero invalid result without invoking mxlib.
+ * The exact factor-deletion calculation and its whole-search-pixel explicit fallback remain FP64 rather than using
+ * the direct/refit M32D64 policy.
  * Recoverable structured-solver numerical failures, including positive LAPACK convergence statuses, trigger one
  * explicit refit of the complete search-pixel time series, so a search pixel never mixes structured and direct
  * target rows. Negative LAPACK statuses remain hard contract failures. Unsupported multirow structured exclusions

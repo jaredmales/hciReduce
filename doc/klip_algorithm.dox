@@ -15,7 +15,9 @@
  * flattened target and reference data, applies the configured mean subtraction or normalization, and calls
  * \ref mx::improc::KLIPreduction::worker "KLIPreduction::worker()". The worker forms the reference covariance,
  * selects the allowed reference library for each target, calls `calcKLModesAdaptive()` for the required KL modes,
- * and projects and subtracts those modes from the target region.
+ * and projects and subtracts those modes from the target region. The production direct specialization fixes the
+ * calculation scalar at FP32 and the eigensolver scalar at FP64. Exact factor deletion is a separate FP64 internal
+ * path whose modes are cast back to FP32.
  *
  * The resulting regional residuals are scattered into the output cubes. Finally,
  * \ref mx::improc::KLIPreduction::finalProcess "KLIPreduction::finalProcess()" delegates post-median subtraction,
