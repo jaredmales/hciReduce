@@ -709,8 +709,8 @@ TEST_CASE( "p4Reduce normal FITS end-to-end", "[p4Reduce][execute][normal][FITS]
     mx::fits::fitsHeader<mx::verbose::vv> header;
     mx::fits::fitsFile<float, mx::verbose::vv> reader;
     REQUIRE( reader.read( output, header, ( outputDirectory / "p4-final.fits" ).string() ) == mx::error_t::noerror );
-    REQUIRE( output.rows() == 21 );
-    REQUIRE( output.cols() == 21 );
+    REQUIRE( output.rows() == 20 );
+    REQUIRE( output.cols() == 20 );
     REQUIRE( output.planes() == 1 );
 
     std::size_t finitePixels{ 0 };
@@ -772,14 +772,14 @@ TEST_CASE( "p4Reduce automatic output crop preserves OR input", "[p4Reduce][geom
     mx::fits::fitsHeader<mx::verbose::vv> header;
     mx::fits::fitsFile<float, mx::verbose::vv> reader;
     REQUIRE( reader.read( output, header, ( outputDirectory / "p4-final.fits" ).string() ) == mx::error_t::noerror );
-    REQUIRE( output.rows() == 21 );
+    REQUIRE( output.rows() == 20 );
     REQUIRE( output.rows() == output.cols() );
     REQUIRE( header["IMSIZE"].value<int>() == 65 );
 
     mx::improc::eigenCube<float> derotatedResidual;
     REQUIRE( reader.read( derotatedResidual,
-                         header,
-                         ( outputDirectory / "p4-final_outputs_000_00000.fits" ).string() ) == mx::error_t::noerror );
+                          header,
+                          ( outputDirectory / "p4-final_outputs_000_00000.fits" ).string() ) == mx::error_t::noerror );
     REQUIRE( derotatedResidual.rows() == 21 );
     REQUIRE( derotatedResidual.cols() == 21 );
 }

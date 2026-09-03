@@ -3132,11 +3132,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     }
 
     m_automaticOutputSize = 0;
+    m_automaticDerotationSize = 0;
     if( !( this->m_preProcess_only && !this->m_skipPreProcess ) && this->m_imSize == 0 )
     {
-        // Preserve the odd automatic output dimension used by P4's central-pixel convention.
         m_automaticOutputSize =
-            2 * ( *std::max_element( m_maxRadius.begin(), m_maxRadius.end() ) + p4AutomaticCropPadding ) + 1;
+            2 * ( *std::max_element( m_maxRadius.begin(), m_maxRadius.end() ) + p4AutomaticCropPadding );
 
         std::cerr << "set final output size based on regions to " << m_automaticOutputSize << '\n';
     }
@@ -3201,6 +3201,10 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         this->m_tgtIms.rows() != this->m_Nrows || this->m_tgtIms.cols() != this->m_Ncols )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr, "invalid target cube state for P4 reduction" );
+    }
+    if( m_automaticOutputSize != 0 )
+    {
+        m_automaticDerotationSize = m_automaticOutputSize + ( ( this->m_Nrows - m_automaticOutputSize ) & 1 );
     }
     std::vector<int> activeFrames;
     if( m_localIncludedFrames )
@@ -4537,7 +4541,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         return result;
     }
 
-    const int combinedImageSize = m_automaticOutputSize != 0 && !m_psfFilter ? m_automaticOutputSize : this->m_Nrows;
+    const int combinedImageSize =
+        m_automaticDerotationSize != 0 && !m_psfFilter ? m_automaticDerotationSize : this->m_Nrows;
     eigenCube<realT> combinedImages;
     combinedImages.resize( combinedImageSize, combinedImageSize, static_cast<int>( m_modeFractions.size() ) );
     const int configuredWriteFinim = this->m_doWriteFinim;
@@ -6042,29 +6047,31 @@ void P4Reduction<realT, derotFunctObj, verboseT>::cropAutomaticFinalImage()
 template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::cropAutomaticFinalResiduals()
 {
-    if( m_automaticOutputSize == 0 || m_psfFilter )
+    if( m_automaticDerotationSize == 0 || m_psfFilter )
     {
         return;
     }
 
     const auto crop = [this]( auto &cube )
     {
-        if( m_automaticOutputSize > cube.rows() || m_automaticOutputSize > cube.cols() )
+        if( m_automaticDerotationSize > cube.rows() || m_automaticDerotationSize > cube.cols() )
         {
             throw mx::exception<verboseT>( mx::error_t::sizeerr,
                                            "automatic P4 residual crop exceeds the residual-cube dimensions" );
         }
 
         const int firstRow =
-            static_cast<int>( std::floor( 0.5 * ( cube.rows() - 1 ) - 0.5 * ( m_automaticOutputSize - 1 ) + 0.1 ) );
+            static_cast<int>( std::floor( 0.5 * ( cube.rows() - 1 ) - 0.5 * ( m_automaticDerotationSize - 1 ) + 0.1 ) );
         const int firstColumn =
-            static_cast<int>( std::floor( 0.5 * ( cube.cols() - 1 ) - 0.5 * ( m_automaticOutputSize - 1 ) + 0.1 ) );
+            static_cast<int>( std::floor( 0.5 * ( cube.cols() - 1 ) - 0.5 * ( m_automaticDerotationSize - 1 ) + 0.1 ) );
         std::remove_cvref_t<decltype( cube )> cropped;
-        cropped.resize( m_automaticOutputSize, m_automaticOutputSize, cube.planes() );
+        cropped.resize( m_automaticDerotationSize, m_automaticDerotationSize, cube.planes() );
         for( int plane = 0; plane < cube.planes(); ++plane )
         {
-            cropped.image( plane ) =
-                cube.image( plane ).block( firstRow, firstColumn, m_automaticOutputSize, m_automaticOutputSize );
+            cropped.image( plane ) = cube.image( plane ).block( firstRow,
+                                                                firstColumn,
+                                                                m_automaticDerotationSize,
+                                                                m_automaticDerotationSize );
         }
         cube = std::move( cropped );
     };

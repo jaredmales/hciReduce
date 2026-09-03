@@ -310,6 +310,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     int m_automaticOutputSize{ 0 };        ///< Square final residual width selected from configured search annuli; zero
                                            ///< leaves the final image un-cropped.
 
+    int m_automaticDerotationSize{ 0 };    ///< Square residual width used before derotation; it matches
+                                           ///< m_automaticOutputSize unless input parity requires one extra pixel.
+
     std::optional<std::vector<int>> m_localIncludedFrames; ///< Physical target frames retained by one resampled local
                                                            ///< evaluation; unset retains the complete sequence.
 
