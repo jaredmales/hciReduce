@@ -192,9 +192,10 @@ std::string p4AfLepConfiguration( const std::filesystem::path &inputDirectory /*
 /// Write one constant P4 target with a configured ADI angle.
 void writeTarget( const std::filesystem::path &path, /**< [in] output FITS path */
                   float value,                       /**< [in] constant science value */
-                  float angle /**< [in] ADI angle in degrees */ )
+                  float angle,                       /**< [in] ADI angle in degrees */
+                  int imageSize = 31 /**< [in] positive square detector-image size */ )
 {
-    HCIobservationTestHarness::imageT image( 31, 31 );
+    HCIobservationTestHarness::imageT image( imageSize, imageSize );
     image.setConstant( value );
     HCIobservationTestHarness::fitsHeaderT header;
     header.append<float>( "ANGLE", angle, "test parallactic angle" );
@@ -735,6 +736,43 @@ TEST_CASE( "p4Reduce normal FITS end-to-end", "[p4Reduce][execute][normal][FITS]
     REQUIRE_FALSE( header["P4 PREDICTOR COUNT"].String().empty() );
     REQUIRE( header["P4 REALIZED MODES 000"].String().starts_with( "1" ) );
     REQUIRE( header["COMBINATION METHOD"].String().starts_with( "mean" ) );
+}
+
+/// Verify p4Reduce retains the full input for P4 OR predictors while automatically cropping the final result.
+/** This exercises p4Reduce::execute() and mx::improc::P4Reduction::regions() through the real FITS-backed
+ * application path.
+ * \ingroup p4Reduce_unit_tests
+ */
+TEST_CASE( "p4Reduce automatic output crop preserves OR input", "[p4Reduce][geometry][crop][OR][FITS]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    writeTarget( directory.file( "target_000.fits" ), 1, 0, 65 );
+    writeTarget( directory.file( "target_001.fits" ), 2, 17, 65 );
+    writeTarget( directory.file( "target_002.fits" ), 3, -11, 65 );
+
+    const auto outputDirectory = directory.file( "or-crop-output" );
+    const auto configPath = directory.file( "or-crop.conf" );
+    writeTextFile( configPath,
+                   p4Configuration( directory.path(), outputDirectory, "normal", false ) + "[p4]\n"
+                                                                                           "orDeltaRadiusOuter=4\n"
+                                                                                           "orArcHalfWidth=0\n" );
+
+    appHarness application;
+    std::string invokedName = "p4Reduce-test";
+    std::string configOption = "--config";
+    std::string configName = configPath.string();
+    char *arguments[]{ invokedName.data(), configOption.data(), configName.data() };
+
+    REQUIRE( application.main( 3, arguments ) == 0 );
+
+    mx::improc::eigenCube<float> output;
+    mx::fits::fitsHeader<mx::verbose::vv> header;
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+    REQUIRE( reader.read( output, header, ( outputDirectory / "p4-final.fits" ).string() ) == mx::error_t::noerror );
+    REQUIRE( output.rows() == 21 );
+    REQUIRE( output.rows() == output.cols() );
+    REQUIRE( header["IMSIZE"].value<int>() == 65 );
 }
 
 /// Verify p4Reduce runs an opt-in contrast search in memory and writes only named final optimizer products.

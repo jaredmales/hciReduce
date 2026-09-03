@@ -3131,12 +3131,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                        "P4 initially supports target-only ADI and rejects RDI input" );
     }
 
+    m_automaticOutputSize = 0;
     if( !( this->m_preProcess_only && !this->m_skipPreProcess ) && this->m_imSize == 0 )
     {
-        // The central detector pixel and local trial-source templates require an odd crop dimension.
-        this->m_imSize =
+        // Preserve the odd automatic output dimension used by P4's central-pixel convention.
+        m_automaticOutputSize =
             2 * ( *std::max_element( m_maxRadius.begin(), m_maxRadius.end() ) + p4AutomaticCropPadding ) + 1;
-        std::cerr << "set image size based on regions to " << this->m_imSize << '\n';
+
+        std::cerr << "set final output size based on regions to " << m_automaticOutputSize << '\n';
     }
 
     this->t_begin = mx::sys::get_curr_time();
@@ -4521,6 +4523,15 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             processPSFProducts( grids, *psfModel, regionExclusions, finalImagePath, finalHeader );
             m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
         }
+        if( result == 0 )
+        {
+            cropAutomaticFinalImage();
+            if( m_automaticOutputSize != 0 && this->m_doWriteFinim && this->m_combineMethod != HCI::combine::none )
+            {
+                std::cerr << "writing\n";
+                this->writeFinimAtPath( finalImagePath, &finalHeader );
+            }
+        }
         writeTimingDiagnostic();
         this->t_end = mx::sys::get_curr_time();
         return result;
@@ -4619,6 +4630,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             processPSFProducts( grids, *psfModel, regionExclusions, finalImagePath, finalHeader );
             m_timing.psfReconstructionElapsedSeconds = omp_get_wtime() - reconstructionBegin;
         }
+        cropAutomaticFinalImage();
         writeTimingDiagnostic();
         if( configuredWriteFinim )
         {
@@ -5999,6 +6011,34 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+void P4Reduction<realT, derotFunctObj, verboseT>::cropAutomaticFinalImage()
+{
+    if( m_automaticOutputSize == 0 || this->m_finim.rows() == 0 || this->m_finim.cols() == 0 ||
+        this->m_finim.planes() == 0 )
+    {
+        return;
+    }
+    if( m_automaticOutputSize > this->m_finim.rows() || m_automaticOutputSize > this->m_finim.cols() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                       "automatic P4 final-image crop exceeds the combined residual dimensions" );
+    }
+
+    const int firstRow = static_cast<int>(
+        std::floor( 0.5 * ( this->m_finim.rows() - 1 ) - 0.5 * ( m_automaticOutputSize - 1 ) + 0.1 ) );
+    const int firstColumn = static_cast<int>(
+        std::floor( 0.5 * ( this->m_finim.cols() - 1 ) - 0.5 * ( m_automaticOutputSize - 1 ) + 0.1 ) );
+    eigenCube<realT> cropped;
+    cropped.resize( m_automaticOutputSize, m_automaticOutputSize, this->m_finim.planes() );
+    for( int plane = 0; plane < this->m_finim.planes(); ++plane )
+    {
+        cropped.image( plane ) =
+            this->m_finim.image( plane ).block( firstRow, firstColumn, m_automaticOutputSize, m_automaticOutputSize );
+    }
+    this->m_finim = std::move( cropped );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess( bool reportProgress )
 {
     static_cast<void>( regressionFrameString( m_regressionFrame ) );
@@ -6018,6 +6058,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess( bool reportProgre
     const ADIDataFrame dataFrame =
         m_regressionFrame == P4RegressionFrame::rotated ? ADIDataFrame::sky : ADIDataFrame::detector;
     const std::string configuredPSFSubPrefix = this->m_PSFSubPrefix;
+    const int configuredWriteFinim = this->m_doWriteFinim;
+    if( m_automaticOutputSize != 0 )
+    {
+        this->m_doWriteFinim = false;
+    }
     if( this->m_doOutputPSFSub )
     {
         const std::filesystem::path auxiliaryDirectory( auxiliaryOutputDirectory() );
@@ -6043,9 +6088,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::finalProcess( bool reportProgre
     catch( ... )
     {
         this->m_PSFSubPrefix = configuredPSFSubPrefix;
+        this->m_doWriteFinim = configuredWriteFinim;
         throw;
     }
     this->m_PSFSubPrefix = configuredPSFSubPrefix;
+    this->m_doWriteFinim = configuredWriteFinim;
     return result;
 }
 

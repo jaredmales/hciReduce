@@ -307,6 +307,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     eigenCube<realT> m_localFinalValidity; ///< Combined local-result validity cube in output-mode order.
 
+    int m_automaticOutputSize{ 0 };        ///< Square final residual width selected from configured search annuli; zero
+                                           ///< leaves the final image un-cropped.
+
     std::optional<std::vector<int>> m_localIncludedFrames; ///< Physical target frames retained by one resampled local
                                                            ///< evaluation; unset retains the complete sequence.
 
@@ -422,6 +425,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Parse an exact supported mxlib row-deletion-backend spelling.
     static mx::math::svdDeletionBackend
     parseDeletionBackend( const std::string &value /**< [in] configuration spelling */ );
+
+    /// Center-crop the combined final residual to the configured automatic output size.
+    void cropAutomaticFinalImage();
 
     /// Convert a supported regression frame to its stable configuration spelling.
     static std::string regressionFrameString( P4RegressionFrame frame /**< [in] supported regression frame */ );
