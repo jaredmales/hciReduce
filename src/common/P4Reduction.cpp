@@ -310,6 +310,42 @@ bool p4TemporalPredictorsValid( const P4PixelCoordinate &searchCoordinate,
     return true;
 }
 
+/// Enumerate direct common-mask-valid PCAT annular-reference pixels outside one target's signal exclusion.
+std::vector<P4PixelCoordinate>
+p4PCATAnnulusReferences( int rows,                        /**< [in] detector-image row count */
+                         int columns,                     /**< [in] detector-image column count */
+                         double centerRow,                /**< [in] finite detector center row */
+                         double centerColumn,             /**< [in] finite detector center column */
+                         double minimumRadius,            /**< [in] inclusive annular-reference inner radius */
+                         double maximumRadius,            /**< [in] exclusive annular-reference outer radius */
+                         const P4PixelCoordinate &target, /**< [in] central detector pixel being predicted */
+                         double exclusionRadius,          /**< [in] inclusive central signal-exclusion radius */
+                         const P4PixelGridf::imageT *mask /**< [in] optional common detector mask */ )
+{
+    std::vector<P4PixelCoordinate> references;
+    const double minimumRadiusSquared = minimumRadius * minimumRadius;
+    const double maximumRadiusSquared = maximumRadius * maximumRadius;
+    const double exclusionRadiusSquared = exclusionRadius * exclusionRadius;
+    for( int column = 0; column < columns; ++column )
+    {
+        const double centeredColumn = static_cast<double>( column ) - centerColumn;
+        for( int row = 0; row < rows; ++row )
+        {
+            const double centeredRow = static_cast<double>( row ) - centerRow;
+            const double radiusSquared = centeredRow * centeredRow + centeredColumn * centeredColumn;
+            const double targetRow = static_cast<double>( row - target.row() );
+            const double targetColumn = static_cast<double>( column - target.column() );
+            if( radiusSquared >= minimumRadiusSquared && radiusSquared < maximumRadiusSquared &&
+                targetRow * targetRow + targetColumn * targetColumn > exclusionRadiusSquared &&
+                ( !mask || ( *mask )( row, column ) != 0 ) )
+            {
+                references.emplace_back( row, column );
+            }
+        }
+    }
+    return references;
+}
+
 /** \cond P4ProgressOutput */
 
 /// Decorate one annulus-local OpenMP loop watcher with overall P4 status.
@@ -1070,6 +1106,69 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "string",
                 "Temporal predictor summary statistic: mean or median; default mean" );
+    config.add( "p4.temporalPredictor",
+                "",
+                "p4.temporalPredictor",
+                mx::app::argType::Required,
+                "p4",
+                "temporalPredictor",
+                false,
+                "string",
+                "Detector-frame temporal augmentation: none, neighborSummary, or pcat; default neighborSummary" );
+    config.add( "p4.pcatGapImages",
+                "",
+                "p4.pcatGapImages",
+                mx::app::argType::Required,
+                "p4",
+                "pcatGapImages",
+                false,
+                "int",
+                "Nonnegative PCAT held-out temporal-gap half-width in images; default 0" );
+    config.add( "p4.pcatReferenceRegion",
+                "",
+                "p4.pcatReferenceRegion",
+                mx::app::argType::Required,
+                "p4",
+                "pcatReferenceRegion",
+                false,
+                "string",
+                "PCAT temporal-basis reference geometry: or or annulus; default or" );
+    config.add( "p4.pcatReferenceMinRadius",
+                "",
+                "p4.pcatReferenceMinRadius",
+                mx::app::argType::Required,
+                "p4",
+                "pcatReferenceMinRadius",
+                false,
+                "float",
+                "Inclusive PCAT annular-reference inner radius in pixels when pcatReferenceRegion=annulus" );
+    config.add( "p4.pcatReferenceMaxRadius",
+                "",
+                "p4.pcatReferenceMaxRadius",
+                mx::app::argType::Required,
+                "p4",
+                "pcatReferenceMaxRadius",
+                false,
+                "float",
+                "Exclusive PCAT annular-reference outer radius in pixels when pcatReferenceRegion=annulus" );
+    config.add( "p4.pcatModeFraction",
+                "",
+                "p4.pcatModeFraction",
+                mx::app::argType::Required,
+                "p4",
+                "pcatModeFraction",
+                false,
+                "double",
+                "PCAT retained temporal-mode fraction in (0,1] when temporalPredictor=pcat" );
+    config.add( "p4.pcatCentering",
+                "",
+                "p4.pcatCentering",
+                mx::app::argType::Required,
+                "p4",
+                "pcatCentering",
+                false,
+                "string",
+                "PCAT reference-series centering: pixelMean or none; default pixelMean" );
     config.add( "adi.minDPx",
                 "",
                 "adi.minDPx",
@@ -1318,6 +1417,43 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
         std::throw_with_nested(
             mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.temporalStatistic is not valid" ) );
     }
+    std::string temporalPredictor = temporalPredictorString( m_temporalPredictor );
+    config( temporalPredictor, "p4.temporalPredictor" );
+    try
+    {
+        m_temporalPredictor = parseTemporalPredictor( temporalPredictor );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.temporalPredictor is not valid" ) );
+    }
+    config( m_pcatGapImages, "p4.pcatGapImages" );
+    std::string pcatReferenceRegion = pcatReferenceRegionString( m_pcatReferenceRegion );
+    config( pcatReferenceRegion, "p4.pcatReferenceRegion" );
+    try
+    {
+        m_pcatReferenceRegion = parsePCATReferenceRegion( pcatReferenceRegion );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.pcatReferenceRegion is not valid" ) );
+    }
+    config( m_pcatReferenceMinRadius, "p4.pcatReferenceMinRadius" );
+    config( m_pcatReferenceMaxRadius, "p4.pcatReferenceMaxRadius" );
+    config( m_pcatModeFraction, "p4.pcatModeFraction" );
+    std::string pcatCentering = pcatCenteringString( m_pcatCentering );
+    config( pcatCentering, "p4.pcatCentering" );
+    try
+    {
+        m_pcatCentering = parsePCATCentering( pcatCentering );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.pcatCentering is not valid" ) );
+    }
     config( m_minDPx, "adi.minDPx" );
     std::string excludeMethod = HCI::excludeToStr<verboseT>( m_excludeMethod );
     config( excludeMethod, "adi.excludeMethod" );
@@ -1523,10 +1659,105 @@ P4TemporalStatistic P4Reduction<realT, derotFunctObj, verboseT>::parseTemporalSt
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+std::string P4Reduction<realT, derotFunctObj, verboseT>::temporalPredictorString( P4TemporalPredictor predictor )
+{
+    if( predictor == P4TemporalPredictor::none )
+    {
+        return "none";
+    }
+    if( predictor == P4TemporalPredictor::neighborSummary )
+    {
+        return "neighborSummary";
+    }
+    if( predictor == P4TemporalPredictor::pcat )
+    {
+        return "pcat";
+    }
+    throw std::invalid_argument( "unsupported P4 temporal predictor" );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+P4TemporalPredictor P4Reduction<realT, derotFunctObj, verboseT>::parseTemporalPredictor( const std::string &value )
+{
+    if( value == "none" )
+    {
+        return P4TemporalPredictor::none;
+    }
+    if( value == "neighborSummary" )
+    {
+        return P4TemporalPredictor::neighborSummary;
+    }
+    if( value == "pcat" )
+    {
+        return P4TemporalPredictor::pcat;
+    }
+    throw std::invalid_argument( "unsupported P4 temporal predictor: " + value );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+std::string P4Reduction<realT, derotFunctObj, verboseT>::pcatReferenceRegionString( P4PCATReferenceRegion region )
+{
+    if( region == P4PCATReferenceRegion::optimizationRegion )
+    {
+        return "or";
+    }
+    if( region == P4PCATReferenceRegion::annulus )
+    {
+        return "annulus";
+    }
+    throw std::invalid_argument( "unsupported P4 PCAT reference region" );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+P4PCATReferenceRegion P4Reduction<realT, derotFunctObj, verboseT>::parsePCATReferenceRegion( const std::string &value )
+{
+    if( value == "or" )
+    {
+        return P4PCATReferenceRegion::optimizationRegion;
+    }
+    if( value == "annulus" )
+    {
+        return P4PCATReferenceRegion::annulus;
+    }
+    throw std::invalid_argument( "unsupported P4 PCAT reference region: " + value );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+std::string P4Reduction<realT, derotFunctObj, verboseT>::pcatCenteringString( P4TemporalPCACentering centering )
+{
+    if( centering == P4TemporalPCACentering::pixelMean )
+    {
+        return "pixelMean";
+    }
+    if( centering == P4TemporalPCACentering::none )
+    {
+        return "none";
+    }
+    throw std::invalid_argument( "unsupported P4 PCAT centering" );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+P4TemporalPCACentering P4Reduction<realT, derotFunctObj, verboseT>::parsePCATCentering( const std::string &value )
+{
+    if( value == "pixelMean" )
+    {
+        return P4TemporalPCACentering::pixelMean;
+    }
+    if( value == "none" )
+    {
+        return P4TemporalPCACentering::none;
+    }
+    throw std::invalid_argument( "unsupported P4 PCAT centering: " + value );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
 {
     static_cast<void>( regressionFrameString( m_regressionFrame ) );
     static_cast<void>( temporalStatisticString( m_temporalStatistic ) );
+    static_cast<void>( temporalPredictorString( m_temporalPredictor ) );
+    static_cast<void>( pcatReferenceRegionString( m_pcatReferenceRegion ) );
+    static_cast<void>( pcatCenteringString( m_pcatCentering ) );
     static_cast<void>( HCI::excludeToStr<verboseT>( m_excludeMethod ) );
     static_cast<void>( exclusionSolverString( m_exclusionSolver ) );
     static_cast<void>( deletionBackendString( m_deletionBackend ) );
@@ -1541,10 +1772,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                            "adi.excludeMethod is initially supported only for detector-frame P4" );
         }
-        if( m_numberImages > 0 )
+        if( m_numberImages > 0 || m_temporalPredictor == P4TemporalPredictor::pcat )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "P4 target-frame exclusion initially requires p4.numberImages=0" );
+                                           "P4 target-frame exclusion initially requires no temporal augmentation" );
         }
     }
     else if( m_exclusionSolver != P4ExclusionSolver::explicitRefit )
@@ -1565,6 +1796,11 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     }
     if( m_localStampSize > 0 )
     {
+        if( m_temporalPredictor == P4TemporalPredictor::pcat )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.localStampSize does not yet support p4.temporalPredictor=pcat" );
+        }
         if( m_localStampSize % 2 == 0 )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
@@ -1632,6 +1868,37 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                        "p4.numberImages must be nonnegative and within the supported range" );
     }
+    if( m_temporalPredictor == P4TemporalPredictor::none && m_numberImages > 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "p4.numberImages requires p4.temporalPredictor=neighborSummary" );
+    }
+    if( m_temporalPredictor == P4TemporalPredictor::pcat )
+    {
+        if( m_numberImages != 0 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.temporalPredictor=pcat requires p4.numberImages=0" );
+        }
+        if( m_regressionFrame != P4RegressionFrame::detector )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.temporalPredictor=pcat is supported only for detector-frame P4" );
+        }
+        if( m_pcatGapImages < 0 || !mx::math::isFinite( m_pcatModeFraction ) || m_pcatModeFraction <= 0 ||
+            m_pcatModeFraction > 1 )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "PCAT gap and mode fraction must be nonnegative and in (0,1]" );
+        }
+        if( m_pcatReferenceRegion == P4PCATReferenceRegion::annulus &&
+            ( !mx::math::isFinite( m_pcatReferenceMinRadius ) || !mx::math::isFinite( m_pcatReferenceMaxRadius ) ||
+              m_pcatReferenceMinRadius < 0 || m_pcatReferenceMaxRadius <= m_pcatReferenceMinRadius ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "PCAT annular-reference radii must be finite, nonnegative, and ordered" );
+        }
+    }
     if( m_regressionFrame == P4RegressionFrame::rotated && m_numberImages > 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
@@ -1639,6 +1906,11 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     }
     if( !m_psfFile.empty() )
     {
+        if( m_temporalPredictor == P4TemporalPredictor::pcat )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.psfFile does not yet support p4.temporalPredictor=pcat" );
+        }
         if( m_psfStampSize <= 0 )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
@@ -2098,7 +2370,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::claimOwnership(
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
-void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
+bool P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
     P4PCAResult &result,
     P4PCA::matrixT &predictors,
     P4PCA::vectorT &target,
@@ -2118,7 +2390,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
     const P4TargetExclusions *exclusions,
     const P4PCA::matrixT *probePredictors,
     const P4PCA::vectorT *probeTarget,
-    const P4TrialSource *trialSource ) const
+    const P4TrialSource *trialSource,
+    P4TemporalPCA *pcat,
+    P4TemporalPCA::workspaceT *pcatWorkspace ) const
 {
     if( selections.empty() || modes.empty() || search >= grid.searchPixelCount() ||
         !grid.searchPixel( search ).valid() )
@@ -2127,7 +2401,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
     }
     const std::size_t basePredictorCount = grid.predictorCount();
     const std::size_t temporalImageCount = selections.front().size() - 1;
-    const std::size_t predictorCount = basePredictorCount + ( temporalImageCount == 0 ? 0 : 1 );
+    const bool usesNeighborSummary =
+        m_temporalPredictor == P4TemporalPredictor::neighborSummary && temporalImageCount != 0;
+    const bool usesPCAT = m_temporalPredictor == P4TemporalPredictor::pcat;
+    const std::size_t predictorCount = basePredictorCount + ( usesNeighborSummary || usesPCAT ? 1 : 0 );
     predictors.resize( static_cast<Eigen::Index>( selections.size() ), static_cast<Eigen::Index>( predictorCount ) );
     target.resize( static_cast<Eigen::Index>( selections.size() ) );
 
@@ -2176,54 +2453,143 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
         }
         sameImageSamplingSeconds += omp_get_wtime() - sameImageSamplingBegin;
 
-        const double temporalSamplingBegin = omp_get_wtime();
-        std::vector<double> temporalValues;
-        temporalValues.reserve( temporalImageCount );
-        for( std::size_t source = 1; source < selection.size(); ++source )
+        if( usesNeighborSummary )
         {
-            const int image = selection[source];
-            const int row = coordinate.row() + temporalOffsets.front().row();
-            const int column = coordinate.column() + temporalOffsets.front().column();
-            double predictorValue = checkedPredictorPromotion( this->m_tgtIms.image( image )( row, column ) );
-            if( trialSource )
+            if( temporalOffsets.empty() )
             {
-                predictorValue +=
-                    checkedPredictorPromotion( trialSource->value( static_cast<std::size_t>( image ), row, column ) );
+                throw std::invalid_argument( "P4 temporal summary requires one central predictor offset" );
             }
-            if( !mx::math::isFinite( predictorValue ) )
+            const double temporalSamplingBegin = omp_get_wtime();
+            std::vector<double> temporalValues;
+            temporalValues.reserve( temporalImageCount );
+            for( std::size_t source = 1; source < selection.size(); ++source )
             {
-                throw mx::exception<verboseT>( mx::error_t::invalidarg,
-                                               "P4 trial-perturbed additional-image predictor is non-finite" );
+                const int image = selection[source];
+                const int row = coordinate.row() + temporalOffsets.front().row();
+                const int column = coordinate.column() + temporalOffsets.front().column();
+                double predictorValue = checkedPredictorPromotion( this->m_tgtIms.image( image )( row, column ) );
+                if( trialSource )
+                {
+                    predictorValue += checkedPredictorPromotion(
+                        trialSource->value( static_cast<std::size_t>( image ), row, column ) );
+                }
+                if( !mx::math::isFinite( predictorValue ) )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                                   "P4 trial-perturbed additional-image predictor is non-finite" );
+                }
+                temporalValues.push_back( predictorValue );
             }
-            temporalValues.push_back( predictorValue );
+            if( !temporalValues.empty() )
+            {
+                double summary = temporalValues.front();
+                if( m_temporalStatistic == P4TemporalStatistic::mean )
+                {
+                    for( std::size_t value = 1; value < temporalValues.size(); ++value )
+                    {
+                        summary += ( temporalValues[value] - summary ) / static_cast<double>( value + 1 );
+                    }
+                }
+                else
+                {
+                    const std::size_t upper = temporalValues.size() / 2;
+                    std::nth_element( temporalValues.begin(), temporalValues.begin() + upper, temporalValues.end() );
+                    summary = temporalValues[upper];
+                    if( temporalValues.size() % 2 == 0 )
+                    {
+                        const double lower =
+                            *std::max_element( temporalValues.begin(), temporalValues.begin() + upper );
+                        summary = lower + 0.5 * ( summary - lower );
+                    }
+                }
+                if( !mx::math::isFinite( summary ) )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                                   "P4 temporal predictor summary is non-finite" );
+                }
+                predictors( static_cast<Eigen::Index>( targetIndex ),
+                            static_cast<Eigen::Index>( basePredictorCount ) ) = summary;
+            }
+            temporalSamplingSeconds += omp_get_wtime() - temporalSamplingBegin;
         }
-        if( !temporalValues.empty() )
+    }
+
+    if( usesPCAT )
+    {
+        if( !pcat || !pcatWorkspace )
         {
-            double summary = temporalValues.front();
-            if( m_temporalStatistic == P4TemporalStatistic::mean )
+            throw std::invalid_argument( "P4 PCAT requires worker-private temporal PCA state" );
+        }
+        const double temporalSamplingBegin = omp_get_wtime();
+        P4TemporalPCA::matrixT referenceSeries;
+        if( m_pcatReferenceRegion == P4PCATReferenceRegion::optimizationRegion )
+        {
+            referenceSeries = predictors.leftCols( static_cast<Eigen::Index>( basePredictorCount ) ).transpose();
+        }
+        else
+        {
+            const std::vector<P4PixelCoordinate> references =
+                p4PCATAnnulusReferences( this->m_Nrows,
+                                         this->m_Ncols,
+                                         grid.xCenter(),
+                                         grid.yCenter(),
+                                         static_cast<double>( m_pcatReferenceMinRadius ),
+                                         static_cast<double>( m_pcatReferenceMaxRadius ),
+                                         coordinate,
+                                         grid.effectiveExclusionRadius(),
+                                         this->m_mask.size() == 0 ? nullptr : &this->m_mask );
+            if( references.empty() )
             {
-                for( std::size_t value = 1; value < temporalValues.size(); ++value )
+                return false;
+            }
+            referenceSeries.resize( static_cast<Eigen::Index>( references.size() ),
+                                    static_cast<Eigen::Index>( selections.size() ) );
+            for( std::size_t reference = 0; reference < references.size(); ++reference )
+            {
+                for( std::size_t targetIndex = 0; targetIndex < selections.size(); ++targetIndex )
                 {
-                    summary += ( temporalValues[value] - summary ) / static_cast<double>( value + 1 );
+                    const int image = selections[targetIndex][0];
+                    double value = static_cast<double>(
+                        this->m_tgtIms.image( image )( references[reference].row(), references[reference].column() ) );
+                    if( trialSource )
+                    {
+                        value += checkedPredictorPromotion( trialSource->value( static_cast<std::size_t>( image ),
+                                                                                references[reference].row(),
+                                                                                references[reference].column() ) );
+                    }
+                    if( !mx::math::isFinite( value ) )
+                    {
+                        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                                       "P4 PCAT annular reference is non-finite" );
+                    }
+                    referenceSeries( static_cast<Eigen::Index>( reference ),
+                                     static_cast<Eigen::Index>( targetIndex ) ) = value;
                 }
             }
-            else
-            {
-                const std::size_t upper = temporalValues.size() / 2;
-                std::nth_element( temporalValues.begin(), temporalValues.begin() + upper, temporalValues.end() );
-                summary = temporalValues[upper];
-                if( temporalValues.size() % 2 == 0 )
-                {
-                    const double lower = *std::max_element( temporalValues.begin(), temporalValues.begin() + upper );
-                    summary = lower + 0.5 * ( summary - lower );
-                }
-            }
-            if( !mx::math::isFinite( summary ) )
-            {
-                throw mx::exception<verboseT>( mx::error_t::invalidarg, "P4 temporal predictor summary is non-finite" );
-            }
-            predictors( static_cast<Eigen::Index>( targetIndex ), static_cast<Eigen::Index>( basePredictorCount ) ) =
-                summary;
+        }
+        const Eigen::Index structuralRank = std::min( referenceSeries.rows(), referenceSeries.cols() );
+        const int requestedModes =
+            static_cast<int>( std::floor( m_pcatModeFraction * static_cast<double>( structuralRank ) ) );
+        if( requestedModes <= 0 )
+        {
+            return false;
+        }
+        pcat->configure( referenceSeries,
+                         requestedModes,
+                         m_pcatCentering,
+                         m_rankTolerance,
+                         m_pcatGapImages,
+                         *pcatWorkspace );
+        P4TemporalPCAResult prediction;
+        pcat->predict( prediction, target );
+        if( ( prediction.validity == 0 ).any() )
+        {
+            return false;
+        }
+        for( Eigen::Index targetIndex = 0; targetIndex < prediction.predictions.rows(); ++targetIndex )
+        {
+            predictors( targetIndex, static_cast<Eigen::Index>( basePredictorCount ) ) =
+                prediction.predictions( targetIndex );
         }
         temporalSamplingSeconds += omp_get_wtime() - temporalSamplingBegin;
     }
@@ -2364,6 +2730,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
                                      coefficients );
 #endif
     }
+    return true;
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -3381,9 +3748,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_ownership.setConstant( -1 );
 
     const imageT *mask = this->m_mask.size() == 0 ? nullptr : &this->m_mask;
+    const bool usesNeighborSummary = m_temporalPredictor == P4TemporalPredictor::neighborSummary && m_numberImages > 0;
+    const bool usesPCAT = m_temporalPredictor == P4TemporalPredictor::pcat;
     const std::vector<P4PixelCoordinate> temporalPredictorOffsets = p4TemporalPredictorOffsets( m_psfRadius );
     std::vector<double> derotationAngles;
-    if( m_regressionFrame == P4RegressionFrame::rotated || m_numberImages > 0 || m_localStampSize > 0 ||
+    if( m_regressionFrame == P4RegressionFrame::rotated || usesNeighborSummary || m_localStampSize > 0 ||
         m_excludeMethod == HCI::exclude::pixel || m_excludeMethod == HCI::exclude::angle )
     {
         derotationAngles.reserve( static_cast<std::size_t>( this->m_Nims ) );
@@ -3447,7 +3816,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         double temporalPsfRadius{ 0 };
         if( m_regressionFrame == P4RegressionFrame::detector )
         {
-            if( m_numberImages == 0 )
+            if( !usesNeighborSummary )
             {
                 m_temporalSelections[region].reserve( activeFrames.size() );
                 for( const int image : activeFrames )
@@ -3490,7 +3859,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         const std::size_t targetImageCount = m_temporalSelections[region].size();
         const std::size_t temporalImageCount = m_temporalSelections[region].front().size() - 1;
         m_localPSFComponentCounts[region] = temporalImageCount + 1;
-        const std::size_t temporalPredictorCount = temporalImageCount == 0 ? 0 : 1;
+        const std::size_t temporalPredictorCount =
+            ( usesNeighborSummary && temporalImageCount != 0 ) || usesPCAT ? 1 : 0;
         if( basePredictorCount > std::numeric_limits<std::size_t>::max() - temporalPredictorCount )
         {
             throw mx::exception<verboseT>( mx::error_t::sizeerr,
@@ -3535,7 +3905,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         P4RegionStatistics &statistics = m_regionStatistics[region];
         statistics.searchPixelCount = searchPixelCount;
         statistics.targetImageCount = targetImageCount;
-        statistics.temporalNumberImages = static_cast<int>( temporalImageCount / 2 );
+        statistics.temporalNumberImages = usesNeighborSummary ? static_cast<int>( temporalImageCount / 2 ) : 0;
         statistics.temporalPsfRadius = temporalPsfRadius;
         statistics.predictorCount = predictorCount;
         statistics.maximumDegreesOfFreedom = maximumDegreesOfFreedom;
@@ -4048,6 +4418,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             }
 #endif
             P4PCADowndateWorkspace downdateWorkspace;
+            P4TemporalPCA temporalPCA;
+            P4TemporalPCA::workspaceT temporalPCAWorkspace;
             P4PCA::matrixT predictors( static_cast<Eigen::Index>( targetImageCount ),
                                        static_cast<Eigen::Index>( predictorCount ) );
             P4PCA::vectorT target( static_cast<Eigen::Index>( targetImageCount ) );
@@ -4114,6 +4486,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                             double sameImageSamplingSeconds{ 0 };
                             double temporalSamplingSeconds{ 0 };
                             P4PCATiming pcaTiming;
+                            bool fitValid{ true };
                             const int row = coordinate.row();
                             const int column = coordinate.column();
                             if( rotated )
@@ -4140,177 +4513,188 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                             }
                             else
                             {
-                                fitDetectorSearch( result,
-                                                   predictors,
-                                                   target,
-                                                   sharedPSF ? &coefficients : nullptr,
-                                                   nullptr,
-                                                   grid,
-                                                   search,
-                                                   temporalSelections,
-                                                   temporalPredictorOffsets,
-                                                   modes,
-                                                   workspace,
-                                                   mixedWorkspace,
-                                                   &downdateWorkspace,
-                                                   pcaTiming,
-                                                   sameImageSamplingSeconds,
-                                                   temporalSamplingSeconds,
-                                                   exclusions,
-                                                   nullptr,
-                                                   nullptr );
+                                fitValid = fitDetectorSearch( result,
+                                                              predictors,
+                                                              target,
+                                                              sharedPSF ? &coefficients : nullptr,
+                                                              nullptr,
+                                                              grid,
+                                                              search,
+                                                              temporalSelections,
+                                                              temporalPredictorOffsets,
+                                                              modes,
+                                                              workspace,
+                                                              mixedWorkspace,
+                                                              &downdateWorkspace,
+                                                              pcaTiming,
+                                                              sameImageSamplingSeconds,
+                                                              temporalSamplingSeconds,
+                                                              exclusions,
+                                                              nullptr,
+                                                              nullptr,
+                                                              nullptr,
+                                                              &temporalPCA,
+                                                              &temporalPCAWorkspace );
                             }
 
-                            threadSamplingSeconds += sameImageSamplingSeconds + temporalSamplingSeconds;
-                            threadSameImageSamplingSeconds += sameImageSamplingSeconds;
-                            threadTemporalSamplingSeconds += temporalSamplingSeconds;
-
-                            if( rotated )
+                            if( !fitValid )
                             {
+                                ++threadSupportInvalid;
+                            }
+                            else
+                            {
+                                threadSamplingSeconds += sameImageSamplingSeconds + temporalSamplingSeconds;
+                                threadSameImageSamplingSeconds += sameImageSamplingSeconds;
+                                threadTemporalSamplingSeconds += temporalSamplingSeconds;
+
+                                if( rotated )
+                                {
 #ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
-                                p4ReductionDispatchCenteredInPlace( result,
-                                                                    predictors,
-                                                                    target,
-                                                                    modes,
-                                                                    m_rankTolerance,
-                                                                    workspace,
-                                                                    mixedWorkspace,
-                                                                    &pcaTiming,
-                                                                    sharedPSF ? &coefficients : nullptr );
+                                    p4ReductionDispatchCenteredInPlace( result,
+                                                                        predictors,
+                                                                        target,
+                                                                        modes,
+                                                                        m_rankTolerance,
+                                                                        workspace,
+                                                                        mixedWorkspace,
+                                                                        &pcaTiming,
+                                                                        sharedPSF ? &coefficients : nullptr );
 #else
-                                static_cast<void>( workspace );
-                                detail::p4PCACalculateCenteredInPlaceMixed( result,
-                                                                            predictors,
-                                                                            target,
-                                                                            modes,
-                                                                            m_rankTolerance,
-                                                                            mixedWorkspace,
-                                                                            &pcaTiming,
-                                                                            sharedPSF ? &coefficients : nullptr );
+                                    static_cast<void>( workspace );
+                                    detail::p4PCACalculateCenteredInPlaceMixed( result,
+                                                                                predictors,
+                                                                                target,
+                                                                                modes,
+                                                                                m_rankTolerance,
+                                                                                mixedWorkspace,
+                                                                                &pcaTiming,
+                                                                                sharedPSF ? &coefficients : nullptr );
 #endif
-                            }
-                            threadGramSeconds += pcaTiming.gramWorkerSeconds;
-                            threadEigensolveSeconds += pcaTiming.eigensolveWorkerSeconds;
-                            threadBaseFactorSeconds += pcaTiming.baseFactorWorkerSeconds;
-                            threadDeletionSeconds += pcaTiming.deletionWorkerSeconds;
-                            threadExplicitFallbackSeconds += pcaTiming.explicitFallbackWorkerSeconds;
-                            threadProjectionSeconds += pcaTiming.projectionWorkerSeconds;
-                            ++threadValid;
-                            threadMinimumRank = std::min( threadMinimumRank, result.numericalRank );
-                            if( m_exclusionSolver == P4ExclusionSolver::factorDowndateExact )
-                            {
-                                threadMinimumBaseRank = std::min( threadMinimumBaseRank, result.baseRank );
-                                threadDowndateClampCount += result.downdateClampCount;
-                                threadExplicitFallbackCount += result.explicitFallbackCount;
-                                switch( result.explicitFallbackReason )
-                                {
-                                case P4PCAFallbackReason::none:
-                                    break;
-                                case P4PCAFallbackReason::rankBoundary:
-                                    ++threadRankBoundaryFallbackPixelCount;
-                                    break;
-                                case P4PCAFallbackReason::factorValidation:
-                                    ++threadFactorValidationFallbackPixelCount;
-                                    if( threadFactorValidationFallbackPixelCount == 1 ||
-                                        result.factorOrthogonalityDefect > threadMaximumFactorOrthogonalityDefect )
-                                    {
-                                        threadMaximumFactorOrthogonalityDefect = result.factorOrthogonalityDefect;
-                                        threadFactorOrthogonalityToleranceAtMaximumDefect =
-                                            result.factorOrthogonalityTolerance;
-                                    }
-                                    break;
-                                case P4PCAFallbackReason::deletionSolver:
-                                    ++threadDeletionSolverFallbackPixelCount;
-                                    break;
                                 }
-                            }
+                                threadGramSeconds += pcaTiming.gramWorkerSeconds;
+                                threadEigensolveSeconds += pcaTiming.eigensolveWorkerSeconds;
+                                threadBaseFactorSeconds += pcaTiming.baseFactorWorkerSeconds;
+                                threadDeletionSeconds += pcaTiming.deletionWorkerSeconds;
+                                threadExplicitFallbackSeconds += pcaTiming.explicitFallbackWorkerSeconds;
+                                threadProjectionSeconds += pcaTiming.projectionWorkerSeconds;
+                                ++threadValid;
+                                threadMinimumRank = std::min( threadMinimumRank, result.numericalRank );
+                                if( m_exclusionSolver == P4ExclusionSolver::factorDowndateExact )
+                                {
+                                    threadMinimumBaseRank = std::min( threadMinimumBaseRank, result.baseRank );
+                                    threadDowndateClampCount += result.downdateClampCount;
+                                    threadExplicitFallbackCount += result.explicitFallbackCount;
+                                    switch( result.explicitFallbackReason )
+                                    {
+                                    case P4PCAFallbackReason::none:
+                                        break;
+                                    case P4PCAFallbackReason::rankBoundary:
+                                        ++threadRankBoundaryFallbackPixelCount;
+                                        break;
+                                    case P4PCAFallbackReason::factorValidation:
+                                        ++threadFactorValidationFallbackPixelCount;
+                                        if( threadFactorValidationFallbackPixelCount == 1 ||
+                                            result.factorOrthogonalityDefect > threadMaximumFactorOrthogonalityDefect )
+                                        {
+                                            threadMaximumFactorOrthogonalityDefect = result.factorOrthogonalityDefect;
+                                            threadFactorOrthogonalityToleranceAtMaximumDefect =
+                                                result.factorOrthogonalityTolerance;
+                                        }
+                                        break;
+                                    case P4PCAFallbackReason::deletionSolver:
+                                        ++threadDeletionSolverFallbackPixelCount;
+                                        break;
+                                    }
+                                }
 
-                            const double residualApplyBegin = omp_get_wtime();
-                            for( std::size_t output = 0; output < modes.size(); ++output )
-                            {
-                                const Eigen::Index compactColumn =
-                                    static_cast<Eigen::Index>( search * modes.size() + output );
-                                bool allTargetsValid{ true };
-                                for( std::size_t targetIndex = 0; targetIndex < targetImageCount; ++targetIndex )
-                                {
-                                    if( !result.sampleSupported( static_cast<Eigen::Index>( targetIndex ), output ) )
-                                    {
-                                        allTargetsValid = false;
-                                        continue;
-                                    }
-                                    const int image = temporalSelections[targetIndex][0];
-                                    const realT residual = checkedResidualCast(
-                                        result.residuals( static_cast<Eigen::Index>( targetIndex ), output ) );
-                                    if( compactFinalization )
-                                    {
-                                        compactResiduals[region]( static_cast<Eigen::Index>( targetIndex ),
-                                                                  compactColumn ) = residual;
-                                        compactValidity[region]( static_cast<Eigen::Index>( targetIndex ),
-                                                                 compactColumn ) = 1;
-                                    }
-                                    else
-                                    {
-                                        this->m_psfsub[output].image( image )( row, column ) = residual;
-                                        this->m_psfsubValidity[output].image( image )( row, column ) = 1;
-                                    }
-                                }
-                                if( !allTargetsValid )
-                                {
-                                    ++threadRankInvalid[output];
-                                }
-                            }
-                            threadProjectionSeconds += omp_get_wtime() - residualApplyBegin;
-
-                            if( sharedPSF )
-                            {
-                                const double psfBegin = omp_get_wtime();
+                                const double residualApplyBegin = omp_get_wtime();
                                 for( std::size_t output = 0; output < modes.size(); ++output )
                                 {
-                                    if( result.modeStatus[output] == P4PCAModeStatus::rankInsufficient )
-                                    {
-                                        continue;
-                                    }
                                     const Eigen::Index compactColumn =
                                         static_cast<Eigen::Index>( search * modes.size() + output );
-                                    psfModel->calculateLocalResponse(
-                                        localPSFResponse,
-                                        grid,
-                                        search,
-                                        coefficients.col( static_cast<Eigen::Index>( output ) )
-                                            .head( static_cast<Eigen::Index>( grid.predictorCount() ) ) );
-                                    for( int stampColumn = 0; stampColumn < m_localPSFColumns; ++stampColumn )
+                                    bool allTargetsValid{ true };
+                                    for( std::size_t targetIndex = 0; targetIndex < targetImageCount; ++targetIndex )
                                     {
-                                        for( int stampRow = 0; stampRow < m_localPSFRows; ++stampRow )
+                                        if( !result.sampleSupported( static_cast<Eigen::Index>( targetIndex ),
+                                                                     output ) )
                                         {
-                                            const Eigen::Index stampPixel =
-                                                static_cast<Eigen::Index>( stampRow + m_localPSFRows * stampColumn );
-                                            m_localPSFModels[region]( stampPixel, compactColumn ) =
-                                                localPSFResponse( stampRow, stampColumn );
+                                            allTargetsValid = false;
+                                            continue;
+                                        }
+                                        const int image = temporalSelections[targetIndex][0];
+                                        const realT residual = checkedResidualCast(
+                                            result.residuals( static_cast<Eigen::Index>( targetIndex ), output ) );
+                                        if( compactFinalization )
+                                        {
+                                            compactResiduals[region]( static_cast<Eigen::Index>( targetIndex ),
+                                                                      compactColumn ) = residual;
+                                            compactValidity[region]( static_cast<Eigen::Index>( targetIndex ),
+                                                                     compactColumn ) = 1;
+                                        }
+                                        else
+                                        {
+                                            this->m_psfsub[output].image( image )( row, column ) = residual;
+                                            this->m_psfsubValidity[output].image( image )( row, column ) = 1;
                                         }
                                     }
-                                    const Eigen::Index temporalCoefficient =
-                                        static_cast<Eigen::Index>( grid.predictorCount() );
-                                    if( temporalCoefficient < coefficients.rows() )
+                                    if( !allTargetsValid )
                                     {
-                                        const std::size_t temporalImageCount =
-                                            m_temporalSelections[region][0].size() - 1;
-                                        const double value =
-                                            -coefficients( temporalCoefficient, static_cast<Eigen::Index>( output ) ) /
-                                            static_cast<double>( temporalImageCount );
-                                        const float stored = static_cast<float>( value );
-                                        if( !mx::math::isFinite( stored ) )
-                                        {
-                                            throw std::overflow_error(
-                                                "P4 temporal PSF coefficient exceeds float storage range" );
-                                        }
-                                        m_localPSFTemporalCoefficients[region]
-                                            .col( compactColumn )
-                                            .setConstant( stored );
+                                        ++threadRankInvalid[output];
                                     }
-                                    m_localPSFValidity[region]( static_cast<Eigen::Index>( search ),
-                                                                static_cast<Eigen::Index>( output ) ) = 1;
                                 }
-                                threadPSFSeconds += omp_get_wtime() - psfBegin;
+                                threadProjectionSeconds += omp_get_wtime() - residualApplyBegin;
+
+                                if( sharedPSF )
+                                {
+                                    const double psfBegin = omp_get_wtime();
+                                    for( std::size_t output = 0; output < modes.size(); ++output )
+                                    {
+                                        if( result.modeStatus[output] == P4PCAModeStatus::rankInsufficient )
+                                        {
+                                            continue;
+                                        }
+                                        const Eigen::Index compactColumn =
+                                            static_cast<Eigen::Index>( search * modes.size() + output );
+                                        psfModel->calculateLocalResponse(
+                                            localPSFResponse,
+                                            grid,
+                                            search,
+                                            coefficients.col( static_cast<Eigen::Index>( output ) )
+                                                .head( static_cast<Eigen::Index>( grid.predictorCount() ) ) );
+                                        for( int stampColumn = 0; stampColumn < m_localPSFColumns; ++stampColumn )
+                                        {
+                                            for( int stampRow = 0; stampRow < m_localPSFRows; ++stampRow )
+                                            {
+                                                const Eigen::Index stampPixel = static_cast<Eigen::Index>(
+                                                    stampRow + m_localPSFRows * stampColumn );
+                                                m_localPSFModels[region]( stampPixel, compactColumn ) =
+                                                    localPSFResponse( stampRow, stampColumn );
+                                            }
+                                        }
+                                        const Eigen::Index temporalCoefficient =
+                                            static_cast<Eigen::Index>( grid.predictorCount() );
+                                        if( temporalCoefficient < coefficients.rows() )
+                                        {
+                                            const std::size_t temporalImageCount =
+                                                m_temporalSelections[region][0].size() - 1;
+                                            const double value = -coefficients( temporalCoefficient,
+                                                                                static_cast<Eigen::Index>( output ) ) /
+                                                                 static_cast<double>( temporalImageCount );
+                                            const float stored = static_cast<float>( value );
+                                            if( !mx::math::isFinite( stored ) )
+                                            {
+                                                throw std::overflow_error(
+                                                    "P4 temporal PSF coefficient exceeds float storage range" );
+                                            }
+                                            m_localPSFTemporalCoefficients[region]
+                                                .col( compactColumn )
+                                                .setConstant( stored );
+                                        }
+                                        m_localPSFValidity[region]( static_cast<Eigen::Index>( search ),
+                                                                    static_cast<Eigen::Index>( output ) ) = 1;
+                                    }
+                                    threadPSFSeconds += omp_get_wtime() - psfBegin;
+                                }
                             }
                         }
                         progressWatcher.incrementAndOutputStatus();
@@ -5937,6 +6321,29 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.template append<std::string>( "P4 TEMPORAL STATISTIC",
                                        temporalStatisticString( m_temporalStatistic ),
                                        "additional-image predictor summary statistic" );
+    head.template append<std::string>( "P4 TEMPORAL PREDICTOR",
+                                       temporalPredictorString( m_temporalPredictor ),
+                                       "one-column temporal augmentation selection" );
+    if( m_temporalPredictor == P4TemporalPredictor::pcat )
+    {
+        head.template append<int>( "P4 PCAT GAP IMAGES", m_pcatGapImages, "no-wrap held-out gap half-width" );
+        head.template append<std::string>( "P4 PCAT REFERENCE REGION",
+                                           pcatReferenceRegionString( m_pcatReferenceRegion ),
+                                           "temporal-basis spatial reference geometry" );
+        if( m_pcatReferenceRegion == P4PCATReferenceRegion::annulus )
+        {
+            head.template append<realT>( "P4 PCAT REFERENCE MIN RADIUS",
+                                         m_pcatReferenceMinRadius,
+                                         "annular temporal-basis inner radius" );
+            head.template append<realT>( "P4 PCAT REFERENCE MAX RADIUS",
+                                         m_pcatReferenceMaxRadius,
+                                         "annular temporal-basis outer radius" );
+        }
+        head.template append<double>( "P4 PCAT MODE FRACTION", m_pcatModeFraction, "retained temporal-basis fraction" );
+        head.template append<std::string>( "P4 PCAT CENTERING",
+                                           pcatCenteringString( m_pcatCentering ),
+                                           "reference-series centering policy" );
+    }
     head.template append<int>( "P4 LOCAL STAMP SIZE", m_localStampSize, "pixel-local sky result width; zero disables" );
     if( m_localStampSize > 0 )
     {

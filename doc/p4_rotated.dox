@@ -80,7 +80,8 @@
  * | `--p4.regressionFrame` | `p4.regressionFrame=rotated` | `HIERARCH P4 FRAME` | `detector` or `rotated` | `detector` | Select the failed rotated-frame experiment. Omit this setting or use `detector` for science reductions. |
  *
  * In rotated mode, `p4.modeFractions` realizes each count as `floor(fraction*min(T-1,K))`. Positive
- * `p4.numberImages`, pixel-local processing, frozen-model PSF calculation, and `adi.postMedSub=true` are rejected.
+ * `p4.numberImages`, `p4.temporalPredictor=pcat`, pixel-local processing, frozen-model PSF calculation, and
+ * `adi.postMedSub=true` are rejected.
  * `combine.noDerotate` controls only detector-frame residuals and has no effect here.
  *
  * Every target and predictor must have a complete direct detector-frame cubic footprint in every input frame. If one

@@ -47,8 +47,15 @@
  *
  * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
- * | `--p4.numberImages` | `p4.numberImages=1` | `HIERARCH P4 NUMBER IMAGES` | nonnegative integer | `0` | Select `N` nearest qualifying earlier and `N` nearest qualifying later frames, then append one central-pixel temporal-summary predictor to each row. At endpoints, extra qualifying images from the available side replace missing frames. Each side must rotate by at least `2 * p4.psfRadius` at the annulus mean radius. P4 lowers an unattainable request to the greatest positive structurally usable radius, or uses same-image predictors when none exists. |
- * | `--p4.temporalStatistic` | `p4.temporalStatistic=mean` | `HIERARCH P4 TEMPORAL STATISTIC` | `mean` or `median` | `mean` | Statistic used to reduce the selected neighboring-frame values of the central search pixel to the one temporal predictor. |
+ * | `--p4.numberImages` | `p4.numberImages=1` | `HIERARCH P4 NUMBER IMAGES` | nonnegative integer | `0` | With `temporalPredictor=neighborSummary`, select `N` nearest qualifying earlier and `N` nearest qualifying later frames, then append their one central-pixel summary column. At endpoints, extra qualifying images from the available side replace missing frames. Each side must rotate by at least `2 * p4.psfRadius` at the annulus mean radius. P4 lowers an unattainable request to the greatest positive structurally usable radius, or uses same-image predictors when none exists. Must be zero for `pcat` and `none`. |
+ * | `--p4.temporalStatistic` | `p4.temporalStatistic=mean` | `HIERARCH P4 TEMPORAL STATISTIC` | `mean` or `median` | `mean` | Statistic used to reduce the selected neighboring-frame central-pixel values when `temporalPredictor=neighborSummary`. |
+ * | `--p4.temporalPredictor` | `p4.temporalPredictor=pcat` | `HIERARCH P4 TEMPORAL PREDICTOR` | `none`, `neighborSummary`, or `pcat` | `neighborSummary` | Select the optional one-column detector-frame temporal augmentation. `pcat` predicts the central pixel across a gap and replaces, rather than combines with, the neighboring-frame summary. |
+ * | `--p4.pcatGapImages` | `p4.pcatGapImages=1` | `HIERARCH P4 PCAT GAP IMAGES` | nonnegative integer | `0` | PCAT no-wrap image-index gap half-width. The predictor for target `t` is fitted outside `[max(0,t-g),min(T-1,t+g)]`. |
+ * | `--p4.pcatReferenceRegion` | `p4.pcatReferenceRegion=or` | `HIERARCH P4 PCAT REFERENCE REGION` | `or` or `annulus` | `or` | PCAT temporal-mode reference samples: the existing valid local optimization region, or a configured full detector annulus after common-mask and target-exclusion filtering. |
+ * | `--p4.pcatReferenceMinRadius` | `p4.pcatReferenceMinRadius=4` | `HIERARCH P4 PCAT REFERENCE MIN RADIUS` | finite nonnegative pixels | unset | Inclusive annular PCAT-reference inner radius; required with `pcatReferenceRegion=annulus`. |
+ * | `--p4.pcatReferenceMaxRadius` | `p4.pcatReferenceMaxRadius=20` | `HIERARCH P4 PCAT REFERENCE MAX RADIUS` | finite radius greater than minimum | unset | Exclusive annular PCAT-reference outer radius; required with `pcatReferenceRegion=annulus`. |
+ * | `--p4.pcatModeFraction` | `p4.pcatModeFraction=0.2` | `HIERARCH P4 PCAT MODE FRACTION` | finite real in `(0,1]` | unset | Fraction of `min(referencePixelCount,T)` retained as PCAT temporal modes. PCAT marks the whole search-pixel fit invalid if the selected modes or an outside-gap intercept fit are rank-insufficient. |
+ * | `--p4.pcatCentering` | `p4.pcatCentering=pixelMean` | `HIERARCH P4 PCAT CENTERING` | `pixelMean` or `none` | `pixelMean` | Reference-series centering before PCAT forms its time covariance. The central target series is instead fitted with an outside-gap intercept. |
  * | `--p4.modeFractions` | `p4.modeFractions=0.01,0.03,...` | `HIERARCH P4 MODE FRACTIONS` | finite, strictly increasing values in `(0,1]` | required | Requested PCA fractions. Each becomes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
  * | `--p4.orDeltaRadiusInner` | `p4.orDeltaRadiusInner=pixels` | `HIERARCH P4 OR DELTA RADIUS INNER` | positive real pixels | required | Inward radial extent of the local annular predictor wedge. |
  * | `--p4.orDeltaRadiusOuter` | `p4.orDeltaRadiusOuter=pixels` | `HIERARCH P4 OR DELTA RADIUS OUTER` | positive real pixels | required | Outward radial extent of that wedge. |
@@ -58,7 +65,7 @@
  *
  * For a positive `p4.numberImages`, `T` is the number of retained central targets in that annulus after temporal
  * neighbor selection, and `K` is the original OR predictor count plus one temporal-summary column when neighbors are
- * available.
+ * available. PCAT retains every active central target and likewise makes `K` the OR count plus one prediction column.
  *
  * P4 regresses one fixed detector-pixel time series on its local OR without implicit centering or an intercept. The
  * \ref p4_rotated_user_guide "rotated-frame negative-result page" separately documents an experimental configuration
@@ -67,8 +74,9 @@
  * P4 automatically uses the smaller temporal or predictor Gram formulation. Its fixed production direct/refit policy
  * forms the Gram matrix and performs the surrounding PCA calculation in FP32, while promoting the Gram matrix for an
  * FP64 eigensolve. Successful eigenpairs return to FP32 before rank selection and projection. Precision and Gram
- * choice are not configurable backends. Exact target exclusion requires detector-frame regression with
- * `p4.numberImages=0`; it is applied consistently to ordinary, pixel-local, and frozen-PSF fits.
+ * choice are not configurable backends. Exact target exclusion requires detector-frame regression with no temporal
+ * augmentation; it is applied consistently to ordinary, pixel-local, and frozen-PSF fits. PCAT is initially not
+ * available with target exclusion, pixel-local trials, or frozen-PSF products.
  * `solver.deletionBackend` applies only to `solver.exclusionSolver=factorDowndateExact`; selecting `rankOneSecular` with the
  * explicit solver is rejected rather than ignored. P4 checks the realized compact exclusion pattern before
  * regression. With `rankOneSecular`, each target which retains any reference rows must delete exactly one row. A

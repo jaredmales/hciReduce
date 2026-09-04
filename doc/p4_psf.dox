@@ -57,10 +57,11 @@
  * from its exact selected earlier/later frames. One-sided beginning/end fallback is therefore propagated consistently
  * with the science regression. Frozen PSF outputs support the linear `mean` statistic, evaluating the selected source
  * samples against the full prepared template during reconstruction. The nonlinear `median` statistic remains available
- * for science reductions but cannot produce frozen PSF output or filtering products.
+ * for science reductions but cannot produce frozen PSF output or filtering products. The gap-held-out PCAT temporal
+ * predictor is not yet supported for frozen PSF products and is rejected rather than approximated.
  *
- * Target-frame exclusion and positive `p4.numberImages` are deliberately mutually exclusive. With a non-`none`
- * `adi.excludeMethod`, `p4.numberImages` must be zero and each target response uses the same deleted rows, solver,
+ * Target-frame exclusion and temporal augmentation are deliberately mutually exclusive. With a non-`none`
+ * `adi.excludeMethod`, `p4.numberImages` must be zero, `p4.temporalPredictor` must not be `pcat`, and each target response uses the same deleted rows, solver,
  * rank decision, and explicit-fallback policy as its science residual.
  *
  * The implementation requires detector-frame P4 and `adi.postMedSub=false`. A complete final PSF field additionally

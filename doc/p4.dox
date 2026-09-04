@@ -47,15 +47,20 @@
  * all-double numerical implementation remains the regression oracle.
  *
  * With the compatibility default `p4.numberImages=0`, each predictor row contains only the `K` OR pixels from its
- * central image. A positive `p4.numberImages=N` appends `N` nearest qualifying earlier-image blocks and `N` nearest
- * qualifying later-image blocks. The central block retains its `K_OR` OR pixels, while each neighbor contributes
- * only the `K_PSF` direct detector pixels inside `p4.psfRadius`, for `K_OR + 2N K_PSF` columns. At a cube endpoint,
- * missing neighbors on one temporal side are replaced by additional qualifying images from the available side,
- * preserving both predictor width and integration time. A neighbor qualifies when its wrapped field-rotation
- * displacement is at least `2 * p4.psfRadius` at that annulus's mean search radius, keeping the neighbor's physical
- * PSF disk free of companion signal. If the requested radius cannot retain a structurally valid PCA sample set, P4
- * uses the largest positive radius that does; if no positive radius works, that annulus gracefully reverts to
- * same-image predictors.
+ * central image. `p4.temporalPredictor=neighborSummary` with positive `p4.numberImages=N` appends exactly one
+ * central-pixel column: the configured mean or median of `N` nearest qualifying earlier and `N` nearest qualifying
+ * later frames. At a cube endpoint, missing neighbors on one temporal side are replaced by additional qualifying
+ * images from the available side. A neighbor qualifies when its wrapped field-rotation displacement is at least
+ * `2 * p4.psfRadius` at that annulus's mean search radius. If no positive radius can retain a structurally valid
+ * sample set, the annulus gracefully reverts to same-image predictors.
+ *
+ * `p4.temporalPredictor=pcat` instead appends one gap-held-out time-domain PCA prediction of the central pixel.
+ * PCAT learns its temporal modes from either the existing valid OR samples or a configured common-mask-valid detector
+ * annulus outside the current signal-exclusion disk. For every output frame, it fits the target-pixel series only
+ * outside the configurable no-wrap image-index gap and evaluates that fit at the withheld frame. PCAT's prediction
+ * is an ordinary P4 predictor column, not a separately subtracted science product. It is initially detector-frame
+ * only and cannot be combined with neighboring-image summaries, target-frame exclusion, pixel-local trials, or
+ * frozen-PSF products.
  *
  * The detector-frame residual cubes are derotated by the shared ADI final-processing stage before combination.
  *
@@ -80,6 +85,12 @@
  * | `solver.deletionBackend` | Factor-deletion implementation: `leadingCovariance` (default, dense, supports one or more deleted rows) or the opt-in `rankOneSecular` structured backend. The structured backend requires `solver.exclusionSolver=factorDowndateExact` and exactly one deleted row for every active target. |
  * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames used to construct one temporal-summary predictor; `0` is the compatibility default. |
  * | `p4.temporalStatistic` | `mean` (default) or `median` summary of the selected frames' central-pixel values. |
+ * | `p4.temporalPredictor` | `neighborSummary` (default), `none`, or `pcat`; selects the one optional detector-frame temporal column. |
+ * | `p4.pcatGapImages` | Nonnegative no-wrap held-out image-index half-width for PCAT. |
+ * | `p4.pcatReferenceRegion` | PCAT temporal-basis reference geometry: existing valid OR (`or`) or configured detector `annulus`. |
+ * | `p4.pcatReferenceMinRadius`, `p4.pcatReferenceMaxRadius` | Finite ordered annular PCAT-reference radii, required when `pcatReferenceRegion=annulus`. |
+ * | `p4.pcatModeFraction` | PCAT temporal-mode fraction in `(0,1]`, separate from the ordinary spatial-P4 mode fractions. |
+ * | `p4.pcatCentering` | `pixelMean` (default) or `none` reference-series centering before PCAT covariance construction. |
  * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
  * | `p4.orArcHalfWidth` | Nonnegative azimuthal half-width expressed as arc length in pixels; `0` uses only `p4.orMaxHalfAngle`. |
@@ -94,7 +105,7 @@
  *
  * P4 rejects configured RDI input, overlapping annuli, and nonfinite target input as hard errors. The geometry must
  * fit its configured detector-frame interpolation footprints. Target-frame exclusion requires detector-frame
- * regression and `p4.numberImages=0`. The same deleted-row pattern is honored by complete-field reductions,
+ * regression and no temporal augmentation. The same deleted-row pattern is honored by complete-field reductions,
  * pixel-local finite-amplitude fits, and frozen-model PSF responses. Pixel-local fitting and frozen-model products
  * remain mutually exclusive modes. Rank support is tracked independently for every target and output mode.
  *

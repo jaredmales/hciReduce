@@ -67,6 +67,9 @@
  * - `p4.numberImages=0` when target-frame exclusion is enabled; and
  * - no frozen-model settings (`p4.psfFile`, `p4.outputPSFModels`, or `p4.psfFilter`).
  *
+ * The gap-held-out `p4.temporalPredictor=pcat` mode is not yet available for pixel-local trials because the temporal
+ * basis would need to be re-fit after every trial perturbation.
+ *
  * Inherited fake injection is inactive when preprocessing is skipped. Pixel-local P4 samples the trial on demand, so
  * the loaded input cube remains pristine and trial flux does not accumulate across repeated evaluations.
  *

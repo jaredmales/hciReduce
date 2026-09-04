@@ -25,6 +25,7 @@
 #include "P4PSFModel.hpp"
 #include "P4PSFReconstructor.hpp"
 #include "P4RotatedGrid.hpp"
+#include "P4TemporalPCA.hpp"
 #include "ReductionTiming.hpp"
 
 namespace mx
@@ -46,6 +47,23 @@ enum class P4TemporalStatistic : std::uint8_t
 {
     mean,  ///< Use the arithmetic mean of all selected neighboring-frame samples.
     median ///< Use the conventional median of all selected neighboring-frame samples.
+};
+
+/// One optional temporal augmentation appended to the ordinary detector-frame P4 predictor row.
+/** \ingroup programming_library */
+enum class P4TemporalPredictor : std::uint8_t
+{
+    none,            ///< Do not append a temporal augmentation predictor.
+    neighborSummary, ///< Append the configured neighboring-frame mean or median summary.
+    pcat             ///< Append a gap-held-out time-domain PCA prediction of the central pixel.
+};
+
+/// Spatial reference geometry used to learn one PCAT temporal basis.
+/** \ingroup programming_library */
+enum class P4PCATReferenceRegion : std::uint8_t
+{
+    optimizationRegion, ///< Reuse the current target's valid spatial P4 optimization region.
+    annulus             ///< Use one configurable full detector annulus around the current target's signal exclusion.
 };
 
 /** \cond P4Reduction_test_harness */
@@ -199,6 +217,26 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     P4TemporalStatistic m_temporalStatistic{ P4TemporalStatistic::mean };
     ///< Statistic that reduces selected neighboring-frame central-pixel samples to one predictor column.
+
+    P4TemporalPredictor m_temporalPredictor{ P4TemporalPredictor::neighborSummary };
+    ///< Optional one-column detector-frame temporal augmentation; legacy neighboring summary by default.
+
+    int m_pcatGapImages{ 0 }; ///< No-wrap PCAT temporal-gap half-width in retained image indices.
+
+    P4PCATReferenceRegion m_pcatReferenceRegion{ P4PCATReferenceRegion::optimizationRegion };
+    ///< Target-specific spatial reference geometry used to learn PCAT temporal modes.
+
+    realT m_pcatReferenceMinRadius{ std::numeric_limits<realT>::quiet_NaN() };
+    ///< Inclusive PCAT annular-reference inner radius in pixels when `m_pcatReferenceRegion` is annulus.
+
+    realT m_pcatReferenceMaxRadius{ std::numeric_limits<realT>::quiet_NaN() };
+    ///< Exclusive PCAT annular-reference outer radius in pixels when `m_pcatReferenceRegion` is annulus.
+
+    double m_pcatModeFraction{ std::numeric_limits<double>::quiet_NaN() };
+    ///< Fraction of structural PCAT temporal rank retained by the one appended predictor column.
+
+    P4TemporalPCACentering m_pcatCentering{ P4TemporalPCACentering::pixelMean };
+    ///< Centering policy applied to PCAT reference series before their temporal covariance is formed.
 
     realT m_minDPx{ 0 }; ///< Minimum target/reference displacement interpreted by `m_excludeMethod`.
 
@@ -458,6 +496,25 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Parse an exact temporal-statistic configuration spelling.
     static P4TemporalStatistic parseTemporalStatistic( const std::string &value /**< [in] configuration spelling */ );
 
+    /// Convert a supported temporal predictor selection to its stable configuration spelling.
+    static std::string temporalPredictorString( P4TemporalPredictor predictor /**< [in] supported selector */ );
+
+    /// Parse an exact temporal-predictor configuration spelling.
+    static P4TemporalPredictor parseTemporalPredictor( const std::string &value /**< [in] configuration spelling */ );
+
+    /// Convert a supported PCAT reference region to its stable configuration spelling.
+    static std::string pcatReferenceRegionString( P4PCATReferenceRegion region /**< [in] supported geometry */ );
+
+    /// Parse an exact PCAT reference-region configuration spelling.
+    static P4PCATReferenceRegion
+    parsePCATReferenceRegion( const std::string &value /**< [in] configuration spelling */ );
+
+    /// Convert a supported PCAT centering policy to its stable configuration spelling.
+    static std::string pcatCenteringString( P4TemporalPCACentering centering /**< [in] supported policy */ );
+
+    /// Parse an exact PCAT centering configuration spelling.
+    static P4TemporalPCACentering parsePCATCentering( const std::string &value /**< [in] configuration spelling */ );
+
     /// Validate configuration that is independent of loaded image dimensions.
     void validateConfiguration() const;
 
@@ -539,8 +596,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
                                 const P4PixelCoordinate &coordinate, /**< [in] owned search coordinate */
                                 int region /**< [in] nonnegative annulus index */ );
 
-    /// Assemble and solve one detector-frame search-pixel regression through the authoritative production path.
-    void fitDetectorSearch(
+    /// Assemble and solve one detector-frame search-pixel regression, returning false for unsupported PCAT fits.
+    bool fitDetectorSearch(
         P4PCAResult &result,                             /**< [out] residuals, rank, and mode status */
         P4PCA::matrixT &predictors,                      /**< [in,out] reusable target-by-predictor matrix */
         P4PCA::vectorT &target,                          /**< [in,out] reusable target time-series vector */
@@ -562,9 +619,12 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         double &temporalSamplingSeconds,  /**< [out] additional-image sampling worker seconds */
         const P4TargetExclusions *exclusions,
         /**< [in] optional per-target deleted rows; nullptr selects in-sample fitting */
-        const P4PCA::matrixT *probePredictors, /**< [in] optional frozen predictor responses */
-        const P4PCA::vectorT *probeTarget,     /**< [in] optional direct frozen target response */
-        const P4TrialSource *trialSource = nullptr /**< [in] optional finite-amplitude trial perturbation */ ) const;
+        const P4PCA::matrixT *probePredictors,      /**< [in] optional frozen predictor responses */
+        const P4PCA::vectorT *probeTarget,          /**< [in] optional direct frozen target response */
+        const P4TrialSource *trialSource = nullptr, /**< [in] optional finite-amplitude trial perturbation */
+        P4TemporalPCA *pcat = nullptr,              /**< [in,out] optional reusable PCAT calculator for one worker */
+        P4TemporalPCA::workspaceT *pcatWorkspace =
+            nullptr /**< [in,out] optional reusable PCAT eigensolver workspace */ ) const;
 
     /// Load one finite per-frame fake scale vector using the inherited filename-matching convention.
     std::vector<realT> localTrialScales() const;

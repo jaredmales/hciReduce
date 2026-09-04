@@ -135,16 +135,22 @@ implemented, before adopting either result as a calibrated science uncertainty.
 
 ## Better Temporal Prediction
 
-[] Try just adding 1 pixel instead of the whole PSF mask
+[x] Try just adding 1 pixel instead of the whole PSF mask
 
-[] Try adding the mean or median of the pixels
+[x] Try adding the mean or median of the pixels
+
+The combined single-pixel mean/median temporal-summary implementation did not improve the reduction. The likely
+conclusion is that preprocessing radial-profile subtraction already centers each detector-pixel time series very
+effectively, so supplying neighboring-frame mean or median information adds no useful predictive signal.
 
 [] when adding numberImages, the extension at the beginning and end by adding 2 later images (for images at the beginning) or 2 earlier images (for images at the end) should be modified.  We should calculate 3 different sets of coefficients.  This is to optimize to exploit any temporal predictability.  As it is, with a single set of coefficients for all three subsets we're basically only calculating the mean.
 
-[] alternatively, we could use PCAT (Long et al, 2023,https://arxiv.org/abs/2303.05559).The flaw in this is that the data have gaps and may not be regularly sampled, meaning that we are not fully exploiting temporal correlations
-  - calculate a KL transform of the time-series with a rotation gap using all the other pixels in the OR (or maybe a temoral-OR)
-  - project that onto the time-series of the pixels in the masked region
-  - use the predicted values of the masked pixels in the main P4 calculation instead of the numberImages pixels above.
+[x] alternatively, use PCAT (Long et al, 2023,https://arxiv.org/abs/2303.05559). The implemented initial design is in
+   [p4_pcat_temporal_prediction.md](p4_pcat_temporal_prediction.md). It calculates a KL transform of OR or annular
+   reference-pixel time series with a configurable no-wrap image-index gap, projects the central target series
+   outside that gap, and appends the resulting prediction as the same one P4 column previously provided by
+   `numberImages`. Irregular cadence remains a known limitation of this first image-index-gap implementation and is
+   listed as deferred work in the plan.
 
 [] alternatively, we could use linear prediction.  This could be done to take into account the proper time axis:
   - form an estimate of the auto-correlation (AC) or PSD of the intensity by averaging the AC or PSD of the pixels in the OR. we want to use something like Lomb-Scargle here if the data are not regularly sampled over the whole time-series, which will be common for real observations.  Whether it's AC or PSD is an open question

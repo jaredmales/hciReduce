@@ -198,6 +198,12 @@ struct reductionHarness : public reductionT
     using reductionT::m_Npix;
     using reductionT::m_Nrows;
     using reductionT::m_outputDir;
+    using reductionT::m_pcatCentering;
+    using reductionT::m_pcatGapImages;
+    using reductionT::m_pcatModeFraction;
+    using reductionT::m_pcatReferenceMaxRadius;
+    using reductionT::m_pcatReferenceMinRadius;
+    using reductionT::m_pcatReferenceRegion;
     using reductionT::m_prefix;
     using reductionT::m_preProcess_only;
     using reductionT::m_psfsub;
@@ -211,6 +217,7 @@ struct reductionHarness : public reductionT
     using reductionT::m_refIms;
     using reductionT::m_rejectNonFiniteTargetInput;
     using reductionT::m_skipPreProcess;
+    using reductionT::m_temporalPredictor;
     using reductionT::m_tgtIms;
 
     bool m_postReadCalled{ false };   ///< Whether inherited input loading reached the post-read hook.
@@ -2609,6 +2616,80 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
     }
 }
 
+/// Verify PCAT replaces the neighboring-image summary with one gap-held-out central-pixel predictor column.
+/** This exercises mx::improc::P4Reduction::reduce() and mx::improc::P4TemporalPCA::predict() through both supported
+ * PCAT reference geometries.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 detector PCAT temporal augmentation", "[P4Reduction][reduce][detector][pcat]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    const auto preparePCAT = []( reductionHarness &reduction )
+    {
+        prepareReduction( reduction, 9 );
+        reduction.m_modeFractions = { 0.2F };
+        reduction.m_memoryFraction = 0;
+        reduction.m_pcatGapImages = 1;
+        reduction.m_pcatModeFraction = 0.25;
+        reduction.m_pcatCentering = mx::improc::P4TemporalPCACentering::pixelMean;
+        for( int image = 0; image < reduction.m_Nims; ++image )
+        {
+            const double time = static_cast<double>( image ) - 4.0;
+            for( int column = 0; column < reduction.m_Ncols; ++column )
+            {
+                for( int row = 0; row < reduction.m_Nrows; ++row )
+                {
+                    reduction.m_tgtIms.image( image )( row, column ) = static_cast<float>(
+                        0.03 * time * static_cast<double>( row + 1 ) +
+                        std::sin( 0.13 * time * static_cast<double>( column + 2 ) ) +
+                        std::cos( 0.07 * ( time + 1.0 ) * static_cast<double>( row + column + 1 ) ) );
+                }
+            }
+        }
+    };
+
+    reductionHarness baseline;
+    preparePCAT( baseline );
+    baseline.m_temporalPredictor = mx::improc::P4TemporalPredictor::none;
+    REQUIRE( baseline.reduce() == 0 );
+
+    SECTION( "optimization-region temporal basis" )
+    {
+        reductionHarness reduction;
+        preparePCAT( reduction );
+        reduction.m_temporalPredictor = mx::improc::P4TemporalPredictor::pcat;
+
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_temporalSelections[0].size() == 9 );
+        REQUIRE( reduction.m_temporalSelections[0].front() == std::vector<int>{ 0 } );
+        REQUIRE( reduction.m_temporalSelections[0].back() == std::vector<int>{ 8 } );
+        REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 0 );
+        REQUIRE( reduction.m_regionStatistics[0].predictorCount == baseline.m_regionStatistics[0].predictorCount + 1 );
+        REQUIRE( reduction.m_regionStatistics[0].validLocalFitCount > 0 );
+
+        reductionT::fitsHeaderT header;
+        reduction.appendReductionHeader( header );
+        REQUIRE( header["P4 TEMPORAL PREDICTOR"].String().starts_with( "pcat" ) );
+        REQUIRE( header["P4 PCAT GAP IMAGES"].Int() == 1 );
+        REQUIRE( header["P4 PCAT REFERENCE REGION"].String().starts_with( "or" ) );
+        REQUIRE( header["P4 PCAT MODE FRACTION"].Double() == Approx( 0.25 ) );
+    }
+
+    SECTION( "annular temporal basis" )
+    {
+        reductionHarness reduction;
+        preparePCAT( reduction );
+        reduction.m_temporalPredictor = mx::improc::P4TemporalPredictor::pcat;
+        reduction.m_pcatReferenceRegion = mx::improc::P4PCATReferenceRegion::annulus;
+        reduction.m_pcatReferenceMinRadius = 2;
+        reduction.m_pcatReferenceMaxRadius = 10;
+
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_regionStatistics[0].predictorCount == baseline.m_regionStatistics[0].predictorCount + 1 );
+        REQUIRE( reduction.m_regionStatistics[0].validLocalFitCount > 0 );
+    }
+}
+
 /// Verify rotated P4 centers its fit, applies the predictor to uncentered data, and reports sky support.
 /** \ingroup P4Reduction_unit_tests */
 TEST_CASE( "P4 rotated reduction applies uncentered predictors",
@@ -3054,6 +3135,43 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         prepareReduction( negativeNumberImages );
         negativeNumberImages.m_numberImages = -1;
         REQUIRE_THROWS( negativeNumberImages.reduce() );
+
+        reductionHarness pcatWithNeighbors;
+        prepareReduction( pcatWithNeighbors );
+        pcatWithNeighbors.m_temporalPredictor = mx::improc::P4TemporalPredictor::pcat;
+        pcatWithNeighbors.m_numberImages = 1;
+        pcatWithNeighbors.m_pcatModeFraction = 0.2;
+        REQUIRE_THROWS_WITH( pcatWithNeighbors.reduce(),
+                             Catch::Matchers::Contains( "p4.temporalPredictor=pcat requires p4.numberImages=0" ) );
+
+        reductionHarness pcatWithoutModes;
+        prepareReduction( pcatWithoutModes );
+        pcatWithoutModes.m_temporalPredictor = mx::improc::P4TemporalPredictor::pcat;
+        REQUIRE_THROWS_WITH( pcatWithoutModes.reduce(), Catch::Matchers::Contains( "PCAT gap and mode fraction" ) );
+
+        reductionHarness pcatInvalidAnnulus;
+        prepareReduction( pcatInvalidAnnulus );
+        pcatInvalidAnnulus.m_temporalPredictor = mx::improc::P4TemporalPredictor::pcat;
+        pcatInvalidAnnulus.m_pcatModeFraction = 0.2;
+        pcatInvalidAnnulus.m_pcatReferenceRegion = mx::improc::P4PCATReferenceRegion::annulus;
+        pcatInvalidAnnulus.m_pcatReferenceMinRadius = 4;
+        pcatInvalidAnnulus.m_pcatReferenceMaxRadius = 4;
+        REQUIRE_THROWS_WITH( pcatInvalidAnnulus.reduce(), Catch::Matchers::Contains( "PCAT annular-reference radii" ) );
+
+        reductionHarness pcatRotated;
+        prepareReduction( pcatRotated );
+        pcatRotated.m_temporalPredictor = mx::improc::P4TemporalPredictor::pcat;
+        pcatRotated.m_pcatModeFraction = 0.2;
+        pcatRotated.m_regressionFrame = mx::improc::P4RegressionFrame::rotated;
+        REQUIRE_THROWS_WITH( pcatRotated.reduce(),
+                             Catch::Matchers::Contains( "p4.temporalPredictor=pcat is supported only" ) );
+
+        reductionHarness pcatExcluded;
+        prepareReduction( pcatExcluded );
+        pcatExcluded.m_temporalPredictor = mx::improc::P4TemporalPredictor::pcat;
+        pcatExcluded.m_pcatModeFraction = 0.2;
+        pcatExcluded.m_excludeMethod = mx::improc::HCI::exclude::imno;
+        REQUIRE_THROWS_WITH( pcatExcluded.reduce(), Catch::Matchers::Contains( "requires no temporal augmentation" ) );
 
         reductionHarness rotatedPostMedian;
         prepareReduction( rotatedPostMedian );

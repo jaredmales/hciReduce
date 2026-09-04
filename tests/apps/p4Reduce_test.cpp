@@ -239,6 +239,9 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     REQUIRE( application.config.m_targets.at( "p4.modeFractions" ).helpType == "vector<realT>" );
     REQUIRE( application.config.m_targets.at( "p4.regressionFrame" ).helpType == "string" );
     REQUIRE( application.config.m_targets.at( "p4.numberImages" ).helpType == "int" );
+    REQUIRE( application.config.m_targets.at( "p4.temporalPredictor" ).helpType == "string" );
+    REQUIRE( application.config.m_targets.at( "p4.pcatGapImages" ).helpType == "int" );
+    REQUIRE( application.config.m_targets.at( "p4.pcatModeFraction" ).helpType == "double" );
     REQUIRE( application.config.m_targets.at( "p4.memoryFraction" ).helpType == "double" );
     REQUIRE( application.config.m_targets.at( "p4.exclusionPolicy" ).clType == mx::app::argType::Required );
 
@@ -262,6 +265,7 @@ TEST_CASE( "p4Reduce configuration registration", "[p4Reduce][config]" )
     REQUIRE( application.m_obs.m_modeFractions == std::vector<float>{ 0.5F } );
     REQUIRE( application.m_obs.m_regressionFrame == mx::improc::P4RegressionFrame::detector );
     REQUIRE( application.m_obs.m_numberImages == 0 );
+    REQUIRE( application.m_obs.m_temporalPredictor == mx::improc::P4TemporalPredictor::neighborSummary );
     REQUIRE( application.m_obs.m_memoryFraction == Approx( 0.8 ) );
     REQUIRE( application.m_obs.m_exclusionPolicy == mx::improc::P4ExclusionPolicy::kernelSupport );
 
