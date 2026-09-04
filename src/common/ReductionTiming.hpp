@@ -27,7 +27,7 @@ struct ReductionTiming
 
     double sameImageSamplingWorkerSeconds{ 0 }; ///< Aggregate worker time for same-image target and OR sampling.
 
-    double temporalSamplingWorkerSeconds{ 0 };  ///< Aggregate worker time for additional-image PSF-disk sampling.
+    double temporalSamplingWorkerSeconds{ 0 };  ///< Aggregate worker time for temporal-summary sampling.
 
     double gramWorkerSeconds{ 0 };              ///< Aggregate worker time used to form normal-equation Gram matrices.
 

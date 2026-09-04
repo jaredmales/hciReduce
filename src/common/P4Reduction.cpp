@@ -282,22 +282,11 @@ p4TemporalSelectionWithFallback( const std::vector<double> &derotationAngles,
     return { 0, {} };
 }
 
-/// Enumerate direct detector-pixel offsets inside the physical temporal PSF predictor disk.
+/// Return the single central detector-pixel offset used by the temporal summary predictor.
 std::vector<P4PixelCoordinate> p4TemporalPredictorOffsets( double psfRadius /**< [in] physical PSF radius in pixels */ )
 {
-    const int maximumOffset = static_cast<int>( std::ceil( psfRadius ) );
-    std::vector<P4PixelCoordinate> offsets;
-    for( int row = -maximumOffset; row <= maximumOffset; ++row )
-    {
-        for( int column = -maximumOffset; column <= maximumOffset; ++column )
-        {
-            if( std::hypot( static_cast<double>( row ), static_cast<double>( column ) ) <= psfRadius )
-            {
-                offsets.emplace_back( row, column );
-            }
-        }
-    }
-    return offsets;
+    static_cast<void>( psfRadius );
+    return { P4PixelCoordinate( 0, 0 ) };
 }
 
 /// Report whether every direct temporal PSF predictor pixel is inside the image and common mask.
@@ -1071,7 +1060,16 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 "numberImages",
                 false,
                 "int",
-                "Qualifying earlier and later detector images appended to each predictor row; default 0" );
+                "Qualifying earlier and later detector images summarized into one predictor row column; default 0" );
+    config.add( "p4.temporalStatistic",
+                "",
+                "p4.temporalStatistic",
+                mx::app::argType::Required,
+                "p4",
+                "temporalStatistic",
+                false,
+                "string",
+                "Temporal predictor summary statistic: mean or median; default mean" );
     config.add( "adi.minDPx",
                 "",
                 "adi.minDPx",
@@ -1309,6 +1307,17 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     }
 
     config( m_numberImages, "p4.numberImages" );
+    std::string temporalStatistic = temporalStatisticString( m_temporalStatistic );
+    config( temporalStatistic, "p4.temporalStatistic" );
+    try
+    {
+        m_temporalStatistic = parseTemporalStatistic( temporalStatistic );
+    }
+    catch( ... )
+    {
+        std::throw_with_nested(
+            mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.temporalStatistic is not valid" ) );
+    }
     config( m_minDPx, "adi.minDPx" );
     std::string excludeMethod = HCI::excludeToStr<verboseT>( m_excludeMethod );
     config( excludeMethod, "adi.excludeMethod" );
@@ -1486,9 +1495,38 @@ P4RegressionFrame P4Reduction<realT, derotFunctObj, verboseT>::parseRegressionFr
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+std::string P4Reduction<realT, derotFunctObj, verboseT>::temporalStatisticString( P4TemporalStatistic statistic )
+{
+    if( statistic == P4TemporalStatistic::mean )
+    {
+        return "mean";
+    }
+    if( statistic == P4TemporalStatistic::median )
+    {
+        return "median";
+    }
+    throw std::invalid_argument( "unsupported P4 temporal statistic" );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
+P4TemporalStatistic P4Reduction<realT, derotFunctObj, verboseT>::parseTemporalStatistic( const std::string &value )
+{
+    if( value == "mean" )
+    {
+        return P4TemporalStatistic::mean;
+    }
+    if( value == "median" )
+    {
+        return P4TemporalStatistic::median;
+    }
+    throw std::invalid_argument( "unsupported P4 temporal statistic: " + value );
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
 {
     static_cast<void>( regressionFrameString( m_regressionFrame ) );
+    static_cast<void>( temporalStatisticString( m_temporalStatistic ) );
     static_cast<void>( HCI::excludeToStr<verboseT>( m_excludeMethod ) );
     static_cast<void>( exclusionSolverString( m_exclusionSolver ) );
     static_cast<void>( deletionBackendString( m_deletionBackend ) );
@@ -1615,6 +1653,13 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                            "p4.psfFile is not yet supported with adi.postMedSub=true" );
+        }
+        if( m_numberImages > 0 && m_temporalStatistic == P4TemporalStatistic::median &&
+            ( m_outputPSFModels || m_psfFilter ) )
+        {
+            throw mx::exception<verboseT>(
+                mx::error_t::invalidconfig,
+                "P4 frozen PSF outputs with p4.numberImages>0 require p4.temporalStatistic=mean" );
         }
     }
     if( m_outputPSFModels || m_psfFilter )
@@ -2082,7 +2127,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
     }
     const std::size_t basePredictorCount = grid.predictorCount();
     const std::size_t temporalImageCount = selections.front().size() - 1;
-    const std::size_t predictorCount = basePredictorCount + temporalImageCount * temporalOffsets.size();
+    const std::size_t predictorCount = basePredictorCount + ( temporalImageCount == 0 ? 0 : 1 );
     predictors.resize( static_cast<Eigen::Index>( selections.size() ), static_cast<Eigen::Index>( predictorCount ) );
     target.resize( static_cast<Eigen::Index>( selections.size() ) );
 
@@ -2132,29 +2177,53 @@ void P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
         sameImageSamplingSeconds += omp_get_wtime() - sameImageSamplingBegin;
 
         const double temporalSamplingBegin = omp_get_wtime();
+        std::vector<double> temporalValues;
+        temporalValues.reserve( temporalImageCount );
         for( std::size_t source = 1; source < selection.size(); ++source )
         {
             const int image = selection[source];
-            for( std::size_t predictor = 0; predictor < temporalOffsets.size(); ++predictor )
+            const int row = coordinate.row() + temporalOffsets.front().row();
+            const int column = coordinate.column() + temporalOffsets.front().column();
+            double predictorValue = checkedPredictorPromotion( this->m_tgtIms.image( image )( row, column ) );
+            if( trialSource )
             {
-                const int row = coordinate.row() + temporalOffsets[predictor].row();
-                const int column = coordinate.column() + temporalOffsets[predictor].column();
-                double predictorValue = checkedPredictorPromotion( this->m_tgtIms.image( image )( row, column ) );
-                if( trialSource )
-                {
-                    predictorValue += checkedPredictorPromotion(
-                        trialSource->value( static_cast<std::size_t>( image ), row, column ) );
-                }
-                if( !mx::math::isFinite( predictorValue ) )
-                {
-                    throw mx::exception<verboseT>( mx::error_t::invalidarg,
-                                                   "P4 trial-perturbed additional-image predictor is non-finite" );
-                }
-                const std::size_t columnIndex =
-                    basePredictorCount + ( source - 1 ) * temporalOffsets.size() + predictor;
-                predictors( static_cast<Eigen::Index>( targetIndex ), static_cast<Eigen::Index>( columnIndex ) ) =
-                    predictorValue;
+                predictorValue +=
+                    checkedPredictorPromotion( trialSource->value( static_cast<std::size_t>( image ), row, column ) );
             }
+            if( !mx::math::isFinite( predictorValue ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               "P4 trial-perturbed additional-image predictor is non-finite" );
+            }
+            temporalValues.push_back( predictorValue );
+        }
+        if( !temporalValues.empty() )
+        {
+            double summary = temporalValues.front();
+            if( m_temporalStatistic == P4TemporalStatistic::mean )
+            {
+                for( std::size_t value = 1; value < temporalValues.size(); ++value )
+                {
+                    summary += ( temporalValues[value] - summary ) / static_cast<double>( value + 1 );
+                }
+            }
+            else
+            {
+                const std::size_t upper = temporalValues.size() / 2;
+                std::nth_element( temporalValues.begin(), temporalValues.begin() + upper, temporalValues.end() );
+                summary = temporalValues[upper];
+                if( temporalValues.size() % 2 == 0 )
+                {
+                    const double lower = *std::max_element( temporalValues.begin(), temporalValues.begin() + upper );
+                    summary = lower + 0.5 * ( summary - lower );
+                }
+            }
+            if( !mx::math::isFinite( summary ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg, "P4 temporal predictor summary is non-finite" );
+            }
+            predictors( static_cast<Eigen::Index>( targetIndex ), static_cast<Eigen::Index>( basePredictorCount ) ) =
+                summary;
         }
         temporalSamplingSeconds += omp_get_wtime() - temporalSamplingBegin;
     }
@@ -3421,12 +3490,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         const std::size_t targetImageCount = m_temporalSelections[region].size();
         const std::size_t temporalImageCount = m_temporalSelections[region].front().size() - 1;
         m_localPSFComponentCounts[region] = temporalImageCount + 1;
-        if( temporalImageCount > std::numeric_limits<std::size_t>::max() / temporalPredictorOffsets.size() )
-        {
-            throw mx::exception<verboseT>( mx::error_t::sizeerr,
-                                           "P4 multi-image predictor count exceeds size_t range" );
-        }
-        const std::size_t temporalPredictorCount = temporalImageCount * temporalPredictorOffsets.size();
+        const std::size_t temporalPredictorCount = temporalImageCount == 0 ? 0 : 1;
         if( basePredictorCount > std::numeric_limits<std::size_t>::max() - temporalPredictorCount )
         {
             throw mx::exception<verboseT>( mx::error_t::sizeerr,
@@ -4224,21 +4288,24 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                 localPSFResponse( stampRow, stampColumn );
                                         }
                                     }
-                                    for( Eigen::Index coefficient = static_cast<Eigen::Index>( grid.predictorCount() );
-                                         coefficient < coefficients.rows();
-                                         ++coefficient )
+                                    const Eigen::Index temporalCoefficient =
+                                        static_cast<Eigen::Index>( grid.predictorCount() );
+                                    if( temporalCoefficient < coefficients.rows() )
                                     {
+                                        const std::size_t temporalImageCount =
+                                            m_temporalSelections[region][0].size() - 1;
                                         const double value =
-                                            -coefficients( coefficient, static_cast<Eigen::Index>( output ) );
+                                            -coefficients( temporalCoefficient, static_cast<Eigen::Index>( output ) ) /
+                                            static_cast<double>( temporalImageCount );
                                         const float stored = static_cast<float>( value );
                                         if( !mx::math::isFinite( stored ) )
                                         {
                                             throw std::overflow_error(
                                                 "P4 temporal PSF coefficient exceeds float storage range" );
                                         }
-                                        m_localPSFTemporalCoefficients[region](
-                                            coefficient - static_cast<Eigen::Index>( grid.predictorCount() ),
-                                            compactColumn ) = stored;
+                                        m_localPSFTemporalCoefficients[region]
+                                            .col( compactColumn )
+                                            .setConstant( stored );
                                     }
                                     m_localPSFValidity[region]( static_cast<Eigen::Index>( search ),
                                                                 static_cast<Eigen::Index>( output ) ) = 1;
@@ -5867,6 +5934,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.template append<realT>( "P4 ADI MIN DPX", m_minDPx, "minimum target/reference displacement" );
     head.template append<int>( "P4 RDI", 0, "target-only ADI implementation" );
     head.template append<int>( "P4 NUMBER IMAGES", m_numberImages, "qualifying earlier and later predictor images" );
+    head.template append<std::string>( "P4 TEMPORAL STATISTIC",
+                                       temporalStatisticString( m_temporalStatistic ),
+                                       "additional-image predictor summary statistic" );
     head.template append<int>( "P4 LOCAL STAMP SIZE", m_localStampSize, "pixel-local sky result width; zero disables" );
     if( m_localStampSize > 0 )
     {

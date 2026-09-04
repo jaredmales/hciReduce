@@ -53,14 +53,11 @@
  * products. Median and actively sigma-clipped products are filter-template approximations evaluated from the
  * propagated response samples; they are not finite-amplitude-independent photometric transfer functions.
  *
- * With `p4.numberImages>0`, the response includes the PSF-disk predictors from the exact earlier/later images selected
- * for each fitted target frame. A sky-stationary source is sampled at its detector position in each selected image.
- * One-sided beginning/end fallback is therefore propagated consistently with the science regression. Frames which
- * do not qualify as targets in an annulus contribute no response from that annulus, rather than a zero-valued model.
- * The retained representation has one compact same-image response stamp plus the PSF-disk predictor coefficients for
- * every selected additional-image slot. Those coefficients are evaluated against the full prepared template during
- * reconstruction, so large field rotations are not truncated by the compact same-image stamp. Its size is independent
- * of frame count.
+ * With `p4.numberImages>0`, each row has one temporal predictor: the `mean` or `median` of the central-pixel samples
+ * from its exact selected earlier/later frames. One-sided beginning/end fallback is therefore propagated consistently
+ * with the science regression. Frozen PSF outputs support the linear `mean` statistic, evaluating the selected source
+ * samples against the full prepared template during reconstruction. The nonlinear `median` statistic remains available
+ * for science reductions but cannot produce frozen PSF output or filtering products.
  *
  * Target-frame exclusion and positive `p4.numberImages` are deliberately mutually exclusive. With a non-`none`
  * `adi.excludeMethod`, `p4.numberImages` must be zero and each target response uses the same deleted rows, solver,

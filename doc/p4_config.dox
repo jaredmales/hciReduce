@@ -47,7 +47,8 @@
  *
  * | CLI | Config key/value shorthand | FITS keyword | Type and limits | Default | Meaning |
  * |---|---|---|---|---|---|
- * | `--p4.numberImages` | `p4.numberImages=1` | `HIERARCH P4 NUMBER IMAGES` | nonnegative integer | `0` | Append `N` nearest qualifying earlier and `N` nearest qualifying later physical-PSF-disk blocks to each predictor row. At endpoints, extra qualifying images from the available side replace missing blocks. Each side must rotate by at least `2 * p4.psfRadius` at the annulus mean radius. P4 lowers an unattainable request to the greatest positive structurally usable radius, or uses same-image predictors when none exists. |
+ * | `--p4.numberImages` | `p4.numberImages=1` | `HIERARCH P4 NUMBER IMAGES` | nonnegative integer | `0` | Select `N` nearest qualifying earlier and `N` nearest qualifying later frames, then append one central-pixel temporal-summary predictor to each row. At endpoints, extra qualifying images from the available side replace missing frames. Each side must rotate by at least `2 * p4.psfRadius` at the annulus mean radius. P4 lowers an unattainable request to the greatest positive structurally usable radius, or uses same-image predictors when none exists. |
+ * | `--p4.temporalStatistic` | `p4.temporalStatistic=mean` | `HIERARCH P4 TEMPORAL STATISTIC` | `mean` or `median` | `mean` | Statistic used to reduce the selected neighboring-frame values of the central search pixel to the one temporal predictor. |
  * | `--p4.modeFractions` | `p4.modeFractions=0.01,0.03,...` | `HIERARCH P4 MODE FRACTIONS` | finite, strictly increasing values in `(0,1]` | required | Requested PCA fractions. Each becomes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
  * | `--p4.orDeltaRadiusInner` | `p4.orDeltaRadiusInner=pixels` | `HIERARCH P4 OR DELTA RADIUS INNER` | positive real pixels | required | Inward radial extent of the local annular predictor wedge. |
  * | `--p4.orDeltaRadiusOuter` | `p4.orDeltaRadiusOuter=pixels` | `HIERARCH P4 OR DELTA RADIUS OUTER` | positive real pixels | required | Outward radial extent of that wedge. |
@@ -56,7 +57,8 @@
  * | `--p4.rankTolerance` | `p4.rankTolerance=1e-12` | `HIERARCH P4 RANK TOLERANCE` | real in `[0,1)` | `1e-12` | Relative rank criterion: a mode is retained only when `lambda > tolerance * lambdaMax`. `0` accepts all positive returned eigenvalues, including roundoff-positive nulls. |
  *
  * For a positive `p4.numberImages`, `T` is the number of retained central targets in that annulus after temporal
- * neighbor selection, and `K` is the original OR predictor count plus `2 * p4.numberImages` physical-PSF-disk blocks.
+ * neighbor selection, and `K` is the original OR predictor count plus one temporal-summary column when neighbors are
+ * available.
  *
  * P4 regresses one fixed detector-pixel time series on its local OR without implicit centering or an intercept. The
  * \ref p4_rotated_user_guide "rotated-frame negative-result page" separately documents an experimental configuration
@@ -132,7 +134,7 @@
  * standard error. `p4Validity_*.fits` is in detector coordinates. Final and PSF-subtracted FITS products record
  * `HIERARCH P4 FRAME = 'detector'`.
  * `p4Timing.fits` schema 6 has one row, in seconds: geometry elapsed, regression elapsed, total sampling, same-image
- * target/OR sampling, additional-image PSF-disk sampling, Gram-construction, eigensolve/rank-selection, reusable
+ * target/OR sampling, additional-image temporal-summary sampling, Gram-construction, eigensolve/rank-selection, reusable
  * base-factor construction, row deletion, explicit oracle fallback, and projection/residual aggregate OpenMP-worker
  * time. Base-factor and row-deletion time are subdivisions of the eigensolve aggregate. Explicit-fallback time
  * measures the complete direct-oracle retry and therefore overlaps its phase-specific Gram, eigensolve, and

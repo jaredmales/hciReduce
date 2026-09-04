@@ -586,6 +586,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_modeFractions.empty() );
     REQUIRE( defaults.m_regressionFrame == mx::improc::P4RegressionFrame::detector );
     REQUIRE( defaults.m_numberImages == 0 );
+    REQUIRE( defaults.m_temporalStatistic == mx::improc::P4TemporalStatistic::mean );
     REQUIRE( defaults.m_minDPx == 0 );
     REQUIRE( defaults.m_excludeMethod == mx::improc::HCI::exclude::none );
     REQUIRE( defaults.m_exclusionSolver == mx::improc::P4ExclusionSolver::explicitRefit );
@@ -610,6 +611,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.modeFractions" ).clType == mx::app::argType::Required );
     REQUIRE( registered.m_targets.at( "p4.regressionFrame" ).clType == mx::app::argType::Required );
     REQUIRE( registered.m_targets.at( "p4.numberImages" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "p4.temporalStatistic" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "adi.minDPx" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "adi.excludeMethod" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "solver.exclusionSolver" ).helpType == "string" );
@@ -642,7 +644,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
                          "[adi]\nminDPx=1.5\nexcludeMethod=angle\n"
                          "[solver]\nexclusionSolver=factorDowndateExact\n"
                          "deletionBackend=rankOneSecular\n"
-                         "[p4]\nmodeFractions=0.25,0.5\nregressionFrame=rotated\n"
+                         "[p4]\nmodeFractions=0.25,0.5\nregressionFrame=rotated\ntemporalStatistic=median\n"
                          "orDeltaRadiusInner=2\norDeltaRadiusOuter=3\n"
                          "orArcHalfWidth=4\norMaxHalfAngle=90\npsfRadius=1.5\n"
                          "exclusionPolicy=sampleCenter\nexclusionRadiusBuffer=0.5\nrankTolerance=1e-8\n"
@@ -654,6 +656,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( configured.m_modeFractions == std::vector<float>{ 0.25f, 0.5f } );
     REQUIRE( configured.m_regressionFrame == mx::improc::P4RegressionFrame::rotated );
     REQUIRE( configured.m_numberImages == 0 );
+    REQUIRE( configured.m_temporalStatistic == mx::improc::P4TemporalStatistic::median );
     REQUIRE( configured.m_minDPx == Approx( 1.5 ) );
     REQUIRE( configured.m_excludeMethod == mx::improc::HCI::exclude::angle );
     REQUIRE( configured.m_exclusionSolver == mx::improc::P4ExclusionSolver::factorDowndateExact );
@@ -1742,7 +1745,7 @@ TEST_CASE( "P4 reduction captures opt-in local PSF models", "[P4Reduction][PSF][
     REQUIRE( timingHeader["P4 TIMING COLUMNS"].String().find( "explicitFallbackWorker" ) != std::string::npos );
 }
 
-/// Verify positive numberImages captures bounded temporal PSF components without changing science residuals.
+/// Verify positive numberImages retains a one-column temporal summary without changing science residuals.
 /** This exercises mx::improc::P4Reduction::reduce() through
  * compact same-image response capture and temporal-coefficient retention with two selected images in each temporal
  * direction.
@@ -1808,11 +1811,12 @@ TEST_CASE( "P4 reduction captures temporal PSF response components", "[P4Reducti
     REQUIRE( modeled.m_localPSFModels.size() == 1 );
     REQUIRE( modeled.m_localPSFModels[0].cols() ==
              static_cast<Eigen::Index>( modeled.m_regionStatistics[0].searchPixelCount ) );
-    REQUIRE( modeled.m_localPSFModels[0].abs().sum() > 0 );
+    REQUIRE( modeled.m_regionStatistics[0].predictorCount == 18 );
+    REQUIRE( modeled.m_localPSFModels[0].isFinite().all() );
     REQUIRE( modeled.m_localPSFTemporalCoefficients.size() == 1 );
     REQUIRE( modeled.m_localPSFTemporalCoefficients[0].rows() > 0 );
     REQUIRE( modeled.m_localPSFTemporalCoefficients[0].cols() == modeled.m_localPSFModels[0].cols() );
-    REQUIRE( modeled.m_localPSFTemporalCoefficients[0].abs().sum() > 0 );
+    REQUIRE( modeled.m_localPSFTemporalCoefficients[0].isFinite().all() );
     REQUIRE( modeled.m_localPSFBytes ==
              modeled.m_regionStatistics[0].searchPixelCount *
                  static_cast<std::size_t>( ( modeled.m_localPSFRows * modeled.m_localPSFColumns +
@@ -2536,7 +2540,7 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
         REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 5 );
         REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 1 );
         REQUIRE( reduction.m_regionStatistics[0].temporalPsfRadius == Approx( 2 * reduction.m_psfRadius ) );
-        REQUIRE( reduction.m_regionStatistics[0].predictorCount == 19 );
+        REQUIRE( reduction.m_regionStatistics[0].predictorCount == 18 );
 
         for( int image = 0; image < reduction.m_Nims; ++image )
         {
@@ -2558,7 +2562,22 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
         REQUIRE( reduction.m_temporalSelections[0].back() == std::vector<int>{ 6, 5, 4, 3, 2 } );
         REQUIRE( reduction.m_regionStatistics[0].targetImageCount == 7 );
         REQUIRE( reduction.m_regionStatistics[0].temporalNumberImages == 2 );
-        REQUIRE( reduction.m_regionStatistics[0].predictorCount == 21 );
+        REQUIRE( reduction.m_regionStatistics[0].predictorCount == 18 );
+    }
+
+    SECTION( "median summary uses the same selected-neighbor and endpoint rules" )
+    {
+        OpenMPThreadGuard threads( 1 );
+        reductionHarness reduction;
+        prepareReduction( reduction, 7 );
+        reduction.m_numberImages = 2;
+        reduction.m_temporalStatistic = mx::improc::P4TemporalStatistic::median;
+        reduction.m_derotF.m_angles = { 0, 20, 40, 60, 80, 100, 120 };
+
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_temporalSelections[0].front() == std::vector<int>{ 0, 1, 2, 3, 4 } );
+        REQUIRE( reduction.m_temporalSelections[0].back() == std::vector<int>{ 6, 5, 4, 3, 2 } );
+        REQUIRE( reduction.m_regionStatistics[0].predictorCount == 18 );
     }
 
     SECTION( "unattainable radius degrades to the largest structurally usable value" )
@@ -3717,6 +3736,7 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
     REQUIRE( header["P4 IN SAMPLE"].Int() == 1 );
     REQUIRE( header["P4 RDI"].Int() == 0 );
     REQUIRE( header["P4 NUMBER IMAGES"].Int() == 0 );
+    REQUIRE( header["P4 TEMPORAL STATISTIC"].String().starts_with( "mean" ) );
     REQUIRE( header["P4 MEMORY FRACTION"].Double() == Approx( diagnostic.m_memoryFraction ) );
     REQUIRE( header["P4 WORKER BYTES"].String() ==
              std::to_string( diagnostic.m_regionStatistics[0].estimatedWorkerBytes ) );

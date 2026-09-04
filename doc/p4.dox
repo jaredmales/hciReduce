@@ -78,7 +78,8 @@
  * | `adi.minDPx` | Nonnegative exclusion threshold: pixels at the annulus inner radius for `pixel`, degrees for `angle`, or target-row distance for `imno`. A non-`none` method with zero excludes exactly the target row. |
  * | `solver.exclusionSolver` | Held-out regression solver: `explicitRefit` (default) or the opt-in `factorDowndateExact` correctness backend. This target requires a non-`none` `adi.excludeMethod`. |
  * | `solver.deletionBackend` | Factor-deletion implementation: `leadingCovariance` (default, dense, supports one or more deleted rows) or the opt-in `rankOneSecular` structured backend. The structured backend requires `solver.exclusionSolver=factorDowndateExact` and exactly one deleted row for every active target. |
- * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames added to each predictor row; `0` is the compatibility default. |
+ * | `p4.numberImages` | Nonnegative count of qualifying earlier and later detector frames used to construct one temporal-summary predictor; `0` is the compatibility default. |
+ * | `p4.temporalStatistic` | `mean` (default) or `median` summary of the selected frames' central-pixel values. |
  * | `p4.modeFractions` | Finite, strictly increasing fractions in `(0,1]`. Each annulus realizes `floor(fraction * min(T,K))`; zero or duplicate realized counts are rejected. |
  * | `p4.orDeltaRadiusInner`, `p4.orDeltaRadiusOuter` | Positive inward and outward radial extents of the local predictor wedge, in pixels. |
  * | `p4.orArcHalfWidth` | Nonnegative azimuthal half-width expressed as arc length in pixels; `0` uses only `p4.orMaxHalfAngle`. |

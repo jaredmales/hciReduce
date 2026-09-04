@@ -40,6 +40,14 @@ enum class P4RegressionFrame : std::uint8_t
     rotated   ///< Learn at fixed sky pixels after direct inverse-mapped sampling and temporal centering.
 };
 
+/// Statistic used to summarize selected temporal predictor samples.
+/** \ingroup programming_library */
+enum class P4TemporalStatistic : std::uint8_t
+{
+    mean,  ///< Use the arithmetic mean of all selected neighboring-frame samples.
+    median ///< Use the conventional median of all selected neighboring-frame samples.
+};
+
 /** \cond P4Reduction_test_harness */
 class P4ReductionTestAccess;
 /** \endcond */
@@ -187,9 +195,12 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     P4RegressionFrame m_regressionFrame{ P4RegressionFrame::detector }; ///< Frame of the learned regression.
 
-    int m_numberImages{ 0 }; ///< Qualifying earlier and later images appended to each detector-frame predictor row.
+    int m_numberImages{ 0 }; ///< Qualifying earlier and later images selected for each temporal-summary predictor.
 
-    realT m_minDPx{ 0 };     ///< Minimum target/reference displacement interpreted by `m_excludeMethod`.
+    P4TemporalStatistic m_temporalStatistic{ P4TemporalStatistic::mean };
+    ///< Statistic that reduces selected neighboring-frame central-pixel samples to one predictor column.
+
+    realT m_minDPx{ 0 }; ///< Minimum target/reference displacement interpreted by `m_excludeMethod`.
 
     HCI::exclude m_excludeMethod{ HCI::exclude::none }; ///< KLIP-compatible target-frame exclusion method.
 
@@ -441,6 +452,12 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Parse an exact regression-frame spelling.
     static P4RegressionFrame parseRegressionFrame( const std::string &value /**< [in] configuration spelling */ );
 
+    /// Convert a supported temporal statistic to its stable configuration spelling.
+    static std::string temporalStatisticString( P4TemporalStatistic statistic /**< [in] supported statistic */ );
+
+    /// Parse an exact temporal-statistic configuration spelling.
+    static P4TemporalStatistic parseTemporalStatistic( const std::string &value /**< [in] configuration spelling */ );
+
     /// Validate configuration that is independent of loaded image dimensions.
     void validateConfiguration() const;
 
@@ -533,7 +550,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         std::size_t search,                              /**< [in] annulus-local search-pixel index */
         const std::vector<std::vector<int>> &selections, /**< [in] central and neighboring images per PCA row */
         const std::vector<P4PixelCoordinate> &temporalOffsets,
-        /**< [in] direct additional-image predictor offsets */
+        /**< [in] central additional-image predictor offset */
         const std::vector<int> &modes, /**< [in] requested realized integer modes */
         P4PCA::workspaceT &workspace,  /**< [in,out] reusable all-FP64 or factor-deletion workspace */
         detail::P4PCAMixedWorkspace &mixedWorkspace,
@@ -556,7 +573,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     int processLocalTrial(
         const std::vector<pixelGridT> &grids, /**< [in] configured detector-frame annular geometry */
         const std::vector<P4PixelCoordinate> &temporalOffsets,
-        /**< [in] direct additional-image predictor offsets */
+        /**< [in] central additional-image predictor offset */
         const std::vector<double> &derotationAngles, /**< [in] one finite radians angle per target frame */
         const std::vector<P4TargetExclusions> &regionExclusions
         /**< [in] optional target-specific deleted rows by annulus */ );
