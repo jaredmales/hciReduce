@@ -6113,6 +6113,42 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                                                    combinedValidity,
                                                    std::hypot( deltaRow, deltaColumn ),
                                                    std::atan2( deltaRow, deltaColumn ) );
+                            if( targetHeldOutPSF )
+                            {
+                                centerReconstructor.reconstructCombinedTargeted( centerCombined,
+                                                                                 centerValidity,
+                                                                                 localModels,
+                                                                                 localValidity,
+                                                                                 searchIndex,
+                                                                                 sourceRow,
+                                                                                 sourceColumn,
+                                                                                 derotationAngles,
+                                                                                 this->m_combineMethod,
+                                                                                 this->m_comboWeights,
+                                                                                 this->m_sigmaThreshold,
+                                                                                 this->m_minGoodFract );
+                            }
+                            else
+                            {
+                                centerReconstructor.reconstructCombinedTemporal( centerCombined,
+                                                                                 centerValidity,
+                                                                                 localModels,
+                                                                                 temporalCoefficients,
+                                                                                 temporalOffsets,
+                                                                                 psfModel,
+                                                                                 localValidity,
+                                                                                 searchIndex,
+                                                                                 searchRegions,
+                                                                                 m_localPSFComponentCounts,
+                                                                                 m_temporalSelections,
+                                                                                 sourceRow,
+                                                                                 sourceColumn,
+                                                                                 derotationAngles,
+                                                                                 this->m_combineMethod,
+                                                                                 this->m_comboWeights,
+                                                                                 this->m_sigmaThreshold,
+                                                                                 this->m_minGoodFract );
+                            }
                         }
                         else
                         {
@@ -6120,7 +6156,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                         }
                         const int imageRow = static_cast<int>( sourceRow );
                         const int imageColumn = static_cast<int>( sourceColumn );
-                        if( m_psfFilter )
+                        const bool sourceCenterValid = !radialModel || centerValidity( 0, 0 ) != 0;
+                        if( m_psfFilter && sourceCenterValid )
                         {
                             const P4PSFFilterResult filterResult =
                                 P4PSFFilter::calculate( this->m_finim.image( output ),
@@ -6149,9 +6186,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                         {
                             if( radialModel )
                             {
-                                const int center = m_psfStampSize / 2;
-                                finalValidity( static_cast<Eigen::Index>( source ), 0 ) =
-                                    combinedValidity( center, center );
+                                finalValidity( static_cast<Eigen::Index>( source ), 0 ) = sourceCenterValid ? 1 : 0;
                             }
                             else if( targetHeldOutPSF )
                             {

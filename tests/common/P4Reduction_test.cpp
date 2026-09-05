@@ -1839,10 +1839,11 @@ TEST_CASE( "P4 reduction captures temporal PSF response components", "[P4Reducti
                                            1 ) );
 }
 
-/// Verify opt-in final PSF fields and normalized filtered products are written without changing the science image.
+/// Verify sparse final PSF fields preserve exact source validity and do not change the science image.
 /** This exercises mx::improc::P4Reduction::reduce() through
  * mx::improc::P4PSFReconstructor::reconstructCombinedTemporal(), mx::improc::P4PSFFilter::calculate(), and the
- * transactional FITS publication path.
+ * transactional FITS publication path. The exact and sparse response products must publish identical source-center
+ * validity even when the sparse radial average has valid support.
  * \ingroup P4Reduction_unit_tests
  */
 TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
@@ -1874,6 +1875,13 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     baseline.m_numberImages = 1;
     baseline.m_derotF.m_angles = { 0, 0.25F, 0.5F, 0.75F, 1.0F };
     baseline.m_doDerotate = true;
+    baseline.m_psfFile = psfPath.string();
+    baseline.m_psfStampSize = 3;
+    baseline.m_outputPSFModels = true;
+    baseline.m_psfOutputPrefix = "exact_";
+    baseline.m_outputDir = directory.file( "exact" ).string();
+    baseline.m_finimName = "finim_";
+    baseline.m_doWriteFinim = true;
     baseline.m_combineMethod = mx::improc::HCI::combine::mean;
     REQUIRE( baseline.reduce() == 0 );
 
@@ -2009,6 +2017,18 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( validity.cols() == 1 );
     REQUIRE( validity.sum() > 0 );
     REQUIRE( validityHeader["P4 PSF PRODUCT"].String().starts_with( "VALIDITY" ) );
+    reductionT::imageT exactValidity;
+    reductionT::fitsHeaderT exactValidityHeader;
+    REQUIRE( reader.read( exactValidity,
+                          exactValidityHeader,
+                          directory.file( "exact/finim_0000_outputs/exact_validity_0000.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( exactValidity.rows() == validity.rows() );
+    REQUIRE( exactValidity.cols() == validity.cols() );
+    REQUIRE( exactValidity.sum() > 0 );
+    REQUIRE( exactValidity.sum() < exactValidity.rows() );
+    REQUIRE( ( exactValidity == validity ).all() );
+    REQUIRE( exactValidityHeader["P4 PSF SPATIAL MODEL"].String().starts_with( "PER_PIXEL" ) );
     mx::improc::eigenCube<float> filtered;
     mx::improc::eigenCube<float> normalization;
     mx::improc::eigenCube<float> support;
@@ -2036,6 +2056,19 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( filterValidity.rows() == filtered.rows() );
     REQUIRE( filterValidity.cols() == filtered.cols() );
     REQUIRE( filterValidity.planes() == filtered.planes() );
+    for( Eigen::Index source = 0; source < exactValidity.rows(); ++source )
+    {
+        if( exactValidity( source, 0 ) != 0 )
+        {
+            continue;
+        }
+        const int row = static_cast<int>( coordinates( source, 0 ) );
+        const int column = static_cast<int>( coordinates( source, 1 ) );
+        for( int output = 0; output < filterValidity.planes(); ++output )
+        {
+            REQUIRE( filterValidity.image( output )( row, column ) == 0 );
+        }
+    }
     REQUIRE( filteredHeader["P4 PSF PRODUCT"].String().starts_with( "FILTERED" ) );
     REQUIRE( filteredHeader["P4 PSF FILTER"].value<int>() == 1 );
     REQUIRE( filteredHeader["P4 PSF FILTER EQUATION"].String().find( "SUM(H*I)" ) != std::string::npos );
