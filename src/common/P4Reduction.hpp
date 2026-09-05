@@ -312,6 +312,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     std::vector<psfValidityT> m_localPSFValidity;
     ///< Rank and geometry validity by annulus, search pixel, and requested output mode.
 
+    std::vector<std::vector<std::uint8_t>> m_localPSFResponseRequired;
+    ///< Per-annulus flags selecting search pixels whose coefficient vectors and local responses are required.
+
     std::vector<std::size_t> m_localPSFComponentCounts;
     ///< Same-image plus realized temporal response-component count for every annulus.
 

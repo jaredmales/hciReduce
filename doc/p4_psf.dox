@@ -46,12 +46,14 @@
  * not a calibrated finite-amplitude throughput measurement, because refitting after fake injection can change the
  * coefficients.
  *
- * Detector-local responses are retained at every owned search coordinate. Final-frame reconstruction maps each sky
- * stamp sample through the exact inverse derotation, composes the same cubic footprints used by science derotation
- * and local sampling, and combines its bounded frame stack with the configured science estimator, weights, sigma
- * threshold, minimum-good fraction, and response validity. Mean and weighted-mean responses are linear frozen-model
- * products. Median and actively sigma-clipped products are filter-template approximations evaluated from the
- * propagated response samples; they are not finite-amplitude-independent photometric transfer functions.
+ * Exact detector-local responses are retained at every owned search coordinate. Sparse shared-model runs retain
+ * rank and geometry validity everywhere but calculate coefficient vectors and local responses only at detector
+ * search pixels required by the selected final stamps. Final-frame reconstruction maps each sky stamp sample through
+ * the exact inverse derotation, composes the same cubic footprints used by science derotation and local sampling, and
+ * combines its bounded frame stack with the configured science estimator, weights, sigma threshold, minimum-good
+ * fraction, and response validity. Mean and weighted-mean responses are linear frozen-model products. Median and
+ * actively sigma-clipped products are filter-template approximations evaluated from the propagated response samples;
+ * they are not finite-amplitude-independent photometric transfer functions.
  *
  * \section p4_psf_radial Sparse radial approximation
  *
@@ -59,6 +61,12 @@
  * search pixel with a sparse polar experiment. At each configured radius, P4 requests uniformly spaced position
  * angles and selects the nearest distinct owned search pixel. Integer-pixel collisions are removed within that
  * radius, so the recorded measurement count can be smaller than radii times requested angles near the origin.
+ * Before regression, P4 forms a conservative union of the complete cubic derotation footprints for those selected
+ * stamps over every target-frame angle. Shared in-sample regression requests coefficient output and evaluates local
+ * PSF responses only at that required set; ordinary science residuals and source-validity state are still calculated
+ * at every owned search pixel. The product header records the realized set as
+ * `HIERARCH P4 LOCAL PSF RESPONSE SEARCH COUNT`. Target-held-out responses and active sigma-clipped combinations keep
+ * the full response set because their exact source validity can depend on target-specific or response-valued state.
  *
  * Each exact measured final-frame stamp is rotated by its actual source angle in the production image-rotation
  * convention so that radial separation points along the positive-column axis. Valid samples in the same radial bin
@@ -166,7 +174,8 @@
  * NaN even when the source center is valid. Exact per-pixel model-only sets use schema version 1; exact per-pixel
  * filtering sets use schema version 2; sparse radial sets use schema version 3 with either output choice. Every
  * product records its role, template identity/stage/normalization, `FROZEN_SIGNED` convention,
- * combination policy, support geometry, storage estimates, source count, and mode identity where applicable.
+ * combination policy, support geometry, storage estimates, source count, local-response search count, and mode
+ * identity where applicable.
  * `HIERARCH P4 PSF COEFFICIENT SCOPE` is `SHARED_IN_SAMPLE` for the ordinary model or `TARGET_HELD_OUT` when every
  * frame uses its own deleted-row fit; `HIERARCH P4 PSF MODE BATCH` records the selected maximum held-out batch size.
  * Zero identifies the shared in-sample path, and the final held-out batch may contain fewer modes.

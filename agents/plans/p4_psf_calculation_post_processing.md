@@ -287,6 +287,10 @@ directory.
 - [x] For every valid, rank-supported search pixel, calculate compact local stamps while `beta` is resident and write
   them into the annulus's deterministic owned-pixel storage. Invalid/rank-insufficient modes receive explicit
   validity rather than zero-valued PSFs.
+- [x] For sparse shared radial models, plan the conservative union of detector cubic footprints required by the
+  selected final response stamps over all derotation angles. Request coefficients and calculate local responses only
+  for that set while retaining rank/geometry validity for every search pixel; keep the full calculation for
+  target-held-out and active sigma-clipped validity.
 - [x] Preserve annulus ownership and non-overlap rules. Do not retain a stamp for pixels that cannot contribute to a
   valid science output.
 - [x] Add local-stamp storage and scratch to checked memory calculations. Allow a configured run to fail before
@@ -384,6 +388,13 @@ The 2026-08-21 filtered-header/naming follow-up rechecked the current mxlib LCOV
 `getSequentialFilename`, `parentPath`, and `createDirectories` are covered, while the called FITS file/header,
 `ompLoopWatcher`, finite-check, and time-utility implementation files have 100% executable-line coverage. No new mxlib
 ownership follow-up is required.
+
+The 2026-09-05 sparse required-response follow-up rechecked
+`/home/jrmales/Source/mxlib/_build/coverage_filtered.info`. The exact mxlib APIs called by the edited P4 reduction,
+product-publication, and required-search functions remain fully covered: exception construction, float FITS I/O,
+FITS headers/cards, `eigenCube<float>`, `ompLoopWatcher`, finite checks, time utilities, `parentPath`,
+`createDirectories`, and `invalidNumber<float>`. None of those mxlib files changed after the report was generated, so
+no new ownership follow-up is required.
 
 ## Acceptance criteria
 

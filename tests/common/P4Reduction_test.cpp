@@ -9,6 +9,7 @@
 #include "src/common/ADIDerotator.hpp"
 #include "src/common/P4Reduction.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <limits>
@@ -1843,7 +1844,8 @@ TEST_CASE( "P4 reduction captures temporal PSF response components", "[P4Reducti
 /** This exercises mx::improc::P4Reduction::reduce() through
  * mx::improc::P4PSFReconstructor::reconstructCombinedTemporal(), mx::improc::P4PSFFilter::calculate(), and the
  * transactional FITS publication path. The exact and sparse response products must publish identical source-center
- * validity even when the sparse radial average has valid support.
+ * validity even when the sparse radial average has valid support, and the sparse calculation must reproduce the
+ * radial model built from exact sample responses while skipping unrelated local-response calculations.
  * \ingroup P4Reduction_unit_tests
  */
 TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
@@ -1908,6 +1910,29 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     reduction.m_writeDiagnostics = true;
     reduction.m_diagnosticDirectory = ".";
     REQUIRE( reduction.reduce() == 0 );
+    REQUIRE( baseline.m_localPSFResponseRequired.size() == 1 );
+    REQUIRE( reduction.m_localPSFResponseRequired.size() == 1 );
+    const std::size_t exactResponseSearchCount = static_cast<std::size_t>(
+        std::count( baseline.m_localPSFResponseRequired[0].begin(), baseline.m_localPSFResponseRequired[0].end(), 1 ) );
+    const std::size_t sparseResponseSearchCount =
+        static_cast<std::size_t>( std::count( reduction.m_localPSFResponseRequired[0].begin(),
+                                              reduction.m_localPSFResponseRequired[0].end(),
+                                              1 ) );
+    REQUIRE( exactResponseSearchCount == baseline.m_regionStatistics[0].searchPixelCount );
+    REQUIRE( sparseResponseSearchCount > 0 );
+    REQUIRE( sparseResponseSearchCount < reduction.m_regionStatistics[0].searchPixelCount );
+    bool skippedSupportedResponse{ false };
+    for( std::size_t search = 0; search < reduction.m_regionStatistics[0].searchPixelCount; ++search )
+    {
+        if( reduction.m_localPSFResponseRequired[0][search] != 0 ||
+            reduction.m_localPSFValidity[0]( static_cast<Eigen::Index>( search ), 0 ) == 0 )
+        {
+            continue;
+        }
+        skippedSupportedResponse = true;
+        REQUIRE( reduction.m_localPSFModels[0].col( static_cast<Eigen::Index>( search ) ).isZero() );
+    }
+    REQUIRE( skippedSupportedResponse );
     REQUIRE( reduction.m_finim.rows() == baseline.m_finim.rows() );
     REQUIRE( reduction.m_finim.cols() == baseline.m_finim.cols() );
     REQUIRE( reduction.m_finim.planes() == baseline.m_finim.planes() );
@@ -2005,10 +2030,87 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( modelHeader["P4 PSF SAMPLES PER RADIUS"].value<int>() == 4 );
     REQUIRE( modelHeader["P4 PSF MEASUREMENT COUNT"].value<int>() == 8 );
     REQUIRE( modelHeader["P4 PSF MEASUREMENT COUNT"].value<int>() < coordinates.rows() );
+    REQUIRE( modelHeader["P4 LOCAL PSF RESPONSE SEARCH COUNT"].value<int>() ==
+             static_cast<int>( sparseResponseSearchCount ) );
     REQUIRE( modelHeader["P4 PSF TEMPORAL NUMBER IMAGES"].value<int>() == 1 );
     REQUIRE( modelHeader["P4 PSF COMPONENT STRIDE"].value<int>() == 3 );
     REQUIRE( modelHeader["P4 PSF TEMPORAL COEFFICIENT COUNT"].value<int>() > 0 );
     REQUIRE( modelHeader["P4 PSF MODE INDEX"].value<int>() == 0 );
+
+    mx::improc::eigenCube<float> exactModels;
+    reductionT::fitsHeaderT exactModelHeader;
+    REQUIRE( reader.read( exactModels,
+                          exactModelHeader,
+                          directory.file( "exact/finim_0000_outputs/exact_model_0000.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( exactModels.rows() == models.rows() );
+    REQUIRE( exactModels.cols() == models.cols() );
+    REQUIRE( exactModels.planes() == models.planes() );
+    std::vector<mx::improc::RadialPSFSource> availableSources;
+    availableSources.reserve( static_cast<std::size_t>( coordinates.rows() ) );
+    for( Eigen::Index source = 0; source < coordinates.rows(); ++source )
+    {
+        availableSources.push_back( { static_cast<std::size_t>( source ),
+                                      static_cast<double>( coordinates( source, 0 ) ),
+                                      static_cast<double>( coordinates( source, 1 ) ) } );
+    }
+    const double centerRow = 0.5 * static_cast<double>( reduction.m_Nrows - 1 );
+    const double centerColumn = 0.5 * static_cast<double>( reduction.m_Ncols - 1 );
+    const std::vector<mx::improc::RadialPSFSample> samples =
+        mx::improc::RadialPSFModel::selectSamples( availableSources, centerRow, centerColumn, { 6, 8 }, 4 );
+    std::vector<mx::improc::RadialPSFModel::imageT> sampledResponses;
+    std::vector<mx::improc::RadialPSFModel::validityT> sampledValidities;
+    sampledResponses.reserve( samples.size() );
+    sampledValidities.reserve( samples.size() );
+    for( const mx::improc::RadialPSFSample &sample : samples )
+    {
+        sampledResponses.emplace_back( exactModels.image( static_cast<int>( sample.sourceIndex ) ) );
+        sampledValidities.emplace_back(
+            mx::improc::RadialPSFModel::validityT::Zero( exactModels.rows(), exactModels.cols() ) );
+        for( int column = 0; column < exactModels.cols(); ++column )
+        {
+            for( int row = 0; row < exactModels.rows(); ++row )
+            {
+                if( mx::math::isFinite( sampledResponses.back()( row, column ) ) )
+                {
+                    sampledValidities.back()( row, column ) = 1;
+                }
+                else
+                {
+                    sampledResponses.back()( row, column ) = 0;
+                }
+            }
+        }
+    }
+    mx::improc::RadialPSFModel expectedRadialModel( { 6, 8 }, exactModels.rows(), exactModels.cols() );
+    expectedRadialModel.fit( sampledResponses, sampledValidities, samples );
+    for( Eigen::Index source = 0; source < coordinates.rows(); ++source )
+    {
+        const double deltaRow = static_cast<double>( coordinates( source, 0 ) ) - centerRow;
+        const double deltaColumn = static_cast<double>( coordinates( source, 1 ) ) - centerColumn;
+        mx::improc::RadialPSFModel::imageT expected;
+        mx::improc::RadialPSFModel::validityT expectedValidity;
+        expectedRadialModel.response( expected,
+                                      expectedValidity,
+                                      std::hypot( deltaRow, deltaColumn ),
+                                      std::atan2( deltaRow, deltaColumn ) );
+        for( int column = 0; column < models.cols(); ++column )
+        {
+            for( int row = 0; row < models.rows(); ++row )
+            {
+                const float actual = models.image( static_cast<int>( source ) )( row, column );
+                if( expectedValidity( row, column ) != 0 )
+                {
+                    REQUIRE( actual == Approx( expected( row, column ) ).margin( 1e-6 ) );
+                }
+                else
+                {
+                    REQUIRE( mx::math::isNan( actual ) );
+                }
+            }
+        }
+    }
+    REQUIRE( exactModelHeader["P4 PSF SPATIAL MODEL"].String().starts_with( "PER_PIXEL" ) );
 
     reductionT::imageT validity;
     reductionT::fitsHeaderT validityHeader;

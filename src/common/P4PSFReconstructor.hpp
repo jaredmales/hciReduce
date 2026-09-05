@@ -61,6 +61,17 @@ class P4PSFReconstructor
                         int localStampRows,          /**< [in] positive local-response row count */
                         int localStampColumns /**< [in] positive local-response column count */ );
 
+    /// Return the sorted search indices whose local responses can contribute to the requested output stamps.
+    /** The result is a conservative union of the complete cubic derotation footprints for every source and angle.
+     * Detector pixels outside `searchIndex` support are omitted.
+     */
+    std::vector<std::size_t>
+    requiredSearchIndices( const searchIndexT &searchIndex, /**< [in] detector-to-search-index lookup */
+                           const std::vector<std::pair<double, double>> &sourceSkyCoordinates,
+                           /**< [in] finite final-frame source-center row and column pairs */
+                           const std::vector<double> &derotationAngles
+                           /**< [in] finite counterclockwise image rotations in radians */ ) const;
+
     /// Reconstruct one derotated PSF response frame about one sky coordinate.
     /** `localModels` must have `localStampRows * localStampColumns` rows and search-major/mode-minor columns.
      * `localValidity` must contain one row per search pixel and one column per mode. On success, both outputs are

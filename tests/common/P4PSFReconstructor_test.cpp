@@ -8,6 +8,7 @@
 #include "src/common/P4PSFModel.hpp"
 #include "src/common/P4PSFReconstructor.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <vector>
@@ -303,6 +304,95 @@ TEST_CASE( "P4 compact sky reconstruction matches direct frozen injection", "[P4
             REQUIRE( validCount == static_cast<std::size_t>( outputSize * outputSize ) );
         }
     }
+}
+
+/// Verify required-search planning preserves reconstruction while omitting unrelated detector pixels.
+/** This exercises mx::improc::P4PSFReconstructor::requiredSearchIndices() and
+ * mx::improc::P4PSFReconstructor::reconstructFrame() for multiple source coordinates and nonzero rotations.
+ * \ingroup P4PSFReconstructor_unit_tests
+ */
+TEST_CASE( "P4 required search pixels cover sparse response reconstruction", "[P4PSFReconstructor][sparse][geometry]" )
+{
+    constexpr int detectorRows = 43;
+    constexpr int detectorColumns = 45;
+    constexpr double centerRow = 21.0;
+    constexpr double centerColumn = 22.0;
+    constexpr int outputSize = 3;
+    constexpr int localRows = 19;
+    constexpr int localColumns = 20;
+    gridT grid;
+    grid.resize( detectorRows, detectorColumns, centerRow, centerColumn );
+    grid.region( testRegion(), nullptr );
+
+    const modelT model( asymmetricTemplate( 15, 16 ), localRows, localColumns );
+    imageT localModels;
+    validityT localValidity;
+    searchIndexT searchIndex;
+    std::vector<coefficientT> coefficients;
+    prepareCompactModels( localModels, localValidity, searchIndex, coefficients, model, grid );
+    const reconstructorT
+        reconstructor( detectorRows, detectorColumns, centerRow, centerColumn, outputSize, localRows, localColumns );
+    const std::vector<std::pair<double, double>> sources{ { 21.0, 29.0 }, { 25.0, 28.0 } };
+    const std::vector<double> angles{ 0.0, 0.23, -0.31 };
+    const std::vector<std::size_t> required = reconstructor.requiredSearchIndices( searchIndex, sources, angles );
+    REQUIRE( std::is_sorted( required.begin(), required.end() ) );
+    REQUIRE_FALSE( required.empty() );
+    REQUIRE( required.size() < grid.searchPixelCount() );
+
+    std::vector<std::uint8_t> isRequired( grid.searchPixelCount(), 0 );
+    for( const std::size_t search : required )
+    {
+        REQUIRE( search < isRequired.size() );
+        REQUIRE( isRequired[search] == 0 );
+        isRequired[search] = 1;
+    }
+    imageT sparseModels = localModels;
+    validityT sparseValidity = localValidity;
+    for( std::size_t search = 0; search < isRequired.size(); ++search )
+    {
+        if( isRequired[search] == 0 )
+        {
+            sparseModels.col( static_cast<Eigen::Index>( search ) )
+                .setConstant( std::numeric_limits<float>::quiet_NaN() );
+            sparseValidity( static_cast<Eigen::Index>( search ), 0 ) = 0;
+        }
+    }
+
+    for( const std::pair<double, double> &source : sources )
+    {
+        for( const double angle : angles )
+        {
+            CAPTURE( source.first, source.second, angle );
+            imageT exact;
+            validityT exactValidity;
+            reconstructor.reconstructFrame( exact,
+                                            exactValidity,
+                                            localModels,
+                                            localValidity,
+                                            searchIndex,
+                                            0,
+                                            source.first,
+                                            source.second,
+                                            angle );
+            imageT sparse;
+            validityT sparseOutputValidity;
+            reconstructor.reconstructFrame( sparse,
+                                            sparseOutputValidity,
+                                            sparseModels,
+                                            sparseValidity,
+                                            searchIndex,
+                                            0,
+                                            source.first,
+                                            source.second,
+                                            angle );
+            REQUIRE( ( sparseOutputValidity == exactValidity ).all() );
+            REQUIRE( ( sparse == exact ).all() );
+        }
+    }
+
+    REQUIRE_THROWS( reconstructor.requiredSearchIndices( searchIndexT::Zero( 2, 2 ), sources, angles ) );
+    REQUIRE_THROWS( reconstructor.requiredSearchIndices( searchIndex, {}, angles ) );
+    REQUIRE_THROWS( reconstructor.requiredSearchIndices( searchIndex, sources, {} ) );
 }
 
 /// Verify temporal response components follow the selected physical image in every central frame.

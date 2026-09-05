@@ -6,8 +6,10 @@
 #include "P4PSFReconstructor.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
+#include <set>
 #include <stdexcept>
 
 #include <mx/math/floatUtils.hpp>
@@ -46,6 +48,90 @@ P4PSFReconstructor::P4PSFReconstructor( int detectorRows,
     {
         throw std::length_error( "P4 local PSF stamp exceeds Eigen index range" );
     }
+}
+
+std::vector<std::size_t>
+P4PSFReconstructor::requiredSearchIndices( const searchIndexT &searchIndex,
+                                           const std::vector<std::pair<double, double>> &sourceSkyCoordinates,
+                                           const std::vector<double> &derotationAngles ) const
+{
+    if( searchIndex.rows() != m_detectorRows || searchIndex.cols() != m_detectorColumns )
+    {
+        throw std::invalid_argument( "P4 required-search lookup does not match detector dimensions" );
+    }
+    if( sourceSkyCoordinates.empty() || derotationAngles.empty() )
+    {
+        throw std::invalid_argument( "P4 required-search planning requires sources and derotation angles" );
+    }
+    for( const std::pair<double, double> &source : sourceSkyCoordinates )
+    {
+        if( !mx::math::isFinite( source.first ) || !mx::math::isFinite( source.second ) )
+        {
+            throw std::invalid_argument( "P4 required-search source coordinates must be finite" );
+        }
+    }
+    for( const double angle : derotationAngles )
+    {
+        if( !mx::math::isFinite( angle ) )
+        {
+            throw std::invalid_argument( "P4 required-search derotation angles must be finite" );
+        }
+    }
+
+    using footprintT = std::array<int, 4>;
+    std::vector<footprintT> footprints;
+    if( sourceSkyCoordinates.size() <= std::numeric_limits<std::size_t>::max() / derotationAngles.size() )
+    {
+        footprints.reserve( sourceSkyCoordinates.size() * derotationAngles.size() );
+    }
+    const double outputHalfExtent = 0.5 * static_cast<double>( m_outputStampSize - 1 );
+    constexpr int rightBuffer = gridT::width - gridT::leftBuffer - 1;
+    for( const std::pair<double, double> &source : sourceSkyCoordinates )
+    {
+        for( const double angle : derotationAngles )
+        {
+            const std::pair<double, double> detectorCenter = inverseRotate( source.first, source.second, angle );
+            if( !mx::math::isFinite( detectorCenter.first ) || !mx::math::isFinite( detectorCenter.second ) )
+            {
+                throw std::invalid_argument( "P4 required-search transformed coordinates must be finite" );
+            }
+            const double coordinateHalfExtent =
+                outputHalfExtent * ( std::abs( std::cos( angle ) ) + std::abs( std::sin( angle ) ) );
+            const double minimumRow = std::floor( detectorCenter.first - coordinateHalfExtent ) - gridT::leftBuffer;
+            const double maximumRow = std::floor( detectorCenter.first + coordinateHalfExtent ) + rightBuffer;
+            const double minimumColumn = std::floor( detectorCenter.second - coordinateHalfExtent ) - gridT::leftBuffer;
+            const double maximumColumn = std::floor( detectorCenter.second + coordinateHalfExtent ) + rightBuffer;
+            if( maximumRow < 0 || maximumColumn < 0 || minimumRow > m_detectorRows - 1 ||
+                minimumColumn > m_detectorColumns - 1 )
+            {
+                continue;
+            }
+            footprints.push_back(
+                { static_cast<int>( std::max( 0.0, minimumRow ) ),
+                  static_cast<int>( std::max( 0.0, minimumColumn ) ),
+                  static_cast<int>( std::min( static_cast<double>( m_detectorRows - 1 ), maximumRow ) ),
+                  static_cast<int>( std::min( static_cast<double>( m_detectorColumns - 1 ), maximumColumn ) ) } );
+        }
+    }
+    std::sort( footprints.begin(), footprints.end() );
+    footprints.erase( std::unique( footprints.begin(), footprints.end() ), footprints.end() );
+
+    std::set<std::size_t> required;
+    for( const footprintT &footprint : footprints )
+    {
+        for( int column = footprint[1]; column <= footprint[3]; ++column )
+        {
+            for( int row = footprint[0]; row <= footprint[2]; ++row )
+            {
+                const int search = searchIndex( row, column );
+                if( search >= 0 )
+                {
+                    required.insert( static_cast<std::size_t>( search ) );
+                }
+            }
+        }
+    }
+    return { required.begin(), required.end() };
 }
 
 std::pair<double, double> P4PSFReconstructor::inverseRotate( double row, double column, double angle ) const
