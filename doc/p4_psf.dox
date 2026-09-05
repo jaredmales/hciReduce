@@ -53,6 +53,22 @@
  * products. Median and actively sigma-clipped products are filter-template approximations evaluated from the
  * propagated response samples; they are not finite-amplitude-independent photometric transfer functions.
  *
+ * \section p4_psf_radial Sparse radial approximation
+ *
+ * Setting both `p4.psfSampleRadii` and `p4.psfSamplesPerRadius` replaces the exact response measurement at every
+ * search pixel with a sparse polar experiment. At each configured radius, P4 requests uniformly spaced position
+ * angles and selects the nearest distinct owned search pixel. Integer-pixel collisions are removed within that
+ * radius, so the recorded measurement count can be smaller than radii times requested angles near the origin.
+ *
+ * Each exact measured final-frame stamp is rotated by its actual source angle in the production image-rotation
+ * convention so that radial separation points along the positive-column axis. Valid samples in the same radial bin
+ * are averaged element by element. To evaluate the model at an arbitrary search pixel, P4 selects the nearest
+ * configured radius (an exact tie selects the inner radius), rotates that canonical average back to the pixel's
+ * angle, and expands it into the same per-search-pixel product layout consumed by `hciAnalyze`. This is
+ * nearest-neighbor radial interpolation; no radial blending is performed. Sparse radial mode requires an odd response
+ * stamp and records product schema 3,
+ * `RADIAL_NEAREST`, the configured radii, requested angles per radius, and the realized distinct measurement count.
+ *
  * With `p4.numberImages>0`, each row has one temporal predictor: the `mean` or `median` of the central-pixel samples
  * from its exact selected earlier/later frames. One-sided beginning/end fallback is therefore propagated consistently
  * with the science regression. Frozen PSF outputs support the linear `mean` statistic, evaluating the selected source
@@ -90,6 +106,8 @@
  * |---|---|---|---|---|---|
  * | `--p4.psfFile` | `p4.psfFile=/path/template.fits` | `HIERARCH P4 PSF TEMPLATE` | readable, finite two-dimensional FITS image | unset | Centered PSF template at the post-preprocessing P4 input stage. Setting the path enables response calculation without changing the science products. The stored normalization is preserved, including when `p4.numberImages>0`. |
  * | `--p4.psfStampSize` | `p4.psfStampSize=11` | `HIERARCH P4 PSF STAMP SIZE` | positive integer | `0` | Square final response-stamp size. Odd and even sizes use geometric centers. Required with `psfFile`. |
+ * | `--p4.psfSampleRadii` | `p4.psfSampleRadii=6,10,14` | `HIERARCH P4 PSF SAMPLE RADII` | strictly increasing nonnegative real pixels inside configured annuli | unset | Enables the sparse radial approximation when paired with `psfSamplesPerRadius`. Requires `psfFile` and an odd stamp. |
+ * | `--p4.psfSamplesPerRadius` | `p4.psfSamplesPerRadius=8` | `HIERARCH P4 PSF SAMPLES PER RADIUS` | positive integer | `0` | Number of uniformly spaced requested angles at every sparse sample radius. Nearest-pixel collisions are measured only once per radius. |
  * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final combination. |
  * | `--p4.psfFilter` | `p4.psfFilter=true` | `HIERARCH P4 PSF FILTER` | bool | `false` | Write signed normalized spatially variable filter products. Requires `psfFile`, an odd stamp, and a final combination; it does not require `outputPSFModels=true`. |
  * | `--p4.psfFilterMinGoodFract` | `p4.psfFilterMinGoodFract=0.8` | `HIERARCH P4 PSF FILTER MIN GOOD FRACTION` | real in `[0,1]` | `1` | Minimum fraction of the full stamp with valid PSF samples and finite in-bounds science samples. |
@@ -101,6 +119,8 @@
  * [p4]
  * psfFile=/path/template.fits
  * psfStampSize=11
+ * psfSampleRadii=6,10,14
+ * psfSamplesPerRadius=8
  * outputPSFModels=true
  * psfFilter=true
  * psfFilterMinGoodFract=0.8
@@ -143,8 +163,9 @@
  * - `<prefix>manifest.fits`, a one-element completion product.
  *
  * Plane `s` in each model cube belongs to row `s` of the coordinate image. Individual unsupported stamp samples are
- * NaN even when the source center is valid. Model-only sets use schema version 1; enabling filtering uses schema
- * version 2. Every product records its role, template identity/stage/normalization, `FROZEN_SIGNED` convention,
+ * NaN even when the source center is valid. Exact per-pixel model-only sets use schema version 1; exact per-pixel
+ * filtering sets use schema version 2; sparse radial sets use schema version 3 with either output choice. Every
+ * product records its role, template identity/stage/normalization, `FROZEN_SIGNED` convention,
  * combination policy, support geometry, storage estimates, source count, and mode identity where applicable.
  * `HIERARCH P4 PSF COEFFICIENT SCOPE` is `SHARED_IN_SAMPLE` for the ordinary model or `TARGET_HELD_OUT` when every
  * frame uses its own deleted-row fit; `HIERARCH P4 PSF MODE BATCH` records the selected maximum held-out batch size.

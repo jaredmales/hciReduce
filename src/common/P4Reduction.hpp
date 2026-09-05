@@ -24,6 +24,7 @@
 #include "P4PSFFilter.hpp"
 #include "P4PSFModel.hpp"
 #include "P4PSFReconstructor.hpp"
+#include "RadialPSFModel.hpp"
 #include "P4RotatedGrid.hpp"
 #include "P4TemporalPCA.hpp"
 #include "ReductionTiming.hpp"
@@ -259,15 +260,19 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     realT m_psfRadius{ std::numeric_limits<realT>::quiet_NaN() }; ///< Physical signal-exclusion radius in pixels.
 
-    std::string m_psfFile;              ///< Optional post-preprocessing PSF template enabling frozen-model calculation.
+    std::string m_psfFile;   ///< Optional post-preprocessing PSF template enabling frozen-model calculation.
 
-    int m_psfStampSize{ 0 };            ///< Square frozen-model PSF stamp size; required when `m_psfFile` is set.
+    int m_psfStampSize{ 0 }; ///< Square frozen-model PSF stamp size; required when `m_psfFile` is set.
 
-    bool m_outputPSFModels{ false };    ///< Whether to reconstruct and write compact final-frame PSF fields.
+    std::vector<realT> m_psfSampleRadii; ///< Optional discrete radii for azimuthally averaged PSF measurements.
 
-    bool m_psfFilter{ false };          ///< Whether to apply the spatially variable normalized PSF filter.
+    int m_psfSamplesPerRadius{ 0 };      ///< Uniform angular measurement count at each configured PSF sample radius.
 
-    realT m_psfFilterMinGoodFract{ 1 }; ///< Minimum usable local-stamp fraction required by PSF filtering.
+    bool m_outputPSFModels{ false };     ///< Whether to reconstruct and write compact final-frame PSF fields.
+
+    bool m_psfFilter{ false };           ///< Whether to apply the spatially variable normalized PSF filter.
+
+    realT m_psfFilterMinGoodFract{ 1 };  ///< Minimum usable local-stamp fraction required by PSF filtering.
 
     std::string m_psfOutputPrefix{ "p4PSF_" }; ///< Prefix for compact products in the final image's output directory.
 

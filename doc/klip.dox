@@ -28,6 +28,25 @@
  * library. `klip.includeMethod` and `klip.includeRefNum` provide explicit inclusion controls. `klip.rightReason`
  * and `klip.rrRadius` enable the specialized right-reason diagnostic/projection path.
  *
+ * \section klip_psf_response Sparse radial PSF responses
+ *
+ * KLIP can propagate a centered PSF template through each target's already-computed KL basis at a small polar grid
+ * instead of rerunning or densely probing every image pixel. Configure `klip.psfFile`, an odd
+ * `klip.psfStampSize`, strictly increasing `klip.psfSampleRadii`, and a positive
+ * `klip.psfSamplesPerRadius`. The source locations are exact uniformly spaced sky-frame coordinates. Each probe is
+ * inverse-rotated into the target detector frame, processed by the same supported regional centering, projected
+ * through the frozen target-specific basis, and accumulated directly into a compact derotated stamp. Frame stamps
+ * use the configured science combination rule and weights. Measurements at a common radius are rotated to the
+ * positive-column direction and averaged, and arbitrary radii use nearest-neighbor selection.
+ * The mean combination is linear; median and actively clipped combinations produce response-template approximations
+ * from the propagated samples rather than finite-amplitude-independent transfer functions.
+ *
+ * This first linear implementation supports complete, non-overlapping annuli, `none` or `imageMean` centering, no
+ * pixel time-series normalization, enabled derotation and final combination, and no post-median subtraction. Median
+ * centering, RMS normalization, wedges, and post-median subtraction are rejected because their perturbation or
+ * region-boundary response has not yet been defined. `klip.outputPSFModels=true` writes one canonical radial response
+ * cube and one validity cube per configured mode in the final image's `_outputs` directory.
+ *
  * The implementation automatically forms the smaller of the reference-image and pixel-space covariance matrices for
  * each realized library. This is an internal performance optimization: it preserves configured mode order and the
  * reduction interface, while making narrow regions with many reference images substantially faster.

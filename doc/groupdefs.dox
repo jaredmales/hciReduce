@@ -94,6 +94,10 @@
   * \ingroup unit_tests
   */
 
+/** \defgroup KLIPPSFModel_unit_tests KLIP PSF Model Unit Tests
+  * \ingroup unit_tests
+  */
+
 /** \defgroup P4PCA_unit_tests P4 PCA Unit Tests
   * \ingroup unit_tests
   */
@@ -107,6 +111,10 @@
   */
 
 /** \defgroup P4PSFModel_unit_tests P4 Local PSF Model Unit Tests
+  * \ingroup unit_tests
+  */
+
+/** \defgroup RadialPSFModel_unit_tests Radial PSF Model Unit Tests
   * \ingroup unit_tests
   */
 

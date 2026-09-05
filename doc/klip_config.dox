@@ -110,6 +110,24 @@
  * FP32, then promotes the covariance for an FP64 eigensolve. Precision is not a configuration backend. The opt-in
  * `factorDowndateExact` solver remains FP64 internally before returning modes to FP32 storage.
  *
+ * \section klip_psf_dictionary Sparse frozen-basis PSF responses
+ *
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--klip.psfFile` | `klip.psfFile=/path/template.fits` | readable finite two-dimensional FITS image | unset | Centered detector-sampled PSF template before KLIP regional centering. Setting any PSF option requires the complete option set below. |
+ * | `--klip.psfStampSize` | `klip.psfStampSize=11` | positive odd integer | `0` | Width and height of the compact final response stamps. |
+ * | `--klip.psfSampleRadii` | `klip.psfSampleRadii=6,10,14` | strictly increasing nonnegative real pixels inside configured regions | unset | Exact sky-frame radii at which frozen-basis responses are measured. |
+ * | `--klip.psfSamplesPerRadius` | `klip.psfSamplesPerRadius=8` | positive integer | `0` | Uniformly spaced angular measurements at every configured radius. |
+ * | `--klip.outputPSFModels` | `klip.outputPSFModels=true` | bool | `false` | Write canonical common-angle response and validity cubes after fitting the radial model. |
+ * | `--klip.psfOutputPrefix` | `klip.psfOutputPrefix=klipPSF_` | nonempty string when output is enabled | `klipPSF_` | Filename prefix inside the resolved final image's `_outputs` directory. |
+ *
+ * Radial interpolation is nearest-neighbor, with exact ties assigned to the inner radius. The persisted cube planes
+ * follow `psfSampleRadii`; files are named `<prefix>modeNNN_radial_response.fits` and
+ * `<prefix>modeNNN_radial_validity.fits`. The initial implementation requires FP32 KLIP, complete non-overlapping
+ * annuli, enabled derotation, a final combination other than `none`, `adi.postMedSub=false`, `meanSubMethod=none` or
+ * `imageMean`, and `pixelTSNormMethod=none`. Mean combination gives a linear frozen-basis response; median and active
+ * sigma clipping give response-template approximations from the propagated samples.
+ *
  * \section klip_diagnostics_dictionary Diagnostics
  *
  * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |

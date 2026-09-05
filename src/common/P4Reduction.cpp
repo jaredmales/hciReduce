@@ -1269,6 +1269,24 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "int",
                 "Positive square frozen-model PSF stamp size; required when p4.psfFile is set" );
+    config.add( "p4.psfSampleRadii",
+                "",
+                "p4.psfSampleRadii",
+                mx::app::argType::Required,
+                "p4",
+                "psfSampleRadii",
+                false,
+                "float vector",
+                "Optional strictly increasing radii for sparse azimuthally averaged PSF measurement" );
+    config.add( "p4.psfSamplesPerRadius",
+                "",
+                "p4.psfSamplesPerRadius",
+                mx::app::argType::Required,
+                "p4",
+                "psfSamplesPerRadius",
+                false,
+                "int",
+                "Uniform angular measurement count at each sparse PSF sample radius" );
     config.add( "p4.outputPSFModels",
                 "",
                 "p4.outputPSFModels",
@@ -1478,6 +1496,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( m_psfRadius, "p4.psfRadius" );
     config( m_psfFile, "p4.psfFile" );
     config( m_psfStampSize, "p4.psfStampSize" );
+    config( m_psfSampleRadii, "p4.psfSampleRadii" );
+    config( m_psfSamplesPerRadius, "p4.psfSamplesPerRadius" );
     loadBoolConfig<verboseT>( config, m_outputPSFModels, "p4.outputPSFModels" );
     loadBoolConfig<verboseT>( config, m_psfFilter, "p4.psfFilter" );
     config( m_psfFilterMinGoodFract, "p4.psfFilterMinGoodFract" );
@@ -1952,6 +1972,26 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
                                            "P4 PSF output or filtering requires a final combination method" );
         }
     }
+    if( ( m_psfSampleRadii.empty() && m_psfSamplesPerRadius != 0 ) ||
+        ( !m_psfSampleRadii.empty() && m_psfSamplesPerRadius <= 0 ) )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "p4.psfSampleRadii and a positive p4.psfSamplesPerRadius must be set together" );
+    }
+    if( !m_psfSampleRadii.empty() && m_psfFile.empty() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "sparse radial P4 PSF measurement requires p4.psfFile" );
+    }
+    for( std::size_t radius = 0; radius < m_psfSampleRadii.size(); ++radius )
+    {
+        if( !mx::math::isFinite( m_psfSampleRadii[radius] ) || m_psfSampleRadii[radius] < 0 ||
+            ( radius != 0 && m_psfSampleRadii[radius] <= m_psfSampleRadii[radius - 1] ) )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "p4.psfSampleRadii must be finite, nonnegative, and strictly increasing" );
+        }
+    }
     if( !mx::math::isFinite( m_psfFilterMinGoodFract ) || m_psfFilterMinGoodFract < 0 || m_psfFilterMinGoodFract > 1 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
@@ -2023,6 +2063,28 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
                                            "P4 search annuli must be finite, ordered, and non-overlapping" );
         }
         previousOuter = m_maxRadius[region];
+    }
+    for( const realT sampleRadius : m_psfSampleRadii )
+    {
+        bool supported{ false };
+        for( std::size_t region = 0; region < m_minRadius.size(); ++region )
+        {
+            if( sampleRadius >= m_minRadius[region] && sampleRadius < m_maxRadius[region] )
+            {
+                supported = true;
+                break;
+            }
+        }
+        if( !supported )
+        {
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "every p4.psfSampleRadii value must lie inside a search annulus" );
+        }
+    }
+    if( !m_psfSampleRadii.empty() && m_psfStampSize % 2 == 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "sparse radial P4 PSF measurement requires an odd p4.psfStampSize" );
     }
 
     realT previousFraction{ 0 };
@@ -5551,6 +5613,34 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
         }
     }
 
+    const bool radialApproximation = !m_psfSampleRadii.empty();
+    std::vector<double> radialRadii;
+    std::vector<RadialPSFSample> radialSamples;
+    if( radialApproximation )
+    {
+        radialRadii.reserve( m_psfSampleRadii.size() );
+        for( const realT radius : m_psfSampleRadii )
+        {
+            radialRadii.push_back( static_cast<double>( radius ) );
+        }
+        std::vector<RadialPSFSource> availableSources;
+        availableSources.reserve( searchPixelCount );
+        for( std::size_t source = 0; source < searchPixelCount; ++source )
+        {
+            availableSources.push_back(
+                { source,
+                  static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 0 ) ),
+                  static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 1 ) ) } );
+        }
+        radialSamples = RadialPSFModel::selectSamples( availableSources,
+                                                       grids.front().xCenter(),
+                                                       grids.front().yCenter(),
+                                                       radialRadii,
+                                                       static_cast<std::size_t>( m_psfSamplesPerRadius ) );
+        std::cerr << "P4 radial PSF approximation: " << radialSamples.size() << " distinct measurements at "
+                  << radialRadii.size() << " radii, nearest-radius interpolation\n";
+    }
+
     std::vector<double> derotationAngles( static_cast<std::size_t>( this->m_Nims ), 0 );
     if( this->m_doDerotate )
     {
@@ -5675,12 +5765,21 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
         fitsHeaderT header;
         fitsHeaderT finalHeaderCopy( finalHeader );
         this->finalImageHeader( header, &finalHeaderCopy );
-        header.template append<int>( "P4 PSF PRODUCT SCHEMA", m_psfFilter ? 2 : 1, "frozen-model PSF product schema" );
+        header.template append<int>( "P4 PSF PRODUCT SCHEMA",
+                                     radialApproximation ? 3 : ( m_psfFilter ? 2 : 1 ),
+                                     "frozen-model PSF product schema" );
         header.template append<std::string>( "P4 PSF PRODUCT", product, "compact PSF product role" );
         header.template append<std::string>( "P4 PSF TEMPLATE", m_psfFile, "post-preprocessing centered template" );
         header.template append<std::string>( "P4 PSF TEMPLATE STAGE", "P4_INPUT", "template processing stage" );
         header.template append<std::string>( "P4 PSF NORMALIZATION", "STORED", "template normalization convention" );
         header.template append<std::string>( "P4 PSF RESPONSE", "FROZEN_SIGNED", "forward-model convention" );
+        header.template append<std::string>( "P4 PSF SPATIAL MODEL",
+                                             radialApproximation ? "RADIAL_NEAREST" : "PER_PIXEL",
+                                             "final response spatial approximation" );
+        header.template append<std::string>(
+            "P4 PSF MEASUREMENT COUNT",
+            std::to_string( radialApproximation ? radialSamples.size() : searchPixelCount ),
+            "realized final response measurements" );
         header.template append<std::string>( "P4 PSF COEFFICIENT SCOPE",
                                              targetHeldOutPSF ? "TARGET_HELD_OUT" : "SHARED_IN_SAMPLE",
                                              "training-row scope of the fitted PSF response" );
@@ -5898,6 +5997,90 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
             }
             std::atomic<bool> reconstructionFailed{ false };
             std::exception_ptr reconstructionException;
+            const auto reconstructExact =
+                [&]( imageT &combined, reconstructorT::validityT &combinedValidity, std::size_t source )
+            {
+                const double sourceRow = static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 0 ) );
+                const double sourceColumn =
+                    static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 1 ) );
+                if( targetHeldOutPSF )
+                {
+                    reconstructor.reconstructCombinedTargeted( combined,
+                                                               combinedValidity,
+                                                               localModels,
+                                                               localValidity,
+                                                               searchIndex,
+                                                               sourceRow,
+                                                               sourceColumn,
+                                                               derotationAngles,
+                                                               this->m_combineMethod,
+                                                               this->m_comboWeights,
+                                                               this->m_sigmaThreshold,
+                                                               this->m_minGoodFract );
+                }
+                else
+                {
+                    reconstructor.reconstructCombinedTemporal( combined,
+                                                               combinedValidity,
+                                                               localModels,
+                                                               temporalCoefficients,
+                                                               temporalOffsets,
+                                                               psfModel,
+                                                               localValidity,
+                                                               searchIndex,
+                                                               searchRegions,
+                                                               m_localPSFComponentCounts,
+                                                               m_temporalSelections,
+                                                               sourceRow,
+                                                               sourceColumn,
+                                                               derotationAngles,
+                                                               this->m_combineMethod,
+                                                               this->m_comboWeights,
+                                                               this->m_sigmaThreshold,
+                                                               this->m_minGoodFract );
+                }
+            };
+
+            std::optional<RadialPSFModel> radialModel;
+            if( radialApproximation )
+            {
+                std::vector<imageT> sampledResponses( radialSamples.size() );
+                std::vector<reconstructorT::validityT> sampledValidities( radialSamples.size() );
+                // clang-format off
+#pragma omp parallel for schedule(static) num_threads(effectiveWorkers)
+                // clang-format on
+                for( std::size_t sample = 0; sample < radialSamples.size(); ++sample )
+                {
+                    if( reconstructionFailed.load( std::memory_order_acquire ) )
+                    {
+                        continue;
+                    }
+                    try
+                    {
+                        reconstructExact( sampledResponses[sample],
+                                          sampledValidities[sample],
+                                          radialSamples[sample].sourceIndex );
+                    }
+                    catch( ... )
+                    {
+                        // clang-format off
+#pragma omp critical(P4PSFReconstructionException)
+                        // clang-format on
+                        {
+                            if( !reconstructionException )
+                            {
+                                reconstructionException = std::current_exception();
+                            }
+                        }
+                        reconstructionFailed.store( true, std::memory_order_release );
+                    }
+                }
+                if( !reconstructionException )
+                {
+                    radialModel.emplace( radialRadii, m_psfStampSize, m_psfStampSize );
+                    radialModel->fit( sampledResponses, sampledValidities, radialSamples );
+                }
+            }
             // clang-format off
 #pragma omp parallel num_threads(effectiveWorkers)
             // clang-format on
@@ -5922,41 +6105,18 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                             static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 0 ) );
                         const double sourceColumn =
                             static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 1 ) );
-                        if( targetHeldOutPSF )
+                        if( radialModel )
                         {
-                            reconstructor.reconstructCombinedTargeted( combined,
-                                                                       combinedValidity,
-                                                                       localModels,
-                                                                       localValidity,
-                                                                       searchIndex,
-                                                                       sourceRow,
-                                                                       sourceColumn,
-                                                                       derotationAngles,
-                                                                       this->m_combineMethod,
-                                                                       this->m_comboWeights,
-                                                                       this->m_sigmaThreshold,
-                                                                       this->m_minGoodFract );
+                            const double deltaRow = sourceRow - grids.front().xCenter();
+                            const double deltaColumn = sourceColumn - grids.front().yCenter();
+                            radialModel->response( combined,
+                                                   combinedValidity,
+                                                   std::hypot( deltaRow, deltaColumn ),
+                                                   std::atan2( deltaRow, deltaColumn ) );
                         }
                         else
                         {
-                            reconstructor.reconstructCombinedTemporal( combined,
-                                                                       combinedValidity,
-                                                                       localModels,
-                                                                       temporalCoefficients,
-                                                                       temporalOffsets,
-                                                                       psfModel,
-                                                                       localValidity,
-                                                                       searchIndex,
-                                                                       searchRegions,
-                                                                       m_localPSFComponentCounts,
-                                                                       m_temporalSelections,
-                                                                       sourceRow,
-                                                                       sourceColumn,
-                                                                       derotationAngles,
-                                                                       this->m_combineMethod,
-                                                                       this->m_comboWeights,
-                                                                       this->m_sigmaThreshold,
-                                                                       this->m_minGoodFract );
+                            reconstructExact( combined, combinedValidity, source );
                         }
                         const int imageRow = static_cast<int>( sourceRow );
                         const int imageColumn = static_cast<int>( sourceColumn );
@@ -5987,7 +6147,13 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                         }
                         if( m_outputPSFModels )
                         {
-                            if( targetHeldOutPSF )
+                            if( radialModel )
+                            {
+                                const int center = m_psfStampSize / 2;
+                                finalValidity( static_cast<Eigen::Index>( source ), 0 ) =
+                                    combinedValidity( center, center );
+                            }
+                            else if( targetHeldOutPSF )
                             {
                                 centerReconstructor.reconstructCombinedTargeted( centerCombined,
                                                                                  centerValidity,
@@ -6023,7 +6189,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                                                                                  this->m_sigmaThreshold,
                                                                                  this->m_minGoodFract );
                             }
-                            finalValidity( static_cast<Eigen::Index>( source ), 0 ) = centerValidity( 0, 0 );
+                            if( !radialModel )
+                            {
+                                finalValidity( static_cast<Eigen::Index>( source ), 0 ) = centerValidity( 0, 0 );
+                            }
                             for( int column = 0; column < combined.cols(); ++column )
                             {
                                 for( int row = 0; row < combined.rows(); ++row )
@@ -6388,6 +6557,12 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.template append<realT>( "P4 OR ARC HALF WIDTH", m_orArcHalfWidth, "OR arc half-width" );
     head.template append<realT>( "P4 OR MAX HALF ANGLE", m_orMaxHalfAngle, "OR maximum half-angle" );
     head.template append<realT>( "P4 PSF RADIUS", m_psfRadius, "physical PSF exclusion radius" );
+    head.template append<std::string>( "P4 PSF SAMPLE RADII",
+                                       p4Join( m_psfSampleRadii ),
+                                       "sparse response measurement radii" );
+    head.template append<int>( "P4 PSF SAMPLES PER RADIUS",
+                               m_psfSamplesPerRadius,
+                               "requested angular response samples per radius" );
     head.template append<std::string>( "P4 EXCLUSION POLICY",
                                        m_exclusionPolicy ? exclusionPolicyString( *m_exclusionPolicy ) : "invalid",
                                        "exclusion policy" );

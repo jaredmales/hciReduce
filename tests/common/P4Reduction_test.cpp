@@ -605,6 +605,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_memoryFraction == Approx( 0.8 ) );
     REQUIRE( defaults.m_psfFile.empty() );
     REQUIRE( defaults.m_psfStampSize == 0 );
+    REQUIRE( defaults.m_psfSampleRadii.empty() );
+    REQUIRE( defaults.m_psfSamplesPerRadius == 0 );
     REQUIRE_FALSE( defaults.m_outputPSFModels );
     REQUIRE_FALSE( defaults.m_psfFilter );
     REQUIRE( defaults.m_psfFilterMinGoodFract == 1 );
@@ -625,6 +627,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "solver.deletionBackend" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfFile" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "p4.psfSampleRadii" ).helpType == "float vector" );
+    REQUIRE( registered.m_targets.at( "p4.psfSamplesPerRadius" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::Optional );
     REQUIRE( registered.m_targets.at( "p4.psfFilter" ).clType == mx::app::argType::Optional );
     REQUIRE( registered.m_targets.at( "p4.psfFilterMinGoodFract" ).helpType == "float" );
@@ -706,9 +710,12 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     readReductionConfig( psfConfiguration,
                          directory.file( "psf.conf" ),
                          "[p4]\npsfFile=template.fits\npsfStampSize=11\n"
+                         "psfSampleRadii=6,10\npsfSamplesPerRadius=8\n"
                          "outputPSFModels=true\npsfFilter=true\npsfFilterMinGoodFract=0.75\npsfOutputPrefix=field_\n" );
     REQUIRE( psfConfiguration.m_psfFile == "template.fits" );
     REQUIRE( psfConfiguration.m_psfStampSize == 11 );
+    REQUIRE( psfConfiguration.m_psfSampleRadii == std::vector<float>{ 6, 10 } );
+    REQUIRE( psfConfiguration.m_psfSamplesPerRadius == 8 );
     REQUIRE( psfConfiguration.m_outputPSFModels );
     REQUIRE( psfConfiguration.m_psfFilter );
     REQUIRE( psfConfiguration.m_psfFilterMinGoodFract == Approx( 0.75 ) );
@@ -1880,6 +1887,8 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     reduction.m_doDerotate = true;
     reduction.m_psfFile = psfPath.string();
     reduction.m_psfStampSize = 3;
+    reduction.m_psfSampleRadii = { 6, 8 };
+    reduction.m_psfSamplesPerRadius = 4;
     reduction.m_outputPSFModels = true;
     reduction.m_psfFilter = true;
     reduction.m_psfFilterMinGoodFract = 0.4F;
@@ -1975,7 +1984,7 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( models.rows() == 3 );
     REQUIRE( models.cols() == 3 );
     REQUIRE( models.planes() == coordinates.rows() );
-    REQUIRE( modelHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 2 );
+    REQUIRE( modelHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 3 );
     REQUIRE( modelHeader["P4 PSF PRODUCT"].String().starts_with( "MODEL" ) );
     REQUIRE( modelHeader["P4 PSF TEMPLATE"].String().find( "template.fits" ) != std::string::npos );
     REQUIRE( modelHeader["P4 PSF TEMPLATE ROWS"].value<int>() == 9 );
@@ -1983,6 +1992,11 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( modelHeader["P4 PSF TEMPLATE CENTER ROW"].value<double>() == Approx( 4.0 ) );
     REQUIRE( modelHeader["P4 PSF TEMPLATE CENTER COLUMN"].value<double>() == Approx( 4.5 ) );
     REQUIRE( modelHeader["P4 PSF RESPONSE"].String().starts_with( "FROZEN_SIGNED" ) );
+    REQUIRE( modelHeader["P4 PSF SPATIAL MODEL"].String().starts_with( "RADIAL_NEAREST" ) );
+    REQUIRE( modelHeader["P4 PSF SAMPLE RADII"].String().starts_with( "6,8" ) );
+    REQUIRE( modelHeader["P4 PSF SAMPLES PER RADIUS"].value<int>() == 4 );
+    REQUIRE( modelHeader["P4 PSF MEASUREMENT COUNT"].value<int>() == 8 );
+    REQUIRE( modelHeader["P4 PSF MEASUREMENT COUNT"].value<int>() < coordinates.rows() );
     REQUIRE( modelHeader["P4 PSF TEMPORAL NUMBER IMAGES"].value<int>() == 1 );
     REQUIRE( modelHeader["P4 PSF COMPONENT STRIDE"].value<int>() == 3 );
     REQUIRE( modelHeader["P4 PSF TEMPORAL COEFFICIENT COUNT"].value<int>() > 0 );
@@ -3282,6 +3296,46 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         invalidFilterSupport.m_combineMethod = mx::improc::HCI::combine::mean;
         REQUIRE_THROWS_WITH( invalidFilterSupport.reduce(),
                              Catch::Matchers::Contains( "must be finite and in [0,1]" ) );
+
+        reductionHarness sparseWithoutCount;
+        prepareReduction( sparseWithoutCount );
+        sparseWithoutCount.m_psfSampleRadii = { 5.5F };
+        REQUIRE_THROWS_WITH( sparseWithoutCount.reduce(), Catch::Matchers::Contains( "must be set together" ) );
+
+        reductionHarness countWithoutSparseRadii;
+        prepareReduction( countWithoutSparseRadii );
+        countWithoutSparseRadii.m_psfSamplesPerRadius = 4;
+        REQUIRE_THROWS_WITH( countWithoutSparseRadii.reduce(), Catch::Matchers::Contains( "must be set together" ) );
+
+        reductionHarness sparseWithoutTemplate;
+        prepareReduction( sparseWithoutTemplate );
+        sparseWithoutTemplate.m_psfSampleRadii = { 5.5F };
+        sparseWithoutTemplate.m_psfSamplesPerRadius = 4;
+        REQUIRE_THROWS_WITH( sparseWithoutTemplate.reduce(), Catch::Matchers::Contains( "requires p4.psfFile" ) );
+
+        reductionHarness unsortedSparseRadii;
+        prepareReduction( unsortedSparseRadii );
+        unsortedSparseRadii.m_psfFile = "unused.fits";
+        unsortedSparseRadii.m_psfStampSize = 3;
+        unsortedSparseRadii.m_psfSampleRadii = { 5.75F, 5.5F };
+        unsortedSparseRadii.m_psfSamplesPerRadius = 4;
+        REQUIRE_THROWS_WITH( unsortedSparseRadii.reduce(), Catch::Matchers::Contains( "strictly increasing" ) );
+
+        reductionHarness unsupportedSparseRadius;
+        prepareReduction( unsupportedSparseRadius );
+        unsupportedSparseRadius.m_psfFile = "unused.fits";
+        unsupportedSparseRadius.m_psfStampSize = 3;
+        unsupportedSparseRadius.m_psfSampleRadii = { 15 };
+        unsupportedSparseRadius.m_psfSamplesPerRadius = 4;
+        REQUIRE_THROWS_WITH( unsupportedSparseRadius.reduce(), Catch::Matchers::Contains( "inside a search annulus" ) );
+
+        reductionHarness evenSparseStamp;
+        prepareReduction( evenSparseStamp );
+        evenSparseStamp.m_psfFile = "unused.fits";
+        evenSparseStamp.m_psfStampSize = 4;
+        evenSparseStamp.m_psfSampleRadii = { 5.5F };
+        evenSparseStamp.m_psfSamplesPerRadius = 4;
+        REQUIRE_THROWS_WITH( evenSparseStamp.reduce(), Catch::Matchers::Contains( "requires an odd" ) );
     }
 
     SECTION( "invalid fractions and realized mode collisions" )

@@ -19,6 +19,14 @@
  * calculation scalar at FP32 and the eigensolver scalar at FP64. Exact factor deletion is a separate FP64 internal
  * path whose modes are cast back to FP32.
  *
+ * When sparse PSF response measurement is enabled, \ref mx::improc::KLIPPSFModel "KLIPPSFModel" samples each
+ * configured sky source in detector coordinates and applies the same supported linear regional centering. The live
+ * target basis then evaluates direct-minus-projected probe residuals for every requested mode count. Each region is
+ * accumulated through the production cubic derotation footprint directly into a compact per-frame stamp, avoiding
+ * full detector response cubes. After all regions, the frame stamps are combined and
+ * \ref mx::improc::RadialPSFModel "RadialPSFModel" rotates measurements to a common angle, averages within radius,
+ * and supplies nearest-radius evaluation.
+ *
  * The resulting regional residuals are scattered into the output cubes. Finally,
  * \ref mx::improc::KLIPreduction::finalProcess "KLIPreduction::finalProcess()" delegates post-median subtraction,
  * derotation, combination, and product writing to the shared
@@ -28,6 +36,8 @@
  *
  * - `src/apps/klipReduce.cpp`: application configuration and dispatch.
  * - `src/common/KLIPreduction.hpp`: region orchestration, reference selection, PCA calculation, and final processing.
+ * - `src/common/KLIPPSFModel.*`: sparse probe construction, frozen-basis projection, and compact derotation.
+ * - `src/common/RadialPSFModel.*`: common-angle averaging and nearest-radius response evaluation.
  * - `src/common/KLIPreduction.cpp`: production template instantiation.
  *
  * @}

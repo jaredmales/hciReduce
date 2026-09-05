@@ -17,6 +17,8 @@ set(libheaders common/HCI.hpp
                common/P4TemporalPCA.hpp
                common/P4LocalProcessing.hpp
                common/P4NegativeOptimizer.hpp
+               common/KLIPPSFModel.hpp
+               common/RadialPSFModel.hpp
                common/P4PSFFilter.hpp
                common/P4PSFModel.hpp
                common/P4PSFReconstructor.hpp
@@ -32,6 +34,8 @@ set(libsource common/HCIobservation.cpp
               common/P4TemporalPCA.cpp
               common/P4LocalProcessing.cpp
               common/P4NegativeOptimizer.cpp
+              common/KLIPPSFModel.cpp
+              common/RadialPSFModel.cpp
               common/P4PSFFilter.cpp
               common/P4PSFModel.cpp
               common/P4PSFReconstructor.cpp
