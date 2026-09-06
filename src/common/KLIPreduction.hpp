@@ -552,14 +552,31 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     std::vector<std::pair<double, double>> m_psfSourceCoordinates; ///< Sparse source centers in the final sky frame.
 
-    std::vector<eigenCube<realT>> m_psfResponseFrames; ///< Derotated response stamps by sample-major, mode-minor index.
+    std::vector<eigenCube<realT>> m_psfResponseFrames;
+    ///< Median-only derotated response frame stacks by sample-major, mode-minor index.
 
-    std::vector<eigenCube<realT>> m_psfResponseFrameValidity; ///< Geometric validity paired with response-frame cubes.
+    std::vector<eigenCube<realT>> m_psfResponseFrameValidity;
+    ///< Median-only geometric validity paired with response-frame cubes.
+
+    std::unique_ptr<KLIPPSFLinearAccumulator> m_psfLinearAccumulator;
+    ///< Worker-sharded bounded storage for mean and weighted-mean analytic responses.
+
+    bool m_psfLinearAccumulation{ false };       ///< Whether the current response uses bounded worker-sum accumulation.
+
+    bool m_psfRecordFrameSupport{ false };       ///< Whether the active region records each sample/frame support once.
+
+    std::size_t m_psfResponseRetainedBytes{ 0 }; ///< Retained response accumulator bytes excluding container overhead.
 
     std::vector<RadialPSFModel> m_radialPSFModels; ///< Fitted nearest-radius response model for each KLIP output.
 
     /// Initialize sparse response locations, the PSF template, and compact per-frame stamp storage.
     void preparePSFMeasurement();
+
+    /// Return the effective estimator used to combine analytic KLIP response frames.
+    HCI::combine psfResponseCombineMethod() const noexcept;
+
+    /// Return the effective sigma threshold used for analytic KLIP response combination.
+    realT psfResponseSigmaThreshold() const noexcept;
 
     /// Combine sparse response frames and fit one common-angle radial model per KLIP output.
     void finalizePSFMeasurement();
@@ -1084,6 +1101,18 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writeDiagnostic( co
 }
 
 template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+HCI::combine KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::psfResponseCombineMethod() const noexcept
+{
+    return this->m_combineMethod == HCI::combine::sigmaMean ? HCI::combine::mean : this->m_combineMethod;
+}
+
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
+realT KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::psfResponseSigmaThreshold() const noexcept
+{
+    return psfResponseCombineMethod() == HCI::combine::sigmaMean ? this->m_sigmaThreshold : static_cast<realT>( 0 );
+}
+
+template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
 void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasurement()
 {
     if constexpr( !std::is_same_v<realT, float> )
@@ -1153,18 +1182,69 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
             throw mx::exception<verboseT>( mx::error_t::sizeerr, "KLIP PSF response sample count overflows size_t" );
         }
         const std::size_t responseCount = m_psfMeasurementSamples.size() * m_Nmodes.size();
-        m_psfResponseFrames.resize( responseCount );
-        m_psfResponseFrameValidity.resize( responseCount );
-        for( std::size_t response = 0; response < responseCount; ++response )
+        m_psfLinearAccumulation = psfResponseCombineMethod() == HCI::combine::mean;
+        m_psfRecordFrameSupport = false;
+        m_psfResponseRetainedBytes = 0;
+        m_psfResponseFrames.clear();
+        m_psfResponseFrameValidity.clear();
+        m_psfLinearAccumulator.reset();
+        if( m_psfLinearAccumulation )
         {
-            m_psfResponseFrames[response].resize( m_psfStampSize, m_psfStampSize, this->m_Nims );
-            m_psfResponseFrames[response].cube().setZero();
-            m_psfResponseFrameValidity[response].resize( m_psfStampSize, m_psfStampSize, this->m_Nims );
-            m_psfResponseFrameValidity[response].cube().setZero();
+            if( !this->m_comboWeights.empty() &&
+                this->m_comboWeights.size() != static_cast<std::size_t>( this->m_Nims ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                               "KLIP PSF combination weight count must match target frames" );
+            }
+            for( const realT weight : this->m_comboWeights )
+            {
+                if( !math::isFinite( weight ) )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                                   "KLIP PSF combination weights must be finite" );
+                }
+            }
+            const int maximumWorkers = omp_get_max_threads();
+            if( maximumWorkers <= 0 )
+            {
+                throw mx::exception<verboseT>( mx::error_t::exception,
+                                               "KLIP PSF response worker count must be positive" );
+            }
+            m_psfLinearAccumulator =
+                std::make_unique<KLIPPSFLinearAccumulator>( m_psfMeasurementSamples.size(),
+                                                            m_Nmodes.size(),
+                                                            m_psfStampSize,
+                                                            static_cast<std::size_t>( maximumWorkers ),
+                                                            static_cast<std::size_t>( this->m_Nims ),
+                                                            static_cast<double>( this->m_minGoodFract ) );
+            m_psfResponseRetainedBytes = m_psfLinearAccumulator->storageBytes();
+        }
+        else
+        {
+            m_psfResponseFrames.resize( responseCount );
+            m_psfResponseFrameValidity.resize( responseCount );
+            for( std::size_t response = 0; response < responseCount; ++response )
+            {
+                m_psfResponseFrames[response].resize( m_psfStampSize, m_psfStampSize, this->m_Nims );
+                m_psfResponseFrames[response].cube().setZero();
+                m_psfResponseFrameValidity[response].resize( m_psfStampSize, m_psfStampSize, this->m_Nims );
+                m_psfResponseFrameValidity[response].cube().setZero();
+                const std::size_t responseBytes =
+                    static_cast<std::size_t>( m_psfResponseFrames[response].cube().size() ) * sizeof( realT );
+                if( responseBytes > std::numeric_limits<std::size_t>::max() / 2 ||
+                    m_psfResponseRetainedBytes > std::numeric_limits<std::size_t>::max() - 2 * responseBytes )
+                {
+                    throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                                   "KLIP PSF retained response byte count overflows size_t" );
+                }
+                m_psfResponseRetainedBytes += 2 * responseBytes;
+            }
         }
         m_radialPSFModels.clear();
         std::cerr << "KLIP radial PSF measurement: " << m_psfMeasurementSamples.size() << " locations at "
-                  << m_psfSampleRadii.size() << " radii, nearest-radius interpolation\n";
+                  << m_psfSampleRadii.size() << " radii, nearest-radius interpolation, "
+                  << ( m_psfLinearAccumulation ? "worker-sum" : "frame-stack" ) << " accumulation retaining "
+                  << m_psfResponseRetainedBytes << " bytes\n";
     }
 }
 
@@ -1189,6 +1269,18 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalizePSFMeasurem
             radii.push_back( static_cast<double>( radius ) );
         }
 
+        std::vector<KLIPPSFModel::imageT> linearResponses;
+        std::vector<KLIPPSFModel::validityT> linearValidities;
+        if( m_psfLinearAccumulation )
+        {
+            if( !m_psfLinearAccumulator )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                               "KLIP linear PSF accumulator is missing before finalization" );
+            }
+            m_psfLinearAccumulator->finalize( linearResponses, linearValidities );
+        }
+
         m_radialPSFModels.clear();
         m_radialPSFModels.reserve( m_Nmodes.size() );
         for( std::size_t mode = 0; mode < m_Nmodes.size(); ++mode )
@@ -1198,20 +1290,29 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalizePSFMeasurem
             for( std::size_t sample = 0; sample < m_psfMeasurementSamples.size(); ++sample )
             {
                 const std::size_t responseIndex = sample * m_Nmodes.size() + mode;
-                P4PSFReconstructor::combineFrames( responses[sample],
-                                                   validities[sample],
-                                                   m_psfResponseFrames[responseIndex],
-                                                   m_psfResponseFrameValidity[responseIndex],
-                                                   this->m_combineMethod,
-                                                   this->m_comboWeights,
-                                                   this->m_sigmaThreshold,
-                                                   this->m_minGoodFract );
+                if( m_psfLinearAccumulation )
+                {
+                    responses[sample] = linearResponses[responseIndex];
+                    validities[sample] = linearValidities[responseIndex];
+                }
+                else
+                {
+                    P4PSFReconstructor::combineFrames( responses[sample],
+                                                       validities[sample],
+                                                       m_psfResponseFrames[responseIndex],
+                                                       m_psfResponseFrameValidity[responseIndex],
+                                                       psfResponseCombineMethod(),
+                                                       this->m_comboWeights,
+                                                       psfResponseSigmaThreshold(),
+                                                       this->m_minGoodFract );
+                }
             }
             m_radialPSFModels.emplace_back( radii, m_psfStampSize, m_psfStampSize );
             m_radialPSFModels.back().fit( responses, validities, m_psfMeasurementSamples );
         }
         m_psfResponseFrames.clear();
         m_psfResponseFrameValidity.clear();
+        m_psfLinearAccumulator.reset();
     }
 }
 
@@ -1736,6 +1837,10 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
         m_psfMeasurementSamples.clear();
         m_psfResponseFrames.clear();
         m_psfResponseFrameValidity.clear();
+        m_psfLinearAccumulator.reset();
+        m_psfLinearAccumulation = false;
+        m_psfRecordFrameSupport = false;
+        m_psfResponseRetainedBytes = 0;
         m_radialPSFModels.clear();
     }
 
@@ -1911,6 +2016,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
 
         m_excludeMethod = effectiveExcludeMethod;
         m_excludeMethodMax = effectiveExcludeMethodMax;
+        m_psfRecordFrameSupport = psfMeasurementRequested && regno == 0;
         try
         {
             if( this->m_refIms.planes() > 0 )
@@ -1931,6 +2037,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
         m_excludeMethod = configuredExcludeMethod;
         m_excludeMethodMax = configuredExcludeMethodMax;
     }
+    m_psfRecordFrameSupport = false;
     m_algorithmTiming.regressionElapsedSeconds = sys::get_curr_time() - workerBegin;
 
     writeDiagnostic( "imsIncluded.fits", m_imsIncluded );
@@ -2724,20 +2831,57 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::worker(
                             for( std::size_t mode = 0; mode < psfResiduals.size(); ++mode )
                             {
                                 const std::size_t responseIndex = sample * m_Nmodes.size() + mode;
-                                KLIPPSFModel::imageT accumulated = m_psfResponseFrames[responseIndex].image( imno );
-                                KLIPPSFModel::validityT accumulatedValidity = m_psfResponseFrameValidity[responseIndex]
-                                                                                  .image( imno )
-                                                                                  .template cast<std::uint8_t>();
-                                m_psfResponseCalculator->accumulate( accumulated,
-                                                                     accumulatedValidity,
-                                                                     psfResiduals[mode],
-                                                                     psfRegionIndices,
-                                                                     source.first,
-                                                                     source.second,
-                                                                     derotationAngle );
-                                m_psfResponseFrames[responseIndex].image( imno ) = accumulated;
-                                m_psfResponseFrameValidity[responseIndex].image( imno ) =
-                                    accumulatedValidity.cast<realT>();
+                                if( m_psfLinearAccumulation )
+                                {
+                                    if( !m_psfLinearAccumulator )
+                                    {
+                                        throw mx::exception<verboseT>(
+                                            mx::error_t::sizeerr,
+                                            "KLIP linear PSF accumulator is missing during worker processing" );
+                                    }
+                                    KLIPPSFModel::imageT regionalContribution;
+                                    KLIPPSFModel::validityT regionalValidity;
+                                    m_psfResponseCalculator->accumulate( regionalContribution,
+                                                                         regionalValidity,
+                                                                         psfResiduals[mode],
+                                                                         psfRegionIndices,
+                                                                         source.first,
+                                                                         source.second,
+                                                                         derotationAngle );
+                                    const float frameWeight =
+                                        this->m_comboWeights.empty() ? 1.0F : this->m_comboWeights[imno];
+                                    const std::size_t workerIndex = static_cast<std::size_t>( omp_get_thread_num() );
+                                    m_psfLinearAccumulator->addResponse( workerIndex,
+                                                                         sample,
+                                                                         mode,
+                                                                         frameWeight,
+                                                                         regionalContribution );
+                                    if( mode == 0 && m_psfRecordFrameSupport )
+                                    {
+                                        m_psfLinearAccumulator->addFrameSupport( workerIndex,
+                                                                                 sample,
+                                                                                 frameWeight,
+                                                                                 regionalValidity );
+                                    }
+                                }
+                                else
+                                {
+                                    KLIPPSFModel::imageT accumulated = m_psfResponseFrames[responseIndex].image( imno );
+                                    KLIPPSFModel::validityT accumulatedValidity =
+                                        m_psfResponseFrameValidity[responseIndex]
+                                            .image( imno )
+                                            .template cast<std::uint8_t>();
+                                    m_psfResponseCalculator->accumulate( accumulated,
+                                                                         accumulatedValidity,
+                                                                         psfResiduals[mode],
+                                                                         psfRegionIndices,
+                                                                         source.first,
+                                                                         source.second,
+                                                                         derotationAngle );
+                                    m_psfResponseFrames[responseIndex].image( imno ) = accumulated;
+                                    m_psfResponseFrameValidity[responseIndex].image( imno ) =
+                                        accumulatedValidity.cast<realT>();
+                                }
                             }
                         }
                     }
@@ -2833,6 +2977,24 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::appendReductionHead
         head.template append<std::string>( "KLIP PSF MEASUREMENT COUNT",
                                            std::to_string( m_psfMeasurementSamples.size() ),
                                            "sparse frozen-basis measurements" );
+        head.template append<std::string>( "KLIP SCIENCE COMBINATION",
+                                           HCI::combineToStr<verboseT>( this->m_combineMethod ),
+                                           "configured science-image combination" );
+        head.template append<std::string>( "KLIP PSF COMBINATION",
+                                           HCI::combineToStr<verboseT>( psfResponseCombineMethod() ),
+                                           "effective analytic-response combination" );
+        head.template append<realT>( "KLIP SCIENCE SIGMA THRESHOLD",
+                                     this->m_sigmaThreshold,
+                                     "configured science clipping threshold" );
+        head.template append<realT>( "KLIP PSF SIGMA THRESHOLD",
+                                     psfResponseSigmaThreshold(),
+                                     "effective analytic-response clipping threshold" );
+        head.template append<std::string>( "KLIP PSF ACCUMULATION",
+                                           m_psfLinearAccumulation ? "WORKER_SUM" : "FRAME_STACK",
+                                           "analytic-response accumulation storage" );
+        head.template append<std::string>( "KLIP PSF RETAINED BYTES",
+                                           std::to_string( m_psfResponseRetainedBytes ),
+                                           "response accumulator bytes excluding container overhead" );
     }
 
     if( m_Nmodes.size() > 0 )

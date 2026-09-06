@@ -125,8 +125,12 @@
  * follow `psfSampleRadii`; files are named `<prefix>modeNNN_radial_response.fits` and
  * `<prefix>modeNNN_radial_validity.fits`. The initial implementation requires FP32 KLIP, complete non-overlapping
  * annuli, enabled derotation, a final combination other than `none`, `adi.postMedSub=false`, `meanSubMethod=none` or
- * `imageMean`, and `pixelTSNormMethod=none`. Mean combination gives a linear frozen-basis response; median and active
- * sigma clipping give response-template approximations from the propagated samples.
+ * `imageMean`, and `pixelTSNormMethod=none`. Mean and weighted-mean combinations give linear frozen-basis responses.
+ * Active science `sigmaMean` uses the corresponding unclipped mean for the analytic response while leaving science
+ * clipping unchanged; median remains a response-template approximation from the propagated samples. FITS provenance
+ * records the configured science combination and effective response combination separately. Mean, weighted mean,
+ * and active science `sigmaMean` use response storage bounded by OpenMP worker count; median retains its target-frame
+ * stack. `HIERARCH KLIP PSF ACCUMULATION` and `HIERARCH KLIP PSF RETAINED BYTES` identify the realized path.
  *
  * \section klip_diagnostics_dictionary Diagnostics
  *

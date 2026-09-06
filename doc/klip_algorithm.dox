@@ -23,7 +23,11 @@
  * configured sky source in detector coordinates and applies the same supported linear regional centering. The live
  * target basis then evaluates direct-minus-projected probe residuals for every requested mode count. Each region is
  * accumulated through the production cubic derotation footprint directly into a compact per-frame stamp, avoiding
- * full detector response cubes. After all regions, the frame stamps are combined and
+ * full detector response cubes. Active science sigma clipping is linearized by combining the analytic response with
+ * an unclipped mean while preserving configured weights and geometric support. Linear response contributions are
+ * retained as worker-local numerator, denominator, and valid-frame-count stamps; this permits regional and target-
+ * frame sums to commute without retaining a plane for every target frame. Median combination retains the nonlinear
+ * frame stack. After all regions, the response stamps are combined and
  * \ref mx::improc::RadialPSFModel "RadialPSFModel" rotates measurements to a common angle, averages within radius,
  * and supplies nearest-radius evaluation.
  *

@@ -2508,7 +2508,9 @@ TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regio
     reduction.m_doDerotate = true;
     reduction.m_derotF.m_angleScale = 1;
     reduction.m_derotF.m_angles = { 0, 0.2, -0.25 };
-    reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+    reduction.m_combineMethod = mx::improc::HCI::combine::sigmaMean;
+    reduction.m_comboWeights = { 1, 2, 4 };
+    reduction.m_sigmaThreshold = 5;
     reduction.m_doWriteFinim = false;
     reduction.m_doOutputPSFSub = false;
     reduction.m_outputPSFModels = true;
@@ -2544,6 +2546,91 @@ TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regio
     REQUIRE( reduction.radialPSFModel( 0 ).canonicalValidity( 0 ).sum() > 0 );
     REQUIRE_FALSE( reduction.radialPSFModel( 0 ).canonicalResponse( 0 ).isZero() );
 
+    const auto prepareComparison = [&]( reductionHarness &comparison, mx::improc::HCI::combine combination )
+    {
+        comparison.m_filesRead = true;
+        comparison.m_RDIfilesRead = true;
+        comparison.m_imSize = 11;
+        comparison.m_Nrows = 11;
+        comparison.m_Ncols = 11;
+        comparison.m_Nims = 3;
+        comparison.m_Npix = 121;
+        comparison.m_tgtIms = reduction.m_tgtIms;
+        comparison.m_Nmodes = { 1, 2 };
+        comparison.m_meanSubMethod = mx::improc::HCI::meanSub::imageMean;
+        comparison.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::none;
+        comparison.m_excludeMethod = mx::improc::HCI::exclude::none;
+        comparison.m_excludeMethodMax = mx::improc::HCI::exclude::none;
+        comparison.m_includeMethod = mx::improc::HCI::include::all;
+        comparison.m_includeRefNum = 0;
+        comparison.m_doDerotate = true;
+        comparison.m_derotF.m_angleScale = 1;
+        comparison.m_derotF.m_angles = { 0, 0.2, -0.25 };
+        comparison.m_combineMethod = combination;
+        comparison.m_comboWeights = { 1, 2, 4 };
+        comparison.m_sigmaThreshold = 5;
+        comparison.m_doWriteFinim = false;
+        comparison.m_doOutputPSFSub = false;
+        comparison.m_psfFile = reduction.m_psfFile;
+        comparison.m_psfStampSize = 3;
+        comparison.m_psfSampleRadii = { 2, 3 };
+        comparison.m_psfSamplesPerRadius = 4;
+        comparison.m_finimName = "klip-final.fits";
+        comparison.m_exactFinimName = true;
+    };
+
+    reductionHarness meanComparison;
+    prepareComparison( meanComparison, mx::improc::HCI::combine::mean );
+    REQUIRE( meanComparison.regions( 0, 5, 0, 360 ) == 0 );
+    for( std::size_t mode = 0; mode < reduction.m_Nmodes.size(); ++mode )
+    {
+        for( std::size_t radius = 0; radius < reduction.m_psfSampleRadii.size(); ++radius )
+        {
+            REQUIRE( reduction.radialPSFModel( mode ).canonicalResponse( radius ).isApprox(
+                meanComparison.radialPSFModel( mode ).canonicalResponse( radius ),
+                1e-5F ) );
+            REQUIRE( ( reduction.radialPSFModel( mode ).canonicalValidity( radius ) ==
+                       meanComparison.radialPSFModel( mode ).canonicalValidity( radius ) )
+                         .all() );
+        }
+    }
+
+    reductionHarness unweightedSigmaComparison;
+    prepareComparison( unweightedSigmaComparison, mx::improc::HCI::combine::sigmaMean );
+    unweightedSigmaComparison.m_comboWeights.clear();
+    REQUIRE( unweightedSigmaComparison.regions( 0, 5, 0, 360 ) == 0 );
+    reductionHarness unweightedMeanComparison;
+    prepareComparison( unweightedMeanComparison, mx::improc::HCI::combine::mean );
+    unweightedMeanComparison.m_comboWeights.clear();
+    REQUIRE( unweightedMeanComparison.regions( 0, 5, 0, 360 ) == 0 );
+    for( std::size_t mode = 0; mode < reduction.m_Nmodes.size(); ++mode )
+    {
+        for( std::size_t radius = 0; radius < reduction.m_psfSampleRadii.size(); ++radius )
+        {
+            REQUIRE( unweightedSigmaComparison.radialPSFModel( mode ).canonicalResponse( radius ).isApprox(
+                unweightedMeanComparison.radialPSFModel( mode ).canonicalResponse( radius ),
+                1e-5F ) );
+            REQUIRE( ( unweightedSigmaComparison.radialPSFModel( mode ).canonicalValidity( radius ) ==
+                       unweightedMeanComparison.radialPSFModel( mode ).canonicalValidity( radius ) )
+                         .all() );
+        }
+    }
+
+    reductionHarness medianComparison;
+    prepareComparison( medianComparison, mx::improc::HCI::combine::median );
+    medianComparison.m_comboWeights.clear();
+    medianComparison.m_outputPSFModels = true;
+    medianComparison.m_psfOutputPrefix = "median_";
+    medianComparison.m_outputDir = directory.file( "median-products" ).string();
+    REQUIRE( medianComparison.regions( 0, 5, 0, 360 ) == 0 );
+    reductionT::fitsHeaderT medianHeader;
+    mx::improc::eigenCube<float> medianResponse;
+    REQUIRE( writer.read( medianResponse,
+                          medianHeader,
+                          directory.file( "median-products/klip-final_outputs/median_mode000_radial_response.fits" )
+                              .string() ) == mx::error_t::noerror );
+    REQUIRE( medianHeader["KLIP PSF ACCUMULATION"].String().starts_with( "FRAME_STACK" ) );
+
     mx::improc::RadialPSFModel::imageT interpolated;
     mx::improc::RadialPSFModel::validityT interpolatedValidity;
     reduction.radialPSFModel( 0 ).response( interpolated, interpolatedValidity, 2.49, 0.5 );
@@ -2565,6 +2652,12 @@ TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regio
     REQUIRE( responseHeader["KLIP PSF PRODUCT"].String().starts_with( "RADIAL_RESPONSE" ) );
     REQUIRE( responseHeader["KLIP PSF SPATIAL MODEL"].String().starts_with( "RADIAL_NEAREST" ) );
     REQUIRE( responseHeader["KLIP PSF MEASUREMENT COUNT"].value<int>() == 8 );
+    REQUIRE( responseHeader["KLIP SCIENCE COMBINATION"].String().starts_with( "sigmaMean" ) );
+    REQUIRE( responseHeader["KLIP PSF COMBINATION"].String().starts_with( "mean" ) );
+    REQUIRE( responseHeader["KLIP SCIENCE SIGMA THRESHOLD"].value<float>() == Approx( 5 ) );
+    REQUIRE( responseHeader["KLIP PSF SIGMA THRESHOLD"].value<float>() == Approx( 0 ) );
+    REQUIRE( responseHeader["KLIP PSF ACCUMULATION"].String().starts_with( "WORKER_SUM" ) );
+    REQUIRE( responseHeader["KLIP PSF RETAINED BYTES"].value<unsigned long long>() > 0 );
     REQUIRE( responseHeader["NMODES"].String().starts_with( "1,2" ) );
 }
 

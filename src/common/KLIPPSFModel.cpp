@@ -37,6 +37,152 @@ bool klipPSFAllFinite( const arrayT &array /**< [in] values to validate */ )
 
 } // namespace
 
+KLIPPSFLinearAccumulator::KLIPPSFLinearAccumulator( std::size_t sampleCount,
+                                                    std::size_t modeCount,
+                                                    int stampSize,
+                                                    std::size_t workerCount,
+                                                    std::size_t frameCount,
+                                                    double minimumGoodFraction )
+    : m_sampleCount( sampleCount ), m_modeCount( modeCount ), m_stampSize( stampSize ), m_workerCount( workerCount ),
+      m_frameCount( frameCount ), m_minimumGoodFraction( minimumGoodFraction )
+{
+    if( sampleCount == 0 || modeCount == 0 || stampSize <= 0 || stampSize % 2 == 0 || workerCount == 0 ||
+        frameCount == 0 || frameCount > std::numeric_limits<std::uint32_t>::max() ||
+        !std::isfinite( minimumGoodFraction ) || minimumGoodFraction < 0 || minimumGoodFraction > 1 )
+    {
+        throw std::invalid_argument( "KLIP linear PSF accumulator dimensions and support fraction must be valid" );
+    }
+    if( sampleCount > std::numeric_limits<std::size_t>::max() / modeCount ||
+        sampleCount * modeCount > std::numeric_limits<std::size_t>::max() / workerCount ||
+        sampleCount > std::numeric_limits<std::size_t>::max() / workerCount )
+    {
+        throw std::length_error( "KLIP linear PSF accumulator column count overflows size_t" );
+    }
+    const std::size_t responseColumns = sampleCount * modeCount * workerCount;
+    const std::size_t supportColumns = sampleCount * workerCount;
+    if( responseColumns > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) ||
+        supportColumns > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) )
+    {
+        throw std::length_error( "KLIP linear PSF accumulator column count exceeds Eigen range" );
+    }
+    const Eigen::Index stampPixels = static_cast<Eigen::Index>( stampSize ) * stampSize;
+    m_responseSums = imageT::Zero( stampPixels, static_cast<Eigen::Index>( responseColumns ) );
+    m_weightSums = imageT::Zero( stampPixels, static_cast<Eigen::Index>( supportColumns ) );
+    m_validCounts = Eigen::Array<std::uint32_t, Eigen::Dynamic, Eigen::Dynamic>::Zero(
+        stampPixels,
+        static_cast<Eigen::Index>( supportColumns ) );
+}
+
+void KLIPPSFLinearAccumulator::addResponse( std::size_t workerIndex,
+                                            std::size_t sampleIndex,
+                                            std::size_t modeIndex,
+                                            float frameWeight,
+                                            const imageT &contribution )
+{
+    if( workerIndex >= m_workerCount || sampleIndex >= m_sampleCount || modeIndex >= m_modeCount ||
+        contribution.rows() != m_stampSize || contribution.cols() != m_stampSize || !std::isfinite( frameWeight ) ||
+        !klipPSFAllFinite( contribution ) )
+    {
+        throw std::invalid_argument( "KLIP linear PSF response contribution is inconsistent with accumulator" );
+    }
+    const Eigen::Index column =
+        static_cast<Eigen::Index>( workerIndex * m_sampleCount * m_modeCount + sampleIndex * m_modeCount + modeIndex );
+    for( int stampColumn = 0; stampColumn < m_stampSize; ++stampColumn )
+    {
+        for( int stampRow = 0; stampRow < m_stampSize; ++stampRow )
+        {
+            const Eigen::Index pixel = stampRow + static_cast<Eigen::Index>( m_stampSize ) * stampColumn;
+            m_responseSums( pixel, column ) += frameWeight * contribution( stampRow, stampColumn );
+        }
+    }
+}
+
+void KLIPPSFLinearAccumulator::addFrameSupport( std::size_t workerIndex,
+                                                std::size_t sampleIndex,
+                                                float frameWeight,
+                                                const validityT &validity )
+{
+    if( workerIndex >= m_workerCount || sampleIndex >= m_sampleCount || validity.rows() != m_stampSize ||
+        validity.cols() != m_stampSize || !std::isfinite( frameWeight ) )
+    {
+        throw std::invalid_argument( "KLIP linear PSF frame support is inconsistent with accumulator" );
+    }
+    const Eigen::Index column = static_cast<Eigen::Index>( workerIndex * m_sampleCount + sampleIndex );
+    for( int stampColumn = 0; stampColumn < m_stampSize; ++stampColumn )
+    {
+        for( int stampRow = 0; stampRow < m_stampSize; ++stampRow )
+        {
+            if( validity( stampRow, stampColumn ) == 0 )
+            {
+                continue;
+            }
+            const Eigen::Index pixel = stampRow + static_cast<Eigen::Index>( m_stampSize ) * stampColumn;
+            if( m_validCounts( pixel, column ) == std::numeric_limits<std::uint32_t>::max() )
+            {
+                throw std::overflow_error( "KLIP linear PSF valid-frame count overflow" );
+            }
+            ++m_validCounts( pixel, column );
+            m_weightSums( pixel, column ) += frameWeight;
+        }
+    }
+}
+
+void KLIPPSFLinearAccumulator::finalize( std::vector<imageT> &responses, std::vector<validityT> &validities ) const
+{
+    const std::size_t responseCount = m_sampleCount * m_modeCount;
+    responses.assign( responseCount, imageT::Zero( m_stampSize, m_stampSize ) );
+    validities.assign( responseCount, validityT::Zero( m_stampSize, m_stampSize ) );
+    for( std::size_t sample = 0; sample < m_sampleCount; ++sample )
+    {
+        for( int stampColumn = 0; stampColumn < m_stampSize; ++stampColumn )
+        {
+            for( int stampRow = 0; stampRow < m_stampSize; ++stampRow )
+            {
+                const Eigen::Index pixel = stampRow + static_cast<Eigen::Index>( m_stampSize ) * stampColumn;
+                std::uint64_t validCount{ 0 };
+                float weightSum{ 0 };
+                for( std::size_t worker = 0; worker < m_workerCount; ++worker )
+                {
+                    const Eigen::Index supportColumn = static_cast<Eigen::Index>( worker * m_sampleCount + sample );
+                    validCount += m_validCounts( pixel, supportColumn );
+                    weightSum += m_weightSums( pixel, supportColumn );
+                }
+                const bool enoughSupport =
+                    validCount > 0 &&
+                    static_cast<double>( validCount ) >= m_minimumGoodFraction * static_cast<double>( m_frameCount );
+                if( !enoughSupport || !std::isfinite( weightSum ) || weightSum == 0 )
+                {
+                    continue;
+                }
+                for( std::size_t mode = 0; mode < m_modeCount; ++mode )
+                {
+                    const std::size_t responseIndex = sample * m_modeCount + mode;
+                    float responseSum{ 0 };
+                    for( std::size_t worker = 0; worker < m_workerCount; ++worker )
+                    {
+                        const Eigen::Index responseColumn =
+                            static_cast<Eigen::Index>( worker * responseCount + sample * m_modeCount + mode );
+                        responseSum += m_responseSums( pixel, responseColumn );
+                    }
+                    const float value = responseSum / weightSum;
+                    if( std::isfinite( value ) )
+                    {
+                        responses[responseIndex]( stampRow, stampColumn ) = value;
+                        validities[responseIndex]( stampRow, stampColumn ) = 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
+std::size_t KLIPPSFLinearAccumulator::storageBytes() const noexcept
+{
+    return static_cast<std::size_t>( m_responseSums.size() ) * sizeof( imageT::Scalar ) +
+           static_cast<std::size_t>( m_weightSums.size() ) * sizeof( imageT::Scalar ) +
+           static_cast<std::size_t>( m_validCounts.size() ) * sizeof( std::uint32_t );
+}
+
 KLIPPSFModel::KLIPPSFModel( const imageT &psfTemplate,
                             int detectorRows,
                             int detectorColumns,

@@ -179,5 +179,68 @@ TEST_CASE( "KLIP PSF regional responses accumulate in the sky frame", "[KLIPPSFM
     }
 }
 
+/// Verify worker-sharded linear accumulation preserves weighted regional sums and valid-frame support.
+/** This exercises mx::improc::KLIPPSFLinearAccumulator::addResponse(),
+ * mx::improc::KLIPPSFLinearAccumulator::addFrameSupport(),
+ * mx::improc::KLIPPSFLinearAccumulator::finalize(), and
+ * mx::improc::KLIPPSFLinearAccumulator::storageBytes() for multiple regions, workers, modes, and support states.
+ * \ingroup KLIPPSFModel_unit_tests
+ */
+TEST_CASE( "KLIP linear PSF accumulation is frame-count bounded", "[KLIPPSFModel][accumulator][weighted]" )
+{
+    using accumulatorT = mx::improc::KLIPPSFLinearAccumulator;
+    accumulatorT accumulator( 2, 2, 3, 2, 3, 2.0 / 3.0 );
+    accumulatorT largerFrameCount( 2, 2, 3, 2, 300, 2.0 / 3.0 );
+    REQUIRE( accumulator.storageBytes() == largerFrameCount.storageBytes() );
+
+    const std::vector<float> weights{ 1, 2, 3 };
+    for( std::size_t frame = 0; frame < weights.size(); ++frame )
+    {
+        const std::size_t worker = frame % 2;
+        accumulatorT::validityT validity = accumulatorT::validityT::Ones( 3, 3 );
+        if( frame == 2 )
+        {
+            validity( 0, 0 ) = 0;
+        }
+        accumulator.addFrameSupport( worker, 0, weights[frame], validity );
+        if( frame == 0 )
+        {
+            accumulator.addFrameSupport( worker, 1, weights[frame], validity );
+        }
+
+        accumulatorT::imageT firstRegion = accumulatorT::imageT::Constant( 3, 3, static_cast<float>( frame + 1 ) );
+        accumulatorT::imageT secondRegion = accumulatorT::imageT::Constant( 3, 3, static_cast<float>( 2 * frame + 2 ) );
+        if( frame == 2 )
+        {
+            firstRegion( 0, 0 ) = 0;
+            secondRegion( 0, 0 ) = 0;
+        }
+        accumulator.addResponse( worker, 0, 0, weights[frame], firstRegion );
+        accumulator.addResponse( worker, 0, 0, weights[frame], secondRegion );
+        accumulator.addResponse( worker, 0, 1, weights[frame], 2 * firstRegion );
+        accumulator.addResponse( worker, 0, 1, weights[frame], 2 * secondRegion );
+        accumulator.addResponse( worker, 1, 0, weights[frame], firstRegion );
+        accumulator.addResponse( worker, 1, 1, weights[frame], secondRegion );
+    }
+
+    std::vector<accumulatorT::imageT> responses;
+    std::vector<accumulatorT::validityT> validities;
+    accumulator.finalize( responses, validities );
+    REQUIRE( responses.size() == 4 );
+    REQUIRE( validities.size() == 4 );
+    REQUIRE( validities[0].isConstant( 1 ) );
+    REQUIRE( responses[0]( 1, 1 ) == Approx( 7 ) );
+    REQUIRE( responses[1]( 1, 1 ) == Approx( 14 ) );
+    REQUIRE( responses[0]( 0, 0 ) == Approx( 5 ) );
+    REQUIRE( responses[1]( 0, 0 ) == Approx( 10 ) );
+    REQUIRE( validities[2].isZero() );
+    REQUIRE( validities[3].isZero() );
+    REQUIRE( responses[2].isZero() );
+    REQUIRE( responses[3].isZero() );
+
+    REQUIRE_THROWS( accumulator.addResponse( 2, 0, 0, 1, accumulatorT::imageT::Zero( 3, 3 ) ) );
+    REQUIRE_THROWS( accumulator.addFrameSupport( 0, 2, 1, accumulatorT::validityT::Ones( 3, 3 ) ) );
+}
+
 } // namespace KLIPPSFModel_test
 } // namespace unitTest

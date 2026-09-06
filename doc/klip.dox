@@ -36,10 +36,16 @@
  * `klip.psfSamplesPerRadius`. The source locations are exact uniformly spaced sky-frame coordinates. Each probe is
  * inverse-rotated into the target detector frame, processed by the same supported regional centering, projected
  * through the frozen target-specific basis, and accumulated directly into a compact derotated stamp. Frame stamps
- * use the configured science combination rule and weights. Measurements at a common radius are rotated to the
- * positive-column direction and averaged, and arbitrary radii use nearest-neighbor selection.
- * The mean combination is linear; median and actively clipped combinations produce response-template approximations
- * from the propagated samples rather than finite-amplitude-independent transfer functions.
+ * use the configured science combination rule and weights, except that active science `sigmaMean` is mapped to an
+ * unclipped mean for the analytic response. Measurements at a common radius are rotated to the positive-column
+ * direction and averaged, and arbitrary radii use nearest-neighbor selection. Mean and weighted-mean responses are
+ * linear frozen-basis products. Median remains a response-template approximation rather than a finite-amplitude-
+ * independent transfer function. Product provenance records the configured science estimator separately from the
+ * effective response estimator.
+ * Mean and weighted-mean response contributions are accumulated in worker-local sums, so their retained response
+ * storage scales with the OpenMP worker count rather than the number of target frames. Median response combination
+ * retains the per-frame stamps needed by that nonlinear estimator. FITS provenance identifies `WORKER_SUM` or
+ * `FRAME_STACK` accumulation and records the retained response bytes excluding container overhead.
  *
  * This first linear implementation supports complete, non-overlapping annuli, `none` or `imageMean` centering, no
  * pixel time-series normalization, enabled derotation and final combination, and no post-median subtraction. Median

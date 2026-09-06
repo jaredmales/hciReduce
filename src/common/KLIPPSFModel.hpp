@@ -21,6 +21,71 @@ namespace mx
 namespace improc
 {
 
+/// Accumulate linear sparse KLIP responses with storage bounded by worker count instead of target-frame count.
+/** Regional response contributions and target-frame combination commute for mean and weighted-mean estimators. Each
+ * worker owns independent numerator, denominator, and support columns. Finalization reduces workers in stable index
+ * order and applies the same inclusive minimum-good-frame rule as the science cube combination.
+ *
+ * \ingroup programming_library
+ */
+class KLIPPSFLinearAccumulator
+{
+  public:
+    /// Float response-stamp storage.
+    using imageT = Eigen::Array<float, Eigen::Dynamic, Eigen::Dynamic>;
+
+    /// Byte-valued response-stamp validity storage.
+    using validityT = Eigen::Array<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>;
+
+    /// Construct zeroed worker-local accumulators for fixed experiment dimensions.
+    KLIPPSFLinearAccumulator( std::size_t sampleCount, /**< [in] positive sparse sky-sample count */
+                              std::size_t modeCount,   /**< [in] positive KLIP output-mode count */
+                              int stampSize,           /**< [in] positive odd square response-stamp size */
+                              std::size_t workerCount, /**< [in] positive maximum concurrent worker count */
+                              std::size_t frameCount,  /**< [in] positive target-frame count */
+                              double minimumGoodFraction /**< [in] inclusive valid-frame fraction in `[0,1]` */ );
+
+    /// Add one weighted regional contribution to a worker-owned sample/mode numerator.
+    void addResponse( std::size_t workerIndex, /**< [in] zero-based worker index */
+                      std::size_t sampleIndex, /**< [in] zero-based sparse sample index */
+                      std::size_t modeIndex,   /**< [in] zero-based output-mode index */
+                      float frameWeight,       /**< [in] finite target-frame combination weight */
+                      const imageT &contribution /**< [in] finite regional response contribution */ );
+
+    /// Record geometric support and weight once for one sample in one target frame.
+    void addFrameSupport( std::size_t workerIndex, /**< [in] zero-based worker index */
+                          std::size_t sampleIndex, /**< [in] zero-based sparse sample index */
+                          float frameWeight,       /**< [in] finite target-frame combination weight */
+                          const validityT &validity /**< [in] geometric response-stamp validity */ );
+
+    /// Reduce worker-local state into sample-major, mode-minor mean responses and validity stamps.
+    void finalize( std::vector<imageT> &responses, /**< [out] sample-major, mode-minor combined responses */
+                   std::vector<validityT> &validities /**< [out] validity paired with `responses` */ ) const;
+
+    /// Return retained accumulator storage in bytes, excluding container overhead.
+    std::size_t storageBytes() const noexcept;
+
+  private:
+    std::size_t m_sampleCount{ 0 };    ///< Positive sparse sample count.
+
+    std::size_t m_modeCount{ 0 };      ///< Positive output-mode count.
+
+    int m_stampSize{ 0 };              ///< Positive odd response-stamp width and height.
+
+    std::size_t m_workerCount{ 0 };    ///< Positive worker-shard count.
+
+    std::size_t m_frameCount{ 0 };     ///< Positive target-frame count used for support thresholds.
+
+    double m_minimumGoodFraction{ 0 }; ///< Inclusive minimum valid-frame fraction.
+
+    imageT m_responseSums;             ///< Weighted response numerators by stamp pixel and worker/sample/mode column.
+
+    imageT m_weightSums;               ///< Valid weight denominators by stamp pixel and worker/sample column.
+
+    Eigen::Array<std::uint32_t, Eigen::Dynamic, Eigen::Dynamic> m_validCounts;
+    ///< Valid target-frame counts by stamp pixel and worker/sample column.
+};
+
 /// Propagate a compact PSF probe through a frozen KLIP basis and into a derotated response stamp.
 /** The source coordinate is specified in the final sky frame. For each target frame, the source is inverse-rotated
  * into detector coordinates, sampled on one flattened KLIP region, processed by the supported linear centering

@@ -299,6 +299,11 @@ Known non-blocking ownership follow-ups:
       hciReduce precision benchmarks exercise `eigenSYRK<float>()`, `eigenSYEVR<float>()`, and `gemm<float>()` as
       integration/capability checks, but downstream execution does not satisfy mxlib's own executable-line coverage
       requirement.
+      - The 2026-09-06 KLIP sparse-response accumulator audit reconfirmed this ownership gap after editing
+        `KLIPreduction::worker()`: the current filtered trace covers the public `eigenSYRK` adapter at 10/10 lines but
+        records 0/3 executable lines for its production `syrk<float>()` specialization in
+        `source/math/templateBLAS.cpp` (lines 138 and 150--151). Add a direct float `syrk` behavioral test in mxlib;
+        do not treat the passing hciReduce integration test as upstream coverage.
 
 - [x] Recheck the exact-double KLIP factor-deletion dependencies in the current LCOV report:
       `validateSvdDeletionFactor`, `svdDeletionResult<double>::prepare`,
