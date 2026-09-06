@@ -21,11 +21,12 @@ The first sparse radial estimator landed in hciReduce commit `3e0db39`.
 - `src/common/KLIPreduction.hpp` configures exact sky samples at `klip.psfSampleRadii` and uniformly spaced angles,
   invokes the probe while each target-specific basis is resident, combines target-frame stamps, fits one
   `RadialPSFModel` per requested mode count, and optionally writes canonical radial response and validity cubes.
-- `src/common/RadialPSFModel.hpp` and `.cpp` rotate measurements to the positive-column radial orientation, average
-  samples at the same radius, and evaluate arbitrary positions with nearest-radius interpolation.
+- `src/common/RadialPSFModel.hpp` and `.cpp` resolve fixed-count or maximum-arc angular sampling, rotate measurements
+  to the positive-column radial orientation, average samples at the same radius, and evaluate arbitrary positions by
+  linearly interpolating bracketing radial responses.
 - `tests/common/KLIPPSFModel_test.cpp`, `tests/common/KLIPreduction_test.cpp`, and
   `tests/common/RadialPSFModel_test.cpp` cover probe preprocessing, frozen-basis projection, compact derotation,
-  radial alignment, nearest-radius evaluation, orchestration, and persisted schema-1 products.
+  radial alignment, linear radial evaluation, orchestration, and persisted schema-1 products.
 - `doc/klip.dox`, `doc/klip_algorithm.dox`, and `doc/klip_config.dox` describe the public controls and initial
   restrictions.
 
@@ -47,7 +48,8 @@ Maintained ROC experiment assets are under `agents/plans/scripts`:
   `working/kr.conf`, uses the current ROC angle constant, and deliberately selects supported `imageMean` centering.
 - `run_klip_psf_response_experiment.sh` runs a science-only control, a 1-pixel/16-angle radial reference, and several
   coarser radial/angular grids while recording exact commands, hashes, wall time, peak RSS, and completion state.
-- `compare_klip_psf_response.py` compares canonical response/validity cubes by nearest radius, verifies the response
+- `compare_klip_psf_response.py` linearly evaluates candidate response/validity cubes at the fine-reference radii,
+  verifies the response
   run leaves the final science cube unchanged, and reports template-level matched-filter amplitude/cosine proxies.
   Those proxies do not replace the later negative-fit/zero-signal-injection inference oracle.
 
@@ -55,7 +57,7 @@ From the repository root on ROC, run the initial bounded set with:
 
 ```bash
 OMP_NUM_THREADS=32 agents/plans/scripts/run_klip_psf_response_experiment.sh \
-    science_only reference_dr1_a16 radial_dr2_a16
+    science_only reference_dr1_a16 radial_ld_fixed16 radial_ld_arc
 ```
 
 The current implementation supports FP32 calculation storage, complete non-overlapping annuli, enabled derotation,
@@ -102,7 +104,7 @@ contract where the KLIP radial product supplies the local template.
 
 The maintained ROC driver now compares multiple sparse grids with a fine radial reference and a science-only control,
 including response similarity, template-level matched-filter proxies, wall time, peak RSS, retained memory, and
-product size. The representative run still needs to be performed. A later experiment must compare the accepted
+product size. The first representative run is recorded below. A later experiment must compare the accepted
 sparse grid with the current negative-companion plus zero-signal fake-injection construction, including matched-filter
 position and contrast ranking and uncertainty. Full reinjection/refitting need not agree as a calibrated throughput
 measurement, but it must establish that the sparse filter does not materially degrade the accepted inference metrics.
@@ -111,6 +113,14 @@ Known-planet avoidance is not initially required for the exact KLIP probe becaus
 from the measured residual at that source pixel. The basis is frozen from the original science data, and the probe is
 analytic. If validation shows that basis contamination by the known companion matters, compare a neighboring-angle
 surrogate or masked-basis construction explicitly rather than silently moving the exact requested probe.
+
+The 2026-09-06 run in `working/roc/klip_psf_response_20260906T163025Z` used commit `55eae39`, 32 workers, a
+science-only control, a 1-pixel/16-angle reference with 864 exact probes, and a 2-pixel/16-angle candidate with 432
+probes. The response overhead fell from 708.07 to 347.97 seconds (2.03x), while the ordinary science product remained
+bitwise unchanged. Across modes, the candidate had median/worst relative L2 errors of 0.0641/0.0644, mean cosine
+similarity 0.99794, and worst unit-signal amplitude-proxy error 0.224%. This establishes useful sparsity, but the next
+ROC run must evaluate the requested 3.6-pixel radial grid with production linear radial interpolation and compare a
+fixed 16-angle grid with the 3.6-pixel maximum-arc grid.
 
 ## Implementation sequence
 
@@ -142,6 +152,14 @@ surrogate or masked-basis construction explicitly rather than silently moving th
 - [ ] Record response error, matched-filter error, worker/wall time, peak RSS, and stored-product size.
 - [ ] Decide whether exact sparse sky propagation is fast enough before considering a detector-local approximation.
 
+### 3a. Adopt lambda/D-scale sampling
+
+- [x] Resolve per-radius angular counts from either a fixed count or a maximum circular arc step.
+- [x] Average all common-angle samples independently at each configured radius.
+- [x] Replace nearest-radius lookup with linear interpolation, intersecting endpoint validity and clamping only
+  outside the sampled interval.
+- [ ] Repeat the P4 and KLIP ROC experiments at 3.6-pixel radial spacing with both fixed and arc-spaced angular grids.
+
 ### 4. Add matched-filter and fitting integration
 
 - [ ] Evaluate the fitted radial response at every requested science location and apply the shared signed normalized
@@ -168,5 +186,8 @@ surrogate or masked-basis construction explicitly rather than silently moving th
 - Median response combination still needs a bounded accepted approximation or external-storage strategy.
 - Median regional centering, pixel time-series normalization, wedges/overlapping regions, and post-median subtraction
   require separate perturbation contracts.
-- Apply the repository mxlib coverage gate to every edited function that calls mxlib and record any ownership gap in
-  `agents/plans/mxlib_cleanup.md`.
+- The 2026-09-06 radial-sampling follow-up rechecked `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` for
+  every mxlib API directly called by the edited KLIP configuration, preparation, region, and header functions. The
+  exact app-configuration, exception, finite-check, FITS file/header, `eigenCube<float>`, `radAngImage`,
+  `annulusIndices`, `cutImageRegion`, degree/radian, and time-utility paths have 100% executable-line coverage. No new
+  mxlib ownership follow-up is required.

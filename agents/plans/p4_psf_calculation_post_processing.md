@@ -275,6 +275,21 @@ active `sigmaMean` science combination while the product truthfully recorded an 
 The full 29-target test suite and Doxygen build passed. This establishes mechanics and accounting; the AF Lep/NACO
 dense comparison on ROC remains the scientific and performance acceptance test.
 
+The 2026-09-06 run in `working/roc/p4_psf_sampling_20260906T151011Z` used commit `1b7be89`, the 621-frame AF Lep/NACO
+sequence, 30 radii at 2-pixel spacing, 16 requested angles per radius, and a 5-pixel avoidance zone around AF Lep b.
+The detector-local path calculated 458 local responses instead of 11,304 and reduced wall time from 948.24 to 177.93
+seconds (5.33x); local-response worker time fell from 36,010.6 to 932.7 seconds (38.6x). Its median/worst mode response
+relative L2 errors were 0.148/0.163, mean cosine similarity was 0.9893, and filtered-image relative L2 was 0.338.
+
+A post-run coordinate audit found that the old nearest-coordinate selector could evade the companion by changing
+radius as well as angle. For example, the node requested at radius 11 included actual radii from about 6.52 to 11.51
+pixels, and the radius-13 bin extended to about 17.51 pixels. That invalidates the scientific interpretation of this
+otherwise successful performance result. The follow-up implementation constrains integer detector candidates to
+within `sqrt(0.5)` pixels of their requested radial node, shifts only in angle after avoidance, records requested and
+realized per-radius counts and actual radial extrema, and linearly interpolates the azimuthal averages between radial
+nodes. It also adds a mutually exclusive arc-spacing control so a 3.6-pixel lambda/D scale can set both radial and
+azimuthal density. A new ROC comparison is required.
+
 ## Proposed configuration and products
 
 Use opt-in P4-specific configuration so all existing controls and outputs remain unchanged when no PSF template is
@@ -356,8 +371,13 @@ directory.
   counts before another full ROC matrix.
 - [x] Prototype direct detector-polar response sampling for `p4.numberImages=0`: request coefficients and calculate
   local responses only at the configured discrete radii/angles, rotate each response to a common radial orientation,
-  convert each fixed-target local operator into a source-centered filter stamp, average within radius, and reuse the
-  existing nearest-radius model. Record the approximation to the spatially varying coefficient field explicitly.
+  convert each fixed-target local operator into a source-centered filter stamp, average within radius, and linearly
+  interpolate the common-angle response between radial nodes. Record the approximation to the spatially varying
+  coefficient field explicitly.
+- [x] Constrain each detector-grid sample to the requested radial shell, including after known-planet avoidance;
+  record requested/realized counts and actual radial extrema so a radius-changing surrogate cannot pass unnoticed.
+- [x] Support either a fixed number of angles at every radius or a maximum azimuthal arc step, with exactly one
+  positive angular control.
 - [ ] Compare every detector-local mode and filtered product with the dense response on ROC, including actual local-
   response count, worker time, wall time, response-field error, and filtered-image error.
 - [x] Remove detector-polar candidates whose coordinates intersect the configured trajectories of known `planet`
@@ -483,6 +503,12 @@ product-publication, and required-search functions remain fully covered: excepti
 FITS headers/cards, `eigenCube<float>`, `ompLoopWatcher`, finite checks, time utilities, `parentPath`,
 `createDirectories`, `invalidNumber<float>`, and the float/double `dtor` instantiations used for planet trajectories.
 None of those mxlib files changed after the report was generated, so no new ownership follow-up is required.
+
+The 2026-09-06 radial-shell/linear-interpolation follow-up rechecked the same current LCOV trace. The edited P4
+configuration, validation, reduction, product, and header functions introduce no new mxlib call path. Their directly
+called configuration, exception, finite-check, FITS header/file, cube, geometry, OpenMP progress, time, and file-
+logistics APIs remain at 100% executable-line coverage in the exact ranges identified above. No new mxlib ownership
+follow-up is required.
 
 ## Acceptance criteria
 

@@ -72,6 +72,32 @@ def safe_ratio(numerator: float, denominator: float) -> float:
     return numerator / denominator
 
 
+def header_vector(header: fits.Header, key: str) -> np.ndarray:
+    """Read a comma-separated numeric vector from a hierarchical FITS card."""
+    text = str(header.get(key, ""))
+    if not text.strip():
+        return np.asarray([], dtype=np.float64)
+    try:
+        values = np.asarray([float(token) for token in text.split(",")], dtype=np.float64)
+    except ValueError as error:
+        raise RuntimeError(f"invalid numeric vector in {key}") from error
+    if not np.isfinite(values).all():
+        raise RuntimeError(f"non-finite numeric vector in {key}")
+    return values
+
+
+def maximum_sample_radial_offset(header: fits.Header) -> float:
+    """Return the largest realized detector-radius offset from its requested radial node."""
+    requested = header_vector(header, "P4 PSF SAMPLE RADII")
+    minimum = header_vector(header, "P4 PSF ACTUAL MINIMUM RADII")
+    maximum = header_vector(header, "P4 PSF ACTUAL MAXIMUM RADII")
+    if requested.size == 0 or minimum.size == 0 or maximum.size == 0:
+        raise RuntimeError("P4 sparse response is missing detector-radius provenance")
+    if requested.shape != minimum.shape or requested.shape != maximum.shape:
+        raise RuntimeError("P4 requested and realized radial provenance lengths differ")
+    return float(np.maximum(np.abs(minimum - requested), np.abs(maximum - requested)).max())
+
+
 def compare_mode(
     dense_model_path: Path,
     dense_validity_path: Path,
@@ -218,6 +244,8 @@ def main() -> int:
         for mode_index, dense_model_path in sorted(dense_modes.items()):
             sparse_model_path = sparse_modes[mode_index]
             header = fits.getheader(sparse_model_path)
+            if str(header.get("P4 PSF SPATIAL MODEL", "")).strip() != "RADIAL_LINEAR":
+                raise RuntimeError(f"sparse response does not declare linear radial interpolation: {sparse_model_path}")
             metrics = compare_mode(
                 dense_model_path,
                 dense_products / f"p4PSF_validity_{mode_index:04d}.fits",
@@ -226,6 +254,12 @@ def main() -> int:
             )
             measurements = int(header.get("P4 PSF MEASUREMENT COUNT", metrics["source_count"]))
             local_responses = int(header.get("P4 LOCAL PSF RESPONSE SEARCH COUNT", metrics["source_count"]))
+            radial_offset = maximum_sample_radial_offset(header)
+            radial_tolerance = float(header.get("P4 PSF SAMPLE RADIAL TOLERANCE", math.nan))
+            if math.isfinite(radial_offset) and (
+                not math.isfinite(radial_tolerance) or radial_offset > radial_tolerance + 1e-6
+            ):
+                raise RuntimeError(f"P4 detector samples exceed their declared radial shell: {sparse_model_path}")
             row: dict[str, float | int | str] = {
                 "case": sparse_case.name,
                 "mode_index": mode_index,
@@ -235,6 +269,7 @@ def main() -> int:
                 "local_response_count": local_responses,
                 "local_response_fraction": safe_ratio(local_responses, int(metrics["source_count"])),
                 "local_response_reduction": safe_ratio(int(metrics["source_count"]), local_responses),
+                "maximum_sample_radial_offset": radial_offset,
                 "wall_seconds": sparse_wall,
                 "speedup_vs_dense": safe_ratio(dense_wall, sparse_wall),
                 "psf_worker_seconds": sparse_psf_worker,
@@ -258,6 +293,7 @@ def main() -> int:
                 "local_response_count": int(first["local_response_count"]),
                 "local_response_fraction": float(first["local_response_fraction"]),
                 "local_response_reduction": float(first["local_response_reduction"]),
+                "maximum_sample_radial_offset": float(first["maximum_sample_radial_offset"]),
                 "wall_seconds": sparse_wall,
                 "speedup_vs_dense": float(first["speedup_vs_dense"]),
                 "psf_worker_seconds": sparse_psf_worker,
@@ -284,15 +320,16 @@ def main() -> int:
         stream.write(f"Dense reference wall time: {format_number(dense_wall)} seconds.\n\n")
         stream.write(f"Dense local-PSF worker time: {format_number(dense_psf_worker)} seconds.\n\n")
         stream.write(
-            "| Case | Sampling | Measurements | Local responses | Local fraction | Wall (s) | Wall speedup | "
+            "| Case | Sampling | Measurements | Local responses | Max radial offset | Local fraction | Wall (s) | Wall speedup | "
             "PSF worker (s) | PSF speedup | "
             "Median mode rel. L2 | Worst mode rel. L2 | Mean cosine | Filtered rel. L2 |\n"
         )
-        stream.write("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
+        stream.write("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
         for row in summary_rows:
             stream.write(
                 f"| {row['case']} | {row['sampling_mode']} | {row['measurement_count']} | "
                 f"{row['local_response_count']} | "
+                f"{format_number(float(row['maximum_sample_radial_offset']))} | "
                 f"{format_number(float(row['local_response_fraction']))} | "
                 f"{format_number(float(row['wall_seconds']))} | "
                 f"{format_number(float(row['speedup_vs_dense']))}x | "

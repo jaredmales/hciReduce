@@ -18,11 +18,8 @@ analyze_only=false
 all_cases=(
     science_only
     reference_dr1_a16
-    radial_dr2_a4
-    radial_dr2_a8
-    radial_dr2_a16
-    radial_dr4_a16
-    radial_dr8_a16
+    radial_ld_fixed16
+    radial_ld_arc
 )
 
 usage()
@@ -49,7 +46,7 @@ Environment overrides:
 
 Examples:
   OMP_NUM_THREADS=32 nohup $(basename "$0") > klip_psf_driver.log 2>&1 &
-  EXPERIMENT_DIR=/data/klip-psf $(basename "$0") science_only reference_dr1_a16 radial_dr2_a16
+  EXPERIMENT_DIR=/data/klip-psf $(basename "$0") science_only reference_dr1_a16 radial_ld_fixed16 radial_ld_arc
   $(basename "$0") --analyze-only /data/klip-psf
 EOF
 }
@@ -59,6 +56,8 @@ list_cases()
     cat <<'EOF'
 science_only       normal KLIP reduction without analytic response measurement
 reference_dr1_a16  radii 6.5:1:59.5 pixels, 16 angles per radius
+radial_ld_fixed16  radii spaced by 3.6 pixels, 16 angles per radius
+radial_ld_arc      same radii with angles spaced by at most 3.6-pixel arcs
 radial_dr2_a4      radii 7:2:59 pixels, 4 angles per radius
 radial_dr2_a8      radii 7:2:59 pixels, 8 angles per radius
 radial_dr2_a16     radii 7:2:59 pixels, 16 angles per radius
@@ -81,6 +80,7 @@ case_parameters()
     case_response=true
     case_radii=
     case_angles=0
+    case_arc_step=0
     case "${case_name}" in
         science_only)
             case_response=false
@@ -88,6 +88,14 @@ case_parameters()
         reference_dr1_a16)
             case_radii=$(radii_sequence 6.5 1 59.5)
             case_angles=16
+            ;;
+        radial_ld_fixed16)
+            case_radii=$(radii_sequence 7.8 3.6 58.2)
+            case_angles=16
+            ;;
+        radial_ld_arc)
+            case_radii=$(radii_sequence 7.8 3.6 58.2)
+            case_arc_step=3.6
             ;;
         radial_dr2_a4)
             case_radii=$(radii_sequence 7 2 59)
@@ -191,12 +199,13 @@ command -v "${klipreduce_bin}" >/dev/null 2>&1 || {
 }
 
 help_text=$("${klipreduce_bin}" --help 2>&1)
-if [[ "${help_text}" != *"--klip.psfSampleRadii"* || "${help_text}" != *"--klip.outputPSFModels"* ]]; then
+if [[ "${help_text}" != *"--klip.psfSampleRadii"* || "${help_text}" != *"--klip.psfSampleArcStep"* ||
+      "${help_text}" != *"--klip.outputPSFModels"* ]]; then
     printf 'klipReduce does not expose the sparse response options: %s\n' "${klipreduce_bin}" >&2
     printf '%s\n' 'Build this hciReduce checkout and set KLIPREDUCE_BIN to that executable.' >&2
     exit 1
 fi
-if grep -Eq '^[[:space:]]*(psfFile|psfStampSize|psfSampleRadii|psfSamplesPerRadius|outputPSFModels)[[:space:]]*=' \
+if grep -Eq '^[[:space:]]*(psfFile|psfStampSize|psfSampleRadii|psfSamplesPerRadius|psfSampleArcStep|outputPSFModels)[[:space:]]*=' \
     "${base_config}"; then
     printf 'The base configuration must not enable KLIP PSF measurement: %s\n' "${base_config}" >&2
     exit 1
@@ -290,10 +299,14 @@ for case_name in "${selected_cases[@]}"; do
             --klip.psfFile "${psf_file}"
             --klip.psfStampSize "${psf_stamp_size}"
             --klip.psfSampleRadii "${case_radii}"
-            --klip.psfSamplesPerRadius "${case_angles}"
             --klip.outputPSFModels=true
             --klip.psfOutputPrefix klipPSF_
         )
+        if ((case_angles > 0)); then
+            command_line+=(--klip.psfSamplesPerRadius "${case_angles}")
+        else
+            command_line+=(--klip.psfSampleArcStep "${case_arc_step}")
+        fi
     fi
 
     shell_join "${command_line[@]}" > "${case_dir}/command.txt"
@@ -303,6 +316,7 @@ for case_name in "${selected_cases[@]}"; do
         printf 'response_enabled=%s\n' "${case_response}"
         printf 'sample_radii=%s\n' "${case_radii}"
         printf 'samples_per_radius=%s\n' "${case_angles}"
+        printf 'sample_arc_step=%s\n' "${case_arc_step}"
         printf 'psf_file=%s\n' "${psf_file}"
         printf 'psf_stamp_size=%s\n' "${psf_stamp_size}"
         printf 'omp_num_threads=%s\n' "${OMP_NUM_THREADS:-unlimited}"
@@ -354,6 +368,8 @@ for response in responses:
         raise SystemExit(f"unexpected KLIP response schema in {response}")
     if str(header.get("KLIP PSF ACCUMULATION", "")).strip() != "WORKER_SUM":
         raise SystemExit(f"expected bounded worker-sum accumulation in {response}")
+    if str(header.get("KLIP PSF SPATIAL MODEL", "")).strip() != "RADIAL_LINEAR":
+        raise SystemExit(f"expected linear radial interpolation in {response}")
 PY
     fi
     printf 'completed_utc=%s\n' "${finished_utc}" > "${case_dir}/complete"

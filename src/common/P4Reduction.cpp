@@ -1287,6 +1287,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "int",
                 "Uniform angular measurement count at each sparse PSF sample radius" );
+    config.add( "p4.psfSampleArcStep",
+                "",
+                "p4.psfSampleArcStep",
+                mx::app::argType::Required,
+                "p4",
+                "psfSampleArcStep",
+                false,
+                "float",
+                "Maximum azimuthal response-sample arc spacing in pixels; mutually exclusive with fixed count" );
     config.add( "p4.psfSamplingMode",
                 "",
                 "p4.psfSamplingMode",
@@ -1516,6 +1525,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( m_psfStampSize, "p4.psfStampSize" );
     config( m_psfSampleRadii, "p4.psfSampleRadii" );
     config( m_psfSamplesPerRadius, "p4.psfSamplesPerRadius" );
+    config( m_psfSampleArcStep, "p4.psfSampleArcStep" );
     std::string psfSamplingMode = psfSamplingModeString( m_psfSamplingMode );
     config( psfSamplingMode, "p4.psfSamplingMode" );
     try
@@ -2031,11 +2041,20 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
                                            "P4 PSF output or filtering requires a final combination method" );
         }
     }
-    if( ( m_psfSampleRadii.empty() && m_psfSamplesPerRadius != 0 ) ||
-        ( !m_psfSampleRadii.empty() && m_psfSamplesPerRadius <= 0 ) )
+    if( !mx::math::isFinite( m_psfSampleArcStep ) || m_psfSampleArcStep < 0 || m_psfSamplesPerRadius < 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                       "p4.psfSampleRadii and a positive p4.psfSamplesPerRadius must be set together" );
+                                       "P4 PSF angular sampling controls must be finite and nonnegative" );
+    }
+    const bool fixedAngularSampling = m_psfSamplesPerRadius > 0;
+    const bool arcAngularSampling = m_psfSampleArcStep > 0;
+    if( ( m_psfSampleRadii.empty() && ( fixedAngularSampling || arcAngularSampling ) ) ||
+        ( !m_psfSampleRadii.empty() && fixedAngularSampling == arcAngularSampling ) )
+    {
+        throw mx::exception<verboseT>(
+            mx::error_t::invalidconfig,
+            "p4.psfSampleRadii and exactly one positive p4.psfSamplesPerRadius or p4.psfSampleArcStep must be set "
+            "together" );
     }
     if( !m_psfSampleRadii.empty() && m_psfFile.empty() )
     {
@@ -3764,6 +3783,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_localPSFValidity.clear();
     m_localPSFResponseRequired.clear();
     m_psfMeasurementSamples.clear();
+    m_psfRequestedSamplesPerRadius.clear();
     m_psfSampleExcludedCount = 0;
     m_localPSFComponentCounts.clear();
     m_localPSFRows = 0;
@@ -4195,12 +4215,15 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             {
                 radialRadii.push_back( static_cast<double>( radius ) );
             }
-            m_psfMeasurementSamples =
-                RadialPSFModel::selectSamples( availableSources,
-                                               grids.front().xCenter(),
-                                               grids.front().yCenter(),
-                                               radialRadii,
-                                               static_cast<std::size_t>( m_psfSamplesPerRadius ) );
+            m_psfRequestedSamplesPerRadius =
+                RadialPSFModel::angularSampleCounts( radialRadii,
+                                                     static_cast<std::size_t>( m_psfSamplesPerRadius ),
+                                                     static_cast<double>( m_psfSampleArcStep ) );
+            m_psfMeasurementSamples = RadialPSFModel::selectSamples( availableSources,
+                                                                     grids.front().xCenter(),
+                                                                     grids.front().yCenter(),
+                                                                     radialRadii,
+                                                                     m_psfRequestedSamplesPerRadius );
             std::vector<std::size_t> requiredSearch;
             if( m_psfSamplingMode == P4PSFSamplingMode::detectorLocal )
             {
@@ -5899,16 +5922,19 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                       static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 0 ) ),
                       static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 1 ) ) } );
             }
-            radialSamples = RadialPSFModel::selectSamples( availableSources,
-                                                           grids.front().xCenter(),
-                                                           grids.front().yCenter(),
-                                                           radialRadii,
-                                                           static_cast<std::size_t>( m_psfSamplesPerRadius ) );
+            radialSamples = RadialPSFModel::selectSamples(
+                availableSources,
+                grids.front().xCenter(),
+                grids.front().yCenter(),
+                radialRadii,
+                RadialPSFModel::angularSampleCounts( radialRadii,
+                                                     static_cast<std::size_t>( m_psfSamplesPerRadius ),
+                                                     static_cast<double>( m_psfSampleArcStep ) ) );
         }
         std::cerr << "P4 radial PSF approximation: " << radialSamples.size() << " distinct measurements at "
                   << radialRadii.size() << " radii, "
                   << ( detectorLocalApproximation ? "detector-local operator" : "exact sky reconstruction" )
-                  << ", nearest-radius interpolation\n";
+                  << ", linear radial interpolation\n";
     }
 
     std::vector<double> derotationAngles( static_cast<std::size_t>( this->m_Nims ), 0 );
@@ -6051,7 +6077,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
         header.template append<std::string>( "P4 PSF NORMALIZATION", "STORED", "template normalization convention" );
         header.template append<std::string>( "P4 PSF RESPONSE", "FROZEN_SIGNED", "forward-model convention" );
         header.template append<std::string>( "P4 PSF SPATIAL MODEL",
-                                             radialApproximation ? "RADIAL_NEAREST" : "PER_PIXEL",
+                                             radialApproximation ? "RADIAL_LINEAR" : "PER_PIXEL",
                                              "final response spatial approximation" );
         header.template append<std::string>(
             "P4 PSF MEASUREMENT COUNT",
@@ -6914,7 +6940,44 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
                                        "sparse response measurement radii" );
     head.template append<int>( "P4 PSF SAMPLES PER RADIUS",
                                m_psfSamplesPerRadius,
-                               "requested angular response samples per radius" );
+                               "fixed angular samples per radius; zero selects arc spacing" );
+    head.template append<realT>( "P4 PSF SAMPLE ARC STEP",
+                                 m_psfSampleArcStep,
+                                 "maximum azimuthal sample arc spacing in pixels" );
+    head.template append<double>( "P4 PSF SAMPLE RADIAL TOLERANCE",
+                                  RadialPSFModel::detectorPixelRadiusTolerance(),
+                                  "maximum detector-pixel radial offset from a requested node" );
+    head.template append<std::string>( "P4 PSF REQUESTED SAMPLES PER RADIUS",
+                                       p4Join( m_psfRequestedSamplesPerRadius ),
+                                       "resolved angular sample counts by radius" );
+    if( !m_psfMeasurementSamples.empty() )
+    {
+        std::vector<std::size_t> realizedSamples( m_psfSampleRadii.size(), 0 );
+        std::vector<double> minimumActualRadius( m_psfSampleRadii.size(), std::numeric_limits<double>::infinity() );
+        std::vector<double> maximumActualRadius( m_psfSampleRadii.size(), 0 );
+        for( const RadialPSFSample &sample : m_psfMeasurementSamples )
+        {
+            if( sample.radiusIndex >= realizedSamples.size() )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                               "P4 PSF measurement radius index exceeds configured radial nodes" );
+            }
+            ++realizedSamples[sample.radiusIndex];
+            minimumActualRadius[sample.radiusIndex] =
+                std::min( minimumActualRadius[sample.radiusIndex], sample.radius );
+            maximumActualRadius[sample.radiusIndex] =
+                std::max( maximumActualRadius[sample.radiusIndex], sample.radius );
+        }
+        head.template append<std::string>( "P4 PSF REALIZED SAMPLES PER RADIUS",
+                                           p4Join( realizedSamples ),
+                                           "distinct detector measurements by radius" );
+        head.template append<std::string>( "P4 PSF ACTUAL MINIMUM RADII",
+                                           p4Join( minimumActualRadius ),
+                                           "minimum selected detector radius by configured node" );
+        head.template append<std::string>( "P4 PSF ACTUAL MAXIMUM RADII",
+                                           p4Join( maximumActualRadius ),
+                                           "maximum selected detector radius by configured node" );
+    }
     head.template append<std::string>( "P4 PSF SAMPLING MODE",
                                        psfSamplingModeString( m_psfSamplingMode ),
                                        "sparse response measurement operator" );

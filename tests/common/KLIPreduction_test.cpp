@@ -289,6 +289,7 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( config.m_targets.at( "klip.psfStampSize" ).helpType == "int" );
     REQUIRE( config.m_targets.at( "klip.psfSampleRadii" ).helpType == "float vector" );
     REQUIRE( config.m_targets.at( "klip.psfSamplesPerRadius" ).helpType == "int" );
+    REQUIRE( config.m_targets.at( "klip.psfSampleArcStep" ).helpType == "float" );
     REQUIRE( config.m_targets.at( "klip.outputPSFModels" ).helpType == "bool" );
     REQUIRE( config.m_targets.at( "klip.psfOutputPrefix" ).helpType == "string" );
 
@@ -303,6 +304,7 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( defaults.m_psfStampSize == 0 );
     REQUIRE( defaults.m_psfSampleRadii.empty() );
     REQUIRE( defaults.m_psfSamplesPerRadius == 0 );
+    REQUIRE( defaults.m_psfSampleArcStep == 0 );
     REQUIRE_FALSE( defaults.m_outputPSFModels );
     REQUIRE( defaults.m_psfOutputPrefix == "klipPSF_" );
 
@@ -321,8 +323,16 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( configured.m_psfStampSize == 9 );
     REQUIRE( configured.m_psfSampleRadii == std::vector<float>{ 4, 8 } );
     REQUIRE( configured.m_psfSamplesPerRadius == 6 );
+    REQUIRE( configured.m_psfSampleArcStep == 0 );
     REQUIRE( configured.m_outputPSFModels );
     REQUIRE( configured.m_psfOutputPrefix == "response_" );
+
+    reductionT arcConfigured;
+    readReductionConfig( arcConfigured,
+                         directory.file( "klip-arc.conf" ),
+                         "[klip]\npsfSampleRadii=4,8\npsfSampleArcStep=3.6\n" );
+    REQUIRE( arcConfigured.m_psfSamplesPerRadius == 0 );
+    REQUIRE( arcConfigured.m_psfSampleArcStep == Approx( 3.6 ) );
 }
 
 /// Verify KLIPreduction::loadConfig loads geometric, selection, centering, and normalization settings.
@@ -2469,7 +2479,7 @@ TEST_CASE( "KLIP region orchestration", "[KLIPreduction][regions][ADI][mask]" )
     REQUIRE_FALSE( reduction.m_psfsub[0].cube().isZero() );
 }
 
-/// Verify KLIP measures sparse frozen-basis responses, aligns them radially, and evaluates nearest-radius results.
+/// Verify KLIP measures sparse frozen-basis responses, aligns them radially, and evaluates linear-radial results.
 /** This exercises mx::improc::KLIPreduction::regions(), mx::improc::KLIPPSFModel, and
  * mx::improc::KLIPreduction::radialPSFModel() through the production ADI orchestration path.
  * \ingroup KLIPreduction_unit_tests
@@ -2534,13 +2544,14 @@ TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regio
     REQUIRE( writer.write( reduction.m_psfFile, psfTemplate ) == mx::error_t::noerror );
     reduction.m_psfStampSize = 3;
     reduction.m_psfSampleRadii = { 2, 3 };
-    reduction.m_psfSamplesPerRadius = 4;
+    reduction.m_psfSampleArcStep = 2;
 
     REQUIRE( reduction.regions( 0, 5, 0, 360 ) == 0 );
-    REQUIRE( reduction.m_psfMeasurementSamples.size() == 8 );
+    REQUIRE( reduction.m_psfMeasurementSamples.size() == 17 );
+    REQUIRE( reduction.m_psfRequestedSamplesPerRadius == std::vector<std::size_t>{ 7, 10 } );
     REQUIRE( reduction.radialPSFModel( 0 ).radiusCount() == 2 );
-    REQUIRE( reduction.radialPSFModel( 0 ).sampleCount( 0 ) == 4 );
-    REQUIRE( reduction.radialPSFModel( 0 ).sampleCount( 1 ) == 4 );
+    REQUIRE( reduction.radialPSFModel( 0 ).sampleCount( 0 ) == 7 );
+    REQUIRE( reduction.radialPSFModel( 0 ).sampleCount( 1 ) == 10 );
     REQUIRE( reduction.radialPSFModel( 1 ).radiusCount() == 2 );
     REQUIRE( reduction.radialPSFModel( 0 ).canonicalResponse( 0 ).isFinite().all() );
     REQUIRE( reduction.radialPSFModel( 0 ).canonicalValidity( 0 ).sum() > 0 );
@@ -2574,7 +2585,7 @@ TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regio
         comparison.m_psfFile = reduction.m_psfFile;
         comparison.m_psfStampSize = 3;
         comparison.m_psfSampleRadii = { 2, 3 };
-        comparison.m_psfSamplesPerRadius = 4;
+        comparison.m_psfSampleArcStep = 2;
         comparison.m_finimName = "klip-final.fits";
         comparison.m_exactFinimName = true;
     };
@@ -2650,8 +2661,10 @@ TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regio
     REQUIRE( writtenResponse.planes() == 2 );
     REQUIRE( responseHeader["KLIP PSF PRODUCT SCHEMA"].value<int>() == 1 );
     REQUIRE( responseHeader["KLIP PSF PRODUCT"].String().starts_with( "RADIAL_RESPONSE" ) );
-    REQUIRE( responseHeader["KLIP PSF SPATIAL MODEL"].String().starts_with( "RADIAL_NEAREST" ) );
-    REQUIRE( responseHeader["KLIP PSF MEASUREMENT COUNT"].value<int>() == 8 );
+    REQUIRE( responseHeader["KLIP PSF SPATIAL MODEL"].String().starts_with( "RADIAL_LINEAR" ) );
+    REQUIRE( responseHeader["KLIP PSF SAMPLE ARC STEP"].value<float>() == Approx( 2 ) );
+    REQUIRE( responseHeader["KLIP PSF REQUESTED SAMPLES PER RADIUS"].String().starts_with( "7,10" ) );
+    REQUIRE( responseHeader["KLIP PSF MEASUREMENT COUNT"].value<int>() == 17 );
     REQUIRE( responseHeader["KLIP SCIENCE COMBINATION"].String().starts_with( "sigmaMean" ) );
     REQUIRE( responseHeader["KLIP PSF COMBINATION"].String().starts_with( "mean" ) );
     REQUIRE( responseHeader["KLIP SCIENCE SIGMA THRESHOLD"].value<float>() == Approx( 5 ) );
@@ -2741,6 +2754,19 @@ TEST_CASE( "KLIP region validation", "[KLIPreduction][regions][validation]" )
     REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "requires psfFile" ) );
 
     prepareRegionReduction( reduction );
+    reduction.m_psfFile = "unused.fits";
+    reduction.m_psfStampSize = 3;
+    reduction.m_psfSampleRadii = { 1 };
+    reduction.m_psfSamplesPerRadius = 4;
+    reduction.m_psfSampleArcStep = 1;
+    REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "exactly one positive" ) );
+
+    prepareRegionReduction( reduction );
+    reduction.m_psfSampleArcStep = -1;
+    REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "finite and nonnegative" ) );
+
+    prepareRegionReduction( reduction );
+    reduction.m_psfSampleArcStep = 0;
     reduction.m_psfFile = "unused.fits";
     reduction.m_psfStampSize = 4;
     reduction.m_psfSampleRadii = { 1 };

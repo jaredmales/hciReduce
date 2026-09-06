@@ -91,11 +91,46 @@ def load_response(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, fits.
         raise RuntimeError(f"unexpected response/validity geometry in {path}")
     if int(header.get("KLIP PSF PRODUCT SCHEMA", 0)) != 1:
         raise RuntimeError(f"unsupported KLIP response schema in {path}")
+    if str(header.get("KLIP PSF SPATIAL MODEL", "")).strip() != "RADIAL_LINEAR":
+        raise RuntimeError(f"response does not declare linear radial interpolation: {path}")
     return response, validity, radii, header
 
 
+def evaluate_linear_radial(
+    response: np.ndarray,
+    validity: np.ndarray,
+    radii: np.ndarray,
+    requested_radii: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Evaluate canonical responses with the production linear-radial validity contract."""
+    evaluated = np.zeros((requested_radii.size, *response.shape[1:]), dtype=np.float64)
+    evaluated_validity = np.zeros_like(evaluated, dtype=bool)
+    for requested_index, requested_radius in enumerate(requested_radii):
+        upper_index = int(np.searchsorted(radii, requested_radius, side="left"))
+        if upper_index == 0:
+            evaluated[requested_index] = response[0]
+            evaluated_validity[requested_index] = validity[0]
+        elif upper_index == radii.size:
+            evaluated[requested_index] = response[-1]
+            evaluated_validity[requested_index] = validity[-1]
+        elif radii[upper_index] == requested_radius:
+            evaluated[requested_index] = response[upper_index]
+            evaluated_validity[requested_index] = validity[upper_index]
+        else:
+            lower_index = upper_index - 1
+            upper_fraction = (requested_radius - radii[lower_index]) / (
+                radii[upper_index] - radii[lower_index]
+            )
+            shared_validity = validity[lower_index] & validity[upper_index]
+            evaluated[requested_index] = (
+                (1.0 - upper_fraction) * response[lower_index] + upper_fraction * response[upper_index]
+            )
+            evaluated_validity[requested_index] = shared_validity
+    return evaluated, evaluated_validity
+
+
 def compare_mode(reference_path: Path, candidate_path: Path) -> dict[str, float | int | str]:
-    """Compare one sparse radial response with nearest-radius evaluation of the fine reference."""
+    """Compare one sparse response with linear evaluation at every fine-reference radius."""
     reference, reference_validity, reference_radii, reference_header = load_response(reference_path)
     candidate, candidate_validity, candidate_radii, candidate_header = load_response(candidate_path)
     if reference.shape[1:] != candidate.shape[1:]:
@@ -105,9 +140,9 @@ def compare_mode(reference_path: Path, candidate_path: Path) -> dict[str, float 
     ):
         raise RuntimeError(f"KLIP mode-count mismatch: {reference_path} != {candidate_path}")
 
-    nearest_indices = np.abs(candidate_radii[:, None] - reference_radii[None, :]).argmin(axis=0)
-    evaluated = candidate[nearest_indices]
-    evaluated_validity = candidate_validity[nearest_indices]
+    evaluated, evaluated_validity = evaluate_linear_radial(
+        candidate, candidate_validity, candidate_radii, reference_radii
+    )
     overlap = reference_validity & evaluated_validity & np.isfinite(reference) & np.isfinite(evaluated)
     reference_finite = reference_validity & np.isfinite(reference)
     reference_values = reference[overlap]
@@ -123,6 +158,7 @@ def compare_mode(reference_path: Path, candidate_path: Path) -> dict[str, float 
     per_radius_error_energy = np.where(overlap, (evaluated - reference) ** 2, 0.0).sum(axis=(1, 2))
     eligible = (per_radius_reference_energy > 0) & overlap.any(axis=(1, 2))
     per_radius_relative_l2 = np.sqrt(per_radius_error_energy[eligible] / per_radius_reference_energy[eligible])
+    nearest_indices = np.abs(candidate_radii[:, None] - reference_radii[None, :]).argmin(axis=0)
     radius_errors = np.abs(candidate_radii[nearest_indices] - reference_radii)
 
     return {
@@ -133,8 +169,8 @@ def compare_mode(reference_path: Path, candidate_path: Path) -> dict[str, float 
         "measurement_count": int(candidate_header.get("KLIP PSF MEASUREMENT COUNT", 0)),
         "retained_bytes": int(candidate_header.get("KLIP PSF RETAINED BYTES", 0)),
         "radius_count": int(candidate_radii.size),
-        "max_nearest_radius_error": float(radius_errors.max()),
-        "mean_nearest_radius_error": float(radius_errors.mean()),
+        "max_nearest_node_distance": float(radius_errors.max()),
+        "mean_nearest_node_distance": float(radius_errors.mean()),
         "validity_mismatch_fraction": float(np.mean(reference_validity != evaluated_validity)),
         "finite_overlap_fraction": safe_ratio(float(overlap.sum()), float(reference_finite.sum())),
         "relative_l2": math.sqrt(safe_ratio(error_energy, reference_energy)),

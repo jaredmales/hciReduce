@@ -32,13 +32,16 @@
  *
  * KLIP can propagate a centered PSF template through each target's already-computed KL basis at a small polar grid
  * instead of rerunning or densely probing every image pixel. Configure `klip.psfFile`, an odd
- * `klip.psfStampSize`, strictly increasing `klip.psfSampleRadii`, and a positive
- * `klip.psfSamplesPerRadius`. The source locations are exact uniformly spaced sky-frame coordinates. Each probe is
+ * `klip.psfStampSize`, strictly increasing `klip.psfSampleRadii`, and exactly one positive angular control.
+ * `klip.psfSamplesPerRadius` fixes the count at every radius; `klip.psfSampleArcStep` instead resolves the minimum
+ * count whose circular arc spacing is no larger than the configured pixel distance. The source locations are exact
+ * uniformly spaced sky-frame coordinates. Each probe is
  * inverse-rotated into the target detector frame, processed by the same supported regional centering, projected
  * through the frozen target-specific basis, and accumulated directly into a compact derotated stamp. Frame stamps
  * use the configured science combination rule and weights, except that active science `sigmaMean` is mapped to an
  * unclipped mean for the analytic response. Measurements at a common radius are rotated to the positive-column
- * direction and averaged, and arbitrary radii use nearest-neighbor selection. Mean and weighted-mean responses are
+ * direction and averaged. Arbitrary radii linearly blend the bracketing averages, using only stamp samples valid in
+ * both radial endpoints; requests outside the sampled interval use the nearest endpoint. Mean and weighted-mean responses are
  * linear frozen-basis products. Median remains a response-template approximation rather than a finite-amplitude-
  * independent transfer function. Product provenance records the configured science estimator separately from the
  * effective response estimator.

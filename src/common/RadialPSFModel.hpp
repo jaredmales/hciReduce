@@ -39,12 +39,13 @@ struct RadialPSFSample
     double angle{ 0 };            ///< Actual source angle in radians from positive column toward positive row.
 };
 
-/// Azimuthally average sparse PSF measurements and interpolate the result by nearest radius.
+/// Azimuthally average sparse PSF measurements and linearly interpolate the result in radius.
 /** Each measured response is rotated so its source separation points along the positive-column axis. Samples in the
  * same configured radial bin are then averaged independently at every valid stamp element. A response requested at
- * an arbitrary source coordinate uses the nearest configured radius and rotates that canonical average back to the
- * source angle. Rotation uses the production cubic-convolution kernel, treats samples beyond the compact stamp as
- * zero, and propagates validity through every nonzero in-bounds interpolation weight.
+ * an arbitrary source coordinate linearly interpolates the bracketing canonical radial averages and rotates the
+ * result back to the source angle. Requests outside the sampled interval use the nearest endpoint. Rotation uses the
+ * production cubic-convolution kernel, treats samples beyond the compact stamp as zero, and propagates validity
+ * through every nonzero in-bounds interpolation weight.
  *
  * \ingroup programming_library
  */
@@ -62,9 +63,24 @@ class RadialPSFModel
                     int stampRows,             /**< [in] positive response-stamp row count */
                     int stampColumns /**< [in] positive response-stamp column count */ );
 
-    /// Select the nearest distinct available coordinate at every uniformly spaced angle and configured radius.
-    /** Duplicate coordinates caused by integer-pixel sampling are retained only once within each radial bin. Ties are
-     * resolved by the stable source index, so selection is deterministic regardless of candidate ordering.
+    /// Calculate the requested angular sample count at every configured radius.
+    /** Exactly one angular control must be positive. A positive fixed count is repeated at every radius. Otherwise,
+     * the count is the minimum needed to keep the circular arc between adjacent samples no larger than the requested
+     * step, with one sample at radius zero.
+     */
+    static std::vector<std::size_t> angularSampleCounts(
+        const std::vector<double> &radii, /**< [in] finite strictly increasing nonnegative radii */
+        std::size_t samplesPerRadius,     /**< [in] fixed positive count, or zero for arc spacing */
+        double sampleArcStep /**< [in] positive maximum azimuthal arc step, or zero for fixed count */ );
+
+    /// Return the radial tolerance used to associate integer detector pixels with requested radial nodes.
+    static double detectorPixelRadiusTolerance() noexcept;
+
+    /// Select the nearest distinct, radius-constrained coordinate at every requested angle and configured radius.
+    /** Candidate detector pixels must be within detectorPixelRadiusTolerance() of the requested radius. Duplicate
+     * coordinates caused by integer-pixel sampling or excluded angular sectors are retained only once within each
+     * radial bin. Ties are resolved by the stable source index, so selection is deterministic regardless of candidate
+     * ordering.
      */
     static std::vector<RadialPSFSample>
     selectSamples( const std::vector<RadialPSFSource> &sources, /**< [in] available final-image source coordinates */
@@ -72,6 +88,15 @@ class RadialPSFModel
                    double centerColumn,                         /**< [in] finite image-center column */
                    const std::vector<double> &radii, /**< [in] finite strictly increasing nonnegative radii */
                    std::size_t samplesPerRadius /**< [in] positive number of uniformly spaced requested angles */ );
+
+    /// Select radius-constrained samples using an independently requested angular count at every radius.
+    static std::vector<RadialPSFSample>
+    selectSamples( const std::vector<RadialPSFSource> &sources, /**< [in] available final-image source coordinates */
+                   double centerRow,                            /**< [in] finite image-center row */
+                   double centerColumn,                         /**< [in] finite image-center column */
+                   const std::vector<double> &radii, /**< [in] finite strictly increasing nonnegative radii */
+                   const std::vector<std::size_t> &samplesPerRadius
+                   /**< [in] positive requested angular count corresponding one-to-one with radii */ );
 
     /// Fit canonical radial averages from response measurements corresponding one-to-one with selected samples.
     void fit( const std::vector<imageT> &responses,     /**< [in] measured final-frame response stamps */
@@ -85,7 +110,7 @@ class RadialPSFModel
                         const validityT &inputValidity, /**< [in] exact zero/nonzero input validity */
                         double angle /**< [in] finite counterclockwise rotation in radians */ );
 
-    /// Evaluate the nearest-radius canonical average at one requested source angle.
+    /// Evaluate the linearly interpolated canonical radial response at one requested source angle.
     void response( imageT &output,            /**< [out] source-oriented response stamp */
                    validityT &outputValidity, /**< [out] source-oriented per-element validity */
                    double radius,             /**< [in] finite nonnegative requested radius */
@@ -107,9 +132,6 @@ class RadialPSFModel
     std::size_t sampleCount( std::size_t radiusIndex /**< [in] zero-based radial index */ ) const;
 
   private:
-    /// Return the nearest configured radial-bin index.
-    std::size_t nearestRadiusIndex( double radius /**< [in] finite nonnegative requested radius */ ) const;
-
     std::vector<double> m_radii;             ///< Strictly increasing configured radial sample locations.
 
     int m_stampRows{ 0 };                    ///< Positive response-stamp row count.

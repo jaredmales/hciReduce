@@ -276,6 +276,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     int m_psfSamplesPerRadius{ 0 };      ///< Uniform angular measurement count at each configured PSF sample radius.
 
+    realT m_psfSampleArcStep{ 0 }; ///< Maximum azimuthal arc spacing in pixels; zero selects the fixed-count control.
+
     P4PSFSamplingMode m_psfSamplingMode{ P4PSFSamplingMode::skyExact };
     ///< Operator used to measure each configured sparse radial response.
 
@@ -330,6 +332,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     std::vector<RadialPSFSample> m_psfMeasurementSamples;
     ///< Deterministic sparse response measurements in global search-pixel indexing.
+
+    std::vector<std::size_t> m_psfRequestedSamplesPerRadius;
+    ///< Requested angular measurement counts after resolving fixed-count or arc-spacing configuration.
 
     std::size_t m_psfSampleExcludedCount{ 0 };
     ///< Candidate detector search pixels rejected near configured known-planet trajectories.

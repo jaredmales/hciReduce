@@ -62,10 +62,14 @@
  *
  * \section p4_psf_radial Sparse radial approximation
  *
- * Setting both `p4.psfSampleRadii` and `p4.psfSamplesPerRadius` replaces the exact response measurement at every
- * search pixel with a sparse polar experiment. At each configured radius, P4 requests uniformly spaced position
- * angles and selects the nearest distinct owned search pixel. Integer-pixel collisions are removed within that
- * radius, so the recorded measurement count can be smaller than radii times requested angles near the origin.
+ * Setting `p4.psfSampleRadii` with exactly one angular control replaces the exact response measurement at every
+ * search pixel with a sparse polar experiment. `p4.psfSamplesPerRadius` requests a fixed number of uniformly spaced
+ * angles at every radius. Alternatively, `p4.psfSampleArcStep` requests
+ * \f$max(1,\lceil 2\pi r/\Delta s\rceil)\f$ angles at radius \f$r\f$, so the azimuthal arc between samples is at most
+ * \f$\Delta s\f$ pixels. P4 selects the nearest distinct owned search pixel whose actual radius differs from the
+ * requested node by no more than \f$\sqrt{1/2}\f$ pixels, the maximum radial displacement introduced by rounding a
+ * continuous position to the nearest integer detector pixel. Integer-pixel collisions are removed within that
+ * radius, so the realized count can be smaller than the requested count near the origin.
  * `p4.psfSamplingMode=skyExact`, the default, reconstructs every selected sky stamp through all target frames.
  * Before regression, P4 forms a conservative union of the complete cubic derotation footprints for those stamps.
  * This preserves the exact sampled response but can still require every detector-local operator when field rotation
@@ -81,21 +85,23 @@
  * rank/geometry validity are still calculated at every owned search pixel.
  *
  * With positive `p4.psfSampleAvoidRadius` and configured `planet.*` metadata, detector-local candidates are rejected
- * if they lie within that distance of a known companion at any target-frame field angle. Selection then uses the
- * nearest remaining detector coordinate. The response is still measured from the original science fit: no negative
+ * if they lie within that distance of a known companion at any target-frame field angle. Selection then shifts in
+ * angle to the nearest remaining coordinate in the same radial shell; it never substitutes a pixel at a materially
+ * different radius. The response is still measured from the original science fit: no negative
  * companion or zero-signal fake injection is performed. The product records the avoidance radius, rejected candidate
  * count, sampling mode, and realized local-response set. If no uncontaminated detector candidate remains, selection
  * fails rather than silently sampling a known signal.
  *
  * Each measured response stamp is rotated by its actual source angle in the production image-rotation
  * convention so that radial separation points along the positive-column axis. Valid samples in the same radial bin
- * are averaged element by element. To evaluate the model at an arbitrary search pixel, P4 selects the nearest
- * configured radius (an exact tie selects the inner radius), rotates that canonical average back to the pixel's
- * angle, and expands it into the same per-search-pixel product layout consumed by `hciAnalyze`. This is
- * nearest-neighbor radial interpolation; no radial blending is performed. Sparse radial mode requires an odd response
- * stamp. Exact sky sampling records product schema 3; detector-local sampling records schema 4. Both record
- * `RADIAL_NEAREST`, the configured radii, requested angles per radius, sampling mode, realized distinct measurement
- * count, and `HIERARCH P4 LOCAL PSF RESPONSE SEARCH COUNT`.
+ * are averaged element by element. To evaluate the model at an arbitrary search pixel, P4 linearly blends the two
+ * bracketing canonical radial averages, requires each blended sample to be valid in both endpoints, rotates the
+ * result back to the pixel's angle, and expands it into the same per-search-pixel product layout consumed by
+ * `hciAnalyze`. Requests outside the sampled interval use the nearest endpoint. Sparse radial mode requires an odd
+ * response stamp. Exact sky sampling records product schema 3; detector-local sampling records schema 4. Both record
+ * `RADIAL_LINEAR`, the configured radii, resolved requested counts per radius, sampling mode, realized distinct
+ * measurement count, and `HIERARCH P4 LOCAL PSF RESPONSE SEARCH COUNT`. P4 additionally records the radial shell
+ * tolerance and the realized count and actual minimum/maximum detector radius at every configured node.
  *
  * With `p4.numberImages>0`, each row has one temporal predictor: the `mean` or `median` of the central-pixel samples
  * from its exact selected earlier/later frames. One-sided beginning/end fallback is therefore propagated consistently
@@ -134,8 +140,9 @@
  * |---|---|---|---|---|---|
  * | `--p4.psfFile` | `p4.psfFile=/path/template.fits` | `HIERARCH P4 PSF TEMPLATE` | readable, finite two-dimensional FITS image | unset | Centered PSF template at the post-preprocessing P4 input stage. Setting the path enables response calculation without changing the science products. The stored normalization is preserved, including when `p4.numberImages>0`. |
  * | `--p4.psfStampSize` | `p4.psfStampSize=11` | `HIERARCH P4 PSF STAMP SIZE` | positive integer | `0` | Square final response-stamp size. Odd and even sizes use geometric centers. Required with `psfFile`. |
- * | `--p4.psfSampleRadii` | `p4.psfSampleRadii=6,10,14` | `HIERARCH P4 PSF SAMPLE RADII` | strictly increasing nonnegative real pixels inside configured annuli | unset | Enables the sparse radial approximation when paired with `psfSamplesPerRadius`. Requires `psfFile` and an odd stamp. |
- * | `--p4.psfSamplesPerRadius` | `p4.psfSamplesPerRadius=8` | `HIERARCH P4 PSF SAMPLES PER RADIUS` | positive integer | `0` | Number of uniformly spaced requested angles at every sparse sample radius. Nearest-pixel collisions are measured only once per radius. |
+ * | `--p4.psfSampleRadii` | `p4.psfSampleRadii=6,10,14` | `HIERARCH P4 PSF SAMPLE RADII` | strictly increasing nonnegative real pixels inside configured annuli | unset | Enables the sparse radial approximation when paired with exactly one positive angular control. Requires `psfFile` and an odd stamp. |
+ * | `--p4.psfSamplesPerRadius` | `p4.psfSamplesPerRadius=8` | `HIERARCH P4 PSF SAMPLES PER RADIUS` | positive integer, mutually exclusive with `psfSampleArcStep` | `0` | Fixed number of uniformly spaced requested angles at every sparse sample radius. Nearest-pixel collisions are measured only once per radius. |
+ * | `--p4.psfSampleArcStep` | `p4.psfSampleArcStep=3.6` | `HIERARCH P4 PSF SAMPLE ARC STEP` | positive real pixels, mutually exclusive with `psfSamplesPerRadius` | `0` | Maximum azimuthal arc spacing; resolves a radius-dependent angular count no smaller than one. |
  * | `--p4.psfSamplingMode` | `p4.psfSamplingMode=detectorLocal` | `HIERARCH P4 PSF SAMPLING MODE` | `skyExact` or `detectorLocal` | `skyExact` | `skyExact` propagates each sparse sky measurement through all frames. `detectorLocal` calculates only the sampled local operators and applies the documented spatially local filtering approximation. |
  * | `--p4.psfSampleAvoidRadius` | `p4.psfSampleAvoidRadius=5` | `HIERARCH P4 PSF SAMPLE AVOID RADIUS` | nonnegative real detector pixels | `0` | Reject detector-local candidates within this radius of any configured known-planet trajectory. Zero disables avoidance. |
  * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final combination. |
@@ -149,8 +156,8 @@
  * [p4]
  * psfFile=/path/template.fits
  * psfStampSize=11
- * psfSampleRadii=6,10,14
- * psfSamplesPerRadius=8
+ * psfSampleRadii=1.8,5.4,9.0,12.6
+ * psfSampleArcStep=3.6
  * psfSamplingMode=detectorLocal
  * psfSampleAvoidRadius=5
  * outputPSFModels=true

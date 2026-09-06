@@ -611,6 +611,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_psfStampSize == 0 );
     REQUIRE( defaults.m_psfSampleRadii.empty() );
     REQUIRE( defaults.m_psfSamplesPerRadius == 0 );
+    REQUIRE( defaults.m_psfSampleArcStep == 0 );
     REQUIRE( defaults.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::skyExact );
     REQUIRE( defaults.m_psfSampleAvoidRadius == 0 );
     REQUIRE_FALSE( defaults.m_outputPSFModels );
@@ -635,6 +636,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.psfSampleRadii" ).helpType == "float vector" );
     REQUIRE( registered.m_targets.at( "p4.psfSamplesPerRadius" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "p4.psfSampleArcStep" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "p4.psfSamplingMode" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfSampleAvoidRadius" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::Optional );
@@ -725,12 +727,20 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( psfConfiguration.m_psfStampSize == 11 );
     REQUIRE( psfConfiguration.m_psfSampleRadii == std::vector<float>{ 6, 10 } );
     REQUIRE( psfConfiguration.m_psfSamplesPerRadius == 8 );
+    REQUIRE( psfConfiguration.m_psfSampleArcStep == 0 );
     REQUIRE( psfConfiguration.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::detectorLocal );
     REQUIRE( psfConfiguration.m_psfSampleAvoidRadius == Approx( 2.5 ) );
     REQUIRE( psfConfiguration.m_outputPSFModels );
     REQUIRE( psfConfiguration.m_psfFilter );
     REQUIRE( psfConfiguration.m_psfFilterMinGoodFract == Approx( 0.75 ) );
     REQUIRE( psfConfiguration.m_psfOutputPrefix == "field_" );
+
+    reductionHarness arcPSFConfiguration;
+    readReductionConfig( arcPSFConfiguration,
+                         directory.file( "arc-psf.conf" ),
+                         "[p4]\npsfSampleRadii=6,10\npsfSampleArcStep=3.6\n" );
+    REQUIRE( arcPSFConfiguration.m_psfSamplesPerRadius == 0 );
+    REQUIRE( arcPSFConfiguration.m_psfSampleArcStep == Approx( 3.6 ) );
 
     reductionHarness invalidPolicy;
     REQUIRE_THROWS( readReductionConfig( invalidPolicy,
@@ -2042,13 +2052,15 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( modelHeader["P4 PSF TEMPLATE CENTER ROW"].value<double>() == Approx( 4.0 ) );
     REQUIRE( modelHeader["P4 PSF TEMPLATE CENTER COLUMN"].value<double>() == Approx( 4.5 ) );
     REQUIRE( modelHeader["P4 PSF RESPONSE"].String().starts_with( "FROZEN_SIGNED" ) );
-    REQUIRE( modelHeader["P4 PSF SPATIAL MODEL"].String().starts_with( "RADIAL_NEAREST" ) );
+    REQUIRE( modelHeader["P4 PSF SPATIAL MODEL"].String().starts_with( "RADIAL_LINEAR" ) );
     REQUIRE( modelHeader["P4 SCIENCE COMBINATION"].String().starts_with( "sigmaMean" ) );
     REQUIRE( modelHeader["P4 PSF COMBINATION"].String().starts_with( "mean" ) );
     REQUIRE( modelHeader["P4 SCIENCE SIGMA THRESHOLD"].value<float>() == Approx( 5 ) );
     REQUIRE( modelHeader["P4 PSF SIGMA THRESHOLD"].value<float>() == Approx( 0 ) );
     REQUIRE( modelHeader["P4 PSF SAMPLE RADII"].String().starts_with( "6,8" ) );
     REQUIRE( modelHeader["P4 PSF SAMPLES PER RADIUS"].value<int>() == 4 );
+    REQUIRE( modelHeader["P4 PSF SAMPLE ARC STEP"].value<float>() == Approx( 0 ) );
+    REQUIRE( modelHeader["P4 PSF REQUESTED SAMPLES PER RADIUS"].String().starts_with( "4,4" ) );
     REQUIRE( modelHeader["P4 PSF MEASUREMENT COUNT"].value<int>() == 8 );
     REQUIRE( modelHeader["P4 PSF MEASUREMENT COUNT"].value<int>() < coordinates.rows() );
     REQUIRE( modelHeader["P4 LOCAL PSF RESPONSE SEARCH COUNT"].value<int>() ==
@@ -2347,7 +2359,7 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     reduction.m_psfFile = psfPath.string();
     reduction.m_psfStampSize = 3;
     reduction.m_psfSampleRadii = { 6, 8 };
-    reduction.m_psfSamplesPerRadius = 4;
+    reduction.m_psfSampleArcStep = 4;
     reduction.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::detectorLocal;
     reduction.m_psfSampleAvoidRadius = 1.25F;
     reduction.m_planetSep = { 6 };
@@ -2364,6 +2376,7 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     REQUIRE( reduction.reduce() == 0 );
 
     REQUIRE_FALSE( reduction.m_psfMeasurementSamples.empty() );
+    REQUIRE( reduction.m_psfRequestedSamplesPerRadius == std::vector<std::size_t>{ 10, 13 } );
     std::vector<std::size_t> measuredSearch;
     for( const mx::improc::RadialPSFSample &sample : reduction.m_psfMeasurementSamples )
     {
@@ -2389,6 +2402,9 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     const double centerColumn = 0.5 * static_cast<double>( reduction.m_Ncols - 1 );
     for( const mx::improc::RadialPSFSample &sample : reduction.m_psfMeasurementSamples )
     {
+        REQUIRE( sample.radiusIndex < reduction.m_psfSampleRadii.size() );
+        REQUIRE( std::abs( sample.radius - reduction.m_psfSampleRadii[sample.radiusIndex] ) <=
+                 mx::improc::RadialPSFModel::detectorPixelRadiusTolerance() );
         const double sampleRow = coordinates( static_cast<Eigen::Index>( sample.sourceIndex ), 0 );
         const double sampleColumn = coordinates( static_cast<Eigen::Index>( sample.sourceIndex ), 1 );
         const double skyAngle = -30.0 * std::numbers::pi / 180.0;
@@ -2413,6 +2429,10 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     REQUIRE( modelHeader["P4 SCIENCE SIGMA THRESHOLD"].value<float>() == Approx( 5 ) );
     REQUIRE( modelHeader["P4 PSF SIGMA THRESHOLD"].value<float>() == Approx( 0 ) );
     REQUIRE( modelHeader["P4 PSF SAMPLE AVOID RADIUS"].value<float>() == Approx( 1.25 ) );
+    REQUIRE( modelHeader["P4 PSF SAMPLE ARC STEP"].value<float>() == Approx( 4 ) );
+    REQUIRE( modelHeader["P4 PSF REQUESTED SAMPLES PER RADIUS"].String().starts_with( "10,13" ) );
+    REQUIRE( modelHeader["P4 PSF SAMPLE RADIAL TOLERANCE"].value<double>() ==
+             Approx( mx::improc::RadialPSFModel::detectorPixelRadiusTolerance() ) );
     REQUIRE( modelHeader["P4 PSF SAMPLE EXCLUDED COUNT"].value<int>() ==
              static_cast<int>( reduction.m_psfSampleExcludedCount ) );
     REQUIRE( modelHeader["P4 LOCAL PSF RESPONSE SEARCH COUNT"].value<int>() == static_cast<int>( requiredSearch ) );
@@ -3589,6 +3609,18 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         prepareReduction( countWithoutSparseRadii );
         countWithoutSparseRadii.m_psfSamplesPerRadius = 4;
         REQUIRE_THROWS_WITH( countWithoutSparseRadii.reduce(), Catch::Matchers::Contains( "must be set together" ) );
+
+        reductionHarness bothAngularControls;
+        prepareReduction( bothAngularControls );
+        bothAngularControls.m_psfSampleRadii = { 5.5F };
+        bothAngularControls.m_psfSamplesPerRadius = 4;
+        bothAngularControls.m_psfSampleArcStep = 3.6F;
+        REQUIRE_THROWS_WITH( bothAngularControls.reduce(), Catch::Matchers::Contains( "must be set together" ) );
+
+        reductionHarness negativeArcStep;
+        prepareReduction( negativeArcStep );
+        negativeArcStep.m_psfSampleArcStep = -1;
+        REQUIRE_THROWS_WITH( negativeArcStep.reduce(), Catch::Matchers::Contains( "finite and nonnegative" ) );
 
         reductionHarness sparseWithoutTemplate;
         prepareReduction( sparseWithoutTemplate );

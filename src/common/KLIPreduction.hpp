@@ -435,11 +435,16 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     int m_psfSamplesPerRadius{ 0 };      ///< Uniform angular response measurements requested at each sample radius.
 
+    realT m_psfSampleArcStep{ 0 }; ///< Maximum azimuthal arc spacing in pixels; zero selects the fixed-count control.
+
     bool m_outputPSFModels{ false };     ///< Whether canonical radial response and validity cubes are written.
 
     std::string m_psfOutputPrefix{ "klipPSF_" };          ///< Prefix for sparse radial PSF response products.
 
     std::vector<RadialPSFSample> m_psfMeasurementSamples; ///< Exact sparse sky locations used in the current run.
+
+    std::vector<std::size_t> m_psfRequestedSamplesPerRadius;
+    ///< Requested angular sample counts after resolving fixed-count or arc-spacing configuration.
 
     /** @} */
 
@@ -533,7 +538,7 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
      * @{
      */
 
-    /// Return the fitted nearest-radius PSF response model for one KLIP mode output.
+    /// Return the fitted linearly interpolated radial PSF response model for one KLIP mode output.
     const RadialPSFModel &radialPSFModel( std::size_t modeIndex /**< [in] zero-based configured mode output */ ) const;
 
     /** @} */
@@ -567,7 +572,7 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     std::size_t m_psfResponseRetainedBytes{ 0 }; ///< Retained response accumulator bytes excluding container overhead.
 
-    std::vector<RadialPSFModel> m_radialPSFModels; ///< Fitted nearest-radius response model for each KLIP output.
+    std::vector<RadialPSFModel> m_radialPSFModels; ///< Fitted linear-radial response model for each KLIP output.
 
     /// Initialize sparse response locations, the PSF template, and compact per-frame stamp storage.
     void preparePSFMeasurement();
@@ -902,6 +907,16 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::setupConfig( mx::ap
                 "int",
                 "Uniform angular response measurement count at each configured PSF radius" );
 
+    config.add( "klip.psfSampleArcStep",
+                "",
+                "klip.psfSampleArcStep",
+                mx::app::argType::Required,
+                "klip",
+                "psfSampleArcStep",
+                false,
+                "float",
+                "Maximum azimuthal response-sample arc spacing in pixels; mutually exclusive with fixed count" );
+
     config.add( "klip.outputPSFModels",
                 "",
                 "klip.outputPSFModels",
@@ -1062,6 +1077,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::loadConfig( mx::app
     config( m_psfStampSize, "klip.psfStampSize" );
     config( m_psfSampleRadii, "klip.psfSampleRadii" );
     config( m_psfSamplesPerRadius, "klip.psfSamplesPerRadius" );
+    config( m_psfSampleArcStep, "klip.psfSampleArcStep" );
     loadBoolConfig<verboseT>( config, m_outputPSFModels, "klip.outputPSFModels" );
     config( m_psfOutputPrefix, "klip.psfOutputPrefix" );
 }
@@ -1154,21 +1170,36 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
         }
 
         m_psfMeasurementSamples.clear();
+        m_psfRequestedSamplesPerRadius.clear();
         m_psfSourceCoordinates.clear();
-        if( m_psfSampleRadii.size() >
-            std::numeric_limits<std::size_t>::max() / static_cast<std::size_t>( m_psfSamplesPerRadius ) )
+        std::vector<double> radii;
+        radii.reserve( m_psfSampleRadii.size() );
+        for( const realT radius : m_psfSampleRadii )
         {
-            throw mx::exception<verboseT>( mx::error_t::sizeerr, "KLIP PSF sample count overflows size_t" );
+            radii.push_back( static_cast<double>( radius ) );
         }
-        const std::size_t sampleCount = m_psfSampleRadii.size() * static_cast<std::size_t>( m_psfSamplesPerRadius );
+        m_psfRequestedSamplesPerRadius =
+            RadialPSFModel::angularSampleCounts( radii,
+                                                 static_cast<std::size_t>( m_psfSamplesPerRadius ),
+                                                 static_cast<double>( m_psfSampleArcStep ) );
+        std::size_t sampleCount{ 0 };
+        for( const std::size_t count : m_psfRequestedSamplesPerRadius )
+        {
+            if( sampleCount > std::numeric_limits<std::size_t>::max() - count )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr, "KLIP PSF sample count overflows size_t" );
+            }
+            sampleCount += count;
+        }
         m_psfMeasurementSamples.reserve( sampleCount );
         m_psfSourceCoordinates.reserve( sampleCount );
         for( std::size_t radiusIndex = 0; radiusIndex < m_psfSampleRadii.size(); ++radiusIndex )
         {
-            for( int angularIndex = 0; angularIndex < m_psfSamplesPerRadius; ++angularIndex )
+            for( std::size_t angularIndex = 0; angularIndex < m_psfRequestedSamplesPerRadius[radiusIndex];
+                 ++angularIndex )
             {
                 const double angle = 2.0 * std::numbers::pi * static_cast<double>( angularIndex ) /
-                                     static_cast<double>( m_psfSamplesPerRadius );
+                                     static_cast<double>( m_psfRequestedSamplesPerRadius[radiusIndex] );
                 const double radius = static_cast<double>( m_psfSampleRadii[radiusIndex] );
                 const std::size_t sourceIndex = m_psfSourceCoordinates.size();
                 m_psfSourceCoordinates.emplace_back( centerRow + radius * std::sin( angle ),
@@ -1242,7 +1273,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
         }
         m_radialPSFModels.clear();
         std::cerr << "KLIP radial PSF measurement: " << m_psfMeasurementSamples.size() << " locations at "
-                  << m_psfSampleRadii.size() << " radii, nearest-radius interpolation, "
+                  << m_psfSampleRadii.size() << " radii, linear radial interpolation, "
                   << ( m_psfLinearAccumulation ? "worker-sum" : "frame-stack" ) << " accumulation retaining "
                   << m_psfResponseRetainedBytes << " bytes\n";
     }
@@ -1632,7 +1663,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
 
     const bool preprocessingOnly = this->preprocessingOnly();
     const bool psfMeasurementRequested = !m_psfFile.empty() || m_psfStampSize != 0 || !m_psfSampleRadii.empty() ||
-                                         m_psfSamplesPerRadius != 0 || m_outputPSFModels;
+                                         m_psfSamplesPerRadius != 0 || m_psfSampleArcStep != 0 || m_outputPSFModels;
 
     this->t_begin = sys::get_curr_time();
 
@@ -1674,13 +1705,20 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
                 throw mx::exception<verboseT>( mx::error_t::notimpl,
                                                "KLIP PSF response measurement requires FP32 calculation storage" );
             }
+            const bool fixedAngularSampling = m_psfSamplesPerRadius > 0;
+            const bool arcAngularSampling = m_psfSampleArcStep > 0;
+            if( !math::isFinite( m_psfSampleArcStep ) || m_psfSampleArcStep < 0 || m_psfSamplesPerRadius < 0 )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               "KLIP PSF angular sampling controls must be finite and nonnegative" );
+            }
             if( m_psfFile.empty() || m_psfStampSize <= 0 || m_psfStampSize % 2 == 0 || m_psfSampleRadii.empty() ||
-                m_psfSamplesPerRadius <= 0 )
+                fixedAngularSampling == arcAngularSampling )
             {
                 throw mx::exception<verboseT>(
                     mx::error_t::invalidarg,
                     "KLIP PSF response measurement requires psfFile, a positive odd psfStampSize, "
-                    "psfSampleRadii, and a positive psfSamplesPerRadius" );
+                    "psfSampleRadii, and exactly one positive psfSamplesPerRadius or psfSampleArcStep" );
             }
             if( m_outputPSFModels && m_psfOutputPrefix.empty() )
             {
@@ -1835,6 +1873,7 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
         m_psfResponseCalculator.reset();
         m_psfSourceCoordinates.clear();
         m_psfMeasurementSamples.clear();
+        m_psfRequestedSamplesPerRadius.clear();
         m_psfResponseFrames.clear();
         m_psfResponseFrameValidity.clear();
         m_psfLinearAccumulator.reset();
@@ -2970,9 +3009,24 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::appendReductionHead
         head.template append<std::string>( "KLIP PSF SAMPLE RADII", str.str(), "sparse response sample radii" );
         head.template append<int>( "KLIP PSF SAMPLES PER RADIUS",
                                    m_psfSamplesPerRadius,
-                                   "angular response samples per radius" );
+                                   "fixed angular samples per radius; zero selects arc spacing" );
+        head.template append<realT>( "KLIP PSF SAMPLE ARC STEP",
+                                     m_psfSampleArcStep,
+                                     "maximum azimuthal sample arc spacing in pixels" );
+        str.str( "" );
+        for( std::size_t radius = 0; radius < m_psfRequestedSamplesPerRadius.size(); ++radius )
+        {
+            if( radius != 0 )
+            {
+                str << ',';
+            }
+            str << m_psfRequestedSamplesPerRadius[radius];
+        }
+        head.template append<std::string>( "KLIP PSF REQUESTED SAMPLES PER RADIUS",
+                                           str.str(),
+                                           "resolved angular sample counts by radius" );
         head.template append<std::string>( "KLIP PSF SPATIAL MODEL",
-                                           "RADIAL_NEAREST",
+                                           "RADIAL_LINEAR",
                                            "final response spatial approximation" );
         head.template append<std::string>( "KLIP PSF MEASUREMENT COUNT",
                                            std::to_string( m_psfMeasurementSamples.size() ),

@@ -29,7 +29,7 @@
  * frame sums to commute without retaining a plane for every target frame. Median combination retains the nonlinear
  * frame stack. After all regions, the response stamps are combined and
  * \ref mx::improc::RadialPSFModel "RadialPSFModel" rotates measurements to a common angle, averages within radius,
- * and supplies nearest-radius evaluation.
+ * and supplies linear radial evaluation with intersected endpoint validity.
  *
  * The resulting regional residuals are scattered into the output cubes. Finally,
  * \ref mx::improc::KLIPreduction::finalProcess "KLIPreduction::finalProcess()" delegates post-median subtraction,
@@ -41,7 +41,7 @@
  * - `src/apps/klipReduce.cpp`: application configuration and dispatch.
  * - `src/common/KLIPreduction.hpp`: region orchestration, reference selection, PCA calculation, and final processing.
  * - `src/common/KLIPPSFModel.*`: sparse probe construction, frozen-basis projection, and compact derotation.
- * - `src/common/RadialPSFModel.*`: common-angle averaging and nearest-radius response evaluation.
+ * - `src/common/RadialPSFModel.*`: angular-count resolution, common-angle averaging, and linear radial response evaluation.
  * - `src/common/KLIPreduction.cpp`: production template instantiation.
  *
  * @}

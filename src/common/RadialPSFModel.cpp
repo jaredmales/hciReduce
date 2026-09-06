@@ -70,11 +70,54 @@ RadialPSFModel::RadialPSFModel( std::vector<double> radii, int stampRows, int st
     m_sampleCounts.assign( m_radii.size(), 0 );
 }
 
+std::vector<std::size_t> RadialPSFModel::angularSampleCounts( const std::vector<double> &radii,
+                                                              std::size_t samplesPerRadius,
+                                                              double sampleArcStep )
+{
+    validateRadialPSFRadii( radii );
+    if( !std::isfinite( sampleArcStep ) || sampleArcStep < 0 || ( samplesPerRadius == 0 ) == ( sampleArcStep == 0 ) )
+    {
+        throw std::invalid_argument( "radial PSF sampling requires exactly one positive angular control" );
+    }
+
+    std::vector<std::size_t> counts( radii.size(), samplesPerRadius );
+    if( samplesPerRadius != 0 )
+    {
+        return counts;
+    }
+
+    for( std::size_t radiusIndex = 0; radiusIndex < radii.size(); ++radiusIndex )
+    {
+        const long double circumference = 2.0L * std::numbers::pi_v<long double> * radii[radiusIndex];
+        const long double count = std::max( 1.0L, std::ceil( circumference / sampleArcStep ) );
+        if( count > static_cast<long double>( std::numeric_limits<std::size_t>::max() ) )
+        {
+            throw std::length_error( "radial PSF angular sample count overflows size_t" );
+        }
+        counts[radiusIndex] = static_cast<std::size_t>( count );
+    }
+    return counts;
+}
+
+double RadialPSFModel::detectorPixelRadiusTolerance() noexcept
+{
+    return std::sqrt( 0.5 ) + 8.0 * std::numeric_limits<double>::epsilon();
+}
+
 std::vector<RadialPSFSample> RadialPSFModel::selectSamples( const std::vector<RadialPSFSource> &sources,
                                                             double centerRow,
                                                             double centerColumn,
                                                             const std::vector<double> &radii,
                                                             std::size_t samplesPerRadius )
+{
+    return selectSamples( sources, centerRow, centerColumn, radii, angularSampleCounts( radii, samplesPerRadius, 0 ) );
+}
+
+std::vector<RadialPSFSample> RadialPSFModel::selectSamples( const std::vector<RadialPSFSource> &sources,
+                                                            double centerRow,
+                                                            double centerColumn,
+                                                            const std::vector<double> &radii,
+                                                            const std::vector<std::size_t> &samplesPerRadius )
 {
     validateRadialPSFRadii( radii );
     if( sources.empty() )
@@ -85,9 +128,11 @@ std::vector<RadialPSFSample> RadialPSFModel::selectSamples( const std::vector<Ra
     {
         throw std::invalid_argument( "radial PSF sampling center must be finite" );
     }
-    if( samplesPerRadius == 0 )
+    if( samplesPerRadius.size() != radii.size() || std::any_of( samplesPerRadius.begin(),
+                                                                samplesPerRadius.end(),
+                                                                []( std::size_t count ) { return count == 0; } ) )
     {
-        throw std::invalid_argument( "radial PSF sampling requires a positive angular sample count" );
+        throw std::invalid_argument( "radial PSF radii and positive angular sample counts must correspond" );
     }
     std::unordered_set<std::size_t> sourceIndices;
     for( const RadialPSFSource &source : sources )
@@ -100,31 +145,52 @@ std::vector<RadialPSFSample> RadialPSFModel::selectSamples( const std::vector<Ra
     }
 
     std::vector<RadialPSFSample> samples;
-    if( radii.size() > std::numeric_limits<std::size_t>::max() / samplesPerRadius )
+    std::size_t requestedCount{ 0 };
+    for( const std::size_t count : samplesPerRadius )
     {
-        throw std::length_error( "radial PSF sample count overflows size_t" );
+        if( requestedCount > std::numeric_limits<std::size_t>::max() - count )
+        {
+            throw std::length_error( "radial PSF sample count overflows size_t" );
+        }
+        requestedCount += count;
     }
-    samples.reserve( radii.size() * samplesPerRadius );
+    samples.reserve( requestedCount );
+    const double radialTolerance = detectorPixelRadiusTolerance();
     for( std::size_t radiusIndex = 0; radiusIndex < radii.size(); ++radiusIndex )
     {
-        std::unordered_set<std::size_t> selectedAtRadius;
-        for( std::size_t angularIndex = 0; angularIndex < samplesPerRadius; ++angularIndex )
+        std::vector<const RadialPSFSource *> radialSources;
+        radialSources.reserve( sources.size() );
+        for( const RadialPSFSource &source : sources )
         {
-            const double requestedAngle =
-                2.0 * std::numbers::pi * static_cast<double>( angularIndex ) / static_cast<double>( samplesPerRadius );
+            const double sourceRadius = std::hypot( source.row - centerRow, source.column - centerColumn );
+            if( std::abs( sourceRadius - radii[radiusIndex] ) <= radialTolerance )
+            {
+                radialSources.push_back( &source );
+            }
+        }
+        if( radialSources.empty() )
+        {
+            throw std::runtime_error( "radial PSF sampling found no detector pixel near a requested radius" );
+        }
+
+        std::unordered_set<std::size_t> selectedAtRadius;
+        for( std::size_t angularIndex = 0; angularIndex < samplesPerRadius[radiusIndex]; ++angularIndex )
+        {
+            const double requestedAngle = 2.0 * std::numbers::pi * static_cast<double>( angularIndex ) /
+                                          static_cast<double>( samplesPerRadius[radiusIndex] );
             const double requestedRow = centerRow + radii[radiusIndex] * std::sin( requestedAngle );
             const double requestedColumn = centerColumn + radii[radiusIndex] * std::cos( requestedAngle );
             const RadialPSFSource *nearest = nullptr;
             double nearestDistanceSquared{ 0 };
-            for( const RadialPSFSource &source : sources )
+            for( const RadialPSFSource *source : radialSources )
             {
-                const double deltaRow = source.row - requestedRow;
-                const double deltaColumn = source.column - requestedColumn;
+                const double deltaRow = source->row - requestedRow;
+                const double deltaColumn = source->column - requestedColumn;
                 const double distanceSquared = deltaRow * deltaRow + deltaColumn * deltaColumn;
                 if( nearest == nullptr || distanceSquared < nearestDistanceSquared ||
-                    ( distanceSquared == nearestDistanceSquared && source.sourceIndex < nearest->sourceIndex ) )
+                    ( distanceSquared == nearestDistanceSquared && source->sourceIndex < nearest->sourceIndex ) )
                 {
-                    nearest = &source;
+                    nearest = source;
                     nearestDistanceSquared = distanceSquared;
                 }
             }
@@ -303,16 +369,60 @@ void RadialPSFModel::rotate(
 
 void RadialPSFModel::response( imageT &output, validityT &outputValidity, double requestedRadius, double angle ) const
 {
-    if( !std::isfinite( angle ) )
+    if( !std::isfinite( requestedRadius ) || requestedRadius < 0 || !std::isfinite( angle ) )
     {
-        throw std::invalid_argument( "radial PSF response angle must be finite" );
+        throw std::invalid_argument( "radial PSF response radius and angle must be finite and nonnegative" );
     }
-    const std::size_t radiusIndex = nearestRadiusIndex( requestedRadius );
-    if( m_responses[radiusIndex].size() == 0 )
+    const auto upper = std::lower_bound( m_radii.begin(), m_radii.end(), requestedRadius );
+    std::size_t lowerIndex{ 0 };
+    std::size_t upperIndex{ 0 };
+    double upperFraction{ 0 };
+    if( upper == m_radii.end() )
+    {
+        lowerIndex = upperIndex = m_radii.size() - 1;
+    }
+    else if( upper == m_radii.begin() || *upper == requestedRadius )
+    {
+        lowerIndex = upperIndex = static_cast<std::size_t>( upper - m_radii.begin() );
+    }
+    else
+    {
+        upperIndex = static_cast<std::size_t>( upper - m_radii.begin() );
+        lowerIndex = upperIndex - 1;
+        upperFraction = ( requestedRadius - m_radii[lowerIndex] ) / ( m_radii[upperIndex] - m_radii[lowerIndex] );
+    }
+    if( m_responses[lowerIndex].size() == 0 || m_responses[upperIndex].size() == 0 )
     {
         throw std::logic_error( "radial PSF model must be fitted before evaluating a response" );
     }
-    rotate( output, outputValidity, m_responses[radiusIndex], m_validities[radiusIndex], -angle );
+
+    if( lowerIndex == upperIndex )
+    {
+        rotate( output, outputValidity, m_responses[lowerIndex], m_validities[lowerIndex], -angle );
+        return;
+    }
+
+    imageT interpolated = imageT::Zero( m_stampRows, m_stampColumns );
+    validityT interpolatedValidity = validityT::Zero( m_stampRows, m_stampColumns );
+    const double lowerFraction = 1.0 - upperFraction;
+    for( int column = 0; column < m_stampColumns; ++column )
+    {
+        for( int row = 0; row < m_stampRows; ++row )
+        {
+            if( m_validities[lowerIndex]( row, column ) == 0 || m_validities[upperIndex]( row, column ) == 0 )
+            {
+                continue;
+            }
+            const double value = lowerFraction * m_responses[lowerIndex]( row, column ) +
+                                 upperFraction * m_responses[upperIndex]( row, column );
+            if( std::isfinite( value ) )
+            {
+                interpolated( row, column ) = static_cast<float>( value );
+                interpolatedValidity( row, column ) = 1;
+            }
+        }
+    }
+    rotate( output, outputValidity, interpolated, interpolatedValidity, -angle );
 }
 
 std::size_t RadialPSFModel::radiusCount() const noexcept
@@ -338,26 +448,6 @@ const RadialPSFModel::validityT &RadialPSFModel::canonicalValidity( std::size_t 
 std::size_t RadialPSFModel::sampleCount( std::size_t radiusIndex ) const
 {
     return m_sampleCounts.at( radiusIndex );
-}
-
-std::size_t RadialPSFModel::nearestRadiusIndex( double requestedRadius ) const
-{
-    if( !std::isfinite( requestedRadius ) || requestedRadius < 0 )
-    {
-        throw std::invalid_argument( "radial PSF response radius must be finite and nonnegative" );
-    }
-    const auto upper = std::lower_bound( m_radii.begin(), m_radii.end(), requestedRadius );
-    if( upper == m_radii.begin() )
-    {
-        return 0;
-    }
-    if( upper == m_radii.end() )
-    {
-        return m_radii.size() - 1;
-    }
-    const std::size_t upperIndex = static_cast<std::size_t>( upper - m_radii.begin() );
-    const std::size_t lowerIndex = upperIndex - 1;
-    return requestedRadius - m_radii[lowerIndex] <= m_radii[upperIndex] - requestedRadius ? lowerIndex : upperIndex;
 }
 
 } // namespace improc

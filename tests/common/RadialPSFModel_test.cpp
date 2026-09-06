@@ -1,5 +1,5 @@
 /** \file RadialPSFModel_test.cpp
- * \brief Tests sparse polar PSF response averaging and nearest-radius interpolation.
+ * \brief Tests sparse polar PSF response averaging and linear radial interpolation.
  * \author Jared R. Males
  */
 
@@ -58,23 +58,60 @@ TEST_CASE( "Radial PSF sample selection is deterministic", "[RadialPSFModel][sel
                                                             { 3, 5, 6 } };
     const std::vector<mx::improc::RadialPSFSample> samples = modelT::selectSamples( sources, 5, 5, { 0, 2 }, 8 );
 
-    REQUIRE( samples.size() == 6 );
+    REQUIRE( samples.size() == 5 );
     REQUIRE( samples[0].radiusIndex == 0 );
     REQUIRE( samples[0].sourceIndex == 4 );
     REQUIRE( samples[0].radius == Approx( 0 ) );
-    for( std::size_t index = 1; index < samples.size() - 1; ++index )
+    for( std::size_t index = 1; index < samples.size(); ++index )
     {
         REQUIRE( samples[index].radiusIndex == 1 );
     }
     REQUIRE( samples[1].sourceIndex == 8 );
-    REQUIRE( samples[2].sourceIndex == 3 );
-    REQUIRE( samples[3].sourceIndex == 7 );
-    REQUIRE( samples[4].sourceIndex == 2 );
-    REQUIRE( samples[5].sourceIndex == 1 );
-    REQUIRE( samples[2].radius == Approx( 1 ) );
+    REQUIRE( samples[2].sourceIndex == 7 );
+    REQUIRE( samples[3].sourceIndex == 2 );
+    REQUIRE( samples[4].sourceIndex == 1 );
+    REQUIRE( samples[2].radius == Approx( 2 ) );
 
     REQUIRE_THROWS_AS( modelT::selectSamples( {}, 5, 5, { 2 }, 4 ), std::invalid_argument );
     REQUIRE_THROWS_AS( modelT::selectSamples( sources, 5, 5, { 2 }, 0 ), std::invalid_argument );
+}
+
+/// Verify fixed-count and arc-length angular sampling resolve independently at each configured radius.
+/** This exercises mx::improc::RadialPSFModel::angularSampleCounts() for both supported configuration modes.
+ * \ingroup RadialPSFModel_unit_tests
+ */
+TEST_CASE( "Radial PSF angular sample counts support arc spacing", "[RadialPSFModel][selection]" )
+{
+    REQUIRE( modelT::angularSampleCounts( { 0, 3.6, 7.2 }, 4, 0 ) == std::vector<std::size_t>{ 4, 4, 4 } );
+    REQUIRE( modelT::angularSampleCounts( { 0, 3.6, 7.2 }, 0, 3.6 ) == std::vector<std::size_t>{ 1, 7, 13 } );
+
+    REQUIRE_THROWS_AS( modelT::angularSampleCounts( { 4 }, 0, 0 ), std::invalid_argument );
+    REQUIRE_THROWS_AS( modelT::angularSampleCounts( { 4 }, 4, 3.6 ), std::invalid_argument );
+    REQUIRE_THROWS_AS( modelT::angularSampleCounts( { 4 }, 0, -1 ), std::invalid_argument );
+}
+
+/// Verify excluded angular locations do not allow a detector-grid sample to migrate to another radius.
+/** This exercises the variable-count mx::improc::RadialPSFModel::selectSamples() overload with a closer off-radius
+ * candidate and a more distant same-radius alternative.
+ * \ingroup RadialPSFModel_unit_tests
+ */
+TEST_CASE( "Radial PSF detector samples remain on their requested shell", "[RadialPSFModel][selection]" )
+{
+    const std::vector<mx::improc::RadialPSFSource> sources{ { 1, 8, 9 },
+                                                            { 2, 10, 5 },
+                                                            { 3, 5, 0 },
+                                                            { 4, 0, 5 },
+                                                            { 5, 5, 9 },
+                                                            { 6, 5, 15 } };
+    const std::vector<mx::improc::RadialPSFSample> samples =
+        modelT::selectSamples( sources, 5, 5, { 5 }, std::vector<std::size_t>{ 4 } );
+
+    REQUIRE( samples.size() == 4 );
+    for( const mx::improc::RadialPSFSample &sample : samples )
+    {
+        REQUIRE( sample.sourceIndex != 5 );
+        REQUIRE( std::abs( sample.radius - 5 ) <= modelT::detectorPixelRadiusTolerance() );
+    }
 }
 
 /// Verify common-angle averaging recovers an azimuth-independent response and carries invalid support explicitly.
@@ -136,11 +173,11 @@ TEST_CASE( "Radial PSF responses align and average at a common angle", "[RadialP
     }
 }
 
-/// Verify nearest-radius interpolation uses the closest canonical radial response and resolves exact ties inward.
+/// Verify radial interpolation blends bracketing canonical responses and clamps outside the sampled interval.
 /** This exercises mx::improc::RadialPSFModel::fit() and mx::improc::RadialPSFModel::response() with three radial bins.
  * \ingroup RadialPSFModel_unit_tests
  */
-TEST_CASE( "Radial PSF interpolation selects the nearest radius", "[RadialPSFModel][nearest]" )
+TEST_CASE( "Radial PSF interpolation is linear in radius", "[RadialPSFModel][linear]" )
 {
     constexpr int size = 7;
     const validityT validity = validityT::Ones( size, size );
@@ -153,15 +190,19 @@ TEST_CASE( "Radial PSF interpolation selects the nearest radius", "[RadialPSFMod
         validities.push_back( validity );
         samples.push_back( { radiusIndex, radiusIndex, 4.0 + 4.0 * radiusIndex, 0 } );
     }
+    validities[1]( size / 2, size / 2 + 1 ) = 0;
     modelT model( { 4, 8, 12 }, size, size );
     model.fit( responses, validities, samples );
 
     imageT output;
     validityT outputValidity;
     model.response( output, outputValidity, 6, 0 );
-    REQUIRE( output( size / 2, size / 2 ) == Approx( 1 ) );
+    REQUIRE( output( size / 2, size / 2 ) == Approx( 1.5 ) );
+    REQUIRE( outputValidity( size / 2, size / 2 + 1 ) == 0 );
     model.response( output, outputValidity, 6.01, 0 );
-    REQUIRE( output( size / 2, size / 2 ) == Approx( 2 ) );
+    REQUIRE( output( size / 2, size / 2 ) == Approx( 1.5025 ) );
+    model.response( output, outputValidity, 4, 0 );
+    REQUIRE( outputValidity( size / 2, size / 2 + 1 ) == 1 );
     model.response( output, outputValidity, 20, 0 );
     REQUIRE( output( size / 2, size / 2 ) == Approx( 3 ) );
 
