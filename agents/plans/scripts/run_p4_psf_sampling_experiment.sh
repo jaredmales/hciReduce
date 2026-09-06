@@ -12,6 +12,10 @@ psf_file=${PSF_FILE:-/home/jrmales/Source/mxWork/NACO/AFLep/2011-10-21/out/psf_r
 p4reduce_bin=${P4REDUCE_BIN:-p4Reduce}
 psf_stamp_size=${PSF_STAMP_SIZE:-11}
 psf_filter=${PSF_FILTER:-true}
+psf_sample_avoid_radius=${PSF_SAMPLE_AVOID_RADIUS:-0}
+planet_sep=${PLANET_SEP:-}
+planet_pa=${PLANET_PA:-}
+planet_contrast=${PLANET_CONTRAST:-}
 experiment_dir=${EXPERIMENT_DIR:-"${roc_working_dir}/p4_psf_sampling_$(date -u +%Y%m%dT%H%M%SZ)"}
 dry_run=false
 analyze_only=false
@@ -22,6 +26,7 @@ all_cases=(
     radial_dr2_a4
     radial_dr2_a8
     radial_dr2_a16
+    detector_dr2_a16
     radial_dr2_a32
     radial_dr4_a16
     radial_dr8_a16
@@ -47,12 +52,18 @@ Environment overrides:
   PSF_FILE               centered post-preprocessing PSF (default: ${psf_file})
   PSF_STAMP_SIZE         response stamp width (default: ${psf_stamp_size})
   PSF_FILTER             write filtered science products (default: ${psf_filter})
+  PSF_SAMPLE_AVOID_RADIUS detector radius excluded around configured planets (default: ${psf_sample_avoid_radius})
+  PLANET_SEP             optional comma-separated known-planet separations
+  PLANET_PA              matching position angles in degrees east of north
+  PLANET_CONTRAST        matching contrasts; required by the standard planet metadata contract
   EXPERIMENT_DIR         fixed output directory, useful when resuming
   OMP_NUM_THREADS        OpenMP worker limit passed through to p4Reduce
 
 Examples:
   nohup $(basename "$0") > psf_sampling_driver.log 2>&1 &
   EXPERIMENT_DIR=/data/psf-test $(basename "$0") dense radial_dr2_a16
+  PSF_SAMPLE_AVOID_RADIUS=5 PLANET_SEP=30 PLANET_PA=70 PLANET_CONTRAST=0.001 \\
+    $(basename "$0") dense detector_dr2_a16
   $(basename "$0") --analyze-only /data/psf-test
 EOF
 }
@@ -65,6 +76,7 @@ radial_dr1_a16    radii 0.5:1:59.5 pixels, 16 requested angles per radius
 radial_dr2_a4     radii 1:2:59 pixels, 4 requested angles per radius
 radial_dr2_a8     radii 1:2:59 pixels, 8 requested angles per radius
 radial_dr2_a16    radii 1:2:59 pixels, 16 requested angles per radius
+detector_dr2_a16  same grid measured from only the selected detector-local operators
 radial_dr2_a32    radii 1:2:59 pixels, 32 requested angles per radius
 radial_dr4_a16    radii 2:4:58 pixels, 16 requested angles per radius
 radial_dr8_a16    radii 4:8:52 plus 58 pixels, 16 requested angles per radius
@@ -82,6 +94,8 @@ radii_sequence()
 case_parameters()
 {
     local case_name=$1
+    case_sampling_mode=skyExact
+    case_sample_avoid_radius=0
     case "${case_name}" in
         dense)
             case_radii=
@@ -103,6 +117,12 @@ case_parameters()
             case_radii=$(radii_sequence 1 2 59)
             case_angles=16
             ;;
+        detector_dr2_a16)
+            case_radii=$(radii_sequence 1 2 59)
+            case_angles=16
+            case_sampling_mode=detectorLocal
+            case_sample_avoid_radius=${psf_sample_avoid_radius}
+            ;;
         radial_dr2_a32)
             case_radii=$(radii_sequence 1 2 59)
             case_angles=32
@@ -122,6 +142,12 @@ case_parameters()
             ;;
     esac
 }
+
+if [[ -n "${planet_sep}${planet_pa}${planet_contrast}" &&
+      ( -z "${planet_sep}" || -z "${planet_pa}" || -z "${planet_contrast}" ) ]]; then
+    printf '%s\n' 'PLANET_SEP, PLANET_PA, and PLANET_CONTRAST must be supplied together.' >&2
+    exit 2
+fi
 
 shell_join()
 {
@@ -207,7 +233,7 @@ command -v "${p4reduce_bin}" >/dev/null 2>&1 || {
 }
 
 help_text=$("${p4reduce_bin}" --help 2>&1)
-if [[ "${help_text}" != *"--p4.psfSampleRadii"* ]]; then
+if [[ "${help_text}" != *"--p4.psfSampleRadii"* || "${help_text}" != *"--p4.psfSamplingMode"* ]]; then
     printf 'p4Reduce does not expose --p4.psfSampleRadii: %s\n' "${p4reduce_bin}" >&2
     printf '%s\n' 'Build this hciReduce checkout and set P4REDUCE_BIN to that executable.' >&2
     exit 1
@@ -304,6 +330,15 @@ for case_name in "${selected_cases[@]}"; do
         command_line+=(
             --p4.psfSampleRadii "${case_radii}"
             --p4.psfSamplesPerRadius "${case_angles}"
+            --p4.psfSamplingMode "${case_sampling_mode}"
+            --p4.psfSampleAvoidRadius "${case_sample_avoid_radius}"
+        )
+    fi
+    if [[ "${case_sampling_mode}" == detectorLocal && -n "${planet_sep}" ]]; then
+        command_line+=(
+            --planet.sep "${planet_sep}"
+            --planet.PA "${planet_pa}"
+            --planet.contrast "${planet_contrast}"
         )
     fi
 
@@ -313,6 +348,11 @@ for case_name in "${selected_cases[@]}"; do
         printf 'case=%s\n' "${case_name}"
         printf 'sample_radii=%s\n' "${case_radii}"
         printf 'samples_per_radius=%s\n' "${case_angles}"
+        printf 'sampling_mode=%s\n' "${case_sampling_mode}"
+        printf 'sample_avoid_radius=%s\n' "${case_sample_avoid_radius}"
+        printf 'planet_sep=%s\n' "${planet_sep}"
+        printf 'planet_pa=%s\n' "${planet_pa}"
+        printf 'planet_contrast=%s\n' "${planet_contrast}"
         printf 'psf_file=%s\n' "${psf_file}"
         printf 'psf_stamp_size=%s\n' "${psf_stamp_size}"
         printf 'psf_filter=%s\n' "${psf_filter}"

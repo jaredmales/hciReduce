@@ -7,6 +7,13 @@ final image with the PSF assigned to that pixel. The calculation must reuse the 
 science data, remain bounded for thousands of frames, preserve the existing reduction when disabled, and distinguish
 an analytic frozen-model response from a complete fake-source reinjection and refit.
 
+The operational goal is to obtain a useful matched filter without first fitting and subtracting a negative companion,
+then injecting another source at that location to produce a zero-signal response. That two-reduction construction is
+too expensive to place inside a photometry/astrometry fit. The intended replacement is an approximate response field
+measured sparsely from the unmodified science reduction, with measurements kept away from known companions, then
+azimuthally averaged and interpolated in radius. The response need only be accurate enough to improve the matched
+filter's localization and uncertainty, not to reproduce fake-injection photometric throughput exactly.
+
 ## Scientific contract to establish first
 
 The recommended initial definition is a **frozen P4 forward model**:
@@ -36,6 +43,12 @@ RESOLUTION: the calculated PSF and any persisted PSF field are filter templates,
 calibrations. Full fake injection is useful for validating detection/filter behavior, but matching its calibrated flux
 response is not a requirement of this task.
 
+RESOLUTION (accepted 2026-09-05): sparse response measurement must operate on the original science fit and exclude
+configured known-companion trajectories from its detector-local sample candidates. It must not require a negative-
+companion optimization or a second zero-signal fake-injection reduction. Those expensive paths remain validation
+oracles. Acceptance is based on matched-filter position, contrast ranking, and uncertainty relative to those oracles,
+along with the reduction in calculated local responses and elapsed time.
+
 The supplied PSF template should initially be defined at the input to P4, after any inherited preprocessing. P4 must
 not silently apply the science cube's radial-profile, median-filter, mean-image, or temporal-RMS operations to a single
 template: several are data-dependent or nonlinear, and a single centered image is insufficient to reproduce their
@@ -49,15 +62,23 @@ The final estimator determines whether one linear forward-model PSF exists:
 |---|---|
 | Unweighted or weighted mean | Linear; use the same per-frame validity and normalized weights as the science image. |
 | `sigmaMean` with nonpositive threshold | The current implementation falls back to mean and is linear. |
-| Active `sigmaMean` | Apply the configured sigma-clipped mean directly to the propagated PSF samples as the filtering approximation. |
+| Active `sigmaMean` | Keep sigma clipping for the science residual, but combine the analytic PSF response with an unclipped mean or configured weighted mean. Do not identify outliers independently from the known response. |
 | Median combination | Median-combine the propagated PSF samples, matching the configured science estimator as the filtering approximation. |
 | `adi.postMedSub=true` | Nonlinear temporal median step before derotation. Reject initially for analytic PSF calculation. |
 
 COMMENT: we're focused on the regime where noise >> signal in individual images, so I think we approximate the effect of the PSF perturbation on the combination as linear regardless of which combo we use.  That is, we'll just median combine it if we're using median combination.  This is justified b/c we're only using this as a filter, not a calibration.
 
-RESOLUTION: accepted. The PSF response uses the same configured final estimator, including median or active
-sigma-clipped mean, without attempting to reuse the science data's median selection or sigma-clip membership. Output
-provenance describes this as a filtering approximation rather than a calibrated linear response.
+SUPERSEDED RESOLUTION: the initial implementation used the same configured final estimator, including an independent
+active sigma clip of the propagated PSF response.
+
+RESOLUTION (accepted 2026-09-05): active sigma clipping remains unchanged for the science residual, but the analytic
+PSF response uses an unclipped mean, or the configured weighted mean when weights are present. A known linear response
+does not supply an independent outlier population, and clipping it would not be the derivative of the science
+estimator. Under the accepted faint-source assumption, source injection does not change the science clip membership
+and low-order response fits do not generate response outliers. The exact future linearization would retain the
+science-derived clip membership and apply that fixed mask to the response; independently clipping the response is not
+that linearization. Product provenance must record the configured science combination separately from the effective
+PSF-response combination.
 
 The ordinary science reduction and analytic PSF calculation both support every existing final-combination method.
 The initial restriction on `adi.postMedSub=true` remains separate because that operation modifies each detector pixel's
@@ -215,6 +236,45 @@ reconstructed `S=504` final positions in 0.262 seconds after a 13.568-second reg
 validity was 292 of 504 positions in every mode. The omitted inner/outer calculation halo accounts for the remaining
 invalid positions and confirms that a narrow isolated annulus cannot provide complete derotation-footprint support.
 
+### Sparse required-response ROC measurement
+
+The 2026-09-05 AF Lep/NACO run in `working/roc/p4_psf_sampling_20260905T223533Z` used hciReduce commit `8e04589`, 621
+frames, 29 annuli, 15 modes, an 11-by-11 response stamp, and `sigmaMean` with threshold zero so the response
+combination was value-independent. The dense and `radial_dr2_a16` science `finim` arrays were bitwise identical. The
+sparse model used 470 final measurements instead of 11,304, had zero source-center-validity mismatches, and achieved
+mode-relative L2 errors of 0.0816--0.0961 with cosine similarities of 0.9954--0.9967. Its filtered-image relative L2
+was 0.2330 with cosine similarity 0.9733.
+
+The required-response planner nevertheless selected 11,304 of 11,304 detector search pixels. Across the actual 621
+derotation angles, the 470 requested 11-by-11 stamps and their cubic footprints sweep the complete configured search
+region. Local-PSF work therefore remained unchanged within run variability: 35,873.9 dense versus 35,951.8 sparse
+worker-seconds, and sparse regression was 6.7 seconds slower. Sparse final reconstruction/filtering fell from 61.34
+to 16.43 elapsed seconds, producing a total wall-time reduction from 943.01 to 904.78 seconds (1.042x). Peak RSS was
+effectively unchanged at about 6.96 versus 6.99 GiB, as expected from the still-dense retained allocation.
+
+This result validates the required-set accounting but does not demonstrate sparse local-response calculation on this
+geometry. Before another full ROC sweep, enumerate the exact cubic-footprint union instead of only its conservative
+bounding rectangles and report both counts. If the exact union still saturates the field, achieving the original
+calculation-speed goal requires a more approximate measurement contract. The sequence has about 70 degrees of
+continuous unwrapped field rotation, while the 16 requested source angles are only 22.5 degrees apart, so their
+detector trajectories necessarily overlap and cover the full annulus. The preferred prototype is therefore a direct
+detector-polar sampler for `p4.numberImages=0`: calculate local response templates only at discrete detector radii and
+angles, rotate them to a common radial orientation, average them, and interpolate in radius. This introduces an
+explicit local-smoothness/azimuthal-averaging approximation in place of exact sampled-sky reconstruction and must be
+tested against the existing dense response before adoption.
+
+### Detector-local prototype
+
+The 2026-09-05 implementation adds opt-in `p4.psfSamplingMode=detectorLocal`. It calculates coefficient vectors and
+local response operators only at the selected polar detector coordinates, samples each fixed operator into a source-
+centered stamp, and uses the existing angular alignment, radial average, and nearest-radius reconstruction. A focused
+31-by-31 integration case requested 8 measurements from 7 unique local response operators for 236 search pixels,
+rejected 21 candidate pixels intersecting a configured seven-frame, 60-degree planet trajectory, and produced
+schema-4 finite response products. The same test used an
+active `sigmaMean` science combination while the product truthfully recorded an unclipped mean response combination.
+The full 29-target test suite and Doxygen build passed. This establishes mechanics and accounting; the AF Lep/NACO
+dense comparison on ROC remains the scientific and performance acceptance test.
+
 ## Proposed configuration and products
 
 Use opt-in P4-specific configuration so all existing controls and outputs remain unchanged when no PSF template is
@@ -289,8 +349,22 @@ directory.
   validity rather than zero-valued PSFs.
 - [x] For sparse shared radial models, plan the conservative union of detector cubic footprints required by the
   selected final response stamps over all derotation angles. Request coefficients and calculate local responses only
-  for that set while retaining rank/geometry validity for every search pixel; keep the full calculation for
-  target-held-out and active sigma-clipped validity.
+  for that set while retaining rank/geometry validity for every search pixel. Keep the full calculation for
+  target-held-out validity; active science sigma clipping now follows the value-independent analytic-response rule.
+- [ ] Replace the conservative bounding-rectangle planner with an exact union of the cubic detector footprints read
+  by sampled reconstruction, retain a conservative-oracle comparison in tests, and report exact versus conservative
+  counts before another full ROC matrix.
+- [x] Prototype direct detector-polar response sampling for `p4.numberImages=0`: request coefficients and calculate
+  local responses only at the configured discrete radii/angles, rotate each response to a common radial orientation,
+  convert each fixed-target local operator into a source-centered filter stamp, average within radius, and reuse the
+  existing nearest-radius model. Record the approximation to the spatially varying coefficient field explicitly.
+- [ ] Compare every detector-local mode and filtered product with the dense response on ROC, including actual local-
+  response count, worker time, wall time, response-field error, and filtered-image error.
+- [x] Remove detector-polar candidates whose coordinates intersect the configured trajectories of known `planet`
+  sources, using a separately recorded avoidance radius. Deterministically select the nearest remaining angle sample;
+  fail clearly when no uncontaminated candidate remains rather than sampling a known signal.
+- [x] Extend the ROC comparison summary with required local-response search count and fraction so a reduction in final
+  measurement count is never mistaken for a reduction in regression response work.
 - [x] Preserve annulus ownership and non-overlap rules. Do not retain a stamp for pixels that cannot contribute to a
   valid science output.
 - [x] Add local-stamp storage and scratch to checked memory calculations. Allow a configured run to fail before
@@ -342,10 +416,20 @@ directory.
 
 - [x] Route propagated per-frame PSF samples through the configured mean, weighted mean, median, or sigma-clipped mean
   implementation with the same validity, weights, sigma threshold, and `combine.minGoodFract` settings.
-- [x] For active `sigmaMean`, calculate clipping from the propagated PSF samples themselves. Do not retain or reuse the
-  science residual's clip membership.
-- [x] Document median and active-sigma results as filter-template approximations justified by the individual-frame
-  noise-dominated regime, not as finite-amplitude-independent photometric responses.
+- [x] The initial active-`sigmaMean` implementation calculated clipping from the propagated PSF samples themselves;
+  the 2026-09-05 decision above supersedes this behavior.
+- [x] Map active science `sigmaMean` to an unclipped mean for the analytic PSF response, preserving configured weights,
+  ordinary input validity, and `combine.minGoodFract`. Do not change science residual combination.
+- [x] Make PSF source validity value-independent for active science `sigmaMean`, then enable required-response planning
+  for that configuration. Keep target-held-out response calculation dense until its separate validity contract is
+  resolved.
+- [x] Record configured science combination and effective PSF-response combination separately in FITS provenance;
+  keep the configured sigma threshold as science metadata rather than claiming it was applied to the response.
+- [ ] Add unweighted and weighted active-sigma regressions proving unchanged science output, mean-combined PSF
+  response, exact value-independent validity, sparse required-response use where geometry permits it, and truthful
+  provenance.
+- [x] Update the algorithm documentation to describe median as the remaining nonlinear filtering approximation and
+  active `sigmaMean` as an unclipped linear-response approximation.
 - [x] Keep `adi.postMedSub=true` rejected until its separate detector-frame temporal operation is explicitly accepted
   under a comparable filtering approximation.
 
@@ -370,6 +454,10 @@ directory.
 - [ ] Validate filter response, localization, and detection ranking with isolated synthetic sources, multiple
   contrasts, neighboring sources, and noise-only data. Compare against full fake injection and refitting to determine
   whether the estimated PSF materially improves filtering; calibrated throughput agreement is not required.
+- [ ] Compare the sparse filter directly with the current negative-companion-fit plus zero-signal fake-injection
+  construction at known-source locations. Record position/contrast estimates, curvature- or resampling-derived
+  uncertainty, filter-template similarity, calculated local-response count, and wall time. The sparse path succeeds
+  when it removes the second reduction from the fit loop without materially degrading the accepted inference metrics.
 
 ### 9. Documentation, provenance, and coverage
 
@@ -393,8 +481,8 @@ The 2026-09-05 sparse required-response follow-up rechecked
 `/home/jrmales/Source/mxlib/_build/coverage_filtered.info`. The exact mxlib APIs called by the edited P4 reduction,
 product-publication, and required-search functions remain fully covered: exception construction, float FITS I/O,
 FITS headers/cards, `eigenCube<float>`, `ompLoopWatcher`, finite checks, time utilities, `parentPath`,
-`createDirectories`, and `invalidNumber<float>`. None of those mxlib files changed after the report was generated, so
-no new ownership follow-up is required.
+`createDirectories`, `invalidNumber<float>`, and the float/double `dtor` instantiations used for planet trajectories.
+None of those mxlib files changed after the report was generated, so no new ownership follow-up is required.
 
 ## Acceptance criteria
 
@@ -407,9 +495,10 @@ no new ownership follow-up is required.
   all opt-in coefficient/stamp scratch.
 - Every compact PSF plane has a deterministic output coordinate, mode, validity state, template identity, and schema
   version sufficient for later filtering without rerunning regression.
-- Every configured final-combination method is applied to the propagated PSF with the science configuration's
-  validity, weights, sigma threshold, and minimum-good-fraction settings. Median and active-sigma products are labeled
-  as filtering approximations.
+- Mean and weighted-mean science configurations apply the same linear estimator to the propagated PSF. Active science
+  `sigmaMean` uses an unclipped mean or configured weighted mean for the PSF while preserving ordinary validity and
+  minimum-good-fraction support; median remains a filtering approximation. Provenance distinguishes the science and
+  response estimators.
 - The spatially variable filter has a documented normalization and invalid-support rule and recovers accepted
   synthetic-source flux/position tolerances.
 - A representative remote run records PSF calculation time, peak RSS, persisted product size, and filtering behavior

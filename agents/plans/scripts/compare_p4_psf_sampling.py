@@ -225,11 +225,16 @@ def main() -> int:
                 sparse_products / f"p4PSF_validity_{mode_index:04d}.fits",
             )
             measurements = int(header.get("P4 PSF MEASUREMENT COUNT", metrics["source_count"]))
+            local_responses = int(header.get("P4 LOCAL PSF RESPONSE SEARCH COUNT", metrics["source_count"]))
             row: dict[str, float | int | str] = {
                 "case": sparse_case.name,
                 "mode_index": mode_index,
+                "sampling_mode": str(header.get("P4 PSF SAMPLING MODE", "unknown")),
                 "measurement_count": measurements,
                 "measurement_reduction": safe_ratio(int(metrics["source_count"]), measurements),
+                "local_response_count": local_responses,
+                "local_response_fraction": safe_ratio(local_responses, int(metrics["source_count"])),
+                "local_response_reduction": safe_ratio(int(metrics["source_count"]), local_responses),
                 "wall_seconds": sparse_wall,
                 "speedup_vs_dense": safe_ratio(dense_wall, sparse_wall),
                 "psf_worker_seconds": sparse_psf_worker,
@@ -247,8 +252,12 @@ def main() -> int:
         summary_rows.append(
             {
                 "case": sparse_case.name,
+                "sampling_mode": str(first["sampling_mode"]),
                 "measurement_count": int(first["measurement_count"]),
                 "measurement_reduction": float(first["measurement_reduction"]),
+                "local_response_count": int(first["local_response_count"]),
+                "local_response_fraction": float(first["local_response_fraction"]),
+                "local_response_reduction": float(first["local_response_reduction"]),
                 "wall_seconds": sparse_wall,
                 "speedup_vs_dense": float(first["speedup_vs_dense"]),
                 "psf_worker_seconds": sparse_psf_worker,
@@ -275,14 +284,16 @@ def main() -> int:
         stream.write(f"Dense reference wall time: {format_number(dense_wall)} seconds.\n\n")
         stream.write(f"Dense local-PSF worker time: {format_number(dense_psf_worker)} seconds.\n\n")
         stream.write(
-            "| Case | Measurements | Reduction | Wall (s) | Wall speedup | PSF worker (s) | PSF speedup | "
+            "| Case | Sampling | Measurements | Local responses | Local fraction | Wall (s) | Wall speedup | "
+            "PSF worker (s) | PSF speedup | "
             "Median mode rel. L2 | Worst mode rel. L2 | Mean cosine | Filtered rel. L2 |\n"
         )
-        stream.write("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
+        stream.write("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
         for row in summary_rows:
             stream.write(
-                f"| {row['case']} | {row['measurement_count']} | "
-                f"{format_number(float(row['measurement_reduction']))}x | "
+                f"| {row['case']} | {row['sampling_mode']} | {row['measurement_count']} | "
+                f"{row['local_response_count']} | "
+                f"{format_number(float(row['local_response_fraction']))} | "
                 f"{format_number(float(row['wall_seconds']))} | "
                 f"{format_number(float(row['speedup_vs_dense']))}x | "
                 f"{format_number(float(row['psf_worker_seconds']))} | "

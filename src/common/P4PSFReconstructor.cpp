@@ -190,6 +190,46 @@ bool P4PSFReconstructor::sampleLocalResponse(
     return true;
 }
 
+void P4PSFReconstructor::approximateSourceResponse( imageT &output,
+                                                    validityT &outputValidity,
+                                                    const imageT &localModels,
+                                                    Eigen::Index modelColumn,
+                                                    bool modelValid ) const
+{
+    const Eigen::Index localPixels =
+        static_cast<Eigen::Index>( m_localStampRows ) * static_cast<Eigen::Index>( m_localStampColumns );
+    if( localModels.rows() != localPixels || modelColumn < 0 || modelColumn >= localModels.cols() )
+    {
+        throw std::invalid_argument( "P4 detector-local approximation dimensions are inconsistent with geometry" );
+    }
+
+    output.resize( m_outputStampSize, m_outputStampSize );
+    output.setZero();
+    outputValidity.resize( m_outputStampSize, m_outputStampSize );
+    outputValidity.setZero();
+    if( !modelValid )
+    {
+        return;
+    }
+
+    const double outputCenter = 0.5 * static_cast<double>( m_outputStampSize - 1 );
+    for( int stampColumn = 0; stampColumn < m_outputStampSize; ++stampColumn )
+    {
+        const double deltaColumn = static_cast<double>( stampColumn ) - outputCenter;
+        for( int stampRow = 0; stampRow < m_outputStampSize; ++stampRow )
+        {
+            const double deltaRow = static_cast<double>( stampRow ) - outputCenter;
+            float value{ 0 };
+            if( sampleLocalResponse( value, localModels, modelColumn, deltaRow, deltaColumn ) &&
+                std::isfinite( value ) )
+            {
+                output( stampRow, stampColumn ) = value;
+                outputValidity( stampRow, stampColumn ) = 1;
+            }
+        }
+    }
+}
+
 void P4PSFReconstructor::reconstructFrame( imageT &output,
                                            validityT &outputValidity,
                                            const imageT &localModels,

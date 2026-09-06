@@ -45,15 +45,20 @@
  * it. The template must therefore represent the post-preprocessing P4 input stage. This is a local filter template,
  * not a calibrated finite-amplitude throughput measurement, because refitting after fake injection can change the
  * coefficients.
+ * Its filtering role is specifically intended to avoid a negative-companion fit followed by a second zero-signal
+ * fake-injection reduction merely to obtain a matched-filter template. Full fake injection and refitting remain
+ * validation oracles for nonlinear throughput; they are not required inputs to the sparse filtering path.
  *
  * Exact detector-local responses are retained at every owned search coordinate. Sparse shared-model runs retain
  * rank and geometry validity everywhere but calculate coefficient vectors and local responses only at detector
  * search pixels required by the selected final stamps. Final-frame reconstruction maps each sky stamp sample through
  * the exact inverse derotation, composes the same cubic footprints used by science derotation and local sampling, and
- * combines its bounded frame stack with the configured science estimator, weights, sigma threshold, minimum-good
- * fraction, and response validity. Mean and weighted-mean responses are linear frozen-model products. Median and
- * actively sigma-clipped products are filter-template approximations evaluated from the propagated response samples;
- * they are not finite-amplitude-independent photometric transfer functions.
+ * combines its bounded frame stack with the configured science estimator, weights, minimum-good fraction, and
+ * response validity, except that active science `sigmaMean` is mapped to an unclipped mean for the analytic response.
+ * Configured weights remain active, so a weighted sigma-clipped science image receives a weighted-mean response.
+ * Mean and weighted-mean responses are linear frozen-model products. Median products remain filter-template
+ * approximations; they are not finite-amplitude-independent photometric transfer functions. Product provenance
+ * records the configured science combination separately from the effective response combination.
  *
  * \section p4_psf_radial Sparse radial approximation
  *
@@ -61,21 +66,36 @@
  * search pixel with a sparse polar experiment. At each configured radius, P4 requests uniformly spaced position
  * angles and selects the nearest distinct owned search pixel. Integer-pixel collisions are removed within that
  * radius, so the recorded measurement count can be smaller than radii times requested angles near the origin.
- * Before regression, P4 forms a conservative union of the complete cubic derotation footprints for those selected
- * stamps over every target-frame angle. Shared in-sample regression requests coefficient output and evaluates local
- * PSF responses only at that required set; ordinary science residuals and source-validity state are still calculated
- * at every owned search pixel. The product header records the realized set as
- * `HIERARCH P4 LOCAL PSF RESPONSE SEARCH COUNT`. Target-held-out responses and active sigma-clipped combinations keep
- * the full response set because their exact source validity can depend on target-specific or response-valued state.
+ * `p4.psfSamplingMode=skyExact`, the default, reconstructs every selected sky stamp through all target frames.
+ * Before regression, P4 forms a conservative union of the complete cubic derotation footprints for those stamps.
+ * This preserves the exact sampled response but can still require every detector-local operator when field rotation
+ * and angular sampling cover the full annulus.
  *
- * Each exact measured final-frame stamp is rotated by its actual source angle in the production image-rotation
+ * `p4.psfSamplingMode=detectorLocal` is the explicitly approximate, genuinely sparse alternative. It calculates
+ * coefficients and the frozen local operator only at the selected detector pixels. Each operator is sampled as a
+ * source-centered response while holding its coefficients fixed across the output stamp, rotated to the common
+ * radial orientation, and averaged with the other measurements at that radius. This omits spatial coefficient
+ * variation across neighboring target pixels and omits exact propagation of a sampled sky source through all field
+ * angles. It initially requires `p4.numberImages=0` and `adi.excludeMethod=none`. Active science sigma clipping is
+ * supported through the same unclipped analytic-response rule described above. Ordinary science residuals and
+ * rank/geometry validity are still calculated at every owned search pixel.
+ *
+ * With positive `p4.psfSampleAvoidRadius` and configured `planet.*` metadata, detector-local candidates are rejected
+ * if they lie within that distance of a known companion at any target-frame field angle. Selection then uses the
+ * nearest remaining detector coordinate. The response is still measured from the original science fit: no negative
+ * companion or zero-signal fake injection is performed. The product records the avoidance radius, rejected candidate
+ * count, sampling mode, and realized local-response set. If no uncontaminated detector candidate remains, selection
+ * fails rather than silently sampling a known signal.
+ *
+ * Each measured response stamp is rotated by its actual source angle in the production image-rotation
  * convention so that radial separation points along the positive-column axis. Valid samples in the same radial bin
  * are averaged element by element. To evaluate the model at an arbitrary search pixel, P4 selects the nearest
  * configured radius (an exact tie selects the inner radius), rotates that canonical average back to the pixel's
  * angle, and expands it into the same per-search-pixel product layout consumed by `hciAnalyze`. This is
  * nearest-neighbor radial interpolation; no radial blending is performed. Sparse radial mode requires an odd response
- * stamp and records product schema 3,
- * `RADIAL_NEAREST`, the configured radii, requested angles per radius, and the realized distinct measurement count.
+ * stamp. Exact sky sampling records product schema 3; detector-local sampling records schema 4. Both record
+ * `RADIAL_NEAREST`, the configured radii, requested angles per radius, sampling mode, realized distinct measurement
+ * count, and `HIERARCH P4 LOCAL PSF RESPONSE SEARCH COUNT`.
  *
  * With `p4.numberImages>0`, each row has one temporal predictor: the `mean` or `median` of the central-pixel samples
  * from its exact selected earlier/later frames. One-sided beginning/end fallback is therefore propagated consistently
@@ -116,6 +136,8 @@
  * | `--p4.psfStampSize` | `p4.psfStampSize=11` | `HIERARCH P4 PSF STAMP SIZE` | positive integer | `0` | Square final response-stamp size. Odd and even sizes use geometric centers. Required with `psfFile`. |
  * | `--p4.psfSampleRadii` | `p4.psfSampleRadii=6,10,14` | `HIERARCH P4 PSF SAMPLE RADII` | strictly increasing nonnegative real pixels inside configured annuli | unset | Enables the sparse radial approximation when paired with `psfSamplesPerRadius`. Requires `psfFile` and an odd stamp. |
  * | `--p4.psfSamplesPerRadius` | `p4.psfSamplesPerRadius=8` | `HIERARCH P4 PSF SAMPLES PER RADIUS` | positive integer | `0` | Number of uniformly spaced requested angles at every sparse sample radius. Nearest-pixel collisions are measured only once per radius. |
+ * | `--p4.psfSamplingMode` | `p4.psfSamplingMode=detectorLocal` | `HIERARCH P4 PSF SAMPLING MODE` | `skyExact` or `detectorLocal` | `skyExact` | `skyExact` propagates each sparse sky measurement through all frames. `detectorLocal` calculates only the sampled local operators and applies the documented spatially local filtering approximation. |
+ * | `--p4.psfSampleAvoidRadius` | `p4.psfSampleAvoidRadius=5` | `HIERARCH P4 PSF SAMPLE AVOID RADIUS` | nonnegative real detector pixels | `0` | Reject detector-local candidates within this radius of any configured known-planet trajectory. Zero disables avoidance. |
  * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final combination. |
  * | `--p4.psfFilter` | `p4.psfFilter=true` | `HIERARCH P4 PSF FILTER` | bool | `false` | Write signed normalized spatially variable filter products. Requires `psfFile`, an odd stamp, and a final combination; it does not require `outputPSFModels=true`. |
  * | `--p4.psfFilterMinGoodFract` | `p4.psfFilterMinGoodFract=0.8` | `HIERARCH P4 PSF FILTER MIN GOOD FRACTION` | real in `[0,1]` | `1` | Minimum fraction of the full stamp with valid PSF samples and finite in-bounds science samples. |
@@ -129,6 +151,8 @@
  * psfStampSize=11
  * psfSampleRadii=6,10,14
  * psfSamplesPerRadius=8
+ * psfSamplingMode=detectorLocal
+ * psfSampleAvoidRadius=5
  * outputPSFModels=true
  * psfFilter=true
  * psfFilterMinGoodFract=0.8
@@ -172,10 +196,11 @@
  *
  * Plane `s` in each model cube belongs to row `s` of the coordinate image. Individual unsupported stamp samples are
  * NaN even when the source center is valid. Exact per-pixel model-only sets use schema version 1; exact per-pixel
- * filtering sets use schema version 2; sparse radial sets use schema version 3 with either output choice. Every
+ * filtering sets use schema version 2; sparse exact-sky radial sets use schema version 3; sparse detector-local
+ * radial sets use schema version 4. Every
  * product records its role, template identity/stage/normalization, `FROZEN_SIGNED` convention,
- * combination policy, support geometry, storage estimates, source count, local-response search count, and mode
- * identity where applicable.
+ * configured science combination, effective analytic-response combination, their respective sigma thresholds,
+ * support geometry, storage estimates, source count, local-response search count, and mode identity where applicable.
  * `HIERARCH P4 PSF COEFFICIENT SCOPE` is `SHARED_IN_SAMPLE` for the ordinary model or `TARGET_HELD_OUT` when every
  * frame uses its own deleted-row fit; `HIERARCH P4 PSF MODE BATCH` records the selected maximum held-out batch size.
  * Zero identifies the shared in-sample path, and the final held-out batch may contain fewer modes.

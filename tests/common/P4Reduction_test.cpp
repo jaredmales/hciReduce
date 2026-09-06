@@ -205,6 +205,9 @@ struct reductionHarness : public reductionT
     using reductionT::m_pcatReferenceMaxRadius;
     using reductionT::m_pcatReferenceMinRadius;
     using reductionT::m_pcatReferenceRegion;
+    using reductionT::m_planetContrast;
+    using reductionT::m_planetPA;
+    using reductionT::m_planetSep;
     using reductionT::m_prefix;
     using reductionT::m_preProcess_only;
     using reductionT::m_psfsub;
@@ -608,6 +611,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_psfStampSize == 0 );
     REQUIRE( defaults.m_psfSampleRadii.empty() );
     REQUIRE( defaults.m_psfSamplesPerRadius == 0 );
+    REQUIRE( defaults.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::skyExact );
+    REQUIRE( defaults.m_psfSampleAvoidRadius == 0 );
     REQUIRE_FALSE( defaults.m_outputPSFModels );
     REQUIRE_FALSE( defaults.m_psfFilter );
     REQUIRE( defaults.m_psfFilterMinGoodFract == 1 );
@@ -630,6 +635,8 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.psfSampleRadii" ).helpType == "float vector" );
     REQUIRE( registered.m_targets.at( "p4.psfSamplesPerRadius" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "p4.psfSamplingMode" ).helpType == "string" );
+    REQUIRE( registered.m_targets.at( "p4.psfSampleAvoidRadius" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::Optional );
     REQUIRE( registered.m_targets.at( "p4.psfFilter" ).clType == mx::app::argType::Optional );
     REQUIRE( registered.m_targets.at( "p4.psfFilterMinGoodFract" ).helpType == "float" );
@@ -712,11 +719,14 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
                          directory.file( "psf.conf" ),
                          "[p4]\npsfFile=template.fits\npsfStampSize=11\n"
                          "psfSampleRadii=6,10\npsfSamplesPerRadius=8\n"
+                         "psfSamplingMode=detectorLocal\npsfSampleAvoidRadius=2.5\n"
                          "outputPSFModels=true\npsfFilter=true\npsfFilterMinGoodFract=0.75\npsfOutputPrefix=field_\n" );
     REQUIRE( psfConfiguration.m_psfFile == "template.fits" );
     REQUIRE( psfConfiguration.m_psfStampSize == 11 );
     REQUIRE( psfConfiguration.m_psfSampleRadii == std::vector<float>{ 6, 10 } );
     REQUIRE( psfConfiguration.m_psfSamplesPerRadius == 8 );
+    REQUIRE( psfConfiguration.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::detectorLocal );
+    REQUIRE( psfConfiguration.m_psfSampleAvoidRadius == Approx( 2.5 ) );
     REQUIRE( psfConfiguration.m_outputPSFModels );
     REQUIRE( psfConfiguration.m_psfFilter );
     REQUIRE( psfConfiguration.m_psfFilterMinGoodFract == Approx( 0.75 ) );
@@ -731,6 +741,11 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE_THROWS( readReductionConfig( invalidFrame,
                                          directory.file( "invalid-frame.conf" ),
                                          "[p4]\nregressionFrame=materialized\n" ) );
+
+    reductionHarness invalidPSFSamplingMode;
+    REQUIRE_THROWS( readReductionConfig( invalidPSFSamplingMode,
+                                         directory.file( "invalid-psf-sampling-mode.conf" ),
+                                         "[p4]\npsfSamplingMode=detectorExact\n" ) );
 
     reductionHarness invalidExclusionSolver;
     REQUIRE_THROWS( readReductionConfig( invalidExclusionSolver,
@@ -1884,7 +1899,8 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     baseline.m_outputDir = directory.file( "exact" ).string();
     baseline.m_finimName = "finim_";
     baseline.m_doWriteFinim = true;
-    baseline.m_combineMethod = mx::improc::HCI::combine::mean;
+    baseline.m_combineMethod = mx::improc::HCI::combine::sigmaMean;
+    baseline.m_sigmaThreshold = 5;
     REQUIRE( baseline.reduce() == 0 );
 
     reductionHarness reduction;
@@ -1906,7 +1922,8 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     reduction.m_outputDir = directory.file( "nested/products" ).string();
     reduction.m_finimName = "finim_";
     reduction.m_doWriteFinim = true;
-    reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+    reduction.m_combineMethod = mx::improc::HCI::combine::sigmaMean;
+    reduction.m_sigmaThreshold = 5;
     reduction.m_writeDiagnostics = true;
     reduction.m_diagnosticDirectory = ".";
     REQUIRE( reduction.reduce() == 0 );
@@ -2026,6 +2043,10 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     REQUIRE( modelHeader["P4 PSF TEMPLATE CENTER COLUMN"].value<double>() == Approx( 4.5 ) );
     REQUIRE( modelHeader["P4 PSF RESPONSE"].String().starts_with( "FROZEN_SIGNED" ) );
     REQUIRE( modelHeader["P4 PSF SPATIAL MODEL"].String().starts_with( "RADIAL_NEAREST" ) );
+    REQUIRE( modelHeader["P4 SCIENCE COMBINATION"].String().starts_with( "sigmaMean" ) );
+    REQUIRE( modelHeader["P4 PSF COMBINATION"].String().starts_with( "mean" ) );
+    REQUIRE( modelHeader["P4 SCIENCE SIGMA THRESHOLD"].value<float>() == Approx( 5 ) );
+    REQUIRE( modelHeader["P4 PSF SIGMA THRESHOLD"].value<float>() == Approx( 0 ) );
     REQUIRE( modelHeader["P4 PSF SAMPLE RADII"].String().starts_with( "6,8" ) );
     REQUIRE( modelHeader["P4 PSF SAMPLES PER RADIUS"].value<int>() == 4 );
     REQUIRE( modelHeader["P4 PSF MEASUREMENT COUNT"].value<int>() == 8 );
@@ -2235,7 +2256,8 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
     filterOnly.m_outputDir = directory.file( "filter-only" ).string();
     filterOnly.m_finimName = "science.fits";
     filterOnly.m_exactFinimName = true;
-    filterOnly.m_combineMethod = mx::improc::HCI::combine::mean;
+    filterOnly.m_combineMethod = mx::improc::HCI::combine::sigmaMean;
+    filterOnly.m_sigmaThreshold = 5;
     REQUIRE( filterOnly.reduce() == 0 );
     REQUIRE( std::filesystem::exists( directory.file( "filter-only/science_filtered.fits" ) ) );
     REQUIRE( std::filesystem::exists( directory.file( "filter-only/science_outputs/filterOnly_manifest.fits" ) ) );
@@ -2270,6 +2292,132 @@ TEST_CASE( "P4 reduction writes compact final PSF fields and filtered products",
             }
         }
     }
+}
+
+/// Verify detector-local radial sampling calculates only selected uncontaminated response operators.
+/** This exercises mx::improc::P4Reduction::reduce(),
+ * mx::improc::P4PSFReconstructor::approximateSourceResponse(), and mx::improc::RadialPSFModel::fit() through the
+ * detector-local sparse product path. Configured known-planet trajectories must be absent from the selected
+ * detector response locations, and product provenance must distinguish this approximation from exact sky sampling.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
+           "[P4Reduction][PSF][sparse][detectorLocal][planet][integration]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    reductionT::imageT psfTemplate( 9, 10 );
+    for( int column = 0; column < psfTemplate.cols(); ++column )
+    {
+        for( int row = 0; row < psfTemplate.rows(); ++row )
+        {
+            const double deltaRow = static_cast<double>( row ) - 4.0;
+            const double deltaColumn = static_cast<double>( column ) - 4.5;
+            psfTemplate( row, column ) =
+                static_cast<float>( std::exp( -0.18 * deltaRow * deltaRow - 0.09 * deltaColumn * deltaColumn ) *
+                                    ( 1 + 0.03 * deltaRow - 0.02 * deltaColumn ) );
+        }
+    }
+    const std::filesystem::path psfPath = directory.file( "detector-local-template.fits" );
+    mx::fits::fitsFile<float, mx::verbose::vv> writer;
+    REQUIRE( writer.write( psfPath.string(), psfTemplate ) == mx::error_t::noerror );
+
+    reductionHarness reduction;
+    prepareReduction( reduction, 7, 31, 31 );
+    for( int image = 0; image < reduction.m_Nims; ++image )
+    {
+        const double phase = static_cast<double>( image + 1 );
+        for( int column = 0; column < reduction.m_Ncols; ++column )
+        {
+            for( int row = 0; row < reduction.m_Nrows; ++row )
+            {
+                reduction.m_tgtIms.image( image )( row, column ) =
+                    static_cast<float>( std::sin( 0.071 * phase * static_cast<double>( row + 1 ) ) +
+                                        std::cos( 0.053 * ( phase + 0.5 ) * static_cast<double>( column + 1 ) ) +
+                                        0.0017 * phase * static_cast<double>( row * column ) );
+            }
+        }
+    }
+    reduction.m_minRadius = { 5 };
+    reduction.m_maxRadius = { 10 };
+    reduction.m_memoryFraction = 0;
+    reduction.m_numberImages = 0;
+    reduction.m_derotF.m_angles = { 0, 10, 20, 30, 40, 50, 60 };
+    reduction.m_doDerotate = true;
+    reduction.m_psfFile = psfPath.string();
+    reduction.m_psfStampSize = 3;
+    reduction.m_psfSampleRadii = { 6, 8 };
+    reduction.m_psfSamplesPerRadius = 4;
+    reduction.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::detectorLocal;
+    reduction.m_psfSampleAvoidRadius = 1.25F;
+    reduction.m_planetSep = { 6 };
+    reduction.m_planetPA = { 30 };
+    reduction.m_planetContrast = { 1e-4F };
+    reduction.m_outputPSFModels = true;
+    reduction.m_psfOutputPrefix = "local_";
+    reduction.m_outputDir = directory.file( "products" ).string();
+    reduction.m_finimName = "science.fits";
+    reduction.m_exactFinimName = true;
+    reduction.m_doWriteFinim = true;
+    reduction.m_combineMethod = mx::improc::HCI::combine::sigmaMean;
+    reduction.m_sigmaThreshold = 5;
+    REQUIRE( reduction.reduce() == 0 );
+
+    REQUIRE_FALSE( reduction.m_psfMeasurementSamples.empty() );
+    std::vector<std::size_t> measuredSearch;
+    for( const mx::improc::RadialPSFSample &sample : reduction.m_psfMeasurementSamples )
+    {
+        measuredSearch.push_back( sample.sourceIndex );
+    }
+    std::sort( measuredSearch.begin(), measuredSearch.end() );
+    measuredSearch.erase( std::unique( measuredSearch.begin(), measuredSearch.end() ), measuredSearch.end() );
+    const std::size_t requiredSearch =
+        static_cast<std::size_t>( std::count( reduction.m_localPSFResponseRequired[0].begin(),
+                                              reduction.m_localPSFResponseRequired[0].end(),
+                                              static_cast<std::uint8_t>( 1 ) ) );
+    REQUIRE( requiredSearch == measuredSearch.size() );
+    REQUIRE( requiredSearch < reduction.m_regionStatistics[0].searchPixelCount );
+    REQUIRE( reduction.m_psfSampleExcludedCount > 0 );
+
+    const std::filesystem::path productDirectory = directory.file( "products/science_outputs" );
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+    reductionT::imageT coordinates;
+    reductionT::fitsHeaderT coordinateHeader;
+    REQUIRE( reader.read( coordinates, coordinateHeader, ( productDirectory / "local_coordinates.fits" ).string() ) ==
+             mx::error_t::noerror );
+    const double centerRow = 0.5 * static_cast<double>( reduction.m_Nrows - 1 );
+    const double centerColumn = 0.5 * static_cast<double>( reduction.m_Ncols - 1 );
+    for( const mx::improc::RadialPSFSample &sample : reduction.m_psfMeasurementSamples )
+    {
+        const double sampleRow = coordinates( static_cast<Eigen::Index>( sample.sourceIndex ), 0 );
+        const double sampleColumn = coordinates( static_cast<Eigen::Index>( sample.sourceIndex ), 1 );
+        const double skyAngle = -30.0 * std::numbers::pi / 180.0;
+        for( std::size_t image = 0; image < reduction.m_derotF.m_angles.size(); ++image )
+        {
+            const double detectorAngle = skyAngle + static_cast<double>( reduction.m_derotF.derotAngle( image ) );
+            const double planetRow = centerRow + 6.0 * std::sin( detectorAngle );
+            const double planetColumn = centerColumn + 6.0 * std::cos( detectorAngle );
+            REQUIRE( std::hypot( sampleRow - planetRow, sampleColumn - planetColumn ) >
+                     reduction.m_psfSampleAvoidRadius );
+        }
+    }
+
+    mx::improc::eigenCube<float> responseModels;
+    reductionT::fitsHeaderT modelHeader;
+    REQUIRE( reader.read( responseModels, modelHeader, ( productDirectory / "local_model_0000.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( modelHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 4 );
+    REQUIRE( modelHeader["P4 PSF SAMPLING MODE"].String().starts_with( "detectorLocal" ) );
+    REQUIRE( modelHeader["P4 SCIENCE COMBINATION"].String().starts_with( "sigmaMean" ) );
+    REQUIRE( modelHeader["P4 PSF COMBINATION"].String().starts_with( "mean" ) );
+    REQUIRE( modelHeader["P4 SCIENCE SIGMA THRESHOLD"].value<float>() == Approx( 5 ) );
+    REQUIRE( modelHeader["P4 PSF SIGMA THRESHOLD"].value<float>() == Approx( 0 ) );
+    REQUIRE( modelHeader["P4 PSF SAMPLE AVOID RADIUS"].value<float>() == Approx( 1.25 ) );
+    REQUIRE( modelHeader["P4 PSF SAMPLE EXCLUDED COUNT"].value<int>() ==
+             static_cast<int>( reduction.m_psfSampleExcludedCount ) );
+    REQUIRE( modelHeader["P4 LOCAL PSF RESPONSE SEARCH COUNT"].value<int>() == static_cast<int>( requiredSearch ) );
+    REQUIRE( responseModels.planes() == coordinates.rows() );
+    REQUIRE( responseModels.cube().isFinite().any() );
 }
 
 /// Verify target-held-out frozen PSF products and filtering agree between both exact exclusion solvers.
@@ -3471,6 +3619,34 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         evenSparseStamp.m_psfSampleRadii = { 5.5F };
         evenSparseStamp.m_psfSamplesPerRadius = 4;
         REQUIRE_THROWS_WITH( evenSparseStamp.reduce(), Catch::Matchers::Contains( "requires an odd" ) );
+
+        reductionHarness negativeSampleAvoidance;
+        prepareReduction( negativeSampleAvoidance );
+        negativeSampleAvoidance.m_psfSampleAvoidRadius = -1;
+        REQUIRE_THROWS_WITH( negativeSampleAvoidance.reduce(),
+                             Catch::Matchers::Contains( "must be finite and nonnegative" ) );
+
+        reductionHarness exactSampleAvoidance;
+        prepareReduction( exactSampleAvoidance );
+        exactSampleAvoidance.m_psfSampleAvoidRadius = 1;
+        REQUIRE_THROWS_WITH( exactSampleAvoidance.reduce(), Catch::Matchers::Contains( "supported only with" ) );
+
+        reductionHarness detectorWithoutSparseRadii;
+        prepareReduction( detectorWithoutSparseRadii );
+        detectorWithoutSparseRadii.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::detectorLocal;
+        REQUIRE_THROWS_WITH( detectorWithoutSparseRadii.reduce(),
+                             Catch::Matchers::Contains( "requires sparse radial" ) );
+
+        reductionHarness detectorWithTemporalImages;
+        prepareReduction( detectorWithTemporalImages );
+        detectorWithTemporalImages.m_psfFile = "unused.fits";
+        detectorWithTemporalImages.m_psfStampSize = 3;
+        detectorWithTemporalImages.m_psfSampleRadii = { 5.5F };
+        detectorWithTemporalImages.m_psfSamplesPerRadius = 4;
+        detectorWithTemporalImages.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::detectorLocal;
+        detectorWithTemporalImages.m_numberImages = 1;
+        REQUIRE_THROWS_WITH( detectorWithTemporalImages.reduce(),
+                             Catch::Matchers::Contains( "initially requires p4.numberImages=0" ) );
     }
 
     SECTION( "invalid fractions and realized mode collisions" )

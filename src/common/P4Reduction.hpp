@@ -67,6 +67,14 @@ enum class P4PCATReferenceRegion : std::uint8_t
     annulus             ///< Use one configurable full detector annulus around the current target's signal exclusion.
 };
 
+/// Measurement operator used to build a sparse radial P4 PSF response model.
+/** \ingroup programming_library */
+enum class P4PSFSamplingMode : std::uint8_t
+{
+    skyExact,     ///< Reconstruct each sampled sky response through every target frame before radial averaging.
+    detectorLocal ///< Approximate each sampled source response with one detector-local frozen operator.
+};
+
 /** \cond P4Reduction_test_harness */
 class P4ReductionTestAccess;
 /** \endcond */
@@ -268,11 +276,16 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     int m_psfSamplesPerRadius{ 0 };      ///< Uniform angular measurement count at each configured PSF sample radius.
 
-    bool m_outputPSFModels{ false };     ///< Whether to reconstruct and write compact final-frame PSF fields.
+    P4PSFSamplingMode m_psfSamplingMode{ P4PSFSamplingMode::skyExact };
+    ///< Operator used to measure each configured sparse radial response.
 
-    bool m_psfFilter{ false };           ///< Whether to apply the spatially variable normalized PSF filter.
+    realT m_psfSampleAvoidRadius{ 0 };  ///< Detector-pixel radius kept clear of configured known-planet trajectories.
 
-    realT m_psfFilterMinGoodFract{ 1 };  ///< Minimum usable local-stamp fraction required by PSF filtering.
+    bool m_outputPSFModels{ false };    ///< Whether to reconstruct and write compact final-frame PSF fields.
+
+    bool m_psfFilter{ false };          ///< Whether to apply the spatially variable normalized PSF filter.
+
+    realT m_psfFilterMinGoodFract{ 1 }; ///< Minimum usable local-stamp fraction required by PSF filtering.
 
     std::string m_psfOutputPrefix{ "p4PSF_" }; ///< Prefix for compact products in the final image's output directory.
 
@@ -314,6 +327,12 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     std::vector<std::vector<std::uint8_t>> m_localPSFResponseRequired;
     ///< Per-annulus flags selecting search pixels whose coefficient vectors and local responses are required.
+
+    std::vector<RadialPSFSample> m_psfMeasurementSamples;
+    ///< Deterministic sparse response measurements in global search-pixel indexing.
+
+    std::size_t m_psfSampleExcludedCount{ 0 };
+    ///< Candidate detector search pixels rejected near configured known-planet trajectories.
 
     std::vector<std::size_t> m_localPSFComponentCounts;
     ///< Same-image plus realized temporal response-component count for every annulus.
@@ -516,6 +535,12 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Parse an exact PCAT reference-region configuration spelling.
     static P4PCATReferenceRegion
     parsePCATReferenceRegion( const std::string &value /**< [in] configuration spelling */ );
+
+    /// Convert a supported sparse PSF measurement operator to its stable configuration spelling.
+    static std::string psfSamplingModeString( P4PSFSamplingMode mode /**< [in] supported measurement operator */ );
+
+    /// Parse an exact sparse PSF measurement-operator configuration spelling.
+    static P4PSFSamplingMode parsePSFSamplingMode( const std::string &value /**< [in] configuration spelling */ );
 
     /// Convert a supported PCAT centering policy to its stable configuration spelling.
     static std::string pcatCenteringString( P4TemporalPCACentering centering /**< [in] supported policy */ );

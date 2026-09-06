@@ -72,6 +72,19 @@ class P4PSFReconstructor
                            const std::vector<double> &derotationAngles
                            /**< [in] finite counterclockwise image rotations in radians */ ) const;
 
+    /// Approximate a source-centered response by holding one detector-local operator fixed across the output stamp.
+    /** The selected local model maps target-minus-source offsets to residual response at its detector search pixel.
+     * This method samples that map directly at every output-stamp offset. It deliberately omits the spatial change in
+     * fitted coefficients across neighboring target pixels and is therefore suitable only for an explicitly marked
+     * sparse filtering approximation.
+     */
+    void
+    approximateSourceResponse( imageT &output,            /**< [out] approximate source-centered response */
+                               validityT &outputValidity, /**< [out] per-stamp-element validity */
+                               const imageT &localModels, /**< [in] compact detector-local response columns */
+                               Eigen::Index modelColumn,  /**< [in] selected local-response column */
+                               bool modelValid /**< [in] whether the selected local fit supports this mode */ ) const;
+
     /// Reconstruct one derotated PSF response frame about one sky coordinate.
     /** `localModels` must have `localStampRows * localStampColumns` rows and search-major/mode-minor columns.
      * `localValidity` must contain one row per search pixel and one column per mode. On success, both outputs are

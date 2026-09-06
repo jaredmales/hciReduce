@@ -395,6 +395,59 @@ TEST_CASE( "P4 required search pixels cover sparse response reconstruction", "[P
     REQUIRE_THROWS( reconstructor.requiredSearchIndices( searchIndex, sources, {} ) );
 }
 
+/// Verify one detector-local operator is sampled on the requested source-centered output phase.
+/** This exercises mx::improc::P4PSFReconstructor::approximateSourceResponse() for mismatched local/output parity,
+ * invalid local fits, and rejected compact-storage dimensions.
+ * \ingroup P4PSFReconstructor_unit_tests
+ */
+TEST_CASE( "P4 detector-local source response approximation", "[P4PSFReconstructor][sparse][approximation]" )
+{
+    constexpr int localRows = 8;
+    constexpr int localColumns = 10;
+    constexpr int outputSize = 3;
+    const reconstructorT reconstructor( 31, 33, 15.0, 16.0, outputSize, localRows, localColumns );
+    imageT localModels( localRows * localColumns, 2 );
+    const double localCenterRow = 0.5 * static_cast<double>( localRows - 1 );
+    const double localCenterColumn = 0.5 * static_cast<double>( localColumns - 1 );
+    for( int column = 0; column < localColumns; ++column )
+    {
+        for( int row = 0; row < localRows; ++row )
+        {
+            const double deltaRow = static_cast<double>( row ) - localCenterRow;
+            const double deltaColumn = static_cast<double>( column ) - localCenterColumn;
+            const Eigen::Index pixel = row + localRows * column;
+            localModels( pixel, 0 ) = static_cast<float>( 3.0 + 2.0 * deltaRow - 0.5 * deltaColumn );
+            localModels( pixel, 1 ) = std::numeric_limits<float>::quiet_NaN();
+        }
+    }
+
+    imageT response;
+    validityT validity;
+    reconstructor.approximateSourceResponse( response, validity, localModels, 0, true );
+    REQUIRE( response.rows() == outputSize );
+    REQUIRE( response.cols() == outputSize );
+    REQUIRE( validity.minCoeff() == 1 );
+    for( int column = 0; column < outputSize; ++column )
+    {
+        for( int row = 0; row < outputSize; ++row )
+        {
+            const double deltaRow = static_cast<double>( row - outputSize / 2 );
+            const double deltaColumn = static_cast<double>( column - outputSize / 2 );
+            REQUIRE( response( row, column ) == Approx( 3.0 + 2.0 * deltaRow - 0.5 * deltaColumn ).margin( 1e-5 ) );
+        }
+    }
+
+    reconstructor.approximateSourceResponse( response, validity, localModels, 1, false );
+    REQUIRE( response.isZero() );
+    REQUIRE( validity.isZero() );
+    REQUIRE_THROWS( reconstructor.approximateSourceResponse( response, validity, localModels, 2, true ) );
+    REQUIRE_THROWS( reconstructor.approximateSourceResponse( response,
+                                                             validity,
+                                                             imageT::Zero( localRows * localColumns - 1, 1 ),
+                                                             0,
+                                                             true ) );
+}
+
 /// Verify temporal response components follow the selected physical image in every central frame.
 /** This exercises mx::improc::P4PSFModel::calculateLocalResponse(), mx::improc::P4PSFModel::sampleTemplate(), and
  * mx::improc::P4PSFReconstructor::reconstructCombinedTemporal() against direct frozen-model detector cubes,
