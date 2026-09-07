@@ -22,9 +22,8 @@ analyze_only=false
 
 all_cases=(
     dense
-    radial_ld_fixed16
     detector_ld_fixed16
-    detector_ld_arc
+    detector_region2_a4
 )
 
 usage()
@@ -56,9 +55,9 @@ Environment overrides:
 
 Examples:
   nohup $(basename "$0") > psf_sampling_driver.log 2>&1 &
-  EXPERIMENT_DIR=/data/psf-test $(basename "$0") dense radial_ld_fixed16 detector_ld_fixed16 detector_ld_arc
+  EXPERIMENT_DIR=/data/psf-test $(basename "$0") dense detector_ld_fixed16 detector_region2_a4
   PSF_SAMPLE_AVOID_RADIUS=5 PLANET_SEP=30 PLANET_PA=70 PLANET_CONTRAST=0.001 \\
-    $(basename "$0") dense radial_ld_fixed16 detector_ld_fixed16 detector_ld_arc
+    $(basename "$0") dense detector_ld_fixed16 detector_region2_a4
   $(basename "$0") --analyze-only /data/psf-test
 EOF
 }
@@ -70,6 +69,7 @@ dense             exact response at every owned P4 search pixel
 radial_ld_fixed16 radii spaced by 3.6 pixels, 16 exact-sky angles per radius
 detector_ld_fixed16 same grid measured from 16 detector-local operators per radius
 detector_ld_arc   same grid with detector-local angles spaced by at most 3.6-pixel arcs
+detector_region2_a4 two interior radii per P4 region, four detector-local angles per radius
 radial_dr1_a16    radii 0.5:1:59.5 pixels, 16 requested angles per radius
 radial_dr2_a4     radii 1:2:59 pixels, 4 requested angles per radius
 radial_dr2_a8     radii 1:2:59 pixels, 8 requested angles per radius
@@ -95,6 +95,7 @@ case_parameters()
     case_sampling_mode=skyExact
     case_sample_avoid_radius=0
     case_arc_step=0
+    case_radii_per_region=0
     case "${case_name}" in
         dense)
             case_radii=
@@ -114,6 +115,13 @@ case_parameters()
             case_radii=$(radii_sequence 1.8 3.6 59.4)
             case_angles=0
             case_arc_step=3.6
+            case_sampling_mode=detectorLocal
+            case_sample_avoid_radius=${psf_sample_avoid_radius}
+            ;;
+        detector_region2_a4)
+            case_radii=
+            case_radii_per_region=2
+            case_angles=4
             case_sampling_mode=detectorLocal
             case_sample_avoid_radius=${psf_sample_avoid_radius}
             ;;
@@ -249,13 +257,14 @@ command -v "${p4reduce_bin}" >/dev/null 2>&1 || {
 }
 
 help_text=$("${p4reduce_bin}" --help 2>&1)
-if [[ "${help_text}" != *"--p4.psfSampleRadii"* || "${help_text}" != *"--p4.psfSampleArcStep"* ||
+if [[ "${help_text}" != *"--p4.psfSampleRadii"* || "${help_text}" != *"--p4.psfRadiiPerRegion"* ||
+      "${help_text}" != *"--p4.psfSampleArcStep"* ||
       "${help_text}" != *"--p4.psfSamplingMode"* ]]; then
-    printf 'p4Reduce does not expose --p4.psfSampleRadii: %s\n' "${p4reduce_bin}" >&2
+    printf 'p4Reduce does not expose the required sparse PSF controls: %s\n' "${p4reduce_bin}" >&2
     printf '%s\n' 'Build this hciReduce checkout and set P4REDUCE_BIN to that executable.' >&2
     exit 1
 fi
-if grep -Eq '^[[:space:]]*(psfSampleRadii|psfSamplesPerRadius|psfSampleArcStep)[[:space:]]*=' "${base_config}"; then
+if grep -Eq '^[[:space:]]*(psfSampleRadii|psfRadiiPerRegion|psfSamplesPerRadius|psfSampleArcStep)[[:space:]]*=' "${base_config}"; then
     printf 'The dense reference requires no active sparse-sampling keys in %s\n' "${base_config}" >&2
     printf '%s\n' 'Comment out those keys or point BASE_CONFIG at the unsampled standard configuration.' >&2
     exit 1
@@ -343,12 +352,16 @@ for case_name in "${selected_cases[@]}"; do
         --output.exactFName=true
         --showTiming=true
     )
-    if [[ -n "${case_radii}" ]]; then
+    if [[ -n "${case_radii}" || ${case_radii_per_region} -gt 0 ]]; then
         command_line+=(
-            --p4.psfSampleRadii "${case_radii}"
             --p4.psfSamplingMode "${case_sampling_mode}"
             --p4.psfSampleAvoidRadius "${case_sample_avoid_radius}"
         )
+        if [[ -n "${case_radii}" ]]; then
+            command_line+=(--p4.psfSampleRadii "${case_radii}")
+        else
+            command_line+=(--p4.psfRadiiPerRegion "${case_radii_per_region}")
+        fi
         if ((case_angles > 0)); then
             command_line+=(--p4.psfSamplesPerRadius "${case_angles}")
         else
@@ -368,6 +381,7 @@ for case_name in "${selected_cases[@]}"; do
     {
         printf 'case=%s\n' "${case_name}"
         printf 'sample_radii=%s\n' "${case_radii}"
+        printf 'radii_per_region=%s\n' "${case_radii_per_region}"
         printf 'samples_per_radius=%s\n' "${case_angles}"
         printf 'sample_arc_step=%s\n' "${case_arc_step}"
         printf 'sampling_mode=%s\n' "${case_sampling_mode}"

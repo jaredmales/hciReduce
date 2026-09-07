@@ -210,5 +210,57 @@ TEST_CASE( "Radial PSF interpolation is linear in radius", "[RadialPSFModel][lin
     REQUIRE_THROWS_AS( modelT( { 4, 4 }, size, size ), std::invalid_argument );
 }
 
+/// Verify region-aware sampling and interpolation never borrow coordinates or templates across a region boundary.
+/** This exercises the region-aware mx::improc::RadialPSFModel constructor,
+ * mx::improc::RadialPSFModel::selectSamples(), mx::improc::RadialPSFModel::fit(), and
+ * mx::improc::RadialPSFModel::response().
+ * \ingroup RadialPSFModel_unit_tests
+ */
+TEST_CASE( "Radial PSF region boundaries isolate selection and interpolation", "[RadialPSFModel][region]" )
+{
+    const std::vector<mx::improc::RadialPSFSource> sources{ { 100, 0, 2, 0 },
+                                                            { 101, 0, 4, 0 },
+                                                            { 102, 0, 6, 1 },
+                                                            { 103, 0, 8, 1 },
+                                                            { 1, 0, 4, 1 },
+                                                            { 2, 0, 6, 0 } };
+    const std::vector<double> radii{ 2, 4, 6, 8 };
+    const std::vector<std::size_t> regions{ 0, 0, 1, 1 };
+    const std::vector<mx::improc::RadialPSFSample> samples =
+        modelT::selectSamples( sources, 0, 0, radii, std::vector<std::size_t>{ 1, 1, 1, 1 }, regions );
+    REQUIRE( modelT::selectSamples( sources, 0, 0, radii, std::vector<std::size_t>{ 1, 1, 1, 1 } ).size() == 4 );
+    REQUIRE( samples.size() == 4 );
+    REQUIRE( samples[0].sourceIndex == 100 );
+    REQUIRE( samples[1].sourceIndex == 101 );
+    REQUIRE( samples[2].sourceIndex == 102 );
+    REQUIRE( samples[3].sourceIndex == 103 );
+    for( std::size_t index = 0; index < samples.size(); ++index )
+    {
+        REQUIRE( samples[index].regionIndex == regions[index] );
+    }
+
+    constexpr int size = 3;
+    std::vector<imageT> responses{ imageT::Constant( size, size, 2 ),
+                                   imageT::Constant( size, size, 4 ),
+                                   imageT::Constant( size, size, 60 ),
+                                   imageT::Constant( size, size, 80 ) };
+    const std::vector<validityT> validities( responses.size(), validityT::Ones( size, size ) );
+    modelT model( radii, regions, size, size );
+    model.fit( responses, validities, samples );
+
+    imageT output;
+    validityT outputValidity;
+    model.response( output, outputValidity, 3, 0, 0 );
+    REQUIRE( output( 1, 1 ) == Approx( 3 ) );
+    model.response( output, outputValidity, 5, 0, 0 );
+    REQUIRE( output( 1, 1 ) == Approx( 4 ) );
+    model.response( output, outputValidity, 5, 0, 1 );
+    REQUIRE( output( 1, 1 ) == Approx( 60 ) );
+    model.response( output, outputValidity, 7, 0, 1 );
+    REQUIRE( output( 1, 1 ) == Approx( 70 ) );
+    REQUIRE_THROWS_AS( model.response( output, outputValidity, 5, 0 ), std::logic_error );
+    REQUIRE_THROWS_AS( model.response( output, outputValidity, 5, 0, 2 ), std::invalid_argument );
+}
+
 } // namespace RadialPSFModel_test
 } // namespace unitTest

@@ -244,8 +244,9 @@ def main() -> int:
         for mode_index, dense_model_path in sorted(dense_modes.items()):
             sparse_model_path = sparse_modes[mode_index]
             header = fits.getheader(sparse_model_path)
-            if str(header.get("P4 PSF SPATIAL MODEL", "")).strip() != "RADIAL_LINEAR":
-                raise RuntimeError(f"sparse response does not declare linear radial interpolation: {sparse_model_path}")
+            spatial_model = str(header.get("P4 PSF SPATIAL MODEL", "")).strip()
+            if spatial_model not in {"RADIAL_LINEAR", "REGION_RADIAL_LINEAR"}:
+                raise RuntimeError(f"sparse response does not declare a supported radial model: {sparse_model_path}")
             metrics = compare_mode(
                 dense_model_path,
                 dense_products / f"p4PSF_validity_{mode_index:04d}.fits",
@@ -264,6 +265,7 @@ def main() -> int:
                 "case": sparse_case.name,
                 "mode_index": mode_index,
                 "sampling_mode": str(header.get("P4 PSF SAMPLING MODE", "unknown")),
+                "spatial_model": spatial_model,
                 "measurement_count": measurements,
                 "measurement_reduction": safe_ratio(int(metrics["source_count"]), measurements),
                 "local_response_count": local_responses,
@@ -288,6 +290,7 @@ def main() -> int:
             {
                 "case": sparse_case.name,
                 "sampling_mode": str(first["sampling_mode"]),
+                "spatial_model": str(first["spatial_model"]),
                 "measurement_count": int(first["measurement_count"]),
                 "measurement_reduction": float(first["measurement_reduction"]),
                 "local_response_count": int(first["local_response_count"]),
@@ -320,14 +323,15 @@ def main() -> int:
         stream.write(f"Dense reference wall time: {format_number(dense_wall)} seconds.\n\n")
         stream.write(f"Dense local-PSF worker time: {format_number(dense_psf_worker)} seconds.\n\n")
         stream.write(
-            "| Case | Sampling | Measurements | Local responses | Max radial offset | Local fraction | Wall (s) | Wall speedup | "
+            "| Case | Sampling | Spatial model | Measurements | Local responses | Max radial offset | Local fraction | Wall (s) | Wall speedup | "
             "PSF worker (s) | PSF speedup | "
             "Median mode rel. L2 | Worst mode rel. L2 | Mean cosine | Filtered rel. L2 |\n"
         )
-        stream.write("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
+        stream.write("|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
         for row in summary_rows:
             stream.write(
-                f"| {row['case']} | {row['sampling_mode']} | {row['measurement_count']} | "
+                f"| {row['case']} | {row['sampling_mode']} | {row['spatial_model']} | "
+                f"{row['measurement_count']} | "
                 f"{row['local_response_count']} | "
                 f"{format_number(float(row['maximum_sample_radial_offset']))} | "
                 f"{format_number(float(row['local_response_fraction']))} | "

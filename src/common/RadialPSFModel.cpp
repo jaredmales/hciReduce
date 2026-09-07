@@ -58,9 +58,26 @@ bool validRadialPSFValues( const RadialPSFModel::imageT &response, /**< [in] res
 } // namespace
 
 RadialPSFModel::RadialPSFModel( std::vector<double> radii, int stampRows, int stampColumns )
-    : m_radii( std::move( radii ) ), m_stampRows( stampRows ), m_stampColumns( stampColumns )
+    : RadialPSFModel( std::move( radii ), {}, stampRows, stampColumns )
+{
+}
+
+RadialPSFModel::RadialPSFModel( std::vector<double> radii,
+                                std::vector<std::size_t> radiusRegions,
+                                int stampRows,
+                                int stampColumns )
+    : m_radii( std::move( radii ) ), m_radiusRegions( std::move( radiusRegions ) ), m_stampRows( stampRows ),
+      m_stampColumns( stampColumns )
 {
     validateRadialPSFRadii( m_radii );
+    if( m_radiusRegions.empty() )
+    {
+        m_radiusRegions.assign( m_radii.size(), 0 );
+    }
+    if( m_radiusRegions.size() != m_radii.size() || !std::is_sorted( m_radiusRegions.begin(), m_radiusRegions.end() ) )
+    {
+        throw std::invalid_argument( "radial PSF radius regions must be nondecreasing and correspond to radii" );
+    }
     if( stampRows <= 0 || stampColumns <= 0 )
     {
         throw std::invalid_argument( "radial PSF stamp dimensions must be positive" );
@@ -119,6 +136,26 @@ std::vector<RadialPSFSample> RadialPSFModel::selectSamples( const std::vector<Ra
                                                             const std::vector<double> &radii,
                                                             const std::vector<std::size_t> &samplesPerRadius )
 {
+    std::vector<RadialPSFSource> globalSources = sources;
+    for( RadialPSFSource &source : globalSources )
+    {
+        source.regionIndex = 0;
+    }
+    return selectSamples( globalSources,
+                          centerRow,
+                          centerColumn,
+                          radii,
+                          samplesPerRadius,
+                          std::vector<std::size_t>( radii.size(), 0 ) );
+}
+
+std::vector<RadialPSFSample> RadialPSFModel::selectSamples( const std::vector<RadialPSFSource> &sources,
+                                                            double centerRow,
+                                                            double centerColumn,
+                                                            const std::vector<double> &radii,
+                                                            const std::vector<std::size_t> &samplesPerRadius,
+                                                            const std::vector<std::size_t> &radiusRegions )
+{
     validateRadialPSFRadii( radii );
     if( sources.empty() )
     {
@@ -133,6 +170,10 @@ std::vector<RadialPSFSample> RadialPSFModel::selectSamples( const std::vector<Ra
                                                                 []( std::size_t count ) { return count == 0; } ) )
     {
         throw std::invalid_argument( "radial PSF radii and positive angular sample counts must correspond" );
+    }
+    if( radiusRegions.size() != radii.size() || !std::is_sorted( radiusRegions.begin(), radiusRegions.end() ) )
+    {
+        throw std::invalid_argument( "radial PSF radius regions must be nondecreasing and correspond to radii" );
     }
     std::unordered_set<std::size_t> sourceIndices;
     for( const RadialPSFSource &source : sources )
@@ -163,7 +204,8 @@ std::vector<RadialPSFSample> RadialPSFModel::selectSamples( const std::vector<Ra
         for( const RadialPSFSource &source : sources )
         {
             const double sourceRadius = std::hypot( source.row - centerRow, source.column - centerColumn );
-            if( std::abs( sourceRadius - radii[radiusIndex] ) <= radialTolerance )
+            if( source.regionIndex == radiusRegions[radiusIndex] &&
+                std::abs( sourceRadius - radii[radiusIndex] ) <= radialTolerance )
             {
                 radialSources.push_back( &source );
             }
@@ -201,7 +243,8 @@ std::vector<RadialPSFSample> RadialPSFModel::selectSamples( const std::vector<Ra
                 samples.push_back( { nearest->sourceIndex,
                                      radiusIndex,
                                      std::hypot( deltaRow, deltaColumn ),
-                                     std::atan2( deltaRow, deltaColumn ) } );
+                                     std::atan2( deltaRow, deltaColumn ),
+                                     radiusRegions[radiusIndex] } );
             }
         }
         if( selectedAtRadius.empty() )
@@ -236,10 +279,11 @@ void RadialPSFModel::fit( const std::vector<imageT> &responses,
         const imageT &measured = responses[sampleIndex];
         const validityT &measuredValidity = validities[sampleIndex];
         const RadialPSFSample &sample = samples[sampleIndex];
-        if( sample.radiusIndex >= m_radii.size() || measured.rows() != m_stampRows ||
-            measured.cols() != m_stampColumns || measuredValidity.rows() != m_stampRows ||
-            measuredValidity.cols() != m_stampColumns || !std::isfinite( sample.radius ) || sample.radius < 0 ||
-            !std::isfinite( sample.angle ) || !validRadialPSFValues( measured, measuredValidity ) )
+        if( sample.radiusIndex >= m_radii.size() || sample.regionIndex != m_radiusRegions[sample.radiusIndex] ||
+            measured.rows() != m_stampRows || measured.cols() != m_stampColumns ||
+            measuredValidity.rows() != m_stampRows || measuredValidity.cols() != m_stampColumns ||
+            !std::isfinite( sample.radius ) || sample.radius < 0 || !std::isfinite( sample.angle ) ||
+            !validRadialPSFValues( measured, measuredValidity ) )
         {
             throw std::invalid_argument( "radial PSF measurement is inconsistent with configured geometry" );
         }
@@ -369,19 +413,56 @@ void RadialPSFModel::rotate(
 
 void RadialPSFModel::response( imageT &output, validityT &outputValidity, double requestedRadius, double angle ) const
 {
+    if( m_radiusRegions.front() != m_radiusRegions.back() )
+    {
+        throw std::logic_error( "region-aware radial PSF response requires an explicit source region" );
+    }
+    response( output, outputValidity, requestedRadius, angle, 0, m_radii.size() );
+}
+
+void RadialPSFModel::response(
+    imageT &output, validityT &outputValidity, double requestedRadius, double angle, std::size_t regionIndex ) const
+{
+    const auto begin = std::lower_bound( m_radiusRegions.begin(), m_radiusRegions.end(), regionIndex );
+    const auto end = std::upper_bound( begin, m_radiusRegions.end(), regionIndex );
+    if( begin == end )
+    {
+        throw std::invalid_argument( "radial PSF response region has no configured radial nodes" );
+    }
+    response( output,
+              outputValidity,
+              requestedRadius,
+              angle,
+              static_cast<std::size_t>( begin - m_radiusRegions.begin() ),
+              static_cast<std::size_t>( end - m_radiusRegions.begin() ) );
+}
+
+void RadialPSFModel::response( imageT &output,
+                               validityT &outputValidity,
+                               double requestedRadius,
+                               double angle,
+                               std::size_t beginIndex,
+                               std::size_t endIndex ) const
+{
     if( !std::isfinite( requestedRadius ) || requestedRadius < 0 || !std::isfinite( angle ) )
     {
         throw std::invalid_argument( "radial PSF response radius and angle must be finite and nonnegative" );
     }
-    const auto upper = std::lower_bound( m_radii.begin(), m_radii.end(), requestedRadius );
+    if( beginIndex >= endIndex || endIndex > m_radii.size() )
+    {
+        throw std::invalid_argument( "radial PSF response requires a nonempty valid radial-node range" );
+    }
+    const auto rangeBegin = m_radii.begin() + static_cast<std::ptrdiff_t>( beginIndex );
+    const auto rangeEnd = m_radii.begin() + static_cast<std::ptrdiff_t>( endIndex );
+    const auto upper = std::lower_bound( rangeBegin, rangeEnd, requestedRadius );
     std::size_t lowerIndex{ 0 };
     std::size_t upperIndex{ 0 };
     double upperFraction{ 0 };
-    if( upper == m_radii.end() )
+    if( upper == rangeEnd )
     {
-        lowerIndex = upperIndex = m_radii.size() - 1;
+        lowerIndex = upperIndex = endIndex - 1;
     }
-    else if( upper == m_radii.begin() || *upper == requestedRadius )
+    else if( upper == rangeBegin || *upper == requestedRadius )
     {
         lowerIndex = upperIndex = static_cast<std::size_t>( upper - m_radii.begin() );
     }

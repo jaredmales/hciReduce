@@ -27,6 +27,12 @@ namespace improc
 class P4ReductionTestAccess
 {
   public:
+    /// Resolve the production sparse P4 response-sampling grid.
+    static P4PSFSamplingGrid resolvedPSFSamplingGrid( const P4Reductionf &reduction /**< [in] configured reduction */ )
+    {
+        return reduction.resolvedPSFSamplingGrid();
+    }
+
     /// Invoke the production sampled-predictor finite boundary.
     static double checkedPredictorPromotion( float value /**< [in] predictor value */ )
     {
@@ -610,6 +616,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_psfFile.empty() );
     REQUIRE( defaults.m_psfStampSize == 0 );
     REQUIRE( defaults.m_psfSampleRadii.empty() );
+    REQUIRE( defaults.m_psfRadiiPerRegion == 0 );
     REQUIRE( defaults.m_psfSamplesPerRadius == 0 );
     REQUIRE( defaults.m_psfSampleArcStep == 0 );
     REQUIRE( defaults.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::skyExact );
@@ -635,6 +642,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.psfFile" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.psfSampleRadii" ).helpType == "float vector" );
+    REQUIRE( registered.m_targets.at( "p4.psfRadiiPerRegion" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.psfSamplesPerRadius" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.psfSampleArcStep" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "p4.psfSamplingMode" ).helpType == "string" );
@@ -742,6 +750,14 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( arcPSFConfiguration.m_psfSamplesPerRadius == 0 );
     REQUIRE( arcPSFConfiguration.m_psfSampleArcStep == Approx( 3.6 ) );
 
+    reductionHarness regionPSFConfiguration;
+    readReductionConfig( regionPSFConfiguration,
+                         directory.file( "region-psf.conf" ),
+                         "[p4]\npsfRadiiPerRegion=2\npsfSamplesPerRadius=4\n" );
+    REQUIRE( regionPSFConfiguration.m_psfSampleRadii.empty() );
+    REQUIRE( regionPSFConfiguration.m_psfRadiiPerRegion == 2 );
+    REQUIRE( regionPSFConfiguration.m_psfSamplesPerRadius == 4 );
+
     reductionHarness invalidPolicy;
     REQUIRE_THROWS( readReductionConfig( invalidPolicy,
                                          directory.file( "invalid-policy.conf" ),
@@ -780,6 +796,42 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     mx::app::appConfigurator doxygenConfig;
     doxygenReduction.setupConfig( doxygenConfig );
     doxygenReduction.loadConfig( doxygenConfig );
+#endif
+    // clang-format on
+}
+
+/// Verify P4 region-aware response nodes are uniformly interior and retain their annulus ownership.
+/** This exercises the production sparse-grid resolver used by mx::improc::P4Reduction::reduce().
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 region-aware PSF radii resolve inside each search annulus", "[P4Reduction][PSF][region]" )
+{
+    reductionHarness reduction;
+    reduction.m_minRadius = { 0, 3.5F, 6 };
+    reduction.m_maxRadius = { 3.5F, 6, 8 };
+    reduction.m_psfRadiiPerRegion = 2;
+    const mx::improc::P4PSFSamplingGrid grid = mx::improc::P4ReductionTestAccess::resolvedPSFSamplingGrid( reduction );
+    REQUIRE( grid.regionAware );
+    REQUIRE( grid.regions == std::vector<std::size_t>{ 0, 0, 1, 1, 2, 2 } );
+    REQUIRE( grid.radii.size() == 6 );
+    REQUIRE( grid.radii[0] == Approx( 3.5 / 3.0 ) );
+    REQUIRE( grid.radii[1] == Approx( 7.0 / 3.0 ) );
+    REQUIRE( grid.radii[2] == Approx( 3.5 + 2.5 / 3.0 ) );
+    REQUIRE( grid.radii[3] == Approx( 3.5 + 5.0 / 3.0 ) );
+    REQUIRE( grid.radii[4] == Approx( 6.0 + 2.0 / 3.0 ) );
+    REQUIRE( grid.radii[5] == Approx( 6.0 + 4.0 / 3.0 ) );
+
+    reduction.m_psfRadiiPerRegion = 0;
+    reduction.m_psfSampleRadii = { 2, 6 };
+    const mx::improc::P4PSFSamplingGrid globalGrid =
+        mx::improc::P4ReductionTestAccess::resolvedPSFSamplingGrid( reduction );
+    REQUIRE_FALSE( globalGrid.regionAware );
+    REQUIRE( globalGrid.radii == std::vector<double>{ 2, 6 } );
+    REQUIRE( globalGrid.regions == std::vector<std::size_t>{ 0, 0 } );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    reduction.resolvedPSFSamplingGrid();
 #endif
     // clang-format on
 }
@@ -2350,16 +2402,16 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
             }
         }
     }
-    reduction.m_minRadius = { 5 };
-    reduction.m_maxRadius = { 10 };
+    reduction.m_minRadius = { 5, 7.5F };
+    reduction.m_maxRadius = { 7.5F, 10 };
     reduction.m_memoryFraction = 0;
     reduction.m_numberImages = 0;
     reduction.m_derotF.m_angles = { 0, 10, 20, 30, 40, 50, 60 };
     reduction.m_doDerotate = true;
     reduction.m_psfFile = psfPath.string();
     reduction.m_psfStampSize = 3;
-    reduction.m_psfSampleRadii = { 6, 8 };
-    reduction.m_psfSampleArcStep = 4;
+    reduction.m_psfRadiiPerRegion = 2;
+    reduction.m_psfSamplesPerRadius = 4;
     reduction.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::detectorLocal;
     reduction.m_psfSampleAvoidRadius = 1.25F;
     reduction.m_planetSep = { 6 };
@@ -2376,7 +2428,9 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     REQUIRE( reduction.reduce() == 0 );
 
     REQUIRE_FALSE( reduction.m_psfMeasurementSamples.empty() );
-    REQUIRE( reduction.m_psfRequestedSamplesPerRadius == std::vector<std::size_t>{ 10, 13 } );
+    REQUIRE( reduction.m_psfRequestedSamplesPerRadius == std::vector<std::size_t>{ 4, 4, 4, 4 } );
+    const mx::improc::P4PSFSamplingGrid samplingGrid =
+        mx::improc::P4ReductionTestAccess::resolvedPSFSamplingGrid( reduction );
     std::vector<std::size_t> measuredSearch;
     for( const mx::improc::RadialPSFSample &sample : reduction.m_psfMeasurementSamples )
     {
@@ -2384,12 +2438,17 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     }
     std::sort( measuredSearch.begin(), measuredSearch.end() );
     measuredSearch.erase( std::unique( measuredSearch.begin(), measuredSearch.end() ), measuredSearch.end() );
-    const std::size_t requiredSearch =
-        static_cast<std::size_t>( std::count( reduction.m_localPSFResponseRequired[0].begin(),
-                                              reduction.m_localPSFResponseRequired[0].end(),
-                                              static_cast<std::uint8_t>( 1 ) ) );
+    std::size_t requiredSearch{ 0 };
+    std::size_t totalSearch{ 0 };
+    for( std::size_t region = 0; region < reduction.m_localPSFResponseRequired.size(); ++region )
+    {
+        requiredSearch += static_cast<std::size_t>( std::count( reduction.m_localPSFResponseRequired[region].begin(),
+                                                                reduction.m_localPSFResponseRequired[region].end(),
+                                                                static_cast<std::uint8_t>( 1 ) ) );
+        totalSearch += reduction.m_regionStatistics[region].searchPixelCount;
+    }
     REQUIRE( requiredSearch == measuredSearch.size() );
-    REQUIRE( requiredSearch < reduction.m_regionStatistics[0].searchPixelCount );
+    REQUIRE( requiredSearch < totalSearch );
     REQUIRE( reduction.m_psfSampleExcludedCount > 0 );
 
     const std::filesystem::path productDirectory = directory.file( "products/science_outputs" );
@@ -2402,11 +2461,13 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     const double centerColumn = 0.5 * static_cast<double>( reduction.m_Ncols - 1 );
     for( const mx::improc::RadialPSFSample &sample : reduction.m_psfMeasurementSamples )
     {
-        REQUIRE( sample.radiusIndex < reduction.m_psfSampleRadii.size() );
-        REQUIRE( std::abs( sample.radius - reduction.m_psfSampleRadii[sample.radiusIndex] ) <=
+        REQUIRE( sample.radiusIndex < samplingGrid.radii.size() );
+        REQUIRE( sample.regionIndex == samplingGrid.regions[sample.radiusIndex] );
+        REQUIRE( std::abs( sample.radius - samplingGrid.radii[sample.radiusIndex] ) <=
                  mx::improc::RadialPSFModel::detectorPixelRadiusTolerance() );
         const double sampleRow = coordinates( static_cast<Eigen::Index>( sample.sourceIndex ), 0 );
         const double sampleColumn = coordinates( static_cast<Eigen::Index>( sample.sourceIndex ), 1 );
+        REQUIRE( coordinates( static_cast<Eigen::Index>( sample.sourceIndex ), 2 ) == Approx( sample.regionIndex ) );
         const double skyAngle = -30.0 * std::numbers::pi / 180.0;
         for( std::size_t image = 0; image < reduction.m_derotF.m_angles.size(); ++image )
         {
@@ -2422,15 +2483,18 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     reductionT::fitsHeaderT modelHeader;
     REQUIRE( reader.read( responseModels, modelHeader, ( productDirectory / "local_model_0000.fits" ).string() ) ==
              mx::error_t::noerror );
-    REQUIRE( modelHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 4 );
+    REQUIRE( modelHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 5 );
+    REQUIRE( modelHeader["P4 PSF SPATIAL MODEL"].String().starts_with( "REGION_RADIAL_LINEAR" ) );
     REQUIRE( modelHeader["P4 PSF SAMPLING MODE"].String().starts_with( "detectorLocal" ) );
     REQUIRE( modelHeader["P4 SCIENCE COMBINATION"].String().starts_with( "sigmaMean" ) );
     REQUIRE( modelHeader["P4 PSF COMBINATION"].String().starts_with( "mean" ) );
     REQUIRE( modelHeader["P4 SCIENCE SIGMA THRESHOLD"].value<float>() == Approx( 5 ) );
     REQUIRE( modelHeader["P4 PSF SIGMA THRESHOLD"].value<float>() == Approx( 0 ) );
     REQUIRE( modelHeader["P4 PSF SAMPLE AVOID RADIUS"].value<float>() == Approx( 1.25 ) );
-    REQUIRE( modelHeader["P4 PSF SAMPLE ARC STEP"].value<float>() == Approx( 4 ) );
-    REQUIRE( modelHeader["P4 PSF REQUESTED SAMPLES PER RADIUS"].String().starts_with( "10,13" ) );
+    REQUIRE( modelHeader["P4 PSF RADII PER REGION"].value<int>() == 2 );
+    REQUIRE( modelHeader["P4 PSF SAMPLE RADIUS REGIONS"].String().starts_with( "0,0,1,1" ) );
+    REQUIRE( modelHeader["P4 PSF SAMPLE ARC STEP"].value<float>() == Approx( 0 ) );
+    REQUIRE( modelHeader["P4 PSF REQUESTED SAMPLES PER RADIUS"].String().starts_with( "4,4,4,4" ) );
     REQUIRE( modelHeader["P4 PSF SAMPLE RADIAL TOLERANCE"].value<double>() ==
              Approx( mx::improc::RadialPSFModel::detectorPixelRadiusTolerance() ) );
     REQUIRE( modelHeader["P4 PSF SAMPLE EXCLUDED COUNT"].value<int>() ==
@@ -3609,6 +3673,18 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         prepareReduction( countWithoutSparseRadii );
         countWithoutSparseRadii.m_psfSamplesPerRadius = 4;
         REQUIRE_THROWS_WITH( countWithoutSparseRadii.reduce(), Catch::Matchers::Contains( "must be set together" ) );
+
+        reductionHarness bothRadialControls;
+        prepareReduction( bothRadialControls );
+        bothRadialControls.m_psfSampleRadii = { 5.5F };
+        bothRadialControls.m_psfRadiiPerRegion = 2;
+        bothRadialControls.m_psfSamplesPerRadius = 4;
+        REQUIRE_THROWS_WITH( bothRadialControls.reduce(), Catch::Matchers::Contains( "mutually exclusive" ) );
+
+        reductionHarness negativeRegionRadii;
+        prepareReduction( negativeRegionRadii );
+        negativeRegionRadii.m_psfRadiiPerRegion = -1;
+        REQUIRE_THROWS_WITH( negativeRegionRadii.reduce(), Catch::Matchers::Contains( "finite and nonnegative" ) );
 
         reductionHarness bothAngularControls;
         prepareReduction( bothAngularControls );

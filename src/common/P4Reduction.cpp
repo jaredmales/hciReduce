@@ -1278,6 +1278,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "float vector",
                 "Optional strictly increasing radii for sparse azimuthally averaged PSF measurement" );
+    config.add( "p4.psfRadiiPerRegion",
+                "",
+                "p4.psfRadiiPerRegion",
+                mx::app::argType::Required,
+                "p4",
+                "psfRadiiPerRegion",
+                false,
+                "int",
+                "Interior radial response nodes generated per P4 region; mutually exclusive with explicit radii" );
     config.add( "p4.psfSamplesPerRadius",
                 "",
                 "p4.psfSamplesPerRadius",
@@ -1524,6 +1533,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( m_psfFile, "p4.psfFile" );
     config( m_psfStampSize, "p4.psfStampSize" );
     config( m_psfSampleRadii, "p4.psfSampleRadii" );
+    config( m_psfRadiiPerRegion, "p4.psfRadiiPerRegion" );
     config( m_psfSamplesPerRadius, "p4.psfSamplesPerRadius" );
     config( m_psfSampleArcStep, "p4.psfSampleArcStep" );
     std::string psfSamplingMode = psfSamplingModeString( m_psfSamplingMode );
@@ -1811,6 +1821,49 @@ P4PSFSamplingMode P4Reduction<realT, derotFunctObj, verboseT>::parsePSFSamplingM
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+P4PSFSamplingGrid P4Reduction<realT, derotFunctObj, verboseT>::resolvedPSFSamplingGrid() const
+{
+    P4PSFSamplingGrid grid;
+    if( !m_psfSampleRadii.empty() )
+    {
+        grid.radii.reserve( m_psfSampleRadii.size() );
+        for( const realT radius : m_psfSampleRadii )
+        {
+            grid.radii.push_back( static_cast<double>( radius ) );
+        }
+        grid.regions.assign( grid.radii.size(), 0 );
+        return grid;
+    }
+    if( m_psfRadiiPerRegion <= 0 )
+    {
+        return grid;
+    }
+    if( m_minRadius.size() != m_maxRadius.size() ||
+        m_minRadius.size() > std::numeric_limits<std::size_t>::max() / static_cast<std::size_t>( m_psfRadiiPerRegion ) )
+    {
+        throw std::length_error( "P4 region-aware PSF radial-node count exceeds size_t range" );
+    }
+
+    const std::size_t nodeCount = m_minRadius.size() * static_cast<std::size_t>( m_psfRadiiPerRegion );
+    grid.radii.reserve( nodeCount );
+    grid.regions.reserve( nodeCount );
+    grid.regionAware = true;
+    for( std::size_t region = 0; region < m_minRadius.size(); ++region )
+    {
+        const double inner = static_cast<double>( m_minRadius[region] );
+        const double width = static_cast<double>( m_maxRadius[region] ) - inner;
+        for( int node = 0; node < m_psfRadiiPerRegion; ++node )
+        {
+            const double fraction =
+                static_cast<double>( node + 1 ) / ( static_cast<double>( m_psfRadiiPerRegion ) + 1.0 );
+            grid.radii.push_back( inner + fraction * width );
+            grid.regions.push_back( region );
+        }
+    }
+    return grid;
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 std::string P4Reduction<realT, derotFunctObj, verboseT>::pcatCenteringString( P4TemporalPCACentering centering )
 {
     if( centering == P4TemporalPCACentering::pixelMean )
@@ -2041,22 +2094,29 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
                                            "P4 PSF output or filtering requires a final combination method" );
         }
     }
-    if( !mx::math::isFinite( m_psfSampleArcStep ) || m_psfSampleArcStep < 0 || m_psfSamplesPerRadius < 0 )
+    if( !mx::math::isFinite( m_psfSampleArcStep ) || m_psfSampleArcStep < 0 || m_psfSamplesPerRadius < 0 ||
+        m_psfRadiiPerRegion < 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                       "P4 PSF angular sampling controls must be finite and nonnegative" );
+                                       "P4 PSF radial and angular sampling controls must be finite and nonnegative" );
+    }
+    if( !m_psfSampleRadii.empty() && m_psfRadiiPerRegion > 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "p4.psfSampleRadii and p4.psfRadiiPerRegion are mutually exclusive" );
     }
     const bool fixedAngularSampling = m_psfSamplesPerRadius > 0;
     const bool arcAngularSampling = m_psfSampleArcStep > 0;
-    if( ( m_psfSampleRadii.empty() && ( fixedAngularSampling || arcAngularSampling ) ) ||
-        ( !m_psfSampleRadii.empty() && fixedAngularSampling == arcAngularSampling ) )
+    const bool radialSampling = !m_psfSampleRadii.empty() || m_psfRadiiPerRegion > 0;
+    if( ( !radialSampling && ( fixedAngularSampling || arcAngularSampling ) ) ||
+        ( radialSampling && fixedAngularSampling == arcAngularSampling ) )
     {
         throw mx::exception<verboseT>(
             mx::error_t::invalidconfig,
-            "p4.psfSampleRadii and exactly one positive p4.psfSamplesPerRadius or p4.psfSampleArcStep must be set "
+            "sparse P4 PSF radii and exactly one positive p4.psfSamplesPerRadius or p4.psfSampleArcStep must be set "
             "together" );
     }
-    if( !m_psfSampleRadii.empty() && m_psfFile.empty() )
+    if( radialSampling && m_psfFile.empty() )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                        "sparse radial P4 PSF measurement requires p4.psfFile" );
@@ -2074,7 +2134,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     }
     if( m_psfSamplingMode == P4PSFSamplingMode::detectorLocal )
     {
-        if( m_psfSampleRadii.empty() )
+        if( !radialSampling )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                            "p4.psfSamplingMode=detectorLocal requires sparse radial PSF sampling" );
@@ -2184,7 +2244,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
                                            "every p4.psfSampleRadii value must lie inside a search annulus" );
         }
     }
-    if( !m_psfSampleRadii.empty() && m_psfStampSize % 2 == 0 )
+    if( radialSampling && m_psfStampSize % 2 == 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                        "sparse radial P4 PSF measurement requires an odd p4.psfStampSize" );
@@ -4146,7 +4206,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             m_localPSFResponseRequired[region].assign( m_regionStatistics[region].searchPixelCount, 1 );
         }
 
-        if( sharedPSF && !m_psfSampleRadii.empty() )
+        const P4PSFSamplingGrid psfSamplingGrid = resolvedPSFSamplingGrid();
+        if( sharedPSF && !psfSamplingGrid.radii.empty() )
         {
             if( totalSearchPixels > static_cast<std::size_t>( std::numeric_limits<int>::max() ) )
             {
@@ -4171,7 +4232,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                     searchIndex( coordinate.row(), coordinate.column() ) = static_cast<int>( globalSearch );
                     const RadialPSFSource source{ globalSearch,
                                                   static_cast<double>( coordinate.row() ),
-                                                  static_cast<double>( coordinate.column() ) };
+                                                  static_cast<double>( coordinate.column() ),
+                                                  region };
                     allSources.push_back( source );
                     bool avoided{ false };
                     if( m_psfSamplingMode == P4PSFSamplingMode::detectorLocal && m_psfSampleAvoidRadius > 0 )
@@ -4209,21 +4271,27 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                     ++globalSearch;
                 }
             }
-            std::vector<double> radialRadii;
-            radialRadii.reserve( m_psfSampleRadii.size() );
-            for( const realT radius : m_psfSampleRadii )
-            {
-                radialRadii.push_back( static_cast<double>( radius ) );
-            }
             m_psfRequestedSamplesPerRadius =
-                RadialPSFModel::angularSampleCounts( radialRadii,
+                RadialPSFModel::angularSampleCounts( psfSamplingGrid.radii,
                                                      static_cast<std::size_t>( m_psfSamplesPerRadius ),
                                                      static_cast<double>( m_psfSampleArcStep ) );
-            m_psfMeasurementSamples = RadialPSFModel::selectSamples( availableSources,
-                                                                     grids.front().xCenter(),
-                                                                     grids.front().yCenter(),
-                                                                     radialRadii,
-                                                                     m_psfRequestedSamplesPerRadius );
+            if( psfSamplingGrid.regionAware )
+            {
+                m_psfMeasurementSamples = RadialPSFModel::selectSamples( availableSources,
+                                                                         grids.front().xCenter(),
+                                                                         grids.front().yCenter(),
+                                                                         psfSamplingGrid.radii,
+                                                                         m_psfRequestedSamplesPerRadius,
+                                                                         psfSamplingGrid.regions );
+            }
+            else
+            {
+                m_psfMeasurementSamples = RadialPSFModel::selectSamples( availableSources,
+                                                                         grids.front().xCenter(),
+                                                                         grids.front().yCenter(),
+                                                                         psfSamplingGrid.radii,
+                                                                         m_psfRequestedSamplesPerRadius );
+            }
             std::vector<std::size_t> requiredSearch;
             if( m_psfSamplingMode == P4PSFSamplingMode::detectorLocal )
             {
@@ -5893,18 +5961,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
         }
     }
 
-    const bool radialApproximation = !m_psfSampleRadii.empty();
+    const P4PSFSamplingGrid psfSamplingGrid = resolvedPSFSamplingGrid();
+    const bool radialApproximation = !psfSamplingGrid.radii.empty();
+    const bool regionAwareApproximation = psfSamplingGrid.regionAware;
     const bool detectorLocalApproximation =
         radialApproximation && m_psfSamplingMode == P4PSFSamplingMode::detectorLocal;
-    std::vector<double> radialRadii;
+    const std::vector<double> &radialRadii = psfSamplingGrid.radii;
     std::vector<RadialPSFSample> radialSamples;
     if( radialApproximation )
     {
-        radialRadii.reserve( m_psfSampleRadii.size() );
-        for( const realT radius : m_psfSampleRadii )
-        {
-            radialRadii.push_back( static_cast<double>( radius ) );
-        }
         radialSamples = m_psfMeasurementSamples;
         if( radialSamples.empty() )
         {
@@ -5920,21 +5985,36 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                 availableSources.push_back(
                     { source,
                       static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 0 ) ),
-                      static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 1 ) ) } );
+                      static_cast<double>( coordinates( static_cast<Eigen::Index>( source ), 1 ) ),
+                      static_cast<std::size_t>( searchRegions[source] ) } );
             }
-            radialSamples = RadialPSFModel::selectSamples(
-                availableSources,
-                grids.front().xCenter(),
-                grids.front().yCenter(),
-                radialRadii,
+            const std::vector<std::size_t> angularCounts =
                 RadialPSFModel::angularSampleCounts( radialRadii,
                                                      static_cast<std::size_t>( m_psfSamplesPerRadius ),
-                                                     static_cast<double>( m_psfSampleArcStep ) ) );
+                                                     static_cast<double>( m_psfSampleArcStep ) );
+            if( regionAwareApproximation )
+            {
+                radialSamples = RadialPSFModel::selectSamples( availableSources,
+                                                               grids.front().xCenter(),
+                                                               grids.front().yCenter(),
+                                                               radialRadii,
+                                                               angularCounts,
+                                                               psfSamplingGrid.regions );
+            }
+            else
+            {
+                radialSamples = RadialPSFModel::selectSamples( availableSources,
+                                                               grids.front().xCenter(),
+                                                               grids.front().yCenter(),
+                                                               radialRadii,
+                                                               angularCounts );
+            }
         }
         std::cerr << "P4 radial PSF approximation: " << radialSamples.size() << " distinct measurements at "
                   << radialRadii.size() << " radii, "
                   << ( detectorLocalApproximation ? "detector-local operator" : "exact sky reconstruction" )
-                  << ", linear radial interpolation\n";
+                  << ( regionAwareApproximation ? ", region-isolated linear radial interpolation\n"
+                                                : ", linear radial interpolation\n" );
     }
 
     std::vector<double> derotationAngles( static_cast<std::size_t>( this->m_Nims ), 0 );
@@ -6067,18 +6147,21 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
         fitsHeaderT header;
         fitsHeaderT finalHeaderCopy( finalHeader );
         this->finalImageHeader( header, &finalHeaderCopy );
-        header.template append<int>( "P4 PSF PRODUCT SCHEMA",
-                                     detectorLocalApproximation ? 4
-                                                                : ( radialApproximation ? 3 : ( m_psfFilter ? 2 : 1 ) ),
-                                     "frozen-model PSF product schema" );
+        header.template append<int>(
+            "P4 PSF PRODUCT SCHEMA",
+            regionAwareApproximation
+                ? 5
+                : ( detectorLocalApproximation ? 4 : ( radialApproximation ? 3 : ( m_psfFilter ? 2 : 1 ) ) ),
+            "frozen-model PSF product schema" );
         header.template append<std::string>( "P4 PSF PRODUCT", product, "compact PSF product role" );
         header.template append<std::string>( "P4 PSF TEMPLATE", m_psfFile, "post-preprocessing centered template" );
         header.template append<std::string>( "P4 PSF TEMPLATE STAGE", "P4_INPUT", "template processing stage" );
         header.template append<std::string>( "P4 PSF NORMALIZATION", "STORED", "template normalization convention" );
         header.template append<std::string>( "P4 PSF RESPONSE", "FROZEN_SIGNED", "forward-model convention" );
-        header.template append<std::string>( "P4 PSF SPATIAL MODEL",
-                                             radialApproximation ? "RADIAL_LINEAR" : "PER_PIXEL",
-                                             "final response spatial approximation" );
+        header.template append<std::string>(
+            "P4 PSF SPATIAL MODEL",
+            regionAwareApproximation ? "REGION_RADIAL_LINEAR" : ( radialApproximation ? "RADIAL_LINEAR" : "PER_PIXEL" ),
+            "final response spatial approximation" );
         header.template append<std::string>(
             "P4 PSF MEASUREMENT COUNT",
             std::to_string( radialApproximation ? radialSamples.size() : searchPixelCount ),
@@ -6420,7 +6503,14 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                 }
                 if( !reconstructionException )
                 {
-                    radialModel.emplace( radialRadii, m_psfStampSize, m_psfStampSize );
+                    if( regionAwareApproximation )
+                    {
+                        radialModel.emplace( radialRadii, psfSamplingGrid.regions, m_psfStampSize, m_psfStampSize );
+                    }
+                    else
+                    {
+                        radialModel.emplace( radialRadii, m_psfStampSize, m_psfStampSize );
+                    }
                     radialModel->fit( sampledResponses, sampledValidities, radialSamples );
                 }
             }
@@ -6452,10 +6542,21 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                         {
                             const double deltaRow = sourceRow - grids.front().xCenter();
                             const double deltaColumn = sourceColumn - grids.front().yCenter();
-                            radialModel->response( combined,
-                                                   combinedValidity,
-                                                   std::hypot( deltaRow, deltaColumn ),
-                                                   std::atan2( deltaRow, deltaColumn ) );
+                            if( regionAwareApproximation )
+                            {
+                                radialModel->response( combined,
+                                                       combinedValidity,
+                                                       std::hypot( deltaRow, deltaColumn ),
+                                                       std::atan2( deltaRow, deltaColumn ),
+                                                       static_cast<std::size_t>( searchRegions[source] ) );
+                            }
+                            else
+                            {
+                                radialModel->response( combined,
+                                                       combinedValidity,
+                                                       std::hypot( deltaRow, deltaColumn ),
+                                                       std::atan2( deltaRow, deltaColumn ) );
+                            }
                             if( targetHeldOutPSF )
                             {
                                 centerReconstructor.reconstructCombinedTargeted( centerCombined,
@@ -6797,6 +6898,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::writeDiagnostic( const std::st
 template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHeaderT &head ) const
 {
+    const P4PSFSamplingGrid psfSamplingGrid = resolvedPSFSamplingGrid();
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
     head.append( "", fits::fitsCommentType(), "P4 reduction parameters:" );
     head.append( "", fits::fitsCommentType(), "----------------------------------------" );
@@ -6936,8 +7038,14 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
     head.template append<realT>( "P4 OR MAX HALF ANGLE", m_orMaxHalfAngle, "OR maximum half-angle" );
     head.template append<realT>( "P4 PSF RADIUS", m_psfRadius, "physical PSF exclusion radius" );
     head.template append<std::string>( "P4 PSF SAMPLE RADII",
-                                       p4Join( m_psfSampleRadii ),
-                                       "sparse response measurement radii" );
+                                       p4Join( psfSamplingGrid.radii ),
+                                       "resolved sparse response measurement radii" );
+    head.template append<int>( "P4 PSF RADII PER REGION",
+                               m_psfRadiiPerRegion,
+                               "interior response radii generated per P4 region" );
+    head.template append<std::string>( "P4 PSF SAMPLE RADIUS REGIONS",
+                                       p4Join( psfSamplingGrid.regions ),
+                                       "P4 region owning each resolved response radius" );
     head.template append<int>( "P4 PSF SAMPLES PER RADIUS",
                                m_psfSamplesPerRadius,
                                "fixed angular samples per radius; zero selects arc spacing" );
@@ -6952,9 +7060,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
                                        "resolved angular sample counts by radius" );
     if( !m_psfMeasurementSamples.empty() )
     {
-        std::vector<std::size_t> realizedSamples( m_psfSampleRadii.size(), 0 );
-        std::vector<double> minimumActualRadius( m_psfSampleRadii.size(), std::numeric_limits<double>::infinity() );
-        std::vector<double> maximumActualRadius( m_psfSampleRadii.size(), 0 );
+        std::vector<std::size_t> realizedSamples( psfSamplingGrid.radii.size(), 0 );
+        std::vector<double> minimumActualRadius( psfSamplingGrid.radii.size(),
+                                                 std::numeric_limits<double>::infinity() );
+        std::vector<double> maximumActualRadius( psfSamplingGrid.radii.size(), 0 );
         for( const RadialPSFSample &sample : m_psfMeasurementSamples )
         {
             if( sample.radiusIndex >= realizedSamples.size() )

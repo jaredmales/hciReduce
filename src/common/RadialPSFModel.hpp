@@ -25,6 +25,8 @@ struct RadialPSFSource
     double row{ 0 };              ///< Final-image source-center row.
 
     double column{ 0 };           ///< Final-image source-center column.
+
+    std::size_t regionIndex{ 0 }; ///< Optional caller-owned region that constrains region-aware selection.
 };
 
 /// One selected response measurement assigned to a configured radial bin.
@@ -37,6 +39,8 @@ struct RadialPSFSample
     double radius{ 0 };           ///< Actual selected source radius in pixels.
 
     double angle{ 0 };            ///< Actual source angle in radians from positive column toward positive row.
+
+    std::size_t regionIndex{ 0 }; ///< Region containing both the requested radial node and selected source.
 };
 
 /// Azimuthally average sparse PSF measurements and linearly interpolate the result in radius.
@@ -61,6 +65,12 @@ class RadialPSFModel
     /// Construct an empty model for strictly increasing discrete radii and fixed stamp geometry.
     RadialPSFModel( std::vector<double> radii, /**< [in] finite strictly increasing nonnegative sample radii */
                     int stampRows,             /**< [in] positive response-stamp row count */
+                    int stampColumns /**< [in] positive response-stamp column count */ );
+
+    /// Construct an empty model whose radial interpolation is isolated within caller-defined regions.
+    RadialPSFModel( std::vector<double> radii,              /**< [in] ordered finite radial sample locations */
+                    std::vector<std::size_t> radiusRegions, /**< [in] nondecreasing region index for every radius */
+                    int stampRows,                          /**< [in] positive response-stamp row count */
                     int stampColumns /**< [in] positive response-stamp column count */ );
 
     /// Calculate the requested angular sample count at every configured radius.
@@ -98,6 +108,17 @@ class RadialPSFModel
                    const std::vector<std::size_t> &samplesPerRadius
                    /**< [in] positive requested angular count corresponding one-to-one with radii */ );
 
+    /// Select radius-constrained samples from the same caller-defined region as each radial node.
+    static std::vector<RadialPSFSample>
+    selectSamples( const std::vector<RadialPSFSource> &sources, /**< [in] available coordinates with assigned regions */
+                   double centerRow,                            /**< [in] finite image-center row */
+                   double centerColumn,                         /**< [in] finite image-center column */
+                   const std::vector<double> &radii, /**< [in] finite strictly increasing nonnegative radii */
+                   const std::vector<std::size_t> &samplesPerRadius,
+                   /**< [in] positive requested angular count corresponding one-to-one with radii */
+                   const std::vector<std::size_t> &radiusRegions
+                   /**< [in] nondecreasing source-region index corresponding one-to-one with radii */ );
+
     /// Fit canonical radial averages from response measurements corresponding one-to-one with selected samples.
     void fit( const std::vector<imageT> &responses,     /**< [in] measured final-frame response stamps */
               const std::vector<validityT> &validities, /**< [in] per-element measurement validity */
@@ -115,6 +136,13 @@ class RadialPSFModel
                    validityT &outputValidity, /**< [out] source-oriented per-element validity */
                    double radius,             /**< [in] finite nonnegative requested radius */
                    double angle /**< [in] finite source angle from positive column toward positive row */ ) const;
+
+    /// Evaluate within one region, clamping rather than interpolating across its boundaries.
+    void response( imageT &output,            /**< [out] source-oriented response stamp */
+                   validityT &outputValidity, /**< [out] source-oriented per-element validity */
+                   double radius,             /**< [in] finite nonnegative requested radius */
+                   double angle,              /**< [in] finite source angle from positive column toward positive row */
+                   std::size_t regionIndex /**< [in] caller-defined region containing the requested source */ ) const;
 
     /// Return the number of configured radial templates.
     std::size_t radiusCount() const noexcept;
@@ -134,6 +162,8 @@ class RadialPSFModel
   private:
     std::vector<double> m_radii;             ///< Strictly increasing configured radial sample locations.
 
+    std::vector<std::size_t> m_radiusRegions; ///< Nondecreasing interpolation region assigned to every radial node.
+
     int m_stampRows{ 0 };                    ///< Positive response-stamp row count.
 
     int m_stampColumns{ 0 };                 ///< Positive response-stamp column count.
@@ -143,6 +173,14 @@ class RadialPSFModel
     std::vector<validityT> m_validities;     ///< Per-element validity of each canonical radial response.
 
     std::vector<std::size_t> m_sampleCounts; ///< Distinct measurement count assigned to each radial bin.
+
+    /// Evaluate a response using only the half-open radial-node range supplied by the caller.
+    void response( imageT &output,            /**< [out] source-oriented response stamp */
+                   validityT &outputValidity, /**< [out] source-oriented per-element validity */
+                   double radius,             /**< [in] finite nonnegative requested radius */
+                   double angle,              /**< [in] finite source angle */
+                   std::size_t beginIndex,    /**< [in] first allowed radial-node index */
+                   std::size_t endIndex /**< [in] one past the final allowed radial-node index */ ) const;
 };
 
 } // namespace improc

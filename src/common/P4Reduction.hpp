@@ -147,6 +147,17 @@ struct P4LocalTrial
     double contrast{ 0 };      ///< Signed source contrast, including zero for the unperturbed baseline.
 };
 
+/// Resolved radial nodes and interpolation-region ownership for sparse P4 response sampling.
+/** \ingroup programming_library */
+struct P4PSFSamplingGrid
+{
+    std::vector<double> radii;        ///< Strictly increasing detector radii selected for response measurement.
+
+    std::vector<std::size_t> regions; ///< Region index assigned one-to-one with `radii`, or all zero for a global grid.
+
+    bool regionAware{ false };        ///< Whether selection and radial interpolation must remain within each P4 region.
+};
+
 /// Owning result of one finite-amplitude pixel-local P4 evaluation.
 /** \tparam realT local residual and validity storage type
  * \ingroup programming_library
@@ -273,6 +284,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     int m_psfStampSize{ 0 }; ///< Square frozen-model PSF stamp size; required when `m_psfFile` is set.
 
     std::vector<realT> m_psfSampleRadii; ///< Optional discrete radii for azimuthally averaged PSF measurements.
+
+    int m_psfRadiiPerRegion{ 0 }; ///< Interior radial nodes generated in every P4 region; zero uses explicit radii.
 
     int m_psfSamplesPerRadius{ 0 };      ///< Uniform angular measurement count at each configured PSF sample radius.
 
@@ -546,6 +559,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     /// Parse an exact sparse PSF measurement-operator configuration spelling.
     static P4PSFSamplingMode parsePSFSamplingMode( const std::string &value /**< [in] configuration spelling */ );
+
+    /// Resolve either explicit global radii or uniformly spaced interior nodes owned by each P4 region.
+    P4PSFSamplingGrid resolvedPSFSamplingGrid() const;
 
     /// Convert a supported PCAT centering policy to its stable configuration spelling.
     static std::string pcatCenteringString( P4TemporalPCACentering centering /**< [in] supported policy */ );

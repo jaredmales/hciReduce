@@ -290,6 +290,35 @@ realized per-radius counts and actual radial extrema, and linearly interpolates 
 nodes. It also adds a mutually exclusive arc-spacing control so a 3.6-pixel lambda/D scale can set both radial and
 azimuthal density. A new ROC comparison is required.
 
+The 2026-09-06 follow-up in `working/roc/p4_psf_sampling_20260906T194248Z` validated those radius constraints. The
+global 3.6-pixel/fixed-16 detector-local case calculated 260 local responses, reduced wall time from 944.77 to 138.63
+seconds (6.82x), and had median mode response relative L2 error 0.138. Increasing angular density to a 3.6-pixel arc
+step calculated 906 responses without improving accuracy, so angular density is not the limiting approximation.
+
+An exact offline replay then used all 11,304 dense responses in every one of the 15 modes as ground truth. The
+production global model was reproduced bit-for-bit before testing alternate grids. Assigning two interior radial
+nodes to each P4 search region, selecting four angles per node from that same region, and forbidding interpolation
+across region boundaries used 232 measurements versus 268 for the global 3.6-pixel/fixed-16 grid. Median aggregate
+response error fell from 0.111 to 0.085; median error inside 16 pixels fell from 0.364 to 0.249; median error in the AF
+Lep region fell from 0.336 to 0.204; and median response error at AF Lep fell from 0.278 to 0.125. The corresponding
+cosine similarity at AF Lep improved from 0.9669 to 0.9926 and the worst matched-filter amplitude proxy error fell
+from 10.5% to 1.7%. Four angles performed at least as well as 8 or 16 in this one dense dataset, while a second radial
+node per region materially improved the result. The next production test therefore uses two radial nodes and four
+angles per P4 region while retaining same-region known-planet avoidance.
+
+The next ROC acceptance run is configured in `agents/plans/scripts/run_p4_psf_sampling_experiment.sh`. Its default
+matrix contains the dense reference, the previous global 3.6-pixel/fixed-16 detector-local control, and the new
+`detector_region2_a4` case. From the repository root on ROC, run:
+
+```bash
+nohup env PSF_SAMPLE_AVOID_RADIUS=5 \
+  PLANET_SEP=11.736133215156491 \
+  PLANET_PA=262.14866892555824 \
+  PLANET_CONTRAST=0.0047417121263244773 \
+  agents/plans/scripts/run_p4_psf_sampling_experiment.sh \
+  > p4_psf_region_sampling_driver.log 2>&1 &
+```
+
 ## Proposed configuration and products
 
 Use opt-in P4-specific configuration so all existing controls and outputs remain unchanged when no PSF template is
@@ -378,7 +407,7 @@ directory.
   record requested/realized counts and actual radial extrema so a radius-changing surrogate cannot pass unnoticed.
 - [x] Support either a fixed number of angles at every radius or a maximum azimuthal arc step, with exactly one
   positive angular control.
-- [ ] Compare every detector-local mode and filtered product with the dense response on ROC, including actual local-
+- [x] Compare every detector-local mode and filtered product with the dense response on ROC, including actual local-
   response count, worker time, wall time, response-field error, and filtered-image error.
 - [x] Remove detector-polar candidates whose coordinates intersect the configured trajectories of known `planet`
   sources, using a separately recorded avoidance radius. Deterministically select the nearest remaining angle sample;
