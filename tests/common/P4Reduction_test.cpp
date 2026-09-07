@@ -2483,8 +2483,9 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     reductionT::fitsHeaderT modelHeader;
     REQUIRE( reader.read( responseModels, modelHeader, ( productDirectory / "local_model_0000.fits" ).string() ) ==
              mx::error_t::noerror );
-    REQUIRE( modelHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 5 );
-    REQUIRE( modelHeader["P4 PSF SPATIAL MODEL"].String().starts_with( "REGION_RADIAL_LINEAR" ) );
+    REQUIRE( modelHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 6 );
+    REQUIRE( modelHeader["P4 PSF SPATIAL MODEL"].String().starts_with( "REGION_TARGET_RADIAL_LINEAR" ) );
+    REQUIRE( modelHeader["P4 PSF COMPOSITION"].String().starts_with( "TARGET_PIXEL" ) );
     REQUIRE( modelHeader["P4 PSF SAMPLING MODE"].String().starts_with( "detectorLocal" ) );
     REQUIRE( modelHeader["P4 SCIENCE COMBINATION"].String().starts_with( "sigmaMean" ) );
     REQUIRE( modelHeader["P4 PSF COMBINATION"].String().starts_with( "mean" ) );

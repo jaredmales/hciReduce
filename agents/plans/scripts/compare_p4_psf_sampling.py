@@ -213,9 +213,14 @@ def main() -> int:
     """Compare every completed sparse case under an experiment directory."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("experiment_directory", type=Path)
+    parser.add_argument(
+        "--dense-case",
+        type=Path,
+        help="completed dense case directory to reuse instead of EXPERIMENT_DIRECTORY/dense",
+    )
     arguments = parser.parse_args()
     experiment_directory = arguments.experiment_directory.resolve()
-    dense_case = experiment_directory / "dense"
+    dense_case = arguments.dense_case.resolve() if arguments.dense_case else experiment_directory / "dense"
     dense_products = completed_product_directory(dense_case)
     dense_modes = mode_files(dense_products)
     dense_coordinates = np.asarray(fits.getdata(dense_products / "p4PSF_coordinates.fits"))
@@ -224,7 +229,9 @@ def main() -> int:
 
     comparison_rows: list[dict[str, float | int | str]] = []
     summary_rows: list[dict[str, float | int | str]] = []
-    for sparse_case in sorted(path for path in experiment_directory.iterdir() if path.is_dir() and path != dense_case):
+    for sparse_case in sorted(
+        path for path in experiment_directory.iterdir() if path.is_dir() and path.resolve() != dense_case.resolve()
+    ):
         try:
             sparse_products = completed_product_directory(sparse_case)
         except RuntimeError as error:
@@ -245,7 +252,12 @@ def main() -> int:
             sparse_model_path = sparse_modes[mode_index]
             header = fits.getheader(sparse_model_path)
             spatial_model = str(header.get("P4 PSF SPATIAL MODEL", "")).strip()
-            if spatial_model not in {"RADIAL_LINEAR", "REGION_RADIAL_LINEAR"}:
+            if spatial_model not in {
+                "RADIAL_LINEAR",
+                "REGION_RADIAL_LINEAR",
+                "TARGET_RADIAL_LINEAR",
+                "REGION_TARGET_RADIAL_LINEAR",
+            }:
                 raise RuntimeError(f"sparse response does not declare a supported radial model: {sparse_model_path}")
             metrics = compare_mode(
                 dense_model_path,

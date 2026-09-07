@@ -437,6 +437,68 @@ void RadialPSFModel::response(
               static_cast<std::size_t>( end - m_radiusRegions.begin() ) );
 }
 
+void RadialPSFModel::targetResponse( imageT &output,
+                                     validityT &outputValidity,
+                                     int sourceRow,
+                                     int sourceColumn,
+                                     double centerRow,
+                                     double centerColumn,
+                                     const regionMapT &targetRegions ) const
+{
+    if( m_stampRows % 2 == 0 || m_stampColumns % 2 == 0 )
+    {
+        throw std::logic_error( "target-aware radial PSF response requires odd stamp dimensions" );
+    }
+    if( targetRegions.rows() <= 0 || targetRegions.cols() <= 0 || !std::isfinite( centerRow ) ||
+        !std::isfinite( centerColumn ) )
+    {
+        throw std::invalid_argument( "target-aware radial PSF response requires a nonempty map and finite center" );
+    }
+
+    output = imageT::Zero( m_stampRows, m_stampColumns );
+    outputValidity = validityT::Zero( m_stampRows, m_stampColumns );
+    const int stampCenterRow = m_stampRows / 2;
+    const int stampCenterColumn = m_stampColumns / 2;
+    for( int outputColumn = 0; outputColumn < m_stampColumns; ++outputColumn )
+    {
+        const int columnOffset = outputColumn - stampCenterColumn;
+        const Eigen::Index targetColumn =
+            static_cast<Eigen::Index>( sourceColumn ) + static_cast<Eigen::Index>( columnOffset );
+        if( targetColumn < 0 || targetColumn >= targetRegions.cols() )
+        {
+            continue;
+        }
+        for( int outputRow = 0; outputRow < m_stampRows; ++outputRow )
+        {
+            const int rowOffset = outputRow - stampCenterRow;
+            const Eigen::Index targetRow =
+                static_cast<Eigen::Index>( sourceRow ) + static_cast<Eigen::Index>( rowOffset );
+            if( targetRow < 0 || targetRow >= targetRegions.rows() )
+            {
+                continue;
+            }
+            const int region = targetRegions( targetRow, targetColumn );
+            if( region < 0 )
+            {
+                continue;
+            }
+            const double deltaRow = static_cast<double>( targetRow ) - centerRow;
+            const double deltaColumn = static_cast<double>( targetColumn ) - centerColumn;
+            float value{ 0 };
+            if( responseElement( value,
+                                 std::hypot( deltaRow, deltaColumn ),
+                                 std::atan2( deltaRow, deltaColumn ),
+                                 static_cast<std::size_t>( region ),
+                                 static_cast<double>( rowOffset ),
+                                 static_cast<double>( columnOffset ) ) )
+            {
+                output( outputRow, outputColumn ) = value;
+                outputValidity( outputRow, outputColumn ) = 1;
+            }
+        }
+    }
+}
+
 void RadialPSFModel::response( imageT &output,
                                validityT &outputValidity,
                                double requestedRadius,
@@ -504,6 +566,114 @@ void RadialPSFModel::response( imageT &output,
         }
     }
     rotate( output, outputValidity, interpolated, interpolatedValidity, -angle );
+}
+
+bool RadialPSFModel::responseElement( float &output,
+                                      double requestedRadius,
+                                      double angle,
+                                      std::size_t regionIndex,
+                                      double outputRowOffset,
+                                      double outputColumnOffset ) const
+{
+    output = 0;
+    if( !std::isfinite( requestedRadius ) || requestedRadius < 0 || !std::isfinite( angle ) ||
+        !std::isfinite( outputRowOffset ) || !std::isfinite( outputColumnOffset ) )
+    {
+        throw std::invalid_argument( "radial PSF response coordinates must be finite and radius nonnegative" );
+    }
+    const auto regionBegin = std::lower_bound( m_radiusRegions.begin(), m_radiusRegions.end(), regionIndex );
+    const auto regionEnd = std::upper_bound( regionBegin, m_radiusRegions.end(), regionIndex );
+    if( regionBegin == regionEnd )
+    {
+        throw std::invalid_argument( "radial PSF response region has no configured radial nodes" );
+    }
+    const std::size_t beginIndex = static_cast<std::size_t>( regionBegin - m_radiusRegions.begin() );
+    const std::size_t endIndex = static_cast<std::size_t>( regionEnd - m_radiusRegions.begin() );
+    const auto radiusBegin = m_radii.begin() + static_cast<std::ptrdiff_t>( beginIndex );
+    const auto radiusEnd = m_radii.begin() + static_cast<std::ptrdiff_t>( endIndex );
+    const auto upper = std::lower_bound( radiusBegin, radiusEnd, requestedRadius );
+    std::size_t lowerIndex{ 0 };
+    std::size_t upperIndex{ 0 };
+    double upperFraction{ 0 };
+    if( upper == radiusEnd )
+    {
+        lowerIndex = upperIndex = endIndex - 1;
+    }
+    else if( upper == radiusBegin || *upper == requestedRadius )
+    {
+        lowerIndex = upperIndex = static_cast<std::size_t>( upper - m_radii.begin() );
+    }
+    else
+    {
+        upperIndex = static_cast<std::size_t>( upper - m_radii.begin() );
+        lowerIndex = upperIndex - 1;
+        upperFraction = ( requestedRadius - m_radii[lowerIndex] ) / ( m_radii[upperIndex] - m_radii[lowerIndex] );
+    }
+    if( m_responses[lowerIndex].size() == 0 || m_responses[upperIndex].size() == 0 )
+    {
+        throw std::logic_error( "radial PSF model must be fitted before evaluating a response" );
+    }
+
+    const double centerRow = 0.5 * static_cast<double>( m_stampRows - 1 );
+    const double centerColumn = 0.5 * static_cast<double>( m_stampColumns - 1 );
+    const double cosine = std::cos( angle );
+    const double sine = std::sin( angle );
+    const double inputRow = centerRow + outputRowOffset * cosine - outputColumnOffset * sine;
+    const double inputColumn = centerColumn + outputRowOffset * sine + outputColumnOffset * cosine;
+    const double floorRow = std::floor( inputRow );
+    const double floorColumn = std::floor( inputColumn );
+    using gridT = P4PixelGridf;
+    if( floorRow < static_cast<double>( std::numeric_limits<int>::min() + gridT::leftBuffer ) ||
+        floorRow > static_cast<double>( std::numeric_limits<int>::max() - gridT::width ) ||
+        floorColumn < static_cast<double>( std::numeric_limits<int>::min() + gridT::leftBuffer ) ||
+        floorColumn > static_cast<double>( std::numeric_limits<int>::max() - gridT::width ) )
+    {
+        return false;
+    }
+    const int footprintRow = static_cast<int>( floorRow ) - gridT::leftBuffer;
+    const int footprintColumn = static_cast<int>( floorColumn ) - gridT::leftBuffer;
+    gridT::kernelT kernel;
+    gridT::transformT transform;
+    transform( kernel, static_cast<float>( inputRow - floorRow ), static_cast<float>( inputColumn - floorColumn ) );
+    const double lowerFraction = 1.0 - upperFraction;
+    float value{ 0 };
+    for( int columnOffset = 0; columnOffset < gridT::width; ++columnOffset )
+    {
+        for( int rowOffset = 0; rowOffset < gridT::width; ++rowOffset )
+        {
+            const float weight = kernel( rowOffset, columnOffset );
+            if( weight == 0 )
+            {
+                continue;
+            }
+            const int inputSampleRow = footprintRow + rowOffset;
+            const int inputSampleColumn = footprintColumn + columnOffset;
+            if( inputSampleRow < 0 || inputSampleRow >= m_stampRows || inputSampleColumn < 0 ||
+                inputSampleColumn >= m_stampColumns )
+            {
+                continue;
+            }
+            if( m_validities[lowerIndex]( inputSampleRow, inputSampleColumn ) == 0 ||
+                m_validities[upperIndex]( inputSampleRow, inputSampleColumn ) == 0 )
+            {
+                return false;
+            }
+            float inputValue = m_responses[lowerIndex]( inputSampleRow, inputSampleColumn );
+            if( lowerIndex != upperIndex )
+            {
+                inputValue =
+                    static_cast<float>( lowerFraction * inputValue +
+                                        upperFraction * m_responses[upperIndex]( inputSampleRow, inputSampleColumn ) );
+            }
+            value += inputValue * weight;
+        }
+    }
+    if( !std::isfinite( value ) )
+    {
+        return false;
+    }
+    output = value;
+    return true;
 }
 
 std::size_t RadialPSFModel::radiusCount() const noexcept

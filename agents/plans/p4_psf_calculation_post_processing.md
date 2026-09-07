@@ -267,7 +267,7 @@ tested against the existing dense response before adoption.
 
 The 2026-09-05 implementation adds opt-in `p4.psfSamplingMode=detectorLocal`. It calculates coefficient vectors and
 local response operators only at the selected polar detector coordinates, samples each fixed operator into a source-
-centered stamp, and uses the existing angular alignment, radial average, and nearest-radius reconstruction. A focused
+centered stamp, and uses the existing angular alignment, radial average, and linear radial reconstruction. A focused
 31-by-31 integration case requested 8 measurements from 7 unique local response operators for 236 search pixels,
 rejected 21 candidate pixels intersecting a configured seven-frame, 60-degree planet trajectory, and produced
 schema-4 finite response products. The same test used an
@@ -317,6 +317,41 @@ nohup env PSF_SAMPLE_AVOID_RADIUS=5 \
   PLANET_CONTRAST=0.0047417121263244773 \
   agents/plans/scripts/run_p4_psf_sampling_experiment.sh \
   > p4_psf_region_sampling_driver.log 2>&1 &
+```
+
+The 2026-09-07 production comparison in `working/roc/p4_psf_sampling_20260907T005157Z` used commit `669d4f8`. The
+global 3.6-pixel/fixed-16 case calculated 260 local responses and retained its earlier median response error of 0.138
+and filtered-image error of 0.310. The region-aware two-node/four-angle case used 232 selected measurements backed by
+230 distinct local responses, but its median response error regressed to 0.176 and its filtered-image error to 0.364.
+Both remained much faster than dense local-response calculation. The region-aware wall time was anomalously longer
+despite lower total CPU work and essentially identical reconstruction time; the resource report shows lower average
+core utilization during that run, so this is a scheduling/load result rather than added reconstruction cost.
+
+The discrepancy with the earlier dense replay exposed a composition error in the production approximation. A local
+operator measured at detector pixel `s` describes the response received at `s`. For a source at `q`, response-stamp
+element `delta` must therefore use the operator at target pixel `q+delta`; production instead held the operator chosen
+at `q` across the entire stamp. Recombining the already-written products offline with target-pixel operators, without
+adding any local-response calculations, reduced the global overall relative L2 error from 0.1374 to 0.1072 and the
+region-aware error from 0.1753 to 0.1192. Inside 16 pixels, region-aware error fell from 0.6060 to 0.3115; in the AF
+Lep region it fell from 0.3893 to 0.2761. At the planet location it fell from 0.3291 to 0.2200, cosine similarity rose
+from 0.9528 to 0.9745, and the worst matched-filter amplitude-proxy error fell from 14.3% to 7.0%. This replay did not
+construct a filtered science image, so a production run is still required for the filter comparison.
+
+The implementation now composes detector-local stamps by evaluating every element with the radial model and region
+of its receiving detector pixel. It retains the same sparse measured-operator set and direct single-element radial
+evaluation avoids materializing a complete intermediate stamp for every target element. These products use schema 6,
+`TARGET_RADIAL_LINEAR` or `REGION_TARGET_RADIAL_LINEAR`, and `P4 PSF COMPOSITION=TARGET_PIXEL`. The maintained runner
+can reuse an existing completed dense case through `DENSE_REFERENCE_DIR`; when set, its default matrix runs only the
+global and region-aware detector-local candidates. After building the new commit on ROC, rerun with:
+
+```bash
+nohup env DENSE_REFERENCE_DIR=working/roc/p4_psf_sampling_20260907T005157Z/dense \
+  PSF_SAMPLE_AVOID_RADIUS=5 \
+  PLANET_SEP=11.736133215156491 \
+  PLANET_PA=262.14866892555824 \
+  PLANET_CONTRAST=0.0047417121263244773 \
+  agents/plans/scripts/run_p4_psf_sampling_experiment.sh \
+  > p4_psf_target_composition_driver.log 2>&1 &
 ```
 
 ## Proposed configuration and products
@@ -538,6 +573,12 @@ configuration, validation, reduction, product, and header functions introduce no
 called configuration, exception, finite-check, FITS header/file, cube, geometry, OpenMP progress, time, and file-
 logistics APIs remain at 100% executable-line coverage in the exact ranges identified above. No new mxlib ownership
 follow-up is required.
+
+The 2026-09-07 target-pixel-composition follow-up rechecked that trace for the mxlib cubic-convolution transform
+called by the new scalar radial evaluator. Its default constructor, kernel branches, and complete kernel-fill operator
+all have 100% executable-line coverage. The edited P4 product function adds no new mxlib API call, and its previously
+identified exception, finite-check, FITS, cube, geometry, file-logistics, progress, and timing paths remain fully
+covered. No new mxlib ownership follow-up is required.
 
 ## Acceptance criteria
 

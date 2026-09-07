@@ -17,6 +17,7 @@ planet_sep=${PLANET_SEP:-}
 planet_pa=${PLANET_PA:-}
 planet_contrast=${PLANET_CONTRAST:-}
 experiment_dir=${EXPERIMENT_DIR:-"${roc_working_dir}/p4_psf_sampling_$(date -u +%Y%m%dT%H%M%SZ)"}
+dense_reference_dir=${DENSE_REFERENCE_DIR:-}
 dry_run=false
 analyze_only=false
 
@@ -50,6 +51,7 @@ Environment overrides:
   PLANET_SEP             optional comma-separated known-planet separations
   PLANET_PA              matching position angles in degrees east of north
   PLANET_CONTRAST        matching contrasts; required by the standard planet metadata contract
+  DENSE_REFERENCE_DIR    completed dense case directory to reuse instead of running dense
   EXPERIMENT_DIR         fixed output directory, useful when resuming
   OMP_NUM_THREADS        OpenMP worker limit passed through to p4Reduce
 
@@ -58,6 +60,7 @@ Examples:
   EXPERIMENT_DIR=/data/psf-test $(basename "$0") dense detector_ld_fixed16 detector_region2_a4
   PSF_SAMPLE_AVOID_RADIUS=5 PLANET_SEP=30 PLANET_PA=70 PLANET_CONTRAST=0.001 \\
     $(basename "$0") dense detector_ld_fixed16 detector_region2_a4
+  DENSE_REFERENCE_DIR=/data/previous-experiment/dense $(basename "$0")
   $(basename "$0") --analyze-only /data/psf-test
 EOF
 }
@@ -198,6 +201,28 @@ raise SystemExit(0 if complete else 1)
 PY
 }
 
+target_composition_complete()
+{
+    local manifest_path=$1
+    [[ -f "${manifest_path}" ]] || return 1
+    python3 - "${manifest_path}" <<'PY'
+import sys
+from astropy.io import fits
+
+try:
+    header = fits.getheader(sys.argv[1])
+    current = (
+        int(header.get("P4 PSF PRODUCT SCHEMA", 0)) == 6
+        and str(header.get("P4 PSF COMPOSITION", "")).strip() == "TARGET_PIXEL"
+        and str(header.get("P4 PSF SPATIAL MODEL", "")).strip()
+        in {"TARGET_RADIAL_LINEAR", "REGION_TARGET_RADIAL_LINEAR"}
+    )
+except Exception:
+    current = False
+raise SystemExit(0 if current else 1)
+PY
+}
+
 selected_cases=()
 while (($#)); do
     case "$1" in
@@ -234,12 +259,28 @@ while (($#)); do
     esac
 done
 
+if [[ -n "${dense_reference_dir}" ]]; then
+    if ! manifest_complete "${dense_reference_dir}/finim_outputs/p4PSF_manifest.fits"; then
+        printf 'Dense reference is not a completed P4 case: %s\n' "${dense_reference_dir}" >&2
+        exit 1
+    fi
+    dense_reference_dir=$(cd -- "${dense_reference_dir}" && pwd)
+fi
+
 if [[ "${analyze_only}" == true ]]; then
-    exec python3 "${script_dir}/compare_p4_psf_sampling.py" "${experiment_dir}"
+    analyze_command=(python3 "${script_dir}/compare_p4_psf_sampling.py" "${experiment_dir}")
+    if [[ -n "${dense_reference_dir}" ]]; then
+        analyze_command+=(--dense-case "${dense_reference_dir}")
+    fi
+    exec "${analyze_command[@]}"
 fi
 
 if ((${#selected_cases[@]} == 0)); then
-    selected_cases=("${all_cases[@]}")
+    if [[ -n "${dense_reference_dir}" ]]; then
+        selected_cases=("${all_cases[@]:1}")
+    else
+        selected_cases=("${all_cases[@]}")
+    fi
 fi
 
 [[ -r "${base_config}" ]] || { printf 'Base configuration is not readable: %s\n' "${base_config}" >&2; exit 1; }
@@ -293,8 +334,11 @@ provenance_file="${experiment_dir}/provenance.txt"
 if [[ -e "${provenance_file}" ]]; then
     recorded_binary_sha256=$(awk -F= '$1 == "p4reduce_sha256" { print $2 }' "${provenance_file}")
     recorded_psf_sha256=$(awk -F= '$1 == "psf_file_sha256" { print $2 }' "${provenance_file}")
-    if [[ "${recorded_binary_sha256}" != "${binary_sha256}" || "${recorded_psf_sha256}" != "${psf_sha256}" ]]; then
-        printf 'The binary or PSF differs from the provenance recorded in %s\n' "${experiment_dir}" >&2
+    recorded_dense_reference_dir=$(awk -F= '$1 == "dense_reference_dir" { print $2 }' "${provenance_file}")
+    if [[ "${recorded_binary_sha256}" != "${binary_sha256}" || "${recorded_psf_sha256}" != "${psf_sha256}" ||
+          "${recorded_dense_reference_dir}" != "${dense_reference_dir}" ]]; then
+        printf 'The binary, PSF, or dense reference differs from the provenance recorded in %s\n' \
+            "${experiment_dir}" >&2
         printf '%s\n' 'Choose a new EXPERIMENT_DIR rather than mixing experiment inputs.' >&2
         exit 1
     fi
@@ -309,6 +353,7 @@ else
         printf 'psf_file=%s\n' "${psf_file}"
         printf 'psf_file_sha256=%s\n' "${psf_sha256}"
         printf 'hciReduce_commit=%s\n' "$(git -C "${repo_root}" rev-parse HEAD 2>/dev/null || printf unknown)"
+        printf 'dense_reference_dir=%s\n' "${dense_reference_dir}"
     } > "${provenance_file}"
 fi
 
@@ -329,6 +374,12 @@ for case_name in "${selected_cases[@]}"; do
     manifest="${case_dir}/finim_outputs/p4PSF_manifest.fits"
 
     if manifest_complete "${manifest}"; then
+        if [[ "${case_sampling_mode}" == detectorLocal ]] && ! target_composition_complete "${manifest}"; then
+            printf '\n[%s] has a legacy detector-local product in %s; refusing to mix composition schemas.\n' \
+                "${case_name}" "${case_dir}" >&2
+            printf '%s\n' 'Choose a new EXPERIMENT_DIR and use the newly built p4Reduce executable.' >&2
+            exit 1
+        fi
         printf '\n[%s] complete manifest exists; skipping.\n' "${case_name}"
         continue
     fi
@@ -422,6 +473,11 @@ for case_name in "${selected_cases[@]}"; do
         printf '[%s] p4Reduce exited successfully but did not publish %s\n' "${case_name}" "${manifest}" >&2
         exit 1
     fi
+    if [[ "${case_sampling_mode}" == detectorLocal ]] && ! target_composition_complete "${manifest}"; then
+        printf '[%s] did not publish a schema-6 target-pixel response; rebuild p4Reduce from this checkout.\n' \
+            "${case_name}" >&2
+        exit 1
+    fi
 done
 
 if [[ "${dry_run}" == true ]]; then
@@ -436,8 +492,16 @@ for case_name in "${all_cases[@]:1}"; do
         break
     fi
 done
-if manifest_complete "${experiment_dir}/dense/finim_outputs/p4PSF_manifest.fits" && [[ "${has_sparse_case}" == true ]]; then
-    python3 "${script_dir}/compare_p4_psf_sampling.py" "${experiment_dir}"
+dense_case_dir="${experiment_dir}/dense"
+if [[ -n "${dense_reference_dir}" ]]; then
+    dense_case_dir=${dense_reference_dir}
+fi
+if manifest_complete "${dense_case_dir}/finim_outputs/p4PSF_manifest.fits" && [[ "${has_sparse_case}" == true ]]; then
+    analyze_command=(python3 "${script_dir}/compare_p4_psf_sampling.py" "${experiment_dir}")
+    if [[ -n "${dense_reference_dir}" ]]; then
+        analyze_command+=(--dense-case "${dense_reference_dir}")
+    fi
+    "${analyze_command[@]}"
 else
     printf '\nA completed dense reference and sparse case are not both present yet; skipping comparison.\n'
 fi

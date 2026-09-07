@@ -62,6 +62,9 @@ class RadialPSFModel
     /// Byte-valued response validity storage.
     using validityT = Eigen::Array<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>;
 
+    /// Integer detector-pixel map whose nonnegative values identify radial interpolation regions.
+    using regionMapT = Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic>;
+
     /// Construct an empty model for strictly increasing discrete radii and fixed stamp geometry.
     RadialPSFModel( std::vector<double> radii, /**< [in] finite strictly increasing nonnegative sample radii */
                     int stampRows,             /**< [in] positive response-stamp row count */
@@ -144,6 +147,20 @@ class RadialPSFModel
                    double angle,              /**< [in] finite source angle from positive column toward positive row */
                    std::size_t regionIndex /**< [in] caller-defined region containing the requested source */ ) const;
 
+    /// Assemble a response whose elements use the radial operator at their receiving detector pixels.
+    /** Every stamp element is evaluated at its target detector pixel rather than holding the operator at the source
+     * position fixed across the stamp. Negative entries in \p targetRegions mark unavailable detector pixels. The
+     * response stamp dimensions must be odd so every element maps to an integer target pixel.
+     */
+    void targetResponse( imageT &output,                 /**< [out] target-aware source response stamp */
+                         validityT &outputValidity,      /**< [out] target-aware per-element validity */
+                         int sourceRow,                  /**< [in] integer detector row of the response source */
+                         int sourceColumn,               /**< [in] integer detector column of the response source */
+                         double centerRow,               /**< [in] finite radial-model center row */
+                         double centerColumn,            /**< [in] finite radial-model center column */
+                         const regionMapT &targetRegions /**< [in] target-pixel region, or negative if unavailable */
+    ) const;
+
     /// Return the number of configured radial templates.
     std::size_t radiusCount() const noexcept;
 
@@ -160,19 +177,19 @@ class RadialPSFModel
     std::size_t sampleCount( std::size_t radiusIndex /**< [in] zero-based radial index */ ) const;
 
   private:
-    std::vector<double> m_radii;             ///< Strictly increasing configured radial sample locations.
+    std::vector<double> m_radii;              ///< Strictly increasing configured radial sample locations.
 
     std::vector<std::size_t> m_radiusRegions; ///< Nondecreasing interpolation region assigned to every radial node.
 
-    int m_stampRows{ 0 };                    ///< Positive response-stamp row count.
+    int m_stampRows{ 0 };                     ///< Positive response-stamp row count.
 
-    int m_stampColumns{ 0 };                 ///< Positive response-stamp column count.
+    int m_stampColumns{ 0 };                  ///< Positive response-stamp column count.
 
-    std::vector<imageT> m_responses;         ///< Canonically oriented averaged response by radial bin.
+    std::vector<imageT> m_responses;          ///< Canonically oriented averaged response by radial bin.
 
-    std::vector<validityT> m_validities;     ///< Per-element validity of each canonical radial response.
+    std::vector<validityT> m_validities;      ///< Per-element validity of each canonical radial response.
 
-    std::vector<std::size_t> m_sampleCounts; ///< Distinct measurement count assigned to each radial bin.
+    std::vector<std::size_t> m_sampleCounts;  ///< Distinct measurement count assigned to each radial bin.
 
     /// Evaluate a response using only the half-open radial-node range supplied by the caller.
     void response( imageT &output,            /**< [out] source-oriented response stamp */
@@ -181,6 +198,15 @@ class RadialPSFModel
                    double angle,              /**< [in] finite source angle */
                    std::size_t beginIndex,    /**< [in] first allowed radial-node index */
                    std::size_t endIndex /**< [in] one past the final allowed radial-node index */ ) const;
+
+    /// Evaluate one rotated response element within one interpolation region.
+    bool responseElement( float &output,            /**< [out] response value, or zero when invalid */
+                          double radius,            /**< [in] finite nonnegative target-pixel radius */
+                          double angle,             /**< [in] finite target-pixel angle */
+                          std::size_t regionIndex,  /**< [in] target-pixel interpolation region */
+                          double outputRowOffset,   /**< [in] stamp row offset from its center */
+                          double outputColumnOffset /**< [in] stamp column offset from its center */
+    ) const;
 };
 
 } // namespace improc

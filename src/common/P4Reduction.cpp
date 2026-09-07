@@ -5967,6 +5967,23 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
     const bool detectorLocalApproximation =
         radialApproximation && m_psfSamplingMode == P4PSFSamplingMode::detectorLocal;
     const std::vector<double> &radialRadii = psfSamplingGrid.radii;
+    RadialPSFModel::regionMapT targetResponseRegions;
+    if( detectorLocalApproximation )
+    {
+        targetResponseRegions = RadialPSFModel::regionMapT::Constant( this->m_Nrows, this->m_Ncols, -1 );
+        for( int column = 0; column < this->m_Ncols; ++column )
+        {
+            for( int row = 0; row < this->m_Nrows; ++row )
+            {
+                const int search = searchIndex( row, column );
+                if( search >= 0 )
+                {
+                    targetResponseRegions( row, column ) =
+                        regionAwareApproximation ? searchRegions[static_cast<std::size_t>( search )] : 0;
+                }
+            }
+        }
+    }
     std::vector<RadialPSFSample> radialSamples;
     if( radialApproximation )
     {
@@ -6012,7 +6029,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
         }
         std::cerr << "P4 radial PSF approximation: " << radialSamples.size() << " distinct measurements at "
                   << radialRadii.size() << " radii, "
-                  << ( detectorLocalApproximation ? "detector-local operator" : "exact sky reconstruction" )
+                  << ( detectorLocalApproximation ? "target-pixel detector-local operator"
+                                                  : "exact sky reconstruction" )
                   << ( regionAwareApproximation ? ", region-isolated linear radial interpolation\n"
                                                 : ", linear radial interpolation\n" );
     }
@@ -6149,9 +6167,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
         this->finalImageHeader( header, &finalHeaderCopy );
         header.template append<int>(
             "P4 PSF PRODUCT SCHEMA",
-            regionAwareApproximation
-                ? 5
-                : ( detectorLocalApproximation ? 4 : ( radialApproximation ? 3 : ( m_psfFilter ? 2 : 1 ) ) ),
+            detectorLocalApproximation
+                ? 6
+                : ( regionAwareApproximation ? 5 : ( radialApproximation ? 3 : ( m_psfFilter ? 2 : 1 ) ) ),
             "frozen-model PSF product schema" );
         header.template append<std::string>( "P4 PSF PRODUCT", product, "compact PSF product role" );
         header.template append<std::string>( "P4 PSF TEMPLATE", m_psfFile, "post-preprocessing centered template" );
@@ -6160,8 +6178,14 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
         header.template append<std::string>( "P4 PSF RESPONSE", "FROZEN_SIGNED", "forward-model convention" );
         header.template append<std::string>(
             "P4 PSF SPATIAL MODEL",
-            regionAwareApproximation ? "REGION_RADIAL_LINEAR" : ( radialApproximation ? "RADIAL_LINEAR" : "PER_PIXEL" ),
+            detectorLocalApproximation
+                ? ( regionAwareApproximation ? "REGION_TARGET_RADIAL_LINEAR" : "TARGET_RADIAL_LINEAR" )
+                : ( regionAwareApproximation ? "REGION_RADIAL_LINEAR"
+                                             : ( radialApproximation ? "RADIAL_LINEAR" : "PER_PIXEL" ) ),
             "final response spatial approximation" );
+        header.template append<std::string>( "P4 PSF COMPOSITION",
+                                             detectorLocalApproximation ? "TARGET_PIXEL" : "SOURCE_POSITION",
+                                             "position selecting the local response operator" );
         header.template append<std::string>(
             "P4 PSF MEASUREMENT COUNT",
             std::to_string( radialApproximation ? radialSamples.size() : searchPixelCount ),
@@ -6542,7 +6566,17 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                         {
                             const double deltaRow = sourceRow - grids.front().xCenter();
                             const double deltaColumn = sourceColumn - grids.front().yCenter();
-                            if( regionAwareApproximation )
+                            if( detectorLocalApproximation )
+                            {
+                                radialModel->targetResponse( combined,
+                                                             combinedValidity,
+                                                             static_cast<int>( sourceRow ),
+                                                             static_cast<int>( sourceColumn ),
+                                                             grids.front().xCenter(),
+                                                             grids.front().yCenter(),
+                                                             targetResponseRegions );
+                            }
+                            else if( regionAwareApproximation )
                             {
                                 radialModel->response( combined,
                                                        combinedValidity,

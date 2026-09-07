@@ -210,6 +210,62 @@ TEST_CASE( "Radial PSF interpolation is linear in radius", "[RadialPSFModel][lin
     REQUIRE_THROWS_AS( modelT( { 4, 4 }, size, size ), std::invalid_argument );
 }
 
+/// Verify target-aware composition evaluates each response element at its receiving detector pixel.
+/** This exercises mx::improc::RadialPSFModel::targetResponse() and compares every element with the corresponding
+ * single-position result from mx::improc::RadialPSFModel::response().
+ * \ingroup RadialPSFModel_unit_tests
+ */
+TEST_CASE( "Radial PSF target composition follows receiving pixels", "[RadialPSFModel][target]" )
+{
+    constexpr int stampSize = 7;
+    const imageT canonical = asymmetricResponse( stampSize );
+    const validityT validity = validityT::Ones( stampSize, stampSize );
+    const std::vector<imageT> responses{ canonical, 2 * canonical };
+    const std::vector<validityT> validities{ validity, validity };
+    const std::vector<mx::improc::RadialPSFSample> samples{ { 0, 0, 4, 0 }, { 1, 1, 12, 0 } };
+    modelT model( { 4, 12 }, stampSize, stampSize );
+    model.fit( responses, validities, samples );
+
+    constexpr int detectorSize = 41;
+    constexpr int detectorCenter = detectorSize / 2;
+    constexpr int sourceRow = detectorCenter + 2;
+    constexpr int sourceColumn = detectorCenter + 7;
+    const modelT::regionMapT regions = modelT::regionMapT::Zero( detectorSize, detectorSize );
+    imageT output;
+    validityT outputValidity;
+    model.targetResponse( output, outputValidity, sourceRow, sourceColumn, detectorCenter, detectorCenter, regions );
+
+    for( int column = 0; column < stampSize; ++column )
+    {
+        const int columnOffset = column - stampSize / 2;
+        const int targetColumn = sourceColumn + columnOffset;
+        for( int row = 0; row < stampSize; ++row )
+        {
+            const int rowOffset = row - stampSize / 2;
+            const int targetRow = sourceRow + rowOffset;
+            const double deltaRow = static_cast<double>( targetRow - detectorCenter );
+            const double deltaColumn = static_cast<double>( targetColumn - detectorCenter );
+            imageT expected;
+            validityT expectedValidity;
+            model.response( expected,
+                            expectedValidity,
+                            std::hypot( deltaRow, deltaColumn ),
+                            std::atan2( deltaRow, deltaColumn ) );
+            REQUIRE( outputValidity( row, column ) == expectedValidity( row, column ) );
+            if( outputValidity( row, column ) != 0 )
+            {
+                REQUIRE( output( row, column ) == Approx( expected( row, column ) ).margin( 1e-6 ) );
+            }
+        }
+    }
+
+    modelT evenModel( { 4 }, 4, 4 );
+    REQUIRE_THROWS_AS(
+        evenModel
+            .targetResponse( output, outputValidity, sourceRow, sourceColumn, detectorCenter, detectorCenter, regions ),
+        std::logic_error );
+}
+
 /// Verify region-aware sampling and interpolation never borrow coordinates or templates across a region boundary.
 /** This exercises the region-aware mx::improc::RadialPSFModel constructor,
  * mx::improc::RadialPSFModel::selectSamples(), mx::improc::RadialPSFModel::fit(), and
@@ -258,6 +314,19 @@ TEST_CASE( "Radial PSF region boundaries isolate selection and interpolation", "
     REQUIRE( output( 1, 1 ) == Approx( 60 ) );
     model.response( output, outputValidity, 7, 0, 1 );
     REQUIRE( output( 1, 1 ) == Approx( 70 ) );
+
+    modelT::regionMapT targetRegions = modelT::regionMapT::Constant( 21, 21, -1 );
+    targetRegions( 10, 14 ) = 0;
+    targetRegions( 10, 15 ) = 0;
+    targetRegions( 10, 16 ) = 1;
+    model.targetResponse( output, outputValidity, 10, 15, 10, 10, targetRegions );
+    REQUIRE( output( 1, 0 ) == Approx( 4 ) );
+    REQUIRE( output( 1, 1 ) == Approx( 4 ) );
+    REQUIRE( output( 1, 2 ) == Approx( 60 ) );
+    REQUIRE( outputValidity( 1, 0 ) == 1 );
+    REQUIRE( outputValidity( 1, 1 ) == 1 );
+    REQUIRE( outputValidity( 1, 2 ) == 1 );
+    REQUIRE( outputValidity( 0, 1 ) == 0 );
     REQUIRE_THROWS_AS( model.response( output, outputValidity, 5, 0 ), std::logic_error );
     REQUIRE_THROWS_AS( model.response( output, outputValidity, 5, 0, 2 ), std::invalid_argument );
 }

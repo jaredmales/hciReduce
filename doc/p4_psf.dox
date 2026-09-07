@@ -81,12 +81,15 @@
  *
  * `p4.psfSamplingMode=detectorLocal` is the explicitly approximate, genuinely sparse alternative. It calculates
  * coefficients and the frozen local operator only at the selected detector pixels. Each operator is sampled as a
- * source-centered response while holding its coefficients fixed across the output stamp, rotated to the common
- * radial orientation, and averaged with the other measurements at that radius. This omits spatial coefficient
- * variation across neighboring target pixels and omits exact propagation of a sampled sky source through all field
- * angles. It initially requires `p4.numberImages=0` and `adi.excludeMethod=none`. Active science sigma clipping is
- * supported through the same unclipped analytic-response rule described above. Ordinary science residuals and
- * rank/geometry validity are still calculated at every owned search pixel.
+ * source-centered response while holding its coefficients fixed, rotated to the common radial orientation, and
+ * averaged with the other measurements at that radius. When assembling a source response, every stamp element uses
+ * the interpolated radial operator at the detector pixel receiving that element. A stamp that crosses an optimization
+ * boundary can therefore use different region-isolated radial models on its two sides. This target-pixel composition
+ * captures radial and region-scale coefficient variation without calculating an operator at every search pixel. It
+ * still omits azimuthal operator variation and exact propagation of a sampled sky source through all field angles. It
+ * initially requires `p4.numberImages=0` and `adi.excludeMethod=none`. Active science sigma clipping is supported
+ * through the same unclipped analytic-response rule described above. Ordinary science residuals and rank/geometry
+ * validity are still calculated at every owned search pixel.
  *
  * With positive `p4.psfSampleAvoidRadius` and configured `planet.*` metadata, detector-local candidates are rejected
  * if they lie within that distance of a known companion at any target-frame field angle. Selection then shifts in
@@ -100,10 +103,12 @@
  * convention so that radial separation points along the positive-column axis. Valid samples in the same radial bin
  * are averaged element by element. To evaluate the model at an arbitrary search pixel, P4 linearly blends the two
  * bracketing canonical radial averages, requires each blended sample to be valid in both endpoints, rotates the
- * result back to the pixel's angle, and expands it into the same per-search-pixel product layout consumed by
- * `hciAnalyze`. Requests outside the applicable global or region-local sampled interval use the nearest endpoint.
- * Sparse radial mode requires an odd response stamp. Exact sky sampling records product schema 3; global
- * detector-local sampling records schema 4; region-aware sampling records schema 5 and `REGION_RADIAL_LINEAR`.
+ * result back to the requested target pixel's angle, and expands it into the same per-search-pixel product layout
+ * consumed by `hciAnalyze`. Requests outside the applicable global or region-local sampled interval use the nearest
+ * endpoint. Sparse radial mode requires an odd response stamp. Exact sky sampling records product schema 3. Legacy
+ * source-held global and region-aware detector-local products used schemas 4 and 5. Target-pixel detector-local
+ * composition records schema 6 and `TARGET_RADIAL_LINEAR` or `REGION_TARGET_RADIAL_LINEAR`, plus an explicit
+ * `TARGET_PIXEL` composition card.
  * Sparse products record the resolved radii, their region ownership, requested counts per radius, sampling mode,
  * realized distinct measurement count, and `HIERARCH P4 LOCAL PSF RESPONSE SEARCH COUNT`. P4 additionally records
  * the radial shell tolerance and the realized count and actual minimum/maximum detector radius at every resolved
