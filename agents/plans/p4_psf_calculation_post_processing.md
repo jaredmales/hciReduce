@@ -354,6 +354,55 @@ nohup env DENSE_REFERENCE_DIR=working/roc/p4_psf_sampling_20260907T005157Z/dense
   > p4_psf_target_composition_driver.log 2>&1 &
 ```
 
+The 2026-09-07 follow-up in `working/roc/p4_psf_sampling_20260907T033214Z` used commit `a1e5944`. Both schema-6
+production response cubes were bitwise identical to an independent replay of target-pixel composition for all 15
+modes. The global model's median mode response error improved from 0.138 to 0.108 and its filtered-image error from
+0.310 to 0.238. The region-aware model improved from 0.176 to 0.120 overall; at AF Lep b its response error improved
+from 0.329 to 0.220 and its worst matched-filter amplitude proxy error from 14.3% to 7.0%. The region-aware filtered
+result is better than the global model in the planet annulus and at the planet pixel even though the global model is
+better over the complete field. This validates the region-aware model as the primary known-source candidate and the
+global model as its full-field control.
+
+### Response-backed fit validation
+
+The maintained validation driver is `agents/plans/scripts/run_p4_matched_response_validation.sh`. It tests the
+operational goal rather than only response-cube similarity:
+
+1. Calculate a target-aware region2/a4 response from the original science data while avoiding detector samples near
+   the known planet.
+2. Apply that fixed response to the original science image and fit a bounded subpixel matched-likelihood surface for
+   position and contrast without rerunning P4 per trial.
+3. Run the existing finite-amplitude local P4 negative-companion optimizer as the exact point-estimate oracle.
+4. Subtract the fitted planet once in a complete reduction and calculate a dense response from the signal-free data.
+5. Apply that dense oracle response to the same original science image and compare position, contrast, SNR, local
+   likelihood-curvature diagnostics, radial filtered-image noise, and the exact optimizer's optional block-jackknife
+   uncertainties.
+
+`fit_p4_matched_response.py` applies one persisted mode using the production
+`SUM(H*I)/SUM(H*H)` convention, reproduces `hciAnalyze`'s one-pixel radial noise profile and small-sample correction,
+and performs the bounded quadratic peak fit. `compare_p4_matched_response.py` writes the final CSV, JSON, and Markdown
+comparison. The curvature errors are explicitly diagnostics rather than calibrated replacements for the optimizer's
+delete-one-time-block jackknife.
+
+The driver explicitly sets `input.imSize=256`. Normal P4 automatic sizing calculates the response and filtered
+products on the full 256-by-256 in-memory image before cropping the persisted ordinary `finim` to the search-region
+size. Keeping the explicit input size prevents the validation products from mixing those two grids. Completed stages
+are restartable under an exact saved-settings check, and any of the three expensive products can be reused through
+`SPARSE_RESPONSE_DIR`, `OPTIMIZER_PRODUCTS_DIR`, or `SIGNAL_FREE_RESPONSE_DIR`. A reused signal-free response must
+come from a run in which the fitted planet was actually subtracted; the manifest can prove that it is dense but does
+not record the subtraction flag.
+
+From the repository root on ROC, run the complete sequence with:
+
+```bash
+OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_p4_matched_response_validation.sh \
+  > p4_matched_response_driver.log 2>&1 &
+```
+
+The canonical eight-block exact-fit jackknife is enabled by default and dominates the expected run time. Set
+`OPTIMIZER_UNCERTAINTY_BLOCKS=0` for a point-estimate-only first pass, or supply an existing completed optimizer with
+`OPTIMIZER_PRODUCTS_DIR`.
+
 ## Proposed configuration and products
 
 Use opt-in P4-specific configuration so all existing controls and outputs remain unchanged when no PSF template is
