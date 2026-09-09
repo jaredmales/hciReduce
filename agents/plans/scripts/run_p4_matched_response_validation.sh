@@ -30,7 +30,8 @@ optimizer_contrast_lower=${OPTIMIZER_CONTRAST_LOWER:--0.05}
 optimizer_contrast_upper=${OPTIMIZER_CONTRAST_UPPER:-0}
 optimizer_max_evaluations=${OPTIMIZER_MAX_EVALUATIONS:-192}
 optimizer_validation_samples=${OPTIMIZER_VALIDATION_SAMPLES:-21}
-optimizer_uncertainty_blocks=${OPTIMIZER_UNCERTAINTY_BLOCKS:-8}
+optimizer_uncertainty_blocks_explicit=${OPTIMIZER_UNCERTAINTY_BLOCKS+x}
+optimizer_uncertainty_blocks=${OPTIMIZER_UNCERTAINTY_BLOCKS:-0}
 
 sparse_response_reference=${SPARSE_RESPONSE_DIR:-}
 optimizer_reference=${OPTIMIZER_PRODUCTS_DIR:-}
@@ -69,7 +70,7 @@ Environment overrides:
   LAMBDA_D                       pixels per lambda/D for small-sample correction (default: ${lambda_d})
   OPTIMIZER_UNCERTAINTY_BLOCKS   exact-fit jackknife blocks; zero disables (default: ${optimizer_uncertainty_blocks})
   SPARSE_RESPONSE_DIR            reuse a completed sparse case directory
-  OPTIMIZER_PRODUCTS_DIR         reuse a directory containing p4Negative_* products
+  OPTIMIZER_PRODUCTS_DIR         reuse a directory containing a converged p4Negative_* point fit
   SIGNAL_FREE_RESPONSE_DIR       reuse a completed, planet-subtracted dense case directory
   OMP_NUM_THREADS                OpenMP worker limit passed through to p4Reduce
 
@@ -183,43 +184,52 @@ raise SystemExit(0 if complete else 1)
 PY
 }
 
-optimizer_complete()
+optimizer_summary_path()
 {
     local products=$1
     [[ -d "${products}" ]] || return 1
     python3 - "${products}" <<'PY'
+import math
 import pathlib
+import re
 import sys
 
 products = pathlib.Path(sys.argv[1])
-candidates = sorted(products.glob("p4Negative*_best.conf"))
-complete = [
-    candidate
-    for candidate in candidates
-    if (products / f"{candidate.name[:-len('best.conf')]}summary.yaml").is_file()
-]
-raise SystemExit(0 if len(complete) == 1 else 1)
+candidates = sorted(products.glob("p4Negative*_summary.yaml"))
+if len(candidates) != 1:
+    raise SystemExit(1)
+summary = candidates[0]
+text = summary.read_text(encoding="utf-8")
+status = re.search(r'^  status: "([^"]+)"$', text, flags=re.MULTILINE)
+converged = re.search(r"^  converged: (true|false)$", text, flags=re.MULTILINE)
+dense = re.search(r"^  denseAgreement: (true|false)$", text, flags=re.MULTILINE)
+fitted = re.search(r"^  fitted:\n(?P<body>(?:    [^\n]*\n)+)", text, flags=re.MULTILINE)
+if (
+    status is None
+    or status.group(1) != "converged"
+    or converged is None
+    or converged.group(1) != "true"
+    or dense is None
+    or dense.group(1) != "true"
+    or fitted is None
+):
+    raise SystemExit(1)
+values = []
+for key in ("separation", "positionAngle", "contrast"):
+    match = re.search(rf"^    {key}: ([+\-0-9.eE]+)$", fitted.group("body"), flags=re.MULTILINE)
+    if match is None:
+        raise SystemExit(1)
+    values.append(float(match.group(1)))
+if not all(math.isfinite(value) for value in values) or values[0] < 0 or values[2] >= 0:
+    raise SystemExit(1)
+print(summary)
 PY
 }
 
-optimizer_best_config()
+optimizer_point_complete()
 {
     local products=$1
-    python3 - "${products}" <<'PY'
-import pathlib
-import sys
-
-products = pathlib.Path(sys.argv[1])
-candidates = sorted(products.glob("p4Negative*_best.conf"))
-complete = [
-    candidate
-    for candidate in candidates
-    if (products / f"{candidate.name[:-len('best.conf')]}summary.yaml").is_file()
-]
-if len(complete) != 1:
-    raise SystemExit(f"expected one complete P4 negative-optimizer product set in {products}")
-print(complete[0])
-PY
+    optimizer_summary_path "${products}" >/dev/null
 }
 
 fit_complete()
@@ -248,8 +258,8 @@ run_timed()
     set -e
     if ((command_status != 0)); then
         printf '[%s] failed with status %d.\n' "$(basename "${stage_directory}")" "${command_status}" >&2
-        exit "${command_status}"
     fi
+    return "${command_status}"
 }
 
 [[ -r "${base_config}" ]] || { printf 'Base configuration is not readable: %s\n' "${base_config}" >&2; exit 1; }
@@ -266,7 +276,8 @@ command -v "${p4reduce_bin}" >/dev/null 2>&1 || {
 }
 
 help_text=$("${p4reduce_bin}" --help 2>&1)
-for required_option in --p4.psfRadiiPerRegion --p4.psfSamplingMode --p4Optimize.enabled --fake.subtractPlanet; do
+for required_option in --p4.modeFractions --p4.psfRadiiPerRegion --p4.psfSamplingMode \
+    --p4Optimize.enabled --fake.subtractPlanet; do
     if [[ "${help_text}" != *"${required_option}"* ]]; then
         printf 'p4Reduce does not expose required option %s; build this checkout first.\n' "${required_option}" >&2
         exit 1
@@ -291,6 +302,13 @@ PY
 
 mkdir -p "${experiment_dir}"
 experiment_dir=$(absolute_directory "${experiment_dir}")
+if [[ -z "${optimizer_uncertainty_blocks_explicit}" && -f "${experiment_dir}/settings.txt" ]]; then
+    saved_uncertainty_blocks=$(awk -F= '$1 == "optimizer_uncertainty_blocks" { print $2 }' \
+        "${experiment_dir}/settings.txt")
+    if [[ "${saved_uncertainty_blocks}" =~ ^[0-9]+$ ]]; then
+        optimizer_uncertainty_blocks=${saved_uncertainty_blocks}
+    fi
+fi
 base_snapshot="${experiment_dir}/p4Reduce_afLepNaco.base.conf"
 if [[ -e "${base_snapshot}" ]]; then
     cmp -s "${base_config}" "${base_snapshot}" || {
@@ -378,6 +396,7 @@ else
             "${p4reduce_bin}"
             --config "${base_config}"
             --input.imSize 256
+            --p4.modeFractions "${mode_fraction}"
             --planet.sep "${planet_sep}"
             --planet.PA "${planet_pa}"
             --planet.contrast "${planet_contrast}"
@@ -433,19 +452,20 @@ fi
 
 if [[ -n "${optimizer_reference}" ]]; then
     optimizer_products=$(absolute_directory "${optimizer_reference}")
-    if ! optimizer_complete "${optimizer_products}" && optimizer_complete "${optimizer_products}/finim_outputs"; then
+    if ! optimizer_point_complete "${optimizer_products}" && \
+        optimizer_point_complete "${optimizer_products}/finim_outputs"; then
         optimizer_products="${optimizer_products}/finim_outputs"
     fi
-    optimizer_complete "${optimizer_products}" || {
-        printf 'OPTIMIZER_PRODUCTS_DIR does not contain completed p4Negative products: %s\n' \
+    optimizer_point_complete "${optimizer_products}" || {
+        printf 'OPTIMIZER_PRODUCTS_DIR does not contain a converged p4Negative point fit: %s\n' \
             "${optimizer_products}" >&2
         exit 1
     }
 else
     optimizer_case="${experiment_dir}/exact_optimizer"
     optimizer_products="${optimizer_case}/finim_outputs"
-    if optimizer_complete "${optimizer_products}"; then
-        printf '\n[exact_optimizer] completed optimizer products exist; skipping.\n'
+    if optimizer_point_complete "${optimizer_products}"; then
+        printf '\n[exact_optimizer] converged point-fit products exist; skipping.\n'
     elif [[ -e "${optimizer_case}/run.log" || -e "${optimizer_products}" ]]; then
         printf 'Incomplete exact-optimizer stage exists; refusing to overwrite: %s\n' "${optimizer_case}" >&2
         exit 1
@@ -454,6 +474,7 @@ else
             "${p4reduce_bin}"
             --config "${base_config}"
             --input.imSize 256
+            --p4.modeFractions "${mode_fraction}"
             --planet.sep "${planet_sep}"
             --planet.PA "${planet_pa}"
             --planet.contrast "${planet_contrast}"
@@ -486,32 +507,46 @@ else
             --output.exactFName=true
             --showTiming=true
         )
-        run_timed "${optimizer_case}" "${optimizer_command[@]}"
-        if [[ "${dry_run}" == false ]] && ! optimizer_complete "${optimizer_products}"; then
-            printf 'Exact optimizer did not publish its completed products.\n' >&2
-            exit 1
+        optimizer_run_status=0
+        run_timed "${optimizer_case}" "${optimizer_command[@]}" || optimizer_run_status=$?
+        if [[ "${dry_run}" == false ]]; then
+            if ! optimizer_point_complete "${optimizer_products}"; then
+                printf 'Exact optimizer did not publish a converged point fit.\n' >&2
+                if ((optimizer_run_status != 0)); then
+                    exit "${optimizer_run_status}"
+                fi
+                exit 1
+            fi
+            if ((optimizer_run_status != 0)); then
+                printf '%s\n' \
+                    'Exact point fit converged; continuing despite incomplete optional uncertainty products.' >&2
+            fi
         fi
     fi
 fi
 
-if [[ "${dry_run}" == true ]]; then
+if [[ "${dry_run}" == true ]] && ! optimizer_point_complete "${optimizer_products}"; then
     printf '\nExecution-dependent fit and signal-free commands are omitted in dry-run mode.\n'
     exit 0
 fi
 
-optimizer_best=$(optimizer_best_config "${optimizer_products}")
-readarray -t fitted_planet < <(python3 - "${optimizer_best}" <<'PY'
-import configparser
+optimizer_summary=$(optimizer_summary_path "${optimizer_products}")
+readarray -t fitted_planet < <(python3 - "${optimizer_summary}" <<'PY'
 import math
+import re
 import sys
 
-configuration = configparser.ConfigParser()
-configuration.read(sys.argv[1])
-values = (
-    configuration.getfloat("fake", "sep"),
-    configuration.getfloat("fake", "PA"),
-    -configuration.getfloat("fake", "contrast"),
-)
+text = open(sys.argv[1], encoding="utf-8").read()
+fitted = re.search(r"^  fitted:\n(?P<body>(?:    [^\n]*\n)+)", text, flags=re.MULTILINE)
+if fitted is None:
+    raise SystemExit("optimizer summary has no fitted point")
+values = []
+for key in ("separation", "positionAngle", "contrast"):
+    match = re.search(rf"^    {key}: ([+\-0-9.eE]+)$", fitted.group("body"), flags=re.MULTILINE)
+    if match is None:
+        raise SystemExit(f"optimizer summary has no fitted {key}")
+    values.append(float(match.group(1)))
+values[2] = -values[2]
 if not all(math.isfinite(value) for value in values) or values[0] < 0 or values[2] <= 0:
     raise SystemExit("fitted optimizer values are not a valid positive planet")
 for value in values:
@@ -543,6 +578,7 @@ else
             "${p4reduce_bin}"
             --config "${base_config}"
             --input.imSize 256
+            --p4.modeFractions "${mode_fraction}"
             --planet.sep "${fitted_sep}"
             --planet.PA "${fitted_pa}"
             --planet.contrast "${fitted_contrast}"
@@ -562,10 +598,10 @@ else
             --showTiming=true
         )
         run_timed "${signal_free_case}" "${signal_free_command[@]}"
-        dense_complete "${signal_free_case}" || {
+        if [[ "${dry_run}" == false ]] && ! dense_complete "${signal_free_case}"; then
             printf 'Signal-free oracle did not publish a completed dense response manifest.\n' >&2
             exit 1
-        }
+        fi
     fi
 fi
 
@@ -573,7 +609,7 @@ oracle_fit="${experiment_dir}/signal_free_fit"
 if fit_complete "${oracle_fit}"; then
     printf '\n[signal_free_fit] completed fit exists; skipping.\n'
 else
-    [[ ! -e "${oracle_fit}" ]] || {
+    [[ ! -e "${oracle_fit}/run.log" && ! -e "${oracle_fit}/summary.json" ]] || {
         printf 'Incomplete signal-free-fit directory exists; refusing to overwrite: %s\n' "${oracle_fit}" >&2
         exit 1
     }
@@ -592,6 +628,11 @@ else
         --lambda-d "${lambda_d}"
     )
     run_timed "${oracle_fit}" "${oracle_fit_command[@]}"
+fi
+
+if [[ "${dry_run}" == true ]]; then
+    printf '\nComparison requires completed fit products and is omitted in dry-run mode.\n'
+    exit 0
 fi
 
 python3 "${script_dir}/compare_p4_matched_response.py" \

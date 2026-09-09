@@ -384,6 +384,13 @@ and performs the bounded quadratic peak fit. `compare_p4_matched_response.py` wr
 comparison. The curvature errors are explicitly diagnostics rather than calibrated replacements for the optimizer's
 delete-one-time-block jackknife.
 
+The driver treats a converged, dense-agreeing exact point fit as sufficient for the response validation even when an
+optional jackknife is incomplete. It obtains the point estimate from `p4Negative_summary.yaml`, because
+`p4Negative_best.conf` is intentionally published only after every requested uncertainty refit succeeds. An
+incomplete jackknife is retained in the comparison provenance but does not produce uncertainty estimates. Fresh
+experiments disable the jackknife by default and restrict every new P4 reduction to the selected mode fraction; set
+`OPTIMIZER_UNCERTAINTY_BLOCKS` explicitly when a separate uncertainty run is wanted.
+
 The driver explicitly sets `input.imSize=256`. Normal P4 automatic sizing calculates the response and filtered
 products on the full 256-by-256 in-memory image before cropping the persisted ordinary `finim` to the search-region
 size. Keeping the explicit input size prevents the validation products from mixing those two grids. Completed stages
@@ -399,9 +406,22 @@ OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_p4_matched_response_validation
   > p4_matched_response_driver.log 2>&1 &
 ```
 
-The canonical eight-block exact-fit jackknife is enabled by default and dominates the expected run time. Set
-`OPTIMIZER_UNCERTAINTY_BLOCKS=0` for a point-estimate-only first pass, or supply an existing completed optimizer with
-`OPTIMIZER_PRODUCTS_DIR`.
+The 2026-09-07 run in `working/roc/p4_matched_response_20260907T225744Z` measured 232 target-aware responses and
+completed in 258 seconds, versus 942 seconds for the comparable dense response: a 3.65-fold wall-time speedup. Its
+response-backed position was 0.0500 pixels from the exact negative fit, but its contrast was only 0.2451 times the
+exact result. The exact point fit converged; five of eight optional jackknife refits converged, so the old driver
+stopped before the dense signal-free stage. Resume that run without repeating its sparse response or exact fit with:
+
+```bash
+EXPERIMENT_DIR=working/roc/p4_matched_response_20260907T225744Z \
+  OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_p4_matched_response_validation.sh \
+  > p4_matched_response_resume.log 2>&1 &
+```
+
+The resumed dense response uses only the selected `0.15` mode. It determines whether the factor-of-four photometric
+discrepancy is due to response contamination/nonlinearity: recovery toward the exact contrast implicates the
+original response, while another low amplitude points next to the mean-response versus sigma-clipped-science
+combination or to a matched-filter/optimizer merit-domain difference.
 
 ## Proposed configuration and products
 

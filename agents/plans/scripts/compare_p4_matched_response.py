@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import configparser
 import csv
 import json
 import math
@@ -24,29 +23,49 @@ def read_response_fit(path: Path) -> dict[str, object]:
 
 
 def read_optimizer_fit(products: Path) -> dict[str, object]:
-    """Read the exact optimizer point estimate and optional jackknife samples."""
-    candidates = sorted(products.glob("p4Negative*_best.conf"))
-    complete_candidates = [
-        candidate
-        for candidate in candidates
-        if (products / f"{candidate.name[:-len('best.conf')]}summary.yaml").is_file()
-    ]
-    if len(complete_candidates) != 1:
-        raise RuntimeError(f"incomplete exact optimizer products: {products}")
-    best_path = complete_candidates[0]
-    prefix = best_path.name[: -len("best.conf")]
-    summary_path = products / f"{prefix}summary.yaml"
+    """Read a converged exact point estimate and its optional complete jackknife."""
+    candidates = sorted(products.glob("p4Negative*_summary.yaml"))
+    if len(candidates) != 1:
+        raise RuntimeError(f"expected one exact optimizer summary: {products}")
+    summary_path = candidates[0]
+    prefix = summary_path.name[: -len("summary.yaml")]
     jackknife_path = products / f"{prefix}jackknife.csv"
-    configuration = configparser.ConfigParser()
-    configuration.read(best_path)
-    separation = configuration.getfloat("fake", "sep")
-    position_angle = configuration.getfloat("fake", "PA") % 360
-    signed_contrast = configuration.getfloat("fake", "contrast")
-    if not all(math.isfinite(value) for value in (separation, position_angle, signed_contrast)):
-        raise RuntimeError(f"exact optimizer best configuration is non-finite: {best_path}")
-
     summary_text = summary_path.read_text(encoding="utf-8")
     status_match = re.search(r'^  status: "([^"]+)"$', summary_text, flags=re.MULTILINE)
+    converged_match = re.search(r"^  converged: (true|false)$", summary_text, flags=re.MULTILINE)
+    dense_match = re.search(r"^  denseAgreement: (true|false)$", summary_text, flags=re.MULTILINE)
+    fitted_match = re.search(
+        r"^  fitted:\n(?P<body>(?:    [^\n]*\n)+)", summary_text, flags=re.MULTILINE
+    )
+    if (
+        status_match is None
+        or status_match.group(1) != "converged"
+        or converged_match is None
+        or converged_match.group(1) != "true"
+        or dense_match is None
+        or dense_match.group(1) != "true"
+        or fitted_match is None
+    ):
+        raise RuntimeError(f"exact optimizer point fit did not converge: {summary_path}")
+
+    fitted_values: dict[str, float] = {}
+    for key in ("separation", "positionAngle", "contrast"):
+        match = re.search(
+            rf"^    {key}: ([+\-0-9.eE]+)$", fitted_match.group("body"), flags=re.MULTILINE
+        )
+        if match is None:
+            raise RuntimeError(f"exact optimizer summary lacks fitted {key}: {summary_path}")
+        fitted_values[key] = float(match.group(1))
+    separation = fitted_values["separation"]
+    position_angle = fitted_values["positionAngle"] % 360
+    signed_contrast = fitted_values["contrast"]
+    if (
+        not all(math.isfinite(value) for value in (separation, position_angle, signed_contrast))
+        or separation < 0
+        or signed_contrast >= 0
+    ):
+        raise RuntimeError(f"exact optimizer point estimate is invalid: {summary_path}")
+
     evaluation_match = re.search(r"^  evaluationCount: ([0-9]+)$", summary_text, flags=re.MULTILINE)
     elapsed_match = re.search(
         r"^  evaluationElapsedSeconds: ([+\-0-9.eE]+)$", summary_text, flags=re.MULTILINE
@@ -61,27 +80,58 @@ def read_optimizer_fit(products: Path) -> dict[str, object]:
         "evaluation_elapsed_seconds": float(elapsed_match.group(1)) if elapsed_match else math.nan,
     }
 
-    if jackknife_path.is_file():
-        with jackknife_path.open(encoding="utf-8", newline="") as stream:
-            samples = [row for row in csv.DictReader(stream) if row.get("converged") == "1"]
-        if len(samples) >= 2:
+    jackknife_match = re.search(
+        r"^  jackknife:\n(?P<body>(?:    [^\n]*(?:\n|$))+)", summary_text, flags=re.MULTILINE
+    )
+    if jackknife_match is not None:
+        jackknife_body = jackknife_match.group("body")
+        requested_match = re.search(r"^    requestedBlocks: ([0-9]+)$", jackknife_body, flags=re.MULTILINE)
+        complete_match = re.search(r"^    complete: (true|false)$", jackknife_body, flags=re.MULTILINE)
+        jackknife_status_match = re.search(r'^    status: "([^"]+)"$', jackknife_body, flags=re.MULTILINE)
+        requested = int(requested_match.group(1)) if requested_match else 0
+        complete = complete_match is not None and complete_match.group(1) == "true"
+        jackknife: dict[str, object] = {
+            "requested_blocks": requested,
+            "complete": complete,
+            "status": jackknife_status_match.group(1) if jackknife_status_match else "unknown",
+            "sample_count": 0,
+            "converged_sample_count": 0,
+        }
+        samples: list[dict[str, str]] = []
+        converged_samples: list[dict[str, str]] = []
+        if jackknife_path.is_file():
+            with jackknife_path.open(encoding="utf-8", newline="") as stream:
+                samples = list(csv.DictReader(stream))
+            converged_samples = [sample for sample in samples if sample.get("converged") == "1"]
+        jackknife["sample_count"] = len(samples)
+        jackknife["converged_sample_count"] = len(converged_samples)
+
+        if complete:
+            if requested < 2 or len(samples) != requested or len(converged_samples) != requested:
+                raise RuntimeError(f"completed optimizer jackknife table is inconsistent: {jackknife_path}")
             values = {
-                name: np.asarray([float(sample[name]) for sample in samples], dtype=np.float64)
+                name: np.asarray([float(sample[name]) for sample in converged_samples], dtype=np.float64)
                 for name in ("row_delta", "column_delta", "separation", "position_angle", "contrast")
             }
-            count = len(samples)
+            angle_reference = position_angle
+            values["position_angle"] = angle_reference + (
+                values["position_angle"] - angle_reference + 180
+            ) % 360 - 180
+            count = len(converged_samples)
             standard_error = {
                 name: float(math.sqrt((count - 1) / count * np.sum((data - np.mean(data)) ** 2)))
                 for name, data in values.items()
             }
-            result["jackknife"] = {
-                "sample_count": count,
-                "row_standard_error": standard_error["row_delta"],
-                "column_standard_error": standard_error["column_delta"],
-                "separation_standard_error": standard_error["separation"],
-                "position_angle_standard_error": standard_error["position_angle"],
-                "contrast_standard_error": standard_error["contrast"],
-            }
+            jackknife.update(
+                {
+                    "row_standard_error": standard_error["row_delta"],
+                    "column_standard_error": standard_error["column_delta"],
+                    "separation_standard_error": standard_error["separation"],
+                    "position_angle_standard_error": standard_error["position_angle"],
+                    "contrast_standard_error": standard_error["contrast"],
+                }
+            )
+        result["jackknife"] = jackknife
     return result
 
 
@@ -116,6 +166,17 @@ def optimizer_method(summary: dict[str, object]) -> dict[str, object]:
     jackknife = summary.get("jackknife", {})
     if not isinstance(jackknife, dict):
         raise RuntimeError("exact optimizer jackknife summary is not an object")
+    requested_blocks = int(jackknife.get("requested_blocks", 0))
+    jackknife_complete = bool(jackknife.get("complete", False))
+    if jackknife_complete:
+        uncertainty_method = "delete-one-time-block jackknife"
+    elif requested_blocks:
+        uncertainty_method = (
+            f"incomplete delete-one-time-block jackknife "
+            f"({int(jackknife.get('converged_sample_count', 0))}/{requested_blocks} converged)"
+        )
+    else:
+        uncertainty_method = "disabled"
     return {
         "method": "exact_negative_optimizer",
         "status": str(summary["status"]),
@@ -128,7 +189,7 @@ def optimizer_method(summary: dict[str, object]) -> dict[str, object]:
         "separation_standard_error": float(jackknife.get("separation_standard_error", math.nan)),
         "position_angle_standard_error": float(jackknife.get("position_angle_standard_error", math.nan)),
         "contrast_standard_error": float(jackknife.get("contrast_standard_error", math.nan)),
-        "uncertainty_method": "delete-one-time-block jackknife" if jackknife else "disabled",
+        "uncertainty_method": uncertainty_method,
         "spatial_model": "finite-amplitude local P4",
         "composition": "refitted each evaluation",
     }
@@ -225,6 +286,7 @@ def main() -> int:
                     "methods": methods,
                     "optimizer_evaluation_count": optimizer_summary["evaluation_count"],
                     "optimizer_evaluation_elapsed_seconds": optimizer_summary["evaluation_elapsed_seconds"],
+                    "optimizer_jackknife": optimizer_summary.get("jackknife"),
                 }
             ),
             stream,
@@ -242,8 +304,22 @@ def main() -> int:
             "The sparse and dense signal-free response fields were applied to the same original science image. "
             "The exact negative optimizer refits finite-amplitude P4 for every trial and is the point-estimate "
             "oracle. Response-fit position errors are local likelihood-curvature diagnostics; the exact optimizer "
-            "uncertainties are delete-one-time-block jackknife estimates when enabled.\n\n"
+            "uncertainties are reported only when every requested delete-one-time-block jackknife refit "
+            "converged.\n\n"
         )
+        jackknife = optimizer_summary.get("jackknife", {})
+        if isinstance(jackknife, dict) and int(jackknife.get("requested_blocks", 0)):
+            requested = int(jackknife["requested_blocks"])
+            converged = int(jackknife.get("converged_sample_count", 0))
+            if bool(jackknife.get("complete", False)):
+                stream.write(f"Exact-optimizer jackknife: complete ({converged}/{requested} blocks).\n\n")
+            else:
+                stream.write(
+                    f"Exact-optimizer jackknife: incomplete ({converged}/{requested} blocks converged); "
+                    "no jackknife uncertainty is reported.\n\n"
+                )
+        else:
+            stream.write("Exact-optimizer jackknife: disabled for this point-estimate validation.\n\n")
         stream.write(
             "| Method | Status | Separation | PA | Contrast | SNR | Position delta (pix) | Contrast / exact | "
             "sigma contrast | sigma row | sigma column |\n"
