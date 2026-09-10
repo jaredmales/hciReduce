@@ -423,6 +423,31 @@ discrepancy is due to response contamination/nonlinearity: recovery toward the e
 original response, while another low amplitude points next to the mean-response versus sigma-clipped-science
 combination or to a matched-filter/optimizer merit-domain difference.
 
+The completed signal-free stage recovered a contrast of `0.0011580204`, or 0.2431 times the exact negative-fit
+contrast of `0.0047639259`; the original sparse-response result was `0.0011675947`. At the exact fitted position, the
+dense response projects the original-minus-signal-free finite reduction difference to `0.0010035794`, or 0.2107 of
+the subtracted contrast. The old planet-bearing dense response and new signal-free dense response have a cosine
+similarity of 0.99985 and differ in scale by only 0.4% near the planet. This rules out both sparse sampling and planet
+contamination as the source of the factor-of-four photometric discrepancy. The remaining distinction is between the
+frozen analytic response, which is mean-combined, and an end-to-end refitted P4 reduction whose final science image
+is sigma-clipped.
+
+The maintained follow-up driver is `agents/plans/scripts/run_p4_mean_combine_diagnostic.sh`. It runs the original and
+exact-planet-subtracted data through full P4 with `combine.method=mean` and only the selected `0.15` mode. It does not
+repeat the optimizer or response calculation: the dense signal-free response is already mean-combined and can be
+reused. `compare_p4_mean_combine.py` projects both the existing sigma-clipped finite difference and the new
+mean-combined finite difference onto that same response. Run it from the repository root on ROC with:
+
+```bash
+OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_p4_mean_combine_diagnostic.sh \
+  > p4_mean_combine_driver.log 2>&1 &
+```
+
+Recovery of the mean-combined finite response toward `0.0047639259` would identify the science sigma-clipping mask
+as the missing calibration term. A result that remains near the current 0.2107 ratio would instead show that
+refitting the P4 regression when the planet is added or removed dominates the response mismatch. An intermediate
+ratio would indicate contributions from both effects.
+
 ## Proposed configuration and products
 
 Use opt-in P4-specific configuration so all existing controls and outputs remain unchanged when no PSF template is
