@@ -71,8 +71,9 @@ enum class P4PCATReferenceRegion : std::uint8_t
 /** \ingroup programming_library */
 enum class P4PSFSamplingMode : std::uint8_t
 {
-    skyExact,     ///< Reconstruct each sampled sky response through every target frame before radial averaging.
-    detectorLocal ///< Approximate each sampled source response with one detector-local frozen operator.
+    skyExact,       ///< Reconstruct each sampled sky response through every target frame before radial averaging.
+    detectorLocal,  ///< Approximate each sampled source response with one detector-local frozen operator.
+    refitDifference ///< Measure each sampled sky response with paired finite-amplitude P4 refits.
 };
 
 /** \cond P4Reduction_test_harness */
@@ -285,22 +286,24 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     std::vector<realT> m_psfSampleRadii; ///< Optional discrete radii for azimuthally averaged PSF measurements.
 
-    int m_psfRadiiPerRegion{ 0 }; ///< Interior radial nodes generated in every P4 region; zero uses explicit radii.
+    int m_psfRadiiPerRegion{ 0 };   ///< Interior radial nodes generated in every P4 region; zero uses explicit radii.
 
-    int m_psfSamplesPerRadius{ 0 };      ///< Uniform angular measurement count at each configured PSF sample radius.
+    int m_psfSamplesPerRadius{ 0 }; ///< Uniform angular measurement count at each configured PSF sample radius.
 
-    realT m_psfSampleArcStep{ 0 }; ///< Maximum azimuthal arc spacing in pixels; zero selects the fixed-count control.
+    realT m_psfSampleArcStep{ 0 };  ///< Maximum azimuthal arc spacing in pixels; zero selects the fixed-count control.
 
     P4PSFSamplingMode m_psfSamplingMode{ P4PSFSamplingMode::skyExact };
     ///< Operator used to measure each configured sparse radial response.
 
-    realT m_psfSampleAvoidRadius{ 0 };  ///< Detector-pixel radius kept clear of configured known-planet trajectories.
+    realT m_psfSampleAvoidRadius{ 0 }; ///< Detector-pixel radius kept clear of configured known-planet trajectories.
 
-    bool m_outputPSFModels{ false };    ///< Whether to reconstruct and write compact final-frame PSF fields.
+    realT m_psfRefitContrast{ 0 };   ///< Positive half-amplitude used by paired refit-difference response measurements.
 
-    bool m_psfFilter{ false };          ///< Whether to apply the spatially variable normalized PSF filter.
+    bool m_outputPSFModels{ false }; ///< Whether to reconstruct and write compact final-frame PSF fields.
 
-    realT m_psfFilterMinGoodFract{ 1 }; ///< Minimum usable local-stamp fraction required by PSF filtering.
+    bool m_psfFilter{ false };       ///< Whether to apply the spatially variable normalized PSF filter.
+
+    realT m_psfFilterMinGoodFract{ 1 };        ///< Minimum usable local-stamp fraction required by PSF filtering.
 
     std::string m_psfOutputPrefix{ "p4PSF_" }; ///< Prefix for compact products in the final image's output directory.
 
@@ -351,6 +354,9 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     std::size_t m_psfSampleExcludedCount{ 0 };
     ///< Candidate detector search pixels rejected near configured known-planet trajectories.
+
+    std::size_t m_psfRefitDifferenceFitCount{ 0 };
+    ///< Total positive-plus-negative detector regressions used by refit-difference response measurements.
 
     std::vector<std::size_t> m_localPSFComponentCounts;
     ///< Same-image plus realized temporal response-component count for every annulus.
@@ -700,10 +706,25 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     void processPSFProducts(
         const std::vector<pixelGridT> &grids, /**< [in] retained detector-frame annulus geometry */
         const P4PSFModel &psfModel,           /**< [in] prepared full-support source template */
+        const imageT &psfTemplate,            /**< [in] finite centered post-preprocessing source template */
         const std::vector<P4TargetExclusions> &regionExclusions,
         /**< [in] optional target-specific deleted rows by annulus */
         const std::string &finalImagePath, /**< [in] resolved path supplying filter naming and provenance */
         const fitsHeaderT &finalHeader /**< [in] ADI and P4 cards mirrored from the ordinary final image */ );
+
+    /// Measure sparse source-centered responses with paired finite-amplitude local P4 refits.
+    void calculateRefitDifferenceSamples(
+        std::vector<std::vector<imageT>> &responses, /**< [out] output-mode by measurement response stamps */
+        std::vector<std::vector<psfValidityT>> &validities,
+        /**< [out] output-mode by measurement response validity */
+        const std::vector<pixelGridT> &grids, /**< [in] retained detector-frame annulus geometry */
+        const imageT &psfTemplate,            /**< [in] finite centered post-preprocessing source template */
+        const std::vector<P4TargetExclusions> &regionExclusions,
+        /**< [in] empty target-exclusion state by annulus */
+        const std::vector<RadialPSFSample> &samples, /**< [in] selected uncontaminated sky measurements */
+        const std::vector<double> &derotationAngles, /**< [in] one finite radians angle per target frame */
+        HCI::combine responseCombineMethod,          /**< [in] effective response combination method */
+        realT responseSigmaThreshold /**< [in] effective response sigma threshold */ );
 
     /// Calculate one memory-bounded batch of target-held-out frozen PSF responses.
     void calculateHeldOutPSFBatch(

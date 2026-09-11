@@ -621,6 +621,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_psfSampleArcStep == 0 );
     REQUIRE( defaults.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::skyExact );
     REQUIRE( defaults.m_psfSampleAvoidRadius == 0 );
+    REQUIRE( defaults.m_psfRefitContrast == 0 );
     REQUIRE_FALSE( defaults.m_outputPSFModels );
     REQUIRE_FALSE( defaults.m_psfFilter );
     REQUIRE( defaults.m_psfFilterMinGoodFract == 1 );
@@ -647,6 +648,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "p4.psfSampleArcStep" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "p4.psfSamplingMode" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "p4.psfSampleAvoidRadius" ).helpType == "float" );
+    REQUIRE( registered.m_targets.at( "p4.psfRefitContrast" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::Optional );
     REQUIRE( registered.m_targets.at( "p4.psfFilter" ).clType == mx::app::argType::Optional );
     REQUIRE( registered.m_targets.at( "p4.psfFilterMinGoodFract" ).helpType == "float" );
@@ -730,6 +732,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
                          "[p4]\npsfFile=template.fits\npsfStampSize=11\n"
                          "psfSampleRadii=6,10\npsfSamplesPerRadius=8\n"
                          "psfSamplingMode=detectorLocal\npsfSampleAvoidRadius=2.5\n"
+                         "psfRefitContrast=0.004\n"
                          "outputPSFModels=true\npsfFilter=true\npsfFilterMinGoodFract=0.75\npsfOutputPrefix=field_\n" );
     REQUIRE( psfConfiguration.m_psfFile == "template.fits" );
     REQUIRE( psfConfiguration.m_psfStampSize == 11 );
@@ -738,6 +741,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( psfConfiguration.m_psfSampleArcStep == 0 );
     REQUIRE( psfConfiguration.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::detectorLocal );
     REQUIRE( psfConfiguration.m_psfSampleAvoidRadius == Approx( 2.5 ) );
+    REQUIRE( psfConfiguration.m_psfRefitContrast == Approx( 0.004 ) );
     REQUIRE( psfConfiguration.m_outputPSFModels );
     REQUIRE( psfConfiguration.m_psfFilter );
     REQUIRE( psfConfiguration.m_psfFilterMinGoodFract == Approx( 0.75 ) );
@@ -757,6 +761,13 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( regionPSFConfiguration.m_psfSampleRadii.empty() );
     REQUIRE( regionPSFConfiguration.m_psfRadiiPerRegion == 2 );
     REQUIRE( regionPSFConfiguration.m_psfSamplesPerRadius == 4 );
+
+    reductionHarness refitPSFConfiguration;
+    readReductionConfig( refitPSFConfiguration,
+                         directory.file( "refit-psf.conf" ),
+                         "[p4]\npsfSamplingMode=refitDifference\npsfRefitContrast=0.002\n" );
+    REQUIRE( refitPSFConfiguration.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::refitDifference );
+    REQUIRE( refitPSFConfiguration.m_psfRefitContrast == Approx( 0.002 ) );
 
     reductionHarness invalidPolicy;
     REQUIRE_THROWS( readReductionConfig( invalidPolicy,
@@ -2505,6 +2516,149 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     REQUIRE( responseModels.cube().isFinite().any() );
 }
 
+/// Verify sparse paired refits reproduce the central difference of two local finite-amplitude reductions.
+/** This exercises mx::improc::P4Reduction::reduce() and mx::improc::P4Reduction::evaluateLocal() through the
+ * refit-difference PSF measurement path. The response retained at an unrotated radial node must equal the
+ * positive-minus-negative local residual divided by twice the configured half-amplitude.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 refit-difference PSF sampling matches paired local reductions",
+           "[P4Reduction][PSF][sparse][refitDifference][integration][equivalence]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    constexpr int imageCount = 7;
+    constexpr int rows = 31;
+    constexpr int columns = 31;
+    constexpr int stampSize = 3;
+    constexpr float sampleRadius = 6;
+    constexpr float halfAmplitude = 0.2F;
+
+    reductionT::imageT psfTemplate( 9, 9 );
+    for( int column = 0; column < psfTemplate.cols(); ++column )
+    {
+        for( int row = 0; row < psfTemplate.rows(); ++row )
+        {
+            const double deltaRow = static_cast<double>( row ) - 4.0;
+            const double deltaColumn = static_cast<double>( column ) - 4.0;
+            psfTemplate( row, column ) =
+                static_cast<float>( std::exp( -0.24 * deltaRow * deltaRow - 0.15 * deltaColumn * deltaColumn ) *
+                                    ( 1 + 0.04 * deltaRow - 0.025 * deltaColumn ) );
+        }
+    }
+    const std::filesystem::path psfPath = directory.file( "refit-difference-template.fits" );
+    mx::fits::fitsFile<float, mx::verbose::vv> fits;
+    REQUIRE( fits.write( psfPath.string(), psfTemplate ) == mx::error_t::noerror );
+
+    reductionHarness reduction;
+    prepareReduction( reduction, imageCount, rows, columns );
+    reduction.m_minRadius = { 5 };
+    reduction.m_maxRadius = { 8 };
+    reduction.m_memoryFraction = 0;
+    reduction.m_numberImages = 0;
+    reduction.m_derotF.m_angles = { -18, -12, -6, 0, 6, 12, 18 };
+    reduction.m_doDerotate = true;
+    reduction.m_skipPreProcess = true;
+    reduction.m_psfFile = psfPath.string();
+    reduction.m_psfStampSize = stampSize;
+    reduction.m_psfSampleRadii = { sampleRadius };
+    reduction.m_psfSamplesPerRadius = 1;
+    reduction.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::refitDifference;
+    reduction.m_psfRefitContrast = halfAmplitude;
+    reduction.m_outputPSFModels = true;
+    reduction.m_psfOutputPrefix = "difference_";
+    reduction.m_outputDir = directory.file( "products" ).string();
+    reduction.m_finimName = "science.fits";
+    reduction.m_exactFinimName = true;
+    reduction.m_doWriteFinim = true;
+    reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+    for( int image = 0; image < imageCount; ++image )
+    {
+        const double phase = static_cast<double>( image + 1 );
+        for( int column = 0; column < columns; ++column )
+        {
+            for( int row = 0; row < rows; ++row )
+            {
+                reduction.m_tgtIms.image( image )( row, column ) =
+                    static_cast<float>( std::sin( 0.061 * phase * static_cast<double>( row + 2 ) ) +
+                                        std::cos( 0.047 * ( phase + 0.25 ) * static_cast<double>( column + 3 ) ) +
+                                        0.0013 * phase * static_cast<double>( row * column ) );
+            }
+        }
+    }
+    REQUIRE( reduction.reduce() == 0 );
+    REQUIRE( reduction.m_psfMeasurementSamples.size() == 1 );
+    REQUIRE( reduction.m_psfRefitDifferenceFitCount > 0 );
+    const mx::improc::RadialPSFSample sample = reduction.m_psfMeasurementSamples.front();
+    REQUIRE( sample.radius == Approx( sampleRadius ) );
+    REQUIRE( sample.angle == Approx( 0 ).margin( 1e-12 ) );
+
+    const std::filesystem::path productDirectory = directory.file( "products/science_outputs" );
+    mx::improc::eigenCube<float> responseModels;
+    reductionT::fitsHeaderT responseHeader;
+    REQUIRE( fits.read( responseModels,
+                        responseHeader,
+                        ( productDirectory / "difference_model_0000.fits" ).string() ) == mx::error_t::noerror );
+    reductionT::imageT responseValidity;
+    reductionT::fitsHeaderT validityHeader;
+    REQUIRE( fits.read( responseValidity,
+                        validityHeader,
+                        ( productDirectory / "difference_validity_0000.fits" ).string() ) == mx::error_t::noerror );
+    REQUIRE( responseHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 7 );
+    REQUIRE( responseHeader["P4 PSF RESPONSE"].String().starts_with( "REFIT_CENTRAL_DIFFERENCE" ) );
+    REQUIRE( responseHeader["P4 PSF COEFFICIENT SCOPE"].String().starts_with( "PAIRED_REFIT" ) );
+    REQUIRE( responseHeader["P4 PSF REFIT CONTRAST"].value<float>() == Approx( halfAmplitude ) );
+    REQUIRE( responseHeader["P4 PSF REFIT FIT COUNT"].String().starts_with(
+        std::to_string( reduction.m_psfRefitDifferenceFitCount ) ) );
+    REQUIRE( responseHeader["P4 LOCAL PSF RESPONSE SEARCH COUNT"].value<int>() == 0 );
+    REQUIRE( sample.sourceIndex < static_cast<std::size_t>( responseModels.planes() ) );
+    REQUIRE( sample.sourceIndex < static_cast<std::size_t>( responseValidity.rows() ) );
+    REQUIRE( responseValidity( static_cast<Eigen::Index>( sample.sourceIndex ), 0 ) != 0 );
+
+    reduction.m_psfFile.clear();
+    reduction.m_psfSampleRadii.clear();
+    reduction.m_psfSamplesPerRadius = 0;
+    reduction.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::skyExact;
+    reduction.m_psfRefitContrast = 0;
+    reduction.m_outputPSFModels = false;
+    reduction.m_localStampSize = stampSize;
+    reduction.m_fakeMethod = mx::improc::HCI::fake::single;
+    reduction.m_fakeFileName = psfPath.string();
+    reduction.m_fakeSep = { static_cast<float>( sample.radius ) };
+    reduction.m_fakePA = { static_cast<float>( -sample.angle * 180.0 / std::numbers::pi ) };
+    reduction.m_fakeContrast = { halfAmplitude };
+    reduction.m_doWriteFinim = false;
+    const mx::improc::P4LocalEvaluation<float> positive =
+        reduction.evaluateLocal( { sample.radius, -sample.angle * 180.0 / std::numbers::pi, halfAmplitude } );
+    const mx::improc::P4LocalEvaluation<float> negative =
+        reduction.evaluateLocal( { sample.radius, -sample.angle * 180.0 / std::numbers::pi, -halfAmplitude } );
+    REQUIRE( positive.originRow == negative.originRow );
+    REQUIRE( positive.originColumn == negative.originColumn );
+
+    std::size_t compared{ 0 };
+    for( int column = 0; column < stampSize; ++column )
+    {
+        for( int row = 0; row < stampSize; ++row )
+        {
+            const bool expectedValid =
+                positive.validity.image( 0 )( row, column ) != 0 && negative.validity.image( 0 )( row, column ) != 0;
+            const bool measuredValid =
+                mx::math::isFinite( responseModels.image( static_cast<int>( sample.sourceIndex ) )( row, column ) );
+            REQUIRE_FALSE( ( measuredValid && !expectedValid ) );
+            if( measuredValid )
+            {
+                const float expected =
+                    ( positive.residual.image( 0 )( row, column ) - negative.residual.image( 0 )( row, column ) ) /
+                    ( 2 * halfAmplitude );
+                REQUIRE( responseModels.image( static_cast<int>( sample.sourceIndex ) )( row, column ) ==
+                         Approx( expected ).margin( 2e-5 ) );
+                ++compared;
+            }
+        }
+    }
+    REQUIRE( compared > 0 );
+}
+
 /// Verify target-held-out frozen PSF products and filtering agree between both exact exclusion solvers.
 /** This exercises mx::improc::P4Reduction::reduce() through the target-held-out frozen-probe path,
  * mx::improc::P4PCA::calculateHeldOutProbe(), mx::improc::P4PCA::calculateHeldOutProbeDowndated(), and
@@ -3755,6 +3909,58 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         detectorWithTemporalImages.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::detectorLocal;
         detectorWithTemporalImages.m_numberImages = 1;
         REQUIRE_THROWS_WITH( detectorWithTemporalImages.reduce(),
+                             Catch::Matchers::Contains( "initially requires p4.numberImages=0" ) );
+
+        reductionHarness negativeRefitContrast;
+        prepareReduction( negativeRefitContrast );
+        negativeRefitContrast.m_psfRefitContrast = -1;
+        REQUIRE_THROWS_WITH( negativeRefitContrast.reduce(),
+                             Catch::Matchers::Contains( "must be finite and nonnegative" ) );
+
+        reductionHarness refitWithoutSparseRadii;
+        prepareReduction( refitWithoutSparseRadii );
+        refitWithoutSparseRadii.m_psfFile = "unused.fits";
+        refitWithoutSparseRadii.m_psfStampSize = 3;
+        refitWithoutSparseRadii.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::refitDifference;
+        refitWithoutSparseRadii.m_psfRefitContrast = 0.1F;
+        refitWithoutSparseRadii.m_outputPSFModels = true;
+        refitWithoutSparseRadii.m_combineMethod = mx::improc::HCI::combine::mean;
+        REQUIRE_THROWS_WITH( refitWithoutSparseRadii.reduce(), Catch::Matchers::Contains( "requires sparse radial" ) );
+
+        reductionHarness refitWithoutContrast;
+        prepareReduction( refitWithoutContrast );
+        refitWithoutContrast.m_psfFile = "unused.fits";
+        refitWithoutContrast.m_psfStampSize = 3;
+        refitWithoutContrast.m_psfSampleRadii = { 5.5F };
+        refitWithoutContrast.m_psfSamplesPerRadius = 4;
+        refitWithoutContrast.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::refitDifference;
+        refitWithoutContrast.m_outputPSFModels = true;
+        refitWithoutContrast.m_combineMethod = mx::improc::HCI::combine::mean;
+        REQUIRE_THROWS_WITH( refitWithoutContrast.reduce(), Catch::Matchers::Contains( "requires positive" ) );
+
+        reductionHarness refitWithoutConsumer;
+        prepareReduction( refitWithoutConsumer );
+        refitWithoutConsumer.m_psfFile = "unused.fits";
+        refitWithoutConsumer.m_psfStampSize = 3;
+        refitWithoutConsumer.m_psfSampleRadii = { 5.5F };
+        refitWithoutConsumer.m_psfSamplesPerRadius = 4;
+        refitWithoutConsumer.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::refitDifference;
+        refitWithoutConsumer.m_psfRefitContrast = 0.1F;
+        REQUIRE_THROWS_WITH( refitWithoutConsumer.reduce(),
+                             Catch::Matchers::Contains( "requires PSF model output or filtering" ) );
+
+        reductionHarness refitWithTemporalImages;
+        prepareReduction( refitWithTemporalImages );
+        refitWithTemporalImages.m_psfFile = "unused.fits";
+        refitWithTemporalImages.m_psfStampSize = 3;
+        refitWithTemporalImages.m_psfSampleRadii = { 5.5F };
+        refitWithTemporalImages.m_psfSamplesPerRadius = 4;
+        refitWithTemporalImages.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::refitDifference;
+        refitWithTemporalImages.m_psfRefitContrast = 0.1F;
+        refitWithTemporalImages.m_outputPSFModels = true;
+        refitWithTemporalImages.m_combineMethod = mx::improc::HCI::combine::mean;
+        refitWithTemporalImages.m_numberImages = 1;
+        REQUIRE_THROWS_WITH( refitWithTemporalImages.reduce(),
                              Catch::Matchers::Contains( "initially requires p4.numberImages=0" ) );
     }
 

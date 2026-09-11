@@ -1,14 +1,15 @@
 /** \file p4_psf.dox
- * \brief User's guide for frozen-model P4 PSF responses and filtering.
+ * \brief User's guide for P4 PSF responses and filtering.
  * \author Jared R. Males
  */
 
 /** \addtogroup p4_psf_user_guide
  * @{
  *
- * Frozen-model PSF processing calculates the signed response of each fitted detector-frame P4 model to a configured
- * point-source template. It can persist a compact spatially variable response field and apply that field as a
- * normalized filter without changing the ordinary P4 science image.
+ * P4 PSF processing calculates the signed response to a configured point-source template. It can persist a compact
+ * spatially variable response field and apply that field as a normalized filter without changing the ordinary P4
+ * science image. The default path freezes the fitted coefficients; the opt-in refit-difference path measures the
+ * response after the coefficients adapt to paired finite-amplitude source injections.
  *
  * \section p4_psf_response Frozen signed response
  *
@@ -48,6 +49,36 @@
  * Its filtering role is specifically intended to avoid a negative-companion fit followed by a second zero-signal
  * fake-injection reduction merely to obtain a matched-filter template. Full fake injection and refitting remain
  * validation oracles for nonlinear throughput; they are not required inputs to the sparse filtering path.
+ *
+ * \section p4_psf_refit_difference Paired-refit response
+ *
+ * `p4.psfSamplingMode=refitDifference` measures the response missing from the frozen-coefficient approximation. Let
+ * \f$R(D)\f$ denote the complete local P4 reduction and final-frame combination applied to input cube \f$D\f$. At a
+ * selected source position \f$s\f$, the stored response is the central difference
+ *
+ * \f[
+ *   H_{\epsilon,s} = \frac{R(D + \epsilon F_s) - R(D - \epsilon F_s)}{2\epsilon}.
+ * \f]
+ *
+ * Both signs resample the source into the target and optimization-region predictors and independently refit the P4
+ * coefficients. The implementation evaluates only the detector regressions required by the requested source-
+ * centered response stamp, reconstructs and combines that stamp with the ordinary local-reduction geometry, and
+ * then feeds the result into the same angular averaging and region-isolated radial interpolation as other sparse
+ * measurements. The base science pass does not calculate a frozen response at the selected points, and the paired
+ * pass does not run or materialize two complete full-field reductions per sample.
+ *
+ * `p4.psfRefitContrast` supplies positive \f$\epsilon\f$ in the stored template's contrast units. A value near the
+ * expected companion contrast measures a finite-amplitude secant around the actual science data; decreasing it
+ * approaches a local derivative but may amplify floating-point cancellation. No normalization or mean subtraction
+ * is applied to the template before either signed injection. Schema-7 products record
+ * `REFIT_CENTRAL_DIFFERENCE`, `PAIRED_REFIT`, the half-amplitude, and the total positive-plus-negative detector-fit
+ * count.
+ *
+ * The initial implementation requires sparse radial sampling, detector-frame P4, `p4.numberImages=0`,
+ * `adi.excludeMethod=none`, and at least one of `p4.outputPSFModels` or `p4.psfFilter`. Active science `sigmaMean` is
+ * represented by the same unclipped response mean used for analytic responses. Median combination remains a
+ * finite-amplitude filtering approximation because an exact central difference of the median would require
+ * separately combining the two signed output stacks.
  *
  * Exact detector-local responses are retained at every owned search coordinate. Sparse shared-model runs retain
  * rank and geometry validity everywhere but calculate coefficient vectors and local responses only at detector
@@ -91,7 +122,14 @@
  * through the same unclipped analytic-response rule described above. Ordinary science residuals and rank/geometry
  * validity are still calculated at every owned search pixel.
  *
- * With positive `p4.psfSampleAvoidRadius` and configured `planet.*` metadata, detector-local candidates are rejected
+ * `p4.psfSamplingMode=refitDifference` uses the same sparse source positions but measures a complete source-centered
+ * stamp with the paired-refit operator above. The measured stamp already includes the different P4 regions receiving
+ * its elements, so the radial model is selected by source position instead of being recomposed element-by-element
+ * from target-pixel operators. This captures the coefficient change caused by a source while still approximating its
+ * azimuthal dependence by angular averaging and its radial dependence by interpolation.
+ *
+ * With positive `p4.psfSampleAvoidRadius` and configured `planet.*` metadata, detector-local and refit-difference
+ * candidates are rejected
  * if they lie within that distance of a known companion at any target-frame field angle. Selection then shifts in
  * angle to the nearest remaining coordinate in the same radial shell; it never substitutes a pixel at a materially
  * different radius. The response is still measured from the original science fit: no negative
@@ -108,7 +146,8 @@
  * endpoint. Sparse radial mode requires an odd response stamp. Exact sky sampling records product schema 3. Legacy
  * source-held global and region-aware detector-local products used schemas 4 and 5. Target-pixel detector-local
  * composition records schema 6 and `TARGET_RADIAL_LINEAR` or `REGION_TARGET_RADIAL_LINEAR`, plus an explicit
- * `TARGET_PIXEL` composition card.
+ * `TARGET_PIXEL` composition card. Paired-refit radial products use schema 7, `SOURCE_POSITION` composition, and
+ * `REFIT_CENTRAL_DIFFERENCE` response provenance.
  * Sparse products record the resolved radii, their region ownership, requested counts per radius, sampling mode,
  * realized distinct measurement count, and `HIERARCH P4 LOCAL PSF RESPONSE SEARCH COUNT`. P4 additionally records
  * the radial shell tolerance and the realized count and actual minimum/maximum detector radius at every resolved
@@ -155,8 +194,9 @@
  * | `--p4.psfRadiiPerRegion` | `p4.psfRadiiPerRegion=2` | `HIERARCH P4 PSF RADII PER REGION` | nonnegative integer, mutually exclusive with `psfSampleRadii` | `0` | Generates uniformly spaced interior radial nodes in every P4 search region. Sampling and interpolation remain inside each region. |
  * | `--p4.psfSamplesPerRadius` | `p4.psfSamplesPerRadius=8` | `HIERARCH P4 PSF SAMPLES PER RADIUS` | positive integer, mutually exclusive with `psfSampleArcStep` | `0` | Fixed number of uniformly spaced requested angles at every sparse sample radius. Nearest-pixel collisions are measured only once per radius. |
  * | `--p4.psfSampleArcStep` | `p4.psfSampleArcStep=3.6` | `HIERARCH P4 PSF SAMPLE ARC STEP` | positive real pixels, mutually exclusive with `psfSamplesPerRadius` | `0` | Maximum azimuthal arc spacing; resolves a radius-dependent angular count no smaller than one. |
- * | `--p4.psfSamplingMode` | `p4.psfSamplingMode=detectorLocal` | `HIERARCH P4 PSF SAMPLING MODE` | `skyExact` or `detectorLocal` | `skyExact` | `skyExact` propagates each sparse sky measurement through all frames. `detectorLocal` calculates only the sampled local operators and applies the documented spatially local filtering approximation. |
- * | `--p4.psfSampleAvoidRadius` | `p4.psfSampleAvoidRadius=5` | `HIERARCH P4 PSF SAMPLE AVOID RADIUS` | nonnegative real detector pixels | `0` | Reject detector-local candidates within this radius of any configured known-planet trajectory. Zero disables avoidance. |
+ * | `--p4.psfSamplingMode` | `p4.psfSamplingMode=refitDifference` | `HIERARCH P4 PSF SAMPLING MODE` | `skyExact`, `detectorLocal`, or `refitDifference` | `skyExact` | `skyExact` propagates each sparse frozen response through all frames. `detectorLocal` uses sampled frozen local operators. `refitDifference` uses paired finite-amplitude coefficient refits at each sparse source location. |
+ * | `--p4.psfSampleAvoidRadius` | `p4.psfSampleAvoidRadius=5` | `HIERARCH P4 PSF SAMPLE AVOID RADIUS` | nonnegative real detector pixels | `0` | Reject detector-local or refit-difference candidates within this radius of any configured known-planet trajectory. Zero disables avoidance. |
+ * | `--p4.psfRefitContrast` | `p4.psfRefitContrast=0.0048` | `HIERARCH P4 PSF REFIT CONTRAST` | positive finite contrast for `refitDifference`; otherwise nonnegative | `0` | Central-difference half-amplitude in stored-template units. Required only by `refitDifference`. |
  * | `--p4.outputPSFModels` | `p4.outputPSFModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `psfFile` and a final combination. |
  * | `--p4.psfFilter` | `p4.psfFilter=true` | `HIERARCH P4 PSF FILTER` | bool | `false` | Write signed normalized spatially variable filter products. Requires `psfFile`, an odd stamp, and a final combination; it does not require `outputPSFModels=true`. |
  * | `--p4.psfFilterMinGoodFract` | `p4.psfFilterMinGoodFract=0.8` | `HIERARCH P4 PSF FILTER MIN GOOD FRACTION` | real in `[0,1]` | `1` | Minimum fraction of the full stamp with valid PSF samples and finite in-bounds science samples. |
@@ -177,6 +217,16 @@
  * psfFilterMinGoodFract=0.8
  * \endcode
  *
+ * To measure the coefficient-adaptive response instead, change the sampling mode and set the finite-difference
+ * half-amplitude near the expected source contrast:
+ *
+ * \code{.ini}
+ * [p4]
+ * psfSamplingMode=refitDifference
+ * psfRefitContrast=0.0048
+ * numberImages=0
+ * \endcode
+ *
  * To calculate leave-one-out science and response products together, add:
  *
  * \code{.ini}
@@ -193,7 +243,10 @@
  * The template is sampled with zero exterior padding, while the retained local response expands as needed to
  * preserve odd/even sampling phase and arbitrary derotation angles. The P4 memory policy includes the local response,
  * prepared template, one output-mode field, coordinate/index maps, and bounded per-worker frame-stamp scratch.
- * Filtering additionally accounts for four full-frame output cubes. Under target exclusion, local response storage
+ * Filtering additionally accounts for four full-frame output cubes. Paired-refit measurement uses one reusable
+ * local regression workspace plus positive and negative result buffers per active sample worker, with storage
+ * proportional to the requested response-stamp geometry rather than two full output cubes. Under target exclusion,
+ * local response storage
  * also scales with target count. P4 selects a bounded output-mode batch from `p4.memoryFraction`; a smaller batch
  * repeats the immutable held-out fit for later modes, while a sufficiently large budget evaluates all modes in one
  * response pass. Response fitting and reconstruction independently lower their worker counts when needed and never
@@ -215,14 +268,16 @@
  *
  * Plane `s` in each model cube belongs to row `s` of the coordinate image. Individual unsupported stamp samples are
  * NaN even when the source center is valid. Exact per-pixel model-only sets use schema version 1; exact per-pixel
- * filtering sets use schema version 2; sparse exact-sky radial sets use schema version 3; sparse detector-local
- * radial sets use schema version 4. Every
- * product records its role, template identity/stage/normalization, `FROZEN_SIGNED` convention,
+ * filtering sets use schema version 2; sparse exact-sky radial sets use schema version 3; legacy source-held global
+ * and region-aware detector-local products use schemas 4 and 5; target-pixel detector-local products use schema 6;
+ * and paired-refit products use schema 7. Every
+ * product records its role, template identity/stage/normalization, response convention,
  * configured science combination, effective analytic-response combination, their respective sigma thresholds,
  * support geometry, storage estimates, source count, local-response search count, and mode identity where applicable.
- * `HIERARCH P4 PSF COEFFICIENT SCOPE` is `SHARED_IN_SAMPLE` for the ordinary model or `TARGET_HELD_OUT` when every
- * frame uses its own deleted-row fit; `HIERARCH P4 PSF MODE BATCH` records the selected maximum held-out batch size.
- * Zero identifies the shared in-sample path, and the final held-out batch may contain fewer modes.
+ * `HIERARCH P4 PSF COEFFICIENT SCOPE` is `SHARED_IN_SAMPLE` for the ordinary model, `TARGET_HELD_OUT` when every
+ * frame uses its own deleted-row fit, or `PAIRED_REFIT` for a central-difference response. `HIERARCH P4 PSF MODE
+ * BATCH` records the selected maximum held-out batch size. Zero identifies shared in-sample and paired-refit paths,
+ * and the final held-out batch may contain fewer modes.
  *
  * For a completed target-held-out set, the manifest also records response-pass downdate clamps, explicit target-row
  * refit invocations, fallback search/batch fits separated by rank-boundary, factor-validation, and deletion-solver

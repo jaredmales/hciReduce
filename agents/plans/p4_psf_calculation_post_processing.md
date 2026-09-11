@@ -448,6 +448,77 @@ as the missing calibration term. A result that remains near the current 0.2107 r
 refitting the P4 regression when the planet is added or removed dominates the response mismatch. An intermediate
 ratio would indicate contributions from both effects.
 
+The visualization utility `agents/plans/scripts/visualize_p4_matched_response.py` displays the response discrepancy
+directly. Its overview places the original final image, the exact optimizer's local best-negative result, and the
+complete best-negative rerun on one scale. It then places the finite end-to-end removed signal per unit contrast, the
+sparse analytic response actually used by the matched fit, and the dense signal-free analytic response on a second
+common scale. A companion animation walks all output-mode fractions through the original and best-negative final
+images, their finite difference, and the corresponding sparse response. Run it on a completed matched-response
+experiment with:
+
+```bash
+agents/plans/scripts/visualize_p4_matched_response.py \
+  working/roc/p4_matched_response_20260907T225744Z
+```
+
+By default the products are written beneath the experiment in `visualization/`; an explicit second positional
+argument changes that destination. The JSON sidecar records the response coordinate, exact planet position, cosine
+similarities, and the finite-response projection ratios shown in the overview.
+
+The maintained scale-sanity driver is `agents/plans/scripts/run_p4_response_scale_sanity.sh`. It brackets the
+negative-injection sign explicitly: one complete P4 refit subtracts the smaller matched-response contrast and should
+retain a positive planet, while a second subtracts four times the exact negative-fit contrast and should produce a
+strong negative residual. It then multiplies the input PSF by the exact fitted contrast before repeating the sparse
+response calculation. The resulting matched fit is expressed in scaled-template units and converted back to physical
+contrast. `compare_p4_response_scale_sanity.py` also tests the complete scaled response field against the original
+field multiplied by the requested scale, isolating any dynamic-range-dependent numerical effect. Run on ROC with:
+
+```bash
+OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_p4_response_scale_sanity.sh \
+  > p4_response_scale_sanity_driver.log 2>&1 &
+```
+
+The driver reuses the original science image, exact optimizer result, exact-subtracted final image, and sparse
+response from `REFERENCE_EXPERIMENT`. It calculates only the two one-mode negative-injection reductions and the
+one-mode scaled sparse response. All stages are restartable under saved settings and provenance checks.
+
+The 2026-09-11 result in `working/roc/p4_response_scale_sanity_20260911T144118Z` closes both sanity questions. A
+negative injection at the response-fit contrast left a `+3.216 sigma` signal, whereas four times the exact contrast
+produced a strong `-12.373 sigma` residual. The sign and approximate scaling are therefore understood. Scaling the
+input PSF by the exact contrast changed the response field by precisely that factor: the realized/requested field
+scale and cosine similarity were both 1, with relative L2 error `1.20e-7`. Converting the resulting fit back to
+physical contrast reproduced `0.0011675947` exactly. Dynamic range and template normalization are not responsible
+for the factor-of-four discrepancy.
+
+The mean-combination diagnostic in `working/roc/p4_mean_combine_20260910T123338Z` independently found finite-response
+ratios of `0.210662` for `sigmaMean` and `0.210678` for mean. The nearly identical values rule out output sigma
+clipping as the missing calibration term. The dominant missing term is the change in P4 coefficients when a source
+is added to or removed from the target and predictor samples.
+
+The next implementation therefore adds `p4.psfSamplingMode=refitDifference`. At every uncontaminated sparse source
+position it evaluates the existing exact pixel-local reduction at positive and negative
+`p4.psfRefitContrast`, subtracts the combined residual stamps, divides by twice that half-amplitude, and then applies
+the established angular average and region-isolated radial interpolation. This captures coefficient adaptation while
+calculating only detector fits required by each source-centered stamp, not two complete field reductions. Schema-7
+products record `REFIT_CENTRAL_DIFFERENCE`, `PAIRED_REFIT`, the amplitude, and the positive-plus-negative detector-fit
+count. The initial implementation intentionally retains the same `p4.numberImages=0` and `adi.excludeMethod=none`
+restrictions as detector-local sampling.
+
+`agents/plans/scripts/run_p4_refit_difference_experiment.sh` measures this response at the standard two nodes and
+four angles per P4 region, defaults the half-amplitude to the exact fitted contrast, applies the response-backed fit,
+and compares the result with the prior frozen sparse fit and exact negative optimizer. From the repository root on
+ROC, run:
+
+```bash
+OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_p4_refit_difference_experiment.sh \
+  > p4_refit_difference_driver.log 2>&1 &
+```
+
+The primary acceptance signal is recovery of the fitted contrast ratio from `0.245` toward 1 without losing the
+already-good position estimate. The summary also records response wall time, sparse measurement count, and paired
+detector-fit count so the accuracy gain can be evaluated against its cost. `REFIT_CONTRAST` can be overridden in a
+follow-up amplitude-sensitivity run without changing the implementation.
+
 ## Proposed configuration and products
 
 Use opt-in P4-specific configuration so all existing controls and outputs remain unchanged when no PSF template is
@@ -538,6 +609,12 @@ directory.
   positive angular control.
 - [x] Compare every detector-local mode and filtered product with the dense response on ROC, including actual local-
   response count, worker time, wall time, response-field error, and filtered-image error.
+- [x] Add a sparse paired-refit central-difference operator that injects both signs into the actual target and
+  predictor samples, uses the exact local-reduction geometry, and then applies the established radial model.
+- [x] Prove at an unrotated radial node that the persisted paired-refit response equals two independent
+  `evaluateLocal()` reductions divided by twice the configured half-amplitude.
+- [ ] Run the paired-refit response-backed fit on ROC and compare its contrast, position, wall time, and detector-fit
+  count with the frozen sparse response and exact negative optimizer.
 - [x] Remove detector-polar candidates whose coordinates intersect the configured trajectories of known `planet`
   sources, using a separately recorded avoidance radius. Deterministically select the nearest remaining angle sample;
   fail clearly when no uncontaminated candidate remains rather than sampling a known signal.
@@ -673,6 +750,11 @@ called by the new scalar radial evaluator. Its default constructor, kernel branc
 all have 100% executable-line coverage. The edited P4 product function adds no new mxlib API call, and its previously
 identified exception, finite-check, FITS, cube, geometry, file-logistics, progress, and timing paths remain fully
 covered. No new mxlib ownership follow-up is required.
+
+The 2026-09-11 paired-refit follow-up rechecked `/home/jrmales/Source/mxlib/_build/coverage_filtered.info`. The new
+measurement function adds only direct calls to `mx::math::isFinite` and `mx::exception`; their implementation headers
+have 100% executable-line coverage. The other edited reduction, configuration, product, and header functions use the
+same mxlib APIs covered by the earlier audits above. No new mxlib ownership follow-up is required.
 
 ## Acceptance criteria
 
