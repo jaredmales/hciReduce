@@ -519,6 +519,16 @@ already-good position estimate. The summary also records response wall time, spa
 detector-fit count so the accuracy gain can be evaluated against its cost. `REFIT_CONTRAST` can be overridden in a
 follow-up amplitude-sensitivity run without changing the implementation.
 
+The 2026-09-11 run in `working/roc/p4_refit_difference_20260911T172002Z` recovered a response-fit contrast ratio of
+`1.00377`, compared with `0.24509` for the frozen sparse response, and its response shape had `0.97690` cosine
+similarity with the empirical signal removed by the exact fit. The paired-refit response took 6,563 seconds for 232
+measurements and 352,558 positive-plus-negative detector fits. Its avoidance provenance incorrectly reported zero
+excluded candidates: the early derotation-angle initialization included `detectorLocal` but omitted
+`refitDifference`, leaving the otherwise shared planet-track loop with no angles. The follow-up implementation adds
+the missing mode to that initialization and extends the paired-refit integration test to require a nonzero exclusion
+count and verify that the selected detector source lies outside every planet footprint. The ROC response-backed fit
+must be repeated because the affected candidates include the radial nodes bracketing AF Lep b.
+
 ## Proposed configuration and products
 
 Use opt-in P4-specific configuration so all existing controls and outputs remain unchanged when no PSF template is
@@ -613,8 +623,10 @@ directory.
   predictor samples, uses the exact local-reduction geometry, and then applies the established radial model.
 - [x] Prove at an unrotated radial node that the persisted paired-refit response equals two independent
   `evaluateLocal()` reductions divided by twice the configured half-amplitude.
-- [ ] Run the paired-refit response-backed fit on ROC and compare its contrast, position, wall time, and detector-fit
+- [x] Run the paired-refit response-backed fit on ROC and compare its contrast, position, wall time, and detector-fit
   count with the frozen sparse response and exact negative optimizer.
+- [ ] Repeat the paired-refit ROC run after the 2026-09-12 derotation-angle initialization fix and confirm that
+  `P4 PSF SAMPLE EXCLUDED COUNT` is nonzero before accepting the response-backed fit.
 - [x] Remove detector-polar candidates whose coordinates intersect the configured trajectories of known `planet`
   sources, using a separately recorded avoidance radius. Deterministically select the nearest remaining angle sample;
   fail clearly when no uncontaminated candidate remains rather than sampling a known signal.
@@ -755,6 +767,13 @@ The 2026-09-11 paired-refit follow-up rechecked `/home/jrmales/Source/mxlib/_bui
 measurement function adds only direct calls to `mx::math::isFinite` and `mx::exception`; their implementation headers
 have 100% executable-line coverage. The other edited reduction, configuration, product, and header functions use the
 same mxlib APIs covered by the earlier audits above. No new mxlib ownership follow-up is required.
+
+The 2026-09-12 paired-refit avoidance fix rechecked the same current trace for every mxlib API directly called by the
+edited `P4Reduction::regions()` function. The report records `fitsFile.hpp` at 491/491 executable lines and 46/46
+functions, `ompLoopWatcher.hpp` at 69/69 and 11/11, `eigenCube.hpp` at 185/185 and 37/37, `geo.hpp` at 16/16 and 4/4,
+and the time header/implementation at 30/30 and 140/140 executable lines. The exact exception and finite-check paths
+remain fully covered as recorded by the earlier audits. The fix adds no new mxlib call, so no ownership follow-up is
+required.
 
 ## Acceptance criteria
 

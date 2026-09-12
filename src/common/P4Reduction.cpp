@@ -4026,7 +4026,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     std::vector<double> derotationAngles;
     if( m_regressionFrame == P4RegressionFrame::rotated || usesNeighborSummary || m_localStampSize > 0 ||
         m_excludeMethod == HCI::exclude::pixel || m_excludeMethod == HCI::exclude::angle ||
-        m_psfSamplingMode == P4PSFSamplingMode::detectorLocal )
+        m_psfSamplingMode == P4PSFSamplingMode::detectorLocal ||
+        m_psfSamplingMode == P4PSFSamplingMode::refitDifference )
     {
         derotationAngles.reserve( static_cast<std::size_t>( this->m_Nims ) );
         for( int image = 0; image < this->m_Nims; ++image )

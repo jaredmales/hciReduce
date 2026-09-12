@@ -2516,14 +2516,15 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     REQUIRE( responseModels.cube().isFinite().any() );
 }
 
-/// Verify sparse paired refits reproduce the central difference of two local finite-amplitude reductions.
+/// Verify sparse paired refits avoid known planets and reproduce two local finite-amplitude reductions.
 /** This exercises mx::improc::P4Reduction::reduce() and mx::improc::P4Reduction::evaluateLocal() through the
- * refit-difference PSF measurement path. The response retained at an unrotated radial node must equal the
- * positive-minus-negative local residual divided by twice the configured half-amplitude.
+ * refit-difference PSF measurement path. A configured known-planet trajectory must be absent from the selected
+ * detector response locations, and the retained response must equal the positive-minus-negative local residual
+ * divided by twice the configured half-amplitude.
  * \ingroup P4Reduction_unit_tests
  */
-TEST_CASE( "P4 refit-difference PSF sampling matches paired local reductions",
-           "[P4Reduction][PSF][sparse][refitDifference][integration][equivalence]" )
+TEST_CASE( "P4 refit-difference PSF sampling avoids known planets and matches paired local reductions",
+           "[P4Reduction][PSF][sparse][refitDifference][planet][integration][equivalence]" )
 {
     OpenMPThreadGuard threads( 1 );
     TestDirectory directory;
@@ -2564,7 +2565,11 @@ TEST_CASE( "P4 refit-difference PSF sampling matches paired local reductions",
     reduction.m_psfSampleRadii = { sampleRadius };
     reduction.m_psfSamplesPerRadius = 1;
     reduction.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::refitDifference;
+    reduction.m_psfSampleAvoidRadius = 1.25F;
     reduction.m_psfRefitContrast = halfAmplitude;
+    reduction.m_planetSep = { sampleRadius };
+    reduction.m_planetPA = { 0 };
+    reduction.m_planetContrast = { 1e-4F };
     reduction.m_outputPSFModels = true;
     reduction.m_psfOutputPrefix = "difference_";
     reduction.m_outputDir = directory.file( "products" ).string();
@@ -2588,12 +2593,31 @@ TEST_CASE( "P4 refit-difference PSF sampling matches paired local reductions",
     }
     REQUIRE( reduction.reduce() == 0 );
     REQUIRE( reduction.m_psfMeasurementSamples.size() == 1 );
+    REQUIRE( reduction.m_psfSampleExcludedCount > 0 );
     REQUIRE( reduction.m_psfRefitDifferenceFitCount > 0 );
     const mx::improc::RadialPSFSample sample = reduction.m_psfMeasurementSamples.front();
-    REQUIRE( sample.radius == Approx( sampleRadius ) );
-    REQUIRE( sample.angle == Approx( 0 ).margin( 1e-12 ) );
+    REQUIRE( sample.radius ==
+             Approx( sampleRadius ).margin( mx::improc::RadialPSFModel::detectorPixelRadiusTolerance() ) );
 
     const std::filesystem::path productDirectory = directory.file( "products/science_outputs" );
+    reductionT::imageT coordinates;
+    reductionT::fitsHeaderT coordinateHeader;
+    REQUIRE( fits.read( coordinates,
+                        coordinateHeader,
+                        ( productDirectory / "difference_coordinates.fits" ).string() ) == mx::error_t::noerror );
+    REQUIRE( sample.sourceIndex < static_cast<std::size_t>( coordinates.rows() ) );
+    const double centerRow = 0.5 * static_cast<double>( rows - 1 );
+    const double centerColumn = 0.5 * static_cast<double>( columns - 1 );
+    const double sampleRow = coordinates( static_cast<Eigen::Index>( sample.sourceIndex ), 0 );
+    const double sampleColumn = coordinates( static_cast<Eigen::Index>( sample.sourceIndex ), 1 );
+    for( std::size_t image = 0; image < reduction.m_derotF.m_angles.size(); ++image )
+    {
+        const double detectorAngle = static_cast<double>( reduction.m_derotF.derotAngle( image ) );
+        const double planetRow = centerRow + static_cast<double>( sampleRadius ) * std::sin( detectorAngle );
+        const double planetColumn = centerColumn + static_cast<double>( sampleRadius ) * std::cos( detectorAngle );
+        REQUIRE( std::hypot( sampleRow - planetRow, sampleColumn - planetColumn ) > reduction.m_psfSampleAvoidRadius );
+    }
+
     mx::improc::eigenCube<float> responseModels;
     reductionT::fitsHeaderT responseHeader;
     REQUIRE( fits.read( responseModels,
@@ -2610,6 +2634,8 @@ TEST_CASE( "P4 refit-difference PSF sampling matches paired local reductions",
     REQUIRE( responseHeader["P4 PSF REFIT CONTRAST"].value<float>() == Approx( halfAmplitude ) );
     REQUIRE( responseHeader["P4 PSF REFIT FIT COUNT"].String().starts_with(
         std::to_string( reduction.m_psfRefitDifferenceFitCount ) ) );
+    REQUIRE( responseHeader["P4 PSF SAMPLE EXCLUDED COUNT"].value<int>() ==
+             static_cast<int>( reduction.m_psfSampleExcludedCount ) );
     REQUIRE( responseHeader["P4 LOCAL PSF RESPONSE SEARCH COUNT"].value<int>() == 0 );
     REQUIRE( sample.sourceIndex < static_cast<std::size_t>( responseModels.planes() ) );
     REQUIRE( sample.sourceIndex < static_cast<std::size_t>( responseValidity.rows() ) );
@@ -2619,6 +2645,7 @@ TEST_CASE( "P4 refit-difference PSF sampling matches paired local reductions",
     reduction.m_psfSampleRadii.clear();
     reduction.m_psfSamplesPerRadius = 0;
     reduction.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::skyExact;
+    reduction.m_psfSampleAvoidRadius = 0;
     reduction.m_psfRefitContrast = 0;
     reduction.m_outputPSFModels = false;
     reduction.m_localStampSize = stampSize;
