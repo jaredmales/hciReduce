@@ -56,7 +56,15 @@ Maintained ROC experiment assets are under `agents/plans/scripts`:
   normalization, support, and validity cubes for an exact configured KL mode count.
 - `run_klip_matched_response_validation.sh` runs the accepted fixed-16 lambda/D-scale response grid with normalized
   filtering enabled, verifies the science cube against a science-only control, and fits every configured AF Lep KL
-  mode by default. This is the next ROC validation; the later negative-companion oracle remains outstanding.
+  mode by default. The first response-backed run is recorded below; the negative-companion oracle remains
+  outstanding.
+- `run_klip_finite_response_validation.sh` reuses that completed response run and performs only one inexpensive
+  end-to-end KLIP reduction after subtracting the accepted P4 exact-negative companion. It is restartable under an
+  exact settings check and records executable, input, template, configuration, and reference-product provenance.
+- `compare_klip_finite_response.py` forms the original-minus-signal-cancelled response per unit contrast, reconstructs
+  the production cubic/radial frozen response at the planet pixel, verifies that reconstruction against the persisted
+  filtered cube, and measures response cosine, projection scale, and best-scaled residual for every KL mode. It also
+  writes the empirical, frozen, and difference stamp cubes for inspection.
 
 From the repository root on ROC, run the initial bounded set with:
 
@@ -72,6 +80,13 @@ From the repository root on ROC, run the first response-backed inference test wi
 
 ```bash
 OMP_NUM_THREADS=48 agents/plans/scripts/run_klip_matched_response_validation.sh
+```
+
+Run the finite-amplitude basis-adaptation test without repeating the sparse response calculation with:
+
+```bash
+OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_klip_finite_response_validation.sh \
+  > klip_finite_response_driver.log 2>&1 &
 ```
 
 ## Current gaps
@@ -144,6 +159,32 @@ The fixed-16 lambda/D-scale grid is therefore the accepted first matched-filter 
 overhead is suitable for the first inference validation and does not justify a detector-local KLIP approximation
 before measuring the actual response-backed position and contrast.
 
+The first response-backed inference run in `working/roc/klip_matched_response_20260913T012040Z` used commit
+`e78e948`, 48 workers, and the accepted 240-measurement fixed-16 grid. The response-enabled reduction took 177.53
+seconds versus 3.00 seconds for the science-only control, retained 53.17 MiB of response accumulators, and increased
+peak RSS by 80.05 MiB. Enabling the response left all eight planes of the ordinary science cube elementwise
+identical. All eight local fits converged away from their position bounds with full filter-stamp support. From 125
+through 350 modes, the fitted separation spanned 11.919--12.141 pixels, PA spanned 261.273--261.623 degrees, and S/N
+spanned 5.264--5.476; the across-mode means and sample standard deviations were respectively 12.0359 +/- 0.0716
+pixels, 261.441 +/- 0.115 degrees, and 5.360 +/- 0.076. Relative to the P4 exact-negative position, the KLIP
+positions differ by 0.218--0.429 pixels and only 0.46--0.75 of each fit's local curvature sigma. This accepts the
+production products and the sparse response as a stable detection/localization filter.
+
+The photometry is not yet accepted. The fitted KLIP contrasts span `0.00114124`--`0.00119344`, with mean
+`0.00117027`, or only 0.2396--0.2505 of the P4 exact-negative contrast `0.00476393`. That factor agrees strikingly
+with the earlier P4 frozen-response result: the 125-mode KLIP contrast `0.00116746` differs from the P4 frozen sparse
+contrast `0.00116759` by only 0.012%. The fixed-16 sampling error relative to dense KLIP was previously below 0.9%, so
+radial sparsity cannot explain the factor-of-four scale discrepancy. The leading hypothesis is the same omitted
+operator-adaptation term found in P4: the current KLIP response propagates the probe through a basis frozen from the
+planet-bearing data, while an end-to-end negative injection changes the reference covariance and KL modes. This is
+not established until a KLIP-specific finite-amplitude negative-companion oracle measures the empirical response.
+The maintained finite-response runner now performs this test for every retained mode using the P4 exact-negative
+planet as a provisional physical reference. Its primary statistic is the projection of the end-to-end removed signal
+onto the frozen response. Agreement with the prior approximately 0.245 fitted-contrast fraction would isolate the
+missing end-to-end response without the circular step of fitting with a template constructed from the same injection.
+This one-sided finite-amplitude difference is a secant response, not yet an infinitesimal derivative; a paired central
+difference or analytic KL-mode perturbation is the follow-up if basis adaptation is confirmed.
+
 ## Implementation sequence
 
 ### 1. Align response semantics and provenance
@@ -190,6 +231,8 @@ before measuring the actual response-backed position and contrast.
   identity.
 - [x] Expose a bounded response-backed position/contrast merit calculation so a fit does not rerun KLIP merely to
   refresh its filter.
+- [x] Run the first response-backed fit across the configured AF Lep mode counts and record detection, localization,
+  photometry, product-validity, and performance behavior.
 - [ ] Validate recovered position, contrast ranking, and curvature- or resampling-derived uncertainty against the
   negative-fit/zero-signal-injection oracle.
 
