@@ -372,8 +372,8 @@ for index, spec in enumerate(specs_text.split(";")):
     )
 if not samples or len({sample["label"] for sample in samples}) != len(samples):
     raise SystemExit("SAMPLE_SPECS must contain unique labelled samples")
-if sum(sample["role"] == "candidate" for sample in samples) != 1:
-    raise SystemExit("SAMPLE_SPECS must contain exactly one candidate sample")
+if sum(sample["role"] == "candidate" for sample in samples) > 1:
+    raise SystemExit("SAMPLE_SPECS may contain at most one candidate sample")
 
 manifest = {
     "schema": 1,

@@ -74,6 +74,13 @@ Maintained ROC experiment assets are under `agents/plans/scripts`:
   the candidate, with the one-sided finite secant. It reports amplitude dependence, positive/negative secant
   asymmetry, response scale and shape, and the scatter remaining after clear samples at a common radius are rotated
   and averaged. Diagnostic FITS stacks preserve each central response, frozen comparison, and best-scaled residual.
+- `run_klip_adapted_grid_validation.sh` measures paired central differences at four uniformly spaced angles on all 15
+  accepted 3.6-pixel radial nodes, omitting any sample within five pixels of the known candidate. With the defaults,
+  three of 60 locations are omitted, leaving 57 clear samples and 114 complete KLIP reductions.
+- `build_klip_adapted_grid.py` rotates those clear measurements to a common angle, averages them independently at each
+  radius with per-pixel validity, linearly interpolates the radial response, and applies the same signed normalized
+  filter used by the production KLIP path. It writes a response/filter case consumed unchanged by
+  `fit_klip_matched_response.py`, plus an independent comparison with the previously measured candidate response.
 
 From the repository root on ROC, run the initial bounded set with:
 
@@ -104,6 +111,19 @@ Run the bounded paired-central-difference oracle with:
 OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_klip_central_response_validation.sh \
   > klip_central_response_driver.log 2>&1 &
 ```
+
+Run the complete candidate-avoiding numerical-response grid and matched-response fits with:
+
+```bash
+OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_klip_adapted_grid_validation.sh \
+  > klip_adapted_grid_driver.log 2>&1 &
+```
+
+The paired reductions should take approximately 5.6 minutes at the measured 2.934 seconds per ROC reduction; grid
+construction, full-image filtering, and the response-backed fits follow automatically. The primary results are
+`adapted_grid/adapted_grid_summary.md` and `klip_adapted_grid_fit_summary.md`. The run is restartable without
+overwriting completed reductions or fits. It uses the full fiducial perturbation by default because the central test
+found stable response shape and better small-radius numerical behavior there.
 
 The default perturbation magnitudes are 0.25, 0.5, and 1.0 times the P4 exact-negative contrast. Set
 `AMPLITUDE_FRACTIONS`, `SAMPLE_SPECS`, or `MODE_COUNTS` only for a deliberately reduced or expanded diagnostic; exact
@@ -218,6 +238,36 @@ representative sparse samples and perturbation amplitudes. Once its local regime
 the analytic KL-mode perturbation term so production response estimation does not require two complete KLIP refits
 per sample.
 
+The paired-central-difference run in `klip_central_response_20260913T154659Z` used commit `a345ed3`, 48 workers, 15
+positions, and perturbations of 0.25, 0.5, and 1.0 times the P4 exact-negative contrast. Its 90 complete KLIP
+reductions took 264.05 seconds in total, or 2.934 seconds each. At the candidate, the smallest-perturbation derivative
+projected onto the frozen response by 0.2204--0.2252 and had cosine 0.7966--0.8017, reproducing the independently
+measured finite-response scale and shape. The derivative instead projected onto the previous one-sided finite secant
+by 0.9780--0.9838 with cosine 0.9986--0.9999. From the smallest to largest perturbation its mean relative change was
+only 2.59%, so the finite secant is already an excellent shape oracle at this source strength and the central test
+establishes a usable local response regime.
+
+The clear-sample derivative is strongly radius dependent, with mean projection onto the frozen response near 0.21 at
+7.8 and 11.4 pixels, 0.40 at 33 pixels, and 0.54 at 58.2 pixels. This reinforces the need to sample and interpolate in
+radius. After rotation to a common angle, response scatter about the radial mean decreases from 56% at 7.8 pixels and
+43% at 11.4 pixels to 24% at 33 pixels and 4.4% at 58.2 pixels. The corresponding radial-mean matched-filter behavior
+is substantially better than those image-domain residuals suggest: per-angle unit-signal amplitudes span
+0.804--1.184 and cosine 0.739--0.952 at 7.8 pixels, 0.823--1.168 and cosine 0.821--0.966 at 11.4 pixels,
+0.971--1.028 and cosine 0.969--0.974 at 33 pixels, and 0.992--1.009 and cosine 0.999 at 58.2 pixels. Small-radius
+azimuthal averaging is therefore an approximation that must be assessed through filter loss rather than L2 response
+error alone.
+
+Most importantly for candidate avoidance, the three clear 11.4-pixel samples predict the independently measured
+candidate derivative at 11.74 pixels with projection 1.029--1.043 and cosine 0.952--0.958 for the smallest
+perturbation. The result is stable across all three perturbation amplitudes: the mean projection is 1.038--1.042 and
+mean cosine is 0.955--0.956. Filtering the original candidate with that clear radial mean yields contrasts
+`0.004340`--`0.004704`, with across-mode means `0.004502`--`0.004525`, or 94.5--95.0% of the P4 exact-negative
+contrast. This accepts sparse, candidate-avoiding radial averaging as a useful approximate matched filter at the
+demonstrated location. A complete 57-sample paired grid is estimated to take about 5.6 minutes, only about 1.9 times
+the existing 177.5-second frozen-response calculation. The numerical paired grid is therefore the next practical
+candidate estimator; an analytic KL-mode derivative remains a potential production optimization after its accuracy
+and runtime are benchmarked against this grid.
+
 ## Implementation sequence
 
 ### 1. Align response semantics and provenance
@@ -273,8 +323,10 @@ per sample.
 
 - [x] Measure the finite-amplitude end-to-end KLIP response at the accepted companion and compare its scale and shape
   with the frozen-basis sparse response.
-- [ ] Measure paired central differences at representative radius/angle samples and multiple perturbation amplitudes
+- [x] Measure paired central differences at representative radius/angle samples and multiple perturbation amplitudes
   to identify the locally linear regime and provide an implementation oracle.
+- [ ] Run the complete candidate-avoiding paired grid, construct its radial response, and repeat matched-filter
+  photometry for every configured KL mode.
 - [ ] Add the analytic covariance/eigenmode perturbation contribution to the sparse KLIP response calculation.
 - [ ] Validate the adapted sparse response against the paired-refit oracle before repeating matched-filter photometry
   and uncertainty tests.
