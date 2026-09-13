@@ -1,6 +1,5 @@
 /** \file RadialPSFModel.cpp
  * \brief Implements azimuthally averaged PSF response models sampled at discrete radii.
- * \author Jared R. Males
  */
 
 #include "RadialPSFModel.hpp"

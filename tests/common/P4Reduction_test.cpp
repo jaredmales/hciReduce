@@ -1,6 +1,5 @@
 /** \file P4Reduction_test.cpp
  * \brief Tests observation orchestration for Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"
@@ -640,19 +639,35 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "adi.excludeMethod" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "solver.exclusionSolver" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "solver.deletionBackend" ).helpType == "string" );
-    REQUIRE( registered.m_targets.at( "p4.psfFile" ).helpType == "string" );
-    REQUIRE( registered.m_targets.at( "p4.psfStampSize" ).helpType == "int" );
-    REQUIRE( registered.m_targets.at( "p4.psfSampleRadii" ).helpType == "float vector" );
-    REQUIRE( registered.m_targets.at( "p4.psfRadiiPerRegion" ).helpType == "int" );
-    REQUIRE( registered.m_targets.at( "p4.psfSamplesPerRadius" ).helpType == "int" );
-    REQUIRE( registered.m_targets.at( "p4.psfSampleArcStep" ).helpType == "float" );
-    REQUIRE( registered.m_targets.at( "p4.psfSamplingMode" ).helpType == "string" );
-    REQUIRE( registered.m_targets.at( "p4.psfSampleAvoidRadius" ).helpType == "float" );
-    REQUIRE( registered.m_targets.at( "p4.psfRefitContrast" ).helpType == "float" );
-    REQUIRE( registered.m_targets.at( "p4.outputPSFModels" ).clType == mx::app::argType::Optional );
-    REQUIRE( registered.m_targets.at( "p4.psfFilter" ).clType == mx::app::argType::Optional );
-    REQUIRE( registered.m_targets.at( "p4.psfFilterMinGoodFract" ).helpType == "float" );
-    REQUIRE( registered.m_targets.at( "p4.psfOutputPrefix" ).helpType == "string" );
+    REQUIRE( registered.m_targets.at( "psfResponse.file" ).helpType == "string" );
+    REQUIRE( registered.m_targets.at( "psfResponse.stampSize" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "psfResponse.sampleRadii" ).helpType == "float vector" );
+    REQUIRE( registered.m_targets.at( "psfResponse.radiiPerRegion" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "psfResponse.samplesPerRadius" ).helpType == "int" );
+    REQUIRE( registered.m_targets.at( "psfResponse.sampleArcStep" ).helpType == "float" );
+    REQUIRE( registered.m_targets.at( "psfResponse.method" ).helpType == "string" );
+    REQUIRE( registered.m_targets.at( "psfResponse.sampleAvoidRadius" ).helpType == "float" );
+    REQUIRE( registered.m_targets.at( "psfResponse.refitContrast" ).helpType == "float" );
+    REQUIRE( registered.m_targets.at( "psfResponse.outputModels" ).clType == mx::app::argType::Optional );
+    REQUIRE( registered.m_targets.at( "psfResponse.filter" ).clType == mx::app::argType::Optional );
+    REQUIRE( registered.m_targets.at( "psfResponse.filterMinGoodFract" ).helpType == "float" );
+    REQUIRE( registered.m_targets.at( "psfResponse.outputPrefix" ).helpType == "string" );
+    for( const char *retiredTarget : { "p4.psfFile",
+                                       "p4.psfStampSize",
+                                       "p4.psfSampleRadii",
+                                       "p4.psfRadiiPerRegion",
+                                       "p4.psfSamplesPerRadius",
+                                       "p4.psfSampleArcStep",
+                                       "p4.psfSamplingMode",
+                                       "p4.psfSampleAvoidRadius",
+                                       "p4.psfRefitContrast",
+                                       "p4.outputPSFModels",
+                                       "p4.psfFilter",
+                                       "p4.psfFilterMinGoodFract",
+                                       "p4.psfOutputPrefix" } )
+    {
+        REQUIRE( registered.m_targets.count( retiredTarget ) == 0 );
+    }
     REQUIRE( registered.m_targets.at( "p4.localStampSize" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "p4.memoryFraction" ).helpType == "double" );
     REQUIRE( registered.m_targets.at( "p4.writeDiagnostics" ).clType == mx::app::argType::Optional );
@@ -729,11 +744,11 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     reductionHarness psfConfiguration;
     readReductionConfig( psfConfiguration,
                          directory.file( "psf.conf" ),
-                         "[p4]\npsfFile=template.fits\npsfStampSize=11\n"
-                         "psfSampleRadii=6,10\npsfSamplesPerRadius=8\n"
-                         "psfSamplingMode=detectorLocal\npsfSampleAvoidRadius=2.5\n"
-                         "psfRefitContrast=0.004\n"
-                         "outputPSFModels=true\npsfFilter=true\npsfFilterMinGoodFract=0.75\npsfOutputPrefix=field_\n" );
+                         "[psfResponse]\nfile=template.fits\nstampSize=11\n"
+                         "sampleRadii=6,10\nsamplesPerRadius=8\n"
+                         "method=detectorLocal\nsampleAvoidRadius=2.5\n"
+                         "refitContrast=0.004\n"
+                         "outputModels=true\nfilter=true\nfilterMinGoodFract=0.75\noutputPrefix=field_\n" );
     REQUIRE( psfConfiguration.m_psfFile == "template.fits" );
     REQUIRE( psfConfiguration.m_psfStampSize == 11 );
     REQUIRE( psfConfiguration.m_psfSampleRadii == std::vector<float>{ 6, 10 } );
@@ -750,14 +765,14 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     reductionHarness arcPSFConfiguration;
     readReductionConfig( arcPSFConfiguration,
                          directory.file( "arc-psf.conf" ),
-                         "[p4]\npsfSampleRadii=6,10\npsfSampleArcStep=3.6\n" );
+                         "[psfResponse]\nsampleRadii=6,10\nsampleArcStep=3.6\n" );
     REQUIRE( arcPSFConfiguration.m_psfSamplesPerRadius == 0 );
     REQUIRE( arcPSFConfiguration.m_psfSampleArcStep == Approx( 3.6 ) );
 
     reductionHarness regionPSFConfiguration;
     readReductionConfig( regionPSFConfiguration,
                          directory.file( "region-psf.conf" ),
-                         "[p4]\npsfRadiiPerRegion=2\npsfSamplesPerRadius=4\n" );
+                         "[psfResponse]\nradiiPerRegion=2\nsamplesPerRadius=4\n" );
     REQUIRE( regionPSFConfiguration.m_psfSampleRadii.empty() );
     REQUIRE( regionPSFConfiguration.m_psfRadiiPerRegion == 2 );
     REQUIRE( regionPSFConfiguration.m_psfSamplesPerRadius == 4 );
@@ -765,9 +780,15 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     reductionHarness refitPSFConfiguration;
     readReductionConfig( refitPSFConfiguration,
                          directory.file( "refit-psf.conf" ),
-                         "[p4]\npsfSamplingMode=refitDifference\npsfRefitContrast=0.002\n" );
+                         "[psfResponse]\nmethod=refitDifference\nrefitContrast=0.002\n" );
     REQUIRE( refitPSFConfiguration.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::refitDifference );
     REQUIRE( refitPSFConfiguration.m_psfRefitContrast == Approx( 0.002 ) );
+
+    reductionHarness removedP4PSFKey;
+    readReductionConfig( removedP4PSFKey,
+                         directory.file( "removed-p4-psf-key.conf" ),
+                         "[p4]\npsfFile=template.fits\n" );
+    REQUIRE( removedP4PSFKey.m_psfFile.empty() );
 
     reductionHarness invalidPolicy;
     REQUIRE_THROWS( readReductionConfig( invalidPolicy,
@@ -782,7 +803,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     reductionHarness invalidPSFSamplingMode;
     REQUIRE_THROWS( readReductionConfig( invalidPSFSamplingMode,
                                          directory.file( "invalid-psf-sampling-mode.conf" ),
-                                         "[p4]\npsfSamplingMode=detectorExact\n" ) );
+                                         "[psfResponse]\nmethod=detectorExact\n" ) );
 
     reductionHarness invalidExclusionSolver;
     REQUIRE_THROWS( readReductionConfig( invalidExclusionSolver,
@@ -3779,7 +3800,8 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         reductionHarness missingStamp;
         prepareReduction( missingStamp );
         missingStamp.m_psfFile = "missing.fits";
-        REQUIRE_THROWS_WITH( missingStamp.reduce(), Catch::Matchers::Contains( "p4.psfStampSize must be positive" ) );
+        REQUIRE_THROWS_WITH( missingStamp.reduce(),
+                             Catch::Matchers::Contains( "psfResponse.stampSize must be positive" ) );
 
         reductionHarness missingFile;
         prepareReduction( missingFile );
@@ -3804,7 +3826,7 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         reductionHarness outputWithoutTemplate;
         prepareReduction( outputWithoutTemplate );
         outputWithoutTemplate.m_outputPSFModels = true;
-        REQUIRE_THROWS_WITH( outputWithoutTemplate.reduce(), Catch::Matchers::Contains( "requires p4.psfFile" ) );
+        REQUIRE_THROWS_WITH( outputWithoutTemplate.reduce(), Catch::Matchers::Contains( "requires psfResponse.file" ) );
 
         reductionHarness outputWithoutCombination;
         prepareReduction( outputWithoutCombination );
@@ -3826,7 +3848,7 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         prepareReduction( filterWithoutTemplate );
         filterWithoutTemplate.m_psfFilter = true;
         filterWithoutTemplate.m_combineMethod = mx::improc::HCI::combine::mean;
-        REQUIRE_THROWS_WITH( filterWithoutTemplate.reduce(), Catch::Matchers::Contains( "requires p4.psfFile" ) );
+        REQUIRE_THROWS_WITH( filterWithoutTemplate.reduce(), Catch::Matchers::Contains( "requires psfResponse.file" ) );
 
         reductionHarness evenFilterStamp;
         prepareReduction( evenFilterStamp );
@@ -3884,7 +3906,7 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         prepareReduction( sparseWithoutTemplate );
         sparseWithoutTemplate.m_psfSampleRadii = { 5.5F };
         sparseWithoutTemplate.m_psfSamplesPerRadius = 4;
-        REQUIRE_THROWS_WITH( sparseWithoutTemplate.reduce(), Catch::Matchers::Contains( "requires p4.psfFile" ) );
+        REQUIRE_THROWS_WITH( sparseWithoutTemplate.reduce(), Catch::Matchers::Contains( "requires psfResponse.file" ) );
 
         reductionHarness unsortedSparseRadii;
         prepareReduction( unsortedSparseRadii );

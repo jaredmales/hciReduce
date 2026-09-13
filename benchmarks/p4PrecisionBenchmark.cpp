@@ -1,6 +1,5 @@
 /** \file p4PrecisionBenchmark.cpp
  * \brief Benchmarks CPU precision policies for the uncentered in-sample P4 PCA kernel.
- * \author Jared R. Males
  */
 
 #include <algorithm>

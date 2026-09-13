@@ -1,6 +1,5 @@
 /** \file KLIPPSFModel.hpp
  * \brief Declares frozen-basis KLIP response calculations for sparse PSF probes.
- * \author Jared R. Males
  */
 
 #ifndef KLIPPSFModel_hpp

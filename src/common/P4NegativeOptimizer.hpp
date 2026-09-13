@@ -1,6 +1,5 @@
 /** \file P4NegativeOptimizer.hpp
  * \brief Declares negative-companion optimization for pixel-local P4 reductions.
- * \author Jared R. Males
  */
 
 #ifndef P4NegativeOptimizer_hpp

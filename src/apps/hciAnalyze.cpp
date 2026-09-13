@@ -1,6 +1,5 @@
 /** \file hciAnalyze.cpp
  * \brief Defines the hciAnalyze SNR-measurement command-line application.
- * \author Jared R. Males
  */
 
 #include <algorithm>

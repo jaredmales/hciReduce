@@ -1,6 +1,5 @@
 /** \file common.dox
  * \brief Scientist-facing guide to hciReduce's shared workflow and configuration.
- * \author Jared R. Males
  */
 
 /** \addtogroup common_user_guide

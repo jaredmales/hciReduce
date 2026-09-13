@@ -1,6 +1,5 @@
 /** \file P4TemporalPCA.hpp
  * \brief Declares time-domain PCA prediction for Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #ifndef P4TemporalPCA_hpp

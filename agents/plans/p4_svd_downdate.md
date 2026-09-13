@@ -957,7 +957,7 @@ positive-`numberImages` combinations:
 
 ## After first mxlib implementation milestone
 
-- See #1 in mxlib/AGENTS.md, where I have changed the file block slightly and changed the policy to exclude the \author tag
+- See #1 in mxlib/AGENTS.md, where I changed the file block slightly and excluded author attribution tags.
 
 - In svdDowndate.cpp it looks like there are internal functions with doxygen docs.  I prefer to document those in the same style but non-doxygen, so, e.g. `///` should be `//`.  Update AGENTS.md with this preference.
 

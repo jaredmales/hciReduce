@@ -1,6 +1,5 @@
 /** \file p4ReductionPrecisionBenchmark.cpp
  * \brief Runs a configured production-layout P4 reduction with an experimental precision policy.
- * \author Jared R. Males
  */
 
 #include <chrono>

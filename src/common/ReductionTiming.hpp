@@ -1,6 +1,5 @@
 /** \file ReductionTiming.hpp
  * \brief Defines reusable reduction timing records.
- * \author Jared R. Males
  */
 
 #ifndef ReductionTiming_hpp

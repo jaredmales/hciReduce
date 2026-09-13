@@ -1,6 +1,5 @@
 /** \file HCIobservation_test_fixture.cpp
  * \brief Implements shared temporary-input helpers for HCIobservation tests.
- * \author Jared R. Males
  */
 
 #include "HCIobservation_test_fixture.hpp"

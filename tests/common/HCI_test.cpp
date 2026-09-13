@@ -1,6 +1,5 @@
 /** \file HCI_test.cpp
  * \brief Tests high-contrast imaging configuration enum conversions.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

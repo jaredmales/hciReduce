@@ -1,6 +1,5 @@
 /** \file ADIobservation_test.cpp
  * \brief Tests angular-differential observation ingestion, fake injection, masks, and derotation.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

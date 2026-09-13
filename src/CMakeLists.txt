@@ -17,6 +17,7 @@ set(libheaders common/HCI.hpp
                common/P4TemporalPCA.hpp
                common/P4LocalProcessing.hpp
                common/P4NegativeOptimizer.hpp
+               common/PSFResponseConfig.hpp
                common/KLIPPSFModel.hpp
                common/RadialPSFModel.hpp
                common/P4PSFFilter.hpp

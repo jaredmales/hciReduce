@@ -1,6 +1,5 @@
 /** \file HCIobservation_config_test.cpp
  * \brief Tests HCIobservation configuration registration and loading.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

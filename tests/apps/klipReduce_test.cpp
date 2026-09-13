@@ -1,6 +1,5 @@
 /** \file klipReduce_test.cpp
  * \brief Tests klipReduce saved-product configuration and dispatch.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

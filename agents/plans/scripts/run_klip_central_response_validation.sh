@@ -431,9 +431,9 @@ if [[ "${analyze_only}" == false ]]; then
                 "${klipreduce_bin}"
                 --config "${base_config}"
                 --klip.Nmodes "${mode_counts}"
-                --klip.psfFile ""
-                --klip.outputPSFModels=false
-                --klip.psfFilter=false
+                --psfResponse.file ""
+                --psfResponse.outputModels=false
+                --psfResponse.filter=false
                 --planet.sep "${planet_sep}"
                 --planet.PA "${planet_pa}"
                 --planet.contrast "${planet_contrast}"

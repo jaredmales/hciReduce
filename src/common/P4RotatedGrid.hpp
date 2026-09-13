@@ -1,6 +1,5 @@
 /** \file P4RotatedGrid.hpp
  * \brief Declares direct sky-frame sampling geometry for rotated P4 regression.
- * \author Jared R. Males
  */
 
 #ifndef P4RotatedGrid_hpp

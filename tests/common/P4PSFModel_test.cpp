@@ -1,6 +1,5 @@
 /** \file P4PSFModel_test.cpp
  * \brief Tests compact frozen-model PSF calculations for Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

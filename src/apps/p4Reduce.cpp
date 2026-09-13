@@ -1,6 +1,5 @@
 /** \file p4Reduce.cpp
  * \brief Defines the p4Reduce command-line application.
- * \author Jared R. Males
  */
 
 #include <algorithm>

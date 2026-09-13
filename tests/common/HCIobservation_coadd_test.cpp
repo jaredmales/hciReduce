@@ -1,6 +1,5 @@
 /** \file HCIobservation_coadd_test.cpp
  * \brief Tests HCIobservation image coaddition and metadata provenance.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

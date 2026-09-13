@@ -1,6 +1,5 @@
 /** \file hciAnalyze_config.dox
  * \brief Configuration dictionary for hciAnalyze.
- * \author Jared R. Males
  */
 
 /** \addtogroup hcianalyze_user_guide
@@ -43,7 +42,7 @@
  * | `--filter.perPixelPSF` | `filter.perPixelPSF=/path/p4PSF_manifest.fits` | complete P4 PSF manifest FITS path | unset | Apply the manifest's coordinate-indexed signed response field to the input cube before SNR calculation. This permits a response field measured from a signal-subtracted P4 reduction to filter the corresponding unsubtracted science product. |
  * | `-d`, `--diagnostics` | `diagnostics=true` | bool | `false` | Print resolved geometry, filters, invalid-pixel counts, and SNR values to standard error. |
  *
- * `filter.perPixelPSF` must name the `*_manifest.fits` file from a P4 run with `p4.outputPSFModels=true`.
+ * `filter.perPixelPSF` must name the `*_manifest.fits` file from a P4 run with `psfResponse.outputModels=true`.
  * hciAnalyze locates the sibling `coordinates`, `model_NNNN`, and `validity_NNNN` files from the manifest prefix. It
  * rejects incomplete sets and mismatched image planes, mode fractions, stamp geometry, coordinates, or product roles.
  * Filtering uses the recorded `P4 PSF FILTER MIN GOOD FRACTION` and the same signed normalized estimator as P4:

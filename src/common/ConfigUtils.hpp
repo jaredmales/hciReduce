@@ -1,6 +1,5 @@
 /** \file ConfigUtils.hpp
  * \brief Shared hciReduce configuration-loading helpers.
- * \author Jared R. Males
  */
 
 #ifndef ConfigUtils_hpp

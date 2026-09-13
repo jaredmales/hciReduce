@@ -1,6 +1,5 @@
 /** \file HCIobservation_RDI_test.cpp
  * \brief Tests HCIobservation reference FITS ingestion and independent RDI masks.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

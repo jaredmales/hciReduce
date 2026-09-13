@@ -1,6 +1,5 @@
 /** \file klipPrecisionBenchmark.cpp
  * \brief Benchmarks CPU precision policies for direct KLIP mode construction and subtraction.
- * \author Jared R. Males
  */
 
 #include <algorithm>

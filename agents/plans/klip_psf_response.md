@@ -18,7 +18,7 @@ The first sparse radial estimator landed in hciReduce commit `3e0db39`.
 - `src/common/KLIPPSFModel.hpp` and `.cpp` construct a centered detector-frame probe, apply supported linear regional
   centering, calculate `p - Z Z^T p` for the live target basis, and accumulate each regional contribution directly
   into a compact derotated response stamp.
-- `src/common/KLIPreduction.hpp` configures exact sky samples at `klip.psfSampleRadii` and uniformly spaced angles,
+- `src/common/KLIPreduction.hpp` configures exact sky samples at `psfResponse.sampleRadii` and uniformly spaced angles,
   invokes the probe while each target-specific basis is resident, combines target-frame stamps, fits one
   `RadialPSFModel` per requested mode count, and optionally writes canonical radial response and validity cubes.
 - `src/common/RadialPSFModel.hpp` and `.cpp` resolve fixed-count or maximum-arc angular sampling, rotate measurements
@@ -30,17 +30,27 @@ The first sparse radial estimator landed in hciReduce commit `3e0db39`.
 - `doc/klip.dox`, `doc/klip_algorithm.dox`, and `doc/klip_config.dox` describe the public controls and initial
   restrictions.
 
-The existing configuration surface is:
+P4 and KLIP now share the same configuration surface. The former response keys in `[p4]` and `[klip]` are not
+registered or loaded; response controls live only in `[psfResponse]`:
 
 ```ini
-[klip]
-psfFile=/path/to/centered_psf.fits
-psfStampSize=11
-psfSampleRadii=1,3,5,7
-psfSamplesPerRadius=16
-outputPSFModels=true
-psfOutputPrefix=klipPSF_
+[psfResponse]
+file=/path/to/centered_psf.fits
+stampSize=11
+sampleRadii=1,3,5,7
+samplesPerRadius=16
+method=refitDifference
+sampleAvoidRadius=5
+refitContrast=0.0048
+outputModels=true
+filter=true
+filterMinGoodFract=1
+outputPrefix=klipPSF_
 ```
+
+`src/common/PSFResponseConfig.hpp` owns this vocabulary, the method enumeration, and explicit-versus-region radial
+grid resolution. `P4Reduction` and `KLIPreduction` inherit it and apply algorithm-specific validation. Both support
+`skyExact` and `refitDifference`; P4 additionally supports `detectorLocal`.
 
 Maintained ROC experiment assets are under `agents/plans/scripts`:
 
@@ -124,6 +134,20 @@ construction, full-image filtering, and the response-backed fits follow automati
 `adapted_grid/adapted_grid_summary.md` and `klip_adapted_grid_fit_summary.md`. The run is restartable without
 overwriting completed reductions or fits. It uses the full fiducial perturbation by default because the central test
 found stable response shape and better small-radius numerical behavior there.
+
+The native C++ paired-grid validation uses the same 15 radii, four angles, five-pixel candidate avoidance, and
+finite-amplitude response as the accepted scripted grid. From the repository root on ROC, run:
+
+```bash
+OMP_NUM_THREADS=48 RESPONSE_CASE=radial_ld_refit4_filter \
+  EXPERIMENT_DIR=working/roc/klip_cpp_response_$(date -u +%Y%m%dT%H%M%SZ) \
+  nohup agents/plans/scripts/run_klip_matched_response_validation.sh \
+  > klip_cpp_response_driver.log 2>&1 &
+```
+
+The driver requires the native output headers to report 57 retained measurements and 114 signed trial reductions,
+checks that response estimation leaves the ordinary science cube unchanged, and repeats the matched-response fit for
+every configured KL mode.
 
 The default perturbation magnitudes are 0.25, 0.5, and 1.0 times the P4 exact-negative contrast. Set
 `AMPLITUDE_FRACTIONS`, `SAMPLE_SPECS`, or `MODE_COUNTS` only for a deliberately reduced or expanded diagnostic; exact
@@ -268,6 +292,14 @@ the existing 177.5-second frozen-response calculation. The numerical paired grid
 candidate estimator; an analytic KL-mode derivative remains a potential production optimization after its accuracy
 and runtime are benchmarked against this grid.
 
+The complete adapted-grid run in `working/roc/klip_adapted_grid_20260913T163652Z` retained 57 of 60 requested
+locations. Across 125--350 modes, the independently measured candidate response projected onto the clear radial grid
+by 1.026--1.039 with cosine 0.9541--0.9557. All eight response-backed fits converged: contrast ranged from
+`0.0047386` to `0.0049611`, or 0.9947--1.0414 of the P4 exact-negative contrast, with separation 11.910--12.039
+pixels and PA 259.51--260.00 degrees. This accepts the paired candidate-avoiding radial grid as the numerical KLIP
+response target. The C++ `refitDifference` implementation now executes that construction inside one `klipReduce`
+run; the next ROC test is a direct implementation and performance check, not another algorithm-selection experiment.
+
 ## Implementation sequence
 
 ### 1. Align response semantics and provenance
@@ -325,8 +357,11 @@ and runtime are benchmarked against this grid.
   with the frozen-basis sparse response.
 - [x] Measure paired central differences at representative radius/angle samples and multiple perturbation amplitudes
   to identify the locally linear regime and provide an implementation oracle.
-- [ ] Run the complete candidate-avoiding paired grid, construct its radial response, and repeat matched-filter
+- [x] Run the complete candidate-avoiding paired grid, construct its radial response, and repeat matched-filter
   photometry for every configured KL mode.
+- [x] Implement the paired candidate-avoiding grid, region-aware radial nodes, common-angle averaging, radial
+  interpolation, and filtering in the KLIP C++ reduction path using the shared `[psfResponse]` interface.
+- [ ] Validate the native C++ paired-grid products and runtime on ROC against the accepted scripted-grid result.
 - [ ] Add the analytic covariance/eigenmode perturbation contribution to the sparse KLIP response calculation.
 - [ ] Validate the adapted sparse response against the paired-refit oracle before repeating matched-filter photometry
   and uncertainty tests.

@@ -1,5 +1,4 @@
 /** \file ADIobservation.cpp
- * \author Jared R. Males
  * \brief Instantiates the ADI high contrast imaging data type.
  *
  */

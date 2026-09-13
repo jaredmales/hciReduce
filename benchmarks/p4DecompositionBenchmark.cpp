@@ -1,6 +1,5 @@
 /** \file p4DecompositionBenchmark.cpp
  * \brief Benchmarks resident FP64 symmetric eigendecomposition on CPU and GPU.
- * \author Jared R. Males
  */
 
 #include <algorithm>

@@ -1,6 +1,5 @@
 /** \file P4PSFModel.hpp
  * \brief Declares compact frozen-model PSF calculations for Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #ifndef P4PSFModel_hpp

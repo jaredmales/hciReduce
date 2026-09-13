@@ -1,5 +1,4 @@
 /** \file HCI.hpp
- * \author Jared R. Males
  * \brief Defines the configuration types for high contrast imaging.
  *
  */

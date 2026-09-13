@@ -1,6 +1,5 @@
 /** \file P4PCA.hpp
  * \brief Declares the pure numerical predictor used by Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #ifndef P4PCA_hpp

@@ -298,14 +298,13 @@ command -v "${p4reduce_bin}" >/dev/null 2>&1 || {
 }
 
 help_text=$("${p4reduce_bin}" --help 2>&1)
-if [[ "${help_text}" != *"--p4.psfSampleRadii"* || "${help_text}" != *"--p4.psfRadiiPerRegion"* ||
-      "${help_text}" != *"--p4.psfSampleArcStep"* ||
-      "${help_text}" != *"--p4.psfSamplingMode"* ]]; then
+if [[ "${help_text}" != *"--psfResponse.file"* || "${help_text}" != *"--psfResponse.sampleRadii"* ||
+      "${help_text}" != *"--psfResponse.method"* ]]; then
     printf 'p4Reduce does not expose the required sparse PSF controls: %s\n' "${p4reduce_bin}" >&2
     printf '%s\n' 'Build this hciReduce checkout and set P4REDUCE_BIN to that executable.' >&2
     exit 1
 fi
-if grep -Eq '^[[:space:]]*(psfSampleRadii|psfRadiiPerRegion|psfSamplesPerRadius|psfSampleArcStep)[[:space:]]*=' "${base_config}"; then
+if grep -Eq '^[[:space:]]*\[psfResponse\][[:space:]]*$' "${base_config}"; then
     printf 'The dense reference requires no active sparse-sampling keys in %s\n' "${base_config}" >&2
     printf '%s\n' 'Comment out those keys or point BASE_CONFIG at the unsampled standard configuration.' >&2
     exit 1
@@ -393,11 +392,11 @@ for case_name in "${selected_cases[@]}"; do
     command_line=(
         "${p4reduce_bin}"
         --config "${base_config}"
-        --p4.psfFile "${psf_file}"
-        --p4.psfStampSize "${psf_stamp_size}"
-        --p4.outputPSFModels=true
-        --p4.psfFilter="${psf_filter}"
-        --p4.psfOutputPrefix p4PSF_
+        --psfResponse.file "${psf_file}"
+        --psfResponse.stampSize "${psf_stamp_size}"
+        --psfResponse.outputModels=true
+        --psfResponse.filter="${psf_filter}"
+        --psfResponse.outputPrefix p4PSF_
         --output.directory "${case_dir}"
         --output.fileName finim.fits
         --output.exactFName=true
@@ -405,18 +404,18 @@ for case_name in "${selected_cases[@]}"; do
     )
     if [[ -n "${case_radii}" || ${case_radii_per_region} -gt 0 ]]; then
         command_line+=(
-            --p4.psfSamplingMode "${case_sampling_mode}"
-            --p4.psfSampleAvoidRadius "${case_sample_avoid_radius}"
+            --psfResponse.method "${case_sampling_mode}"
+            --psfResponse.sampleAvoidRadius "${case_sample_avoid_radius}"
         )
         if [[ -n "${case_radii}" ]]; then
-            command_line+=(--p4.psfSampleRadii "${case_radii}")
+            command_line+=(--psfResponse.sampleRadii "${case_radii}")
         else
-            command_line+=(--p4.psfRadiiPerRegion "${case_radii_per_region}")
+            command_line+=(--psfResponse.radiiPerRegion "${case_radii_per_region}")
         fi
         if ((case_angles > 0)); then
-            command_line+=(--p4.psfSamplesPerRadius "${case_angles}")
+            command_line+=(--psfResponse.samplesPerRadius "${case_angles}")
         else
-            command_line+=(--p4.psfSampleArcStep "${case_arc_step}")
+            command_line+=(--psfResponse.sampleArcStep "${case_arc_step}")
         fi
     fi
     if [[ "${case_sampling_mode}" == detectorLocal && -n "${planet_sep}" ]]; then

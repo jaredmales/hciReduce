@@ -1,6 +1,5 @@
 /** \file HCIobservation_output_test.cpp
  * \brief Tests HCIobservation FITS headers and output products.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

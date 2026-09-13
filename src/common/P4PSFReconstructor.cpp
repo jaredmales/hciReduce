@@ -1,6 +1,5 @@
 /** \file P4PSFReconstructor.cpp
  * \brief Implements compact detector-to-sky reconstruction for P4 frozen-model PSFs.
- * \author Jared R. Males
  */
 
 #include "P4PSFReconstructor.hpp"

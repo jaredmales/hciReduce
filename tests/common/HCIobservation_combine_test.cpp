@@ -1,6 +1,5 @@
 /** \file HCIobservation_combine_test.cpp
  * \brief Tests HCIobservation final image combination.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

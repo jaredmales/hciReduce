@@ -1,6 +1,5 @@
 /** \file common_config.dox
  * \brief Configuration dictionary shared by hciReduce reductions.
- * \author Jared R. Males
  */
 
 /** \addtogroup common_user_guide
@@ -35,6 +34,32 @@
  * command-line value must override a configuration-file boolean with false. Configuration files continue to use
  * `key=true` or `key=false`. Repeating one boolean option on a command line is rejected as ambiguous. Lists are
  * comma-separated, for example `minRadius=6,8,10`.
+ *
+ * \section common_psf_response_dictionary Sparse PSF-response estimation
+ *
+ * P4 and KLIP use one `[psfResponse]` interface for sparse response measurement, radial modeling, and matched
+ * filtering. The response keys are not registered or loaded in `[p4]` or `[klip]`. Sparse radial response estimation
+ * requires exactly one radial control and one angular control. Explicit radii form a global radial model;
+ * `radiiPerRegion` constructs uniformly spaced interior nodes and prevents interpolation across reduction-region
+ * boundaries. Algorithm-specific measurement semantics and restrictions are described in
+ * \ref p4_psf_configuration "the P4 response guide" and
+ * \ref klip_psf_dictionary "the KLIP response guide".
+ *
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--psfResponse.file` | `psfResponse.file=/path/template.fits` | readable finite two-dimensional FITS image | unset | Centered PSF template at the reduction's documented post-preprocessing input stage. |
+ * | `--psfResponse.stampSize` | `psfResponse.stampSize=11` | positive integer; sparse/filter paths require odd | `0` | Width and height of each compact final response stamp. |
+ * | `--psfResponse.sampleRadii` | `psfResponse.sampleRadii=7.8,11.4,15` | strictly increasing finite nonnegative pixels inside the search geometry | unset | Explicit global radial nodes, mutually exclusive with `radiiPerRegion`. |
+ * | `--psfResponse.radiiPerRegion` | `psfResponse.radiiPerRegion=2` | nonnegative integer | `0` | Uniformly spaced interior nodes in every reduction region, mutually exclusive with `sampleRadii`; interpolation stays within each region. |
+ * | `--psfResponse.samplesPerRadius` | `psfResponse.samplesPerRadius=4` | positive integer | `0` | Fixed uniformly spaced angular sample count at every node, mutually exclusive with `sampleArcStep`. |
+ * | `--psfResponse.sampleArcStep` | `psfResponse.sampleArcStep=3.6` | positive finite pixels | `0` | Maximum circular arc between neighboring samples, mutually exclusive with `samplesPerRadius`. |
+ * | `--psfResponse.method` | `psfResponse.method=refitDifference` | `skyExact`, `detectorLocal`, `refitDifference` | `skyExact` | Response operator. Both reductions support `skyExact` and paired finite-amplitude `refitDifference`; only P4 supports `detectorLocal`. |
+ * | `--psfResponse.sampleAvoidRadius` | `psfResponse.sampleAvoidRadius=5` | finite nonnegative pixels | `0` | Reject response locations within this distance of any configured `planet.*` position; zero disables avoidance. |
+ * | `--psfResponse.refitContrast` | `psfResponse.refitContrast=0.0048` | positive finite contrast for `refitDifference` | `0` | Half-amplitude of the signed injections used by the central difference. |
+ * | `--psfResponse.outputModels` | `psfResponse.outputModels=true` | bool | `false` | Write the algorithm-specific response/model and validity products; sparse mode writes canonical common-angle radial products. |
+ * | `--psfResponse.filter` | `psfResponse.filter=true` | bool | `false` | Evaluate the spatial response and write signed normalized matched-filter products. |
+ * | `--psfResponse.filterMinGoodFract` | `psfResponse.filterMinGoodFract=0.8` | finite real in `[0,1]` | `1` | Minimum usable fraction of the full local response/science stamp. |
+ * | `--psfResponse.outputPrefix` | `psfResponse.outputPrefix=response_` | nonempty string when output is enabled | `p4PSF_` or `klipPSF_` | Filename prefix inside the final image's auxiliary product directory. |
  *
  * \section common_solver_dictionary Target-exclusion solvers
  *

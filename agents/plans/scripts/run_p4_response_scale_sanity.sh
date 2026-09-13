@@ -232,7 +232,7 @@ command -v "${p4reduce_bin}" >/dev/null 2>&1 || {
     exit 1
 }
 help_text=$("${p4reduce_bin}" --help 2>&1)
-for required_option in --fake.subtractPlanet --p4.psfFile --p4.psfSamplingMode --p4Optimize.enabled; do
+for required_option in --fake.subtractPlanet --psfResponse.file --psfResponse.method --p4Optimize.enabled; do
     if [[ "${help_text}" != *"${required_option}"* ]]; then
         printf 'p4Reduce does not expose required option %s; build this checkout first.\n' "${required_option}" >&2
         exit 1
@@ -445,9 +445,9 @@ else
         --fake.fileName "${psf_file}"
         --fake.subtractPlanet=true
         --p4.localStampSize 0
-        --p4.psfFile ""
-        --p4.outputPSFModels=false
-        --p4.psfFilter=false
+        --psfResponse.file ""
+        --psfResponse.outputModels=false
+        --psfResponse.filter=false
         --p4Optimize.enabled=false
         --output.directory "${response_subtraction_case}"
         --output.fileName finim.fits
@@ -482,9 +482,9 @@ else
         --fake.fileName "${psf_file}"
         --fake.subtractPlanet=true
         --p4.localStampSize 0
-        --p4.psfFile ""
-        --p4.outputPSFModels=false
-        --p4.psfFilter=false
+        --psfResponse.file ""
+        --psfResponse.outputModels=false
+        --psfResponse.filter=false
         --p4Optimize.enabled=false
         --output.directory "${over_subtraction_case}"
         --output.fileName finim.fits
@@ -516,15 +516,15 @@ else
         --planet.contrast "${sampling_contrast}"
         --fake.fileName ""
         --fake.subtractPlanet=false
-        --p4.psfFile "${scaled_psf}"
-        --p4.psfStampSize "${psf_stamp_size}"
-        --p4.outputPSFModels=true
-        --p4.psfFilter=true
-        --p4.psfOutputPrefix p4PSF_
-        --p4.psfSamplingMode detectorLocal
-        --p4.psfRadiiPerRegion 2
-        --p4.psfSamplesPerRadius 4
-        --p4.psfSampleAvoidRadius "${psf_sample_avoid_radius}"
+        --psfResponse.file "${scaled_psf}"
+        --psfResponse.stampSize "${psf_stamp_size}"
+        --psfResponse.outputModels=true
+        --psfResponse.filter=true
+        --psfResponse.outputPrefix p4PSF_
+        --psfResponse.method detectorLocal
+        --psfResponse.radiiPerRegion 2
+        --psfResponse.samplesPerRadius 4
+        --psfResponse.sampleAvoidRadius "${psf_sample_avoid_radius}"
         --p4Optimize.enabled=false
         --output.directory "${scaled_response_case}"
         --output.fileName finim.fits

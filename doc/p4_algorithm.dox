@@ -1,6 +1,5 @@
 /** \file p4_algorithm.dox
  * \brief Developer guide to the P4 algorithm implementation.
- * \author Jared R. Males
  */
 
 /** \addtogroup developer_p4_algorithm

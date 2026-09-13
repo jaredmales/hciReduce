@@ -1,6 +1,5 @@
 /** \file P4PSFFilter.cpp
  * \brief Implements normalized local filtering and product naming for spatially variable PSF responses.
- * \author Jared R. Males
  */
 
 #include "P4PSFFilter.hpp"

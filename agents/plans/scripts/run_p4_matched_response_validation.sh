@@ -276,14 +276,14 @@ command -v "${p4reduce_bin}" >/dev/null 2>&1 || {
 }
 
 help_text=$("${p4reduce_bin}" --help 2>&1)
-for required_option in --p4.modeFractions --p4.psfRadiiPerRegion --p4.psfSamplingMode \
-    --p4Optimize.enabled --fake.subtractPlanet; do
+for required_option in --p4.modeFractions --psfResponse.file --psfResponse.method --p4Optimize.enabled \
+    --fake.subtractPlanet; do
     if [[ "${help_text}" != *"${required_option}"* ]]; then
         printf 'p4Reduce does not expose required option %s; build this checkout first.\n' "${required_option}" >&2
         exit 1
     fi
 done
-if grep -Eq '^[[:space:]]*(psfSampleRadii|psfRadiiPerRegion|psfSamplesPerRadius|psfSampleArcStep)[[:space:]]*=' "${base_config}"; then
+if grep -Eq '^[[:space:]]*\[psfResponse\][[:space:]]*$' "${base_config}"; then
     printf 'Base configuration contains an active sparse PSF grid: %s\n' "${base_config}" >&2
     printf '%s\n' 'Use the unsampled standard ROC configuration so the dense oracle is unambiguous.' >&2
     exit 1
@@ -400,15 +400,15 @@ else
             --planet.sep "${planet_sep}"
             --planet.PA "${planet_pa}"
             --planet.contrast "${planet_contrast}"
-            --p4.psfFile "${psf_file}"
-            --p4.psfStampSize "${psf_stamp_size}"
-            --p4.outputPSFModels=true
-            --p4.psfFilter=true
-            --p4.psfOutputPrefix p4PSF_
-            --p4.psfSamplingMode detectorLocal
-            --p4.psfRadiiPerRegion 2
-            --p4.psfSamplesPerRadius 4
-            --p4.psfSampleAvoidRadius "${psf_sample_avoid_radius}"
+            --psfResponse.file "${psf_file}"
+            --psfResponse.stampSize "${psf_stamp_size}"
+            --psfResponse.outputModels=true
+            --psfResponse.filter=true
+            --psfResponse.outputPrefix p4PSF_
+            --psfResponse.method detectorLocal
+            --psfResponse.radiiPerRegion 2
+            --psfResponse.samplesPerRadius 4
+            --psfResponse.sampleAvoidRadius "${psf_sample_avoid_radius}"
             --p4Optimize.enabled=false
             --output.directory "${sparse_case}"
             --output.fileName finim.fits
@@ -485,9 +485,9 @@ else
             --fake.contrast "${negative_initial_contrast}"
             --fake.subtractPlanet=false
             --p4.localStampSize "${optimizer_local_stamp_size}"
-            --p4.psfFile ""
-            --p4.outputPSFModels=false
-            --p4.psfFilter=false
+            --psfResponse.file ""
+            --psfResponse.outputModels=false
+            --psfResponse.filter=false
             --p4Optimize.enabled=true
             --p4Optimize.modeFraction "${mode_fraction}"
             --p4Optimize.apertureRadius "${optimizer_aperture_radius}"
@@ -586,11 +586,11 @@ else
             --fake.fileName "${psf_file}"
             --fake.subtractPlanet=true
             --p4.localStampSize 0
-            --p4.psfFile "${psf_file}"
-            --p4.psfStampSize "${psf_stamp_size}"
-            --p4.outputPSFModels=true
-            --p4.psfFilter=true
-            --p4.psfOutputPrefix p4PSF_
+            --psfResponse.file "${psf_file}"
+            --psfResponse.stampSize "${psf_stamp_size}"
+            --psfResponse.outputModels=true
+            --psfResponse.filter=true
+            --psfResponse.outputPrefix p4PSF_
             --p4Optimize.enabled=false
             --output.directory "${signal_free_case}"
             --output.fileName finim.fits

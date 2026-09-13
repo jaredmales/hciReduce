@@ -1,6 +1,5 @@
 /** \file RadialPSFModel.hpp
  * \brief Declares azimuthally averaged PSF response models sampled at discrete radii.
- * \author Jared R. Males
  */
 
 #ifndef RadialPSFModel_hpp

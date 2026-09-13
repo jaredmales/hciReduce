@@ -12,6 +12,10 @@ psf_file=${PSF_FILE:-/home/jrmales/Source/mxWork/NACO/AFLep/2011-10-21/out/psf_r
 klipreduce_bin=${KLIPREDUCE_BIN:-klipReduce}
 psf_stamp_size=${PSF_STAMP_SIZE:-11}
 psf_filter_min_good_fract=${PSF_FILTER_MIN_GOOD_FRACT:-1}
+planet_sep=${PLANET_SEP:-11.73795339222688}
+planet_pa=${PLANET_PA:-262.1667995998323}
+planet_contrast=${PLANET_CONTRAST:-0.004763925929356391}
+candidate_avoid_radius=${CANDIDATE_AVOID_RADIUS:-5}
 experiment_dir=${EXPERIMENT_DIR:-"${roc_working_dir}/klip_psf_response_$(date -u +%Y%m%dT%H%M%SZ)"}
 dry_run=false
 analyze_only=false
@@ -61,6 +65,7 @@ science_only       normal KLIP reduction without analytic response measurement
 reference_dr1_a16  radii 6.5:1:59.5 pixels, 16 angles per radius
 radial_ld_fixed16  radii spaced by 3.6 pixels, 16 angles per radius
 radial_ld_fixed16_filter  same accepted grid with normalized filtering enabled
+radial_ld_refit4_filter   accepted radii, 4 angles, paired refits, candidate avoidance, and filtering
 radial_ld_arc      same radii with angles spaced by at most 3.6-pixel arcs
 radial_dr2_a4      radii 7:2:59 pixels, 4 angles per radius
 radial_dr2_a8      radii 7:2:59 pixels, 8 angles per radius
@@ -86,6 +91,9 @@ case_parameters()
     case_angles=0
     case_arc_step=0
     case_filter=false
+    case_method=skyExact
+    case_avoid_radius=0
+    case_refit_contrast=0
     case "${case_name}" in
         science_only)
             case_response=false
@@ -102,6 +110,14 @@ case_parameters()
             case_radii=$(radii_sequence 7.8 3.6 58.2)
             case_angles=16
             case_filter=true
+            ;;
+        radial_ld_refit4_filter)
+            case_radii=$(radii_sequence 7.8 3.6 58.2)
+            case_angles=4
+            case_filter=true
+            case_method=refitDifference
+            case_avoid_radius=${candidate_avoid_radius}
+            case_refit_contrast=${planet_contrast}
             ;;
         radial_ld_arc)
             case_radii=$(radii_sequence 7.8 3.6 58.2)
@@ -209,14 +225,13 @@ command -v "${klipreduce_bin}" >/dev/null 2>&1 || {
 }
 
 help_text=$("${klipreduce_bin}" --help 2>&1)
-if [[ "${help_text}" != *"--klip.psfSampleRadii"* || "${help_text}" != *"--klip.psfSampleArcStep"* ||
-      "${help_text}" != *"--klip.outputPSFModels"* || "${help_text}" != *"--klip.psfFilter"* ]]; then
+if [[ "${help_text}" != *"--psfResponse.file"* || "${help_text}" != *"--psfResponse.sampleRadii"* ||
+      "${help_text}" != *"--psfResponse.method"* || "${help_text}" != *"--psfResponse.filter"* ]]; then
     printf 'klipReduce does not expose the sparse response options: %s\n' "${klipreduce_bin}" >&2
     printf '%s\n' 'Build this hciReduce checkout and set KLIPREDUCE_BIN to that executable.' >&2
     exit 1
 fi
-if grep -Eq '^[[:space:]]*(psfFile|psfStampSize|psfSampleRadii|psfSamplesPerRadius|psfSampleArcStep|outputPSFModels|psfFilter|psfFilterMinGoodFract)[[:space:]]*=' \
-    "${base_config}"; then
+if grep -Eq '^[[:space:]]*\[psfResponse\][[:space:]]*$' "${base_config}"; then
     printf 'The base configuration must not enable KLIP PSF measurement: %s\n' "${base_config}" >&2
     exit 1
 fi
@@ -309,21 +324,31 @@ for case_name in "${selected_cases[@]}"; do
     )
     if [[ "${case_response}" == true ]]; then
         command_line+=(
-            --klip.psfFile "${psf_file}"
-            --klip.psfStampSize "${psf_stamp_size}"
-            --klip.psfSampleRadii "${case_radii}"
-            --klip.outputPSFModels=true
-            --klip.psfOutputPrefix klipPSF_
+            --psfResponse.file "${psf_file}"
+            --psfResponse.stampSize "${psf_stamp_size}"
+            --psfResponse.sampleRadii "${case_radii}"
+            --psfResponse.method "${case_method}"
+            --psfResponse.outputModels=true
+            --psfResponse.outputPrefix klipPSF_
         )
         if ((case_angles > 0)); then
-            command_line+=(--klip.psfSamplesPerRadius "${case_angles}")
+            command_line+=(--psfResponse.samplesPerRadius "${case_angles}")
         else
-            command_line+=(--klip.psfSampleArcStep "${case_arc_step}")
+            command_line+=(--psfResponse.sampleArcStep "${case_arc_step}")
         fi
         if [[ "${case_filter}" == true ]]; then
             command_line+=(
-                --klip.psfFilter=true
-                --klip.psfFilterMinGoodFract "${psf_filter_min_good_fract}"
+                --psfResponse.filter=true
+                --psfResponse.filterMinGoodFract "${psf_filter_min_good_fract}"
+            )
+        fi
+        if [[ "${case_method}" == refitDifference ]]; then
+            command_line+=(
+                --psfResponse.sampleAvoidRadius "${case_avoid_radius}"
+                --psfResponse.refitContrast "${case_refit_contrast}"
+                --planet.sep "${planet_sep}"
+                --planet.PA "${planet_pa}"
+                --planet.contrast "${planet_contrast}"
             )
         fi
     fi
@@ -337,6 +362,9 @@ for case_name in "${selected_cases[@]}"; do
         printf 'samples_per_radius=%s\n' "${case_angles}"
         printf 'sample_arc_step=%s\n' "${case_arc_step}"
         printf 'filter_enabled=%s\n' "${case_filter}"
+        printf 'response_method=%s\n' "${case_method}"
+        printf 'candidate_avoid_radius=%s\n' "${case_avoid_radius}"
+        printf 'refit_contrast=%s\n' "${case_refit_contrast}"
         printf 'filter_min_good_fraction=%s\n' "${psf_filter_min_good_fract}"
         printf 'psf_file=%s\n' "${psf_file}"
         printf 'psf_stamp_size=%s\n' "${psf_stamp_size}"
@@ -371,13 +399,14 @@ for case_name in "${selected_cases[@]}"; do
         exit 1
     fi
     if [[ "${case_response}" == true ]]; then
-        python3 - "${case_dir}" <<'PY'
+        python3 - "${case_dir}" "${case_method}" <<'PY'
 import sys
 from pathlib import Path
 
 from astropy.io import fits
 
 case_directory = Path(sys.argv[1])
+method = sys.argv[2]
 product_directory = case_directory / "finim_outputs"
 responses = sorted(product_directory.glob("klipPSF_mode*_radial_response.fits"))
 validities = sorted(product_directory.glob("klipPSF_mode*_radial_validity.fits"))
@@ -387,10 +416,18 @@ for response in responses:
     header = fits.getheader(response)
     if int(header.get("KLIP PSF PRODUCT SCHEMA", 0)) != 1:
         raise SystemExit(f"unexpected KLIP response schema in {response}")
-    if str(header.get("KLIP PSF ACCUMULATION", "")).strip() != "WORKER_SUM":
-        raise SystemExit(f"expected bounded worker-sum accumulation in {response}")
+    expected_accumulation = "PAIRED_FINAL_DIFFERENCE" if method == "refitDifference" else "WORKER_SUM"
+    if str(header.get("KLIP PSF ACCUMULATION", "")).strip() != expected_accumulation:
+        raise SystemExit(f"expected {expected_accumulation} accumulation in {response}")
+    if str(header.get("KLIP PSF RESPONSE METHOD", "")).strip() != method:
+        raise SystemExit(f"expected {method} response measurement in {response}")
     if str(header.get("KLIP PSF SPATIAL MODEL", "")).strip() != "RADIAL_LINEAR":
         raise SystemExit(f"expected linear radial interpolation in {response}")
+    if method == "refitDifference":
+        if int(header.get("KLIP PSF MEASUREMENT COUNT", 0)) != 57:
+            raise SystemExit(f"expected 57 retained candidate-avoiding samples in {response}")
+        if int(header.get("KLIP PSF REFIT TRIAL COUNT", 0)) != 114:
+            raise SystemExit(f"expected 114 paired trial reductions in {response}")
 PY
         if [[ "${case_filter}" == true ]]; then
             python3 - "${case_dir}" <<'PY'

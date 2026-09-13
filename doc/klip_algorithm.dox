@@ -1,6 +1,5 @@
 /** \file klip_algorithm.dox
  * \brief Developer guide to the KLIP algorithm implementation.
- * \author Jared R. Males
  */
 
 /** \addtogroup developer_klip_algorithm

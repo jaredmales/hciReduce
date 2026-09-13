@@ -187,7 +187,7 @@ command -v "${p4reduce_bin}" >/dev/null 2>&1 || {
     exit 1
 }
 help_text=$("${p4reduce_bin}" --help 2>&1)
-for required_option in --p4.psfFile --p4.psfSamplingMode --p4.psfRefitContrast; do
+for required_option in --psfResponse.file --psfResponse.method; do
     if [[ "${help_text}" != *"${required_option}"* ]]; then
         printf 'p4Reduce does not expose required option %s; build this checkout first.\n' "${required_option}" >&2
         exit 1
@@ -338,16 +338,16 @@ else
         --planet.contrast "${sampling_contrast}"
         --fake.fileName ""
         --fake.subtractPlanet=false
-        --p4.psfFile "${psf_file}"
-        --p4.psfStampSize "${psf_stamp_size}"
-        --p4.outputPSFModels=true
-        --p4.psfFilter=false
-        --p4.psfOutputPrefix p4PSF_
-        --p4.psfSamplingMode refitDifference
-        --p4.psfRefitContrast "${refit_contrast}"
-        --p4.psfRadiiPerRegion 2
-        --p4.psfSamplesPerRadius 4
-        --p4.psfSampleAvoidRadius "${psf_sample_avoid_radius}"
+        --psfResponse.file "${psf_file}"
+        --psfResponse.stampSize "${psf_stamp_size}"
+        --psfResponse.outputModels=true
+        --psfResponse.filter=false
+        --psfResponse.outputPrefix p4PSF_
+        --psfResponse.method refitDifference
+        --psfResponse.refitContrast "${refit_contrast}"
+        --psfResponse.radiiPerRegion 2
+        --psfResponse.samplesPerRadius 4
+        --psfResponse.sampleAvoidRadius "${psf_sample_avoid_radius}"
         --p4Optimize.enabled=false
         --output.directory "${response_case}"
         --output.fileName finim.fits

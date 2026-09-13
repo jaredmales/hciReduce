@@ -370,9 +370,9 @@ else
         --fake.fileName ""
         --fake.subtractPlanet=false
         --p4.localStampSize 0
-        --p4.psfFile ""
-        --p4.outputPSFModels=false
-        --p4.psfFilter=false
+        --psfResponse.file ""
+        --psfResponse.outputModels=false
+        --psfResponse.filter=false
         --p4Optimize.enabled=false
         --combine.method mean
         --output.directory "${original_case}"
@@ -407,9 +407,9 @@ else
         --fake.fileName "${psf_file}"
         --fake.subtractPlanet=true
         --p4.localStampSize 0
-        --p4.psfFile ""
-        --p4.outputPSFModels=false
-        --p4.psfFilter=false
+        --psfResponse.file ""
+        --psfResponse.outputModels=false
+        --psfResponse.filter=false
         --p4Optimize.enabled=false
         --combine.method mean
         --output.directory "${signal_free_case}"

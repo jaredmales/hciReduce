@@ -1,6 +1,5 @@
 /** \file HCIobservation_preprocess_test.cpp
  * \brief Tests HCIobservation pure preprocessing operations.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

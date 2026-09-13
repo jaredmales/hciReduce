@@ -1,6 +1,5 @@
 /** \file P4PixelGrid.cpp
  * \brief Implements the local pixel geometry used by Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #include "P4PixelGrid.hpp"

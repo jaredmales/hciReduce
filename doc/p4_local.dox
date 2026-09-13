@@ -1,6 +1,5 @@
 /** \file p4_local.dox
  * \brief User's guide for P4 pixel-local processing.
- * \author Jared R. Males
  */
 
 /** \addtogroup p4_local_user_guide
@@ -65,7 +64,7 @@
  * - detector-frame P4, enabled derotation, and a final `combine.method`;
  * - `adi.postMedSub=false` and `output.outputPSFSub=false`;
  * - `p4.numberImages=0` when target-frame exclusion is enabled; and
- * - no frozen-model settings (`p4.psfFile`, `p4.outputPSFModels`, or `p4.psfFilter`).
+ * - no frozen-model settings (`psfResponse.file`, `psfResponse.outputModels`, or `psfResponse.filter`).
  *
  * The gap-held-out `p4.temporalPredictor=pcat` mode is not yet available for pixel-local trials because the temporal
  * basis would need to be re-fit after every trial perturbation.

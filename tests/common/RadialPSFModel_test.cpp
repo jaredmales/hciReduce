@@ -1,6 +1,5 @@
 /** \file RadialPSFModel_test.cpp
  * \brief Tests sparse polar PSF response averaging and linear radial interpolation.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

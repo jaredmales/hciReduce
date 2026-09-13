@@ -1,6 +1,5 @@
 /** \file HCIobservation_read_test.cpp
  * \brief Tests HCIobservation target FITS ingestion and mask construction.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

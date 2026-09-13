@@ -1,6 +1,5 @@
 /** \file HCIobservation_test_fixture.hpp
  * \brief Shared test harness and temporary-input helpers for HCIobservation tests.
- * \author Jared R. Males
  */
 
 #ifndef tests_common_HCIobservation_test_fixture_hpp

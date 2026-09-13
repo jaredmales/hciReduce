@@ -1,6 +1,5 @@
 /** \file KLIPreduction_test.cpp
  * \brief Tests KLIP reduction centering and normalization behavior.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"
@@ -285,15 +284,35 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( config.m_targets.at( "klip.includeMethod" ).helpType == "string" );
     REQUIRE( config.m_targets.at( "solver.exclusionSolver" ).helpType == "string" );
     REQUIRE( config.m_targets.at( "solver.deletionBackend" ).helpType == "string" );
-    REQUIRE( config.m_targets.at( "klip.psfFile" ).helpType == "string" );
-    REQUIRE( config.m_targets.at( "klip.psfStampSize" ).helpType == "int" );
-    REQUIRE( config.m_targets.at( "klip.psfSampleRadii" ).helpType == "float vector" );
-    REQUIRE( config.m_targets.at( "klip.psfSamplesPerRadius" ).helpType == "int" );
-    REQUIRE( config.m_targets.at( "klip.psfSampleArcStep" ).helpType == "float" );
-    REQUIRE( config.m_targets.at( "klip.outputPSFModels" ).helpType == "bool" );
-    REQUIRE( config.m_targets.at( "klip.psfFilter" ).helpType == "bool" );
-    REQUIRE( config.m_targets.at( "klip.psfFilterMinGoodFract" ).helpType == "float" );
-    REQUIRE( config.m_targets.at( "klip.psfOutputPrefix" ).helpType == "string" );
+    REQUIRE( config.m_targets.at( "psfResponse.file" ).helpType == "string" );
+    REQUIRE( config.m_targets.at( "psfResponse.stampSize" ).helpType == "int" );
+    REQUIRE( config.m_targets.at( "psfResponse.sampleRadii" ).helpType == "float vector" );
+    REQUIRE( config.m_targets.at( "psfResponse.radiiPerRegion" ).helpType == "int" );
+    REQUIRE( config.m_targets.at( "psfResponse.samplesPerRadius" ).helpType == "int" );
+    REQUIRE( config.m_targets.at( "psfResponse.sampleArcStep" ).helpType == "float" );
+    REQUIRE( config.m_targets.at( "psfResponse.method" ).helpType == "string" );
+    REQUIRE( config.m_targets.at( "psfResponse.sampleAvoidRadius" ).helpType == "float" );
+    REQUIRE( config.m_targets.at( "psfResponse.refitContrast" ).helpType == "float" );
+    REQUIRE( config.m_targets.at( "psfResponse.outputModels" ).helpType == "bool" );
+    REQUIRE( config.m_targets.at( "psfResponse.filter" ).helpType == "bool" );
+    REQUIRE( config.m_targets.at( "psfResponse.filterMinGoodFract" ).helpType == "float" );
+    REQUIRE( config.m_targets.at( "psfResponse.outputPrefix" ).helpType == "string" );
+    for( const char *retiredTarget : { "klip.psfFile",
+                                       "klip.psfStampSize",
+                                       "klip.psfSampleRadii",
+                                       "klip.psfRadiiPerRegion",
+                                       "klip.psfSamplesPerRadius",
+                                       "klip.psfSampleArcStep",
+                                       "klip.psfSamplingMode",
+                                       "klip.psfSampleAvoidRadius",
+                                       "klip.psfRefitContrast",
+                                       "klip.outputPSFModels",
+                                       "klip.psfFilter",
+                                       "klip.psfFilterMinGoodFract",
+                                       "klip.psfOutputPrefix" } )
+    {
+        REQUIRE( config.m_targets.count( retiredTarget ) == 0 );
+    }
 
     defaults.loadConfig( config );
     REQUIRE_FALSE( defaults.m_writeDiagnostics );
@@ -305,8 +324,12 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( defaults.m_psfFile.empty() );
     REQUIRE( defaults.m_psfStampSize == 0 );
     REQUIRE( defaults.m_psfSampleRadii.empty() );
+    REQUIRE( defaults.m_psfRadiiPerRegion == 0 );
     REQUIRE( defaults.m_psfSamplesPerRadius == 0 );
     REQUIRE( defaults.m_psfSampleArcStep == 0 );
+    REQUIRE( defaults.m_psfSamplingMode == mx::improc::PSFResponseMethod::skyExact );
+    REQUIRE( defaults.m_psfSampleAvoidRadius == 0 );
+    REQUIRE( defaults.m_psfRefitContrast == 0 );
     REQUIRE_FALSE( defaults.m_outputPSFModels );
     REQUIRE_FALSE( defaults.m_psfFilter );
     REQUIRE( defaults.m_psfFilterMinGoodFract == 1 );
@@ -318,17 +341,22 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     readReductionConfig( configured,
                          directory.file( "klip.conf" ),
                          "[klip]\nwriteDiagnostics=true\ndiagnosticDirectory=" + diagnosticDirectory.string() +
-                             "\npsfFile=template.fits\npsfStampSize=9\npsfSampleRadii=4,8\n"
-                             "psfSamplesPerRadius=6\noutputPSFModels=true\npsfFilter=true\n"
-                             "psfFilterMinGoodFract=0.6\npsfOutputPrefix=response_\n" );
+                             "\n[psfResponse]\nfile=template.fits\nstampSize=9\nsampleRadii=4,8\n"
+                             "samplesPerRadius=6\nmethod=refitDifference\nsampleAvoidRadius=2.5\n"
+                             "refitContrast=0.004\noutputModels=true\nfilter=true\n"
+                             "filterMinGoodFract=0.6\noutputPrefix=response_\n" );
 
     REQUIRE( configured.m_writeDiagnostics );
     REQUIRE( configured.m_diagnosticDirectory == diagnosticDirectory.string() );
     REQUIRE( configured.m_psfFile == "template.fits" );
     REQUIRE( configured.m_psfStampSize == 9 );
     REQUIRE( configured.m_psfSampleRadii == std::vector<float>{ 4, 8 } );
+    REQUIRE( configured.m_psfRadiiPerRegion == 0 );
     REQUIRE( configured.m_psfSamplesPerRadius == 6 );
     REQUIRE( configured.m_psfSampleArcStep == 0 );
+    REQUIRE( configured.m_psfSamplingMode == mx::improc::PSFResponseMethod::refitDifference );
+    REQUIRE( configured.m_psfSampleAvoidRadius == Approx( 2.5 ) );
+    REQUIRE( configured.m_psfRefitContrast == Approx( 0.004 ) );
     REQUIRE( configured.m_outputPSFModels );
     REQUIRE( configured.m_psfFilter );
     REQUIRE( configured.m_psfFilterMinGoodFract == Approx( 0.6 ) );
@@ -337,9 +365,23 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     reductionT arcConfigured;
     readReductionConfig( arcConfigured,
                          directory.file( "klip-arc.conf" ),
-                         "[klip]\npsfSampleRadii=4,8\npsfSampleArcStep=3.6\n" );
+                         "[psfResponse]\nsampleRadii=4,8\nsampleArcStep=3.6\n" );
     REQUIRE( arcConfigured.m_psfSamplesPerRadius == 0 );
     REQUIRE( arcConfigured.m_psfSampleArcStep == Approx( 3.6 ) );
+
+    reductionT regionConfigured;
+    readReductionConfig( regionConfigured,
+                         directory.file( "klip-region.conf" ),
+                         "[psfResponse]\nradiiPerRegion=2\nsamplesPerRadius=4\n" );
+    REQUIRE( regionConfigured.m_psfSampleRadii.empty() );
+    REQUIRE( regionConfigured.m_psfRadiiPerRegion == 2 );
+    REQUIRE( regionConfigured.m_psfSamplesPerRadius == 4 );
+
+    reductionT removedKLIPPSFKey;
+    readReductionConfig( removedKLIPPSFKey,
+                         directory.file( "removed-klip-psf-key.conf" ),
+                         "[klip]\npsfFile=template.fits\n" );
+    REQUIRE( removedKLIPPSFKey.m_psfFile.empty() );
 }
 
 /// Verify KLIPreduction::loadConfig loads geometric, selection, centering, and normalization settings.
@@ -2734,6 +2776,169 @@ TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regio
     REQUIRE( manifestHeader["KLIP PSF COMPLETE"].value<int>() == 1 );
 }
 
+/// Verify KLIP paired refits reproduce explicit signed injections while preserving the science result.
+/** This exercises mx::improc::KLIPreduction::regions(), the shared region-aware radial grid, known-source avoidance,
+ * and the finite-amplitude refitDifference response operator.
+ * \ingroup KLIPreduction_unit_tests
+ */
+TEST_CASE( "KLIP paired refit-difference PSF response", "[KLIPreduction][regions][PSF][refitDifference]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    mx::improc::eigenCube<float> targets( 11, 11, 3 );
+    for( int image = 0; image < targets.planes(); ++image )
+    {
+        for( int column = 0; column < targets.cols(); ++column )
+        {
+            for( int row = 0; row < targets.rows(); ++row )
+            {
+                targets.image( image )( row, column ) = static_cast<float>(
+                    ( image + 1 ) * ( row + 2 ) + ( image + 2 ) * ( column + 1 ) + 0.1 * row * column );
+            }
+        }
+    }
+
+    reductionT::imageT psfTemplate( 5, 5 );
+    for( int column = 0; column < psfTemplate.cols(); ++column )
+    {
+        for( int row = 0; row < psfTemplate.rows(); ++row )
+        {
+            const float deltaRow = static_cast<float>( row - 2 );
+            const float deltaColumn = static_cast<float>( column - 2 );
+            psfTemplate( row, column ) = std::exp( -0.7F * ( deltaRow * deltaRow + deltaColumn * deltaColumn ) );
+        }
+    }
+    const std::filesystem::path psfPath = directory.file( "paired-psf.fits" );
+    mx::fits::fitsFile<float, mx::verbose::vv> writer;
+    REQUIRE( writer.write( psfPath.string(), psfTemplate ) == mx::error_t::noerror );
+
+    const auto prepare = [&]( reductionHarness &reduction )
+    {
+        reduction.m_filesRead = true;
+        reduction.m_RDIfilesRead = true;
+        reduction.m_imSize = 11;
+        reduction.m_Nrows = 11;
+        reduction.m_Ncols = 11;
+        reduction.m_Nims = 3;
+        reduction.m_Npix = 121;
+        reduction.m_tgtIms = targets;
+        reduction.m_Nmodes = { 1 };
+        reduction.m_meanSubMethod = mx::improc::HCI::meanSub::imageMean;
+        reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::none;
+        reduction.m_excludeMethod = mx::improc::HCI::exclude::none;
+        reduction.m_excludeMethodMax = mx::improc::HCI::exclude::none;
+        reduction.m_includeMethod = mx::improc::HCI::include::all;
+        reduction.m_includeRefNum = 0;
+        reduction.m_doDerotate = true;
+        reduction.m_derotF.m_angleScale = 1;
+        reduction.m_derotF.m_angles = { 0, 0.2, -0.25 };
+        reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+        reduction.m_doWriteFinim = false;
+        reduction.m_doOutputPSFSub = false;
+        reduction.m_finimName = "klip-final.fits";
+        reduction.m_exactFinimName = true;
+    };
+
+    reductionHarness baseline;
+    prepare( baseline );
+    REQUIRE( baseline.regions( std::vector<float>{ 0, 2.5F },
+                               std::vector<float>{ 2.5F, 5 },
+                               std::vector<float>{ 0, 0 },
+                               std::vector<float>{ 360, 360 } ) == 0 );
+
+    constexpr float halfAmplitude = 0.02F;
+    reductionHarness paired;
+    prepare( paired );
+    paired.m_psfFile = psfPath.string();
+    paired.m_psfStampSize = 3;
+    paired.m_psfRadiiPerRegion = 1;
+    paired.m_psfSamplesPerRadius = 2;
+    paired.m_psfSamplingMode = mx::improc::PSFResponseMethod::refitDifference;
+    paired.m_psfSampleAvoidRadius = 0.2F;
+    paired.m_psfRefitContrast = halfAmplitude;
+    paired.m_outputPSFModels = true;
+    paired.m_psfOutputPrefix = "paired_";
+    paired.m_outputDir = directory.file( "paired-products" ).string();
+    paired.m_planetSep = { 1.25F, 3.75F };
+    paired.m_planetPA = { 180, 0 };
+    paired.m_planetContrast = { 0.001F, 0.001F };
+    REQUIRE( paired.regions( std::vector<float>{ 0, 2.5F },
+                             std::vector<float>{ 2.5F, 5 },
+                             std::vector<float>{ 0, 0 },
+                             std::vector<float>{ 360, 360 } ) == 0 );
+
+    REQUIRE( paired.m_psfMeasurementSamples.size() == 2 );
+    REQUIRE( paired.m_psfMeasurementSamples[0].radius == Approx( 1.25 ) );
+    REQUIRE( paired.m_psfMeasurementSamples[0].angle == Approx( 0 ) );
+    REQUIRE( paired.m_psfMeasurementSamples[0].regionIndex == 0 );
+    REQUIRE( paired.m_psfMeasurementSamples[1].radius == Approx( 3.75 ) );
+    REQUIRE( paired.m_psfMeasurementSamples[1].angle == Approx( std::numbers::pi ) );
+    REQUIRE( paired.m_psfMeasurementSamples[1].regionIndex == 1 );
+    REQUIRE( paired.radialPSFModel( 0 ).radiusCount() == 2 );
+    REQUIRE( paired.radialPSFModel( 0 ).sampleCount( 0 ) == 1 );
+    REQUIRE( paired.radialPSFModel( 0 ).sampleCount( 1 ) == 1 );
+    for( int column = 0; column < paired.m_finim.cols(); ++column )
+    {
+        for( int row = 0; row < paired.m_finim.rows(); ++row )
+        {
+            const float pairedValue = paired.m_finim.image( 0 )( row, column );
+            const float baselineValue = baseline.m_finim.image( 0 )( row, column );
+            CAPTURE( row, column, pairedValue, baselineValue );
+            if( std::isfinite( baselineValue ) )
+            {
+                REQUIRE( pairedValue == Approx( baselineValue ).margin( 3e-5 ) );
+            }
+            else
+            {
+                REQUIRE_FALSE( std::isfinite( pairedValue ) );
+            }
+        }
+    }
+
+    std::array<reductionHarness, 2> signedReductions;
+    for( std::size_t signIndex = 0; signIndex < signedReductions.size(); ++signIndex )
+    {
+        reductionHarness &trial = signedReductions[signIndex];
+        prepare( trial );
+        reductionT::imageT injectionTemplate = psfTemplate;
+        const float sign = signIndex == 0 ? 1 : -1;
+        for( int image = 0; image < trial.m_Nims; ++image )
+        {
+            trial.injectFake( injectionTemplate,
+                              trial.m_tgtIms,
+                              image,
+                              trial.m_derotF.derotAngle( static_cast<std::size_t>( image ) ),
+                              0,
+                              1.25F,
+                              sign * halfAmplitude,
+                              1,
+                              1,
+                              1 );
+        }
+        REQUIRE( trial.regions( std::vector<float>{ 0, 2.5F },
+                                std::vector<float>{ 2.5F, 5 },
+                                std::vector<float>{ 0, 0 },
+                                std::vector<float>{ 360, 360 } ) == 0 );
+    }
+
+    reductionT::imageT expectedResponse( 3, 3 );
+    for( int column = 0; column < 3; ++column )
+    {
+        for( int row = 0; row < 3; ++row )
+        {
+            expectedResponse( row, column ) = ( signedReductions[0].m_finim.image( 0 )( row + 4, column + 5 ) -
+                                                signedReductions[1].m_finim.image( 0 )( row + 4, column + 5 ) ) /
+                                              ( 2 * halfAmplitude );
+        }
+    }
+    requireApprox( paired.radialPSFModel( 0 ).canonicalResponse( 0 ), expectedResponse, 5e-5 );
+
+    reductionT::fitsHeaderT header;
+    paired.appendReductionHeader( header );
+    REQUIRE( header["KLIP PSF REFIT TRIAL COUNT"].value<int>() == 4 );
+    REQUIRE( header["KLIP PSF SPATIAL MODEL"].String().starts_with( "REGION_RADIAL_LINEAR" ) );
+}
+
 /// Verify KLIPreduction::regions uses an independent RDI library without permanently changing exclusion settings.
 /** \ingroup KLIPreduction_unit_tests */
 TEST_CASE( "KLIP RDI region orchestration", "[KLIPreduction][regions][RDI]" )
@@ -2811,7 +3016,7 @@ TEST_CASE( "KLIP region validation", "[KLIPreduction][regions][validation]" )
     prepareRegionReduction( reduction );
     reduction.m_padSize = 4;
     reduction.m_psfFile = "unused.fits";
-    REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "requires psfFile" ) );
+    REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "requires file" ) );
 
     prepareRegionReduction( reduction );
     reduction.m_psfFile = "unused.fits";

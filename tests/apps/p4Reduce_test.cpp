@@ -1,6 +1,5 @@
 /** \file p4Reduce_test.cpp
  * \brief Tests p4Reduce configuration, dispatch, FITS integration, and process errors.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"
@@ -447,7 +446,7 @@ TEST_CASE( "p4Reduce configuration diagnostics", "[p4Reduce][config][diagnostics
     {
         TestDirectory directory;
         const auto configPath = directory.file( "dotted.conf" );
-        writeTextFile( configPath, "p4.psfFile=/tmp/ignored.fits\n" );
+        writeTextFile( configPath, "psfResponse.file=/tmp/ignored.fits\n" );
 
         appHarness application;
         application.setupConfig();
@@ -457,7 +456,7 @@ TEST_CASE( "p4Reduce configuration diagnostics", "[p4Reduce][config][diagnostics
         StreamCapture errors( std::cerr );
         REQUIRE_THROWS( application.loadConfig() );
         const std::string output = errors.str();
-        REQUIRE( output.find( "p4.psfFile" ) != std::string::npos );
+        REQUIRE( output.find( "psfResponse.file" ) != std::string::npos );
         REQUIRE( output.find( configPath.string() ) != std::string::npos );
     }
 }

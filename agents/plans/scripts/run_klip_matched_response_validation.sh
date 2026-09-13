@@ -14,8 +14,11 @@ klipreduce_bin=${KLIPREDUCE_BIN:-klipReduce}
 psf_stamp_size=${PSF_STAMP_SIZE:-11}
 psf_filter_min_good_fract=${PSF_FILTER_MIN_GOOD_FRACT:-1}
 mode_counts=${MODE_COUNTS:-125,150,175,200,225,250,300,350}
-planet_sep=${PLANET_SEP:-11.782}
-planet_pa=${PLANET_PA:-262.051}
+response_case=${RESPONSE_CASE:-radial_ld_fixed16_filter}
+planet_sep=${PLANET_SEP:-11.73795339222688}
+planet_pa=${PLANET_PA:-262.1667995998323}
+planet_contrast=${PLANET_CONTRAST:-0.004763925929356391}
+candidate_avoid_radius=${CANDIDATE_AVOID_RADIUS:-5}
 position_bound=${POSITION_BOUND:-1}
 noise_exclusion_radius=${NOISE_EXCLUSION_RADIUS:-5}
 noise_min_radius=${NOISE_MIN_RADIUS:-6}
@@ -42,8 +45,11 @@ Environment overrides:
   PSF_STAMP_SIZE             response stamp width (default: ${psf_stamp_size})
   PSF_FILTER_MIN_GOOD_FRACT  minimum usable filter-stamp fraction (default: ${psf_filter_min_good_fract})
   MODE_COUNTS                comma-separated exact KL mode counts to fit (default: ${mode_counts})
+  RESPONSE_CASE              response case run by the maintained driver (default: ${response_case})
   PLANET_SEP                 initial separation in pixels (default: ${planet_sep})
   PLANET_PA                  initial PA east of north (default: ${planet_pa})
+  PLANET_CONTRAST            paired-response half-amplitude when applicable (default: ${planet_contrast})
+  CANDIDATE_AVOID_RADIUS     paired-grid avoidance radius (default: ${candidate_avoid_radius})
   POSITION_BOUND             Cartesian fit half-width in pixels (default: ${position_bound})
   NOISE_EXCLUSION_RADIUS     matched-filter noise exclusion (default: ${noise_exclusion_radius})
   NOISE_MIN_RADIUS           inner noise-profile radius (default: ${noise_min_radius})
@@ -78,7 +84,7 @@ runner_command=("${script_dir}/run_klip_psf_response_experiment.sh")
 if [[ "${dry_run}" == true ]]; then
     runner_command+=(--dry-run)
 fi
-runner_command+=(science_only radial_ld_fixed16_filter)
+runner_command+=(science_only "${response_case}")
 
 EXPERIMENT_DIR="${experiment_dir}" \
 BASE_CONFIG="${base_config}" \
@@ -86,6 +92,10 @@ KLIPREDUCE_BIN="${klipreduce_bin}" \
 PSF_FILE="${psf_file}" \
 PSF_STAMP_SIZE="${psf_stamp_size}" \
 PSF_FILTER_MIN_GOOD_FRACT="${psf_filter_min_good_fract}" \
+PLANET_SEP="${planet_sep}" \
+PLANET_PA="${planet_pa}" \
+PLANET_CONTRAST="${planet_contrast}" \
+CANDIDATE_AVOID_RADIUS="${candidate_avoid_radius}" \
     "${runner_command[@]}"
 
 if [[ "${dry_run}" == true ]]; then
@@ -93,7 +103,7 @@ if [[ "${dry_run}" == true ]]; then
     exit 0
 fi
 
-case_directory="${experiment_dir}/radial_ld_fixed16_filter"
+case_directory="${experiment_dir}/${response_case}"
 python3 - "${experiment_dir}/science_only/finim.fits" "${case_directory}/finim.fits" <<'PY'
 import sys
 

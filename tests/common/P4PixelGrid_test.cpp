@@ -1,6 +1,5 @@
 /** \file P4PixelGrid_test.cpp
  * \brief Tests the local pixel geometry used by Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

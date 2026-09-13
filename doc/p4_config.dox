@@ -1,6 +1,5 @@
 /** \file p4_config.dox
  * \brief Configuration dictionary for p4Reduce.
- * \author Jared R. Males
  */
 
 /** \addtogroup p4reduce_user_guide
@@ -147,8 +146,8 @@
  * time. Base-factor and row-deletion time are subdivisions of the eigensolve aggregate. Explicit-fallback time
  * measures the complete direct-oracle retry and therefore overlaps its phase-specific Gram, eigensolve, and
  * projection totals; these diagnostic subfields must not be added to the aggregate total. Schema 7 appends aggregate
- * local-PSF worker time when `p4.psfFile` is set. Schema 8 appends elapsed final-field reconstruction/product time
- * when either `p4.outputPSFModels=true` or `p4.psfFilter=true`.
+ * local-PSF worker time when `psfResponse.file` is set. Schema 8 appends elapsed final-field reconstruction/product time
+ * when either `psfResponse.outputModels=true` or `psfResponse.filter=true`.
  * Worker totals can exceed elapsed time when local fits run concurrently; `HIERARCH P4 TIMING SCHEMA` and
  * `HIERARCH P4 TIMING COLUMNS` define the persisted layout.
  * `p4RegionSummary.fits` schema 2 adds `deletionSolverFallbackPixelCount` beside the existing rank-boundary and

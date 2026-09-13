@@ -1,5 +1,4 @@
 /** \file HCIobservation.hpp
- * \author Jared R. Males
  * \brief Defines the basic high contrast imaging data type.
  *
  */

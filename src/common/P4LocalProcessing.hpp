@@ -1,6 +1,5 @@
 /** \file P4LocalProcessing.hpp
  * \brief Declares sparse geometry and trial-source sampling for pixel-local P4 processing.
- * \author Jared R. Males
  */
 
 #ifndef P4LocalProcessing_hpp

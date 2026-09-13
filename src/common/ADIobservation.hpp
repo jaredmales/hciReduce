@@ -1,5 +1,4 @@
 /** \file ADIobservation.hpp
- * \author Jared R. Males
  * \brief Defines the ADI high contrast imaging data type.
  *
  */

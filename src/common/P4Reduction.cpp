@@ -1,6 +1,5 @@
 /** \file P4Reduction.cpp
  * \brief Implements the observation orchestrator for Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #include "ADIDerotator.hpp"
@@ -982,7 +981,7 @@ std::optional<std::size_t> p4AvailableMemoryBytes()
 } // namespace
 
 template <typename realT, class derotFunctObj, class verboseT>
-P4Reduction<realT, derotFunctObj, verboseT>::P4Reduction()
+P4Reduction<realT, derotFunctObj, verboseT>::P4Reduction() : PSFResponseConfig<realT>( "p4PSF_" )
 {
     static_assert( std::is_same_v<realT, float>,
                    "the initial P4Reduction specialization requires float image storage and cubic kernels" );
@@ -994,6 +993,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
 {
     HCIobservation<realT, verboseT>::setupConfig( config );
     ADIobservation<realT, derotFunctObj, verboseT>::setupConfig( config );
+    this->setupPSFResponseConfig( config );
 
     config.add( "geom.minRadius",
                 "",
@@ -1194,123 +1194,6 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
                 false,
                 "float",
                 "Positive physical central signal-exclusion radius in pixels" );
-    config.add( "p4.psfFile",
-                "",
-                "p4.psfFile",
-                mx::app::argType::Required,
-                "p4",
-                "psfFile",
-                false,
-                "string",
-                "Optional post-preprocessing centered FITS PSF template enabling frozen-model calculation" );
-    config.add( "p4.psfStampSize",
-                "",
-                "p4.psfStampSize",
-                mx::app::argType::Required,
-                "p4",
-                "psfStampSize",
-                false,
-                "int",
-                "Positive square frozen-model PSF stamp size; required when p4.psfFile is set" );
-    config.add( "p4.psfSampleRadii",
-                "",
-                "p4.psfSampleRadii",
-                mx::app::argType::Required,
-                "p4",
-                "psfSampleRadii",
-                false,
-                "float vector",
-                "Optional strictly increasing radii for sparse azimuthally averaged PSF measurement" );
-    config.add( "p4.psfRadiiPerRegion",
-                "",
-                "p4.psfRadiiPerRegion",
-                mx::app::argType::Required,
-                "p4",
-                "psfRadiiPerRegion",
-                false,
-                "int",
-                "Interior radial response nodes generated per P4 region; mutually exclusive with explicit radii" );
-    config.add( "p4.psfSamplesPerRadius",
-                "",
-                "p4.psfSamplesPerRadius",
-                mx::app::argType::Required,
-                "p4",
-                "psfSamplesPerRadius",
-                false,
-                "int",
-                "Uniform angular measurement count at each sparse PSF sample radius" );
-    config.add( "p4.psfSampleArcStep",
-                "",
-                "p4.psfSampleArcStep",
-                mx::app::argType::Required,
-                "p4",
-                "psfSampleArcStep",
-                false,
-                "float",
-                "Maximum azimuthal response-sample arc spacing in pixels; mutually exclusive with fixed count" );
-    config.add( "p4.psfSamplingMode",
-                "",
-                "p4.psfSamplingMode",
-                mx::app::argType::Required,
-                "p4",
-                "psfSamplingMode",
-                false,
-                "string",
-                "Sparse PSF measurement operator: skyExact, detectorLocal, or refitDifference; default skyExact" );
-    config.add( "p4.psfSampleAvoidRadius",
-                "",
-                "p4.psfSampleAvoidRadius",
-                mx::app::argType::Required,
-                "p4",
-                "psfSampleAvoidRadius",
-                false,
-                "float",
-                "Nonnegative detector radius kept clear of configured known-planet trajectories; default 0" );
-    config.add( "p4.psfRefitContrast",
-                "",
-                "p4.psfRefitContrast",
-                mx::app::argType::Required,
-                "p4",
-                "psfRefitContrast",
-                false,
-                "float",
-                "Positive half-amplitude for paired refit-difference response measurements; default 0" );
-    config.add( "p4.outputPSFModels",
-                "",
-                "p4.outputPSFModels",
-                mx::app::argType::Optional,
-                "p4",
-                "outputPSFModels",
-                false,
-                "bool",
-                "Reconstruct and write compact final-frame frozen-model PSF products" );
-    config.add( "p4.psfFilter",
-                "",
-                "p4.psfFilter",
-                mx::app::argType::Optional,
-                "p4",
-                "psfFilter",
-                false,
-                "bool",
-                "Apply the spatially variable normalized PSF filter and write separate full-image products" );
-    config.add( "p4.psfFilterMinGoodFract",
-                "",
-                "p4.psfFilterMinGoodFract",
-                mx::app::argType::Required,
-                "p4",
-                "psfFilterMinGoodFract",
-                false,
-                "float",
-                "Minimum usable local-stamp fraction for PSF filtering in [0,1]; default 1" );
-    config.add( "p4.psfOutputPrefix",
-                "",
-                "p4.psfOutputPrefix",
-                mx::app::argType::Required,
-                "p4",
-                "psfOutputPrefix",
-                false,
-                "string",
-                "Prefix for compact PSF products inside the final image's _outputs directory; default p4PSF_" );
     config.add( "p4.localStampSize",
                 "",
                 "p4.localStampSize",
@@ -1482,29 +1365,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( m_orArcHalfWidth, "p4.orArcHalfWidth" );
     config( m_orMaxHalfAngle, "p4.orMaxHalfAngle" );
     config( m_psfRadius, "p4.psfRadius" );
-    config( m_psfFile, "p4.psfFile" );
-    config( m_psfStampSize, "p4.psfStampSize" );
-    config( m_psfSampleRadii, "p4.psfSampleRadii" );
-    config( m_psfRadiiPerRegion, "p4.psfRadiiPerRegion" );
-    config( m_psfSamplesPerRadius, "p4.psfSamplesPerRadius" );
-    config( m_psfSampleArcStep, "p4.psfSampleArcStep" );
-    std::string psfSamplingMode = psfSamplingModeString( m_psfSamplingMode );
-    config( psfSamplingMode, "p4.psfSamplingMode" );
-    try
-    {
-        m_psfSamplingMode = parsePSFSamplingMode( psfSamplingMode );
-    }
-    catch( ... )
-    {
-        std::throw_with_nested(
-            mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.psfSamplingMode is not valid" ) );
-    }
-    config( m_psfSampleAvoidRadius, "p4.psfSampleAvoidRadius" );
-    config( m_psfRefitContrast, "p4.psfRefitContrast" );
-    loadBoolConfig<verboseT>( config, m_outputPSFModels, "p4.outputPSFModels" );
-    loadBoolConfig<verboseT>( config, m_psfFilter, "p4.psfFilter" );
-    config( m_psfFilterMinGoodFract, "p4.psfFilterMinGoodFract" );
-    config( m_psfOutputPrefix, "p4.psfOutputPrefix" );
+    this->template loadPSFResponseConfig<verboseT>( config );
     config( m_localStampSize, "p4.localStampSize" );
 
     std::string policy;
@@ -1748,80 +1609,19 @@ P4PCATReferenceRegion P4Reduction<realT, derotFunctObj, verboseT>::parsePCATRefe
 template <typename realT, class derotFunctObj, class verboseT>
 std::string P4Reduction<realT, derotFunctObj, verboseT>::psfSamplingModeString( P4PSFSamplingMode mode )
 {
-    if( mode == P4PSFSamplingMode::skyExact )
-    {
-        return "skyExact";
-    }
-    if( mode == P4PSFSamplingMode::detectorLocal )
-    {
-        return "detectorLocal";
-    }
-    if( mode == P4PSFSamplingMode::refitDifference )
-    {
-        return "refitDifference";
-    }
-    throw std::invalid_argument( "unsupported P4 PSF sampling mode" );
+    return PSFResponseConfig<realT>::methodString( mode );
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
 P4PSFSamplingMode P4Reduction<realT, derotFunctObj, verboseT>::parsePSFSamplingMode( const std::string &value )
 {
-    if( value == "skyExact" )
-    {
-        return P4PSFSamplingMode::skyExact;
-    }
-    if( value == "detectorLocal" )
-    {
-        return P4PSFSamplingMode::detectorLocal;
-    }
-    if( value == "refitDifference" )
-    {
-        return P4PSFSamplingMode::refitDifference;
-    }
-    throw std::invalid_argument( "unsupported P4 PSF sampling mode: " + value );
+    return PSFResponseConfig<realT>::methodFromString( value );
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
 P4PSFSamplingGrid P4Reduction<realT, derotFunctObj, verboseT>::resolvedPSFSamplingGrid() const
 {
-    P4PSFSamplingGrid grid;
-    if( !m_psfSampleRadii.empty() )
-    {
-        grid.radii.reserve( m_psfSampleRadii.size() );
-        for( const realT radius : m_psfSampleRadii )
-        {
-            grid.radii.push_back( static_cast<double>( radius ) );
-        }
-        grid.regions.assign( grid.radii.size(), 0 );
-        return grid;
-    }
-    if( m_psfRadiiPerRegion <= 0 )
-    {
-        return grid;
-    }
-    if( m_minRadius.size() != m_maxRadius.size() ||
-        m_minRadius.size() > std::numeric_limits<std::size_t>::max() / static_cast<std::size_t>( m_psfRadiiPerRegion ) )
-    {
-        throw std::length_error( "P4 region-aware PSF radial-node count exceeds size_t range" );
-    }
-
-    const std::size_t nodeCount = m_minRadius.size() * static_cast<std::size_t>( m_psfRadiiPerRegion );
-    grid.radii.reserve( nodeCount );
-    grid.regions.reserve( nodeCount );
-    grid.regionAware = true;
-    for( std::size_t region = 0; region < m_minRadius.size(); ++region )
-    {
-        const double inner = static_cast<double>( m_minRadius[region] );
-        const double width = static_cast<double>( m_maxRadius[region] ) - inner;
-        for( int node = 0; node < m_psfRadiiPerRegion; ++node )
-        {
-            const double fraction =
-                static_cast<double>( node + 1 ) / ( static_cast<double>( m_psfRadiiPerRegion ) + 1.0 );
-            grid.radii.push_back( inner + fraction * width );
-            grid.regions.push_back( region );
-        }
-    }
-    return grid;
+    return this->resolvedPSFResponseGrid( m_minRadius, m_maxRadius );
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -2012,22 +1812,22 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
         if( m_temporalPredictor == P4TemporalPredictor::pcat )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfFile does not yet support p4.temporalPredictor=pcat" );
+                                           "psfResponse.file does not yet support p4.temporalPredictor=pcat" );
         }
         if( m_psfStampSize <= 0 )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfStampSize must be positive when p4.psfFile is set" );
+                                           "psfResponse.stampSize must be positive when psfResponse.file is set" );
         }
         if( m_regressionFrame != P4RegressionFrame::detector )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfFile is initially supported only for detector-frame P4" );
+                                           "psfResponse.file is initially supported only for detector-frame P4" );
         }
         if( this->m_postMedSub )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfFile is not yet supported with adi.postMedSub=true" );
+                                           "psfResponse.file is not yet supported with adi.postMedSub=true" );
         }
         if( m_numberImages > 0 && m_temporalStatistic == P4TemporalStatistic::median &&
             ( m_outputPSFModels || m_psfFilter ) )
@@ -2042,12 +1842,12 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
         if( m_psfFile.empty() )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "P4 PSF output or filtering requires p4.psfFile" );
+                                           "P4 PSF output or filtering requires psfResponse.file" );
         }
         if( m_psfOutputPrefix.empty() )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfOutputPrefix must not be empty when PSF products are enabled" );
+                                           "psfResponse.outputPrefix must not be empty when PSF products are enabled" );
         }
         if( this->m_combineMethod == HCI::combine::none )
         {
@@ -2063,8 +1863,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     }
     if( !m_psfSampleRadii.empty() && m_psfRadiiPerRegion > 0 )
     {
-        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                       "p4.psfSampleRadii and p4.psfRadiiPerRegion are mutually exclusive" );
+        throw mx::exception<verboseT>(
+            mx::error_t::invalidconfig,
+            "psfResponse.sampleRadii and psfResponse.radiiPerRegion are mutually exclusive" );
     }
     const bool fixedAngularSampling = m_psfSamplesPerRadius > 0;
     const bool arcAngularSampling = m_psfSampleArcStep > 0;
@@ -2072,25 +1873,25 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     if( ( !radialSampling && ( fixedAngularSampling || arcAngularSampling ) ) ||
         ( radialSampling && fixedAngularSampling == arcAngularSampling ) )
     {
-        throw mx::exception<verboseT>(
-            mx::error_t::invalidconfig,
-            "sparse P4 PSF radii and exactly one positive p4.psfSamplesPerRadius or p4.psfSampleArcStep must be set "
-            "together" );
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                       "sparse P4 PSF radii and exactly one positive psfResponse.samplesPerRadius or "
+                                       "psfResponse.sampleArcStep must be set "
+                                       "together" );
     }
     if( radialSampling && m_psfFile.empty() )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                       "sparse radial P4 PSF measurement requires p4.psfFile" );
+                                       "sparse radial P4 PSF measurement requires psfResponse.file" );
     }
     if( !mx::math::isFinite( m_psfSampleAvoidRadius ) || m_psfSampleAvoidRadius < 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                       "p4.psfSampleAvoidRadius must be finite and nonnegative" );
+                                       "psfResponse.sampleAvoidRadius must be finite and nonnegative" );
     }
     if( !mx::math::isFinite( m_psfRefitContrast ) || m_psfRefitContrast < 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                       "p4.psfRefitContrast must be finite and nonnegative" );
+                                       "psfResponse.refitContrast must be finite and nonnegative" );
     }
     const bool localSparseSampling = m_psfSamplingMode == P4PSFSamplingMode::detectorLocal ||
                                      m_psfSamplingMode == P4PSFSamplingMode::refitDifference;
@@ -2098,20 +1899,20 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     {
         throw mx::exception<verboseT>(
             mx::error_t::invalidconfig,
-            "p4.psfSampleAvoidRadius is supported only with detectorLocal or refitDifference PSF sampling" );
+            "psfResponse.sampleAvoidRadius is supported only with detectorLocal or refitDifference PSF sampling" );
     }
     if( localSparseSampling )
     {
         if( !radialSampling )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfSamplingMode=" + psfSamplingModeString( m_psfSamplingMode ) +
+                                           "psfResponse.method=" + psfSamplingModeString( m_psfSamplingMode ) +
                                                " requires sparse radial PSF sampling" );
         }
         if( m_numberImages != 0 || m_excludeMethod != HCI::exclude::none )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfSamplingMode=" + psfSamplingModeString( m_psfSamplingMode ) +
+                                           "psfResponse.method=" + psfSamplingModeString( m_psfSamplingMode ) +
                                                " initially requires p4.numberImages=0 and adi.excludeMethod=none" );
         }
     }
@@ -2119,14 +1920,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     {
         if( m_psfRefitContrast <= 0 )
         {
-            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfSamplingMode=refitDifference requires positive p4.psfRefitContrast" );
+            throw mx::exception<verboseT>(
+                mx::error_t::invalidconfig,
+                "psfResponse.method=refitDifference requires positive psfResponse.refitContrast" );
         }
         if( !m_outputPSFModels && !m_psfFilter )
         {
             throw mx::exception<verboseT>(
                 mx::error_t::invalidconfig,
-                "p4.psfSamplingMode=refitDifference requires PSF model output or filtering" );
+                "psfResponse.method=refitDifference requires PSF model output or filtering" );
         }
     }
     for( std::size_t radius = 0; radius < m_psfSampleRadii.size(); ++radius )
@@ -2134,20 +1936,22 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
         if( !mx::math::isFinite( m_psfSampleRadii[radius] ) || m_psfSampleRadii[radius] < 0 ||
             ( radius != 0 && m_psfSampleRadii[radius] <= m_psfSampleRadii[radius - 1] ) )
         {
-            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "p4.psfSampleRadii must be finite, nonnegative, and strictly increasing" );
+            throw mx::exception<verboseT>(
+                mx::error_t::invalidconfig,
+                "psfResponse.sampleRadii must be finite, nonnegative, and strictly increasing" );
         }
     }
     if( !mx::math::isFinite( m_psfFilterMinGoodFract ) || m_psfFilterMinGoodFract < 0 || m_psfFilterMinGoodFract > 1 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                       "p4.psfFilterMinGoodFract must be finite and in [0,1]" );
+                                       "psfResponse.filterMinGoodFract must be finite and in [0,1]" );
     }
     if( m_psfFilter )
     {
         if( m_psfStampSize % 2 == 0 )
         {
-            throw mx::exception<verboseT>( mx::error_t::invalidconfig, "p4.psfFilter requires an odd p4.psfStampSize" );
+            throw mx::exception<verboseT>( mx::error_t::invalidconfig,
+                                           "psfResponse.filter requires an odd psfResponse.stampSize" );
         }
     }
 
@@ -2224,13 +2028,13 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
         if( !supported )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                           "every p4.psfSampleRadii value must lie inside a search annulus" );
+                                           "every psfResponse.sampleRadii value must lie inside a search annulus" );
         }
     }
     if( radialSampling && m_psfStampSize % 2 == 0 )
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
-                                       "sparse radial P4 PSF measurement requires an odd p4.psfStampSize" );
+                                       "sparse radial P4 PSF measurement requires an odd psfResponse.stampSize" );
     }
 
     realT previousFraction{ 0 };
@@ -3935,7 +3739,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             const mx::error_t readResult = reader.read( *psfTemplate, m_psfFile );
             if( readResult != mx::error_t::noerror )
             {
-                throw mx::exception<verboseT>( readResult, "could not read p4.psfFile " + m_psfFile );
+                throw mx::exception<verboseT>( readResult, "could not read psfResponse.file " + m_psfFile );
             }
             m_psfTemplateRows = psfTemplate->rows();
             m_psfTemplateColumns = psfTemplate->cols();

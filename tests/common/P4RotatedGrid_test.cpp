@@ -1,6 +1,5 @@
 /** \file P4RotatedGrid_test.cpp
  * \brief Tests direct sky-frame sampling geometry for rotated P4 regression.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

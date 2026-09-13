@@ -1,7 +1,6 @@
 
 /** \file klipReduce.cpp
  * \brief Defines the klipReduce command-line application.
- * \author Jared R. Males
  */
 
 #include <iostream>

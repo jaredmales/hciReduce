@@ -1,6 +1,5 @@
 /** \file P4PCA_test.cpp
  * \brief Tests the pure numerical predictor used by Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

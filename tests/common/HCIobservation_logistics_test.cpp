@@ -1,6 +1,5 @@
 /** \file HCIobservation_logistics_test.cpp
  * \brief Tests HCIobservation file-list, threshold, and weight logistics.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

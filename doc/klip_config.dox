@@ -1,6 +1,5 @@
 /** \file klip_config.dox
  * \brief Configuration dictionary for klipReduce.
- * \author Jared R. Males
  */
 
 /** \addtogroup klipreduce_user_guide
@@ -110,32 +109,40 @@
  * FP32, then promotes the covariance for an FP64 eigensolve. Precision is not a configuration backend. The opt-in
  * `factorDowndateExact` solver remains FP64 internally before returning modes to FP32 storage.
  *
- * \section klip_psf_dictionary Sparse frozen-basis PSF responses
+ * \section klip_psf_dictionary Sparse PSF responses
  *
  * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
  * |---|---|---|---|---|
- * | `--klip.psfFile` | `klip.psfFile=/path/template.fits` | readable finite two-dimensional FITS image | unset | Centered detector-sampled PSF template before KLIP regional centering. Setting any PSF option requires the complete option set below. |
- * | `--klip.psfStampSize` | `klip.psfStampSize=11` | positive odd integer | `0` | Width and height of the compact final response stamps. |
- * | `--klip.psfSampleRadii` | `klip.psfSampleRadii=6,10,14` | strictly increasing nonnegative real pixels inside configured regions | unset | Exact sky-frame radii at which frozen-basis responses are measured; requires exactly one positive angular control. |
- * | `--klip.psfSamplesPerRadius` | `klip.psfSamplesPerRadius=8` | positive integer, mutually exclusive with `psfSampleArcStep` | `0` | Fixed count of uniformly spaced angular measurements at every configured radius. |
- * | `--klip.psfSampleArcStep` | `klip.psfSampleArcStep=3.6` | positive real pixels, mutually exclusive with `psfSamplesPerRadius` | `0` | Maximum circular arc spacing between angular measurements; resolves a radius-dependent count no smaller than one. |
- * | `--klip.outputPSFModels` | `klip.outputPSFModels=true` | bool | `false` | Write canonical common-angle response and validity cubes after fitting the radial model. |
- * | `--klip.psfFilter` | `klip.psfFilter=true` | bool | `false` | Evaluate the radial response at each science pixel and write normalized matched-filter amplitude, response-energy, support, and validity products. |
- * | `--klip.psfFilterMinGoodFract` | `klip.psfFilterMinGoodFract=0.8` | finite real in `[0,1]` | `1` | Minimum fraction of the full local response stamp with valid response and finite in-bounds science samples. |
- * | `--klip.psfOutputPrefix` | `klip.psfOutputPrefix=klipPSF_` | nonempty string when output is enabled | `klipPSF_` | Filename prefix inside the resolved final image's `_outputs` directory. |
+ * | `--psfResponse.file` | `psfResponse.file=/path/template.fits` | readable finite two-dimensional FITS image | unset | Centered detector-sampled PSF template before KLIP regional centering. Setting any PSF option requires the complete option set below. |
+ * | `--psfResponse.stampSize` | `psfResponse.stampSize=11` | positive odd integer | `0` | Width and height of the compact final response stamps. |
+ * | `--psfResponse.sampleRadii` | `psfResponse.sampleRadii=6,10,14` | strictly increasing nonnegative real pixels inside configured regions | unset | Exact sky-frame radii at which responses are measured; mutually exclusive with `radiiPerRegion`. |
+ * | `--psfResponse.radiiPerRegion` | `psfResponse.radiiPerRegion=2` | positive integer, mutually exclusive with `sampleRadii` | `0` | Uniformly spaced interior nodes in every KLIP region; radial interpolation remains within that region. |
+ * | `--psfResponse.samplesPerRadius` | `psfResponse.samplesPerRadius=8` | positive integer, mutually exclusive with `sampleArcStep` | `0` | Fixed count of uniformly spaced angular measurements at every configured radius. |
+ * | `--psfResponse.sampleArcStep` | `psfResponse.sampleArcStep=3.6` | positive real pixels, mutually exclusive with `samplesPerRadius` | `0` | Maximum circular arc spacing between angular measurements; resolves a radius-dependent count no smaller than one. |
+ * | `--psfResponse.method` | `psfResponse.method=refitDifference` | `skyExact` or `refitDifference`; KLIP rejects `detectorLocal` | `skyExact` | `skyExact` propagates a probe through the fitted basis. `refitDifference` performs complete paired signed KLIP trials and includes basis adaptation. |
+ * | `--psfResponse.sampleAvoidRadius` | `psfResponse.sampleAvoidRadius=5` | finite nonnegative pixels | `0` | Omit sample positions within this distance of configured `planet.*` coordinates. |
+ * | `--psfResponse.refitContrast` | `psfResponse.refitContrast=0.0048` | positive finite contrast for `refitDifference` | `0` | Half-amplitude used by paired signed trial injections. |
+ * | `--psfResponse.outputModels` | `psfResponse.outputModels=true` | bool | `false` | Write canonical common-angle response and validity cubes after fitting the radial model. |
+ * | `--psfResponse.filter` | `psfResponse.filter=true` | bool | `false` | Evaluate the radial response at each science pixel and write normalized matched-filter amplitude, response-energy, support, and validity products. |
+ * | `--psfResponse.filterMinGoodFract` | `psfResponse.filterMinGoodFract=0.8` | finite real in `[0,1]` | `1` | Minimum fraction of the full local response stamp with valid response and finite in-bounds science samples. |
+ * | `--psfResponse.outputPrefix` | `psfResponse.outputPrefix=klipPSF_` | nonempty string when output is enabled | `klipPSF_` | Filename prefix inside the resolved final image's `_outputs` directory. |
  *
  * Radial interpolation is linear between bracketing canonical responses and uses the nearest endpoint outside the
- * sampled interval. Blended validity is the intersection of both endpoints. The persisted cube planes follow
- * `psfSampleRadii`; files are named `<prefix>modeNNN_radial_response.fits` and
+ * sampled interval. Blended validity is the intersection of both endpoints. With `radiiPerRegion`, bracketing and
+ * endpoint clamping are isolated within each reduction region. The persisted cube planes follow the resolved radii;
+ * files are named `<prefix>modeNNN_radial_response.fits` and
  * `<prefix>modeNNN_radial_validity.fits`. The initial implementation requires FP32 KLIP, complete non-overlapping
  * annuli, enabled derotation, a final combination other than `none`, `adi.postMedSub=false`, `meanSubMethod=none` or
- * `imageMean`, and `pixelTSNormMethod=none`. Mean and weighted-mean combinations give linear frozen-basis responses.
+ * `imageMean`, and `pixelTSNormMethod=none`. Paired `refitDifference` additionally requires ADI rather than RDI,
+ * positive `refitContrast`, and at least one enabled response product. Mean and weighted-mean combinations give
+ * linear frozen-basis responses for `skyExact`.
  * Active science `sigmaMean` uses the corresponding unclipped mean for the analytic response while leaving science
  * clipping unchanged; median remains a response-template approximation from the propagated samples. FITS provenance
  * records the configured science combination and effective response combination separately. Mean, weighted mean,
  * and active science `sigmaMean` use response storage bounded by OpenMP worker count; median retains its target-frame
- * stack. `HIERARCH KLIP PSF ACCUMULATION` and `HIERARCH KLIP PSF RETAINED BYTES` identify the realized path.
- * With `psfFilter=true`, the signed amplitude is `sum(H I) / sum(H^2)` over retained samples. The filtered cube is
+ * stack. `HIERARCH KLIP PSF ACCUMULATION` identifies `WORKER_SUM`, `FRAME_STACK`, or
+ * `PAIRED_FINAL_DIFFERENCE`, and `HIERARCH KLIP PSF RETAINED BYTES` records the realized storage.
+ * With `filter=true`, the signed amplitude is `sum(H I) / sum(H^2)` over retained samples. The filtered cube is
  * written beside the final science image with `_filtered` inserted before its FITS suffix. The normalization,
  * support, and filter-validity cubes are written in the final image's `_outputs` directory, together with a
  * `<prefix>manifest.fits` completion marker.

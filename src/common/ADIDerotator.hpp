@@ -1,5 +1,4 @@
 /** \file ADIDerotator.hpp
- * \author Jared R. Males
  * \brief Defines a generic ADI derotator class.
  *
  */

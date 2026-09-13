@@ -1,5 +1,4 @@
 /** \file ADIDerotator.cpp
- * \author Jared R. Males
  * \brief Implements a generic ADI derotator class.
  *
  */

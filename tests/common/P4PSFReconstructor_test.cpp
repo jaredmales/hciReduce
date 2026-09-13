@@ -1,6 +1,5 @@
 /** \file P4PSFReconstructor_test.cpp
  * \brief Tests compact detector-to-sky reconstruction for P4 frozen-model PSFs.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

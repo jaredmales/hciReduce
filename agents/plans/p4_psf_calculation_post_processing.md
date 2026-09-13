@@ -265,7 +265,7 @@ tested against the existing dense response before adoption.
 
 ### Detector-local prototype
 
-The 2026-09-05 implementation adds opt-in `p4.psfSamplingMode=detectorLocal`. It calculates coefficient vectors and
+The 2026-09-05 implementation adds opt-in `psfResponse.method=detectorLocal`. It calculates coefficient vectors and
 local response operators only at the selected polar detector coordinates, samples each fixed operator into a source-
 centered stamp, and uses the existing angular alignment, radial average, and linear radial reconstruction. A focused
 31-by-31 integration case requested 8 measurements from 7 unique local response operators for 236 search pixels,
@@ -495,9 +495,9 @@ ratios of `0.210662` for `sigmaMean` and `0.210678` for mean. The nearly identic
 clipping as the missing calibration term. The dominant missing term is the change in P4 coefficients when a source
 is added to or removed from the target and predictor samples.
 
-The next implementation therefore adds `p4.psfSamplingMode=refitDifference`. At every uncontaminated sparse source
+The next implementation therefore adds `psfResponse.method=refitDifference`. At every uncontaminated sparse source
 position it evaluates the existing exact pixel-local reduction at positive and negative
-`p4.psfRefitContrast`, subtracts the combined residual stamps, divides by twice that half-amplitude, and then applies
+`psfResponse.refitContrast`, subtracts the combined residual stamps, divides by twice that half-amplitude, and then applies
 the established angular average and region-isolated radial interpolation. This captures coefficient adaptation while
 calculating only detector fits required by each source-centered stamp, not two complete field reductions. Schema-7
 products record `REFIT_CENTRAL_DIFFERENCE`, `PAIRED_REFIT`, the amplitude, and the positive-plus-negative detector-fit
@@ -540,22 +540,22 @@ the ordinary science image remained bitwise identical. Wall time changed by only
 This accepts sparse paired-refit response estimation for the P4 AF Lep test and closes the candidate-avoidance
 validation; broader performance reduction remains a separate optimization.
 
-## Proposed configuration and products
+## Implemented configuration and products
 
-Use opt-in P4-specific configuration so all existing controls and outputs remain unchanged when no PSF template is
-configured:
+Use the shared opt-in `[psfResponse]` configuration so all existing controls and outputs remain unchanged when no PSF
+template is configured:
 
-| Proposed target | Contract |
+| Shared target | Contract |
 |---|---|
-| `p4.psfFile` | Centered FITS template at the post-preprocessing P4 input stage; unset disables analytic PSF calculation. |
-| `p4.psfStampSize` | Positive square stamp width. Both odd and even sizes are allowed; the center is the geometric `(size-1)/2` coordinate. |
-| `p4.outputPSFModels` | Write the compact spatially variable PSF products in addition to any in-process filtering. |
-| `p4.psfFilter` | Apply the spatially variable PSF filter to the final science cube; default `false`. |
-| `p4.psfFilterMinGoodFract` | Minimum usable fraction of the full odd-sized filter stamp; default `1`. |
-| `p4.psfOutputPrefix` | Prefix for compact PSF-model products and their manifest inside the resolved final image's `_outputs` directory. |
+| `psfResponse.file` | Centered FITS template at the post-preprocessing P4 input stage; unset disables analytic PSF calculation. |
+| `psfResponse.stampSize` | Positive square stamp width. Both odd and even sizes are allowed; the center is the geometric `(size-1)/2` coordinate. |
+| `psfResponse.outputModels` | Write the compact spatially variable PSF products in addition to any in-process filtering. |
+| `psfResponse.filter` | Apply the spatially variable PSF filter to the final science cube; default `false`. |
+| `psfResponse.filterMinGoodFract` | Minimum usable fraction of the full odd-sized filter stamp; default `1`. |
+| `psfResponse.outputPrefix` | Prefix for compact PSF-model products and their manifest inside the resolved final image's `_outputs` directory. |
 
-The names and grouping should be finalized during implementation review rather than overloading `fake.fileName` or
-`p4.psfRadius`. The physical exclusion radius and the forward-model stamp size are different quantities.
+The shared grouping avoids overloading `fake.fileName` or `p4.psfRadius`. The physical exclusion radius and the
+forward-model stamp size are different quantities.
 
 The recommended compact persisted schema is:
 
@@ -572,7 +572,7 @@ Implemented filter products derive their names from the resolved ordinary final-
 before its shared four-digit sequence (or before the extension for an exact name), and mirror the complete final-image
 FITS header before appending product-specific P4 provenance. The ordinary and filtered science images remain in the
 common output directory. Filter diagnostics, compact models, coordinates, validity products, and the manifest are
-grouped under `<final-image-stem>_outputs/`; compact products continue to use `p4.psfOutputPrefix` within that
+grouped under `<final-image-stem>_outputs/`; compact products continue to use `psfResponse.outputPrefix` within that
 directory.
 
 ## Work sequence

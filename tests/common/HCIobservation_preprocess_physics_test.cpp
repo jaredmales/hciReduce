@@ -1,6 +1,5 @@
 /** \file HCIobservation_preprocess_physics_test.cpp
  * \brief Tests HCIobservation image-domain preprocessing behavior.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

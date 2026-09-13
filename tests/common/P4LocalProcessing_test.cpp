@@ -1,6 +1,5 @@
 /** \file P4LocalProcessing_test.cpp
  * \brief Tests sparse geometry and trial-source sampling for pixel-local P4 processing.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

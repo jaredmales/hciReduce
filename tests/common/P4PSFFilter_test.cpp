@@ -1,6 +1,5 @@
 /** \file P4PSFFilter_test.cpp
  * \brief Tests normalized local filtering with spatially variable P4 PSFs.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

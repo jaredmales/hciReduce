@@ -1,6 +1,5 @@
 /** \file KLIPPSFModel_test.cpp
  * \brief Tests sparse frozen-basis KLIP PSF response calculations.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

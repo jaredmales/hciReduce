@@ -1,6 +1,5 @@
 /** \file P4Reduction.hpp
  * \brief Declares the observation orchestrator for Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #ifndef P4Reduction_hpp
@@ -24,9 +23,10 @@
 #include "P4PSFFilter.hpp"
 #include "P4PSFModel.hpp"
 #include "P4PSFReconstructor.hpp"
-#include "RadialPSFModel.hpp"
 #include "P4RotatedGrid.hpp"
 #include "P4TemporalPCA.hpp"
+#include "PSFResponseConfig.hpp"
+#include "RadialPSFModel.hpp"
 #include "ReductionTiming.hpp"
 
 namespace mx
@@ -67,14 +67,8 @@ enum class P4PCATReferenceRegion : std::uint8_t
     annulus             ///< Use one configurable full detector annulus around the current target's signal exclusion.
 };
 
-/// Measurement operator used to build a sparse radial P4 PSF response model.
-/** \ingroup programming_library */
-enum class P4PSFSamplingMode : std::uint8_t
-{
-    skyExact,       ///< Reconstruct each sampled sky response through every target frame before radial averaging.
-    detectorLocal,  ///< Approximate each sampled source response with one detector-local frozen operator.
-    refitDifference ///< Measure each sampled sky response with paired finite-amplitude P4 refits.
-};
+/// P4-facing name for the shared sparse PSF-response method.
+using P4PSFSamplingMode = PSFResponseMethod;
 
 /** \cond P4Reduction_test_harness */
 class P4ReductionTestAccess;
@@ -148,16 +142,8 @@ struct P4LocalTrial
     double contrast{ 0 };      ///< Signed source contrast, including zero for the unperturbed baseline.
 };
 
-/// Resolved radial nodes and interpolation-region ownership for sparse P4 response sampling.
-/** \ingroup programming_library */
-struct P4PSFSamplingGrid
-{
-    std::vector<double> radii;        ///< Strictly increasing detector radii selected for response measurement.
-
-    std::vector<std::size_t> regions; ///< Region index assigned one-to-one with `radii`, or all zero for a global grid.
-
-    bool regionAware{ false };        ///< Whether selection and radial interpolation must remain within each P4 region.
-};
+/// P4-facing name for the shared resolved PSF-response sampling grid.
+using P4PSFSamplingGrid = PSFResponseSamplingGrid;
 
 /// Owning result of one finite-amplitude pixel-local P4 evaluation.
 /** \tparam realT local residual and validity storage type
@@ -200,7 +186,7 @@ struct P4LocalEvaluation
  * \ingroup programming_library
  */
 template <typename _realT, class _derotFunctObj, class verboseT>
-struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
+struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, public PSFResponseConfig<_realT>
 {
     static_assert( std::is_same_v<_realT, float>, "initial P4Reduction supports float image storage only" );
 
@@ -221,6 +207,20 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     /// Fixed float direct sampler used by rotated-frame regression.
     using rotatedGridT = P4RotatedGrid;
+
+    using PSFResponseConfig<realT>::m_outputPSFModels;
+    using PSFResponseConfig<realT>::m_psfFile;
+    using PSFResponseConfig<realT>::m_psfFilter;
+    using PSFResponseConfig<realT>::m_psfFilterMinGoodFract;
+    using PSFResponseConfig<realT>::m_psfOutputPrefix;
+    using PSFResponseConfig<realT>::m_psfRadiiPerRegion;
+    using PSFResponseConfig<realT>::m_psfRefitContrast;
+    using PSFResponseConfig<realT>::m_psfSampleArcStep;
+    using PSFResponseConfig<realT>::m_psfSampleAvoidRadius;
+    using PSFResponseConfig<realT>::m_psfSampleRadii;
+    using PSFResponseConfig<realT>::m_psfSamplesPerRadius;
+    using PSFResponseConfig<realT>::m_psfSamplingMode;
+    using PSFResponseConfig<realT>::m_psfStampSize;
 
     /** \name P4 Configuration - Data
      * @{
@@ -279,33 +279,6 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
         std::numeric_limits<realT>::quiet_NaN() };                ///< OR angular half-width cap in degrees, up to 180.
 
     realT m_psfRadius{ std::numeric_limits<realT>::quiet_NaN() }; ///< Physical signal-exclusion radius in pixels.
-
-    std::string m_psfFile;   ///< Optional post-preprocessing PSF template enabling frozen-model calculation.
-
-    int m_psfStampSize{ 0 }; ///< Square frozen-model PSF stamp size; required when `m_psfFile` is set.
-
-    std::vector<realT> m_psfSampleRadii; ///< Optional discrete radii for azimuthally averaged PSF measurements.
-
-    int m_psfRadiiPerRegion{ 0 };   ///< Interior radial nodes generated in every P4 region; zero uses explicit radii.
-
-    int m_psfSamplesPerRadius{ 0 }; ///< Uniform angular measurement count at each configured PSF sample radius.
-
-    realT m_psfSampleArcStep{ 0 };  ///< Maximum azimuthal arc spacing in pixels; zero selects the fixed-count control.
-
-    P4PSFSamplingMode m_psfSamplingMode{ P4PSFSamplingMode::skyExact };
-    ///< Operator used to measure each configured sparse radial response.
-
-    realT m_psfSampleAvoidRadius{ 0 }; ///< Detector-pixel radius kept clear of configured known-planet trajectories.
-
-    realT m_psfRefitContrast{ 0 };   ///< Positive half-amplitude used by paired refit-difference response measurements.
-
-    bool m_outputPSFModels{ false }; ///< Whether to reconstruct and write compact final-frame PSF fields.
-
-    bool m_psfFilter{ false };       ///< Whether to apply the spatially variable normalized PSF filter.
-
-    realT m_psfFilterMinGoodFract{ 1 };        ///< Minimum usable local-stamp fraction required by PSF filtering.
-
-    std::string m_psfOutputPrefix{ "p4PSF_" }; ///< Prefix for compact products in the final image's output directory.
 
     int m_localStampSize{ 0 }; ///< Square pixel-local result and nominal source-crop width; zero disables the path.
 

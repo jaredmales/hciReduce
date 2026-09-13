@@ -1,6 +1,5 @@
 /** \file P4TemporalPCA_test.cpp
  * \brief Tests gap-held-out time-domain PCA prediction for Pixel Prediction Post-Processing.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

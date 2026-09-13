@@ -1,6 +1,5 @@
 /** \file hciAnalyze_test.cpp
  * \brief Tests hciAnalyze configuration, position resolution, filtering, and SNR measurement.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

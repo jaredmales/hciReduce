@@ -1,6 +1,5 @@
 /** \file P4NegativeOptimizer_test.cpp
  * \brief Tests negative-companion optimization for pixel-local P4 products.
- * \author Jared R. Males
  */
 
 #include "../catch2/catch.hpp"

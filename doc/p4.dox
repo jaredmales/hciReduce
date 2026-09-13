@@ -1,6 +1,5 @@
 /** \file p4.dox
  * \brief User's Guide for Pixel Prediction Post-Processing and p4Reduce.
- * \author Jared R. Males
  */
 
 /** \addtogroup p4reduce_user_guide
