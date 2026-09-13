@@ -65,6 +65,15 @@ Maintained ROC experiment assets are under `agents/plans/scripts`:
   the production cubic/radial frozen response at the planet pixel, verifies that reconstruction against the persisted
   filtered cube, and measures response cosine, projection scale, and best-scaled residual for every KL mode. It also
   writes the empirical, frozen, and difference stamp cubes for inspection.
+- `run_klip_central_response_validation.sh` measures paired positive/negative end-to-end KLIP differences at 15
+  bounded positions and three perturbation amplitudes. The default clear samples cover the inner and outer region
+  boundaries, the planet's radial neighborhood, and a mid-radius control; all remain more than 13 pixels from the
+  known candidate. A separately labelled candidate sample connects the local derivative to the completed one-sided
+  finite-amplitude test. The 90 default reductions should take approximately 4.5 minutes at the measured ROC rate.
+- `compare_klip_central_response.py` compares every central difference with the production frozen response and, at
+  the candidate, with the one-sided finite secant. It reports amplitude dependence, positive/negative secant
+  asymmetry, response scale and shape, and the scatter remaining after clear samples at a common radius are rotated
+  and averaged. Diagnostic FITS stacks preserve each central response, frozen comparison, and best-scaled residual.
 
 From the repository root on ROC, run the initial bounded set with:
 
@@ -88,6 +97,17 @@ Run the finite-amplitude basis-adaptation test without repeating the sparse resp
 OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_klip_finite_response_validation.sh \
   > klip_finite_response_driver.log 2>&1 &
 ```
+
+Run the bounded paired-central-difference oracle with:
+
+```bash
+OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_klip_central_response_validation.sh \
+  > klip_central_response_driver.log 2>&1 &
+```
+
+The default perturbation magnitudes are 0.25, 0.5, and 1.0 times the P4 exact-negative contrast. Set
+`AMPLITUDE_FRACTIONS`, `SAMPLE_SPECS`, or `MODE_COUNTS` only for a deliberately reduced or expanded diagnostic; exact
+settings are persisted and a partially completed directory is safely restartable.
 
 ## Current gaps
 
@@ -170,20 +190,33 @@ pixels, 261.441 +/- 0.115 degrees, and 5.360 +/- 0.076. Relative to the P4 exact
 positions differ by 0.218--0.429 pixels and only 0.46--0.75 of each fit's local curvature sigma. This accepts the
 production products and the sparse response as a stable detection/localization filter.
 
-The photometry is not yet accepted. The fitted KLIP contrasts span `0.00114124`--`0.00119344`, with mean
+The frozen-basis photometry is not accepted. The fitted KLIP contrasts span `0.00114124`--`0.00119344`, with mean
 `0.00117027`, or only 0.2396--0.2505 of the P4 exact-negative contrast `0.00476393`. That factor agrees strikingly
 with the earlier P4 frozen-response result: the 125-mode KLIP contrast `0.00116746` differs from the P4 frozen sparse
 contrast `0.00116759` by only 0.012%. The fixed-16 sampling error relative to dense KLIP was previously below 0.9%, so
 radial sparsity cannot explain the factor-of-four scale discrepancy. The leading hypothesis is the same omitted
 operator-adaptation term found in P4: the current KLIP response propagates the probe through a basis frozen from the
-planet-bearing data, while an end-to-end negative injection changes the reference covariance and KL modes. This is
-not established until a KLIP-specific finite-amplitude negative-companion oracle measures the empirical response.
-The maintained finite-response runner now performs this test for every retained mode using the P4 exact-negative
-planet as a provisional physical reference. Its primary statistic is the projection of the end-to-end removed signal
-onto the frozen response. Agreement with the prior approximately 0.245 fitted-contrast fraction would isolate the
-missing end-to-end response without the circular step of fitting with a template constructed from the same injection.
-This one-sided finite-amplitude difference is a secant response, not yet an infinitesimal derivative; a paired central
-difference or analytic KL-mode perturbation is the follow-up if basis adaptation is confirmed.
+planet-bearing data, while an end-to-end negative injection changes the reference covariance and KL modes.
+
+The finite-amplitude ROC test in `klip_finite_response_20260913T150323Z` used commit `76f7ed3` and subtracted the P4
+exact-negative companion before a complete KLIP refit. The refit took 2.93 seconds with 48 workers and 2.69 GiB peak
+RSS. Across all eight mode counts, reconstruction of the persisted frozen-response filter agreed with the production
+amplitude to at worst `1.11e-10` in absolute contrast, and both the empirical and frozen stamps had complete support.
+The end-to-end removed signal projected onto the frozen response by 0.2271--0.2304, with mean 0.2284. The prior
+response-fit contrast fractions were 0.2396--0.2505, with mean 0.2457, so the independently measured response scale
+accounts for 90.7--95.5% of the factor-of-four photometric discrepancy. Subtracting the full P4 companion left only
+1.38--6.17% of the original frozen-filter amplitude, providing a second direct check that the adopted companion
+nearly cancels the signal seen by that statistic.
+
+This confirms that the dominant missing contribution is KL-basis adaptation at this finite companion amplitude and
+rules out sparse radial interpolation as its cause. It is not merely a scale correction: the empirical/frozen stamp
+cosine is only 0.8023--0.8081 and the best-scaled empirical residual is 0.5891--0.5970. A corrected matched filter must
+therefore include the changed response shape rather than multiplying the present frozen response by approximately
+four. Because this one-sided difference is a finite-amplitude secant, it does not by itself establish the
+infinitesimal KL-basis derivative. The next validation oracle is a bounded paired central-difference test at several
+representative sparse samples and perturbation amplitudes. Once its local regime is established, implement and test
+the analytic KL-mode perturbation term so production response estimation does not require two complete KLIP refits
+per sample.
 
 ## Implementation sequence
 
@@ -235,6 +268,16 @@ difference or analytic KL-mode perturbation is the follow-up if basis adaptation
   photometry, product-validity, and performance behavior.
 - [ ] Validate recovered position, contrast ranking, and curvature- or resampling-derived uncertainty against the
   negative-fit/zero-signal-injection oracle.
+
+### 5. Include KL-basis adaptation
+
+- [x] Measure the finite-amplitude end-to-end KLIP response at the accepted companion and compare its scale and shape
+  with the frozen-basis sparse response.
+- [ ] Measure paired central differences at representative radius/angle samples and multiple perturbation amplitudes
+  to identify the locally linear regime and provide an implementation oracle.
+- [ ] Add the analytic covariance/eigenmode perturbation contribution to the sparse KLIP response calculation.
+- [ ] Validate the adapted sparse response against the paired-refit oracle before repeating matched-filter photometry
+  and uncertainty tests.
 
 ## Acceptance criteria
 
