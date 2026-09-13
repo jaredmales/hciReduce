@@ -91,5 +91,22 @@ TEST_CASE( "P4 local PSF filter validates its contract", "[P4PSFFilter][validati
     REQUIRE_THROWS_AS( filterT::calculate( science, response, validity, 2, 2, 1.0 ), std::invalid_argument );
 }
 
+/// Verify shared PSF filter products retain the exact and sequential P4 naming contract.
+/** This exercises mx::improc::psfFilterProductPath() and mx::improc::psfFilterDiagnosticPath().
+ * \ingroup P4PSFFilter_unit_tests
+ */
+TEST_CASE( "PSF filter product paths are deterministic", "[P4PSFFilter][products][naming]" )
+{
+    REQUIRE( mx::improc::psfFilterProductPath( "/tmp/finim.fits", "filtered", false ) == "/tmp/finim_filtered.fits" );
+    REQUIRE( mx::improc::psfFilterDiagnosticPath( "/tmp/finim.fits", "filter_support", false ) ==
+             "/tmp/finim_outputs/finim_filter_support.fits" );
+    REQUIRE( mx::improc::psfFilterProductPath( "/tmp/finim0000.fits", "filtered", true ) ==
+             "/tmp/finim_filtered_0000.fits" );
+    REQUIRE( mx::improc::psfFilterDiagnosticPath( "/tmp/finim_0000.fits", "filter_validity", true ) ==
+             "/tmp/finim_0000_outputs/finim_filter_validity_0000.fits" );
+    REQUIRE_THROWS_AS( mx::improc::psfFilterProductPath( "/tmp/finim.fits", "", false ), std::invalid_argument );
+    REQUIRE_THROWS_AS( mx::improc::psfFilterProductPath( "/tmp/finim.fits", "filtered", true ), std::invalid_argument );
+}
+
 } // namespace P4PSFFilter_test
 } // namespace unitTest

@@ -49,6 +49,10 @@
  * storage scales with the OpenMP worker count rather than the number of target frames. Median response combination
  * retains the per-frame stamps needed by that nonlinear estimator. FITS provenance identifies `WORKER_SUM` or
  * `FRAME_STACK` accumulation and records the retained response bytes excluding container overhead.
+ * Set `klip.psfFilter=true` to evaluate that radial model at each science pixel and apply the signed normalized
+ * matched filter `sum(H I) / sum(H^2)`. The filtered amplitude cube is written beside the final science image;
+ * response-energy normalization, usable-stamp support, validity, and a completion manifest are written in the
+ * final image's `_outputs` directory. `klip.psfFilterMinGoodFract` controls the minimum retained stamp fraction.
  *
  * This first linear implementation supports complete, non-overlapping annuli, `none` or `imageMean` centering, no
  * pixel time-series normalization, enabled derotation and final combination, and no post-median subtraction. Median

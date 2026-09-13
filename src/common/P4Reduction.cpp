@@ -8,7 +8,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <exception>
@@ -22,7 +21,6 @@
 #include <numbers>
 #include <sstream>
 #include <stdexcept>
-#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -45,53 +43,6 @@ namespace
 
 constexpr int p4AutomaticCropPadding{ 4 };
 
-/// Derive a filter-product path from the resolved final-image path.
-std::string p4FilterProductPath( const std::string &finalImagePath, /**< [in] resolved final-image output path */
-                                 const std::string &role, /**< [in] filename role inserted before the sequence */
-                                 bool sequential /**< [in] whether the final image uses a four-digit sequence */ )
-{
-    const std::filesystem::path finalPath( finalImagePath );
-    std::string fileName = finalPath.filename().string();
-    if( fileName.empty() || role.empty() )
-    {
-        throw std::invalid_argument( "P4 filter-product naming requires a final-image filename and role" );
-    }
-
-    if( sequential )
-    {
-        constexpr std::size_t sequenceDigits = 4;
-        constexpr std::string_view extension = ".fits";
-        if( fileName.size() < sequenceDigits + extension.size() || !fileName.ends_with( extension ) )
-        {
-            throw std::invalid_argument( "P4 sequential final-image path does not match the expected FITS naming" );
-        }
-        const std::size_t sequenceBegin = fileName.size() - extension.size() - sequenceDigits;
-        for( std::size_t index = sequenceBegin; index < sequenceBegin + sequenceDigits; ++index )
-        {
-            if( !std::isdigit( static_cast<unsigned char>( fileName[index] ) ) )
-            {
-                throw std::invalid_argument( "P4 sequential final-image path does not end in four digits" );
-            }
-        }
-        if( sequenceBegin > 0 && !std::isalnum( static_cast<unsigned char>( fileName[sequenceBegin - 1] ) ) )
-        {
-            fileName.insert( sequenceBegin, role + fileName.substr( sequenceBegin - 1, 1 ) );
-        }
-        else
-        {
-            fileName.insert( sequenceBegin, "_" + role + "_" );
-        }
-    }
-    else
-    {
-        const std::filesystem::path filePath( fileName );
-        const std::string extension = filePath.extension().string();
-        fileName = filePath.stem().string() + "_" + role + extension;
-    }
-
-    return ( finalPath.parent_path() / fileName ).string();
-}
-
 /// Derive the P4 auxiliary-product directory from the resolved final-image path.
 std::filesystem::path
 p4AuxiliaryProductDirectory( const std::string &finalImagePath /**< [in] resolved final-image output path */ )
@@ -104,15 +55,6 @@ p4AuxiliaryProductDirectory( const std::string &finalImagePath /**< [in] resolve
     }
 
     return finalPath.parent_path() / ( finalStem + "_outputs" );
-}
-
-/// Derive a filter-diagnostic path inside the final image's P4 PSF product directory.
-std::string p4FilterDiagnosticPath( const std::string &finalImagePath, /**< [in] resolved final-image output path */
-                                    const std::string &role, /**< [in] filename role inserted before the sequence */
-                                    bool sequential /**< [in] whether the final image uses a four-digit sequence */ )
-{
-    const std::filesystem::path productPath( p4FilterProductPath( finalImagePath, role, sequential ) );
-    return ( p4AuxiliaryProductDirectory( finalImagePath ) / productPath.filename() ).string();
 }
 
 /// Join a vector into a stable comma-delimited FITS value.
@@ -3676,7 +3618,7 @@ template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::writeLocalValidity( const std::string &finalImagePath,
                                                                       const fitsHeaderT &finalHeader )
 {
-    const std::string path = p4FilterDiagnosticPath( finalImagePath, "local_validity", !this->m_exactFinimName );
+    const std::string path = psfFilterDiagnosticPath( finalImagePath, "local_validity", !this->m_exactFinimName );
     const std::string parent = mx::ioutils::parentPath( path );
     if( !parent.empty() )
     {
@@ -7245,19 +7187,19 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
     if( m_psfFilter )
     {
         fitsHeaderT filteredHeader = productHeader( "FILTERED", m_modeFractions.size() );
-        writeProduct( p4FilterProductPath( finalImagePath, "filtered", !this->m_exactFinimName ),
+        writeProduct( psfFilterProductPath( finalImagePath, "filtered", !this->m_exactFinimName ),
                       filtered,
                       filteredHeader );
         fitsHeaderT normalizationHeader = productHeader( "FILTER_NORMALIZATION", m_modeFractions.size() );
-        writeProduct( p4FilterDiagnosticPath( finalImagePath, "filter_normalization", !this->m_exactFinimName ),
+        writeProduct( psfFilterDiagnosticPath( finalImagePath, "filter_normalization", !this->m_exactFinimName ),
                       filterNormalization,
                       normalizationHeader );
         fitsHeaderT supportHeader = productHeader( "FILTER_SUPPORT", m_modeFractions.size() );
-        writeProduct( p4FilterDiagnosticPath( finalImagePath, "filter_support", !this->m_exactFinimName ),
+        writeProduct( psfFilterDiagnosticPath( finalImagePath, "filter_support", !this->m_exactFinimName ),
                       filterSupport,
                       supportHeader );
         fitsHeaderT filterValidityHeader = productHeader( "FILTER_VALIDITY", m_modeFractions.size() );
-        writeProduct( p4FilterDiagnosticPath( finalImagePath, "filter_validity", !this->m_exactFinimName ),
+        writeProduct( psfFilterDiagnosticPath( finalImagePath, "filter_validity", !this->m_exactFinimName ),
                       filterValidity,
                       filterValidityHeader );
     }

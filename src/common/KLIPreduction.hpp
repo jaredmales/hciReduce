@@ -42,6 +42,7 @@ using namespace mx::sigproc;
 
 #include "ADIobservation.hpp"
 #include "KLIPPSFModel.hpp"
+#include "P4PSFFilter.hpp"
 #include "P4PSFReconstructor.hpp"
 #include "RadialPSFModel.hpp"
 #include "ReductionTiming.hpp"
@@ -439,6 +440,10 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
 
     bool m_outputPSFModels{ false };     ///< Whether canonical radial response and validity cubes are written.
 
+    bool m_psfFilter{ false };           ///< Whether to apply the normalized radial-response filter to final images.
+
+    realT m_psfFilterMinGoodFract{ 1 };  ///< Minimum usable local-stamp fraction required by PSF filtering.
+
     std::string m_psfOutputPrefix{ "klipPSF_" };          ///< Prefix for sparse radial PSF response products.
 
     std::vector<RadialPSFSample> m_psfMeasurementSamples; ///< Exact sparse sky locations used in the current run.
@@ -586,7 +591,7 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>
     /// Combine sparse response frames and fit one common-angle radial model per KLIP output.
     void finalizePSFMeasurement();
 
-    /// Write canonical radial response and validity cubes when configured.
+    /// Write configured canonical radial-response and normalized-filter products.
     void writePSFProducts();
 
   public:
@@ -927,6 +932,26 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::setupConfig( mx::ap
                 "bool",
                 "Write canonical radial frozen-basis PSF response and validity cubes" );
 
+    config.add( "klip.psfFilter",
+                "",
+                "klip.psfFilter",
+                mx::app::argType::Optional,
+                "klip",
+                "psfFilter",
+                false,
+                "bool",
+                "Apply the normalized sparse radial PSF response to each final KLIP image" );
+
+    config.add( "klip.psfFilterMinGoodFract",
+                "",
+                "klip.psfFilterMinGoodFract",
+                mx::app::argType::Required,
+                "klip",
+                "psfFilterMinGoodFract",
+                false,
+                "float",
+                "Minimum usable response-stamp fraction required by KLIP filtering; default 1" );
+
     config.add( "klip.psfOutputPrefix",
                 "",
                 "klip.psfOutputPrefix",
@@ -1079,6 +1104,8 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::loadConfig( mx::app
     config( m_psfSamplesPerRadius, "klip.psfSamplesPerRadius" );
     config( m_psfSampleArcStep, "klip.psfSampleArcStep" );
     loadBoolConfig<verboseT>( config, m_outputPSFModels, "klip.outputPSFModels" );
+    loadBoolConfig<verboseT>( config, m_psfFilter, "klip.psfFilter" );
+    config( m_psfFilterMinGoodFract, "klip.psfFilterMinGoodFract" );
     config( m_psfOutputPrefix, "klip.psfOutputPrefix" );
 }
 
@@ -1350,7 +1377,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalizePSFMeasurem
 template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
 void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writePSFProducts()
 {
-    if( !m_outputPSFModels || m_radialPSFModels.empty() )
+    if( ( !m_outputPSFModels && !m_psfFilter ) || m_radialPSFModels.empty() )
     {
         return;
     }
@@ -1370,44 +1397,172 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writePSFProducts()
             throw mx::exception<verboseT>( directoryResult, "could not create KLIP PSF product output directory" );
         }
 
-        for( std::size_t mode = 0; mode < m_radialPSFModels.size(); ++mode )
+        const auto productHeader = [&]( const std::string &role )
         {
-            eigenCube<realT> responseCube;
-            eigenCube<realT> validityCube;
-            responseCube.resize( m_psfStampSize, m_psfStampSize, static_cast<int>( m_psfSampleRadii.size() ) );
-            validityCube.resize( m_psfStampSize, m_psfStampSize, static_cast<int>( m_psfSampleRadii.size() ) );
-            for( std::size_t radius = 0; radius < m_psfSampleRadii.size(); ++radius )
-            {
-                responseCube.image( static_cast<int>( radius ) ) = m_radialPSFModels[mode].canonicalResponse( radius );
-                validityCube.image( static_cast<int>( radius ) ) =
-                    m_radialPSFModels[mode].canonicalValidity( radius ).cast<realT>();
-            }
-
-            fitsHeaderT baseHeader;
-            this->stdFitsHeader( &baseHeader );
-            appendReductionHeader( baseHeader );
-            baseHeader.template append<int>( "KLIP PSF PRODUCT SCHEMA", 1, "sparse radial response-product schema" );
-            baseHeader.template append<int>( "KLIP PSF MODE COUNT", m_Nmodes[mode], "requested retained KL modes" );
-            std::ostringstream modeName;
-            modeName << std::setw( 3 ) << std::setfill( '0' ) << mode;
-            const std::filesystem::path responsePath =
-                outputDirectory / ( m_psfOutputPrefix + "mode" + modeName.str() + "_radial_response.fits" );
-            const std::filesystem::path validityPath =
-                outputDirectory / ( m_psfOutputPrefix + "mode" + modeName.str() + "_radial_validity.fits" );
+            fitsHeaderT header;
+            this->stdFitsHeader( &header );
+            appendReductionHeader( header );
+            header.template append<int>( "KLIP PSF PRODUCT SCHEMA", 1, "sparse radial response-product schema" );
+            header.template append<std::string>( "KLIP PSF PRODUCT", role, "product role" );
+            return header;
+        };
+        const auto writeProduct = [&]( const std::string &path, const auto &data, const std::string &role )
+        {
+            fitsHeaderT header = productHeader( role );
             fits::fitsFile<realT, verboseT> writer;
-            fitsHeaderT responseHeader( baseHeader );
-            responseHeader.template append<std::string>( "KLIP PSF PRODUCT", "RADIAL_RESPONSE", "product role" );
-            mx::error_t writeResult = writer.write( responsePath.string(), responseCube, responseHeader );
-            if( writeResult == mx::error_t::noerror )
-            {
-                fitsHeaderT validityHeader( baseHeader );
-                validityHeader.template append<std::string>( "KLIP PSF PRODUCT", "RADIAL_VALIDITY", "product role" );
-                writeResult = writer.write( validityPath.string(), validityCube, validityHeader );
-            }
+            const mx::error_t writeResult = writer.write( path, data, header );
             if( writeResult != mx::error_t::noerror )
             {
-                throw mx::exception<verboseT>( writeResult, "could not write KLIP radial PSF response products" );
+                throw mx::exception<verboseT>( writeResult, "could not write KLIP PSF product " + path );
             }
+        };
+
+        if( m_outputPSFModels )
+        {
+            for( std::size_t mode = 0; mode < m_radialPSFModels.size(); ++mode )
+            {
+                eigenCube<realT> responseCube;
+                eigenCube<realT> validityCube;
+                responseCube.resize( m_psfStampSize, m_psfStampSize, static_cast<int>( m_psfSampleRadii.size() ) );
+                validityCube.resize( m_psfStampSize, m_psfStampSize, static_cast<int>( m_psfSampleRadii.size() ) );
+                for( std::size_t radius = 0; radius < m_psfSampleRadii.size(); ++radius )
+                {
+                    responseCube.image( static_cast<int>( radius ) ) =
+                        m_radialPSFModels[mode].canonicalResponse( radius );
+                    validityCube.image( static_cast<int>( radius ) ) =
+                        m_radialPSFModels[mode].canonicalValidity( radius ).cast<realT>();
+                }
+
+                std::ostringstream modeName;
+                modeName << std::setw( 3 ) << std::setfill( '0' ) << mode;
+                const std::filesystem::path responsePath =
+                    outputDirectory / ( m_psfOutputPrefix + "mode" + modeName.str() + "_radial_response.fits" );
+                const std::filesystem::path validityPath =
+                    outputDirectory / ( m_psfOutputPrefix + "mode" + modeName.str() + "_radial_validity.fits" );
+                fitsHeaderT responseHeader = productHeader( "RADIAL_RESPONSE" );
+                responseHeader.template append<int>( "KLIP PSF MODE COUNT",
+                                                     m_Nmodes[mode],
+                                                     "requested retained KL modes" );
+                fits::fitsFile<realT, verboseT> writer;
+                mx::error_t writeResult = writer.write( responsePath.string(), responseCube, responseHeader );
+                if( writeResult == mx::error_t::noerror )
+                {
+                    fitsHeaderT validityHeader = productHeader( "RADIAL_VALIDITY" );
+                    validityHeader.template append<int>( "KLIP PSF MODE COUNT",
+                                                         m_Nmodes[mode],
+                                                         "requested retained KL modes" );
+                    writeResult = writer.write( validityPath.string(), validityCube, validityHeader );
+                }
+                if( writeResult != mx::error_t::noerror )
+                {
+                    throw mx::exception<verboseT>( writeResult, "could not write KLIP radial PSF response products" );
+                }
+            }
+        }
+
+        if( m_psfFilter )
+        {
+            if( this->m_finim.rows() <= 0 || this->m_finim.cols() <= 0 ||
+                this->m_finim.planes() != static_cast<int>( m_radialPSFModels.size() ) )
+            {
+                throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                               "KLIP PSF filtering requires the complete combined final-image cube" );
+            }
+            const int outputCount = this->m_finim.planes();
+            eigenCube<realT> filtered( this->m_finim.rows(), this->m_finim.cols(), outputCount );
+            eigenCube<realT> normalization( this->m_finim.rows(), this->m_finim.cols(), outputCount );
+            eigenCube<realT> support( this->m_finim.rows(), this->m_finim.cols(), outputCount );
+            eigenCube<realT> filterValidity( this->m_finim.rows(), this->m_finim.cols(), outputCount );
+            filtered.cube().setConstant( invalidNumber<realT>() );
+            normalization.cube().setConstant( invalidNumber<realT>() );
+            support.cube().setConstant( invalidNumber<realT>() );
+            filterValidity.setZero();
+            const double centerRow = 0.5 * static_cast<double>( this->m_finim.rows() - 1 );
+            const double centerColumn = 0.5 * static_cast<double>( this->m_finim.cols() - 1 );
+            const int responseCenter = m_psfStampSize / 2;
+            for( int output = 0; output < outputCount; ++output )
+            {
+                RadialPSFModel::imageT response;
+                RadialPSFModel::validityT responseValidity;
+                auto scienceImage = this->m_finim.image( output );
+                auto filteredImage = filtered.image( output );
+                auto normalizationImage = normalization.image( output );
+                auto supportImage = support.image( output );
+                auto validityImage = filterValidity.image( output );
+                for( int column = 0; column < this->m_finim.cols(); ++column )
+                {
+                    const double deltaColumn = static_cast<double>( column ) - centerColumn;
+                    for( int row = 0; row < this->m_finim.rows(); ++row )
+                    {
+                        const double deltaRow = static_cast<double>( row ) - centerRow;
+                        const double radius = std::hypot( deltaRow, deltaColumn );
+                        bool insideRegion{ false };
+                        for( std::size_t region = 0; region < m_minr.size(); ++region )
+                        {
+                            if( radius >= static_cast<double>( m_minr[region] ) &&
+                                radius < static_cast<double>( m_maxr[region] ) )
+                            {
+                                insideRegion = true;
+                                break;
+                            }
+                        }
+                        if( !insideRegion )
+                        {
+                            continue;
+                        }
+                        m_radialPSFModels[static_cast<std::size_t>( output )]
+                            .response( response, responseValidity, radius, std::atan2( deltaRow, deltaColumn ) );
+                        if( responseValidity( responseCenter, responseCenter ) == 0 )
+                        {
+                            continue;
+                        }
+                        const P4PSFFilterResult result = P4PSFFilter::calculate( scienceImage,
+                                                                                 response,
+                                                                                 responseValidity,
+                                                                                 row,
+                                                                                 column,
+                                                                                 m_psfFilterMinGoodFract );
+                        supportImage( row, column ) = static_cast<realT>( result.supportFraction );
+                        if( math::isFinite( result.normalization ) && result.normalization >= 0 &&
+                            result.normalization <= std::numeric_limits<realT>::max() )
+                        {
+                            normalizationImage( row, column ) = static_cast<realT>( result.normalization );
+                        }
+                        if( result.valid && math::isFinite( result.amplitude ) &&
+                            std::abs( result.amplitude ) <= std::numeric_limits<realT>::max() )
+                        {
+                            filteredImage( row, column ) = static_cast<realT>( result.amplitude );
+                            validityImage( row, column ) = 1;
+                        }
+                    }
+                }
+            }
+
+            writeProduct( psfFilterProductPath( finalPath.string(), "filtered", !this->m_exactFinimName ),
+                          filtered,
+                          "FILTERED" );
+            writeProduct(
+                psfFilterDiagnosticPath( finalPath.string(), "filter_normalization", !this->m_exactFinimName ),
+                normalization,
+                "FILTER_NORMALIZATION" );
+            writeProduct( psfFilterDiagnosticPath( finalPath.string(), "filter_support", !this->m_exactFinimName ),
+                          support,
+                          "FILTER_SUPPORT" );
+            writeProduct( psfFilterDiagnosticPath( finalPath.string(), "filter_validity", !this->m_exactFinimName ),
+                          filterValidity,
+                          "FILTER_VALIDITY" );
+        }
+
+        imageT completion( 1, 1 );
+        completion( 0, 0 ) = 1;
+        fitsHeaderT manifestHeader = productHeader( "MANIFEST" );
+        manifestHeader.template append<int>( "KLIP PSF COMPLETE", 1, "complete product set available" );
+        fits::fitsFile<realT, verboseT> writer;
+        const std::filesystem::path manifestPath = outputDirectory / ( m_psfOutputPrefix + "manifest.fits" );
+        const mx::error_t writeResult = writer.write( manifestPath.string(), completion, manifestHeader );
+        if( writeResult != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( writeResult, "could not write KLIP PSF completion manifest" );
         }
     }
 }
@@ -1663,7 +1818,8 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
 
     const bool preprocessingOnly = this->preprocessingOnly();
     const bool psfMeasurementRequested = !m_psfFile.empty() || m_psfStampSize != 0 || !m_psfSampleRadii.empty() ||
-                                         m_psfSamplesPerRadius != 0 || m_psfSampleArcStep != 0 || m_outputPSFModels;
+                                         m_psfSamplesPerRadius != 0 || m_psfSampleArcStep != 0 || m_outputPSFModels ||
+                                         m_psfFilter || m_psfFilterMinGoodFract != static_cast<realT>( 1 );
 
     this->t_begin = sys::get_curr_time();
 
@@ -1720,10 +1876,17 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
                     "KLIP PSF response measurement requires psfFile, a positive odd psfStampSize, "
                     "psfSampleRadii, and exactly one positive psfSamplesPerRadius or psfSampleArcStep" );
             }
-            if( m_outputPSFModels && m_psfOutputPrefix.empty() )
+            if( ( m_outputPSFModels || m_psfFilter ) && m_psfOutputPrefix.empty() )
             {
                 throw mx::exception<verboseT>( mx::error_t::invalidarg,
-                                               "klip.psfOutputPrefix must not be empty when PSF output is enabled" );
+                                               "klip.psfOutputPrefix must not be empty when PSF products are enabled" );
+            }
+            if( !math::isFinite( m_psfFilterMinGoodFract ) || m_psfFilterMinGoodFract < 0 ||
+                m_psfFilterMinGoodFract > 1 )
+            {
+                throw mx::exception<verboseT>(
+                    mx::error_t::invalidarg,
+                    "klip.psfFilterMinGoodFract must be finite and lie in the closed interval [0,1]" );
             }
             if( !this->m_doDerotate || this->m_combineMethod == HCI::combine::none || this->m_postMedSub )
             {
@@ -3049,6 +3212,10 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::appendReductionHead
         head.template append<std::string>( "KLIP PSF RETAINED BYTES",
                                            std::to_string( m_psfResponseRetainedBytes ),
                                            "response accumulator bytes excluding container overhead" );
+        head.template append<int>( "KLIP PSF FILTER", m_psfFilter ? 1 : 0, "normalized filtering enabled" );
+        head.template append<realT>( "KLIP PSF FILTER MIN GOOD FRACTION",
+                                     m_psfFilterMinGoodFract,
+                                     "minimum usable filter-stamp fraction" );
     }
 
     if( m_Nmodes.size() > 0 )

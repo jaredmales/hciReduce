@@ -30,6 +30,10 @@
  * frame stack. After all regions, the response stamps are combined and
  * \ref mx::improc::RadialPSFModel "RadialPSFModel" rotates measurements to a common angle, averages within radius,
  * and supplies linear radial evaluation with intersected endpoint validity.
+ * If normalized filtering is enabled, `KLIPreduction::writePSFProducts()` evaluates that model at each final-image
+ * source coordinate and passes the local response, validity, and science patch to
+ * \ref mx::improc::P4PSFFilter::calculate "P4PSFFilter::calculate()". This publishes signed amplitude,
+ * response-energy normalization, usable-stamp support, and filter validity without rerunning KLIP.
  *
  * The resulting regional residuals are scattered into the output cubes. Finally,
  * \ref mx::improc::KLIPreduction::finalProcess "KLIPreduction::finalProcess()" delegates post-median subtraction,

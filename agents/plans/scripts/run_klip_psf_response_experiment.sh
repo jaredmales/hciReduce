@@ -11,6 +11,7 @@ base_config=${BASE_CONFIG:-"${script_dir}/klipReduce_afLepNaco_psf_response.conf
 psf_file=${PSF_FILE:-/home/jrmales/Source/mxWork/NACO/AFLep/2011-10-21/out/psf_reg_median.fits}
 klipreduce_bin=${KLIPREDUCE_BIN:-klipReduce}
 psf_stamp_size=${PSF_STAMP_SIZE:-11}
+psf_filter_min_good_fract=${PSF_FILTER_MIN_GOOD_FRACT:-1}
 experiment_dir=${EXPERIMENT_DIR:-"${roc_working_dir}/klip_psf_response_$(date -u +%Y%m%dT%H%M%SZ)"}
 dry_run=false
 analyze_only=false
@@ -19,6 +20,7 @@ all_cases=(
     science_only
     reference_dr1_a16
     radial_ld_fixed16
+    radial_ld_fixed16_filter
     radial_ld_arc
 )
 
@@ -41,6 +43,7 @@ Environment overrides:
   BASE_CONFIG            response-compatible configuration (default: ${base_config})
   PSF_FILE               centered post-preprocessing PSF (default: ${psf_file})
   PSF_STAMP_SIZE         response stamp width (default: ${psf_stamp_size})
+  PSF_FILTER_MIN_GOOD_FRACT minimum usable filter-stamp fraction (default: ${psf_filter_min_good_fract})
   EXPERIMENT_DIR         fixed output directory, useful when resuming
   OMP_NUM_THREADS        OpenMP worker limit passed through to klipReduce
 
@@ -57,6 +60,7 @@ list_cases()
 science_only       normal KLIP reduction without analytic response measurement
 reference_dr1_a16  radii 6.5:1:59.5 pixels, 16 angles per radius
 radial_ld_fixed16  radii spaced by 3.6 pixels, 16 angles per radius
+radial_ld_fixed16_filter  same accepted grid with normalized filtering enabled
 radial_ld_arc      same radii with angles spaced by at most 3.6-pixel arcs
 radial_dr2_a4      radii 7:2:59 pixels, 4 angles per radius
 radial_dr2_a8      radii 7:2:59 pixels, 8 angles per radius
@@ -81,6 +85,7 @@ case_parameters()
     case_radii=
     case_angles=0
     case_arc_step=0
+    case_filter=false
     case "${case_name}" in
         science_only)
             case_response=false
@@ -92,6 +97,11 @@ case_parameters()
         radial_ld_fixed16)
             case_radii=$(radii_sequence 7.8 3.6 58.2)
             case_angles=16
+            ;;
+        radial_ld_fixed16_filter)
+            case_radii=$(radii_sequence 7.8 3.6 58.2)
+            case_angles=16
+            case_filter=true
             ;;
         radial_ld_arc)
             case_radii=$(radii_sequence 7.8 3.6 58.2)
@@ -200,12 +210,12 @@ command -v "${klipreduce_bin}" >/dev/null 2>&1 || {
 
 help_text=$("${klipreduce_bin}" --help 2>&1)
 if [[ "${help_text}" != *"--klip.psfSampleRadii"* || "${help_text}" != *"--klip.psfSampleArcStep"* ||
-      "${help_text}" != *"--klip.outputPSFModels"* ]]; then
+      "${help_text}" != *"--klip.outputPSFModels"* || "${help_text}" != *"--klip.psfFilter"* ]]; then
     printf 'klipReduce does not expose the sparse response options: %s\n' "${klipreduce_bin}" >&2
     printf '%s\n' 'Build this hciReduce checkout and set KLIPREDUCE_BIN to that executable.' >&2
     exit 1
 fi
-if grep -Eq '^[[:space:]]*(psfFile|psfStampSize|psfSampleRadii|psfSamplesPerRadius|psfSampleArcStep|outputPSFModels)[[:space:]]*=' \
+if grep -Eq '^[[:space:]]*(psfFile|psfStampSize|psfSampleRadii|psfSamplesPerRadius|psfSampleArcStep|outputPSFModels|psfFilter|psfFilterMinGoodFract)[[:space:]]*=' \
     "${base_config}"; then
     printf 'The base configuration must not enable KLIP PSF measurement: %s\n' "${base_config}" >&2
     exit 1
@@ -235,11 +245,13 @@ if [[ -e "${provenance_file}" ]]; then
     recorded_binary_sha256=$(awk -F= '$1 == "klipreduce_sha256" { print $2 }' "${provenance_file}")
     recorded_psf_sha256=$(awk -F= '$1 == "psf_file_sha256" { print $2 }' "${provenance_file}")
     recorded_stamp_size=$(awk -F= '$1 == "psf_stamp_size" { print $2 }' "${provenance_file}")
+    recorded_filter_min_good=$(awk -F= '$1 == "psf_filter_min_good_fraction" { print $2 }' "${provenance_file}")
     recorded_workers=$(awk -F= '$1 == "omp_num_threads" { print $2 }' "${provenance_file}")
     if [[ "${recorded_binary_sha256}" != "${binary_sha256}" || "${recorded_psf_sha256}" != "${psf_sha256}" ||
           "${recorded_stamp_size}" != "${psf_stamp_size}" ||
+          "${recorded_filter_min_good}" != "${psf_filter_min_good_fract}" ||
           "${recorded_workers}" != "${OMP_NUM_THREADS:-unlimited}" ]]; then
-        printf 'The binary, PSF, stamp size, or worker count differs from the provenance in %s\n' \
+        printf 'The binary, PSF, stamp/filter setting, or worker count differs from the provenance in %s\n' \
             "${experiment_dir}" >&2
         printf '%s\n' 'Choose a new EXPERIMENT_DIR rather than mixing experiment inputs.' >&2
         exit 1
@@ -255,6 +267,7 @@ else
         printf 'psf_file=%s\n' "${psf_file}"
         printf 'psf_file_sha256=%s\n' "${psf_sha256}"
         printf 'psf_stamp_size=%s\n' "${psf_stamp_size}"
+        printf 'psf_filter_min_good_fraction=%s\n' "${psf_filter_min_good_fract}"
         printf 'omp_num_threads=%s\n' "${OMP_NUM_THREADS:-unlimited}"
         printf 'hciReduce_commit=%s\n' "$(git -C "${repo_root}" rev-parse HEAD 2>/dev/null || printf unknown)"
     } > "${provenance_file}"
@@ -307,6 +320,12 @@ for case_name in "${selected_cases[@]}"; do
         else
             command_line+=(--klip.psfSampleArcStep "${case_arc_step}")
         fi
+        if [[ "${case_filter}" == true ]]; then
+            command_line+=(
+                --klip.psfFilter=true
+                --klip.psfFilterMinGoodFract "${psf_filter_min_good_fract}"
+            )
+        fi
     fi
 
     shell_join "${command_line[@]}" > "${case_dir}/command.txt"
@@ -317,6 +336,8 @@ for case_name in "${selected_cases[@]}"; do
         printf 'sample_radii=%s\n' "${case_radii}"
         printf 'samples_per_radius=%s\n' "${case_angles}"
         printf 'sample_arc_step=%s\n' "${case_arc_step}"
+        printf 'filter_enabled=%s\n' "${case_filter}"
+        printf 'filter_min_good_fraction=%s\n' "${psf_filter_min_good_fract}"
         printf 'psf_file=%s\n' "${psf_file}"
         printf 'psf_stamp_size=%s\n' "${psf_stamp_size}"
         printf 'omp_num_threads=%s\n' "${OMP_NUM_THREADS:-unlimited}"
@@ -371,6 +392,32 @@ for response in responses:
     if str(header.get("KLIP PSF SPATIAL MODEL", "")).strip() != "RADIAL_LINEAR":
         raise SystemExit(f"expected linear radial interpolation in {response}")
 PY
+        if [[ "${case_filter}" == true ]]; then
+            python3 - "${case_dir}" <<'PY'
+import sys
+from pathlib import Path
+
+from astropy.io import fits
+
+case_directory = Path(sys.argv[1])
+product_directory = case_directory / "finim_outputs"
+paths = (
+    case_directory / "finim_filtered.fits",
+    product_directory / "finim_filter_normalization.fits",
+    product_directory / "finim_filter_support.fits",
+    product_directory / "finim_filter_validity.fits",
+    product_directory / "klipPSF_manifest.fits",
+)
+for path in paths:
+    if not path.is_file():
+        raise SystemExit(f"missing KLIP normalized-filter product: {path}")
+manifest = fits.getheader(paths[-1])
+if int(manifest.get("KLIP PSF COMPLETE", 0)) != 1:
+    raise SystemExit(f"KLIP response manifest is incomplete: {paths[-1]}")
+if int(manifest.get("KLIP PSF FILTER", 0)) != 1:
+    raise SystemExit(f"KLIP response manifest does not declare filtering: {paths[-1]}")
+PY
+        fi
     fi
     printf 'completed_utc=%s\n' "${finished_utc}" > "${case_dir}/complete"
 done

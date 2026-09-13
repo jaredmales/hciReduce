@@ -52,6 +52,11 @@ Maintained ROC experiment assets are under `agents/plans/scripts`:
   verifies the response
   run leaves the final science cube unchanged, and reports template-level matched-filter amplitude/cosine proxies.
   Those proxies do not replace the later negative-fit/zero-signal-injection inference oracle.
+- `fit_klip_matched_response.py` fits a bounded local likelihood peak directly from the production filtered,
+  normalization, support, and validity cubes for an exact configured KL mode count.
+- `run_klip_matched_response_validation.sh` runs the accepted fixed-16 lambda/D-scale response grid with normalized
+  filtering enabled, verifies the science cube against a science-only control, and fits every configured AF Lep KL
+  mode by default. This is the next ROC validation; the later negative-companion oracle remains outstanding.
 
 From the repository root on ROC, run the initial bounded set with:
 
@@ -62,6 +67,12 @@ OMP_NUM_THREADS=32 agents/plans/scripts/run_klip_psf_response_experiment.sh \
 
 The current implementation supports FP32 calculation storage, complete non-overlapping annuli, enabled derotation,
 no post-median subtraction, no pixel time-series normalization, and `none` or `imageMean` regional centering.
+
+From the repository root on ROC, run the first response-backed inference test with:
+
+```bash
+OMP_NUM_THREADS=48 agents/plans/scripts/run_klip_matched_response_validation.sh
+```
 
 ## Current gaps
 
@@ -95,10 +106,11 @@ preserves the frame-stack path until its bounded contract is decided.
 
 ### Products and matched filtering
 
-The current writer publishes only canonical radial response and validity cubes. It does not apply a KLIP matched
-filter to the final science modes, publish filter normalization/support products, or expose a response-backed merit
-function to a position/contrast optimizer. Prefer sharing P4's signed normalized filter mathematics and output
-contract where the KLIP radial product supplies the local template.
+The production writer now optionally evaluates the fitted radial model over each final science mode and applies
+P4's signed normalized filter mathematics. It publishes amplitude beside the final image and response-energy
+normalization, support, validity, and a completion manifest in the auxiliary-product directory. The maintained
+response-backed fitting script consumes those products without rerunning KLIP. Comparison with a full
+negative-companion oracle remains the scientific validation step.
 
 ### Scientific and performance validation
 
@@ -121,6 +133,16 @@ bitwise unchanged. Across modes, the candidate had median/worst relative L2 erro
 similarity 0.99794, and worst unit-signal amplitude-proxy error 0.224%. This establishes useful sparsity, but the next
 ROC run must evaluate the requested 3.6-pixel radial grid with production linear radial interpolation and compare a
 fixed 16-angle grid with the 3.6-pixel maximum-arc grid.
+
+The follow-up run in `working/roc/klip_psf_response_20260906T202414Z` used commit `2c7babc` and completed that
+comparison. The 3.6-pixel/fixed-16 grid used 240 measurements, reduced response overhead from 700.18 to 191.73
+seconds (3.65x), and retained 35.4 MiB instead of the fine grid's approximately 127.8 MiB. Across KLIP modes its
+median/worst relative response errors were 0.10336/0.10391, mean cosine similarity was 0.99467, and the worst
+unit-signal matched-filter amplitude proxy error was 0.889%. The 3.6-pixel arc-spaced case expanded to 872
+measurements at these radii, provided no accuracy benefit, and cost essentially the same as the fine reference.
+The fixed-16 lambda/D-scale grid is therefore the accepted first matched-filter candidate. Its 192-second response
+overhead is suitable for the first inference validation and does not justify a detector-local KLIP approximation
+before measuring the actual response-backed position and contrast.
 
 ## Implementation sequence
 
@@ -148,9 +170,9 @@ fixed 16-angle grid with the 3.6-pixel maximum-arc grid.
 
 - [x] Add maintained runner and analyzer scripts under `agents/plans/scripts` using a response-compatible AF Lep/NACO
   KLIP ROC configuration.
-- [ ] Compare dense or full-injection references with multiple radial/angular grids.
-- [ ] Record response error, matched-filter error, worker/wall time, peak RSS, and stored-product size.
-- [ ] Decide whether exact sparse sky propagation is fast enough before considering a detector-local approximation.
+- [x] Compare a fine one-pixel radial reference with multiple radial/angular grids.
+- [x] Record response error, matched-filter proxy error, worker/wall time, peak RSS, and stored-product size.
+- [x] Decide whether exact sparse sky propagation is fast enough before considering a detector-local approximation.
 
 ### 3a. Adopt lambda/D-scale sampling
 
@@ -158,15 +180,15 @@ fixed 16-angle grid with the 3.6-pixel maximum-arc grid.
 - [x] Average all common-angle samples independently at each configured radius.
 - [x] Replace nearest-radius lookup with linear interpolation, intersecting endpoint validity and clamping only
   outside the sampled interval.
-- [ ] Repeat the P4 and KLIP ROC experiments at 3.6-pixel radial spacing with both fixed and arc-spaced angular grids.
+- [x] Repeat the P4 and KLIP ROC experiments at 3.6-pixel radial spacing with both fixed and arc-spaced angular grids.
 
 ### 4. Add matched-filter and fitting integration
 
-- [ ] Evaluate the fitted radial response at every requested science location and apply the shared signed normalized
+- [x] Evaluate the fitted radial response at every requested science location and apply the shared signed normalized
   matched-filter convention.
-- [ ] Publish filtered value, normalization, support, and validity products with deterministic coordinates and mode
+- [x] Publish filtered value, normalization, support, and validity products with deterministic coordinates and mode
   identity.
-- [ ] Expose a bounded response-backed position/contrast merit calculation so a fit does not rerun KLIP merely to
+- [x] Expose a bounded response-backed position/contrast merit calculation so a fit does not rerun KLIP merely to
   refresh its filter.
 - [ ] Validate recovered position, contrast ranking, and curvature- or resampling-derived uncertainty against the
   negative-fit/zero-signal-injection oracle.
@@ -191,3 +213,10 @@ fixed 16-angle grid with the 3.6-pixel maximum-arc grid.
   exact app-configuration, exception, finite-check, FITS file/header, `eigenCube<float>`, `radAngImage`,
   `annulusIndices`, `cutImageRegion`, degree/radian, and time-utility paths have 100% executable-line coverage. No new
   mxlib ownership follow-up is required.
+- The 2026-09-12 matched-filter integration rechecked the same current LCOV report for every mxlib API called by the
+  edited configuration, validation, header, response-product, and P4 product-writing functions. The exercised
+  `appConfigurator::add` and scalar/vector extraction paths, exception construction, `math::isFinite<float>`,
+  `invalidNumber<float>`, `ioutils::createDirectories` and `parentPath`, `eigenCube<float>` construction/access,
+  FITS header append, and FP32 image/cube FITS write paths all have 100% executable-line coverage. The containing
+  `fitsFile.hpp`, `fitsHeader.hpp`, `eigenCube.hpp`, and `floatUtils.hpp` reports are respectively 491/491, 259/259,
+  185/185, and 20/20 executable lines. No mxlib ownership follow-up is required.

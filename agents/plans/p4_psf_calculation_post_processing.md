@@ -529,6 +529,17 @@ the missing mode to that initialization and extends the paired-refit integration
 count and verify that the selected detector source lies outside every planet footprint. The ROC response-backed fit
 must be repeated because the affected candidates include the radial nodes bracketing AF Lep b.
 
+The post-fix run in `working/roc/p4_refit_difference_20260912T200301Z` excluded the predicted 221 detector
+candidates while still realizing all 232 requested measurements. The response-backed fit recovered contrast
+`0.00488488`, or 1.02539 times the exact optimizer contrast, with a 0.244-pixel position difference and S/N 4.323.
+The contrast difference is only 0.108 response-fit standard errors and the position difference is 0.369 covariance
+sigma. At the planet coordinate, response cosine similarity with the empirical end-to-end removed signal improved
+from 0.97690 before the fix to 0.97844, and the best-scaled relative residual improved from 0.21372 to 0.20651.
+Response changes were confined to P4 regions 2--7, covering the expected approximately 6--18-pixel avoidance range;
+the ordinary science image remained bitwise identical. Wall time changed by only 0.16%, from 6,563 to 6,574 seconds.
+This accepts sparse paired-refit response estimation for the P4 AF Lep test and closes the candidate-avoidance
+validation; broader performance reduction remains a separate optimization.
+
 ## Proposed configuration and products
 
 Use opt-in P4-specific configuration so all existing controls and outputs remain unchanged when no PSF template is
@@ -625,7 +636,7 @@ directory.
   `evaluateLocal()` reductions divided by twice the configured half-amplitude.
 - [x] Run the paired-refit response-backed fit on ROC and compare its contrast, position, wall time, and detector-fit
   count with the frozen sparse response and exact negative optimizer.
-- [ ] Repeat the paired-refit ROC run after the 2026-09-12 derotation-angle initialization fix and confirm that
+- [x] Repeat the paired-refit ROC run after the 2026-09-12 derotation-angle initialization fix and confirm that
   `P4 PSF SAMPLE EXCLUDED COUNT` is nonzero before accepting the response-backed fit.
 - [x] Remove detector-polar candidates whose coordinates intersect the configured trajectories of known `planet`
   sources, using a separately recorded avoidance radius. Deterministically select the nearest remaining angle sample;

@@ -291,6 +291,8 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( config.m_targets.at( "klip.psfSamplesPerRadius" ).helpType == "int" );
     REQUIRE( config.m_targets.at( "klip.psfSampleArcStep" ).helpType == "float" );
     REQUIRE( config.m_targets.at( "klip.outputPSFModels" ).helpType == "bool" );
+    REQUIRE( config.m_targets.at( "klip.psfFilter" ).helpType == "bool" );
+    REQUIRE( config.m_targets.at( "klip.psfFilterMinGoodFract" ).helpType == "float" );
     REQUIRE( config.m_targets.at( "klip.psfOutputPrefix" ).helpType == "string" );
 
     defaults.loadConfig( config );
@@ -306,6 +308,8 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( defaults.m_psfSamplesPerRadius == 0 );
     REQUIRE( defaults.m_psfSampleArcStep == 0 );
     REQUIRE_FALSE( defaults.m_outputPSFModels );
+    REQUIRE_FALSE( defaults.m_psfFilter );
+    REQUIRE( defaults.m_psfFilterMinGoodFract == 1 );
     REQUIRE( defaults.m_psfOutputPrefix == "klipPSF_" );
 
     TestDirectory directory;
@@ -315,7 +319,8 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
                          directory.file( "klip.conf" ),
                          "[klip]\nwriteDiagnostics=true\ndiagnosticDirectory=" + diagnosticDirectory.string() +
                              "\npsfFile=template.fits\npsfStampSize=9\npsfSampleRadii=4,8\n"
-                             "psfSamplesPerRadius=6\noutputPSFModels=true\npsfOutputPrefix=response_\n" );
+                             "psfSamplesPerRadius=6\noutputPSFModels=true\npsfFilter=true\n"
+                             "psfFilterMinGoodFract=0.6\npsfOutputPrefix=response_\n" );
 
     REQUIRE( configured.m_writeDiagnostics );
     REQUIRE( configured.m_diagnosticDirectory == diagnosticDirectory.string() );
@@ -325,6 +330,8 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( configured.m_psfSamplesPerRadius == 6 );
     REQUIRE( configured.m_psfSampleArcStep == 0 );
     REQUIRE( configured.m_outputPSFModels );
+    REQUIRE( configured.m_psfFilter );
+    REQUIRE( configured.m_psfFilterMinGoodFract == Approx( 0.6 ) );
     REQUIRE( configured.m_psfOutputPrefix == "response_" );
 
     reductionT arcConfigured;
@@ -2479,9 +2486,10 @@ TEST_CASE( "KLIP region orchestration", "[KLIPreduction][regions][ADI][mask]" )
     REQUIRE_FALSE( reduction.m_psfsub[0].cube().isZero() );
 }
 
-/// Verify KLIP measures sparse frozen-basis responses, aligns them radially, and evaluates linear-radial results.
+/// Verify KLIP measures sparse radial responses and applies their normalized filter to the final images.
 /** This exercises mx::improc::KLIPreduction::regions(), mx::improc::KLIPPSFModel, and
- * mx::improc::KLIPreduction::radialPSFModel() through the production ADI orchestration path.
+ * mx::improc::KLIPreduction::radialPSFModel() through the production ADI orchestration path, and compares the
+ * persisted filter value with mx::improc::P4PSFFilter::calculate().
  * \ingroup KLIPreduction_unit_tests
  */
 TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regions][PSF][radial]" )
@@ -2524,6 +2532,8 @@ TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regio
     reduction.m_doWriteFinim = false;
     reduction.m_doOutputPSFSub = false;
     reduction.m_outputPSFModels = true;
+    reduction.m_psfFilter = true;
+    reduction.m_psfFilterMinGoodFract = 0.4F;
     reduction.m_psfOutputPrefix = "response_";
     reduction.m_outputDir = directory.file( "products" ).string();
     reduction.m_finimName = "klip-final.fits";
@@ -2651,8 +2661,18 @@ TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regio
     const std::filesystem::path productDirectory = directory.file( "products/klip-final_outputs" );
     const std::filesystem::path responsePath = productDirectory / "response_mode000_radial_response.fits";
     const std::filesystem::path validityPath = productDirectory / "response_mode000_radial_validity.fits";
+    const std::filesystem::path manifestPath = productDirectory / "response_manifest.fits";
+    const std::filesystem::path filteredPath = directory.file( "products/klip-final_filtered.fits" );
+    const std::filesystem::path normalizationPath = productDirectory / "klip-final_filter_normalization.fits";
+    const std::filesystem::path supportPath = productDirectory / "klip-final_filter_support.fits";
+    const std::filesystem::path filterValidityPath = productDirectory / "klip-final_filter_validity.fits";
     REQUIRE( std::filesystem::exists( responsePath ) );
     REQUIRE( std::filesystem::exists( validityPath ) );
+    REQUIRE( std::filesystem::exists( manifestPath ) );
+    REQUIRE( std::filesystem::exists( filteredPath ) );
+    REQUIRE( std::filesystem::exists( normalizationPath ) );
+    REQUIRE( std::filesystem::exists( supportPath ) );
+    REQUIRE( std::filesystem::exists( filterValidityPath ) );
     mx::improc::eigenCube<float> writtenResponse;
     reductionT::fitsHeaderT responseHeader;
     REQUIRE( writer.read( writtenResponse, responseHeader, responsePath.string() ) == mx::error_t::noerror );
@@ -2671,7 +2691,47 @@ TEST_CASE( "KLIP sparse radial PSF response measurement", "[KLIPreduction][regio
     REQUIRE( responseHeader["KLIP PSF SIGMA THRESHOLD"].value<float>() == Approx( 0 ) );
     REQUIRE( responseHeader["KLIP PSF ACCUMULATION"].String().starts_with( "WORKER_SUM" ) );
     REQUIRE( responseHeader["KLIP PSF RETAINED BYTES"].value<unsigned long long>() > 0 );
+    REQUIRE( responseHeader["KLIP PSF FILTER"].value<int>() == 1 );
+    REQUIRE( responseHeader["KLIP PSF FILTER MIN GOOD FRACTION"].value<float>() == Approx( 0.4 ) );
     REQUIRE( responseHeader["NMODES"].String().starts_with( "1,2" ) );
+
+    mx::improc::RadialPSFModel::imageT localResponse;
+    mx::improc::RadialPSFModel::validityT localValidity;
+    reduction.radialPSFModel( 0 ).response( localResponse, localValidity, 2, 0 );
+    const mx::improc::P4PSFFilterResult expectedFilter =
+        mx::improc::P4PSFFilter::calculate( reduction.m_finim.image( 0 ),
+                                            localResponse,
+                                            localValidity,
+                                            5,
+                                            7,
+                                            reduction.m_psfFilterMinGoodFract );
+    REQUIRE( expectedFilter.valid );
+
+    mx::improc::eigenCube<float> filtered;
+    reductionT::fitsHeaderT filteredHeader;
+    REQUIRE( writer.read( filtered, filteredHeader, filteredPath.string() ) == mx::error_t::noerror );
+    REQUIRE( filtered.image( 0 )( 5, 7 ) == Approx( expectedFilter.amplitude ) );
+    REQUIRE( filteredHeader["KLIP PSF PRODUCT"].String().starts_with( "FILTERED" ) );
+    mx::improc::eigenCube<float> normalization;
+    reductionT::fitsHeaderT normalizationHeader;
+    REQUIRE( writer.read( normalization, normalizationHeader, normalizationPath.string() ) == mx::error_t::noerror );
+    REQUIRE( normalization.image( 0 )( 5, 7 ) == Approx( expectedFilter.normalization ) );
+    REQUIRE( normalizationHeader["KLIP PSF PRODUCT"].String().starts_with( "FILTER_NORMALIZATION" ) );
+    mx::improc::eigenCube<float> support;
+    reductionT::fitsHeaderT supportHeader;
+    REQUIRE( writer.read( support, supportHeader, supportPath.string() ) == mx::error_t::noerror );
+    REQUIRE( support.image( 0 )( 5, 7 ) == Approx( expectedFilter.supportFraction ) );
+    REQUIRE( supportHeader["KLIP PSF PRODUCT"].String().starts_with( "FILTER_SUPPORT" ) );
+    mx::improc::eigenCube<float> filterValidity;
+    reductionT::fitsHeaderT filterValidityHeader;
+    REQUIRE( writer.read( filterValidity, filterValidityHeader, filterValidityPath.string() ) == mx::error_t::noerror );
+    REQUIRE( filterValidity.image( 0 )( 5, 7 ) == 1 );
+    REQUIRE( filterValidityHeader["KLIP PSF PRODUCT"].String().starts_with( "FILTER_VALIDITY" ) );
+    reductionT::imageT manifest;
+    reductionT::fitsHeaderT manifestHeader;
+    REQUIRE( writer.read( manifest, manifestHeader, manifestPath.string() ) == mx::error_t::noerror );
+    REQUIRE( manifest( 0, 0 ) == 1 );
+    REQUIRE( manifestHeader["KLIP PSF COMPLETE"].value<int>() == 1 );
 }
 
 /// Verify KLIPreduction::regions uses an independent RDI library without permanently changing exclusion settings.
@@ -2760,6 +2820,20 @@ TEST_CASE( "KLIP region validation", "[KLIPreduction][regions][validation]" )
     reduction.m_psfSamplesPerRadius = 4;
     reduction.m_psfSampleArcStep = 1;
     REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "exactly one positive" ) );
+
+    prepareRegionReduction( reduction );
+    reduction.m_psfFile = "unused.fits";
+    reduction.m_psfStampSize = 3;
+    reduction.m_psfSampleRadii = { 1 };
+    reduction.m_psfSamplesPerRadius = 4;
+    reduction.m_psfSampleArcStep = 0;
+    reduction.m_psfFilter = true;
+    reduction.m_psfFilterMinGoodFract = -0.1F;
+    REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "closed interval [0,1]" ) );
+
+    reduction.m_psfFilterMinGoodFract = std::numeric_limits<float>::quiet_NaN();
+    REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "closed interval [0,1]" ) );
+    reduction.m_psfFilterMinGoodFract = 1;
 
     prepareRegionReduction( reduction );
     reduction.m_psfSampleArcStep = -1;

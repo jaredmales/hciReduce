@@ -120,6 +120,8 @@
  * | `--klip.psfSamplesPerRadius` | `klip.psfSamplesPerRadius=8` | positive integer, mutually exclusive with `psfSampleArcStep` | `0` | Fixed count of uniformly spaced angular measurements at every configured radius. |
  * | `--klip.psfSampleArcStep` | `klip.psfSampleArcStep=3.6` | positive real pixels, mutually exclusive with `psfSamplesPerRadius` | `0` | Maximum circular arc spacing between angular measurements; resolves a radius-dependent count no smaller than one. |
  * | `--klip.outputPSFModels` | `klip.outputPSFModels=true` | bool | `false` | Write canonical common-angle response and validity cubes after fitting the radial model. |
+ * | `--klip.psfFilter` | `klip.psfFilter=true` | bool | `false` | Evaluate the radial response at each science pixel and write normalized matched-filter amplitude, response-energy, support, and validity products. |
+ * | `--klip.psfFilterMinGoodFract` | `klip.psfFilterMinGoodFract=0.8` | finite real in `[0,1]` | `1` | Minimum fraction of the full local response stamp with valid response and finite in-bounds science samples. |
  * | `--klip.psfOutputPrefix` | `klip.psfOutputPrefix=klipPSF_` | nonempty string when output is enabled | `klipPSF_` | Filename prefix inside the resolved final image's `_outputs` directory. |
  *
  * Radial interpolation is linear between bracketing canonical responses and uses the nearest endpoint outside the
@@ -133,6 +135,10 @@
  * records the configured science combination and effective response combination separately. Mean, weighted mean,
  * and active science `sigmaMean` use response storage bounded by OpenMP worker count; median retains its target-frame
  * stack. `HIERARCH KLIP PSF ACCUMULATION` and `HIERARCH KLIP PSF RETAINED BYTES` identify the realized path.
+ * With `psfFilter=true`, the signed amplitude is `sum(H I) / sum(H^2)` over retained samples. The filtered cube is
+ * written beside the final science image with `_filtered` inserted before its FITS suffix. The normalization,
+ * support, and filter-validity cubes are written in the final image's `_outputs` directory, together with a
+ * `<prefix>manifest.fits` completion marker.
  *
  * \section klip_diagnostics_dictionary Diagnostics
  *
