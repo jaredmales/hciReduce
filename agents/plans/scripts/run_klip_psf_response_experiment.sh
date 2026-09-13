@@ -424,10 +424,10 @@ for response in responses:
     if str(header.get("KLIP PSF SPATIAL MODEL", "")).strip() != "RADIAL_LINEAR":
         raise SystemExit(f"expected linear radial interpolation in {response}")
     if method == "refitDifference":
-        if int(header.get("KLIP PSF MEASUREMENT COUNT", 0)) != 57:
-            raise SystemExit(f"expected 57 retained candidate-avoiding samples in {response}")
-        if int(header.get("KLIP PSF REFIT TRIAL COUNT", 0)) != 114:
-            raise SystemExit(f"expected 114 paired trial reductions in {response}")
+        if int(header.get("KLIP PSF MEASUREMENT COUNT", 0)) != 60:
+            raise SystemExit(f"expected 60 nearest-clear exact-pixel samples in {response}")
+        if int(header.get("KLIP PSF REFIT TRIAL COUNT", 0)) != 120:
+            raise SystemExit(f"expected 120 paired trial reductions in {response}")
 PY
         if [[ "${case_filter}" == true ]]; then
             python3 - "${case_dir}" <<'PY'

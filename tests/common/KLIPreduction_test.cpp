@@ -2852,14 +2852,14 @@ TEST_CASE( "KLIP paired refit-difference PSF response", "[KLIPreduction][regions
     paired.m_psfFile = psfPath.string();
     paired.m_psfStampSize = 3;
     paired.m_psfRadiiPerRegion = 1;
-    paired.m_psfSamplesPerRadius = 2;
+    paired.m_psfSamplesPerRadius = 1;
     paired.m_psfSamplingMode = mx::improc::PSFResponseMethod::refitDifference;
     paired.m_psfSampleAvoidRadius = 0.2F;
     paired.m_psfRefitContrast = halfAmplitude;
     paired.m_outputPSFModels = true;
     paired.m_psfOutputPrefix = "paired_";
     paired.m_outputDir = directory.file( "paired-products" ).string();
-    paired.m_planetSep = { 1.25F, 3.75F };
+    paired.m_planetSep = { 1, 4 };
     paired.m_planetPA = { 180, 0 };
     paired.m_planetContrast = { 0.001F, 0.001F };
     REQUIRE( paired.regions( std::vector<float>{ 0, 2.5F },
@@ -2868,12 +2868,23 @@ TEST_CASE( "KLIP paired refit-difference PSF response", "[KLIPreduction][regions
                              std::vector<float>{ 360, 360 } ) == 0 );
 
     REQUIRE( paired.m_psfMeasurementSamples.size() == 2 );
-    REQUIRE( paired.m_psfMeasurementSamples[0].radius == Approx( 1.25 ) );
+    REQUIRE( paired.m_psfMeasurementSamples[0].radius == Approx( 1 ) );
     REQUIRE( paired.m_psfMeasurementSamples[0].angle == Approx( 0 ) );
     REQUIRE( paired.m_psfMeasurementSamples[0].regionIndex == 0 );
-    REQUIRE( paired.m_psfMeasurementSamples[1].radius == Approx( 3.75 ) );
-    REQUIRE( paired.m_psfMeasurementSamples[1].angle == Approx( std::numbers::pi ) );
+    REQUIRE( paired.m_psfMeasurementSamples[1].radius == Approx( std::sqrt( 17 ) ) );
+    REQUIRE( paired.m_psfMeasurementSamples[1].angle == Approx( -std::atan( 0.25 ) ) );
     REQUIRE( paired.m_psfMeasurementSamples[1].regionIndex == 1 );
+    for( const mx::improc::RadialPSFSample &sample : paired.m_psfMeasurementSamples )
+    {
+        const double sourceRow = 5 + sample.radius * std::sin( sample.angle );
+        const double sourceColumn = 5 + sample.radius * std::cos( sample.angle );
+        REQUIRE( sourceRow == Approx( std::round( sourceRow ) ).margin( 1e-12 ) );
+        REQUIRE( sourceColumn == Approx( std::round( sourceColumn ) ).margin( 1e-12 ) );
+    }
+    const mx::improc::RadialPSFSample &avoidingSample = paired.m_psfMeasurementSamples[1];
+    const double avoidingRow = 5 + avoidingSample.radius * std::sin( avoidingSample.angle );
+    const double avoidingColumn = 5 + avoidingSample.radius * std::cos( avoidingSample.angle );
+    REQUIRE( std::hypot( avoidingRow - 5, avoidingColumn - 9 ) > paired.m_psfSampleAvoidRadius );
     REQUIRE( paired.radialPSFModel( 0 ).radiusCount() == 2 );
     REQUIRE( paired.radialPSFModel( 0 ).sampleCount( 0 ) == 1 );
     REQUIRE( paired.radialPSFModel( 0 ).sampleCount( 1 ) == 1 );
@@ -2895,43 +2906,67 @@ TEST_CASE( "KLIP paired refit-difference PSF response", "[KLIPreduction][regions
         }
     }
 
-    std::array<reductionHarness, 2> signedReductions;
-    for( std::size_t signIndex = 0; signIndex < signedReductions.size(); ++signIndex )
+    for( std::size_t sampleIndex = 0; sampleIndex < paired.m_psfMeasurementSamples.size(); ++sampleIndex )
     {
-        reductionHarness &trial = signedReductions[signIndex];
-        prepare( trial );
-        reductionT::imageT injectionTemplate = psfTemplate;
-        const float sign = signIndex == 0 ? 1 : -1;
-        for( int image = 0; image < trial.m_Nims; ++image )
+        CAPTURE( sampleIndex );
+        const mx::improc::RadialPSFSample &sample = paired.m_psfMeasurementSamples[sampleIndex];
+        std::array<reductionHarness, 2> signedReductions;
+        for( std::size_t signIndex = 0; signIndex < signedReductions.size(); ++signIndex )
         {
-            trial.injectFake( injectionTemplate,
-                              trial.m_tgtIms,
-                              image,
-                              trial.m_derotF.derotAngle( static_cast<std::size_t>( image ) ),
-                              0,
-                              1.25F,
-                              sign * halfAmplitude,
-                              1,
-                              1,
-                              1 );
+            reductionHarness &trial = signedReductions[signIndex];
+            prepare( trial );
+            reductionT::imageT injectionTemplate = psfTemplate;
+            const float sign = signIndex == 0 ? 1 : -1;
+            const float positionAngle = static_cast<float>( -sample.angle * 180.0 / std::numbers::pi );
+            for( int image = 0; image < trial.m_Nims; ++image )
+            {
+                trial.injectFake( injectionTemplate,
+                                  trial.m_tgtIms,
+                                  image,
+                                  trial.m_derotF.derotAngle( static_cast<std::size_t>( image ) ),
+                                  positionAngle,
+                                  static_cast<float>( sample.radius ),
+                                  sign * halfAmplitude,
+                                  1,
+                                  1,
+                                  1 );
+            }
+            REQUIRE( trial.regions( std::vector<float>{ 0, 2.5F },
+                                    std::vector<float>{ 2.5F, 5 },
+                                    std::vector<float>{ 0, 0 },
+                                    std::vector<float>{ 360, 360 } ) == 0 );
         }
-        REQUIRE( trial.regions( std::vector<float>{ 0, 2.5F },
-                                std::vector<float>{ 2.5F, 5 },
-                                std::vector<float>{ 0, 0 },
-                                std::vector<float>{ 360, 360 } ) == 0 );
-    }
 
-    reductionT::imageT expectedResponse( 3, 3 );
-    for( int column = 0; column < 3; ++column )
-    {
-        for( int row = 0; row < 3; ++row )
+        const int sampleRow = static_cast<int>( std::round( 5 + sample.radius * std::sin( sample.angle ) ) );
+        const int sampleColumn = static_cast<int>( std::round( 5 + sample.radius * std::cos( sample.angle ) ) );
+        reductionT::imageT measuredResponse( 3, 3 );
+        mx::improc::RadialPSFModel::validityT measuredValidity( 3, 3 );
+        measuredResponse.setZero();
+        measuredValidity.setZero();
+        for( int column = 0; column < 3; ++column )
         {
-            expectedResponse( row, column ) = ( signedReductions[0].m_finim.image( 0 )( row + 4, column + 5 ) -
-                                                signedReductions[1].m_finim.image( 0 )( row + 4, column + 5 ) ) /
-                                              ( 2 * halfAmplitude );
+            for( int row = 0; row < 3; ++row )
+            {
+                const float plus =
+                    signedReductions[0].m_finim.image( 0 )( row + sampleRow - 1, column + sampleColumn - 1 );
+                const float minus =
+                    signedReductions[1].m_finim.image( 0 )( row + sampleRow - 1, column + sampleColumn - 1 );
+                if( std::isfinite( plus ) && std::isfinite( minus ) )
+                {
+                    measuredResponse( row, column ) = ( plus - minus ) / ( 2 * halfAmplitude );
+                    measuredValidity( row, column ) = 1;
+                }
+            }
         }
+        reductionT::imageT expectedResponse;
+        mx::improc::RadialPSFModel::validityT expectedValidity;
+        mx::improc::RadialPSFModel::rotate( expectedResponse,
+                                            expectedValidity,
+                                            measuredResponse,
+                                            measuredValidity,
+                                            sample.angle );
+        requireApprox( paired.radialPSFModel( 0 ).canonicalResponse( sample.radiusIndex ), expectedResponse, 5e-5 );
     }
-    requireApprox( paired.radialPSFModel( 0 ).canonicalResponse( 0 ), expectedResponse, 5e-5 );
 
     reductionT::fitsHeaderT header;
     paired.appendReductionHeader( header );

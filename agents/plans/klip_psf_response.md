@@ -18,9 +18,10 @@ The first sparse radial estimator landed in hciReduce commit `3e0db39`.
 - `src/common/KLIPPSFModel.hpp` and `.cpp` construct a centered detector-frame probe, apply supported linear regional
   centering, calculate `p - Z Z^T p` for the live target basis, and accumulate each regional contribution directly
   into a compact derotated response stamp.
-- `src/common/KLIPreduction.hpp` configures exact sky samples at `psfResponse.sampleRadii` and uniformly spaced angles,
-  invokes the probe while each target-specific basis is resident, combines target-frame stamps, fits one
-  `RadialPSFModel` per requested mode count, and optionally writes canonical radial response and validity cubes.
+- `src/common/KLIPreduction.hpp` maps each requested radius/angle to the nearest eligible exact final-image detector
+  pixel, records that pixel's actual radius/angle, invokes the probe while each target-specific basis is resident,
+  combines target-frame stamps, fits one `RadialPSFModel` per requested mode count, and optionally writes canonical
+  radial response and validity cubes. No post-measurement registration is applied.
 - `src/common/RadialPSFModel.hpp` and `.cpp` resolve fixed-count or maximum-arc angular sampling, rotate measurements
   to the positive-column radial orientation, average samples at the same radius, and evaluate arbitrary positions by
   linearly interpolating bracketing radial responses.
@@ -135,8 +136,10 @@ construction, full-image filtering, and the response-backed fits follow automati
 overwriting completed reductions or fits. It uses the full fiducial perturbation by default because the central test
 found stable response shape and better small-radius numerical behavior there.
 
-The native C++ paired-grid validation uses the same 15 radii, four angles, five-pixel candidate avoidance, and
-finite-amplitude response as the accepted scripted grid. From the repository root on ROC, run:
+The native C++ paired-grid validation uses the same 15 radii, four requested angles, five-pixel candidate avoidance,
+and finite-amplitude response as the accepted scripted grid. Each requested polar location selects the nearest clear
+exact detector pixel; candidate avoidance therefore substitutes a nearby clear pixel instead of deleting the angular
+sample. From the repository root on ROC, run:
 
 ```bash
 OMP_NUM_THREADS=48 RESPONSE_CASE=radial_ld_refit4_filter \
@@ -145,7 +148,7 @@ OMP_NUM_THREADS=48 RESPONSE_CASE=radial_ld_refit4_filter \
   > klip_cpp_response_driver.log 2>&1 &
 ```
 
-The driver requires the native output headers to report 57 retained measurements and 114 signed trial reductions,
+The driver requires the native output headers to report 60 retained measurements and 120 signed trial reductions,
 checks that response estimation leaves the ordinary science cube unchanged, and repeats the matched-response fit for
 every configured KL mode.
 
@@ -300,6 +303,17 @@ pixels and PA 259.51--260.00 degrees. This accepts the paired candidate-avoiding
 response target. The C++ `refitDifference` implementation now executes that construction inside one `klipReduce`
 run; the next ROC test is a direct implementation and performance check, not another algorithm-selection experiment.
 
+The first native runs in `working/roc/klip_cpp_response_20260913T203850Z` and
+`working/roc/klip_cpp_response_20260913T210611Z` reproduced the accepted scripted-grid fit closely, but a direct
+response-stamp comparison exposed a coordinate-phase discrepancy: native paired trials were injected at continuous
+requested polar coordinates and their final stamps were rounded to the nearest pixel. At 200 modes, translating the
+native response by about 0.28 pixel improved its cosine with the independently measured candidate response from
+0.955 to 0.983, while the registered central 9-by-9 comparison gave cosine 0.991. This translation is diagnostic
+only; registering a response after measurement would violate the matched filter's definition at pixel `(x,y)`. The
+implementation now instead selects the nearest eligible exact detector pixel before injection, uses its actual radius
+and angle for the paired trial, extracts at that same pixel, and rotates by the actual angle before radial averaging.
+The next ROC run must validate that coordinate-preserving correction.
+
 ## Implementation sequence
 
 ### 1. Align response semantics and provenance
@@ -361,6 +375,8 @@ run; the next ROC test is a direct implementation and performance check, not ano
   photometry for every configured KL mode.
 - [x] Implement the paired candidate-avoiding grid, region-aware radial nodes, common-angle averaging, radial
   interpolation, and filtering in the KLIP C++ reduction path using the shared `[psfResponse]` interface.
+- [x] Center every KLIP response measurement on the nearest eligible exact detector pixel and retain its actual
+  radius/angle through injection, extraction, and common-angle rotation.
 - [ ] Validate the native C++ paired-grid products and runtime on ROC against the accepted scripted-grid result.
 - [ ] Add the analytic covariance/eigenmode perturbation contribution to the sparse KLIP response calculation.
 - [ ] Validate the adapted sparse response against the paired-refit oracle before repeating matched-filter photometry
@@ -393,3 +409,8 @@ run; the next ROC test is a direct implementation and performance check, not ano
   FITS header append, and FP32 image/cube FITS write paths all have 100% executable-line coverage. The containing
   `fitsFile.hpp`, `fitsHeader.hpp`, `eigenCube.hpp`, and `floatUtils.hpp` reports are respectively 491/491, 259/259,
   185/185, and 20/20 executable lines. No mxlib ownership follow-up is required.
+- The 2026-09-13 exact-pixel sampling change rechecked the current
+  `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` report for the mxlib APIs called by the edited preparation
+  and test paths. `exception.hpp`, `fitsFile.hpp`, `eigenCube.hpp`, `eigenImage.hpp`, `floatUtils.hpp`, and `geo.hpp`
+  respectively report 42/42, 491/491, 185/185, 4/4, 20/20, and 16/16 executable lines. No mxlib ownership follow-up
+  is required.

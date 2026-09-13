@@ -561,7 +561,8 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, 
 
     imageT m_psfResponseTemplate; ///< Centered source template retained for paired refit-difference trials.
 
-    std::vector<std::pair<double, double>> m_psfSourceCoordinates; ///< Sparse source centers in the final sky frame.
+    std::vector<std::pair<double, double>> m_psfSourceCoordinates;
+    ///< Selected integer detector-pixel centers in the final sky frame.
 
     std::vector<eigenCube<realT>> m_psfResponseFrames;
     ///< Median-only derotated response frame stacks by sample-major, mode-minor index.
@@ -603,8 +604,8 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, 
     void extractPSFResponseStamps(
         std::vector<imageT> &stamps, /**< [out] one source-centered stamp per configured KLIP output */
         std::vector<RadialPSFModel::validityT> &validities, /**< [out] finite validity paired with every stamp */
-        double sourceRow,                                   /**< [in] continuous final-image source row */
-        double sourceColumn /**< [in] continuous final-image source column */ ) const;
+        double sourceRow,                                   /**< [in] integer-valued final-image source row */
+        double sourceColumn /**< [in] integer-valued final-image source column */ ) const;
 
     /// Write configured canonical radial-response and normalized-filter products.
     void writePSFProducts();
@@ -1140,30 +1141,36 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
             RadialPSFModel::angularSampleCounts( m_psfSamplingGrid.radii,
                                                  static_cast<std::size_t>( m_psfSamplesPerRadius ),
                                                  static_cast<double>( m_psfSampleArcStep ) );
-        std::size_t sampleCount{ 0 };
-        for( const std::size_t count : m_psfRequestedSamplesPerRadius )
-        {
-            if( sampleCount > std::numeric_limits<std::size_t>::max() - count )
-            {
-                throw mx::exception<verboseT>( mx::error_t::sizeerr, "KLIP PSF sample count overflows size_t" );
-            }
-            sampleCount += count;
-        }
-        m_psfMeasurementSamples.reserve( sampleCount );
-        m_psfSourceCoordinates.reserve( sampleCount );
+        std::vector<RadialPSFSource> availableSources;
+        std::vector<std::pair<double, double>> availableCoordinates;
+        const bool hasMask = this->m_mask.rows() == this->m_Nrows && this->m_mask.cols() == this->m_Ncols;
         const double avoidanceSquared =
             static_cast<double>( m_psfSampleAvoidRadius ) * static_cast<double>( m_psfSampleAvoidRadius );
-        for( std::size_t radiusIndex = 0; radiusIndex < m_psfSamplingGrid.radii.size(); ++radiusIndex )
+        for( int column = 0; column < this->m_Ncols; ++column )
         {
-            std::size_t retainedAtRadius{ 0 };
-            for( std::size_t angularIndex = 0; angularIndex < m_psfRequestedSamplesPerRadius[radiusIndex];
-                 ++angularIndex )
+            for( int row = 0; row < this->m_Nrows; ++row )
             {
-                const double angle = 2.0 * std::numbers::pi * static_cast<double>( angularIndex ) /
-                                     static_cast<double>( m_psfRequestedSamplesPerRadius[radiusIndex] );
-                const double radius = m_psfSamplingGrid.radii[radiusIndex];
-                const double sourceRow = centerRow + radius * std::sin( angle );
-                const double sourceColumn = centerColumn + radius * std::cos( angle );
+                if( hasMask && this->m_mask( row, column ) != static_cast<realT>( 1 ) )
+                {
+                    continue;
+                }
+                const double deltaRow = static_cast<double>( row ) - centerRow;
+                const double deltaColumn = static_cast<double>( column ) - centerColumn;
+                const double radius = std::hypot( deltaRow, deltaColumn );
+                std::size_t regionIndex = m_minr.size();
+                for( std::size_t region = 0; region < m_minr.size(); ++region )
+                {
+                    if( radius >= static_cast<double>( m_minr[region] ) &&
+                        radius < static_cast<double>( m_maxr[region] ) )
+                    {
+                        regionIndex = region;
+                        break;
+                    }
+                }
+                if( regionIndex == m_minr.size() )
+                {
+                    continue;
+                }
                 bool avoided{ false };
                 if( m_psfSampleAvoidRadius > 0 )
                 {
@@ -1174,9 +1181,10 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
                             centerRow + static_cast<double>( this->m_planetSep[planet] ) * std::sin( planetAngle );
                         const double planetColumn =
                             centerColumn + static_cast<double>( this->m_planetSep[planet] ) * std::cos( planetAngle );
-                        const double deltaRow = sourceRow - planetRow;
-                        const double deltaColumn = sourceColumn - planetColumn;
-                        if( deltaRow * deltaRow + deltaColumn * deltaColumn <= avoidanceSquared )
+                        const double planetDeltaRow = static_cast<double>( row ) - planetRow;
+                        const double planetDeltaColumn = static_cast<double>( column ) - planetColumn;
+                        if( planetDeltaRow * planetDeltaRow + planetDeltaColumn * planetDeltaColumn <=
+                            avoidanceSquared )
                         {
                             avoided = true;
                             break;
@@ -1187,18 +1195,42 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
                 {
                     continue;
                 }
-                const std::size_t sourceIndex = m_psfSourceCoordinates.size();
-                m_psfSourceCoordinates.emplace_back( sourceRow, sourceColumn );
-                m_psfMeasurementSamples.push_back(
-                    { sourceIndex, radiusIndex, radius, angle, m_psfSamplingGrid.regions[radiusIndex] } );
-                ++retainedAtRadius;
+                const std::size_t sourceIndex = availableCoordinates.size();
+                availableCoordinates.emplace_back( static_cast<double>( row ), static_cast<double>( column ) );
+                availableSources.push_back(
+                    { sourceIndex, static_cast<double>( row ), static_cast<double>( column ), regionIndex } );
             }
-            if( retainedAtRadius == 0 )
+        }
+        // Select detector pixels nearest the requested polar grid. The selector records each pixel's actual polar
+        // coordinates, so paired injections and stamp extraction remain centered on the same exact pixel.
+        if( m_psfSamplingGrid.regionAware )
+        {
+            m_psfMeasurementSamples = RadialPSFModel::selectSamples( availableSources,
+                                                                     centerRow,
+                                                                     centerColumn,
+                                                                     m_psfSamplingGrid.radii,
+                                                                     m_psfRequestedSamplesPerRadius,
+                                                                     m_psfSamplingGrid.regions );
+        }
+        else
+        {
+            m_psfMeasurementSamples = RadialPSFModel::selectSamples( availableSources,
+                                                                     centerRow,
+                                                                     centerColumn,
+                                                                     m_psfSamplingGrid.radii,
+                                                                     m_psfRequestedSamplesPerRadius );
+        }
+        m_psfSourceCoordinates.reserve( m_psfMeasurementSamples.size() );
+        for( RadialPSFSample &sample : m_psfMeasurementSamples )
+        {
+            if( sample.sourceIndex >= availableCoordinates.size() )
             {
-                throw mx::exception<verboseT>( mx::error_t::invalidarg,
-                                               "PSF response candidate avoidance removed every sample at radius " +
-                                                   std::to_string( m_psfSamplingGrid.radii[radiusIndex] ) );
+                throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                               "KLIP PSF sample source index is outside detector coordinates" );
             }
+            const std::pair<double, double> coordinate = availableCoordinates[sample.sourceIndex];
+            sample.sourceIndex = m_psfSourceCoordinates.size();
+            m_psfSourceCoordinates.push_back( coordinate );
         }
 
         if( m_psfMeasurementSamples.size() > std::numeric_limits<std::size_t>::max() / m_Nmodes.size() )
