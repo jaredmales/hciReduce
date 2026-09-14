@@ -978,8 +978,13 @@ void hciAnalyze::filterCubeKLIPPSFResponse( cubeT &cube,
     const std::vector<realT> responseModes = headerVector( manifestHeader, "NMODES" );
     const std::vector<realT> minimumRadii = headerVector( manifestHeader, "REGMINR" );
     const std::vector<realT> maximumRadii = headerVector( manifestHeader, "REGMAXR" );
-    if( schema != 1 || stampSize <= 0 || stampSize % 2 == 0 || !std::isfinite( m_psfResponseMinimumSupport ) ||
-        m_psfResponseMinimumSupport < 0 || m_psfResponseMinimumSupport > 1 || radiusValues.empty() ||
+    const std::string spatialModel = manifestHeader["KLIP PSF SPATIAL MODEL"].String();
+    const bool pixelExact = spatialModel.starts_with( "PIXEL_EXACT" );
+    const bool radialSchema = schema == 1 && !pixelExact && !radiusValues.empty();
+    const bool pixelSchema = schema == 2 && pixelExact;
+    if( ( !radialSchema && !pixelSchema ) || stampSize <= 0 || stampSize % 2 == 0 ||
+        !std::isfinite( m_psfResponseMinimumSupport ) || m_psfResponseMinimumSupport < 0 ||
+        m_psfResponseMinimumSupport > 1 ||
         radiusValues.size() > static_cast<std::size_t>( std::numeric_limits<int>::max() ) ||
         responseModes.size() != static_cast<std::size_t>( cube.planes() ) || minimumRadii.empty() ||
         minimumRadii.size() != maximumRadii.size() )
@@ -1015,10 +1020,9 @@ void hciAnalyze::filterCubeKLIPPSFResponse( cubeT &cube,
         }
     }
 
-    const std::string spatialModel = manifestHeader["KLIP PSF SPATIAL MODEL"].String();
     const bool regionAware = spatialModel.starts_with( "REGION_RADIAL_LINEAR" );
     const bool exactAzimuthal = spatialModel.starts_with( "EXACT_AZIMUTHAL" );
-    if( !regionAware && !exactAzimuthal && !spatialModel.starts_with( "RADIAL_LINEAR" ) )
+    if( !pixelExact && !regionAware && !exactAzimuthal && !spatialModel.starts_with( "RADIAL_LINEAR" ) )
     {
         throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
                                               "KLIP PSF manifest has an unsupported spatial model" );
@@ -1124,6 +1128,172 @@ void hciAnalyze::filterCubeKLIPPSFResponse( cubeT &cube,
                                                       std::to_string( mode ) );
         }
         modeCounts[mode] = static_cast<int>( responseModes[mode] );
+    }
+
+    if( pixelExact )
+    {
+        requireHeader( "KLIP PSF MEASUREMENT COUNT" );
+        const std::string sourceCountString = manifestHeader["KLIP PSF MEASUREMENT COUNT"].String();
+        std::size_t parsedCharacters{ 0 };
+        std::size_t sourceCount{ 0 };
+        try
+        {
+            sourceCount = std::stoull( sourceCountString, &parsedCharacters );
+        }
+        catch( const std::exception & )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "KLIP exact response measurement count is not an integer" );
+        }
+        const bool trailingCharactersAreWhitespace =
+            std::all_of( sourceCountString.begin() + static_cast<std::ptrdiff_t>( parsedCharacters ),
+                         sourceCountString.end(),
+                         []( unsigned char character ) { return std::isspace( character ) != 0; } );
+        if( !trailingCharactersAreWhitespace || sourceCount == 0 ||
+            sourceCount > static_cast<std::size_t>( std::numeric_limits<int>::max() ) )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "KLIP exact response measurement count is outside output range" );
+        }
+
+        mx::fits::fitsFile<realT, mx::verbose::vv> reader;
+        imageT coordinates;
+        fitsHeaderT coordinateHeader;
+        const std::string coordinatePath = productPrefix + "coordinates.fits";
+        mx::error_t readResult = reader.read( coordinates, coordinateHeader, coordinatePath );
+        if( readResult != mx::error_t::noerror )
+        {
+            throw mx::exception<mx::verbose::vv>( readResult, "reading KLIP exact coordinates " + coordinatePath );
+        }
+        if( coordinates.rows() != static_cast<Eigen::Index>( sourceCount ) || coordinates.cols() != 4 ||
+            coordinateHeader.count( "KLIP PSF PRODUCT SCHEMA" ) == 0 ||
+            coordinateHeader["KLIP PSF PRODUCT SCHEMA"].value<int>() != schema ||
+            coordinateHeader.count( "KLIP PSF PRODUCT" ) == 0 ||
+            !coordinateHeader["KLIP PSF PRODUCT"].String().starts_with( "PIXEL_COORDINATES" ) )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "KLIP exact response coordinates are inconsistent" );
+        }
+
+        std::vector<std::pair<int, int>> sourceCoordinates( sourceCount );
+        std::vector<std::uint8_t> coordinateOwners( static_cast<std::size_t>( cube.rows() ) * cube.cols(), 0 );
+        const double centerRow = 0.5 * static_cast<double>( cube.rows() - 1 );
+        const double centerColumn = 0.5 * static_cast<double>( cube.cols() - 1 );
+        for( std::size_t source = 0; source < sourceCount; ++source )
+        {
+            const realT rowValue = coordinates( static_cast<Eigen::Index>( source ), 0 );
+            const realT columnValue = coordinates( static_cast<Eigen::Index>( source ), 1 );
+            const realT regionValue = coordinates( static_cast<Eigen::Index>( source ), 2 );
+            const realT indexValue = coordinates( static_cast<Eigen::Index>( source ), 3 );
+            if( !std::isfinite( rowValue ) || !std::isfinite( columnValue ) || !std::isfinite( regionValue ) ||
+                !std::isfinite( indexValue ) || rowValue != std::trunc( rowValue ) ||
+                columnValue != std::trunc( columnValue ) || regionValue != std::trunc( regionValue ) ||
+                indexValue != static_cast<realT>( source ) || rowValue < 0 || rowValue >= cube.rows() ||
+                columnValue < 0 || columnValue >= cube.cols() || regionValue < 0 ||
+                regionValue >= static_cast<realT>( minimumRadii.size() ) )
+            {
+                throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                      "KLIP exact response coordinate row is invalid" );
+            }
+            const int row = static_cast<int>( rowValue );
+            const int column = static_cast<int>( columnValue );
+            const std::size_t region = static_cast<std::size_t>( regionValue );
+            const double radius =
+                std::hypot( static_cast<double>( row ) - centerRow, static_cast<double>( column ) - centerColumn );
+            const std::size_t owner =
+                static_cast<std::size_t>( row ) + static_cast<std::size_t>( cube.rows() ) * column;
+            if( coordinateOwners[owner] != 0 || radius < static_cast<double>( minimumRadii[region] ) ||
+                radius >= static_cast<double>( maximumRadii[region] ) )
+            {
+                throw mx::exception<mx::verbose::vv>(
+                    mx::error_t::invalidconfig,
+                    "KLIP exact response coordinate is duplicated or outside its declared region" );
+            }
+            coordinateOwners[owner] = 1;
+            sourceCoordinates[source] = { row, column };
+        }
+
+        cubeT filtered( cube.rows(), cube.cols(), cube.planes() );
+        filtered.cube().setConstant( std::numeric_limits<realT>::quiet_NaN() );
+        const int responseCenter = stampSize / 2;
+        for( int mode = 0; mode < cube.planes(); ++mode )
+        {
+            const std::string modeIndex = std::format( "{:03d}", mode );
+            const std::string responsePath = productPrefix + "mode" + modeIndex + "_pixel_response.fits";
+            const std::string validityPath = productPrefix + "mode" + modeIndex + "_pixel_validity.fits";
+            cubeT responseCube;
+            cubeT validityCube;
+            fitsHeaderT responseHeader;
+            fitsHeaderT validityHeader;
+            readResult = reader.read( responseCube, responseHeader, responsePath );
+            if( readResult != mx::error_t::noerror )
+            {
+                throw mx::exception<mx::verbose::vv>( readResult, "reading KLIP exact response " + responsePath );
+            }
+            readResult = reader.read( validityCube, validityHeader, validityPath );
+            if( readResult != mx::error_t::noerror )
+            {
+                throw mx::exception<mx::verbose::vv>( readResult, "reading KLIP exact validity " + validityPath );
+            }
+            if( responseCube.rows() != stampSize || responseCube.cols() != stampSize ||
+                responseCube.planes() != static_cast<int>( sourceCount ) || validityCube.rows() != stampSize ||
+                validityCube.cols() != stampSize || validityCube.planes() != responseCube.planes() ||
+                responseHeader.count( "KLIP PSF PRODUCT SCHEMA" ) == 0 ||
+                validityHeader.count( "KLIP PSF PRODUCT SCHEMA" ) == 0 ||
+                responseHeader["KLIP PSF PRODUCT SCHEMA"].value<int>() != schema ||
+                validityHeader["KLIP PSF PRODUCT SCHEMA"].value<int>() != schema ||
+                responseHeader.count( "KLIP PSF PRODUCT" ) == 0 || validityHeader.count( "KLIP PSF PRODUCT" ) == 0 ||
+                !responseHeader["KLIP PSF PRODUCT"].String().starts_with( "PIXEL_RESPONSE" ) ||
+                !validityHeader["KLIP PSF PRODUCT"].String().starts_with( "PIXEL_VALIDITY" ) ||
+                responseHeader.count( "KLIP PSF MODE COUNT" ) == 0 ||
+                validityHeader.count( "KLIP PSF MODE COUNT" ) == 0 ||
+                responseHeader["KLIP PSF MODE COUNT"].value<int>() != modeCounts[static_cast<std::size_t>( mode )] ||
+                validityHeader["KLIP PSF MODE COUNT"].value<int>() != modeCounts[static_cast<std::size_t>( mode )] )
+            {
+                throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                      "KLIP exact response or validity product is inconsistent" );
+            }
+
+            for( std::size_t source = 0; source < sourceCount; ++source )
+            {
+                mx::improc::P4PSFFilter::validityT responseValidity( stampSize, stampSize );
+                for( int column = 0; column < stampSize; ++column )
+                {
+                    for( int row = 0; row < stampSize; ++row )
+                    {
+                        const realT validity = validityCube.image( static_cast<int>( source ) )( row, column );
+                        const realT response = responseCube.image( static_cast<int>( source ) )( row, column );
+                        if( !std::isfinite( validity ) || ( validity != 0 && validity != 1 ) ||
+                            ( validity != 0 && !std::isfinite( response ) ) )
+                        {
+                            throw mx::exception<mx::verbose::vv>(
+                                mx::error_t::invalidconfig,
+                                "KLIP exact response contains invalid values or non-binary validity" );
+                        }
+                        responseValidity( row, column ) = validity != 0 ? 1 : 0;
+                    }
+                }
+                if( responseValidity( responseCenter, responseCenter ) == 0 )
+                {
+                    continue;
+                }
+                const auto [sourceRow, sourceColumn] = sourceCoordinates[source];
+                const mx::improc::P4PSFFilterResult result =
+                    mx::improc::P4PSFFilter::calculate( cube.image( mode ),
+                                                        responseCube.image( static_cast<int>( source ) ),
+                                                        responseValidity,
+                                                        sourceRow,
+                                                        sourceColumn,
+                                                        m_psfResponseMinimumSupport );
+                if( result.valid && std::isfinite( result.amplitude ) &&
+                    std::abs( result.amplitude ) <= std::numeric_limits<realT>::max() )
+                {
+                    filtered.image( mode )( sourceRow, sourceColumn ) = static_cast<realT>( result.amplitude );
+                }
+            }
+        }
+        cube = std::move( filtered );
+        return;
     }
 
     mx::fits::fitsFile<realT, mx::verbose::vv> reader;

@@ -29,6 +29,10 @@
  * frame stack. After all regions, the response stamps are combined and
  * \ref mx::improc::RadialPSFModel "RadialPSFModel" rotates measurements to a common angle, averages within radius,
  * and supplies linear radial evaluation with intersected endpoint validity.
+ * The numerical `refitDifference` path instead reruns the complete reduction with positive and negative probes. Its
+ * `sampleEveryPixel` oracle enumerates every eligible integer search coordinate and retains the central-difference
+ * response directly, bypassing rotation, radial averaging, and interpolation. `writePSFProducts()` persists that
+ * field as schema-2 coordinates plus mode-major response and validity cubes.
  * If normalized filtering is enabled, `KLIPreduction::writePSFProducts()` evaluates that model at each final-image
  * source coordinate and passes the local response, validity, and science patch to
  * \ref mx::improc::P4PSFFilter::calculate "P4PSFFilter::calculate()". This publishes signed amplitude,

@@ -290,12 +290,12 @@ Known non-blocking ownership follow-ups:
       multi-plane allocation, mask forwarding, annulus bounds, and both raw-standard-deviation and divided-SNR modes
       in mxlib before treating this exact API as covered.
 
-- [ ] Add mxlib coverage tests for the remaining executable paths in `ompLoopWatcher` and float `fitsFile::read` used
-      by `P4Reduction::regions()`. The current LCOV trace at
-      `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` reports 86/98 executable lines for
-      `include/ipc/ompLoopWatcher.hpp`, and the P4 optional PSF-template branch calls the float FITS reader. Cover
-      P4-equivalent progress completion/refresh paths and successful and failing float image reads before treating
-      these dependencies as 100%-covered.
+- [x] Complete mxlib coverage for `ompLoopWatcher` and the float FITS image/cube reads used by P4/KLIP response
+      processing. The 2026-09-14 audit of `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` records
+      `ompLoopWatcher.hpp` at 69/69 executable lines and every executable line in `fitsFile.hpp` covered. The exact
+      float image read used by `KLIPreduction::preparePSFMeasurement()`, float image/cube reads with headers used by
+      `hciAnalyze`, and float image/cube writes with headers used by `KLIPreduction::writePSFProducts()` all have
+      nonzero function counters. `createDirectories()` is also covered on all executable lines.
 
 - [ ] Add focused mxlib behavioral/coverage tests for the exact FP32 eigensolver and BLAS paths used by the P4/KLIP
       precision experiments. The current 2026-08-30 filtered LCOV trace at mxlib commit

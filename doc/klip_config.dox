@@ -119,6 +119,7 @@
  * | `--psfResponse.radiiPerRegion` | `psfResponse.radiiPerRegion=2` | positive integer, mutually exclusive with `sampleRadii` | `0` | Uniformly spaced interior nodes in every KLIP region; radial interpolation remains within that region. |
  * | `--psfResponse.samplesPerRadius` | `psfResponse.samplesPerRadius=8` | positive integer, mutually exclusive with `sampleArcStep` | `0` | Fixed count of uniformly spaced angular measurements at every configured radius. |
  * | `--psfResponse.sampleArcStep` | `psfResponse.sampleArcStep=3.6` | positive real pixels, mutually exclusive with `samplesPerRadius` | `0` | Maximum circular arc spacing between angular measurements; resolves a radius-dependent count no smaller than one. |
+ * | `--psfResponse.sampleEveryPixel` | `psfResponse.sampleEveryPixel=true` | bool, mutually exclusive with radial and angular controls | `false` | Measure and retain one response at every eligible integer search pixel instead of constructing a radial model. |
  * | `--psfResponse.method` | `psfResponse.method=refitDifference` | `skyExact` or `refitDifference`; KLIP rejects `detectorLocal` | `skyExact` | `skyExact` propagates a probe through the fitted basis. `refitDifference` performs complete paired signed KLIP trials and includes basis adaptation. |
  * | `--psfResponse.sampleAvoidRadius` | `psfResponse.sampleAvoidRadius=5` | finite nonnegative pixels | `0` | Omit sample positions within this distance of configured `planet.*` coordinates. |
  * | `--psfResponse.refitContrast` | `psfResponse.refitContrast=0.0048` | positive finite contrast for `refitDifference` | `0` | Half-amplitude used by paired signed trial injections. |
@@ -142,6 +143,10 @@
  * and active science `sigmaMean` use response storage bounded by OpenMP worker count; median retains its target-frame
  * stack. `HIERARCH KLIP PSF ACCUMULATION` identifies `WORKER_SUM`, `FRAME_STACK`, or
  * `PAIRED_FINAL_DIFFERENCE`, and `HIERARCH KLIP PSF RETAINED BYTES` records the realized storage.
+ * With `sampleEveryPixel=true`, `sampleAvoidRadius` must be zero and no radial or angular controls may be set. The
+ * schema-2 output contains one `coordinates` image plus `modeNNN_pixel_response` and `modeNNN_pixel_validity` cubes;
+ * their plane ordering is the coordinate-row ordering. This is an expensive exact numerical oracle when combined
+ * with `refitDifference`: two complete end-to-end KLIP reductions are performed for every eligible search pixel.
  * With `filter=true`, the signed amplitude is `sum(H I) / sum(H^2)` over retained samples. The filtered cube is
  * written beside the final science image with `_filtered` inserted before its FITS suffix. The normalization,
  * support, and filter-validity cubes are written in the final image's `_outputs` directory, together with a

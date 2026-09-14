@@ -618,6 +618,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_psfRadiiPerRegion == 0 );
     REQUIRE( defaults.m_psfSamplesPerRadius == 0 );
     REQUIRE( defaults.m_psfSampleArcStep == 0 );
+    REQUIRE_FALSE( defaults.m_psfSampleEveryPixel );
     REQUIRE( defaults.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::skyExact );
     REQUIRE( defaults.m_psfSampleAvoidRadius == 0 );
     REQUIRE( defaults.m_psfRefitContrast == 0 );
@@ -645,6 +646,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "psfResponse.radiiPerRegion" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "psfResponse.samplesPerRadius" ).helpType == "int" );
     REQUIRE( registered.m_targets.at( "psfResponse.sampleArcStep" ).helpType == "float" );
+    REQUIRE( registered.m_targets.at( "psfResponse.sampleEveryPixel" ).helpType == "bool" );
     REQUIRE( registered.m_targets.at( "psfResponse.method" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "psfResponse.sampleAvoidRadius" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "psfResponse.refitContrast" ).helpType == "float" );
@@ -3942,6 +3944,13 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         prepareReduction( exactSampleAvoidance );
         exactSampleAvoidance.m_psfSampleAvoidRadius = 1;
         REQUIRE_THROWS_WITH( exactSampleAvoidance.reduce(), Catch::Matchers::Contains( "supported only with" ) );
+
+        reductionHarness conflictingPixelSampling;
+        prepareReduction( conflictingPixelSampling );
+        conflictingPixelSampling.m_psfSampleEveryPixel = true;
+        conflictingPixelSampling.m_psfSampleRadii = { 5.5F };
+        conflictingPixelSampling.m_psfSamplesPerRadius = 4;
+        REQUIRE_THROWS_WITH( conflictingPixelSampling.reduce(), Catch::Matchers::Contains( "mutually exclusive" ) );
 
         reductionHarness detectorWithoutSparseRadii;
         prepareReduction( detectorWithoutSparseRadii );

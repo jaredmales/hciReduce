@@ -98,6 +98,14 @@ Maintained ROC experiment assets are under `agents/plans/scripts`:
   cases. It does not perform a negative-planet optimization.
 - `run_klip_hciAnalyze_filter_comparison.sh` retains separate SNR cubes and exact calls for the unfiltered, sparse,
   optional exact, and requested Gaussian cases, then tabulates every mode relative to the unfiltered result.
+- `optimize_klip_negative_planet.py` performs a deterministic bounded joint position/contrast fit by running a
+  single-mode KLIP reduction for each negative fake and minimizing the mean-square residual in a fixed sky aperture.
+  It caches every evaluated final image and writes the fitted positive source as a reusable `[planet]` plus
+  `fake.subtractPlanet=true` configuration fragment.
+- `run_klip_signal_free_pixel_response.sh` runs that optimizer, subtracts the fitted source once, and invokes native
+  `refitDifference` with `sampleEveryPixel=true`. Thus every response is the paired central difference about the
+  signal-free baseline, not a one-sided difference from the planet-bearing data. It validates the schema-2 product
+  and applies it to the original science cube with hciAnalyze for sparse/exact/Gaussian comparison.
 
 From the repository root on ROC, run the initial bounded set with:
 
@@ -157,6 +165,29 @@ OMP_NUM_THREADS=48 RESPONSE_CASE=radial_ld_refit4_filter \
 The driver requires the native output headers to report 60 retained measurements and 120 signed trial reductions,
 checks that response estimation leaves the ordinary science cube unchanged, and repeats the matched-response fit for
 every configured KL mode.
+
+The next validation is the full signal-free pixel oracle clarified on 2026-09-14:
+
+1. Fit a negative companion end to end with KLIP at one selected mode.
+2. Record the fitted positive separation, PA, and contrast in `[planet]`, then use `fake.subtractPlanet=true` to
+   construct the signal-free input cube.
+3. At every eligible integer search pixel, calculate the paired finite response
+   `(KLIP(D-Pbest+epsilon Pxy)-KLIP(D-Pbest-epsilon Pxy))/(2 epsilon)`.
+
+The response at `(x,y)` remains centered at exactly `(x,y)` and is retained without registration, rotation, radial
+averaging, or interpolation. `hciAnalyze` consumes the native schema-2 `PIXEL_EXACT` manifest and applies each stamp
+only at its recorded coordinate. From the repository root on ROC, run:
+
+```bash
+OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_klip_signal_free_pixel_response.sh \
+  > klip_signal_free_pixel_response_driver.log 2>&1 &
+```
+
+The optimizer minimizes the single-mode final-image mean-square residual in a fixed five-pixel sky aperture and is
+restartable by reusing cached evaluations. With the 6--60 pixel AF Lep annulus, the dense stage contains roughly
+11,200 response locations and 22,400 full KLIP trials. At 2.934 seconds per trial it is an approximately 18-hour run.
+The native dense stage does not yet checkpoint pixels, so an interrupted dense stage must be restarted; the driver
+refuses to treat a partial manifest as complete.
 
 The default perturbation magnitudes are 0.25, 0.5, and 1.0 times the P4 exact-negative contrast. Set
 `AMPLITUDE_FRACTIONS`, `SAMPLE_SPECS`, or `MODE_COUNTS` only for a deliberately reduced or expanded diagnostic; exact

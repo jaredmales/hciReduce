@@ -45,12 +45,14 @@
  * `filter.psfResponse` must name the `*_manifest.fits` file from a P4 or KLIP run with
  * `psfResponse.outputModels=true`, or an exact diagnostic manifest produced by the maintained
  * `build_klip_exact_response.py` tool. For P4, hciAnalyze locates the sibling `coordinates`, `model_NNNN`, and
- * `validity_NNNN` files. For KLIP, it locates the sibling `modeNNN_radial_response` and
+ * `validity_NNNN` files. For KLIP schema 1, it locates the sibling `modeNNN_radial_response` and
  * `modeNNN_radial_validity` cubes. A sparse manifest reconstructs its global or region-aware radial interpolation. An
  * `EXACT_AZIMUTHAL` diagnostic manifest contains exactly one measured radius and a finite `KLIP PSF SAMPLE ANGLE`;
  * hciAnalyze preserves that detector-oriented response at the anchor angle and rotates it directly elsewhere. It
- * rejects incomplete sets and mismatched image planes, mode labels, stamp geometry, radial grids, regions, validity,
- * or product roles. Filtering uses the recorded `PSF FILTER MIN GOOD FRACTION` and the same signed normalized
+ * also accepts native schema-2 `PIXEL_EXACT` products containing a coordinate table and one response/validity plane
+ * at every retained integer pixel. Those responses are applied only at their exact recorded coordinates. It rejects
+ * incomplete sets and mismatched image planes, mode labels, stamp geometry, radial grids, regions, validity, or
+ * product roles. Filtering uses the recorded `PSF FILTER MIN GOOD FRACTION` and the same signed normalized
  * estimator as the reduction: `sum(H*I)/sum(H*H)`. Pixels without a valid response remain excluded from the SNR
  * calculation.
  *

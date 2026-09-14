@@ -589,6 +589,90 @@ TEST_CASE( "hciAnalyze external exact azimuthal KLIP PSF filtering", "[hciAnalyz
     // clang-format on
 }
 
+/// Verify hciAnalyze applies each persisted exact KLIP response only at its integer source coordinate.
+/** This exercises hciAnalyze::filterCubePSFResponse() and mx::improc::P4PSFFilter::calculate().
+ * \ingroup hciAnalyze_unit_tests
+ */
+TEST_CASE( "hciAnalyze external per-pixel KLIP PSF filtering", "[hciAnalyze][filter][klipPSF][pixel]" )
+{
+    TestDirectory directory;
+    const std::filesystem::path manifestPath = directory.file( "pixel_manifest.fits" );
+
+    hciAnalyze::fitsHeaderT manifestHeader;
+    REQUIRE( manifestHeader.append<int>( "KLIP PSF PRODUCT SCHEMA", 2, "schema" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "KLIP PSF PRODUCT", "MANIFEST", "role" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<int>( "KLIP PSF COMPLETE", 1, "complete" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<int>( "KLIP PSF STAMP SIZE", 3, "stamp" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<float>( "KLIP PSF FILTER MIN GOOD FRACTION", 1, "support" ) ==
+             mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "KLIP PSF SAMPLE RADII", "", "radii" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "KLIP PSF SPATIAL MODEL", "PIXEL_EXACT", "model" ) ==
+             mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "KLIP PSF MEASUREMENT COUNT", "2", "count" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "NMODES", "3", "modes" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "REGMINR", "0", "region minimum" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "REGMAXR", "5", "region maximum" ) == mx::error_t::noerror );
+    hciAnalyze::imageT manifest( 1, 1 );
+    manifest( 0, 0 ) = 1;
+    writeFitsImage( manifestPath, manifest, &manifestHeader );
+
+    hciAnalyze::fitsHeaderT coordinateHeader;
+    REQUIRE( coordinateHeader.append<int>( "KLIP PSF PRODUCT SCHEMA", 2, "schema" ) == mx::error_t::noerror );
+    REQUIRE( coordinateHeader.append<std::string>( "KLIP PSF PRODUCT", "PIXEL_COORDINATES", "role" ) ==
+             mx::error_t::noerror );
+    hciAnalyze::imageT coordinates( 2, 4 );
+    coordinates << 5, 7, 0, 0, 7, 5, 0, 1;
+    writeFitsImage( directory.file( "pixel_coordinates.fits" ), coordinates, &coordinateHeader );
+
+    hciAnalyze::fitsHeaderT responseHeader;
+    REQUIRE( responseHeader.append<int>( "KLIP PSF PRODUCT SCHEMA", 2, "schema" ) == mx::error_t::noerror );
+    REQUIRE( responseHeader.append<std::string>( "KLIP PSF PRODUCT", "PIXEL_RESPONSE", "role" ) ==
+             mx::error_t::noerror );
+    REQUIRE( responseHeader.append<int>( "KLIP PSF MODE COUNT", 3, "mode" ) == mx::error_t::noerror );
+    hciAnalyze::cubeT responses( 3, 3, 2 );
+    responses.setZero();
+    responses.image( 0 )( 1, 1 ) = 2;
+    responses.image( 1 )( 1, 1 ) = 4;
+    writeFitsCube( directory.file( "pixel_mode000_pixel_response.fits" ), responses, &responseHeader );
+
+    hciAnalyze::fitsHeaderT validityHeader;
+    REQUIRE( validityHeader.append<int>( "KLIP PSF PRODUCT SCHEMA", 2, "schema" ) == mx::error_t::noerror );
+    REQUIRE( validityHeader.append<std::string>( "KLIP PSF PRODUCT", "PIXEL_VALIDITY", "role" ) ==
+             mx::error_t::noerror );
+    REQUIRE( validityHeader.append<int>( "KLIP PSF MODE COUNT", 3, "mode" ) == mx::error_t::noerror );
+    hciAnalyze::cubeT validities( 3, 3, 2 );
+    validities.cube().setOnes();
+    writeFitsCube( directory.file( "pixel_mode000_pixel_validity.fits" ), validities, &validityHeader );
+
+    appHarness application;
+    application.m_psfResponse = manifestPath.string();
+    hciAnalyze::cubeT science( 11, 11, 1 );
+    science.setZero();
+    science.image( 0 )( 5, 7 ) = 6;
+    science.image( 0 )( 7, 5 ) = 20;
+    hciAnalyze::fitsHeaderT scienceHeader;
+    REQUIRE( scienceHeader.append<std::string>( "NMODES", "3", "modes" ) == mx::error_t::noerror );
+    REQUIRE( scienceHeader.append<std::string>( "REGMINR", "0", "region minimum" ) == mx::error_t::noerror );
+    REQUIRE( scienceHeader.append<std::string>( "REGMAXR", "5", "region maximum" ) == mx::error_t::noerror );
+
+    application.filterCubePSFResponse( science, scienceHeader );
+    REQUIRE( science.image( 0 )( 5, 7 ) == Approx( 3 ) );
+    REQUIRE( science.image( 0 )( 7, 5 ) == Approx( 5 ) );
+    REQUIRE( std::isnan( science.image( 0 )( 5, 6 ) ) );
+
+    coordinates( 1, 3 ) = 0;
+    writeFitsImage( directory.file( "pixel_coordinates.fits" ), coordinates, &coordinateHeader );
+    hciAnalyze::cubeT rejectedScience( 11, 11, 1 );
+    rejectedScience.setZero();
+    REQUIRE_THROWS( application.filterCubePSFResponse( rejectedScience, scienceHeader ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4PSFFilter::calculate( {}, {}, {}, 0, 0, 1 );
+#endif
+    // clang-format on
+}
+
 /// Verify hciAnalyze reports the maximum inside snr.apertureR while excluding invalid input pixels.
 /** \ingroup hciAnalyze_unit_tests */
 TEST_CASE( "hciAnalyze cube SNR measurement", "[hciAnalyze][snr][nan]" )

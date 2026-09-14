@@ -1870,6 +1870,12 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     const bool fixedAngularSampling = m_psfSamplesPerRadius > 0;
     const bool arcAngularSampling = m_psfSampleArcStep > 0;
     const bool radialSampling = !m_psfSampleRadii.empty() || m_psfRadiiPerRegion > 0;
+    if( m_psfSampleEveryPixel && ( radialSampling || fixedAngularSampling || arcAngularSampling ) )
+    {
+        throw mx::exception<verboseT>(
+            mx::error_t::invalidconfig,
+            "psfResponse.sampleEveryPixel is mutually exclusive with radial and angular sampling controls" );
+    }
     if( ( !radialSampling && ( fixedAngularSampling || arcAngularSampling ) ) ||
         ( radialSampling && fixedAngularSampling == arcAngularSampling ) )
     {

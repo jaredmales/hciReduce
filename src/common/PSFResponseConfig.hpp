@@ -69,7 +69,9 @@ struct PSFResponseConfig
 
     realT m_psfSampleArcStep{ 0 };       ///< Maximum azimuthal arc spacing; zero selects the fixed angular count.
 
-    PSFResponseMethod m_psfSamplingMode{ PSFResponseMethod::skyExact }; ///< Sparse response measurement operator.
+    bool m_psfSampleEveryPixel{ false }; ///< Whether to measure every eligible integer search pixel without modeling.
+
+    PSFResponseMethod m_psfSamplingMode{ PSFResponseMethod::skyExact }; ///< Response measurement operator.
 
     realT m_psfSampleAvoidRadius{ 0 };  ///< Radius kept clear of configured known-source locations or trajectories.
 
@@ -142,7 +144,7 @@ struct PSFResponseConfig
                     "file",
                     false,
                     "string",
-                    "Centered FITS PSF template used for sparse response measurement" );
+                    "Centered FITS PSF template used for response measurement" );
 
         config.add( "psfResponse.stampSize",
                     "",
@@ -193,6 +195,16 @@ struct PSFResponseConfig
                     false,
                     "float",
                     "Maximum azimuthal response-sample arc spacing; mutually exclusive with fixed count" );
+
+        config.add( "psfResponse.sampleEveryPixel",
+                    "",
+                    "psfResponse.sampleEveryPixel",
+                    mx::app::argType::Optional,
+                    "psfResponse",
+                    "sampleEveryPixel",
+                    false,
+                    "bool",
+                    "Measure a separate response at every eligible integer search pixel" );
 
         config.add( "psfResponse.method",
                     "",
@@ -275,6 +287,7 @@ struct PSFResponseConfig
         config( m_psfRadiiPerRegion, "psfResponse.radiiPerRegion" );
         config( m_psfSamplesPerRadius, "psfResponse.samplesPerRadius" );
         config( m_psfSampleArcStep, "psfResponse.sampleArcStep" );
+        loadBoolConfig<verboseT>( config, m_psfSampleEveryPixel, "psfResponse.sampleEveryPixel" );
         std::string method = methodString( m_psfSamplingMode );
         config( method, "psfResponse.method" );
         try
@@ -298,7 +311,7 @@ struct PSFResponseConfig
     bool psfResponseRequested() const
     {
         return !m_psfFile.empty() || m_psfStampSize != 0 || !m_psfSampleRadii.empty() || m_psfRadiiPerRegion != 0 ||
-               m_psfSamplesPerRadius != 0 || m_psfSampleArcStep != 0 ||
+               m_psfSamplesPerRadius != 0 || m_psfSampleArcStep != 0 || m_psfSampleEveryPixel ||
                m_psfSamplingMode != PSFResponseMethod::skyExact || m_psfSampleAvoidRadius != 0 ||
                m_psfRefitContrast != 0 || m_outputPSFModels || m_psfFilter ||
                m_psfFilterMinGoodFract != static_cast<realT>( 1 );

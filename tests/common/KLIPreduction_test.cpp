@@ -290,6 +290,7 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( config.m_targets.at( "psfResponse.radiiPerRegion" ).helpType == "int" );
     REQUIRE( config.m_targets.at( "psfResponse.samplesPerRadius" ).helpType == "int" );
     REQUIRE( config.m_targets.at( "psfResponse.sampleArcStep" ).helpType == "float" );
+    REQUIRE( config.m_targets.at( "psfResponse.sampleEveryPixel" ).helpType == "bool" );
     REQUIRE( config.m_targets.at( "psfResponse.method" ).helpType == "string" );
     REQUIRE( config.m_targets.at( "psfResponse.sampleAvoidRadius" ).helpType == "float" );
     REQUIRE( config.m_targets.at( "psfResponse.refitContrast" ).helpType == "float" );
@@ -327,6 +328,7 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( defaults.m_psfRadiiPerRegion == 0 );
     REQUIRE( defaults.m_psfSamplesPerRadius == 0 );
     REQUIRE( defaults.m_psfSampleArcStep == 0 );
+    REQUIRE_FALSE( defaults.m_psfSampleEveryPixel );
     REQUIRE( defaults.m_psfSamplingMode == mx::improc::PSFResponseMethod::skyExact );
     REQUIRE( defaults.m_psfSampleAvoidRadius == 0 );
     REQUIRE( defaults.m_psfRefitContrast == 0 );
@@ -354,6 +356,7 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( configured.m_psfRadiiPerRegion == 0 );
     REQUIRE( configured.m_psfSamplesPerRadius == 6 );
     REQUIRE( configured.m_psfSampleArcStep == 0 );
+    REQUIRE_FALSE( configured.m_psfSampleEveryPixel );
     REQUIRE( configured.m_psfSamplingMode == mx::improc::PSFResponseMethod::refitDifference );
     REQUIRE( configured.m_psfSampleAvoidRadius == Approx( 2.5 ) );
     REQUIRE( configured.m_psfRefitContrast == Approx( 0.004 ) );
@@ -376,6 +379,13 @@ TEST_CASE( "KLIP diagnostic configuration", "[KLIPreduction][config][diagnostics
     REQUIRE( regionConfigured.m_psfSampleRadii.empty() );
     REQUIRE( regionConfigured.m_psfRadiiPerRegion == 2 );
     REQUIRE( regionConfigured.m_psfSamplesPerRadius == 4 );
+
+    reductionT pixelConfigured;
+    readReductionConfig( pixelConfigured,
+                         directory.file( "klip-pixel.conf" ),
+                         "[psfResponse]\nsampleEveryPixel=true\nmethod=refitDifference\n" );
+    REQUIRE( pixelConfigured.m_psfSampleEveryPixel );
+    REQUIRE( pixelConfigured.m_psfSamplingMode == mx::improc::PSFResponseMethod::refitDifference );
 
     reductionT removedKLIPPSFKey;
     readReductionConfig( removedKLIPPSFKey,
@@ -2974,6 +2984,195 @@ TEST_CASE( "KLIP paired refit-difference PSF response", "[KLIPreduction][regions
     REQUIRE( header["KLIP PSF SPATIAL MODEL"].String().starts_with( "REGION_RADIAL_LINEAR" ) );
 }
 
+/// Verify KLIP retains a paired finite-difference response independently at every eligible integer pixel.
+/** This exercises mx::improc::KLIPreduction::regions() and the refitDifference/sampleEveryPixel response path.
+ * \ingroup KLIPreduction_unit_tests
+ */
+TEST_CASE( "KLIP per-pixel paired PSF response", "[KLIPreduction][regions][PSF][pixel][paired]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    mx::improc::eigenCube<float> targets( 5, 5, 3 );
+    for( int image = 0; image < targets.planes(); ++image )
+    {
+        for( int column = 0; column < targets.cols(); ++column )
+        {
+            for( int row = 0; row < targets.rows(); ++row )
+            {
+                targets.image( image )( row, column ) = static_cast<float>(
+                    ( image + 1 ) * ( row + 1 ) + ( image + 2 ) * ( column + 2 ) + 0.05 * row * column );
+            }
+        }
+    }
+    reductionT::imageT psfTemplate( 3, 3 );
+    psfTemplate << 0.1F, 0.3F, 0.1F, 0.3F, 1, 0.3F, 0.1F, 0.3F, 0.1F;
+    const std::filesystem::path psfPath = directory.file( "pixel-psf.fits" );
+    mx::fits::fitsFile<float, mx::verbose::vv> writer;
+    REQUIRE( writer.write( psfPath.string(), psfTemplate ) == mx::error_t::noerror );
+
+    const auto prepare = [&]( reductionHarness &reduction )
+    {
+        reduction.m_filesRead = true;
+        reduction.m_RDIfilesRead = true;
+        reduction.m_imSize = 5;
+        reduction.m_Nrows = 5;
+        reduction.m_Ncols = 5;
+        reduction.m_Nims = 3;
+        reduction.m_Npix = 25;
+        reduction.m_tgtIms = targets;
+        reduction.m_Nmodes = { 1 };
+        reduction.m_meanSubMethod = mx::improc::HCI::meanSub::imageMean;
+        reduction.m_pixelTSNormMethod = mx::improc::HCI::pixelTSNorm::none;
+        reduction.m_excludeMethod = mx::improc::HCI::exclude::none;
+        reduction.m_excludeMethodMax = mx::improc::HCI::exclude::none;
+        reduction.m_includeMethod = mx::improc::HCI::include::all;
+        reduction.m_includeRefNum = 0;
+        reduction.m_doDerotate = true;
+        reduction.m_derotF.m_angleScale = 1;
+        reduction.m_derotF.m_angles = { 0, 0.2, -0.25 };
+        reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+        reduction.m_doWriteFinim = false;
+        reduction.m_doOutputPSFSub = false;
+        reduction.m_finimName = "finim.fits";
+        reduction.m_exactFinimName = true;
+    };
+
+    reductionHarness baseline;
+    prepare( baseline );
+    REQUIRE( baseline.regions( 0, 1.5F, 0, 360 ) == 0 );
+
+    constexpr float amplitude = 0.02F;
+    reductionHarness measured;
+    prepare( measured );
+    measured.m_psfFile = psfPath.string();
+    measured.m_psfStampSize = 3;
+    measured.m_psfSampleEveryPixel = true;
+    measured.m_psfSamplingMode = mx::improc::PSFResponseMethod::refitDifference;
+    measured.m_psfRefitContrast = amplitude;
+    measured.m_outputPSFModels = true;
+    measured.m_psfOutputPrefix = "pixel_";
+    measured.m_outputDir = directory.file( "pixel-products" ).string();
+    REQUIRE( measured.regions( 0, 1.5F, 0, 360 ) == 0 );
+    REQUIRE( measured.m_psfMeasurementSamples.size() == 9 );
+
+    reductionT::fitsHeaderT reductionHeader;
+    measured.appendReductionHeader( reductionHeader );
+    REQUIRE( reductionHeader["KLIP PSF REFIT TRIAL COUNT"].value<int>() == 18 );
+    REQUIRE( reductionHeader["KLIP PSF SPATIAL MODEL"].String().starts_with( "PIXEL_EXACT" ) );
+    REQUIRE( reductionHeader["KLIP PSF ACCUMULATION"].String().starts_with( "PAIRED_FINAL_DIFFERENCE" ) );
+
+    const std::filesystem::path productDirectory = directory.file( "pixel-products/finim_outputs" );
+    reductionT::imageT coordinates;
+    reductionT::fitsHeaderT coordinateHeader;
+    REQUIRE( writer.read( coordinates, coordinateHeader, ( productDirectory / "pixel_coordinates.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( coordinates.rows() == 9 );
+    REQUIRE( coordinateHeader["KLIP PSF PRODUCT"].String().starts_with( "PIXEL_COORDINATES" ) );
+
+    mx::improc::eigenCube<float> responseCube;
+    reductionT::fitsHeaderT responseHeader;
+    REQUIRE( writer.read( responseCube,
+                          responseHeader,
+                          ( productDirectory / "pixel_mode000_pixel_response.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( responseCube.planes() == 9 );
+    REQUIRE( responseHeader["KLIP PSF PRODUCT SCHEMA"].value<int>() == 2 );
+    REQUIRE( responseHeader["KLIP PSF PRODUCT"].String().starts_with( "PIXEL_RESPONSE" ) );
+    mx::improc::eigenCube<float> validityCube;
+    reductionT::fitsHeaderT validityHeader;
+    REQUIRE( writer.read( validityCube,
+                          validityHeader,
+                          ( productDirectory / "pixel_mode000_pixel_validity.fits" ).string() ) ==
+             mx::error_t::noerror );
+    REQUIRE( validityCube.planes() == 9 );
+    REQUIRE( validityHeader["KLIP PSF PRODUCT"].String().starts_with( "PIXEL_VALIDITY" ) );
+
+    std::size_t selected = measured.m_psfMeasurementSamples.size();
+    for( std::size_t sample = 0; sample < measured.m_psfMeasurementSamples.size(); ++sample )
+    {
+        if( coordinates( static_cast<Eigen::Index>( sample ), 0 ) == 2 &&
+            coordinates( static_cast<Eigen::Index>( sample ), 1 ) == 3 )
+        {
+            selected = sample;
+            break;
+        }
+    }
+    REQUIRE( selected < measured.m_psfMeasurementSamples.size() );
+
+    reductionHarness plus;
+    reductionHarness minus;
+    prepare( plus );
+    prepare( minus );
+    for( int image = 0; image < plus.m_Nims; ++image )
+    {
+        reductionT::imageT plusTemplate = psfTemplate;
+        plus.injectFake( plusTemplate,
+                         plus.m_tgtIms,
+                         image,
+                         plus.m_derotF.derotAngle( static_cast<std::size_t>( image ) ),
+                         0,
+                         1,
+                         amplitude,
+                         1,
+                         1,
+                         1 );
+        reductionT::imageT minusTemplate = psfTemplate;
+        minus.injectFake( minusTemplate,
+                          minus.m_tgtIms,
+                          image,
+                          minus.m_derotF.derotAngle( static_cast<std::size_t>( image ) ),
+                          0,
+                          1,
+                          -amplitude,
+                          1,
+                          1,
+                          1 );
+    }
+    REQUIRE( plus.regions( 0, 1.5F, 0, 360 ) == 0 );
+    REQUIRE( minus.regions( 0, 1.5F, 0, 360 ) == 0 );
+    for( int column = 0; column < measured.m_finim.cols(); ++column )
+    {
+        for( int row = 0; row < measured.m_finim.rows(); ++row )
+        {
+            const float actual = measured.m_finim.image( 0 )( row, column );
+            const float expected = baseline.m_finim.image( 0 )( row, column );
+            if( std::isfinite( expected ) )
+            {
+                REQUIRE( actual == Approx( expected ).margin( 5e-5 ) );
+            }
+            else
+            {
+                REQUIRE_FALSE( std::isfinite( actual ) );
+            }
+        }
+    }
+    for( int column = 0; column < 3; ++column )
+    {
+        for( int row = 0; row < 3; ++row )
+        {
+            const float expected =
+                ( plus.m_finim.image( 0 )( row + 1, column + 2 ) - minus.m_finim.image( 0 )( row + 1, column + 2 ) ) /
+                ( 2 * amplitude );
+            if( std::isfinite( expected ) )
+            {
+                REQUIRE( validityCube.image( static_cast<int>( selected ) )( row, column ) == 1 );
+                REQUIRE( responseCube.image( static_cast<int>( selected ) )( row, column ) ==
+                         Approx( expected ).margin( 5e-5 ) );
+            }
+            else
+            {
+                REQUIRE( validityCube.image( static_cast<int>( selected ) )( row, column ) == 0 );
+            }
+        }
+    }
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    measured.regions( 0, 1.5F, 0, 360 );
+#endif
+    // clang-format on
+}
+
 /// Verify KLIPreduction::regions uses an independent RDI library without permanently changing exclusion settings.
 /** \ingroup KLIPreduction_unit_tests */
 TEST_CASE( "KLIP RDI region orchestration", "[KLIPreduction][regions][RDI]" )
@@ -3059,7 +3258,27 @@ TEST_CASE( "KLIP region validation", "[KLIPreduction][regions][validation]" )
     reduction.m_psfSampleRadii = { 1 };
     reduction.m_psfSamplesPerRadius = 4;
     reduction.m_psfSampleArcStep = 1;
-    REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "exactly one positive" ) );
+    REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "one radial and one angular" ) );
+
+    reductionHarness pixelConflict;
+    prepareRegionReduction( pixelConflict );
+    pixelConflict.m_psfFile = "unused.fits";
+    pixelConflict.m_psfStampSize = 3;
+    pixelConflict.m_psfSampleEveryPixel = true;
+    pixelConflict.m_psfSampleRadii = { 1 };
+    REQUIRE_THROWS_WITH( pixelConflict.regions( 0, 2, 0, 360 ),
+                         Catch::Matchers::Contains( "sampleEveryPixel=true alone" ) );
+
+    reductionHarness pixelAvoidance;
+    prepareRegionReduction( pixelAvoidance );
+    pixelAvoidance.m_psfFile = "unused.fits";
+    pixelAvoidance.m_psfStampSize = 3;
+    pixelAvoidance.m_psfSampleEveryPixel = true;
+    pixelAvoidance.m_psfSamplingMode = mx::improc::PSFResponseMethod::refitDifference;
+    pixelAvoidance.m_psfRefitContrast = 0.01F;
+    pixelAvoidance.m_outputPSFModels = true;
+    pixelAvoidance.m_psfSampleAvoidRadius = 1;
+    REQUIRE_THROWS_WITH( pixelAvoidance.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "sampleAvoidRadius=0" ) );
 
     prepareRegionReduction( reduction );
     reduction.m_psfFile = "unused.fits";

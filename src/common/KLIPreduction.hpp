@@ -299,6 +299,7 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, 
     using PSFResponseConfig<realT>::m_psfRefitContrast;
     using PSFResponseConfig<realT>::m_psfSampleArcStep;
     using PSFResponseConfig<realT>::m_psfSampleAvoidRadius;
+    using PSFResponseConfig<realT>::m_psfSampleEveryPixel;
     using PSFResponseConfig<realT>::m_psfSampleRadii;
     using PSFResponseConfig<realT>::m_psfSamplesPerRadius;
     using PSFResponseConfig<realT>::m_psfSamplingMode;
@@ -443,7 +444,7 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, 
      * @{
      */
 
-    std::vector<RadialPSFSample> m_psfMeasurementSamples; ///< Exact sparse sky locations used in the current run.
+    std::vector<RadialPSFSample> m_psfMeasurementSamples; ///< Exact sky locations measured in the current run.
 
     std::vector<std::size_t> m_psfRequestedSamplesPerRadius;
     ///< Requested angular sample counts after resolving fixed-count or arc-spacing configuration.
@@ -581,6 +582,12 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, 
 
     std::vector<RadialPSFModel> m_radialPSFModels; ///< Fitted linear-radial response model for each KLIP output.
 
+    std::vector<std::vector<imageT>> m_pixelPSFResponses;
+    ///< Mode-major exact response stamps retained when every search pixel is measured.
+
+    std::vector<std::vector<RadialPSFModel::validityT>> m_pixelPSFValidities;
+    ///< Per-element validity paired with exact pixel response stamps.
+
     bool m_psfRefitTrial{ false }; ///< Whether recursive region processing is one output-suppressed paired trial.
 
     std::size_t m_psfRefitTrialCount{ 0 }; ///< Completed positive and negative paired response trial reductions.
@@ -594,10 +601,10 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, 
     /// Return the effective sigma threshold used for analytic KLIP response combination.
     realT psfResponseSigmaThreshold() const noexcept;
 
-    /// Combine sparse response frames and fit one common-angle radial model per KLIP output.
+    /// Combine response frames and retain either exact pixels or one radial model per KLIP output.
     void finalizePSFMeasurement();
 
-    /// Measure and fit paired finite-amplitude responses while preserving the ordinary science reduction.
+    /// Measure finite-amplitude response differences while preserving the ordinary science reduction.
     void calculateRefitDifferencePSFMeasurement();
 
     /// Extract one integer-centered response stamp and finite validity from the current final-image cube.
@@ -607,7 +614,7 @@ struct KLIPreduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, 
         double sourceRow,                                   /**< [in] integer-valued final-image source row */
         double sourceColumn /**< [in] integer-valued final-image source column */ ) const;
 
-    /// Write configured canonical radial-response and normalized-filter products.
+    /// Write configured radial or exact-pixel response and normalized-filter products.
     void writePSFProducts();
 
   public:
@@ -1084,8 +1091,9 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
     }
     else
     {
-        m_psfSamplingGrid = this->resolvedPSFResponseGrid( m_minr, m_maxr );
-        if( m_psfSamplingGrid.radii.empty() )
+        m_psfSamplingGrid =
+            m_psfSampleEveryPixel ? PSFResponseSamplingGrid{} : this->resolvedPSFResponseGrid( m_minr, m_maxr );
+        if( !m_psfSampleEveryPixel && m_psfSamplingGrid.radii.empty() )
         {
             throw mx::exception<verboseT>( mx::error_t::invalidarg,
                                            "KLIP PSF response measurement resolved no radial sample nodes" );
@@ -1137,10 +1145,13 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
         m_psfMeasurementSamples.clear();
         m_psfRequestedSamplesPerRadius.clear();
         m_psfSourceCoordinates.clear();
-        m_psfRequestedSamplesPerRadius =
-            RadialPSFModel::angularSampleCounts( m_psfSamplingGrid.radii,
-                                                 static_cast<std::size_t>( m_psfSamplesPerRadius ),
-                                                 static_cast<double>( m_psfSampleArcStep ) );
+        if( !m_psfSampleEveryPixel )
+        {
+            m_psfRequestedSamplesPerRadius =
+                RadialPSFModel::angularSampleCounts( m_psfSamplingGrid.radii,
+                                                     static_cast<std::size_t>( m_psfSamplesPerRadius ),
+                                                     static_cast<double>( m_psfSampleArcStep ) );
+        }
         std::vector<RadialPSFSource> availableSources;
         std::vector<std::pair<double, double>> availableCoordinates;
         const bool hasMask = this->m_mask.rows() == this->m_Nrows && this->m_mask.cols() == this->m_Ncols;
@@ -1201,9 +1212,23 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
                     { sourceIndex, static_cast<double>( row ), static_cast<double>( column ), regionIndex } );
             }
         }
-        // Select detector pixels nearest the requested polar grid. The selector records each pixel's actual polar
-        // coordinates, so paired injections and stamp extraction remain centered on the same exact pixel.
-        if( m_psfSamplingGrid.regionAware )
+        // Select detector pixels nearest the requested polar grid, or retain every eligible pixel for the exact
+        // response oracle. Recorded coordinates keep injection and stamp extraction centered on the same pixel.
+        if( m_psfSampleEveryPixel )
+        {
+            m_psfMeasurementSamples.reserve( availableSources.size() );
+            for( const RadialPSFSource &source : availableSources )
+            {
+                const double deltaRow = source.row - centerRow;
+                const double deltaColumn = source.column - centerColumn;
+                m_psfMeasurementSamples.push_back( { source.sourceIndex,
+                                                     0,
+                                                     std::hypot( deltaRow, deltaColumn ),
+                                                     std::atan2( deltaRow, deltaColumn ),
+                                                     source.regionIndex } );
+            }
+        }
+        else if( m_psfSamplingGrid.regionAware )
         {
             m_psfMeasurementSamples = RadialPSFModel::selectSamples( availableSources,
                                                                      centerRow,
@@ -1244,6 +1269,8 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
         m_psfResponseFrames.clear();
         m_psfResponseFrameValidity.clear();
         m_psfLinearAccumulator.reset();
+        m_pixelPSFResponses.clear();
+        m_pixelPSFValidities.clear();
         m_psfRefitTrialCount = 0;
         if( m_psfSamplingMode == PSFResponseMethod::refitDifference )
         {
@@ -1302,13 +1329,15 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::preparePSFMeasureme
             }
         }
         m_radialPSFModels.clear();
-        std::cerr << "KLIP radial PSF measurement: " << m_psfMeasurementSamples.size() << " locations at "
-                  << m_psfSamplingGrid.radii.size() << " radii using "
-                  << PSFResponseConfig<realT>::methodString( m_psfSamplingMode ) << ", linear radial interpolation, "
-                  << ( m_psfSamplingMode == PSFResponseMethod::refitDifference
-                           ? "paired trial"
-                           : ( m_psfLinearAccumulation ? "worker-sum" : "frame-stack" ) )
-                  << " accumulation retaining " << m_psfResponseRetainedBytes << " bytes\n";
+        const std::string accumulation = m_psfSamplingMode == PSFResponseMethod::refitDifference
+                                             ? "paired trial"
+                                             : ( m_psfLinearAccumulation ? "worker-sum" : "frame-stack" );
+        std::cerr << "KLIP PSF measurement: " << m_psfMeasurementSamples.size() << " locations"
+                  << ( m_psfSampleEveryPixel ? " at every eligible pixel"
+                                             : " at " + std::to_string( m_psfSamplingGrid.radii.size() ) + " radii" )
+                  << " using " << PSFResponseConfig<realT>::methodString( m_psfSamplingMode ) << ", "
+                  << ( m_psfSampleEveryPixel ? "exact pixel responses, " : "linear radial interpolation, " )
+                  << accumulation << " accumulation retaining " << m_psfResponseRetainedBytes << " bytes\n";
     }
 }
 
@@ -1348,7 +1377,17 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalizePSFMeasurem
         }
 
         m_radialPSFModels.clear();
-        m_radialPSFModels.reserve( m_Nmodes.size() );
+        m_pixelPSFResponses.clear();
+        m_pixelPSFValidities.clear();
+        if( m_psfSampleEveryPixel )
+        {
+            m_pixelPSFResponses.resize( m_Nmodes.size() );
+            m_pixelPSFValidities.resize( m_Nmodes.size() );
+        }
+        else
+        {
+            m_radialPSFModels.reserve( m_Nmodes.size() );
+        }
         for( std::size_t mode = 0; mode < m_Nmodes.size(); ++mode )
         {
             std::vector<KLIPPSFModel::imageT> responses( m_psfMeasurementSamples.size() );
@@ -1373,18 +1412,26 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::finalizePSFMeasurem
                                                        this->m_minGoodFract );
                 }
             }
-            if( m_psfSamplingGrid.regionAware )
+            if( m_psfSampleEveryPixel )
             {
-                m_radialPSFModels.emplace_back( m_psfSamplingGrid.radii,
-                                                m_psfSamplingGrid.regions,
-                                                m_psfStampSize,
-                                                m_psfStampSize );
+                m_pixelPSFResponses[mode] = std::move( responses );
+                m_pixelPSFValidities[mode] = std::move( validities );
             }
             else
             {
-                m_radialPSFModels.emplace_back( m_psfSamplingGrid.radii, m_psfStampSize, m_psfStampSize );
+                if( m_psfSamplingGrid.regionAware )
+                {
+                    m_radialPSFModels.emplace_back( m_psfSamplingGrid.radii,
+                                                    m_psfSamplingGrid.regions,
+                                                    m_psfStampSize,
+                                                    m_psfStampSize );
+                }
+                else
+                {
+                    m_radialPSFModels.emplace_back( m_psfSamplingGrid.radii, m_psfStampSize, m_psfStampSize );
+                }
+                m_radialPSFModels.back().fit( responses, validities, m_psfMeasurementSamples );
             }
-            m_radialPSFModels.back().fit( responses, validities, m_psfMeasurementSamples );
         }
         m_psfResponseFrames.clear();
         m_psfResponseFrameValidity.clear();
@@ -1575,8 +1622,12 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::calculateRefitDiffe
                         }
                     }
                 }
-                std::cerr << "KLIP paired PSF response sample " << sampleIndex + 1 << " / "
-                          << m_psfMeasurementSamples.size() << " complete\n";
+                if( !m_psfSampleEveryPixel || ( sampleIndex + 1 ) % 100 == 0 ||
+                    sampleIndex + 1 == m_psfMeasurementSamples.size() )
+                {
+                    std::cerr << "KLIP paired PSF response sample " << sampleIndex + 1 << " / "
+                              << m_psfMeasurementSamples.size() << " complete\n";
+                }
             }
         }
         catch( ... )
@@ -1605,21 +1656,31 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::calculateRefitDiffe
         }
         m_psfResponseRetainedBytes = responses.size() * m_psfMeasurementSamples.size() * stampElements * elementBytes;
         m_radialPSFModels.clear();
-        m_radialPSFModels.reserve( m_Nmodes.size() );
-        for( std::size_t mode = 0; mode < m_Nmodes.size(); ++mode )
+        m_pixelPSFResponses.clear();
+        m_pixelPSFValidities.clear();
+        if( m_psfSampleEveryPixel )
         {
-            if( m_psfSamplingGrid.regionAware )
+            m_pixelPSFResponses = std::move( responses );
+            m_pixelPSFValidities = std::move( validities );
+        }
+        else
+        {
+            m_radialPSFModels.reserve( m_Nmodes.size() );
+            for( std::size_t mode = 0; mode < m_Nmodes.size(); ++mode )
             {
-                m_radialPSFModels.emplace_back( m_psfSamplingGrid.radii,
-                                                m_psfSamplingGrid.regions,
-                                                m_psfStampSize,
-                                                m_psfStampSize );
+                if( m_psfSamplingGrid.regionAware )
+                {
+                    m_radialPSFModels.emplace_back( m_psfSamplingGrid.radii,
+                                                    m_psfSamplingGrid.regions,
+                                                    m_psfStampSize,
+                                                    m_psfStampSize );
+                }
+                else
+                {
+                    m_radialPSFModels.emplace_back( m_psfSamplingGrid.radii, m_psfStampSize, m_psfStampSize );
+                }
+                m_radialPSFModels.back().fit( responses[mode], validities[mode], m_psfMeasurementSamples );
             }
-            else
-            {
-                m_radialPSFModels.emplace_back( m_psfSamplingGrid.radii, m_psfStampSize, m_psfStampSize );
-            }
-            m_radialPSFModels.back().fit( responses[mode], validities[mode], m_psfMeasurementSamples );
         }
     }
 }
@@ -1627,7 +1688,9 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::calculateRefitDiffe
 template <typename realT, class derotFunctObj, typename evCalcT, class verboseT>
 void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writePSFProducts()
 {
-    if( ( !m_outputPSFModels && !m_psfFilter ) || m_radialPSFModels.empty() )
+    const bool pixelExact = m_psfSampleEveryPixel;
+    const bool responseMissing = pixelExact ? m_pixelPSFResponses.empty() : m_radialPSFModels.empty();
+    if( ( !m_outputPSFModels && !m_psfFilter ) || responseMissing )
     {
         return;
     }
@@ -1652,7 +1715,9 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writePSFProducts()
             fitsHeaderT header;
             this->stdFitsHeader( &header );
             appendReductionHeader( header );
-            header.template append<int>( "KLIP PSF PRODUCT SCHEMA", 1, "sparse radial response-product schema" );
+            header.template append<int>( "KLIP PSF PRODUCT SCHEMA",
+                                         pixelExact ? 2 : 1,
+                                         "KLIP response-product schema" );
             header.template append<std::string>( "KLIP PSF PRODUCT", role, "product role" );
             return header;
         };
@@ -1669,31 +1734,58 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writePSFProducts()
 
         if( m_outputPSFModels )
         {
-            for( std::size_t mode = 0; mode < m_radialPSFModels.size(); ++mode )
+            if( pixelExact )
+            {
+                imageT coordinates( static_cast<Eigen::Index>( m_psfMeasurementSamples.size() ), 4 );
+                for( std::size_t sample = 0; sample < m_psfMeasurementSamples.size(); ++sample )
+                {
+                    const RadialPSFSample &measurement = m_psfMeasurementSamples[sample];
+                    const auto &coordinate = m_psfSourceCoordinates.at( measurement.sourceIndex );
+                    coordinates( static_cast<Eigen::Index>( sample ), 0 ) = static_cast<realT>( coordinate.first );
+                    coordinates( static_cast<Eigen::Index>( sample ), 1 ) = static_cast<realT>( coordinate.second );
+                    coordinates( static_cast<Eigen::Index>( sample ), 2 ) =
+                        static_cast<realT>( measurement.regionIndex );
+                    coordinates( static_cast<Eigen::Index>( sample ), 3 ) = static_cast<realT>( sample );
+                }
+                writeProduct( ( outputDirectory / ( m_psfOutputPrefix + "coordinates.fits" ) ).string(),
+                              coordinates,
+                              "PIXEL_COORDINATES" );
+            }
+
+            const std::size_t outputModeCount = pixelExact ? m_pixelPSFResponses.size() : m_radialPSFModels.size();
+            for( std::size_t mode = 0; mode < outputModeCount; ++mode )
             {
                 eigenCube<realT> responseCube;
                 eigenCube<realT> validityCube;
-                responseCube.resize( m_psfStampSize,
-                                     m_psfStampSize,
-                                     static_cast<int>( m_psfSamplingGrid.radii.size() ) );
-                validityCube.resize( m_psfStampSize,
-                                     m_psfStampSize,
-                                     static_cast<int>( m_psfSamplingGrid.radii.size() ) );
-                for( std::size_t radius = 0; radius < m_psfSamplingGrid.radii.size(); ++radius )
+                const std::size_t planeCount =
+                    pixelExact ? m_psfMeasurementSamples.size() : m_psfSamplingGrid.radii.size();
+                responseCube.resize( m_psfStampSize, m_psfStampSize, static_cast<int>( planeCount ) );
+                validityCube.resize( m_psfStampSize, m_psfStampSize, static_cast<int>( planeCount ) );
+                for( std::size_t plane = 0; plane < planeCount; ++plane )
                 {
-                    responseCube.image( static_cast<int>( radius ) ) =
-                        m_radialPSFModels[mode].canonicalResponse( radius );
-                    validityCube.image( static_cast<int>( radius ) ) =
-                        m_radialPSFModels[mode].canonicalValidity( radius ).cast<realT>();
+                    if( pixelExact )
+                    {
+                        responseCube.image( static_cast<int>( plane ) ) = m_pixelPSFResponses.at( mode ).at( plane );
+                        validityCube.image( static_cast<int>( plane ) ) =
+                            m_pixelPSFValidities.at( mode ).at( plane ).template cast<realT>();
+                    }
+                    else
+                    {
+                        responseCube.image( static_cast<int>( plane ) ) =
+                            m_radialPSFModels[mode].canonicalResponse( plane );
+                        validityCube.image( static_cast<int>( plane ) ) =
+                            m_radialPSFModels[mode].canonicalValidity( plane ).template cast<realT>();
+                    }
                 }
-
                 std::ostringstream modeName;
                 modeName << std::setw( 3 ) << std::setfill( '0' ) << mode;
                 const std::filesystem::path responsePath =
-                    outputDirectory / ( m_psfOutputPrefix + "mode" + modeName.str() + "_radial_response.fits" );
+                    outputDirectory / ( m_psfOutputPrefix + "mode" + modeName.str() +
+                                        ( pixelExact ? "_pixel_response.fits" : "_radial_response.fits" ) );
                 const std::filesystem::path validityPath =
-                    outputDirectory / ( m_psfOutputPrefix + "mode" + modeName.str() + "_radial_validity.fits" );
-                fitsHeaderT responseHeader = productHeader( "RADIAL_RESPONSE" );
+                    outputDirectory / ( m_psfOutputPrefix + "mode" + modeName.str() +
+                                        ( pixelExact ? "_pixel_validity.fits" : "_radial_validity.fits" ) );
+                fitsHeaderT responseHeader = productHeader( pixelExact ? "PIXEL_RESPONSE" : "RADIAL_RESPONSE" );
                 responseHeader.template append<int>( "KLIP PSF MODE COUNT",
                                                      m_Nmodes[mode],
                                                      "requested retained KL modes" );
@@ -1701,7 +1793,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writePSFProducts()
                 mx::error_t writeResult = writer.write( responsePath.string(), responseCube, responseHeader );
                 if( writeResult == mx::error_t::noerror )
                 {
-                    fitsHeaderT validityHeader = productHeader( "RADIAL_VALIDITY" );
+                    fitsHeaderT validityHeader = productHeader( pixelExact ? "PIXEL_VALIDITY" : "RADIAL_VALIDITY" );
                     validityHeader.template append<int>( "KLIP PSF MODE COUNT",
                                                          m_Nmodes[mode],
                                                          "requested retained KL modes" );
@@ -1709,7 +1801,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writePSFProducts()
                 }
                 if( writeResult != mx::error_t::noerror )
                 {
-                    throw mx::exception<verboseT>( writeResult, "could not write KLIP radial PSF response products" );
+                    throw mx::exception<verboseT>( writeResult, "could not write KLIP PSF response products" );
                 }
             }
         }
@@ -1717,7 +1809,8 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writePSFProducts()
         if( m_psfFilter )
         {
             if( this->m_finim.rows() <= 0 || this->m_finim.cols() <= 0 ||
-                this->m_finim.planes() != static_cast<int>( m_radialPSFModels.size() ) )
+                this->m_finim.planes() !=
+                    static_cast<int>( pixelExact ? m_pixelPSFResponses.size() : m_radialPSFModels.size() ) )
             {
                 throw mx::exception<verboseT>( mx::error_t::sizeerr,
                                                "KLIP PSF filtering requires the complete combined final-image cube" );
@@ -1734,6 +1827,26 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writePSFProducts()
             const double centerRow = 0.5 * static_cast<double>( this->m_finim.rows() - 1 );
             const double centerColumn = 0.5 * static_cast<double>( this->m_finim.cols() - 1 );
             const int responseCenter = m_psfStampSize / 2;
+            Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic> pixelResponseIndex;
+            if( pixelExact )
+            {
+                pixelResponseIndex = Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic>::Constant( this->m_finim.rows(),
+                                                                                                  this->m_finim.cols(),
+                                                                                                  -1 );
+                for( std::size_t sample = 0; sample < m_psfMeasurementSamples.size(); ++sample )
+                {
+                    const auto &coordinate = m_psfSourceCoordinates.at( m_psfMeasurementSamples[sample].sourceIndex );
+                    const int row = static_cast<int>( coordinate.first );
+                    const int column = static_cast<int>( coordinate.second );
+                    if( row < 0 || row >= pixelResponseIndex.rows() || column < 0 ||
+                        column >= pixelResponseIndex.cols() || pixelResponseIndex( row, column ) >= 0 )
+                    {
+                        throw mx::exception<verboseT>( mx::error_t::sizeerr,
+                                                       "KLIP exact response coordinates are invalid or duplicated" );
+                    }
+                    pixelResponseIndex( row, column ) = static_cast<int>( sample );
+                }
+            }
             for( int output = 0; output < outputCount; ++output )
             {
                 RadialPSFModel::imageT response;
@@ -1764,7 +1877,19 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::writePSFProducts()
                         {
                             continue;
                         }
-                        if( m_psfSamplingGrid.regionAware )
+                        if( pixelExact )
+                        {
+                            const int sample = pixelResponseIndex( row, column );
+                            if( sample < 0 )
+                            {
+                                continue;
+                            }
+                            response = m_pixelPSFResponses[static_cast<std::size_t>( output )]
+                                                          [static_cast<std::size_t>( sample )];
+                            responseValidity = m_pixelPSFValidities[static_cast<std::size_t>( output )]
+                                                                   [static_cast<std::size_t>( sample )];
+                        }
+                        else if( m_psfSamplingGrid.regionAware )
                         {
                             m_radialPSFModels[static_cast<std::size_t>( output )].response(
                                 response,
@@ -2129,20 +2254,26 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
             const bool arcAngularSampling = m_psfSampleArcStep > 0;
             const bool explicitRadialSampling = !m_psfSampleRadii.empty();
             const bool regionRadialSampling = m_psfRadiiPerRegion > 0;
+            const bool radialSampling = explicitRadialSampling || regionRadialSampling;
             if( !math::isFinite( m_psfSampleArcStep ) || m_psfSampleArcStep < 0 || m_psfSamplesPerRadius < 0 ||
                 m_psfRadiiPerRegion < 0 )
             {
                 throw mx::exception<verboseT>( mx::error_t::invalidarg,
                                                "KLIP PSF angular sampling controls must be finite and nonnegative" );
             }
-            if( m_psfFile.empty() || m_psfStampSize <= 0 || m_psfStampSize % 2 == 0 ||
-                explicitRadialSampling == regionRadialSampling || fixedAngularSampling == arcAngularSampling )
+            const bool invalidPixelSampling =
+                m_psfSampleEveryPixel && ( radialSampling || fixedAngularSampling || arcAngularSampling );
+            const bool invalidRadialSampling =
+                !m_psfSampleEveryPixel &&
+                ( explicitRadialSampling == regionRadialSampling || fixedAngularSampling == arcAngularSampling );
+            if( m_psfFile.empty() || m_psfStampSize <= 0 || m_psfStampSize % 2 == 0 || invalidPixelSampling ||
+                invalidRadialSampling )
             {
                 throw mx::exception<verboseT>(
                     mx::error_t::invalidarg,
-                    "KLIP PSF response measurement requires file, a positive odd stampSize, exactly one of "
-                    "sampleRadii or positive radiiPerRegion, and exactly one positive samplesPerRadius or "
-                    "sampleArcStep in [psfResponse]" );
+                    "KLIP PSF response measurement requires file, a positive odd stampSize, and either "
+                    "sampleEveryPixel=true alone or exactly one radial and one angular sampling control in "
+                    "[psfResponse]" );
             }
             if( ( m_outputPSFModels || m_psfFilter ) && m_psfOutputPrefix.empty() )
             {
@@ -2173,7 +2304,13 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
             {
                 throw mx::exception<verboseT>(
                     mx::error_t::invalidarg,
-                    "KLIP refitDifference requires positive psfResponse.refitContrast and an enabled product" );
+                    "finite-difference KLIP responses require positive psfResponse.refitContrast and an enabled "
+                    "product" );
+            }
+            if( m_psfSampleEveryPixel && m_psfSampleAvoidRadius != 0 )
+            {
+                throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                               "psfResponse.sampleEveryPixel requires sampleAvoidRadius=0" );
             }
             if( !this->m_doDerotate || this->m_combineMethod == HCI::combine::none || this->m_postMedSub )
             {
@@ -2339,6 +2476,8 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
         m_psfResponseFrames.clear();
         m_psfResponseFrameValidity.clear();
         m_psfLinearAccumulator.reset();
+        m_pixelPSFResponses.clear();
+        m_pixelPSFValidities.clear();
         m_psfLinearAccumulation = false;
         m_psfRecordFrameSupport = false;
         m_psfResponseRetainedBytes = 0;
@@ -3476,6 +3615,9 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::appendReductionHead
         head.template append<int>( "KLIP PSF RADII PER REGION",
                                    m_psfRadiiPerRegion,
                                    "configured interior radial nodes per search region" );
+        head.template append<int>( "KLIP PSF SAMPLE EVERY PIXEL",
+                                   m_psfSampleEveryPixel ? 1 : 0,
+                                   "exact integer-pixel response sampling enabled" );
         head.template append<int>( "KLIP PSF SAMPLES PER RADIUS",
                                    m_psfSamplesPerRadius,
                                    "fixed angular samples per radius; zero selects arc spacing" );
@@ -3494,12 +3636,14 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::appendReductionHead
         head.template append<std::string>( "KLIP PSF REQUESTED SAMPLES PER RADIUS",
                                            str.str(),
                                            "resolved angular sample counts by radius" );
-        head.template append<std::string>( "KLIP PSF SPATIAL MODEL",
-                                           m_psfSamplingGrid.regionAware ? "REGION_RADIAL_LINEAR" : "RADIAL_LINEAR",
-                                           "final response spatial approximation" );
+        head.template append<std::string>(
+            "KLIP PSF SPATIAL MODEL",
+            m_psfSampleEveryPixel ? "PIXEL_EXACT"
+                                  : ( m_psfSamplingGrid.regionAware ? "REGION_RADIAL_LINEAR" : "RADIAL_LINEAR" ),
+            "final response spatial approximation" );
         head.template append<std::string>( "KLIP PSF RESPONSE METHOD",
                                            PSFResponseConfig<realT>::methodString( m_psfSamplingMode ),
-                                           "sparse response measurement operator" );
+                                           "response measurement operator" );
         head.template append<realT>( "KLIP PSF SAMPLE AVOID RADIUS",
                                      m_psfSampleAvoidRadius,
                                      "distance kept clear of configured known sources" );
@@ -3511,7 +3655,7 @@ void KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::appendReductionHead
                                            "completed positive and negative trial reductions" );
         head.template append<std::string>( "KLIP PSF MEASUREMENT COUNT",
                                            std::to_string( m_psfMeasurementSamples.size() ),
-                                           "sparse frozen-basis measurements" );
+                                           "measured response locations" );
         head.template append<std::string>( "KLIP SCIENCE COMBINATION",
                                            HCI::combineToStr<verboseT>( this->m_combineMethod ),
                                            "configured science-image combination" );

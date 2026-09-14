@@ -35,11 +35,11 @@
  * `key=true` or `key=false`. Repeating one boolean option on a command line is rejected as ambiguous. Lists are
  * comma-separated, for example `minRadius=6,8,10`.
  *
- * \section common_psf_response_dictionary Sparse PSF-response estimation
+ * \section common_psf_response_dictionary PSF-response estimation
  *
- * P4 and KLIP use one `[psfResponse]` interface for sparse response measurement, radial modeling, and matched
- * filtering. The response keys are not registered or loaded in `[p4]` or `[klip]`. Sparse radial response estimation
- * requires exactly one radial control and one angular control. Explicit radii form a global radial model;
+ * P4 and KLIP use one `[psfResponse]` interface for response measurement, spatial modeling, and matched filtering.
+ * The response keys are not registered or loaded in `[p4]` or `[klip]`. Sparse radial response estimation requires
+ * exactly one radial control and one angular control. Explicit radii form a global radial model;
  * `radiiPerRegion` constructs uniformly spaced interior nodes and prevents interpolation across reduction-region
  * boundaries. Algorithm-specific measurement semantics and restrictions are described in
  * \ref p4_psf_configuration "the P4 response guide" and
@@ -53,6 +53,7 @@
  * | `--psfResponse.radiiPerRegion` | `psfResponse.radiiPerRegion=2` | nonnegative integer | `0` | Uniformly spaced interior nodes in every reduction region, mutually exclusive with `sampleRadii`; interpolation stays within each region. |
  * | `--psfResponse.samplesPerRadius` | `psfResponse.samplesPerRadius=4` | positive integer | `0` | Fixed uniformly spaced angular sample count at every node, mutually exclusive with `sampleArcStep`. |
  * | `--psfResponse.sampleArcStep` | `psfResponse.sampleArcStep=3.6` | positive finite pixels | `0` | Maximum circular arc between neighboring samples, mutually exclusive with `samplesPerRadius`. |
+ * | `--psfResponse.sampleEveryPixel` | `psfResponse.sampleEveryPixel=true` | bool, mutually exclusive with every radial and angular sampling control | `false` | Measure and retain a separate response at every eligible integer search pixel. KLIP writes a `PIXEL_EXACT` field; P4 explicitly selects its existing dense per-pixel response path. |
  * | `--psfResponse.method` | `psfResponse.method=refitDifference` | `skyExact`, `detectorLocal`, `refitDifference` | `skyExact` | Response operator. Both reductions support `skyExact` and paired finite-amplitude `refitDifference`; only P4 supports `detectorLocal`. |
  * | `--psfResponse.sampleAvoidRadius` | `psfResponse.sampleAvoidRadius=5` | finite nonnegative pixels | `0` | Reject response locations within this distance of any configured `planet.*` position; zero disables avoidance. |
  * | `--psfResponse.refitContrast` | `psfResponse.refitContrast=0.0048` | positive finite contrast for `refitDifference` | `0` | Half-amplitude of the signed injections used by the central difference. |

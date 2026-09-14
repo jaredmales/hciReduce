@@ -41,7 +41,9 @@
  * the recorded global or region-aware linear radial model before rotating each response to the exact integer science
  * pixel being evaluated. An `EXACT_AZIMUTHAL` diagnostic product instead retains one measured detector-oriented
  * response at its integer anchor pixel; it is unchanged at that angle and rotated directly from the anchor orientation
- * elsewhere. The exact product is a local-response diagnostic, not a radial response model. These paths permit a
+ * elsewhere. The exact product is a local-response diagnostic, not a radial response model. A schema-2 `PIXEL_EXACT`
+ * product instead supplies a distinct detector-oriented response for each recorded integer coordinate; hciAnalyze
+ * applies each response only at that same coordinate, with no registration or interpolation. These paths permit a
  * response measured by one reduction to filter a compatible unsubtracted final image without rerunning the reduction.
  * At each eligible output pixel the signed normalized matched-filter estimate is `sum(H*I)/sum(H*H)`, matching the
  * in-process P4 and KLIP filters. Pixels outside the response field or without sufficient valid support remain excluded

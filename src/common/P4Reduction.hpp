@@ -217,6 +217,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, pu
     using PSFResponseConfig<realT>::m_psfRefitContrast;
     using PSFResponseConfig<realT>::m_psfSampleArcStep;
     using PSFResponseConfig<realT>::m_psfSampleAvoidRadius;
+    using PSFResponseConfig<realT>::m_psfSampleEveryPixel;
     using PSFResponseConfig<realT>::m_psfSampleRadii;
     using PSFResponseConfig<realT>::m_psfSamplesPerRadius;
     using PSFResponseConfig<realT>::m_psfSamplingMode;

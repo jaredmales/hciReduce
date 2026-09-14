@@ -43,8 +43,8 @@ Environment overrides:
                       and validity cubes must remain beside it
                       (default: ${response_manifest})
   EXACT_RESPONSE_MANIFEST
-                      optional exact-azimuthal response manifest; when set, add
-                      an exact_response comparison case
+                      optional exact-azimuthal or per-pixel response manifest;
+                      when set, add an exact_response comparison case
   EXPERIMENT_DIR      comparison output directory (default: ${experiment_dir})
   HCIANALYZE_BIN      hciAnalyze executable (default: ${hcianalyze_bin})
   LAMBDA_D            pixels per lambda/D (default: ${lambda_d})
@@ -170,7 +170,7 @@ run_case sparse_response "sparse KLIP response" \
     --filter.lpfGaussFW 0 \
     --filter.psfResponse "${response_manifest}"
 if [[ -n "${exact_response_manifest}" ]]; then
-    run_case exact_response "exact candidate-pixel KLIP response" \
+    run_case exact_response "exact KLIP response" \
         --filter.lpfGaussFW 0 \
         --filter.psfResponse "${exact_response_manifest}"
 fi
