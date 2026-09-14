@@ -100,3 +100,32 @@ east-of-north separation/PA convention or supported fake FITS keywords, applies 
 per-plane SNR measurements and always replaces the corresponding `_snr` FITS cube. The target, documentation, example,
 and focused tests
 build and pass.
+
+## Sparse PSF-response matched filtering
+
+`filter.psfResponse` is the common external matched-filter interface for complete P4 and KLIP response manifests.
+The P4 path loads its coordinate-indexed model field. The KLIP path loads the sparse canonical radial response and
+validity cubes, reconstructs the recorded global or region-aware linear radial model, and evaluates the model at every
+eligible integer science pixel. Both paths require matching science/response mode labels and apply the shared signed
+normalized estimator `sum(H*I)/sum(H*H)` with the manifest's minimum-support threshold before the ordinary radial SNR
+measurement. This allows a response measured in one reduction to filter a compatible unsubtracted final cube without
+rerunning that reduction.
+
+The 2026-09-13 dependency audit used mxlib's current `_build/coverage_filtered.info`. The exact configuration,
+exception, FITS image/cube read/write, FITS header/card, float `eigenCube`, `parseStringVector`, `zeroNaNCube`,
+`maskCircle`, and delegated `stddevImage` executable lines are fully covered. The report does not instantiate the
+called `stddevImageCube` wrapper itself; a concrete upstream test is recorded under `Known non-blocking ownership
+follow-ups` in `mxlib_cleanup.md`.
+
+The external path was also run against
+`working/roc/klip_cpp_response_20260913T222913Z/radial_ld_refit4_filter`: filtering `finim.fits` from the persisted
+`klipPSF_manifest.fits` produced the same eight reported SNR values as directly analyzing KLIP's in-process
+`finim_filtered.fits`. Their SNR-cube data had no differences at relative tolerance `1e-6` and absolute tolerance
+`1e-7`; only expected provenance-header differences remained.
+
+For the exact-versus-sparse diagnostic, KLIP manifests may also declare `EXACT_AZIMUTHAL` with one response radius,
+one finite anchor angle, and its integer science-image row and column. hciAnalyze validates that geometry, preserves
+the detector-oriented response without resampling at the anchor pixel, and rotates it directly from the anchor
+orientation at other azimuths. This product is intentionally a local-template diagnostic rather than a radial model.
+The branch adds no new external mxlib API call to the audited function; its new rotation and filtering calls are
+hciReduce production APIs covered by the focused exact-anchor and quarter-turn test.

@@ -92,6 +92,12 @@ Maintained ROC experiment assets are under `agents/plans/scripts`:
   radius with per-pixel validity, linearly interpolates the radial response, and applies the same signed normalized
   filter used by the production KLIP path. It writes a response/filter case consumed unchanged by
   `fit_klip_matched_response.py`, plus an independent comparison with the previously measured candidate response.
+- `run_klip_exact_response_validation.sh` selects the nearest exact detector pixel to the candidate, runs one positive
+  and one negative fixed-location KLIP perturbation, packages the local derivative with
+  `build_klip_exact_response.py`, and compares its `hciAnalyze` S/N with unfiltered, sparse-response, and Gaussian
+  cases. It does not perform a negative-planet optimization.
+- `run_klip_hciAnalyze_filter_comparison.sh` retains separate SNR cubes and exact calls for the unfiltered, sparse,
+  optional exact, and requested Gaussian cases, then tabulates every mode relative to the unfiltered result.
 
 From the repository root on ROC, run the initial bounded set with:
 
@@ -314,6 +320,42 @@ implementation now instead selects the nearest eligible exact detector pixel bef
 and angle for the paired trial, extracts at that same pixel, and rotates by the actual angle before radial averaging.
 The next ROC run must validate that coordinate-preserving correction.
 
+The same `20260913T222913Z` products now exercise the external consumer path in `hciAnalyze`. Reconstructing the sparse
+radial model from `klipPSF_manifest.fits` and filtering the unfiltered `finim.fits` reproduced all eight SNR values from
+direct analysis of KLIP's in-process `finim_filtered.fits`; the SNR-cube arrays agree at `rtol=1e-6`, `atol=1e-7`.
+
+The first science comparison found that this unwhitened response correlation produces lower S/N than the unfiltered
+cube, while simple Gaussian smoothing improves S/N slightly. This does not by itself distinguish response-model error
+from coupling of the response's negative lobes to correlated KLIP residuals. The maintained
+`run_klip_hciAnalyze_filter_comparison.sh` runner therefore applies no filter, each requested Gaussian FWHM, and the
+persisted sparse response to identical copies of `science_only/finim.fits`. It fixes the signal and noise geometry,
+retains every SNR cube and exact command, and tabulates per-mode S/N ratios relative to the unfiltered result. Run on
+ROC from the repository root with:
+
+```console
+agents/plans/scripts/run_klip_hciAnalyze_filter_comparison.sh
+```
+
+Set `GAUSSIAN_FWHMS=2.4,3.0,3.6,4.2` to sweep widths, or override `SCIENCE_FILE` and `RESPONSE_MANIFEST` to compare a
+different compatible product pair. Generate and include the exact candidate-pixel response with:
+
+```console
+OMP_NUM_THREADS=48 nohup agents/plans/scripts/run_klip_exact_response_validation.sh \
+  > klip_exact_response_driver.log 2>&1 &
+```
+
+This is a two-reduction local derivative around the observed data. A full negative-planet optimization is not needed
+to separate exact-template behavior from sparse-model error. A signal-cancelled reduction remains a distinct oracle
+if a later test requires the response about a zero-planet baseline rather than about the observed data.
+
+An end-to-end local smoke test used the transferred `20260913T222913Z` science/sparse products and freshly reran the
+two exact-pixel perturbations at row 75, column 62 with `epsilon=0.25` times the accepted planet contrast. The pair,
+manifest builder, exact-anchor validation, and all four hciAnalyze cases completed. Across 125--350 modes, the exact
+response produced 0.821--0.884 times the unfiltered S/N, the sparse response produced 0.841--0.914, and the 3.6-pixel
+Gaussian produced 1.052--1.108. Thus the first exact response does not recover the S/N loss and makes sparse radial
+interpolation an unlikely primary cause. The retained ROC run remains useful as an independent numerical and timing
+check before moving to signal/noise-term decomposition and covariance-aware filtering.
+
 ## Implementation sequence
 
 ### 1. Align response semantics and provenance
@@ -358,6 +400,8 @@ The next ROC run must validate that coordinate-preserving correction.
   matched-filter convention.
 - [x] Publish filtered value, normalization, support, and validity products with deterministic coordinates and mode
   identity.
+- [x] Let `hciAnalyze` load a complete sparse KLIP response manifest, reconstruct its radial model, and apply the same
+  normalized matched filter to a compatible external science cube.
 - [x] Expose a bounded response-backed position/contrast merit calculation so a fit does not rerun KLIP merely to
   refresh its filter.
 - [x] Run the first response-backed fit across the configured AF Lep mode counts and record detection, localization,

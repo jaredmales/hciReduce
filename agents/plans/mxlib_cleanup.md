@@ -282,6 +282,14 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Add a direct float-cube behavioral and coverage test for `mx::improc::stddevImageCube()`. The 2026-09-13
+      `hciAnalyze` sparse-response extension rechecked
+      `/home/jrmales/Source/mxlib/_build/coverage_filtered.info`: the called float `zeroNaNCube`, `maskCircle`, and
+      delegated `stddevImage` paths have counters on every executable line, but the trace has no instantiated
+      function or executable-line records for the `stddevImageCube` wrapper at `imageFilters.hpp:1557`. Exercise
+      multi-plane allocation, mask forwarding, annulus bounds, and both raw-standard-deviation and divided-SNR modes
+      in mxlib before treating this exact API as covered.
+
 - [ ] Add mxlib coverage tests for the remaining executable paths in `ompLoopWatcher` and float `fitsFile::read` used
       by `P4Reduction::regions()`. The current LCOV trace at
       `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` reports 86/98 executable lines for

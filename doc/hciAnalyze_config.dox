@@ -39,16 +39,22 @@
  * | `--snr.apertureR` | `snr.apertureR=pixels` | positive real | `2` | Radius of the aperture used to extract the reported `snr` value. |
  * | `--filter.hpfGaussFW` | `filter.hpfGaussFW=pixels` | finite real | `0` | High-pass Gaussian unsharp-mask FWHM; non-positive disables it. |
  * | `--filter.lpfGaussFW` | `filter.lpfGaussFW=pixels` | finite real | `0` | Low-pass Gaussian smoothing FWHM; non-positive disables it. |
- * | `--filter.perPixelPSF` | `filter.perPixelPSF=/path/p4PSF_manifest.fits` | complete P4 PSF manifest FITS path | unset | Apply the manifest's coordinate-indexed signed response field to the input cube before SNR calculation. This permits a response field measured from a signal-subtracted P4 reduction to filter the corresponding unsubtracted science product. |
+ * | `--filter.psfResponse` | `filter.psfResponse=/path/psfResponse_manifest.fits` | complete P4 or KLIP PSF response manifest FITS path | unset | Apply the manifest's spatially varying signed response field to the input cube before SNR calculation. This permits a response field measured by one reduction to filter a compatible unsubtracted science product. |
  * | `-d`, `--diagnostics` | `diagnostics=true` | bool | `false` | Print resolved geometry, filters, invalid-pixel counts, and SNR values to standard error. |
  *
- * `filter.perPixelPSF` must name the `*_manifest.fits` file from a P4 run with `psfResponse.outputModels=true`.
- * hciAnalyze locates the sibling `coordinates`, `model_NNNN`, and `validity_NNNN` files from the manifest prefix. It
- * rejects incomplete sets and mismatched image planes, mode fractions, stamp geometry, coordinates, or product roles.
- * Filtering uses the recorded `P4 PSF FILTER MIN GOOD FRACTION` and the same signed normalized estimator as P4:
- * `sum(H*I)/sum(H*H)`. Pixels without a valid response remain excluded from the SNR calculation.
+ * `filter.psfResponse` must name the `*_manifest.fits` file from a P4 or KLIP run with
+ * `psfResponse.outputModels=true`, or an exact diagnostic manifest produced by the maintained
+ * `build_klip_exact_response.py` tool. For P4, hciAnalyze locates the sibling `coordinates`, `model_NNNN`, and
+ * `validity_NNNN` files. For KLIP, it locates the sibling `modeNNN_radial_response` and
+ * `modeNNN_radial_validity` cubes. A sparse manifest reconstructs its global or region-aware radial interpolation. An
+ * `EXACT_AZIMUTHAL` diagnostic manifest contains exactly one measured radius and a finite `KLIP PSF SAMPLE ANGLE`;
+ * hciAnalyze preserves that detector-oriented response at the anchor angle and rotates it directly elsewhere. It
+ * rejects incomplete sets and mismatched image planes, mode labels, stamp geometry, radial grids, regions, validity,
+ * or product roles. Filtering uses the recorded `PSF FILTER MIN GOOD FRACTION` and the same signed normalized
+ * estimator as the reduction: `sum(H*I)/sum(H*H)`. Pixels without a valid response remain excluded from the SNR
+ * calculation.
  *
- * Per-pixel PSF filtering runs first, followed by high-pass filtering and then low-pass smoothing when those Gaussian
+ * PSF-response filtering runs first, followed by high-pass filtering and then low-pass smoothing when those Gaussian
  * filters are also enabled. At image edges and beside invalid input samples, the Gaussian filters use partial valid
  * in-bounds kernels and renormalize by their retained weights.
  * The reported `snr` is the aperture maximum inside `snr.apertureR`; it is calculated as the signal pixel minus the
@@ -60,7 +66,7 @@
  * that warning.
  * hciAnalyze always writes or replaces the full SNR cube beside the input as `<input-stem>_snr<input-extension>`.
  * Its header records the resolved signal geometry, the resolved SNR annulus and aperture, both filter FWHMs, and the
- * per-pixel PSF manifest and minimum support when configured. `LAMBDAD` records the adopted sampling and `SNRSMALL=1`
+ * PSF response manifest and minimum support when configured. `LAMBDAD` records the adopted sampling and `SNRSMALL=1`
  * records that the small-sample correction was applied.
  *
  * @}

@@ -13,6 +13,7 @@
 #include <iostream>
 #include <limits>
 #include <numbers>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -29,6 +30,7 @@
 
 #include "src/common/ConfigUtils.hpp"
 #include "src/common/P4PSFFilter.hpp"
+#include "src/common/RadialPSFModel.hpp"
 
 /// One configured or header-derived signal to measure.
 struct hciAnalyzeSignal
@@ -83,8 +85,8 @@ class hciAnalyze : public mx::app::application
 
     realT m_highPassFwhm{ 0 };                ///< Gaussian high-pass unsharp-mask FWHM in pixels.
     realT m_lowPassFwhm{ 0 };                 ///< Gaussian low-pass smoothing FWHM in pixels.
-    std::string m_perPixelPSF;                ///< P4 PSF manifest supplying the spatially variable filter field.
-    realT m_perPixelPSFMinimumSupport{ 1 };   ///< Minimum usable response-stamp fraction read from the manifest.
+    std::string m_psfResponse;                ///< P4 or KLIP response manifest supplying the spatially variable filter.
+    realT m_psfResponseMinimumSupport{ 1 };   ///< Minimum usable response-stamp fraction read from the manifest.
     bool m_diagnostics{ false };              ///< Whether to print resolved measurement diagnostics to standard error.
 
     bool m_planetSpecified{ false };          ///< True when any explicit planet target was supplied.
@@ -149,9 +151,16 @@ class hciAnalyze : public mx::app::application
                      realT highPassFwhm,       /**< [in] high-pass FWHM, non-positive disables */
                      realT lowPassFwhm /**< [in] low-pass FWHM, non-positive disables */ ) const;
 
-    /// Apply an externally generated spatially variable P4 PSF field to every matching cube plane.
-    void filterCubePerPixelPSF( cubeT &cube, /**< [in,out] science cube replaced by matched-filter amplitudes */
+    /// Apply an externally generated P4 or KLIP PSF response field to every matching cube plane.
+    void filterCubePSFResponse( cubeT &cube, /**< [in,out] science cube replaced by matched-filter amplitudes */
                                 fitsHeaderT &scienceHeader /**< [in] science header supplying mode labels */ );
+
+    /// Reconstruct and apply one sparse radial KLIP PSF response field.
+    void filterCubeKLIPPSFResponse( cubeT &cube, /**< [in,out] science cube replaced by matched-filter amplitudes */
+                                    fitsHeaderT &scienceHeader,       /**< [in] science header supplying mode labels */
+                                    const std::string &productPrefix, /**< [in] sibling-product path prefix */
+                                    const imageT &manifest,           /**< [in] loaded completion image */
+                                    fitsHeaderT &manifestHeader /**< [in] loaded sparse-response manifest header */ );
 
     /// Apply the Mawet et al. small-sample multiplicative correction to every SNR-cube pixel.
     void correctSmallSampleSNR( cubeT &snrCube /**< [in,out] uncorrected SNR cube */ ) const;
@@ -318,15 +327,15 @@ void hciAnalyze::setupConfig()
                 false,
                 "float",
                 "Gaussian low-pass smoothing FWHM in pixels; non-positive disables" );
-    config.add( "filter.perPixelPSF",
+    config.add( "filter.psfResponse",
                 "",
-                "filter.perPixelPSF",
+                "filter.psfResponse",
                 mx::app::argType::Required,
                 "filter",
-                "perPixelPSF",
+                "psfResponse",
                 false,
                 "string",
-                "complete P4 per-pixel PSF manifest used for spatially variable matched filtering" );
+                "complete P4 or KLIP PSF response manifest used for spatially variable matched filtering" );
     config.add( "diagnostics",
                 "d",
                 "diagnostics",
@@ -355,7 +364,7 @@ void hciAnalyze::loadConfig()
     config( m_snrApertureRadius, "snr.apertureR" );
     config( m_highPassFwhm, "filter.hpfGaussFW" );
     config( m_lowPassFwhm, "filter.lpfGaussFW" );
-    config( m_perPixelPSF, "filter.perPixelPSF" );
+    config( m_psfResponse, "filter.psfResponse" );
     mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_diagnostics, "diagnostics" );
 
     m_planetSpecified = targetSpecified( "planet.sep" ) || targetSpecified( "planet.PA" ) ||
@@ -707,15 +716,15 @@ void hciAnalyze::filterCube( cubeT &cube, const cubeT &invalidMask, realT highPa
     }
 }
 
-void hciAnalyze::filterCubePerPixelPSF( cubeT &cube, fitsHeaderT &scienceHeader )
+void hciAnalyze::filterCubePSFResponse( cubeT &cube, fitsHeaderT &scienceHeader )
 {
-    const std::filesystem::path manifestPath{ m_perPixelPSF };
+    const std::filesystem::path manifestPath{ m_psfResponse };
     const std::string manifestName = manifestPath.filename().string();
     constexpr std::string_view manifestSuffix{ "manifest.fits" };
     if( !manifestName.ends_with( manifestSuffix ) )
     {
         throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
-                                              "filter.perPixelPSF must name a P4 PSF manifest.fits product" );
+                                              "filter.psfResponse must name a PSF response manifest.fits product" );
     }
     const std::string productPrefix =
         ( manifestPath.parent_path() / manifestName.substr( 0, manifestName.size() - manifestSuffix.size() ) ).string();
@@ -726,7 +735,12 @@ void hciAnalyze::filterCubePerPixelPSF( cubeT &cube, fitsHeaderT &scienceHeader 
     mx::error_t readResult = reader.read( manifest, manifestHeader, manifestPath.string() );
     if( readResult != mx::error_t::noerror )
     {
-        throw mx::exception<mx::verbose::vv>( readResult, "reading per-pixel PSF manifest " + m_perPixelPSF );
+        throw mx::exception<mx::verbose::vv>( readResult, "reading PSF response manifest " + m_psfResponse );
+    }
+    if( manifestHeader.count( "KLIP PSF PRODUCT" ) != 0 )
+    {
+        filterCubeKLIPPSFResponse( cube, scienceHeader, productPrefix, manifest, manifestHeader );
+        return;
     }
     const auto requireHeader = [&manifestHeader]( const std::string &keyword )
     {
@@ -751,15 +765,15 @@ void hciAnalyze::filterCubePerPixelPSF( cubeT &cube, fitsHeaderT &scienceHeader 
         manifestHeader["P4 PSF COMPLETE"].value<int>() != 1 )
     {
         throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
-                                              "filter.perPixelPSF does not name a complete P4 PSF manifest" );
+                                              "filter.psfResponse does not name a complete P4 PSF manifest" );
     }
     const int schema = manifestHeader["P4 PSF PRODUCT SCHEMA"].value<int>();
     const int modeCount = manifestHeader["P4 PSF MODE COUNT"].value<int>();
     const int stampSize = manifestHeader["P4 PSF STAMP SIZE"].value<int>();
-    m_perPixelPSFMinimumSupport = manifestHeader["P4 PSF FILTER MIN GOOD FRACTION"].value<realT>();
+    m_psfResponseMinimumSupport = manifestHeader["P4 PSF FILTER MIN GOOD FRACTION"].value<realT>();
     if( schema < 1 || modeCount <= 0 || modeCount != cube.planes() || stampSize <= 0 || stampSize % 2 == 0 ||
-        !std::isfinite( m_perPixelPSFMinimumSupport ) || m_perPixelPSFMinimumSupport < 0 ||
-        m_perPixelPSFMinimumSupport > 1 )
+        !std::isfinite( m_psfResponseMinimumSupport ) || m_psfResponseMinimumSupport < 0 ||
+        m_psfResponseMinimumSupport > 1 )
     {
         throw mx::exception<mx::verbose::vv>(
             mx::error_t::invalidconfig,
@@ -911,11 +925,381 @@ void hciAnalyze::filterCubePerPixelPSF( cubeT &cube, fitsHeaderT &scienceHeader 
                                                     responseValidity,
                                                     sourceRow,
                                                     sourceColumn,
-                                                    m_perPixelPSFMinimumSupport );
+                                                    m_psfResponseMinimumSupport );
             if( result.valid && std::isfinite( result.amplitude ) &&
                 std::abs( result.amplitude ) <= std::numeric_limits<realT>::max() )
             {
                 filtered.image( mode )( sourceRow, sourceColumn ) = static_cast<realT>( result.amplitude );
+            }
+        }
+    }
+    cube = std::move( filtered );
+}
+
+void hciAnalyze::filterCubeKLIPPSFResponse( cubeT &cube,
+                                            fitsHeaderT &scienceHeader,
+                                            const std::string &productPrefix,
+                                            const imageT &manifest,
+                                            fitsHeaderT &manifestHeader )
+{
+    const auto requireHeader = [&manifestHeader]( const std::string &keyword )
+    {
+        if( manifestHeader.count( keyword ) == 0 )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "KLIP PSF response manifest is missing " + keyword );
+        }
+    };
+    for( const std::string &keyword : { "KLIP PSF PRODUCT SCHEMA",
+                                        "KLIP PSF PRODUCT",
+                                        "KLIP PSF COMPLETE",
+                                        "KLIP PSF STAMP SIZE",
+                                        "KLIP PSF FILTER MIN GOOD FRACTION",
+                                        "KLIP PSF SAMPLE RADII",
+                                        "KLIP PSF SPATIAL MODEL",
+                                        "NMODES",
+                                        "REGMINR",
+                                        "REGMAXR" } )
+    {
+        requireHeader( keyword );
+    }
+    if( manifest.rows() != 1 || manifest.cols() != 1 || manifest( 0, 0 ) != 1 ||
+        !manifestHeader["KLIP PSF PRODUCT"].String().starts_with( "MANIFEST" ) ||
+        manifestHeader["KLIP PSF COMPLETE"].value<int>() != 1 )
+    {
+        throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                              "filter.psfResponse does not name a complete KLIP PSF manifest" );
+    }
+
+    const int schema = manifestHeader["KLIP PSF PRODUCT SCHEMA"].value<int>();
+    const int stampSize = manifestHeader["KLIP PSF STAMP SIZE"].value<int>();
+    m_psfResponseMinimumSupport = manifestHeader["KLIP PSF FILTER MIN GOOD FRACTION"].value<realT>();
+    const std::vector<realT> radiusValues = headerVector( manifestHeader, "KLIP PSF SAMPLE RADII" );
+    const std::vector<realT> responseModes = headerVector( manifestHeader, "NMODES" );
+    const std::vector<realT> minimumRadii = headerVector( manifestHeader, "REGMINR" );
+    const std::vector<realT> maximumRadii = headerVector( manifestHeader, "REGMAXR" );
+    if( schema != 1 || stampSize <= 0 || stampSize % 2 == 0 || !std::isfinite( m_psfResponseMinimumSupport ) ||
+        m_psfResponseMinimumSupport < 0 || m_psfResponseMinimumSupport > 1 || radiusValues.empty() ||
+        radiusValues.size() > static_cast<std::size_t>( std::numeric_limits<int>::max() ) ||
+        responseModes.size() != static_cast<std::size_t>( cube.planes() ) || minimumRadii.empty() ||
+        minimumRadii.size() != maximumRadii.size() )
+    {
+        throw mx::exception<mx::verbose::vv>(
+            mx::error_t::invalidconfig,
+            "KLIP PSF schema, modes, odd stamp size, radial grid, regions, or minimum support is incompatible with "
+            "the input" );
+    }
+
+    std::vector<double> radii;
+    radii.reserve( radiusValues.size() );
+    for( const realT radius : radiusValues )
+    {
+        if( !std::isfinite( radius ) || radius < 0 || ( !radii.empty() && radius <= radii.back() ) )
+        {
+            throw mx::exception<mx::verbose::vv>(
+                mx::error_t::invalidconfig,
+                "KLIP PSF response radii must be finite, nonnegative, and strictly increasing" );
+        }
+        radii.push_back( static_cast<double>( radius ) );
+    }
+
+    for( std::size_t region = 0; region < minimumRadii.size(); ++region )
+    {
+        if( !std::isfinite( minimumRadii[region] ) || !std::isfinite( maximumRadii[region] ) ||
+            minimumRadii[region] < 0 || maximumRadii[region] <= minimumRadii[region] ||
+            ( region != 0 && minimumRadii[region] < maximumRadii[region - 1] ) )
+        {
+            throw mx::exception<mx::verbose::vv>(
+                mx::error_t::invalidconfig,
+                "KLIP PSF response regions must be finite, positive-width, ordered, and non-overlapping" );
+        }
+    }
+
+    const std::string spatialModel = manifestHeader["KLIP PSF SPATIAL MODEL"].String();
+    const bool regionAware = spatialModel.starts_with( "REGION_RADIAL_LINEAR" );
+    const bool exactAzimuthal = spatialModel.starts_with( "EXACT_AZIMUTHAL" );
+    if( !regionAware && !exactAzimuthal && !spatialModel.starts_with( "RADIAL_LINEAR" ) )
+    {
+        throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                              "KLIP PSF manifest has an unsupported spatial model" );
+    }
+    double exactSampleAngle{ 0 };
+    int exactSampleRow{ -1 };
+    int exactSampleColumn{ -1 };
+    if( exactAzimuthal )
+    {
+        requireHeader( "KLIP PSF SAMPLE ANGLE" );
+        requireHeader( "KLIP PSF EXACT ROW" );
+        requireHeader( "KLIP PSF EXACT COLUMN" );
+        exactSampleAngle = manifestHeader["KLIP PSF SAMPLE ANGLE"].value<double>();
+        exactSampleRow = manifestHeader["KLIP PSF EXACT ROW"].value<int>();
+        exactSampleColumn = manifestHeader["KLIP PSF EXACT COLUMN"].value<int>();
+        if( radii.size() != 1 || !std::isfinite( exactSampleAngle ) )
+        {
+            throw mx::exception<mx::verbose::vv>(
+                mx::error_t::invalidconfig,
+                "an exact azimuthal KLIP PSF response requires one radius and a finite sample angle" );
+        }
+    }
+    std::vector<std::size_t> radiusRegions( radii.size(), 0 );
+    if( regionAware )
+    {
+        std::vector<std::size_t> nodesPerRegion( minimumRadii.size(), 0 );
+        for( std::size_t radiusIndex = 0; radiusIndex < radii.size(); ++radiusIndex )
+        {
+            std::optional<std::size_t> owner;
+            for( std::size_t region = 0; region < minimumRadii.size(); ++region )
+            {
+                if( radii[radiusIndex] >= static_cast<double>( minimumRadii[region] ) &&
+                    radii[radiusIndex] < static_cast<double>( maximumRadii[region] ) )
+                {
+                    if( owner.has_value() )
+                    {
+                        throw mx::exception<mx::verbose::vv>(
+                            mx::error_t::invalidconfig,
+                            "KLIP PSF radial node belongs to more than one interpolation region" );
+                    }
+                    owner = region;
+                }
+            }
+            if( !owner.has_value() )
+            {
+                throw mx::exception<mx::verbose::vv>(
+                    mx::error_t::invalidconfig,
+                    "KLIP PSF radial node does not belong to an interpolation region" );
+            }
+            radiusRegions[radiusIndex] = *owner;
+            ++nodesPerRegion[*owner];
+        }
+        if( std::any_of( nodesPerRegion.begin(),
+                         nodesPerRegion.end(),
+                         []( std::size_t count ) { return count == 0; } ) )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "every KLIP PSF interpolation region requires a radial node" );
+        }
+    }
+
+    const std::vector<realT> scienceModes = scienceHeader.count( "NMODES" )
+                                                ? headerVector( scienceHeader, "NMODES" )
+                                                : headerVector( scienceHeader, "FRACT NMODES" );
+    const std::vector<realT> scienceMinimumRadii = headerVector( scienceHeader, "REGMINR" );
+    const std::vector<realT> scienceMaximumRadii = headerVector( scienceHeader, "REGMAXR" );
+    if( scienceModes.size() != responseModes.size() || scienceMinimumRadii.size() != minimumRadii.size() ||
+        scienceMaximumRadii.size() != maximumRadii.size() )
+    {
+        throw mx::exception<mx::verbose::vv>(
+            mx::error_t::invalidconfig,
+            "science and KLIP PSF products require matching mode labels and regions" );
+    }
+    for( std::size_t region = 0; region < minimumRadii.size(); ++region )
+    {
+        const realT scale = std::max( { realT{ 1 },
+                                        std::abs( minimumRadii[region] ),
+                                        std::abs( maximumRadii[region] ),
+                                        std::abs( scienceMinimumRadii[region] ),
+                                        std::abs( scienceMaximumRadii[region] ) } );
+        if( !std::isfinite( scienceMinimumRadii[region] ) || !std::isfinite( scienceMaximumRadii[region] ) ||
+            std::abs( scienceMinimumRadii[region] - minimumRadii[region] ) >
+                8 * std::numeric_limits<realT>::epsilon() * scale ||
+            std::abs( scienceMaximumRadii[region] - maximumRadii[region] ) >
+                8 * std::numeric_limits<realT>::epsilon() * scale )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "science and KLIP PSF region bounds differ at region " +
+                                                      std::to_string( region ) );
+        }
+    }
+    std::vector<int> modeCounts( responseModes.size() );
+    for( std::size_t mode = 0; mode < responseModes.size(); ++mode )
+    {
+        const realT scale = std::max( { realT{ 1 }, std::abs( scienceModes[mode] ), std::abs( responseModes[mode] ) } );
+        if( !std::isfinite( scienceModes[mode] ) || !std::isfinite( responseModes[mode] ) || responseModes[mode] <= 0 ||
+            responseModes[mode] != std::trunc( responseModes[mode] ) ||
+            responseModes[mode] > static_cast<realT>( std::numeric_limits<int>::max() ) ||
+            std::abs( scienceModes[mode] - responseModes[mode] ) > 8 * std::numeric_limits<realT>::epsilon() * scale )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "science and KLIP PSF mode labels differ at plane " +
+                                                      std::to_string( mode ) );
+        }
+        modeCounts[mode] = static_cast<int>( responseModes[mode] );
+    }
+
+    mx::fits::fitsFile<realT, mx::verbose::vv> reader;
+    cubeT filtered( cube.rows(), cube.cols(), cube.planes() );
+    filtered.cube().setConstant( std::numeric_limits<realT>::quiet_NaN() );
+    const double centerRow = 0.5 * static_cast<double>( cube.rows() - 1 );
+    const double centerColumn = 0.5 * static_cast<double>( cube.cols() - 1 );
+    if( exactAzimuthal )
+    {
+        const double deltaRow = static_cast<double>( exactSampleRow ) - centerRow;
+        const double deltaColumn = static_cast<double>( exactSampleColumn ) - centerColumn;
+        const double anchorRadius = std::hypot( deltaRow, deltaColumn );
+        const double anchorAngle = std::atan2( deltaRow, deltaColumn );
+        const double angleDifference =
+            std::atan2( std::sin( anchorAngle - exactSampleAngle ), std::cos( anchorAngle - exactSampleAngle ) );
+        const double radiusScale = std::max( 1.0, anchorRadius );
+        const double geometryTolerance = 8 * static_cast<double>( std::numeric_limits<realT>::epsilon() );
+        bool anchorInRegion{ false };
+        for( std::size_t region = 0; region < minimumRadii.size(); ++region )
+        {
+            if( anchorRadius >= static_cast<double>( minimumRadii[region] ) &&
+                anchorRadius < static_cast<double>( maximumRadii[region] ) )
+            {
+                anchorInRegion = true;
+                break;
+            }
+        }
+        if( exactSampleRow < 0 || exactSampleRow >= cube.rows() || exactSampleColumn < 0 ||
+            exactSampleColumn >= cube.cols() ||
+            std::abs( anchorRadius - radii.front() ) > geometryTolerance * radiusScale ||
+            std::abs( angleDifference ) > geometryTolerance || !anchorInRegion )
+        {
+            throw mx::exception<mx::verbose::vv>(
+                mx::error_t::invalidconfig,
+                "exact azimuthal KLIP PSF anchor is inconsistent with the science image and response geometry" );
+        }
+    }
+    const int responseCenter = stampSize / 2;
+    for( int mode = 0; mode < cube.planes(); ++mode )
+    {
+        const std::string modeIndex = std::format( "{:03d}", mode );
+        const std::string responsePath = productPrefix + "mode" + modeIndex + "_radial_response.fits";
+        const std::string validityPath = productPrefix + "mode" + modeIndex + "_radial_validity.fits";
+        cubeT responseCube;
+        cubeT validityCube;
+        fitsHeaderT responseHeader;
+        fitsHeaderT validityHeader;
+        mx::error_t readResult = reader.read( responseCube, responseHeader, responsePath );
+        if( readResult != mx::error_t::noerror )
+        {
+            throw mx::exception<mx::verbose::vv>( readResult, "reading KLIP PSF response " + responsePath );
+        }
+        readResult = reader.read( validityCube, validityHeader, validityPath );
+        if( readResult != mx::error_t::noerror )
+        {
+            throw mx::exception<mx::verbose::vv>( readResult, "reading KLIP PSF validity " + validityPath );
+        }
+        if( responseCube.rows() != stampSize || responseCube.cols() != stampSize ||
+            responseCube.planes() != static_cast<int>( radii.size() ) || validityCube.rows() != stampSize ||
+            validityCube.cols() != stampSize || validityCube.planes() != responseCube.planes() ||
+            responseHeader.count( "KLIP PSF PRODUCT SCHEMA" ) == 0 ||
+            validityHeader.count( "KLIP PSF PRODUCT SCHEMA" ) == 0 ||
+            responseHeader["KLIP PSF PRODUCT SCHEMA"].value<int>() != schema ||
+            validityHeader["KLIP PSF PRODUCT SCHEMA"].value<int>() != schema ||
+            responseHeader.count( "KLIP PSF PRODUCT" ) == 0 || validityHeader.count( "KLIP PSF PRODUCT" ) == 0 ||
+            !responseHeader["KLIP PSF PRODUCT"].String().starts_with( "RADIAL_RESPONSE" ) ||
+            !validityHeader["KLIP PSF PRODUCT"].String().starts_with( "RADIAL_VALIDITY" ) ||
+            responseHeader.count( "KLIP PSF MODE COUNT" ) == 0 || validityHeader.count( "KLIP PSF MODE COUNT" ) == 0 ||
+            responseHeader["KLIP PSF MODE COUNT"].value<int>() != modeCounts[static_cast<std::size_t>( mode )] ||
+            validityHeader["KLIP PSF MODE COUNT"].value<int>() != modeCounts[static_cast<std::size_t>( mode )] )
+        {
+            throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
+                                                  "KLIP PSF radial response or validity product is inconsistent" );
+        }
+
+        std::vector<mx::improc::RadialPSFModel::imageT> responses( radii.size() );
+        std::vector<mx::improc::RadialPSFModel::validityT> validities( radii.size() );
+        std::vector<mx::improc::RadialPSFSample> samples( radii.size() );
+        for( std::size_t radiusIndex = 0; radiusIndex < radii.size(); ++radiusIndex )
+        {
+            responses[radiusIndex].resize( stampSize, stampSize );
+            validities[radiusIndex].resize( stampSize, stampSize );
+            for( int column = 0; column < stampSize; ++column )
+            {
+                for( int row = 0; row < stampSize; ++row )
+                {
+                    const realT validity = validityCube.image( static_cast<int>( radiusIndex ) )( row, column );
+                    const realT response = responseCube.image( static_cast<int>( radiusIndex ) )( row, column );
+                    if( !std::isfinite( validity ) || ( validity != 0 && validity != 1 ) ||
+                        ( validity != 0 && !std::isfinite( response ) ) )
+                    {
+                        throw mx::exception<mx::verbose::vv>(
+                            mx::error_t::invalidconfig,
+                            "KLIP PSF radial response contains invalid values or non-binary validity" );
+                    }
+                    responses[radiusIndex]( row, column ) = validity != 0 ? response : 0;
+                    validities[radiusIndex]( row, column ) = validity != 0 ? 1 : 0;
+                }
+            }
+            samples[radiusIndex] = { radiusIndex, radiusIndex, radii[radiusIndex], 0, radiusRegions[radiusIndex] };
+        }
+
+        std::optional<mx::improc::RadialPSFModel> radialModel;
+        if( exactAzimuthal )
+        {
+            radialModel.reset();
+        }
+        else if( regionAware )
+        {
+            radialModel.emplace( radii, radiusRegions, stampSize, stampSize );
+        }
+        else
+        {
+            radialModel.emplace( radii, stampSize, stampSize );
+        }
+        if( radialModel.has_value() )
+        {
+            radialModel->fit( responses, validities, samples );
+        }
+
+        mx::improc::RadialPSFModel::imageT response;
+        mx::improc::RadialPSFModel::validityT responseValidity;
+        for( int column = 0; column < cube.cols(); ++column )
+        {
+            const double deltaColumn = static_cast<double>( column ) - centerColumn;
+            for( int row = 0; row < cube.rows(); ++row )
+            {
+                const double deltaRow = static_cast<double>( row ) - centerRow;
+                const double radius = std::hypot( deltaRow, deltaColumn );
+                std::optional<std::size_t> activeRegion;
+                for( std::size_t region = 0; region < minimumRadii.size(); ++region )
+                {
+                    if( radius >= static_cast<double>( minimumRadii[region] ) &&
+                        radius < static_cast<double>( maximumRadii[region] ) )
+                    {
+                        activeRegion = region;
+                        break;
+                    }
+                }
+                if( !activeRegion.has_value() )
+                {
+                    continue;
+                }
+                const double requestedAngle = std::atan2( deltaRow, deltaColumn );
+                if( exactAzimuthal )
+                {
+                    mx::improc::RadialPSFModel::rotate( response,
+                                                        responseValidity,
+                                                        responses.front(),
+                                                        validities.front(),
+                                                        exactSampleAngle - requestedAngle );
+                }
+                else if( regionAware )
+                {
+                    radialModel->response( response, responseValidity, radius, requestedAngle, *activeRegion );
+                }
+                else
+                {
+                    radialModel->response( response, responseValidity, radius, requestedAngle );
+                }
+                if( responseValidity( responseCenter, responseCenter ) == 0 )
+                {
+                    continue;
+                }
+                const mx::improc::P4PSFFilterResult result =
+                    mx::improc::P4PSFFilter::calculate( cube.image( mode ),
+                                                        response,
+                                                        responseValidity,
+                                                        row,
+                                                        column,
+                                                        m_psfResponseMinimumSupport );
+                if( result.valid && std::isfinite( result.amplitude ) &&
+                    std::abs( result.amplitude ) <= std::numeric_limits<realT>::max() )
+                {
+                    filtered.image( mode )( row, column ) = static_cast<realT>( result.amplitude );
+                }
             }
         }
     }
@@ -948,9 +1332,9 @@ void hciAnalyze::correctSmallSampleSNR( cubeT &snrCube ) const
 void hciAnalyze::analyzeCube( cubeT &cube, fitsHeaderT &header )
 {
     const auto [minRadius, maxRadius] = snrAnnulus( header );
-    if( !m_perPixelPSF.empty() )
+    if( !m_psfResponse.empty() )
     {
-        filterCubePerPixelPSF( cube, header );
+        filterCubePSFResponse( cube, header );
     }
     cubeT invalidMask;
     mx::improc::zeroNaNCube( cube, &invalidMask );
@@ -1051,7 +1435,7 @@ void hciAnalyze::printDiagnostics( realT minRadius, realT maxRadius, const cubeT
               << "  lambda/D scale: " << m_lambdaD << " pixels per lambda/D\n"
               << "  high-pass FWHM: " << m_highPassFwhm << " pixels\n"
               << "  low-pass FWHM: " << m_lowPassFwhm << " pixels\n"
-              << "  per-pixel PSF manifest: " << ( m_perPixelPSF.empty() ? "disabled" : m_perPixelPSF ) << '\n';
+              << "  PSF response manifest: " << ( m_psfResponse.empty() ? "disabled" : m_psfResponse ) << '\n';
     for( size_t signalIndex = 0; signalIndex < m_signals.size(); ++signalIndex )
     {
         const hciAnalyzeSignal &signal = m_signals[signalIndex];
@@ -1125,8 +1509,8 @@ hciAnalyze::writeSNRMap( const cubeT &snrCube, fitsHeaderT &header, realT minRad
     addHeader( "SNRSMALL", 1, "Mawet small-sample correction applied" );
     addHeader( "HPFGFW", m_highPassFwhm, "high-pass Gaussian FWHM [pix]" );
     addHeader( "LPFGFW", m_lowPassFwhm, "low-pass Gaussian FWHM [pix]" );
-    addHeader( "HCIAPSF", m_perPixelPSF, "per-pixel PSF manifest" );
-    addHeader( "HCIAPSM", m_perPixelPSFMinimumSupport, "per-pixel PSF minimum support" );
+    addHeader( "HCIAPSF", m_psfResponse, "PSF response manifest" );
+    addHeader( "HCIAPSM", m_psfResponseMinimumSupport, "PSF response minimum support" );
     addHeader( "HCISEPS", signalValues( &hciAnalyzeSignal::m_separation ), "signal separations [pix]" );
     addHeader( "HCIPAS", signalValues( &hciAnalyzeSignal::m_positionAngle ), "signal PAs [deg E of N]" );
     addHeader( "HCIRADS", signalValues( &hciAnalyzeSignal::m_exclusionRadius ), "signal exclusion radii [pix]" );
