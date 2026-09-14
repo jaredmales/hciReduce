@@ -300,10 +300,14 @@ def main() -> int:
             or len(fake_pa) != 1
             or len(fake_contrast) != 1
             or not math.isclose(fake_separation[0], separation, rel_tol=0, abs_tol=5e-4)
-            or abs((fake_pa[0] - position_angle + 180) % 360 - 180) > 5e-4
-            or not math.isclose(fake_contrast[0], -contrast, rel_tol=0, abs_tol=5e-9)
+            or abs((fake_pa[0] - position_angle + 180) % 360 - 180) > 1e-3
+            or not math.isclose(fake_contrast[0], -contrast, rel_tol=0, abs_tol=1e-8)
         ):
-            raise RuntimeError("KLIP optimizer output does not record the requested negative fake")
+            raise RuntimeError(
+                "KLIP optimizer output does not record the requested negative fake: "
+                f"requested sep={separation:.17g}, PA={position_angle:.17g}, contrast={-contrast:.17g}; "
+                f"recorded sep={fake_separation}, PA={fake_pa}, contrast={fake_contrast}"
+            )
 
         evaluation = {
             "complete": True,

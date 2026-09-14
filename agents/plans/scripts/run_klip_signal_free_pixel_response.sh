@@ -281,6 +281,7 @@ if [[ "${dry_run}" == true ]]; then
     printf '\nDry run complete; fitted values are needed to print the exact response command.\n'
     exit 0
 fi
+mkdir -p "${optimizer_directory}"
 "${optimizer_command[@]}" 2>&1 | tee "${optimizer_directory}/driver.log"
 
 readarray -t fitted_planet < <(python3 - "${optimizer_directory}/summary.json" <<'PY'
