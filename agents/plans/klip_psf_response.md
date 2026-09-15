@@ -469,6 +469,11 @@ check before moving to signal/noise-term decomposition and covariance-aware filt
 
 ## Known non-blocking follow-ups
 
+- `klipReduce` does not yet provide a native negative-companion optimizer equivalent to `p4Reduce`'s
+  `[p4Optimize]` path. The maintained `optimize_klip_negative_planet.py` driver currently launches a complete
+  single-mode `klipReduce` process for every position/contrast evaluation. Add a native KLIP optimizer with common
+  bounded-fit semantics, convergence/provenance products, reusable in-memory input state, and uncertainty support;
+  then replace the external orchestration in the signal-free response experiment.
 - Median response combination still needs a bounded accepted approximation or external-storage strategy.
 - Median regional centering, pixel time-series normalization, wedges/overlapping regions, and post-median subtraction
   require separate perturbation contracts.
