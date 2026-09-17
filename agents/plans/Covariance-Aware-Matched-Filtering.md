@@ -352,6 +352,57 @@ provides a controlled comparison. Estimate noise from blank locations in compara
 excluding known sources and the tested location with a guard region. Tune rank and regularization on held-out
 locations or blocks, then measure performance on separate injections/null samples.
 
+### Overlapping annular patches: a Welch-style sampling scheme
+
+The agreed starting geometry is a sequence of overlapping patches around an annulus, analogous to Welch's
+overlapping-segment spectral estimator. Under stationarity, autocovariance and the power spectral density are
+Fourier-transform pairs. Welch averages windowed segment powers; here we can average patch outer products while
+retaining the full pixel covariance. The latter also retains correlations between Fourier modes and therefore
+estimates more structure than a diagonal spectral-power model.
+
+Let $\ell=\lambda/D$, let $a$ be the patch radius, and let $R_{\mathrm{ann}}$ be the radius of its center from the
+star, all in image pixels. Half-width spacing means an azimuthal center-to-center arc step $\Delta s=a$ for a patch
+of diameter $2a$. The approximate number of patches around a complete annulus is
+
+$$
+n\simeq\frac{2\pi R_{\mathrm{ann}}}{\Delta s}
+=\frac{2\pi R_{\mathrm{ann}}}{a}.
+$$
+
+Thus a patch radius of one $\lambda/D$ at a separation of three $\lambda/D$ gives $n\simeq6\pi\simeq19$ samples
+before masks and source exclusions. This describes 50% overlap along the azimuthal width, not 50% overlap in the
+area of circular patches. Whether that patch radius captures the processed source's negative lobes remains a
+response-support measurement; a larger required footprint reduces the count at the same separation.
+
+Rotate each patch into the same radial/tangential coordinate system. For the resulting vectorized patches $x_j$,
+use their mean $\bar x$ and the centered covariance estimate
+
+$$
+\widehat C=\frac{1}{n-1}\sum_{j=1}^{n}(x_j-\bar x)(x_j-\bar x)^T.
+$$
+
+Overlap improves coverage and can improve averaging. Its benefit depends on the correlations between the
+quadratic estimates and any windowing; do not automatically replace 19 overlapping patches with either 19
+independent samples or 9 useful samples. The usual $n-1$ normalization does not itself correct correlations
+between training patches. Validate covariance scale and effective precision on held-out angular neighborhoods.
+Welch's own variance/resolution tradeoff depends on overlap and tapering; see the
+[MathWorks discussion of Welch estimation](https://www.mathworks.com/help/signal/ug/nonparametric-methods.html).
+
+The raw centered covariance from 19 patches has rank at most 18, regardless of the number of stamp pixels.
+Use the positive-floor PCA model or diagonal shrinkage from Section 5 so the unmeasured complement retains finite
+uncertainty. Eigendecomposition of this covariance is a representation of the same matched filter; truncation or
+regularization changes the covariance model. Fifty-percent spacing is an initial geometry to test, rather than a
+claim of optimality for full covariance estimation. Choose tapering separately and propagate any taper through
+the data, template, and covariance consistently.
+
+For candidate exclusion and validation, hold out whole angular neighborhoods, including every training patch
+whose footprint intersects the candidate's exclusion region. Leaving out only the patch centered on the candidate
+would still expose the covariance estimate to that source through overlapping neighbors. Compare the resulting
+filter with identity weighting using held-out null scores, injected-source completeness, and amplitude uncertainty
+calibration, as planned in Section 7.
+
+### Covariance constraints and later extensions
+
 Key constraints:
 
 - **Different matrices:** `XXᵀ` describes predictor time-series correlations used by P4. A final-stamp covariance
@@ -385,6 +436,9 @@ temporal/block covariance model. The final cube's different PCA-mode planes are 
 same data, so they must not be counted as independent exposures.
 
 ## 7. Recommended implementation and validation sequence
+
+This sequence was accepted on 2026-09-16. Begin with the derivative oracle; the overlapping annular-patch estimator
+above supplies the initial sampling geometry for the later covariance-filter prototype.
 
 1. **Establish the derivative oracle.** Sweep positive/negative amplitudes at representative radii, angles, mode
    counts, and eigengaps. Compare detector residuals before reconstruction, then final stamps. Separate finite
@@ -482,6 +536,12 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $t_i,z_i$ | Template and data coefficients in the noise eigenbasis | $t_i=q_i^Tt$, $z_i=q_i^Tz$; retain their signs for coherent template detection. |
 | $R$ | Mean-centered matrix of noise-training stamps | $n\times p$; each row is a stamp, and the sample covariance is $R^TR/(n-1)$. |
 | $n$ (training count) | Number of covariance-training stamps | Scalar; the centered sample covariance has rank at most $n-1$. Overlap can reduce effective independence. |
+| $\ell$ | Diffraction scale used in the annular sampling geometry | $\ell=\lambda/D$, expressed in image pixels. |
+| $a$ | Radius of a covariance-training patch | A footprint of diameter $2a$ has half-width center spacing $\Delta s=a$. |
+| $R_{\mathrm{ann}}$ | Radius of the annulus of patch centers | Measured from the star in image pixels; distinct from the training matrix $R$. |
+| $\Delta s$ | Azimuthal arc spacing between patch centers | The half-overlap starting geometry uses $\Delta s=a$, giving approximately $2\pi R_{\mathrm{ann}}/a$ patches. |
+| $x_j,\bar x$ | Vectorized training patch and mean training patch | Length $p$ in a common radial/tangential coordinate system; $\bar x$ is the mean over retained training patches. |
+| $\widehat C$ | Empirical centered patch covariance | $p\times p$; regularize before inversion, and calibrate the effect of overlap on its estimation. |
 | $v_i,\gamma_i$ | Eigenvector and eigenvalue of the training Gram matrix | $RR^Tv_i=\gamma_i v_i$; for $\gamma_i>0$, $q_i=R^Tv_i/\sqrt{\gamma_i}$ and $\nu_i=\gamma_i/(n-1)$. |
 | $C_s,C_n$ | Signal and noise covariance matrices in Wiener estimation | Defined for zero-mean, uncorrelated random signal and noise. $C_n$ is $C$ when referring to the same filtered stamp space. |
 | $\widehat s$ | Wiener estimate of the random signal image | $\widehat s=C_s(C_s+C_n)^{-1}d$ for zero-mean data; distinct from the unit-source input $s_q$. |
