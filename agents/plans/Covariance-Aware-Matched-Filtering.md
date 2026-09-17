@@ -888,71 +888,114 @@ covered, but exact float instantiations remain unverified for the const cube ima
 KLIP's float annular-geometry/view-extraction calls. Concrete upstream tests are listed under
 Known non-blocking ownership follow-ups in [mxlib_cleanup.md](mxlib_cleanup.md).
 
-### Step 3 implementation checkpoint: shared factors and consistent cropping (2026-09-17)
+### Step 3: scientific and computational validation (2026-09-17)
 
-`P4PCA::prepareResponse()` now owns an FP64 baseline eigensystem and its rank/cutoff diagnostics;
-`calculateResponse()` can apply successive independently sampled source directions without another eigensolve.
-The one-shot API delegates to these operations. The response calculation and boundary policy are unchanged.
+The full-data comparison and implementation checks below are complete. Broader injection and controlled timing
+runs are in progress; Step 3 remains open until those results are recorded.
 
-The reduction groups source measurements into batches, gathers their detector requests, and factors each unique
-valid detector fit once per batch. `psfResponse.analyticBatchSize` defaults to 32; 1 provides a comparison without
-cross-source reuse. The existing memory budget limits both the source batch and worker count using conservative
-geometry, residual, factor, and scratch estimates. Factors remain worker-local and are discarded after their
-consuming source directions. FITS provenance records `P4 PSF ANALYTIC FACTOR COUNT` and the realized
-`P4 PSF ANALYTIC BATCH SIZE`, separately from response-direction and fallback counts.
+#### Shared factors, source sampling, and image coordinates
 
-Automatic cropping now uses the same residual crop, derotation, and final crop with integrated filtering enabled
-or disabled. All newly written P4 response methods publish final-image coordinates plus detector-origin cards.
-The analysis script honors those offsets, including odd detector-to-output size differences. New products also
-record detector dimensions separately from input-template dimensions, so smaller or larger PSF files do not
-change the coordinate frame inferred by the reader. Legacy manifests retain the template-size fallback. A 24-frame D64
-AF Lep check with integrated filtering produced science bit-for-bit identical to the unfiltered baseline and
-900 finite filtered pixels. The synthetic regression covers analytic, paired-refit, detector-local, and exact-sky
-product coordinates and unchanged science; its thin annulus provides only one or two usable pixels in some
-3-by-3 stamps, so the analytic/refit finite-output check explicitly permits that support fraction.
+`P4PCA::prepareResponse()` owns an FP64 baseline eigensystem and its rank/cutoff diagnostics. Successive
+`calculateResponse()` calls apply independently sampled source directions to that baseline without another
+eigensolve. The one-shot API delegates to these operations; the response formula and boundary policy are unchanged.
 
-The experimental P4Reduction suite passes 35 cases / 354802 assertions, including identical products and
-per-measurement diagnostic counts for batch sizes 1 and 32 with fewer baseline factorizations in the shared run.
-The numerical response suite passes 11 cases / 1417 assertions, including independent derivative checks for
-successive directions, both Gram orientations, owned baseline inputs, and rejection after failed preparation.
+The reduction gathers detector requests from bounded source batches and factors each unique valid detector fit
+once per batch. `psfResponse.analyticBatchSize` defaults to 32; 1 provides a comparison without cross-source reuse.
+The existing memory budget limits both source batches and workers using conservative geometry, source-cache,
+residual, factor, and scratch estimates. Worker-local factors are discarded after their consuming directions.
+FITS provenance records the total `P4 PSF ANALYTIC FACTOR COUNT` and realized `P4 PSF ANALYTIC BATCH SIZE`.
+The progress log reports a separate factor count for each batch.
 
-The mxlib coverage gate rechecked the current filtered LCOV trace. The called FP64 `eigenSYEVR` range is 60/60
-executable lines, workspace construction/destruction 3/3 each, and workspace cleanup 13/13. The called mutable
-float cube views, allocation/access, FITS, finite-check, and configuration ranges are covered. Exact const-float
-cube views and float assignment instantiations remain the previously documented non-blocking upstream coverage
-follow-ups in [mxlib_cleanup.md](mxlib_cleanup.md).
+Each source batch caches shifted detector pixels once per source/frame. Predictor interpolation reuses those
+values with the original column-then-row accumulation order. For temporal-Gram directions with at most 20%
+nonzero entries, the kernel forms `A*X^T` with an exact sparse representation and adds its transpose. Only exact
+zeros are omitted. Dense directions retain the original product. Both 24- and 96-frame checks preserve all 4800
+published stamps bit-for-bit; maximum per-stamp differences from the FP64 paired-refit oracle remain `3.15e-7`
+and `1.96e-7`. A separate 621-by-3000 numerical check gives a dense/sparse analytic difference of `2.69e-16` and
+an analytic/FP64 paired-refit difference of `2.05e-9` at half-amplitude `1e-5`.
 
-The full-data run exposed repeated nested cubic interpolation in source sampling. Each source batch now caches
-shifted detector pixels once per source/frame; predictor sampling reuses those values with the exact original
-column-then-row accumulation order. The memory estimate includes the cache. All 2400 published stamps in the
-24-frame check are bit-for-bit identical to the pre-cache analytic products, and science remains unchanged.
-The realized eight-source batch uses 424 baseline factorizations for 610 source directions per mode.
+Automatic cropping uses the same residual crop, derotation, and final crop with integrated filtering enabled or
+disabled. All newly written P4 response methods publish final-image coordinates and detector-origin cards.
+Detector dimensions are recorded separately from input-template dimensions, and the reader handles odd crop
+parity. Legacy manifests retain their template-size fallback. A 24-frame D64 AF Lep run with integrated filtering
+preserves the science pixels bit-for-bit and produces 900 finite filtered pixels. The synthetic regression covers
+analytic, paired-refit, detector-local, and exact-sky coordinates, including a PSF smaller than the detector.
 
-An additional broad PCA regression caught a refactoring change in overflow handling for unresolved modes.
-The original error behavior is restored. Experimental suites pass 42 / 4677 (PCA), 11 / 1417 (response), and
-35 / 354802 (reduction). Default suites pass 33 / 2220, 11 / 1417, and 28 / 78141, respectively;
-`hciAnalyze` passes 13 / 166. These include the cached source path. No new mxlib call is introduced by caching.
+The experimental suites pass 42 cases / 4677 assertions (PCA), 12 / 1440 (response), and 35 / 354802 (reduction).
+The default build passes 33 / 2220, 12 / 1440, and 28 / 78141, respectively; `hciAnalyze` passes 13 / 166.
+The mxlib audit verifies the called FP64 eigensolver range at 60/60 executable lines, workspace construction and
+destruction at 3/3 each, and cleanup at 13/13. Exact const-float cube views and float assignment instantiations
+remain the non-blocking upstream coverage follow-ups recorded in [mxlib_cleanup.md](mxlib_cleanup.md).
 
-Stack sampling of the full response run then identified dense FP64 products as the dominant active work.
-For temporal-Gram source directions with at most 20% nonzero entries, the kernel now forms `A*X^T` using an
-exact sparse representation and adds its transpose. Only exact zeros are omitted; there is no source-value
-threshold or change to the response formula. Dense directions retain the original multiplication path.
-Both the 24- and 96-frame products (4800 published stamps total) remain bit-for-bit identical to the earlier
-analytic outputs; their largest per-stamp errors against the FP64 paired-refit oracle remain `3.15e-7` and
-`1.96e-7`. The new independent sparse-direction test brings the response suite to 12 cases / 1440 assertions.
-The interrupted full runs retain logs and frozen software for controlled comparisons; their partial timings
-are not complete-run benchmarks.
+#### Full AF Lep result
 
-Full-data validation is in progress under `/tmp/p4-step3-aflep`. The 621-frame science baseline took 241.43 s
-and 5,170,444 KiB peak RSS with 20 OpenMP workers and one BLAS thread. Its maximum difference from the archived
-post-avoidance science image is `1.61e-6` per pixel. Applying the archived post-avoidance response field to this
-current baseline reproduces the accepted fit: contrast `0.004884882067` (change `-4.08e-11`), separation
-`11.49649042` pixels (change `-3.88e-8`), PA `262.32662166` degrees, and SNR `4.32275218`.
-This checks reference replay; it is separate from the same-build bitwise science-invariance requirement.
+The 621-frame run reproduces the accepted geometry: 232 measurements at 58 radii, 221 excluded source centers,
+and mode fraction 0.15. All 176566 detector responses are analytic, with zero rank, cutoff, fallback, or unavailable
+outcomes. It uses 30166 baseline factorizations, 82.9% fewer than preparing one baseline per direction.
+The response field has the same coordinates and finite support as the accepted paired-refit field.
 
-**Still required for Step 3:** complete the full analytic scientific comparison, measure reuse time/memory,
-and broaden injections in position and brightness. No new photometric-calibration or speedup conclusion is
-claimed at this checkpoint. Covariance estimation and noise weighting remain Step 4 and later work.
+A separate response-free reduction using the identical executable and recorded application/math libraries
+produces **byte-for-byte identical science pixels**. Replaying the accepted response field on the current science
+also reproduces its fit: the contrast changes by only `-4.08e-11` and separation by `-3.88e-8` pixel.
+
+| Response field | Contrast | Separation (pixels) | PA (degrees) | SNR |
+| --- | ---: | ---: | ---: | ---: |
+| Accepted paired refit | 0.004884882108 | 11.49649046 | 262.32662164 | 4.32275222 |
+| Analytic | 0.004856152652 | 11.48754721 | 262.32672117 | 4.33444033 |
+
+The analytic fit differs from the accepted matched-refit result by `-0.588%` in contrast and about `0.009` pixel
+in position. Relative to the accepted negative-planet optimizer, the contrast offsets are `+1.936%` (analytic)
+and `+2.539%` (paired refit), and position offsets are `0.2525` and `0.2436` pixel. These are comparisons with the
+accepted point estimate, rather than injected-source bias measurements.
+
+Across all 11304 published stamps, analytic versus finite-amplitude refit relative differences have median
+`5.61%`, 95th percentile `6.26%`, and maximum `80.56%`; the aggregate cosine is `0.999049`.
+The largest relative difference is at radius `58.71` pixels, with only 19 of 121 stamp pixels available and a
+small reference norm. The median differences are `0.89%` over radii 6--12, `1.94%` over 12--24, `5.09%` over
+24--42, and `5.95%` over 42--60 pixels. The report retains these outer-edge outliers.
+
+At the accepted integer peak, comparison with the archived negative-planet removal gives cosine `0.97805` and
+best-scaled shape error `20.84%` for the analytic field, versus `0.97844` and `20.65%` for the accepted refit field.
+This comparison combines finite amplitude, subpixel registration, clipping, and source-support differences:
+the full-image removal shifts the full 256-pixel PSF; the accepted optimizer uses a 13-pixel local window and
+14-pixel source crop; the 11-pixel response uses a 12-pixel source crop. The latter retains 99.08% of the full
+PSF's squared energy before reduction. That fraction does not bound the post-reduction mismatch. The broader
+injection study below uses matching source support to separate this issue from response calibration.
+
+#### Injection protocol and computational measurements
+
+The queued study uses six integer detector positions `(120,137)`, `(137,120)`, `(109,143)`, `(146,112)`,
+`(98,98)`, and `(157,157)`, at radii approximately 12.1, 24.1, and 41.7 pixels. At each position it evaluates
+zero contrast and both signs of 0.25, 1, and 4 times the accepted contrast `0.004763925929356391`, under arithmetic
+mean and 5-sigma mean combination: 84 local reductions of all 621 frames. The PSF is zero-padded after its central
+12-pixel crop, preserving the original contrast scale while allowing a 15-pixel local fitting window.
+
+Analysis measures fixed-position gain, fitted contrast and astrometric offsets, template cosine and shape error,
+and one-sided versus symmetric response differences. The free-position estimate uses a bounded quadratic peak
+within one pixel, with a complete 11-by-11 template at each candidate. Baseline subtraction measures conditional
+response calibration; raw-image fits and unsuccessful fit statuses are retained separately. Detection completeness
+and false-alarm calibration remain the held-out tests in Step 5.
+
+| Full-data run | Wall time (seconds) | Peak resident memory (GiB) |
+| --- | ---: | ---: |
+| Same-build science-only control | 310.21 | 4.93 |
+| Science plus analytic response field | 9894.06 | 11.92 |
+
+These are observed whole-process measurements with 20 OpenMP workers and one BLAS thread on an i9-12900HK,
+using the Release build. Small development checks overlapped portions of the analytic run. The archived refit
+run took 6574 seconds with 48 OpenMP workers; that historical comparison does not establish a controlled speedup.
+The queued 24/96-frame trials compare batches, source caching, sparse arithmetic, and production-precision/FP64
+paired-refit controls serially, using two workers, one BLAS thread, and medians of three repeats.
+
+The maintained drivers are [`run_p4_step3_products.py`](scripts/run_p4_step3_products.py),
+[`analyze_p4_step3.py`](scripts/analyze_p4_step3.py),
+[`run_p4_step3_injections.py`](scripts/run_p4_step3_injections.py),
+[`benchmark_p4_step3_reuse.py`](scripts/benchmark_p4_step3_reuse.py), and
+[`summarize_p4_step3.py`](scripts/summarize_p4_step3.py). Active records are under `/tmp/p4-step3-aflep`; the final
+archive will preserve frozen software, commands, input hashes, raw products, resources, and exported summaries.
+
+**Still required for Step 3:** finish and summarize the broader injection study and controlled timing comparisons,
+inspect the exported figures, and preserve the final experiment archive. Covariance weighting remains Step 4.
 
 ## 8. Notation
 
