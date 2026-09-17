@@ -728,10 +728,86 @@ the new test's float FITS constructor/read/write and mutable float-cube access c
 are present, and all executable lines in their function ranges are covered in the current LCOV report
 (`fitsFile.hpp`: 491/491; `eigenCube.hpp`: 185/185). No new coverage gap was found.
 
-**Next: Step 2.** Implement the analytic direct-P4 response against the independent detector derivative and
-these converged FP64 pre-storage refit templates. Preserve paired refits as the oracle/fallback. The small-step
-mixed-precision differences remain diagnostics, not the accuracy reference. Covariance estimation and noise
-weighting remain separate later steps.
+### Analytic direct-P4 numerical kernel (2026-09-17)
+
+Step 2 now has a production numerical API, `P4PCA::calculateResponse()`, in
+[`P4PCA.hpp`](../../src/common/P4PCA.hpp) and [`P4PCA.cpp`](../../src/common/P4PCA.cpp). It evaluates the FP64 derivative
+of the uncentered in-sample residual for supplied baseline arrays `X,y` and source directions `A,s`, including both
+coefficient adaptation and motion of the retained subspace. It uses the complete smaller Gram eigensystem. On the
+predictor-Gram path, unnormalized columns `X v_j` represent discarded predictor modes; an implicit complement term
+includes the entire temporal nullspace without dividing by discarded zero/tiny singular values. Retaining all
+predictor modes can therefore still give a nonzero response. Retaining all temporal modes gives zero.
+
+Each requested count receives its derivative, baseline numerical rank, normalized cutoff gap, and one of
+`differentiable`, `rankInsufficient`, `rankBoundary`, or `cutoffUnresolved`. Unavailable response columns are NaN.
+The default numerical separation floor is `64 * epsilon_double * max(T,P)`, relative to the largest eigenvalue;
+callers may increase it. Repeated eigenvalues entirely within a retained or discarded group are accepted. This
+floor is a numerical-resolution guard, not a bound on response error or a physical source-amplitude tolerance.
+
+The API is available in normal and experimental builds. It is not yet selectable through `psfResponse.method`:
+the sparse sampling/configuration path still uses the existing paired refits. Automatic per-mode fallback and
+product metadata belong to that next integration step. Numerical solver failures still throw; they are distinct
+from unresolved per-mode boundaries. The derivative describes the FP64 mathematical fit, not differentiation of
+the rounded mixed-precision program.
+
+#### Analytic response verification
+
+The known-eigensystem fixtures now compare the actual analytic API to their independently prescribed derivative
+to relative tolerance `5e-12`, alongside the existing central-difference convergence tests. Coverage includes
+both Gram orientations, target-only and predictor-only perturbations, deficient rank, internal repeated
+eigenvalues, all retained predictor modes, all retained temporal modes, zero rank, narrow resolved gaps,
+unresolved cutoffs, rank boundaries, output reuse, invalid source arrays, and malformed/failed eigensolvers.
+
+The reconstruction integration case now also checks the analytic kernel against its independent Eigen derivative,
+then reconstructs the analytic response using the production spatial weights and an independent FP64 masked mean.
+Its comparison to the published FP64 refit template passes with and without derotation, while final science pixels
+remain unchanged. This verifies the numerical kernel through the reconstruction oracle; it does not yet exercise
+a user-selectable analytic-product path.
+
+[`p4ResponseBenchmark.cpp`](../../benchmarks/p4ResponseBenchmark.cpp) replays captured baseline and unit-source
+arrays through the actual analytic API and FP64 paired refits. The maintained
+[`analyze_p4_analytic_response.py`](scripts/analyze_p4_analytic_response.py) compares both to the independent NumPy
+SVD derivative. It records capture hashes, commands, native response arrays, diagnostics, executable and numerical
+shared-library hashes, and summary tables. All three calculations use the same sampled unit-source direction;
+the replayed paired fits perturb the captured FP64 arrays directly, so this comparison introduces no further
+amplitude-dependent FP32 source interpolation.
+
+| Frames | Captured fits / mode comparisons | Maximum analytic relative error per fit | Maximum analytic error after aggregation by position/mode | Maximum paired-refit error after aggregation, `epsilon=1e-5` |
+| --- | --- | --- | --- | --- |
+| 24 | 305 / 915 | `3.22e-12` | `6.31e-13` | `1.15e-8` |
+| 96 | 351 / 1053 | `7.15e-11` | `2.11e-11` | `8.68e-8` |
+
+All 1968 detector/mode comparisons were resolved and supported. Aggregation uses the norm over all captured time
+samples at a position/mode, not an average of relative errors. Artifacts are under
+`/tmp/p4-response-convergence-20260917/analytic24` and `analytic96`.
+
+```sh
+cmake --build _build_response_precision --target p4ResponseBenchmark -j2
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=2 python3 agents/plans/scripts/analyze_p4_analytic_response.py \
+  --sweep /path/to/D64-sweep --binary _build_response_precision/benchmarks/p4ResponseBenchmark \
+  --output /path/to/new-analytic-analysis
+```
+
+This correctness-first kernel is not yet a demonstrated speedup: summed single-call kernel times were about
+`0.149 / 0.109` seconds (analytic / two refits) over the 24-frame captures and `1.64 / 1.38` seconds over the
+96-frame captures. These timings exclude source sampling, image reconstruction, I/O, and process startup, and
+do not measure reused baseline factorizations across source directions. Optimize and benchmark that reuse during
+integration before claiming a computational gain.
+
+Verification: both builds passed the response suite (10 cases / 1119 assertions). The experimental build also
+passed P4PCA (42 / 4677) and P4Reduction (34 / 354318); the default build passed P4PCA (33 / 2220) and P4Reduction
+(27 / 77657). Modified C++ sections were formatted, the replay script passed Python syntax checking, and both
+real-data replay analyses completed with all requested comparisons available.
+
+The mxlib coverage audit verified `isFinite<double>()` (7/7 executable lines), the FP64 `syevrMem` constructor and
+destructor (3/3 each), and the reused `eigenSYEVR` array overload (60/60), along with the previously audited float
+FITS/cube calls in the reconstruction test. Their exact instantiated function records are present in the current
+LCOV report. No new upstream coverage gap was found.
+
+**Next within Step 2:** connect the analytic kernel to sparse source-direction sampling and PSF product generation,
+record explicit per-mode availability/fallback provenance, retain `refitDifference`, and validate full products
+against the converged FP64 oracle. Then measure baseline-factor reuse and the accepted AF Lep scientific result
+under Step 3. Covariance estimation and noise weighting remain separate later steps.
 
 ## 8. Notation
 

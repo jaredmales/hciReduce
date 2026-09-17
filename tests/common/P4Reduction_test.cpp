@@ -4819,7 +4819,8 @@ TEST_CASE( "P4 experimental detector observer preserves and scopes production re
 
 /** Verify P4Reduction::calculateRefitDifferenceSamples() subtracts FP64 detector residuals before image conversion.
  * The experimental reduction API supplies captured regressions for an independent Eigen projector derivative.
- * P4LocalGeometry supplies the actual interpolation weights; an independent double-precision masked mean then
+ * P4PCA::calculateResponse() must agree with that derivative. P4LocalGeometry supplies the actual interpolation
+ * weights; an independent double-precision masked mean of the analytic responses then
  * checks the published response, with and without derotation. Enabling PSF products must preserve science pixels.
  * \ingroup P4Reduction_unit_tests
  */
@@ -4935,7 +4936,21 @@ TEST_CASE( "P4 FP64 refit response reconstructs the independent detector derivat
             }
             response.col( mode ) = derivative;
         }
-        derivatives.emplace( key, std::move( response ) );
+        mx::improc::P4PCAResponseResult analytic;
+        mx::improc::P4PCA::workspaceT responseWorkspace;
+        mx::improc::P4PCA::calculateResponse( analytic,
+                                              base.predictors,
+                                              base.target,
+                                              direction.array(),
+                                              targetDirection.array(),
+                                              base.modes,
+                                              base.rankTolerance,
+                                              responseWorkspace );
+        REQUIRE( analytic.modeStatus ==
+                 std::vector<mx::improc::P4PCAResponseStatus>( base.modes.size(),
+                                                               mx::improc::P4PCAResponseStatus::differentiable ) );
+        REQUIRE( ( analytic.responses.matrix() - response ).norm() / response.norm() < 2e-9 );
+        derivatives.emplace( key, analytic.responses.matrix() );
     }
     REQUIRE_FALSE( derivatives.empty() );
     std::vector<double> angles;

@@ -118,7 +118,8 @@ pcaT::vectorT ResponseFixture::derivative( int modes ) const
 /** \endcond */
 
 /** Verify mx::improc::P4PCA::calculate() converges quadratically to the complete projector derivative.
- * Both Gram orientations, predictor-only perturbations, rank deficiency, and repeated eigenvalues wholly
+ * P4PCA::calculateResponse() must agree with the independent derivative. Both Gram orientations,
+ * predictor-only perturbations, rank deficiency, and repeated eigenvalues wholly
  * inside retained or discarded groups are covered using a known complete temporal eigensystem.
  */
 TEST_CASE( "Direct P4 paired refits converge to the complete residual derivative", "[P4PCA][response][convergence]" )
@@ -146,6 +147,19 @@ TEST_CASE( "Direct P4 paired refits converge to the complete residual derivative
                     expected.col( mode ) = fixture.derivative( modes[mode] ).matrix();
                 }
                 pcaT::workspaceT workspace;
+                mx::improc::P4PCAResponseResult analytic;
+                mx::improc::P4PCA::calculateResponse( analytic,
+                                                      fixture.m_predictors,
+                                                      fixture.m_target,
+                                                      fixture.m_predictorSource,
+                                                      fixture.m_targetSource,
+                                                      modes,
+                                                      1e-12,
+                                                      workspace );
+                REQUIRE( analytic.modeStatus == std::vector<mx::improc::P4PCAResponseStatus>(
+                                                    modes.size(),
+                                                    mx::improc::P4PCAResponseStatus::differentiable ) );
+                REQUIRE( ( analytic.responses.matrix() - expected ).norm() / expected.norm() < 5e-12 );
                 Eigen::VectorXd previousError = Eigen::VectorXd::Zero( modes.size() );
                 for( const double amplitude : { 0.04, 0.02, 0.01, 1e-5 } )
                 {
@@ -189,7 +203,7 @@ TEST_CASE( "Direct P4 paired refits converge to the complete residual derivative
 }
 
 /** Verify mx::improc::P4PCA::calculate() refits the target coefficients even when predictors are unchanged.
- * The response is (I-Pi)s rather than the frozen-coefficient response s.
+ * P4PCA::calculateResponse() returns (I-Pi)s rather than the frozen-coefficient response s.
  */
 TEST_CASE( "Direct P4 target-only response includes coefficient adaptation", "[P4PCA][response][target-only]" )
 {
@@ -200,6 +214,16 @@ TEST_CASE( "Direct P4 target-only response includes coefficient adaptation", "[P
     {
         const pcaT::vectorT expected = fixture.derivative( modes );
         REQUIRE( ( expected - fixture.m_targetSource ).matrix().norm() > 0.1 );
+        mx::improc::P4PCAResponseResult analytic;
+        mx::improc::P4PCA::calculateResponse( analytic,
+                                              fixture.m_predictors,
+                                              fixture.m_target,
+                                              fixture.m_predictorSource,
+                                              fixture.m_targetSource,
+                                              { modes },
+                                              1e-12,
+                                              workspace );
+        REQUIRE( ( analytic.responses.col( 0 ) - expected ).matrix().norm() < 1e-12 );
         for( const double amplitude : { 0.1, 0.001, 1e-5 } )
         {
             resultT positive, negative;
@@ -378,6 +402,215 @@ TEST_CASE( "Direct P4 paired refits must check rank support on both sides", "[P4
     REQUIRE( negative.numericalRank == 1 );
     REQUIRE( positive.modeStatus == std::vector<statusT>{ statusT::rankSupported, statusT::rankSupported } );
     REQUIRE( negative.modeStatus == std::vector<statusT>{ statusT::rankSupported, statusT::rankInsufficient } );
+}
+
+/** Verify P4PCA::calculateResponse() retains temporal nullspace motion when all predictor modes are retained.
+ * A full temporal projector instead has identically zero residual derivative. Reusing the output must replace
+ * prior dimensions, statuses and diagnostics, including when the next baseline has zero rank.
+ */
+TEST_CASE( "Analytic P4 response distinguishes full temporal and predictor rank", "[P4PCA][response][analytic]" )
+{
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCAResponseResult response;
+    for( const bool temporalGram : { false, true } )
+    {
+        ResponseFixture fixture( temporalGram ? 6 : 9, temporalGram ? 9 : 6, { 36, 25, 16, 9, 4, 1 } );
+        mx::improc::P4PCA::calculateResponse( response,
+                                              fixture.m_predictors,
+                                              fixture.m_target,
+                                              fixture.m_predictorSource,
+                                              fixture.m_targetSource,
+                                              { 6 },
+                                              1e-12,
+                                              workspace );
+        REQUIRE( response.modeStatus == std::vector{ mx::improc::P4PCAResponseStatus::differentiable } );
+        REQUIRE( response.numericalRank == 6 );
+        REQUIRE( ( response.responses.col( 0 ) - fixture.derivative( 6 ) ).matrix().norm() < 1e-12 );
+        if( temporalGram )
+        {
+            REQUIRE( response.responses.abs().maxCoeff() == 0 );
+            REQUIRE( std::isinf( response.relativeCutoffGaps[0] ) );
+        }
+        else
+        {
+            REQUIRE( response.responses.matrix().norm() > 0.1 );
+            REQUIRE( response.relativeCutoffGaps[0] == Approx( 1.0 / 36 ) );
+        }
+    }
+    mx::improc::P4PCA::calculateResponse( response,
+                                          pcaT::matrixT::Zero( 3, 2 ),
+                                          pcaT::vectorT::Ones( 3 ),
+                                          pcaT::matrixT::Ones( 3, 2 ),
+                                          pcaT::vectorT::Ones( 3 ),
+                                          { 1, 2 },
+                                          0,
+                                          workspace );
+    REQUIRE( response.numericalRank == 0 );
+    REQUIRE( response.responses.rows() == 3 );
+    REQUIRE( response.responses.cols() == 2 );
+    REQUIRE( response.responses.isNaN().all() );
+    REQUIRE( response.modeStatus == std::vector( 2, mx::improc::P4PCAResponseStatus::rankInsufficient ) );
+}
+
+/** Verify P4PCA::calculateResponse() separates rank failure, rank boundaries and unresolved cutoff gaps.
+ * Degeneracy inside a retained/discarded group does not invalidate other requested counts. A caller may increase
+ * the resolution floor; unresolved columns must remain NaN while usable columns are returned.
+ */
+TEST_CASE( "Analytic P4 response reports unresolved boundaries per mode", "[P4PCA][response][analytic][boundary]" )
+{
+    using responseStatus = mx::improc::P4PCAResponseStatus;
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCAResponseResult response;
+    for( const bool temporalGram : { true, false } )
+    {
+        ResponseFixture fixture( temporalGram ? 6 : 9, temporalGram ? 9 : 6, { 25, 25, 9, 9, 0, 0 } );
+        mx::improc::P4PCA::calculateResponse( response,
+                                              fixture.m_predictors,
+                                              fixture.m_target,
+                                              fixture.m_predictorSource,
+                                              fixture.m_targetSource,
+                                              { 1, 2, 3, 4, 5 },
+                                              1e-12,
+                                              workspace );
+        REQUIRE( response.modeStatus == std::vector{ responseStatus::cutoffUnresolved,
+                                                     responseStatus::differentiable,
+                                                     responseStatus::cutoffUnresolved,
+                                                     responseStatus::differentiable,
+                                                     responseStatus::rankInsufficient } );
+        for( const int index : { 0, 2, 4 } )
+        {
+            REQUIRE( response.responses.col( index ).isNaN().all() );
+        }
+        for( const int index : { 1, 3 } )
+        {
+            REQUIRE( ( response.responses.col( index ) - fixture.derivative( index + 1 ) ).matrix().norm() < 1e-12 );
+        }
+    }
+    const pcaT::matrixT predictors = Eigen::Vector3d( 2, 0.5, 0.25 ).asDiagonal().toDenseMatrix().array();
+    mx::improc::P4PCA::calculateResponse( response,
+                                          predictors,
+                                          pcaT::vectorT::Ones( 3 ),
+                                          predictors,
+                                          pcaT::vectorT::Ones( 3 ),
+                                          { 1, 2, 3 },
+                                          0.0625 - 1e-15,
+                                          workspace );
+    REQUIRE( response.modeStatus == std::vector{ responseStatus::differentiable,
+                                                 responseStatus::rankBoundary,
+                                                 responseStatus::rankInsufficient } );
+    REQUIRE( response.responses.rightCols( 2 ).isNaN().all() );
+
+    const pcaT::matrixT narrow = Eigen::Vector3d( 2.001, 2, 1 ).asDiagonal().toDenseMatrix().array();
+    pcaT::matrixT source = pcaT::matrixT::Zero( 3, 3 );
+    source( 1, 0 ) = 1;
+    mx::improc::P4PCA::calculateResponse( response,
+                                          narrow,
+                                          pcaT::vectorT::Ones( 3 ),
+                                          source,
+                                          pcaT::vectorT::Zero( 3 ),
+                                          { 1, 2 },
+                                          0,
+                                          workspace );
+    const double coupling = 2.001 / ( 2.001 * 2.001 - 4 );
+    REQUIRE( response.responses( 0, 0 ) == Approx( -coupling ).epsilon( 1e-12 ) );
+    REQUIRE( response.responses( 1, 0 ) == Approx( -coupling ).epsilon( 1e-12 ) );
+    REQUIRE( response.modeStatus == std::vector( 2, responseStatus::differentiable ) );
+    mx::improc::P4PCA::calculateResponse( response,
+                                          narrow,
+                                          pcaT::vectorT::Ones( 3 ),
+                                          source,
+                                          pcaT::vectorT::Zero( 3 ),
+                                          { 1, 2 },
+                                          0,
+                                          workspace,
+                                          0.01 );
+    REQUIRE( response.relativeResolution == 0.01 );
+    REQUIRE( response.modeStatus == std::vector{ responseStatus::cutoffUnresolved, responseStatus::differentiable } );
+    REQUIRE( response.responses.col( 0 ).isNaN().all() );
+}
+
+/** Verify P4PCA::calculateResponse() rejects malformed/nonfinite source inputs and invalid numerical controls. */
+TEST_CASE( "Analytic P4 response validates source directions and controls", "[P4PCA][response][analytic][validation]" )
+{
+    ResponseFixture fixture( 6, 9, { 36, 25, 16, 9, 4, 1 } );
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCAResponseResult response;
+    for( const double invalid :
+         { -1.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity() } )
+    {
+        REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateResponse( response,
+                                                                 fixture.m_predictors,
+                                                                 fixture.m_target,
+                                                                 fixture.m_predictorSource,
+                                                                 fixture.m_targetSource,
+                                                                 { 1 },
+                                                                 0,
+                                                                 workspace,
+                                                                 invalid ),
+                           std::invalid_argument );
+    }
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateResponse( response,
+                                                             fixture.m_predictors,
+                                                             fixture.m_target,
+                                                             pcaT::matrixT::Zero( 5, 9 ),
+                                                             fixture.m_targetSource,
+                                                             { 1 },
+                                                             0,
+                                                             workspace ),
+                       std::invalid_argument );
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateResponse( response,
+                                                             fixture.m_predictors,
+                                                             fixture.m_target,
+                                                             fixture.m_predictorSource,
+                                                             pcaT::vectorT::Zero( 5 ),
+                                                             { 1 },
+                                                             0,
+                                                             workspace ),
+                       std::invalid_argument );
+    fixture.m_predictorSource( 0, 0 ) = std::numeric_limits<double>::quiet_NaN();
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateResponse( response,
+                                                             fixture.m_predictors,
+                                                             fixture.m_target,
+                                                             fixture.m_predictorSource,
+                                                             fixture.m_targetSource,
+                                                             { 1 },
+                                                             0,
+                                                             workspace ),
+                       std::invalid_argument );
+    fixture.m_predictorSource.setZero();
+    fixture.m_targetSource( 0 ) = std::numeric_limits<double>::infinity();
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateResponse( response,
+                                                             fixture.m_predictors,
+                                                             fixture.m_target,
+                                                             fixture.m_predictorSource,
+                                                             fixture.m_targetSource,
+                                                             { 1 },
+                                                             0,
+                                                             workspace ),
+                       std::invalid_argument );
+    fixture.m_targetSource.setZero();
+    for( const auto &modes : { std::vector<int>{}, { 0 }, { 2, 1 }, { 1, 1 }, { 7 } } )
+    {
+        REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateResponse( response,
+                                                                 fixture.m_predictors,
+                                                                 fixture.m_target,
+                                                                 fixture.m_predictorSource,
+                                                                 fixture.m_targetSource,
+                                                                 modes,
+                                                                 0,
+                                                                 workspace ),
+                           std::invalid_argument );
+    }
+    response.responses = fixture.m_predictors;
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateResponse( response,
+                                                             response.responses,
+                                                             fixture.m_target,
+                                                             fixture.m_predictorSource,
+                                                             fixture.m_targetSource,
+                                                             { 1 },
+                                                             0,
+                                                             workspace ),
+                       std::invalid_argument );
 }
 
 } // namespace P4PCAResponse_test

@@ -1234,6 +1234,192 @@ void P4PCA::calculate( P4PCAResult &output,
                 double>::calculate( output, predictors, target, modes, rankTolerance, workspace, timing, coefficients );
 }
 
+void P4PCA::calculateResponse( P4PCAResponseResult &output,
+                               const matrixT &predictors,
+                               const vectorT &target,
+                               const matrixT &predictorSource,
+                               const vectorT &targetSource,
+                               const std::vector<int> &modes,
+                               double rankTolerance,
+                               workspaceT &workspace,
+                               double relativeGapTolerance )
+{
+    const Eigen::Index dimension = std::min( predictors.rows(), predictors.cols() );
+    if( dimension > std::numeric_limits<int>::max() )
+    {
+        throw std::length_error( "P4PCA response Gram dimension exceeds the eigensolver integer limit" );
+    }
+    p4PCAValidateInputs( predictors, target, modes, rankTolerance, static_cast<int>( dimension ) );
+    if( predictorSource.rows() != predictors.rows() || predictorSource.cols() != predictors.cols() ||
+        targetSource.size() != target.size() || !p4PCAAllFinite( predictorSource ) || !p4PCAAllFinite( targetSource ) ||
+        !mx::math::isFinite( relativeGapTolerance ) || relativeGapTolerance < 0 )
+    {
+        throw std::invalid_argument(
+            "P4PCA response requires matching finite source arrays and a nonnegative gap tolerance" );
+    }
+    if( &output.responses == &predictors || &output.responses == &predictorSource )
+    {
+        throw std::invalid_argument( "P4PCA response output must not alias predictor inputs" );
+    }
+
+    const bool temporalGram = predictors.rows() <= predictors.cols();
+    matrixT gram;
+    if( temporalGram )
+    {
+        gram = ( predictors.matrix() * predictors.matrix().transpose() ).array();
+    }
+    else
+    {
+        gram = ( predictors.matrix().transpose() * predictors.matrix() ).array();
+    }
+    if( !p4PCAAllFinite( gram ) )
+    {
+        throw std::runtime_error( "P4PCA response Gram matrix is nonfinite" );
+    }
+    matrixT eigenvectors, eigenvalues;
+    const MXLAPACK_INT solverStatus =
+        p4PCAEigenSolve( eigenvectors, eigenvalues, gram, static_cast<int>( dimension ), workspace );
+    if( solverStatus != 0 )
+    {
+        throw std::runtime_error( "P4PCA response eigensolver failed with status " + std::to_string( solverStatus ) );
+    }
+    if( eigenvectors.rows() != dimension || eigenvectors.cols() != dimension || eigenvalues.rows() < dimension ||
+        eigenvalues.cols() != 1 || !p4PCAAllFinite( eigenvectors ) ||
+        !p4PCAAllFinite( eigenvalues.topRows( dimension ) ) )
+    {
+        throw std::runtime_error( "P4PCA response eigensolver returned invalid eigenpairs" );
+    }
+    for( Eigen::Index index = 1; index < dimension; ++index )
+    {
+        if( eigenvalues( index ) < eigenvalues( index - 1 ) )
+        {
+            throw std::runtime_error( "P4PCA response eigensolver returned unsorted eigenvalues" );
+        }
+    }
+    const double leading = eigenvalues( dimension - 1 );
+    const double automaticResolution = 64 * std::numeric_limits<double>::epsilon() *
+                                       static_cast<double>( std::max( predictors.rows(), predictors.cols() ) );
+    if( leading < 0 || eigenvalues( 0 ) < -automaticResolution * leading )
+    {
+        throw std::runtime_error( "P4PCA response Gram spectrum is not positive semidefinite" );
+    }
+    const long double rankThreshold = static_cast<long double>( rankTolerance ) * leading;
+    output.numericalRank = 0;
+    for( Eigen::Index index = 0; index < dimension; ++index )
+    {
+        if( eigenvalues( index ) > rankThreshold )
+        {
+            ++output.numericalRank;
+        }
+    }
+    output.relativeResolution = std::max( automaticResolution, relativeGapTolerance );
+    output.responses = matrixT::Constant( predictors.rows(), modes.size(), std::numeric_limits<double>::quiet_NaN() );
+    output.modeStatus.assign( modes.size(), P4PCAResponseStatus::rankInsufficient );
+    output.relativeCutoffGaps.assign( modes.size(), std::numeric_limits<double>::quiet_NaN() );
+    if( leading == 0 )
+    {
+        return;
+    }
+
+    Eigen::MatrixXd temporalVectors, transformedDirection;
+    if( temporalGram )
+    {
+        temporalVectors = eigenvectors.matrix();
+        const Eigen::MatrixXd gramDirection = predictorSource.matrix() * predictors.matrix().transpose() +
+                                              predictors.matrix() * predictorSource.matrix().transpose();
+        transformedDirection = temporalVectors.transpose() * gramDirection * temporalVectors;
+    }
+    else
+    {
+        // Keep X*v_j unnormalized: discarded zero or very small eigenvalues require no division by sqrt(lambda_j).
+        temporalVectors = predictors.matrix() * eigenvectors.matrix();
+    }
+    if( !p4PCAAllFinite( temporalVectors ) || !p4PCAAllFinite( transformedDirection ) )
+    {
+        throw std::runtime_error( "P4PCA response transformed source is nonfinite" );
+    }
+
+    for( std::size_t mode = 0; mode < modes.size(); ++mode )
+    {
+        const Eigen::Index count = modes[mode];
+        const Eigen::Index first = dimension - count;
+        const double retainedValue = eigenvalues( first );
+        const bool allTemporalModes = count == predictors.rows();
+        const double discardedValue = first == 0 ? 0 : std::max( 0.0, eigenvalues( first - 1 ) );
+        output.relativeCutoffGaps[mode] =
+            allTemporalModes ? std::numeric_limits<double>::infinity() : ( retainedValue - discardedValue ) / leading;
+        if( count > output.numericalRank )
+        {
+            continue;
+        }
+        if( retainedValue / leading - rankTolerance <= output.relativeResolution )
+        {
+            output.modeStatus[mode] = P4PCAResponseStatus::rankBoundary;
+            continue;
+        }
+        if( !allTemporalModes && output.relativeCutoffGaps[mode] <= output.relativeResolution )
+        {
+            output.modeStatus[mode] = P4PCAResponseStatus::cutoffUnresolved;
+            continue;
+        }
+        if( allTemporalModes )
+        {
+            output.responses.col( mode ).setZero();
+            output.modeStatus[mode] = P4PCAResponseStatus::differentiable;
+            continue;
+        }
+
+        Eigen::MatrixXd retained = temporalVectors.rightCols( count );
+        Eigen::MatrixXd outside;
+        if( temporalGram )
+        {
+            Eigen::MatrixXd coupling = transformedDirection.block( 0, first, first, count );
+            for( Eigen::Index i = 0; i < count; ++i )
+            {
+                for( Eigen::Index j = 0; j < first; ++j )
+                {
+                    coupling( j, i ) /= eigenvalues( first + i ) - eigenvalues( j );
+                }
+            }
+            outside = temporalVectors.leftCols( first ) * coupling;
+        }
+        else
+        {
+            Eigen::MatrixXd sourceModes = predictorSource.matrix() * eigenvectors.rightCols( count ).matrix();
+            for( Eigen::Index i = 0; i < count; ++i )
+            {
+                const double singular = std::sqrt( eigenvalues( first + i ) );
+                retained.col( i ) /= singular;
+                sourceModes.col( i ) *= singular;
+            }
+            const Eigen::MatrixXd gramDirectionModes =
+                sourceModes + predictors.matrix() * ( predictorSource.matrix().transpose() * retained );
+            outside = gramDirectionModes - retained * ( retained.transpose() * gramDirectionModes );
+            Eigen::MatrixXd coupling = temporalVectors.leftCols( first ).transpose() * gramDirectionModes;
+            for( Eigen::Index i = 0; i < count; ++i )
+            {
+                const double value = eigenvalues( first + i );
+                outside.col( i ) /= value;
+                for( Eigen::Index j = 0; j < first; ++j )
+                {
+                    coupling( j, i ) = ( coupling( j, i ) / value ) / ( value - eigenvalues( j ) );
+                }
+            }
+            // The first term includes the entire temporal nullspace. The correction restores nonzero discarded modes.
+            outside.noalias() += temporalVectors.leftCols( first ) * coupling;
+        }
+        const Eigen::VectorXd response =
+            targetSource.matrix() - retained * ( retained.transpose() * targetSource.matrix() ) -
+            outside * ( retained.transpose() * target.matrix() ) - retained * ( outside.transpose() * target.matrix() );
+        if( !p4PCAAllFinite( response ) )
+        {
+            throw std::runtime_error( "P4PCA response projection is nonfinite" );
+        }
+        output.responses.col( mode ) = response.array();
+        output.modeStatus[mode] = P4PCAResponseStatus::differentiable;
+    }
+}
+
 namespace
 {
 

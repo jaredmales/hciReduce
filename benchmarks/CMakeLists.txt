@@ -9,6 +9,12 @@ if(HCIREDUCE_BUILD_CPU_BENCHMARKS)
 
     target_link_libraries(p4PrecisionBenchmark PRIVATE PkgConfig::MXLIB)
 
+    add_executable(p4ResponseBenchmark p4ResponseBenchmark.cpp)
+
+    target_include_directories(p4ResponseBenchmark PRIVATE "${PROJECT_SOURCE_DIR}")
+
+    target_link_libraries(p4ResponseBenchmark PRIVATE hcireduce-shared)
+
     if(HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION)
         add_executable(
             p4ReductionPrecisionBenchmark

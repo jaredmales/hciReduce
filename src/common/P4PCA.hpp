@@ -30,6 +30,34 @@ enum class P4PCAModeStatus : std::uint8_t
     rankInsufficient ///< The requested mode count exceeds the numerical rank.
 };
 
+/// Whether a direct-P4 response has a numerically resolved, locally fixed retained subspace.
+/** \ingroup programming_library */
+enum class P4PCAResponseStatus : std::uint8_t
+{
+    differentiable,   ///< The retained projector and its derivative are resolved.
+    rankInsufficient, ///< The retained count exceeds the baseline numerical rank.
+    rankBoundary,     ///< The last retained eigenvalue is too close to the rank threshold.
+    cutoffUnresolved  ///< The retained/discarded eigengap is too small to resolve the derivative.
+};
+
+/// Analytic derivatives of direct, uncentered, in-sample P4 residuals.
+/** Unavailable columns are quiet NaNs. A finite-amplitude paired refit may still be useful for an unavailable
+ * column, but does not establish differentiability at a crossing.
+ * \ingroup programming_library
+ */
+struct P4PCAResponseResult
+{
+    Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic> responses; ///< T-by-mode residual derivatives.
+
+    std::vector<P4PCAResponseStatus> modeStatus;                    ///< Availability in requested retained-count order.
+
+    std::vector<double> relativeCutoffGaps; ///< Cutoff gaps divided by lambdaMax; infinity if all T modes retained.
+
+    int numericalRank{ 0 };         ///< Baseline eigenvalues strictly above the requested relative rank threshold.
+
+    double relativeResolution{ 0 }; ///< Effective minimum relative eigengap and rank-threshold separation.
+};
+
 /// Numerical implementation used for target-frame exclusion.
 /** \ingroup programming_library */
 enum class P4ExclusionSolver : std::uint8_t
@@ -266,6 +294,26 @@ struct P4PCA
                            workspaceT &workspace, /**< [in,out] caller-owned, non-shared LAPACK workspace */
                            P4PCATiming *timing = nullptr, /**< [out] optional per-call worker timing */
                            matrixT *coefficients = nullptr /**< [out] optional K-by-mode predictor coefficients */ );
+
+    /// Differentiate the complete fitted residual under predictor and target source perturbations.
+    /** Evaluates d[(I-Pi(X+a*A))(y+a*s)]/da at zero in FP64, including coefficient adaptation and subspace motion.
+     * Uses the complete smaller Gram eigensystem, with the discarded temporal nullspace included implicitly on
+     * the predictor-Gram path. Repeated eigenvalues within either group are allowed; unresolved boundaries leave
+     * NaN columns with an explicit status. This is not a derivative of the rounded mixed-precision computation.
+     * Centering, temporal augmentation, held-out fits, sampling, and image reconstruction are outside this API.
+     * The automatic resolution floor is 64*epsilon*max(T,K), relative to lambdaMax; the caller may increase it.
+     * Output storage must not alias an input. On exception output values are unspecified.
+     */
+    static void calculateResponse(
+        P4PCAResponseResult &output,    /**< [out] derivatives, per-mode availability, and cutoff diagnostics */
+        const matrixT &predictors,      /**< [in] finite T-by-K baseline predictors X */
+        const vectorT &target,          /**< [in] finite T-sample baseline target y */
+        const matrixT &predictorSource, /**< [in] finite T-by-K source direction A */
+        const vectorT &targetSource,    /**< [in] finite T-sample source direction s */
+        const std::vector<int> &modes,  /**< [in] positive, strictly increasing retained counts, at most min(T,K) */
+        double rankTolerance,           /**< [in] finite nonnegative rank threshold relative to lambdaMax */
+        workspaceT &workspace,          /**< [in,out] caller-owned, non-shared FP64 LAPACK workspace */
+        double relativeGapTolerance = 0 /**< [in] optional larger relative boundary-resolution floor */ );
 
     /// Calculate exact target-held-out residuals from explicit training-row sets.
     /** Each output row is predicted by a separate PCA fit containing only the complement of the corresponding

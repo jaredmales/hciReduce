@@ -1215,6 +1215,45 @@ TEST_CASE( "P4PCA replaces output and reuses caller workspace", "[P4PCA][workspa
     requireApprox( result.residuals.col( 0 ), svdResidual( secondPredictors, secondTarget, 1 ) );
 }
 
+/** Verify P4PCA::calculateResponse() rejects failed, malformed, nonfinite, or indefinite eigensolver output.
+ * Numerical failures must not be confused with a per-mode unresolved eigengap or rank boundary.
+ * \ingroup P4PCA_unit_tests
+ */
+TEST_CASE( "Analytic P4 response rejects invalid eigensolver output", "[P4PCA][response][analytic][solver]" )
+{
+    const pcaT::matrixT predictors = Eigen::Matrix2d::Identity().array();
+    const pcaT::vectorT target = pcaT::vectorT::Ones( 2 );
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCAResponseResult result;
+    for( const auto behavior : { fakeSolverBehavior::failure,
+                                 fakeSolverBehavior::invalidDimensions,
+                                 fakeSolverBehavior::invalidEigenvalueShape,
+                                 fakeSolverBehavior::nonfiniteEigenvalue,
+                                 fakeSolverBehavior::nonfiniteEigenvector,
+                                 fakeSolverBehavior::unsortedEigenvalues,
+                                 fakeSolverBehavior::nonpositiveEigenvalues } )
+    {
+        solverReset reset( behavior );
+        REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateResponse( result,
+                                                                 predictors,
+                                                                 target,
+                                                                 predictors,
+                                                                 target,
+                                                                 { 1, 2 },
+                                                                 0,
+                                                                 workspace ),
+                           std::runtime_error );
+        REQUIRE( solverCalls == 1 );
+    }
+    const pcaT::matrixT overflow = pcaT::matrixT::Constant( 2, 2, std::numeric_limits<double>::max() );
+    REQUIRE_THROWS_AS(
+        mx::improc::P4PCA::calculateResponse( result, overflow, target, predictors, target, { 1 }, 0, workspace ),
+        std::runtime_error );
+    REQUIRE_THROWS_AS(
+        mx::improc::P4PCA::calculateResponse( result, predictors, target, overflow, target, { 1 }, 0, workspace ),
+        std::runtime_error );
+}
+
 /// Verify P4PCA propagates solver failures and rejects malformed finite/nonfinite solver output.
 /** \ingroup P4PCA_unit_tests */
 TEST_CASE( "P4PCA propagates eigensolver and invalid solver output", "[P4PCA][solver][validation]" )
