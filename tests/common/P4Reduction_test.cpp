@@ -351,6 +351,8 @@ struct DetectorCapture : mx::improc::detail::P4DetectorFitObserver
     }
 };
 
+#endif
+
 /// Configure a well-conditioned, spatially varying cube for reduction-level precision comparisons.
 void preparePrecisionReduction( reductionHarness &reduction, /**< [out] configured reduction */
                                 bool rotated = false /**< [in] whether to select rotated-frame regression */ )
@@ -380,7 +382,6 @@ void preparePrecisionReduction( reductionHarness &reduction, /**< [out] configur
         }
     }
 }
-#endif
 
 /// Load one P4 configuration file through the production setup/load API.
 void readReductionConfig( reductionT &reduction,             /**< [out] configured reduction */
@@ -666,6 +667,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( defaults.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::skyExact );
     REQUIRE( defaults.m_psfSampleAvoidRadius == 0 );
     REQUIRE( defaults.m_psfRefitContrast == 0 );
+    REQUIRE( defaults.m_psfAnalyticGapTolerance == 0 );
     REQUIRE_FALSE( defaults.m_outputPSFModels );
     REQUIRE_FALSE( defaults.m_psfFilter );
     REQUIRE( defaults.m_psfFilterMinGoodFract == 1 );
@@ -694,6 +696,7 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
     REQUIRE( registered.m_targets.at( "psfResponse.method" ).helpType == "string" );
     REQUIRE( registered.m_targets.at( "psfResponse.sampleAvoidRadius" ).helpType == "float" );
     REQUIRE( registered.m_targets.at( "psfResponse.refitContrast" ).helpType == "float" );
+    REQUIRE( registered.m_targets.at( "psfResponse.analyticGapTolerance" ).helpType == "double" );
     REQUIRE( registered.m_targets.at( "psfResponse.outputModels" ).clType == mx::app::argType::Optional );
     REQUIRE( registered.m_targets.at( "psfResponse.filter" ).clType == mx::app::argType::Optional );
     REQUIRE( registered.m_targets.at( "psfResponse.filterMinGoodFract" ).helpType == "float" );
@@ -829,6 +832,13 @@ TEST_CASE( "P4 reduction configuration", "[P4Reduction][config]" )
                          "[psfResponse]\nmethod=refitDifference\nrefitContrast=0.002\n" );
     REQUIRE( refitPSFConfiguration.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::refitDifference );
     REQUIRE( refitPSFConfiguration.m_psfRefitContrast == Approx( 0.002 ) );
+
+    reductionHarness analyticPSFConfiguration;
+    readReductionConfig( analyticPSFConfiguration,
+                         directory.file( "analytic-psf.conf" ),
+                         "[psfResponse]\nmethod=analytic\nanalyticGapTolerance=0.01\n" );
+    REQUIRE( analyticPSFConfiguration.m_psfSamplingMode == mx::improc::P4PSFSamplingMode::analytic );
+    REQUIRE( analyticPSFConfiguration.m_psfAnalyticGapTolerance == Approx( 0.01 ) );
 
     reductionHarness removedP4PSFKey;
     readReductionConfig( removedP4PSFKey,
@@ -2583,6 +2593,216 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
     REQUIRE( responseModels.cube().isFinite().any() );
 }
 
+/** Verify P4Reduction::reduce() writes analytic PSF products, preserves science, and accounts for per-mode fallback.
+ * This covers source avoidance, repeated reductions, filtering, disabled fallback, forced boundary fallback, and
+ * measurement/header provenance. P4PCA::calculateResponse() and FP64 paired refits supply the production responses.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 analytic products preserve science and record boundary fallback",
+           "[P4Reduction][PSF][analytic][integration]" )
+{
+    OpenMPThreadGuard threads( 2 );
+    const double gap = GENERATE( 0.0, 0.1, 1.0 );
+    const float contrast = GENERATE( 0.0F, 0.001F );
+    TestDirectory directory;
+    reductionT::imageT psf( 9, 9 );
+    for( int column = 0; column < 9; ++column )
+    {
+        for( int row = 0; row < 9; ++row )
+        {
+            psf( row, column ) =
+                std::exp( -0.24F * ( row - 4 ) * ( row - 4 ) - 0.15F * ( column - 4 ) * ( column - 4 ) );
+        }
+    }
+    mx::fits::fitsFile<float, mx::verbose::vv> fits;
+    const auto psfPath = directory.file( "template.fits" );
+    REQUIRE( fits.write( psfPath.string(), psf ) == mx::error_t::noerror );
+    reductionHarness reduction;
+    preparePrecisionReduction( reduction );
+    reduction.m_memoryFraction = 0.8;
+    reduction.m_maxRadius = { 8 };
+    reduction.m_numberImages = 0;
+    reduction.m_doDerotate = true;
+    reduction.m_skipPreProcess = true;
+    reduction.m_combineMethod = mx::improc::HCI::combine::mean;
+    REQUIRE( reduction.reduce() == 0 );
+    const reductionT::imageT science = reduction.m_finim.cube();
+    reduction.m_psfFile = psfPath.string();
+    reduction.m_psfStampSize = 3;
+    reduction.m_psfSampleRadii = { 6 };
+    reduction.m_psfSamplesPerRadius = 1;
+    reduction.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::analytic;
+    reduction.m_psfSampleAvoidRadius = 1.25F;
+    reduction.m_planetSep = { 6 };
+    reduction.m_planetPA = { 0 };
+    reduction.m_planetContrast = { 1e-4F };
+    reduction.m_outputPSFModels = true;
+    reduction.m_psfFilter = true;
+    reduction.m_psfOutputPrefix = "response_";
+    reduction.m_outputDir = directory.file( "products" ).string();
+    reduction.m_finimName = "science.fits";
+    reduction.m_exactFinimName = true;
+    reduction.m_doWriteFinim = true;
+    REQUIRE( reduction.reduce() == 0 );
+    REQUIRE( reduction.m_psfSampleExcludedCount > 0 );
+    REQUIRE( reduction.m_memoryBudgetBytes > 0 );
+    REQUIRE( reduction.m_psfMeasurementSamples.size() == 1 );
+    const auto sample = reduction.m_psfMeasurementSamples.front();
+    const auto products = directory.file( "products/science_outputs" );
+    std::vector<reductionT::imageT> references;
+    for( std::size_t mode = 0; mode < reduction.m_modeFractions.size(); ++mode )
+    {
+        mx::improc::eigenCube<float> model;
+        REQUIRE(
+            fits.read( model, ( products / ( "response_model_000" + std::to_string( mode ) + ".fits" ) ).string() ) ==
+            mx::error_t::noerror );
+        references.emplace_back( model.image( static_cast<int>( sample.sourceIndex ) ) );
+    }
+    reduction.m_psfAnalyticGapTolerance = gap;
+    reduction.m_psfRefitContrast = contrast;
+    REQUIRE( reduction.reduce() == 0 );
+    REQUIRE(
+        ( ( reduction.m_finim.cube() == science ) || ( reduction.m_finim.cube().isNaN() && science.isNaN() ) ).all() );
+    REQUIRE( reduction.m_psfMeasurementSamples.front().sourceIndex == sample.sourceIndex );
+    reductionT::imageT diagnostics;
+    reductionT::fitsHeaderT diagnosticHeader;
+    REQUIRE( fits.read( diagnostics,
+                        diagnosticHeader,
+                        ( products / "response_measurement_diagnostics.fits" ).string() ) == mx::error_t::noerror );
+    REQUIRE( diagnostics.rows() == 2 );
+    REQUIRE( diagnostics.cols() == 11 );
+    REQUIRE( diagnosticHeader["P4 PSF PRODUCT SCHEMA"].value<int>() == 8 );
+    REQUIRE( diagnosticHeader["P4 PSF RESPONSE PRECISION"].String().starts_with( "D64" ) );
+    REQUIRE( diagnosticHeader["P4 PSF DIAGNOSTIC COLUMNS"].String().starts_with( "sourceIndex,row,column,modeIndex" ) );
+    std::size_t analyticTotal = 0, unavailableTotal = 0, fallbackTotal = 0;
+    for( std::size_t mode = 0; mode < reduction.m_modeFractions.size(); ++mode )
+    {
+        using counters = mx::improc::P4ResponseStatistics;
+        const auto &counts = reduction.m_psfResponseStatistics[mode][0].counts;
+        const auto attempted = counts[counters::analytic] + counts[counters::rankInsufficient] +
+                               counts[counters::rankBoundary] + counts[counters::cutoffUnresolved];
+        REQUIRE( attempted > 0 );
+        REQUIRE( counts[counters::analytic] + counts[counters::fallbackAccepted] + counts[counters::unavailable] ==
+                 attempted );
+        REQUIRE( diagnostics( mode, 0 ) == sample.sourceIndex );
+        REQUIRE( diagnostics( mode, 3 ) == mode );
+        for( std::size_t column = 0; column < counters::count; ++column )
+        {
+            REQUIRE( diagnostics( mode, column + 4 ) == counts[column] );
+        }
+        mx::improc::eigenCube<float> model;
+        reductionT::fitsHeaderT header;
+        REQUIRE( fits.read( model,
+                            header,
+                            ( products / ( "response_model_000" + std::to_string( mode ) + ".fits" ) ).string() ) ==
+                 mx::error_t::noerror );
+        REQUIRE( header["P4 PSF ANALYTIC FITS"].String().starts_with( std::to_string( counts[counters::analytic] ) ) );
+        REQUIRE( header["P4 PSF FALLBACK ACCEPTED FITS"].String().starts_with(
+            std::to_string( counts[counters::fallbackAccepted] ) ) );
+        REQUIRE(
+            header["P4 PSF UNAVAILABLE FITS"].String().starts_with( std::to_string( counts[counters::unavailable] ) ) );
+        if( gap == 0 || contrast > 0 )
+        {
+            const reductionT::imageT actual = model.image( static_cast<int>( sample.sourceIndex ) );
+            double error = 0, norm = 0;
+            for( Eigen::Index pixel = 0; pixel < actual.size(); ++pixel )
+            {
+                const float a = actual.data()[pixel], b = references[mode].data()[pixel];
+                REQUIRE( std::isfinite( a ) == std::isfinite( b ) );
+                if( std::isfinite( a ) )
+                {
+                    error += static_cast<double>( a - b ) * ( a - b );
+                    norm += static_cast<double>( b ) * b;
+                }
+            }
+            REQUIRE( norm > 0 );
+            REQUIRE( std::sqrt( error / norm ) < 2e-5 );
+        }
+        else if( gap == 1 )
+        {
+            REQUIRE( model.cube().isNaN().all() );
+        }
+        analyticTotal += counts[counters::analytic];
+        unavailableTotal += counts[counters::unavailable];
+        fallbackTotal += counts[counters::fallbackAccepted];
+    }
+    CAPTURE( gap, contrast, analyticTotal, unavailableTotal, fallbackTotal );
+    if( gap == 0 )
+    {
+        REQUIRE( analyticTotal > 0 );
+        REQUIRE( fallbackTotal == 0 );
+        REQUIRE( unavailableTotal == 0 );
+        REQUIRE( reduction.m_psfRefitDifferenceFitCount == 0 );
+    }
+    else
+    {
+        if( contrast > 0 )
+        {
+            REQUIRE( fallbackTotal > 0 );
+            REQUIRE( unavailableTotal == 0 );
+            REQUIRE( reduction.m_psfRefitDifferenceFitCount > 0 );
+        }
+        else
+        {
+            REQUIRE( fallbackTotal == 0 );
+            REQUIRE( unavailableTotal > 0 );
+            REQUIRE( reduction.m_psfRefitDifferenceFitCount == 0 );
+        }
+        if( gap == 1 )
+        {
+            REQUIRE( analyticTotal == 0 );
+        }
+        else
+        {
+            REQUIRE( analyticTotal > 0 );
+        }
+    }
+    if( gap == 0 && contrast == 0 )
+    {
+        reductionT::imageT fullCoordinates, croppedCoordinates;
+        REQUIRE( fits.read( fullCoordinates, ( products / "response_coordinates.fits" ).string() ) ==
+                 mx::error_t::noerror );
+        reduction.m_imSize = 0;
+        reduction.m_psfFilter = false;
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_finim.rows() < reduction.m_Nrows );
+        reductionT::fitsHeaderT coordinateHeader;
+        REQUIRE( fits.read( croppedCoordinates,
+                            coordinateHeader,
+                            ( products / "response_coordinates.fits" ).string() ) == mx::error_t::noerror );
+        const int origin = ( reduction.m_Nrows - reduction.m_finim.rows() ) / 2;
+        REQUIRE( coordinateHeader["P4 PSF COORDINATE ORIGIN ROW"].value<int>() == origin );
+        REQUIRE( coordinateHeader["P4 PSF COORDINATE ORIGIN COLUMN"].value<int>() == origin );
+        REQUIRE( ( croppedCoordinates.leftCols( 2 ) == fullCoordinates.leftCols( 2 ) - origin ).all() );
+        REQUIRE( ( croppedCoordinates.leftCols( 2 ) >= 0 ).all() );
+        REQUIRE( ( croppedCoordinates.leftCols( 2 ) < reduction.m_finim.rows() ).all() );
+        REQUIRE( fits.read( diagnostics, ( products / "response_measurement_diagnostics.fits" ).string() ) ==
+                 mx::error_t::noerror );
+        REQUIRE( diagnostics( 0, 1 ) == croppedCoordinates( sample.sourceIndex, 0 ) );
+        REQUIRE( diagnostics( 0, 2 ) == croppedCoordinates( sample.sourceIndex, 1 ) );
+    }
+    if( gap == 1 && contrast > 0 )
+    {
+        // A mode above the baseline rank stays unavailable even if a source perturbation adds rank.
+        reduction.m_tgtIms.cube().setOnes();
+        REQUIRE( reduction.reduce() == 0 );
+        using counters = mx::improc::P4ResponseStatistics;
+        const auto &counts = reduction.m_psfResponseStatistics[1][0].counts;
+        REQUIRE( counts[counters::rankInsufficient] > 0 );
+        REQUIRE( counts[counters::fallbackAttempted] == 0 );
+        REQUIRE( counts[counters::unavailable] == counts[counters::rankInsufficient] );
+        mx::improc::eigenCube<float> model;
+        REQUIRE( fits.read( model, ( products / "response_model_0001.fits" ).string() ) == mx::error_t::noerror );
+        REQUIRE( model.cube().isNaN().all() );
+    }
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4Reductionf::calculateAnalyticDetectorResponse();
+    mx::improc::P4PCA::calculateResponse();
+#endif
+    // clang-format on
+}
+
 /// Verify sparse paired refits avoid known planets and reproduce two local finite-amplitude reductions.
 /** This exercises mx::improc::P4Reduction::reduce() and mx::improc::P4Reduction::evaluateLocal() through the
  * refit-difference PSF measurement path. A configured known-planet trajectory must be absent from the selected
@@ -4018,6 +4238,28 @@ TEST_CASE( "P4 reduction validation", "[P4Reduction][validation][edge]" )
         negativeRefitContrast.m_psfRefitContrast = -1;
         REQUIRE_THROWS_WITH( negativeRefitContrast.reduce(),
                              Catch::Matchers::Contains( "must be finite and nonnegative" ) );
+
+        reductionHarness analytic;
+        prepareReduction( analytic );
+        analytic.m_psfFile = "unused.fits";
+        analytic.m_psfStampSize = 3;
+        analytic.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::analytic;
+        analytic.m_combineMethod = mx::improc::HCI::combine::mean;
+        REQUIRE_THROWS_WITH( analytic.reduce(), Catch::Matchers::Contains( "require PSF output/filtering" ) );
+        analytic.m_outputPSFModels = true;
+        REQUIRE_THROWS_WITH( analytic.reduce(), Catch::Matchers::Contains( "requires sparse radial" ) );
+        analytic.m_psfSampleRadii = { 5.5F };
+        analytic.m_psfSamplesPerRadius = 4;
+        analytic.m_psfAnalyticGapTolerance = -1;
+        REQUIRE_THROWS_WITH( analytic.reduce(), Catch::Matchers::Contains( "analyticGapTolerance" ) );
+        analytic.m_psfAnalyticGapTolerance = std::numeric_limits<double>::quiet_NaN();
+        REQUIRE_THROWS_WITH( analytic.reduce(), Catch::Matchers::Contains( "analyticGapTolerance" ) );
+        analytic.m_psfAnalyticGapTolerance = 0;
+        analytic.m_combineMethod = mx::improc::HCI::combine::median;
+        REQUIRE_THROWS_WITH( analytic.reduce(), Catch::Matchers::Contains( "mean or sigmaMean" ) );
+        analytic.m_combineMethod = mx::improc::HCI::combine::mean;
+        analytic.m_excludeMethod = mx::improc::HCI::exclude::imno;
+        REQUIRE_THROWS_WITH( analytic.reduce(), Catch::Matchers::Contains( "adi.excludeMethod=none" ) );
 
         reductionHarness refitWithoutSparseRadii;
         prepareReduction( refitWithoutSparseRadii );

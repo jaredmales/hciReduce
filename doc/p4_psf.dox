@@ -7,8 +7,8 @@
  *
  * P4 PSF processing calculates the signed response to a configured point-source template. It can persist a compact
  * spatially variable response field and apply that field as a normalized filter without changing the ordinary P4
- * science image. The default path freezes the fitted coefficients; the opt-in refit-difference path measures the
- * response after the coefficients adapt to paired finite-amplitude source injections.
+ * science image at fixed finalization geometry. The default path freezes the fitted coefficients; the opt-in
+ * `analytic` and `refitDifference` paths include their response to source perturbations.
  *
  * \section p4_psf_response Frozen signed response
  *
@@ -90,6 +90,31 @@
  * approximations; they are not finite-amplitude-independent photometric transfer functions. Product provenance
  * records the configured science combination separately from the effective response combination.
  *
+ * \section p4_psf_analytic Analytic direct-P4 response
+ *
+ * `psfResponse.method=analytic` differentiates the direct, uncentered, in-sample PCA residual. It independently
+ * samples the baseline predictors and target plus a unit-source direction, then evaluates the derivative of both
+ * the target and the retained temporal projector in FP64. Source sampling and stored response products remain
+ * FP32. The response calculation is independent of the science precision policy and does not replace its fit.
+ * Sparse reconstruction, derotation, weighted mean, angular averaging, and radial interpolation follow the paired-
+ * refit path. It requires detector-frame P4, no temporal augmentation or target exclusion, sparse radial sampling,
+ * no post-median subtraction, and model output or filtering. Only science `mean` and `sigmaMean` are supported;
+ * the response always uses the corresponding unclipped, optionally weighted mean.
+ *
+ * The default `psfResponse.refitContrast=0` leaves unresolved eigengap or rank-boundary responses unavailable.
+ * A positive value enables paired FP64 fallback at those boundaries, using that half-amplitude to perturb the
+ * same independently sampled unit direction. Both signed fits must support a mode. Modes above the baseline
+ * numerical rank remain unavailable. A fallback is a finite-amplitude central difference, not a certified
+ * derivative at a degenerate cutoff. Numerical solver failures still raise errors. `psfResponse.analyticGapTolerance`
+ * optionally increases the relative resolution floor beyond the dimension-scaled FP64 numerical floor.
+ *
+ * Schema 8 records `ANALYTIC_PROJECTOR` or `ANALYTIC_WITH_REFIT`, FP64 response precision, fallback amplitude and
+ * model, and per-mode outcome totals. `<outputPrefix>measurement_diagnostics.fits` has one row per sparse
+ * measurement and mode, with columns `sourceIndex,row,column,modeIndex,analytic,rankInsufficient,rankBoundary,
+ * cutoffUnresolved,fallbackAttempted,fallbackAccepted,unavailable`. Indices are zero-based and counts refer to
+ * detector regressions. Fallback retains the original boundary-reason count. Source and diagnostic coordinates
+ * refer to the final science image; coordinate-origin cards record any automatic crop from detector coordinates.
+ *
  * \section p4_psf_radial Sparse radial approximation
  *
  * Setting either `psfResponse.sampleRadii` or `psfResponse.radiiPerRegion` with exactly one angular control replaces the exact
@@ -121,13 +146,13 @@
  * through the same unclipped analytic-response rule described above. Ordinary science residuals and rank/geometry
  * validity are still calculated at every owned search pixel.
  *
- * `psfResponse.method=refitDifference` uses the same sparse source positions but measures a complete source-centered
- * stamp with the paired-refit operator above. The measured stamp already includes the different P4 regions receiving
+ * `psfResponse.method=refitDifference` and `analytic` use the same sparse source positions but measure a complete
+ * source-centered stamp with their respective operators above. The measured stamp includes the different P4 regions receiving
  * its elements, so the radial model is selected by source position instead of being recomposed element-by-element
  * from target-pixel operators. This captures the coefficient change caused by a source while still approximating its
  * azimuthal dependence by angular averaging and its radial dependence by interpolation.
  *
- * With positive `psfResponse.sampleAvoidRadius` and configured `planet.*` metadata, detector-local and refit-difference
+ * With positive `psfResponse.sampleAvoidRadius` and configured `planet.*` metadata, detector-local, refit-difference, and analytic
  * candidates are rejected
  * if they lie within that distance of a known companion at any target-frame field angle. Selection then shifts in
  * angle to the nearest remaining coordinate in the same radial shell; it never substitutes a pixel at a materially
@@ -182,6 +207,10 @@
  * the stored template scale. Filtering requires an odd stamp so every response sample maps to an integer science
  * pixel. A result is valid only when the denominator is positive and `psfResponse.filterMinGoodFract` does not exceed
  * \f$|V_q|/W^2\f$. Invalid amplitudes remain NaN rather than becoming zero.
+ * With automatic image sizing, integrated filtering currently retains the full detector-sized residual through
+ * derotation while an unfiltered run crops it first. This can introduce small rounding differences in the ordinary
+ * final image. For a bitwise science-invariance comparison, generate response models with filtering disabled and
+ * apply them afterward with `hciAnalyze`. Unifying these existing finalization paths remains a follow-up.
  *
  * \section p4_psf_configuration Configuration
  *
@@ -193,9 +222,10 @@
  * | `--psfResponse.radiiPerRegion` | `psfResponse.radiiPerRegion=2` | `HIERARCH P4 PSF RADII PER REGION` | nonnegative integer, mutually exclusive with `sampleRadii` | `0` | Generates uniformly spaced interior radial nodes in every P4 search region. Sampling and interpolation remain inside each region. |
  * | `--psfResponse.samplesPerRadius` | `psfResponse.samplesPerRadius=8` | `HIERARCH P4 PSF SAMPLES PER RADIUS` | positive integer, mutually exclusive with `sampleArcStep` | `0` | Fixed number of uniformly spaced requested angles at every sparse sample radius. Nearest-pixel collisions are measured only once per radius. |
  * | `--psfResponse.sampleArcStep` | `psfResponse.sampleArcStep=3.6` | `HIERARCH P4 PSF SAMPLE ARC STEP` | positive real pixels, mutually exclusive with `samplesPerRadius` | `0` | Maximum azimuthal arc spacing; resolves a radius-dependent angular count no smaller than one. |
- * | `--psfResponse.method` | `psfResponse.method=refitDifference` | `HIERARCH P4 PSF SAMPLING MODE` | `skyExact`, `detectorLocal`, or `refitDifference` | `skyExact` | `skyExact` propagates each sparse frozen response through all frames. `detectorLocal` uses sampled frozen local operators. `refitDifference` uses paired finite-amplitude coefficient refits at each sparse source location. |
- * | `--psfResponse.sampleAvoidRadius` | `psfResponse.sampleAvoidRadius=5` | `HIERARCH P4 PSF SAMPLE AVOID RADIUS` | nonnegative real detector pixels | `0` | Reject detector-local or refit-difference candidates within this radius of any configured known-planet trajectory. Zero disables avoidance. |
- * | `--psfResponse.refitContrast` | `psfResponse.refitContrast=0.0048` | `HIERARCH P4 PSF REFIT CONTRAST` | positive finite contrast for `refitDifference`; otherwise nonnegative | `0` | Central-difference half-amplitude in stored-template units. Required only by `refitDifference`. |
+ * | `--psfResponse.method` | `psfResponse.method=refitDifference` | `HIERARCH P4 PSF SAMPLING MODE` | `skyExact`, `detectorLocal`, `refitDifference`, or `analytic` | `skyExact` | `skyExact` propagates each sparse frozen response through all frames. `detectorLocal` uses sampled frozen local operators. `refitDifference` uses paired finite-amplitude coefficient refits; `analytic` differentiates the direct-P4 residual in FP64. |
+ * | `--psfResponse.sampleAvoidRadius` | `psfResponse.sampleAvoidRadius=5` | `HIERARCH P4 PSF SAMPLE AVOID RADIUS` | nonnegative real detector pixels | `0` | Reject detector-local, refit-difference, or analytic candidates within this radius of any configured known-planet trajectory. Zero disables avoidance. |
+ * | `--psfResponse.refitContrast` | `psfResponse.refitContrast=0.0048` | `HIERARCH P4 PSF REFIT CONTRAST` | positive finite contrast for `refitDifference`; otherwise nonnegative | `0` | Central-difference half-amplitude in stored-template units. Required by `refitDifference`; a positive value enables optional FP64 boundary fallback for `analytic`. |
+ * | `--psfResponse.analyticGapTolerance` | `psfResponse.analyticGapTolerance=0` | `HIERARCH P4 PSF ANALYTIC GAP TOLERANCE` | finite nonnegative double | `0` | Optional larger relative eigengap/rank-boundary resolution floor for analytic responses; the automatic numerical floor always applies. |
  * | `--psfResponse.outputModels` | `psfResponse.outputModels=true` | — | bool | `false` | Reconstruct, combine, and write one compact final-frame response field per P4 mode. Requires `file` and a final combination. |
  * | `--psfResponse.filter` | `psfResponse.filter=true` | `HIERARCH P4 PSF FILTER` | bool | `false` | Write signed normalized spatially variable filter products. Requires `file`, an odd stamp, and a final combination; it does not require `outputModels=true`. |
  * | `--psfResponse.filterMinGoodFract` | `psfResponse.filterMinGoodFract=0.8` | `HIERARCH P4 PSF FILTER MIN GOOD FRACTION` | real in `[0,1]` | `1` | Minimum fraction of the full stamp with valid PSF samples and finite in-bounds science samples. |

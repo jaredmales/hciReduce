@@ -27,9 +27,10 @@ namespace improc
 /** \ingroup programming_library */
 enum class PSFResponseMethod : std::uint8_t
 {
-    skyExact,       ///< Propagate each sampled sky response through the fitted reduction operator.
-    detectorLocal,  ///< Approximate each response with one detector-local frozen operator.
-    refitDifference ///< Measure each response with paired finite-amplitude refits.
+    skyExact,        ///< Propagate each sampled sky response through the fitted reduction operator.
+    detectorLocal,   ///< Approximate each response with one detector-local frozen operator.
+    refitDifference, ///< Measure each response with paired finite-amplitude refits.
+    analytic         ///< Differentiate the fitted direct-P4 operator; supported only by P4.
 };
 
 /// Resolved radial nodes and interpolation-region ownership for sparse PSF-response sampling.
@@ -75,7 +76,8 @@ struct PSFResponseConfig
 
     realT m_psfSampleAvoidRadius{ 0 };  ///< Radius kept clear of configured known-source locations or trajectories.
 
-    realT m_psfRefitContrast{ 0 };      ///< Positive half-amplitude for paired refit-difference measurements.
+    realT m_psfRefitContrast{
+        0 }; ///< Paired-refit half-amplitude; positive also enables analytic P4 boundary fallback.
 
     bool m_outputPSFModels{ false };    ///< Whether canonical radial response and validity products are written.
 
@@ -112,6 +114,10 @@ struct PSFResponseConfig
         {
             return "refitDifference";
         }
+        if( method == PSFResponseMethod::analytic )
+        {
+            return "analytic";
+        }
         throw std::invalid_argument( "unsupported PSF response method" );
     }
 
@@ -129,6 +135,10 @@ struct PSFResponseConfig
         if( value == "refitDifference" )
         {
             return PSFResponseMethod::refitDifference;
+        }
+        if( value == "analytic" )
+        {
+            return PSFResponseMethod::analytic;
         }
         throw std::invalid_argument( "unsupported PSF response method: " + value );
     }
@@ -214,7 +224,7 @@ struct PSFResponseConfig
                     "method",
                     false,
                     "string",
-                    "Response method: skyExact, detectorLocal, or refitDifference" );
+                    "Response method: skyExact, detectorLocal, refitDifference, or analytic (P4 only)" );
 
         config.add( "psfResponse.sampleAvoidRadius",
                     "",
@@ -234,7 +244,7 @@ struct PSFResponseConfig
                     "refitContrast",
                     false,
                     "float",
-                    "Positive half-amplitude for paired refit-difference response measurements" );
+                    "Positive half-amplitude for paired refits; enables analytic P4 boundary fallback when nonzero" );
 
         config.add( "psfResponse.outputModels",
                     "",

@@ -5,6 +5,7 @@
 #ifndef P4Reduction_hpp
 #define P4Reduction_hpp
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -33,6 +34,26 @@ namespace mx
 {
 namespace improc
 {
+
+/// Counts of detector-response outcomes for one output mode and one sparse source measurement.
+struct P4ResponseStatistics
+{
+    /// Stable columns used by the analytic measurement-diagnostics product.
+    enum Index : std::size_t
+    {
+        analytic,          ///< Accepted analytic detector responses.
+        rankInsufficient,  ///< Baseline retained count exceeds numerical rank.
+        rankBoundary,      ///< Analytic rank-threshold separation is unresolved.
+        cutoffUnresolved,  ///< Analytic retained/discarded gap is unresolved.
+        fallbackAttempted, ///< Boundary modes submitted to paired FP64 refits.
+        fallbackAccepted,  ///< Boundary modes supported by both signed refits.
+        unavailable,       ///< No usable analytic or fallback detector response.
+        count              ///< Number of diagnostic columns.
+    };
+
+    /// Detector-fit counts; a fallback also retains its original boundary reason.
+    std::array<std::size_t, count> counts{};
+};
 
 /// Coordinate frame in which P4 learns its temporal regression.
 /** \ingroup programming_library */
@@ -330,7 +351,12 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, pu
     ///< Candidate detector search pixels rejected near configured known-planet trajectories.
 
     std::size_t m_psfRefitDifferenceFitCount{ 0 };
-    ///< Total positive-plus-negative detector regressions used by refit-difference response measurements.
+    ///< Positive-plus-negative detector fits used by refitDifference or analytic boundary fallback.
+
+    double m_psfAnalyticGapTolerance{ 0 }; ///< Optional larger relative resolution floor for analytic boundaries.
+
+    std::vector<std::vector<P4ResponseStatistics>> m_psfResponseStatistics;
+    ///< Analytic/fallback outcomes indexed by output mode and sparse source measurement.
 
     std::vector<std::size_t> m_localPSFComponentCounts;
     ///< Same-image plus realized temporal response-component count for every annulus.
@@ -686,7 +712,18 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, pu
         const std::string &finalImagePath, /**< [in] resolved path supplying filter naming and provenance */
         const fitsHeaderT &finalHeader /**< [in] ADI and P4 cards mirrored from the ordinary final image */ );
 
-    /// Measure sparse source-centered responses with paired finite-amplitude local P4 refits.
+    /// Sample an independent unit-source direction and calculate analytic responses with optional FP64 boundary refits.
+    std::size_t calculateAnalyticDetectorResponse(
+        P4PCA::matrixT &responses,            /**< [out] detector time-series responses, NaN where unavailable */
+        std::vector<std::uint8_t> &supported, /**< [out] per-mode availability after optional fallback */
+        std::vector<P4ResponseStatistics> &statistics, /**< [in,out] per-mode worker-local outcome counts */
+        const pixelGridT &grid,                        /**< [in] direct detector geometry */
+        std::size_t search,                            /**< [in] valid annulus-local search index */
+        const P4TrialSource &unitSource,               /**< [in] sampled unit-amplitude physical source */
+        const std::vector<int> &modes,                 /**< [in] realized retained counts */
+        P4PCA::workspaceT &workspace /**< [in,out] worker-private FP64 eigensolver scratch */ ) const;
+
+    /// Measure sparse source-centered analytic or paired-refit responses through shared spatial reconstruction.
     void calculateRefitDifferenceSamples(
         std::vector<std::vector<imageT>> &responses, /**< [out] output-mode by measurement response stamps */
         std::vector<std::vector<psfValidityT>> &validities,

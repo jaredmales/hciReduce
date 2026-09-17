@@ -2294,10 +2294,12 @@ int KLIPreduction<realT, derotFunctObj, evCalcT, verboseT>::regions( const std::
                     mx::error_t::invalidarg,
                     "psfResponse.sampleAvoidRadius and refitContrast must be finite and nonnegative" );
             }
-            if( m_psfSamplingMode == PSFResponseMethod::detectorLocal )
+            if( m_psfSamplingMode == PSFResponseMethod::detectorLocal ||
+                m_psfSamplingMode == PSFResponseMethod::analytic )
             {
                 throw mx::exception<verboseT>( mx::error_t::notimpl,
-                                               "KLIP does not implement psfResponse.method=detectorLocal" );
+                                               "KLIP does not implement psfResponse.method=" +
+                                                   PSFResponseConfig<realT>::methodString( m_psfSamplingMode ) );
             }
             if( m_psfSamplingMode == PSFResponseMethod::refitDifference &&
                 ( m_psfRefitContrast <= 0 || ( !m_outputPSFModels && !m_psfFilter ) ) )

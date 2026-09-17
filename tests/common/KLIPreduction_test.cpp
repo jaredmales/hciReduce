@@ -3294,6 +3294,11 @@ TEST_CASE( "KLIP region validation", "[KLIPreduction][regions][validation]" )
     REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "closed interval [0,1]" ) );
     reduction.m_psfFilterMinGoodFract = 1;
 
+    reduction.m_psfSamplingMode = mx::improc::PSFResponseMethod::analytic;
+    REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ),
+                         Catch::Matchers::Contains( "KLIP does not implement psfResponse.method=analytic" ) );
+    reduction.m_psfSamplingMode = mx::improc::PSFResponseMethod::skyExact;
+
     prepareRegionReduction( reduction );
     reduction.m_psfSampleArcStep = -1;
     REQUIRE_THROWS_WITH( reduction.regions( 0, 2, 0, 360 ), Catch::Matchers::Contains( "finite and nonnegative" ) );

@@ -283,13 +283,23 @@ white breadcrumb/heading artifacts are gone.
 Known non-blocking ownership follow-ups:
 
 - [ ] Add a direct read-only view test for `eigenCube<float>::image(Index) const`. The 2026-09-17 detector-capture
-      change to `P4Reduction::fitDetectorSearch()` rechecked
+      change to `P4Reduction::fitDetectorSearch()` and analytic-product integration in
+      `P4Reduction::calculateAnalyticDetectorResponse()` rechecked
       `/home/jrmales/Source/mxlib/_build/coverage_filtered.info`: `eigenCube.hpp` has 185/185 executable lines covered,
       but the const `image()` overload at lines 540--543 has only a double instantiation in its function records.
       The called const-float specialization has no recorded instantiation, so its exact coverage is unverified.
       Exercise image indexing and view contents through a const float cube in mxlib and regenerate LCOV. The
       non-const float overload used by the new downstream test, `isFinite<double>()`, the `exception<verbose::vv>`
       constructor, and the configuration overloads edited in the benchmark have covered executable lines.
+      The same integration audit found only double function records for cube copy/move assignment; add direct
+      float assignment tests for the existing final-cube transfers in `P4Reduction::regions()` as well.
+
+- [ ] Instantiate and test the exact float geometry/view overloads called by `KLIPreduction::regions()`:
+      `radAngImage<degreesT<float>>`, `annulusIndices<degreesT<float>>`, and `cutImageRegion` from a float cube image
+      into a float cube image view. The 2026-09-17 analytic-method rejection audit rechecked the current filtered
+      LCOV trace: their shared ranges are covered at 9/9, 2/2, and 6/6 executable lines, respectively, but only
+      double-array instantiations are recorded. Add float annular-sector/mask geometry and float-view extraction
+      tests in mxlib and regenerate coverage; aggregate double coverage does not establish exact float coverage.
 
 - [ ] Add a direct float-cube behavioral and coverage test for `mx::improc::stddevImageCube()`. The 2026-09-13
       `hciAnalyze` sparse-response extension rechecked

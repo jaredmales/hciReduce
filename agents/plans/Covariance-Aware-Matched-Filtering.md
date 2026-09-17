@@ -804,10 +804,97 @@ destructor (3/3 each), and the reused `eigenSYEVR` array overload (60/60), along
 FITS/cube calls in the reconstruction test. Their exact instantiated function records are present in the current
 LCOV report. No new upstream coverage gap was found.
 
-**Next within Step 2:** connect the analytic kernel to sparse source-direction sampling and PSF product generation,
-record explicit per-mode availability/fallback provenance, retain `refitDifference`, and validate full products
-against the converged FP64 oracle. Then measure baseline-factor reuse and the accepted AF Lep scientific result
-under Step 3. Covariance estimation and noise weighting remain separate later steps.
+The next integration milestone is recorded below. Baseline-factor reuse and the accepted AF Lep scientific result
+belong to Step 3; covariance estimation and noise weighting remain separate later steps.
+
+### Analytic sparse PSF products integrated (2026-09-17)
+
+Step 2 now exposes `psfResponse.method=analytic` in production P4. Each sparse source measurement independently
+samples baseline predictors/target and the unit-source direction, calculates the direct projector derivative in
+FP64, and sends the detector time series through the same local reconstruction, mean combination, angular
+averaging, and radial model as `refitDifference`. The ordinary science precision policy is unchanged. The source
+sampler and published response arrays still use FP32; the analytic calculation does not recover precision lost
+before its inputs are promoted. KLIP explicitly rejects this P4-only method.
+
+The supported scope is detector-frame, uncentered, in-sample P4 without temporal augmentation or post-median
+subtraction, with sparse radial sampling and model output or filtering. Science `mean` and `sigmaMean` are
+supported; the response uses an unclipped mean and preserves configured weights. This is not a derivative of
+sigma-clipping decisions. Known-companion trajectory avoidance uses the existing sparse-sampling rule.
+
+Boundary policy is explicit:
+
+- `psfResponse.refitContrast=0` leaves unresolved cutoff/rank-boundary modes unavailable.
+- A positive half-amplitude enables paired FP64 refits of the same captured unit direction,
+  `X +/- epsilon*A` and `y +/- epsilon*s`, for unresolved modes. Both signed fits must support the requested mode.
+  This fallback is a finite-amplitude estimate; it does not certify differentiability at a degenerate boundary.
+- Modes above the baseline numerical rank remain unavailable even if injection increases rank. Numerical failures
+  propagate as errors. The standalone `refitDifference` method retains its existing precision-policy behavior.
+- `psfResponse.analyticGapTolerance` is an optional larger relative boundary-resolution floor, default zero; the
+  kernel's dimension-scaled FP64 numerical floor always applies.
+
+Schema-8 products record response precision separately from science precision, fallback policy/amplitude, and
+per-mode detector-fit counts. The new `measurement_diagnostics.fits` product records one row per measurement and
+mode: `sourceIndex,row,column,modeIndex,analytic,rankInsufficient,rankBoundary,cutoffUnresolved,fallbackAttempted,
+fallbackAccepted,unavailable`. A fallback retains its original boundary reason. Repeated reductions reset the
+counts. A conservative scratch estimate limits analytic response workers under the configured memory budget.
+
+The integration check also exposed an existing mismatch between detector-coordinate response products and
+automatically cropped final images. Schema 8 publishes coordinates in the final-image frame and records the
+detector-origin offset; its diagnostics use the same frame. Internal reconstruction still uses detector coordinates.
+The cropped AF Lep products now load directly through the existing `hciAnalyze` external-filter interface.
+
+#### Full-product equivalence
+
+[`run_p4_analytic_products.py`](scripts/run_p4_analytic_products.py) reuses the completed FP64 refit experiment's
+input/geometry provenance and checks current input hashes. It preserves the executed commands, binary/library
+fingerprints, products, diagnostic counts, and per-stamp errors. Each run performs an independent science-only
+baseline and an analytic-product reduction, then compares all 800 published response stamps at each of the three
+mode fractions to the FP64 `epsilon=1e-5` refit products. The reference is the previously validated finite-amplitude
+approximation, not an exact derivative.
+
+| Frames | Analytic detector fits per mode | Compared published stamps across modes | Maximum relative error per stamp | Fallback / unavailable modes |
+|---|---:|---:|---:|---:|
+| 24 | 610 | 2400 | `3.15e-7` | `0 / 0` |
+| 96 | 702 | 2400 | `1.96e-7` | `0 / 0` |
+
+Both experiments passed with D64 and M32D64 science policies. Enabling response generation with filtering disabled
+left the science images bit-for-bit unchanged, including NaN locations. Response support matched the refit
+products, and analytic templates were bit-for-bit identical between science precision policies. Per-mode aggregate
+relative errors were at most `1.63e-7`. All 3936 detector-mode outcomes across the two frame counts used the analytic
+path. Headers agreed with the measurement diagnostics. These results validate the sampled/reconstructed response;
+they do not establish photometric calibration or detection improvement.
+
+Artifacts are under `/tmp/p4-response-convergence-20260917/analytic_products_v4_{24,96}_{D64,M32D64}`. Reproduction:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=2 python3 agents/plans/scripts/run_p4_analytic_products.py \
+  --reference /path/to/completed/refit24_D64 \
+  --binary _build_response_precision/benchmarks/p4ReductionPrecisionBenchmark \
+  --precision P4-M32D64 --output /path/to/new-analytic-products
+```
+
+The integration test covers pure analytic responses, forced and mixed boundary fallback, disabled fallback,
+baseline rank insufficiency, source avoidance, filtering, automatic crop coordinates, repeated reductions, and
+per-mode provenance. The experimental P4Reduction suite passed 35 cases / 354742 assertions; the default build
+passed 28 / 78081. KLIP passed 47 / 9441812, including rejection of `analytic`, and the default `hciAnalyze` suite
+passed 13 / 166. The actual `hciAnalyze` executable also consumed a schema-8 cropped AF Lep response field.
+The default production `p4Reduce` executable reproduced the 24-frame M32D64 benchmark's baseline science, analytic
+science, and response planes bit-for-bit (`/tmp/p4-response-convergence-20260917/analytic_products_default24`).
+Modified C++ ranges were formatted and the new driver passed Python syntax checking.
+
+The mxlib coverage gate rechecked the current filtered LCOV report for the edited orchestration/configuration,
+header, FITS, cube, geometry, timing, finite-check, and FP64 workspace calls. Called executable-line ranges are
+covered, but exact float instantiations remain unverified for the const cube image view, cube assignments, and
+KLIP's float annular-geometry/view-extraction calls. Concrete upstream tests are listed under
+Known non-blocking ownership follow-ups in [mxlib_cleanup.md](mxlib_cleanup.md).
+
+**Next under Step 3:** reuse baseline factorizations across source directions and benchmark end-to-end time/memory;
+then reproduce the accepted post-avoidance AF Lep scientific result and broaden injection positions/brightnesses.
+Before that comparison, unify automatic-crop finalization: integrated filtering currently retains the full detector
+cube through derotation while the unfiltered run crops first. In the 24-frame D64 check this changed the final
+science image by `8.38e-6` in relative norm. Response generation alone preserves science exactly; external filtering
+with `hciAnalyze` avoids changing its finalization. Also align the older response schemas' coordinate provenance
+with automatically cropped science images. No speedup or covariance-weighting gain is claimed at this milestone.
 
 ## 8. Notation
 
