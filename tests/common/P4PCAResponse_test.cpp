@@ -658,5 +658,31 @@ TEST_CASE( "P4 response factors are reusable across source directions", "[P4PCA]
         std::invalid_argument );
 }
 
+/** Verify P4PCA::calculateResponse() preserves the independent derivative for exact sparse source directions.
+ * Sparse multiplication may omit zeros, but it must retain small nonzero values and both transpose contributions.
+ */
+TEST_CASE( "P4 sparse source directions preserve the complete derivative", "[P4PCA][response][sparse]" )
+{
+    ResponseFixture fixture( 6, 9, { 36, 25, 16, 9, 4, 1 } );
+    fixture.m_predictorSource.setZero();
+    fixture.m_predictorSource( 0, 0 ) = 0.5;
+    fixture.m_predictorSource( 3, 4 ) = -0.25;
+    fixture.m_predictorSource( 2, 7 ) = 1e-10;
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCAResponseResult result;
+    mx::improc::P4PCA::calculateResponse( result,
+                                          fixture.m_predictors,
+                                          fixture.m_target,
+                                          fixture.m_predictorSource,
+                                          fixture.m_targetSource,
+                                          { 1, 3, 5 },
+                                          1e-12,
+                                          workspace );
+    for( std::size_t mode = 0; mode < 3; ++mode )
+    {
+        REQUIRE( ( result.responses.col( mode ) - fixture.derivative( 2 * mode + 1 ) ).matrix().norm() < 2e-12 );
+    }
+}
+
 } // namespace P4PCAResponse_test
 } // namespace unitTest

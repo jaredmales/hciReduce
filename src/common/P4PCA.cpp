@@ -18,6 +18,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <Eigen/SparseCore>
+
 #include <mx/math/floatUtils.hpp>
 
 namespace mx
@@ -1405,8 +1407,20 @@ void P4PCA::calculateResponse( P4PCAResponseResult &output,
     Eigen::MatrixXd transformedDirection;
     if( temporalGram )
     {
-        const Eigen::MatrixXd gramDirection = predictorSource.matrix() * predictors.matrix().transpose() +
-                                              predictors.matrix() * predictorSource.matrix().transpose();
+        Eigen::MatrixXd gramDirection;
+        if( ( predictorSource != 0 ).count() <= predictorSource.size() / 5 )
+        {
+            // Omit exact zeros only: physical source footprints are usually much smaller than the predictor region.
+            const Eigen::SparseMatrix<double, Eigen::RowMajor> sparseSource =
+                predictorSource.matrix().sparseView( 0.0, 0.0 );
+            const Eigen::MatrixXd cross = sparseSource * predictors.matrix().transpose();
+            gramDirection = cross + cross.transpose();
+        }
+        else
+        {
+            gramDirection = predictorSource.matrix() * predictors.matrix().transpose() +
+                            predictors.matrix() * predictorSource.matrix().transpose();
+        }
         transformedDirection = temporalVectors.transpose() * gramDirection * temporalVectors;
         if( !p4PCAAllFinite( transformedDirection ) )
         {

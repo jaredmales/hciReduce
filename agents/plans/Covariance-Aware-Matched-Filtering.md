@@ -931,6 +931,16 @@ The original error behavior is restored. Experimental suites pass 42 / 4677 (PCA
 35 / 354799 (reduction). Default suites pass 33 / 2220, 11 / 1417, and 28 / 78138, respectively;
 `hciAnalyze` passes 13 / 166. These include the cached source path. No new mxlib call is introduced by caching.
 
+Stack sampling of the full response run then identified dense FP64 products as the dominant active work.
+For temporal-Gram source directions with at most 20% nonzero entries, the kernel now forms `A*X^T` using an
+exact sparse representation and adds its transpose. Only exact zeros are omitted; there is no source-value
+threshold or change to the response formula. Dense directions retain the original multiplication path.
+Both the 24- and 96-frame products (4800 published stamps total) remain bit-for-bit identical to the earlier
+analytic outputs; their largest per-stamp errors against the FP64 paired-refit oracle remain `3.15e-7` and
+`1.96e-7`. The new independent sparse-direction test brings the response suite to 12 cases / 1440 assertions.
+The interrupted full runs retain logs and frozen software for controlled comparisons; their partial timings
+are not complete-run benchmarks.
+
 Full-data validation is in progress under `/tmp/p4-step3-aflep`. The 621-frame science baseline took 241.43 s
 and 5,170,444 KiB peak RSS with 20 OpenMP workers and one BLAS thread. Its maximum difference from the archived
 post-avoidance science image is `1.61e-6` per pixel. Applying the archived post-avoidance response field to this
