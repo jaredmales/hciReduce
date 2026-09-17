@@ -477,13 +477,97 @@ A standalone NumPy calculation checked the direct-P4 projector derivative agains
 The target-only perturbation limit was also checked. A regularized PCA inverse application agreed with a dense
 solve to `8.80e-16` relative error, and its amplitude/S/N agreed with Cholesky-whitened dot products.
 
-These checks verify the proposed algebra, not a production implementation or speedup. Existing production tests
-were inspected, including the paired-local-reduction comparison in `tests/common/P4Reduction_test.cpp:2549` and
-external P4 filtering in `tests/apps/hciAnalyze_test.cpp:349`. No production source was changed and no production
-test suite or ROC dataset was rerun. Only this findings document was edited; the mxlib function-edit coverage gate
-is therefore not triggered. Remaining follow-ups are the analytic-response benchmark and covariance
-estimation/calibration experiments described above. The supplied discussion is preserved without changes to its
+These initial-review checks verify the proposed algebra, not a production implementation or speedup. Existing
+production tests were inspected, including the paired-local-reduction comparison in `tests/common/P4Reduction_test.cpp:2549` and
+external P4 filtering in `tests/apps/hciAnalyze_test.cpp:349`. At that review stage no production source was changed
+and no production test suite or ROC dataset was rerun. Only this findings document was edited; the mxlib
+function-edit coverage gate was therefore not triggered. Remaining follow-ups were the analytic-response benchmark
+and covariance estimation/calibration experiments described above. The supplied discussion is preserved without changes to its
 content in [PCA_Wiener_filtering_literature.md](PCA_Wiener_filtering_literature.md).
+
+### Implementation started: derivative-oracle groundwork (2026-09-16)
+
+Step 1 now has a maintained numerical oracle in
+[`tests/common/P4PCAResponse_test.cpp`](../../tests/common/P4PCAResponse_test.cpp). Seven Catch2 cases exercise the
+actual FP64 `P4PCA::calculate()` and production mixed-precision `p4PCACalculateMixed()` entry points. The independent
+reference constructs a known complete temporal eigensystem and evaluates the projector derivative from Section 3;
+it does not reuse the production eigensolver or assume a thin SVD contains the discarded nullspace.
+
+- Both Gram orientations, predictor-only and combined source perturbations, deficient baseline rank, and repeated
+  eigenvalues within retained/discarded groups show second-order central-difference convergence. Halving the
+  amplitude reduces the FP64 error by approximately four, with relative error below `5e-8` at `epsilon=1e-5`.
+- The target-only case verifies coefficient adaptation: the derivative is `(I-Pi)s`, even when predictors are fixed.
+- A separated but small cutoff eigengap requires smaller steps. A retained/discarded eigenvalue crossing instead
+  produces differences growing as `1/epsilon`; rank-threshold crossings can make only one sign rank-supported.
+- The mixed-precision sweep finds a usable finite-amplitude window in each tested case. Among the best sampled
+  amplitudes for each case, the largest relative error was `0.143%` (the regression bound is `0.5%`). A diagonal example demonstrates complete
+  cancellation at `epsilon=1e-10` in FP32 ingress while FP64 still resolves the response. These are fixture-specific
+  results, not a universal contrast tolerance.
+
+The final-stamp experiment driver is
+[`run_p4_response_convergence.py`](scripts/run_p4_response_convergence.py). It requires preprocessed input images,
+runs a zero-amplitude baseline and signed local trials for every requested radius/angle, and fixes direct
+detector-frame P4 with mean combination and no temporal augmentation/exclusion. Each fresh output directory
+preserves input hashes, commands, logs, timing, residuals, validity maps, and CSV/JSON comparisons. The driver checks
+mode fractions, signed trial metadata, stamp origins, and valid support. It refuses existing output directories.
+
+For adjacent amplitudes, it reports `||h_large-h_small||/||h_small||`, cosine, projection scale, and the normalized
+even component `(r(+epsilon)+r(-epsilon)-2r(0))/(2epsilon)`. Comparisons use common valid pixels; support changes
+are reported separately. Zero response norms produce missing diagnostics rather than an apparent exact match.
+Neither member of an adjacent pair is designated the true derivative. Validity here describes final pixels;
+detector-level eigengaps and changes in contributing temporal samples still need separate instrumentation.
+
+#### Small AF Lep smoke experiment
+
+Used the first 24 of the 621 local NACO `coadd5` frames, with radial-profile preprocessing performed once. Geometry
+was the local profile configuration with search radii `[2,16)`, its existing predictor-wedge settings, and no
+temporal augmentation. Trial radii were `7.8,10.8` pixels, position angles `0,90` degrees, and mode fractions
+`0.05,0.15,0.3` (realized counts `1,3,7`). Stamps were `5x5`; the stored
+`psf_reg_median.fits` template retained its original normalization. `OPENBLAS_NUM_THREADS=1`, `OMP_NUM_THREADS=2`.
+
+The eight positive half-amplitudes below required 68 local reductions including the four baselines, producing
+84 adjacent-amplitude comparisons. Every comparison retained all 25 pixels; neither final support nor signed
+support changed. FITS diagnostics reported minimum rank 24 and zero rank-invalid counts. Summed subprocess wall
+time was about 21 seconds; this small-run timing is not a production speedup measurement.
+
+| Larger / smaller half-amplitude | Relative response change across the 12 position/mode cases |
+| --- | --- |
+| `0.03 / 0.01` | `0.0141%`–`0.2135%` |
+| `0.01 / 0.003` | `0.0055%`–`0.4796%` |
+| `0.003 / 0.001` | `0.0032%`–`0.7769%` |
+| `0.001 / 0.0003` | `0.0100%`–`4.6201%` |
+| `0.0003 / 0.0001` | `0.0397%`–`5.8602%` |
+| `0.0001 / 0.00003` | `0.1350%`–`21.8909%` |
+| `0.00003 / 0.00001` | `0.4338%`–`79.0559%` |
+
+This is evidence against selecting the smallest amplitude automatically. The deterioration is consistent with
+mixed-precision cancellation, but attributing the final-stamp error requires a higher-precision comparison and
+detector-level diagnostics. Good agreement between two finite amplitudes alone does not bound their common bias.
+The short sequence and small stamps do not replace the accepted full AF Lep validation or establish a universal
+probe amplitude. The original smoke artifacts are under `/tmp/p4-response-convergence-20260916/broad_sweep`.
+
+Example invocation after preparing `preprocessed/` and a geometry/angle configuration with absolute file paths:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=2 \
+python3 agents/plans/scripts/run_p4_response_convergence.py \
+  --binary _build_fresh/src/p4Reduce --config /path/to/smoke.conf \
+  --inputs /path/to/preprocessed --psf /path/to/psf_reg_median.fits \
+  --output /path/to/new-experiment --radii 7.8 10.8 --angles 0 90 \
+  --modes 0.05 0.15 0.3 --stamp-size 5 \
+  --amplitudes 0.03 0.01 0.003 0.001 0.0003 0.0001 0.00003 0.00001
+```
+
+Verification: all seven new cases passed (971 assertions), all 32 existing P4PCA cases passed (2204 assertions),
+and the existing paired-refit/local-reduction equivalence case passed (40 assertions). The new source was
+formatted with `clang-format`. No production implementation was changed, and the new functions call no upstream
+mxlib APIs directly, so no mxlib coverage follow-up was introduced.
+
+**Next in Step 1:** capture real detector regressions and cutoff gaps at the same trial locations, compare FP64
+and mixed-precision amplitude sweeps before reconstruction, then propagate the responses through reconstruction
+and mean combination. Establish the usable amplitude windows on longer sequences before treating paired refits
+as a reference for the analytic production implementation in Step 2. The covariance-filter stages remain as
+outlined above.
 
 ## 8. Notation
 
