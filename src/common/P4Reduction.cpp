@@ -5745,11 +5745,13 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticDetect
     const pixelGridT &grid,
     std::size_t search,
     const P4PCAResponseBasis &basis,
-    const P4TrialSource &unitSource,
+    const imageT &unitSource,
     const std::vector<int> &modes,
     P4PCA::workspaceT &workspace ) const
 {
-    if( statistics.size() != modes.size() || search >= grid.searchPixelCount() || !grid.searchPixel( search ).valid() )
+    if( statistics.size() != modes.size() || search >= grid.searchPixelCount() || !grid.searchPixel( search ).valid() ||
+        unitSource.rows() != static_cast<Eigen::Index>( this->m_Nrows ) * this->m_Ncols ||
+        unitSource.cols() != this->m_Nims )
     {
         throw std::invalid_argument( "analytic P4 response requires valid geometry and per-mode counters" );
     }
@@ -5761,11 +5763,23 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticDetect
     for( int frame = 0; frame < this->m_Nims; ++frame )
     {
         targetSource( frame ) =
-            checkedPredictorPromotion( unitSource.value( frame, coordinate.row(), coordinate.column() ) );
+            checkedPredictorPromotion( unitSource( coordinate.row() + coordinate.column() * this->m_Nrows, frame ) );
         for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
         {
-            source( frame, predictor ) =
-                checkedPredictorPromotion( unitSource.sample( frame, grid.interpolation( search, predictor ) ) );
+            const auto &record = grid.interpolation( search, predictor );
+            realT value{ 0 };
+            // Preserve P4TrialSource::sample's column-then-row accumulation order exactly.
+            for( int column = 0; column < pixelGridT::width; ++column )
+            {
+                for( int row = 0; row < pixelGridT::width; ++row )
+                {
+                    value +=
+                        unitSource( record.footprintRow() + row + ( record.footprintColumn() + column ) * this->m_Nrows,
+                                    frame ) *
+                        record.kernel()( row, column );
+                }
+            }
+            source( frame, predictor ) = checkedPredictorPromotion( value );
         }
     }
     P4PCAResponseResult analytic;
@@ -5877,7 +5891,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticSamples(
             ( frames * pixels *
                   ( sizeof( P4LocalOutputSample ) + 16 * ( sizeof( P4LocalResidualSample ) + sizeof( int ) ) +
                     16 * modes * ( sizeof( realT ) + sizeof( std::uint8_t ) ) ) +
-              static_cast<long double>( this->m_Nrows ) * this->m_Ncols * ( 128 + sizeof( realT ) ) + 256 * frames ) +
+              static_cast<long double>( this->m_Nrows ) * this->m_Ncols * ( 128 + sizeof( realT ) * ( 1 + frames ) ) +
+              256 * frames ) +
         1024 * 1024;
     const long double retained =
         static_cast<long double>( m_compactResidualBytes ) + m_targetExclusionBytes + m_localPSFBytes +
@@ -5912,6 +5927,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticSamples(
         const std::size_t count = std::min( batchSize, samples.size() - first );
         std::vector<P4LocalGeometry> geometries( count );
         std::vector<P4TrialSource> sources( count );
+        std::vector<imageT> unitPixels( count );
         std::vector<std::vector<localResidualT>> residuals( count );
         std::vector<std::vector<psfValidityT>> validity( count );
         std::vector<std::vector<std::pair<std::size_t, std::size_t>>> consumers( searches.size() );
@@ -5939,6 +5955,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticSamples(
                                        -std::atan2( dr, dc ) * 180.0 / std::numbers::pi,
                                        1,
                                        scales );
+            unitPixels[sample].resize( static_cast<Eigen::Index>( this->m_Nrows ) * this->m_Ncols, this->m_Nims );
             const auto &requests = geometries[sample].searchRequests();
             residuals[sample].resize( requests.size() );
             validity[sample].resize( requests.size() );
@@ -5948,6 +5965,23 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticSamples(
                 consumers[offsets[entry.region()] + entry.searchIndex()].emplace_back( sample, request );
                 residuals[sample][request] = localResidualT::Zero( entry.frames().size(), m_modeFractions.size() );
                 validity[sample][request] = psfValidityT::Zero( entry.frames().size(), m_modeFractions.size() );
+            }
+        }
+        // All sources are configured and all frame/pixel indices are valid; value() allocates no storage here.
+        // Materializing once avoids repeating the inner cubic shift for every overlapping predictor footprint.
+        // clang-format off
+#pragma omp parallel for schedule(static) num_threads(requestedWorkers)
+        // clang-format on
+        for( std::size_t item = 0; item < count * static_cast<std::size_t>( this->m_Nims ); ++item )
+        {
+            const std::size_t sample = item / this->m_Nims, frame = item % this->m_Nims;
+            for( int column = 0; column < this->m_Ncols; ++column )
+            {
+                for( int row = 0; row < this->m_Nrows; ++row )
+                {
+                    unitPixels[sample]( row + column * this->m_Nrows, frame ) =
+                        sources[sample].value( frame, row, column );
+                }
             }
         }
         std::vector<std::size_t> work;
@@ -6016,7 +6050,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticSamples(
                                                                      grid,
                                                                      search,
                                                                      basis,
-                                                                     sources[sample],
+                                                                     unitPixels[sample],
                                                                      m_realizedModes[region],
                                                                      workspace );
                         const auto &request = geometries[sample].searchRequests()[requestIndex];

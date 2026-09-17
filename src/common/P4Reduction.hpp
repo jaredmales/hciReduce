@@ -726,8 +726,8 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, pu
         const pixelGridT &grid,                        /**< [in] direct detector geometry */
         std::size_t search,                            /**< [in] valid annulus-local search index */
         const P4PCAResponseBasis &basis,               /**< [in] prepared FP64 baseline for this detector fit */
-        const P4TrialSource &unitSource,               /**< [in] sampled unit-amplitude physical source */
-        const std::vector<int> &modes,                 /**< [in] realized retained counts */
+        const imageT &unitSource,      /**< [in] pixel-by-frame cache of the shifted unit-amplitude source */
+        const std::vector<int> &modes, /**< [in] realized retained counts */
         P4PCA::workspaceT &workspace /**< [in,out] worker-private FP64 eigensolver scratch */ ) const;
 
     /// Measure analytic responses in bounded source batches sharing each detector factorization.

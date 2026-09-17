@@ -29,6 +29,7 @@ def main() -> None:
     parser.add_argument("--binary", required=True, type=Path, help="p4ReductionPrecisionBenchmark executable")
     parser.add_argument("--precision", choices=("P4-D64", "P4-M32D64"), required=True)
     parser.add_argument("--output", required=True, type=Path, help="new experiment directory")
+    parser.add_argument("--batch-size", type=int, default=32, help="maximum analytic source measurements per batch")
     args = parser.parse_args()
     root, binary, output = args.reference.resolve(), args.binary.resolve(), args.output.resolve()
     previous = json.loads((root / "manifest.json").read_text())
@@ -73,14 +74,16 @@ def main() -> None:
         overrides = {"precision": args.precision, "output.directory": directory, "input.fileList": inputs}
         if stage == "analytic":
             overrides.update({"psfResponse.method": "analytic", "psfResponse.refitContrast": 0,
-                              "psfResponse.analyticGapTolerance": 0})
+                              "psfResponse.analyticGapTolerance": 0, "psfResponse.analyticBatchSize": args.batch_size})
         command = [arg for arg in command if arg.split("=", 1)[0].removeprefix("--") not in overrides]
         command += [f"--{key}={value}" for key, value in overrides.items()]
         (directory / "command.json").write_text(json.dumps(command, indent=2) + "\n")
         print(f"{args.precision} {stage}: {output}", flush=True)
         start = time.monotonic()
         with (directory / "run.log").open("w") as stream:
-            subprocess.run(command, cwd=directory, env=environment, stdout=stream, stderr=subprocess.STDOUT, check=True)
+            subprocess.run(["/usr/bin/time", "-f", "wall_seconds=%e\nuser_seconds=%U\nsystem_seconds=%S\nmaximum_rss_kib=%M",
+                            "-o", str(directory / "resource_usage.txt"), *command],
+                           cwd=directory, env=environment, stdout=stream, stderr=subprocess.STDOUT, check=True)
         timings[stage] = time.monotonic() - start
         science = fits.getdata(directory / "finim.fits")
         if stage == "baseline":
@@ -138,6 +141,9 @@ def main() -> None:
     (output / "summary.json").write_text(json.dumps(rows, indent=2) + "\n")
     (output / "complete.json").write_text(json.dumps({
         "science_exactly_unchanged": True, "identical_support": True, "timing_seconds": timings,
+        "requested_batch_size": args.batch_size,
+        "baseline_factor_count": int(diagnostic_header["P4 PSF ANALYTIC FACTOR COUNT"]),
+        "realized_batch_size": int(diagnostic_header["P4 PSF ANALYTIC BATCH SIZE"]),
         "maximum_source_relative_error": max(row["max_source_relative_error"] for row in rows),
     }, indent=2) + "\n")
 

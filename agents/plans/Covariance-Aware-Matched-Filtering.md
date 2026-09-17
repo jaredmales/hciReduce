@@ -920,6 +920,17 @@ float cube views, allocation/access, FITS, finite-check, and configuration range
 cube views and float assignment instantiations remain the previously documented non-blocking upstream coverage
 follow-ups in [mxlib_cleanup.md](mxlib_cleanup.md).
 
+The full-data run exposed repeated nested cubic interpolation in source sampling. Each source batch now caches
+shifted detector pixels once per source/frame; predictor sampling reuses those values with the exact original
+column-then-row accumulation order. The memory estimate includes the cache. All 2400 published stamps in the
+24-frame check are bit-for-bit identical to the pre-cache analytic products, and science remains unchanged.
+The realized eight-source batch uses 424 baseline factorizations for 610 source directions per mode.
+
+An additional broad PCA regression caught a refactoring change in overflow handling for unresolved modes.
+The original error behavior is restored. Experimental suites pass 42 / 4677 (PCA), 11 / 1417 (response), and
+35 / 354799 (reduction). Default suites pass 33 / 2220, 11 / 1417, and 28 / 78138, respectively;
+`hciAnalyze` passes 13 / 166. These include the cached source path. No new mxlib call is introduced by caching.
+
 Full-data validation is in progress under `/tmp/p4-step3-aflep`. The 621-frame science baseline took 241.43 s
 and 5,170,444 KiB peak RSS with 20 OpenMP workers and one BLAS thread. Its maximum difference from the archived
 post-avoidance science image is `1.61e-6` per pixel. Applying the archived post-avoidance response field to this

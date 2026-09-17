@@ -1398,9 +1398,7 @@ void P4PCA::calculateResponse( P4PCAResponseResult &output,
     const Eigen::Index dimension = eigenvectors.rows();
     const bool temporalGram = predictors.rows() <= predictors.cols();
     output.responses = matrixT::Constant( predictors.rows(), modes.size(), std::numeric_limits<double>::quiet_NaN() );
-    if( std::none_of( output.modeStatus.begin(),
-                      output.modeStatus.end(),
-                      []( auto status ) { return status == P4PCAResponseStatus::differentiable; } ) )
+    if( eigenvalues( dimension - 1 ) == 0 )
     {
         return;
     }
