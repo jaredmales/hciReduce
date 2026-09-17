@@ -1,0 +1,62 @@
+[
+  {
+    "frames": 24,
+    "precision": "P4-M32D64",
+    "trials": 3,
+    "cpu_affinity": [
+      0,
+      2
+    ],
+    "half_contrast": 0.004763925929356391,
+    "science_bitwise_equal": true,
+    "maximum_stamp_relative_error_vs_analytic": 0.0011368578979893418,
+    "median_wall_seconds": 3.33,
+    "median_user_seconds": 6.3,
+    "median_peak_rss_kib": 305280.0
+  },
+  {
+    "frames": 24,
+    "precision": "P4-D64",
+    "trials": 3,
+    "cpu_affinity": [
+      0,
+      2
+    ],
+    "half_contrast": 1e-05,
+    "science_bitwise_equal": true,
+    "maximum_stamp_relative_error_vs_analytic": 3.1481093006103014e-07,
+    "median_wall_seconds": 3.41,
+    "median_user_seconds": 6.41,
+    "median_peak_rss_kib": 304968.0
+  },
+  {
+    "frames": 96,
+    "precision": "P4-M32D64",
+    "trials": 3,
+    "cpu_affinity": [
+      0,
+      2
+    ],
+    "half_contrast": 0.004763925929356391,
+    "science_bitwise_equal": true,
+    "maximum_stamp_relative_error_vs_analytic": 0.007599328512868351,
+    "median_wall_seconds": 17.34,
+    "median_user_seconds": 33.34,
+    "median_peak_rss_kib": 362556.0
+  },
+  {
+    "frames": 96,
+    "precision": "P4-D64",
+    "trials": 3,
+    "cpu_affinity": [
+      0,
+      2
+    ],
+    "half_contrast": 1e-05,
+    "science_bitwise_equal": true,
+    "maximum_stamp_relative_error_vs_analytic": 1.9635619065804e-07,
+    "median_wall_seconds": 16.06,
+    "median_user_seconds": 31.07,
+    "median_peak_rss_kib": 362644.0
+  }
+]

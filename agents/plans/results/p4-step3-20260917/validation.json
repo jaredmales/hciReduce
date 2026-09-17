@@ -1,0 +1,19 @@
+{
+  "verified_utc": "2026-09-17T23:18:12.908662+00:00",
+  "completed_injections": 84,
+  "conditional_fits": 72,
+  "conditional_fits_converged": 72,
+  "raw_fit_boundary_count": 4,
+  "analytic_timing_trials": 36,
+  "paired_refit_timing_trials": 12,
+  "analytic_science_byte_identical": true,
+  "analytic_templates_byte_identical_across_variants_batches_repeats": true,
+  "paired_refit_same_precision_science_byte_identical": true,
+  "controlled_cpu_affinity": [
+    0,
+    2
+  ],
+  "initial_unpinned_failure_preserved": true,
+  "figures_visually_checked": true,
+  "step_3_complete": true
+}

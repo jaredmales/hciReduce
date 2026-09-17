@@ -97,8 +97,10 @@ def timing_figure(rows: list[dict], controls: list[dict], destination: Path) -> 
                                    linewidth=1, label=label)
             axes[1, column].axhline(control['median_peak_rss_kib']/1024, color='black', linestyle=style, linewidth=1)
         axes[0, column].legend(frameon=False)
+    affinity = rows[0].get('cpu_affinity')
+    placement = '' if affinity is None else '; CPUs '+', '.join(map(str, affinity))
     figure.suptitle('P4 response products: controlled serial trials\n'
-                    'Median of three trials; 2 OpenMP workers; 1 BLAS thread', fontsize=13)
+                    'Median of three trials; 2 OpenMP workers; 1 BLAS thread'+placement, fontsize=13)
     figure.savefig(destination, dpi=180)
     plt.close(figure)
 

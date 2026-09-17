@@ -1,0 +1,198 @@
+{
+  "maximum_science_difference_between_cpu_classes": 0.0024900436401367188,
+  "differing_finite_science_pixels": 1702,
+  "science_shape": [
+    3,
+    40,
+    40
+  ],
+  "same_finite_support": true,
+  "response_templates_byte_identical_across_core_sets": true,
+  "pinned_repeat_results": [
+    {
+      "cpus": "0,2",
+      "stage": "baseline",
+      "repeat": 0,
+      "matches_baseline": true,
+      "matches_anomaly": false,
+      "max_difference": 0.0
+    },
+    {
+      "cpus": "0,2",
+      "stage": "baseline",
+      "repeat": 1,
+      "matches_baseline": true,
+      "matches_anomaly": false,
+      "max_difference": 0.0
+    },
+    {
+      "cpus": "0,2",
+      "stage": "analytic",
+      "repeat": 0,
+      "matches_baseline": true,
+      "matches_anomaly": false,
+      "max_difference": 0.0
+    },
+    {
+      "cpus": "0,2",
+      "stage": "analytic",
+      "repeat": 1,
+      "matches_baseline": true,
+      "matches_anomaly": false,
+      "max_difference": 0.0
+    },
+    {
+      "cpus": "12,13",
+      "stage": "baseline",
+      "repeat": 0,
+      "matches_baseline": false,
+      "matches_anomaly": true,
+      "max_difference": 0.0024900436401367188
+    },
+    {
+      "cpus": "12,13",
+      "stage": "baseline",
+      "repeat": 1,
+      "matches_baseline": false,
+      "matches_anomaly": true,
+      "max_difference": 0.0024900436401367188
+    },
+    {
+      "cpus": "12,13",
+      "stage": "analytic",
+      "repeat": 0,
+      "matches_baseline": false,
+      "matches_anomaly": true,
+      "max_difference": 0.0024900436401367188
+    },
+    {
+      "cpus": "12,13",
+      "stage": "analytic",
+      "repeat": 1,
+      "matches_baseline": false,
+      "matches_anomaly": true,
+      "max_difference": 0.0024900436401367188
+    }
+  ],
+  "hardware": {
+    "cpu_cache_topology": [
+      {
+        "cpu": 0,
+        "caches": [
+          {
+            "level": "1",
+            "type": "Data",
+            "size": "48K",
+            "shared_cpu_list": "0-1"
+          },
+          {
+            "level": "1",
+            "type": "Instruction",
+            "size": "32K",
+            "shared_cpu_list": "0-1"
+          },
+          {
+            "level": "2",
+            "type": "Unified",
+            "size": "1280K",
+            "shared_cpu_list": "0-1"
+          },
+          {
+            "level": "3",
+            "type": "Unified",
+            "size": "24576K",
+            "shared_cpu_list": "0-19"
+          }
+        ]
+      },
+      {
+        "cpu": 2,
+        "caches": [
+          {
+            "level": "1",
+            "type": "Data",
+            "size": "48K",
+            "shared_cpu_list": "2-3"
+          },
+          {
+            "level": "1",
+            "type": "Instruction",
+            "size": "32K",
+            "shared_cpu_list": "2-3"
+          },
+          {
+            "level": "2",
+            "type": "Unified",
+            "size": "1280K",
+            "shared_cpu_list": "2-3"
+          },
+          {
+            "level": "3",
+            "type": "Unified",
+            "size": "24576K",
+            "shared_cpu_list": "0-19"
+          }
+        ]
+      },
+      {
+        "cpu": 12,
+        "caches": [
+          {
+            "level": "1",
+            "type": "Data",
+            "size": "32K",
+            "shared_cpu_list": "12"
+          },
+          {
+            "level": "1",
+            "type": "Instruction",
+            "size": "64K",
+            "shared_cpu_list": "12"
+          },
+          {
+            "level": "2",
+            "type": "Unified",
+            "size": "2048K",
+            "shared_cpu_list": "12-15"
+          },
+          {
+            "level": "3",
+            "type": "Unified",
+            "size": "24576K",
+            "shared_cpu_list": "0-19"
+          }
+        ]
+      },
+      {
+        "cpu": 13,
+        "caches": [
+          {
+            "level": "1",
+            "type": "Data",
+            "size": "32K",
+            "shared_cpu_list": "13"
+          },
+          {
+            "level": "1",
+            "type": "Instruction",
+            "size": "64K",
+            "shared_cpu_list": "13"
+          },
+          {
+            "level": "2",
+            "type": "Unified",
+            "size": "2048K",
+            "shared_cpu_list": "12-15"
+          },
+          {
+            "level": "3",
+            "type": "Unified",
+            "size": "24576K",
+            "shared_cpu_list": "0-19"
+          }
+        ]
+      }
+    ],
+    "diagnosis": "Native-precision science depends on CPU class; response flag does not change science within either class. The exact internal arithmetic mechanism remains unisolated."
+  }
+}

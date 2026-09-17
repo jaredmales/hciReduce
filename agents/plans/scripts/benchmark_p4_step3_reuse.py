@@ -4,6 +4,8 @@
 Use separate frozen software directories on fixed 24/96-frame experiments.
 Each serial trial retains /usr/bin/time results and checks every template against
 the FP64 paired-refit reference. Report medians of three runs, not selected minima.
+Pin a homogeneous CPU set on hybrid processors to keep native arithmetic and
+performance comparable between separately launched processes.
 """
 from __future__ import annotations
 
@@ -89,6 +91,7 @@ def refit_controls(args: argparse.Namespace, output: Path) -> list[dict]:
                     difference = np.sqrt(np.nansum((model.astype(float)-template)**2, axis=(1, 2)))
                     errors.extend((difference[norms > 0]/norms[norms > 0]).tolist())
                 records.append({'frames': frames, 'repeat': repeat, 'precision': precision,
+                    'cpu_affinity': sorted(os.sched_getaffinity(0)),
                     'half_contrast': amplitude, 'science_bitwise_equal': True,
                     'maximum_stamp_relative_error_vs_analytic': max(errors),
                     'resources': resource_usage(stage / 'resource_usage.txt')})
@@ -98,6 +101,7 @@ def refit_controls(args: argparse.Namespace, output: Path) -> list[dict]:
         for _, precision, _ in policies:
             runs = [row for row in records if (row['frames'], row['precision']) == (frames, precision)]
             summary.append({'frames': frames, 'precision': precision, 'trials': len(runs),
+                'cpu_affinity': sorted(os.sched_getaffinity(0)),
                 'half_contrast': runs[0]['half_contrast'], 'science_bitwise_equal': True,
                 'maximum_stamp_relative_error_vs_analytic': max(
                     row['maximum_stamp_relative_error_vs_analytic'] for row in runs),
@@ -118,9 +122,19 @@ def main() -> None:
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--threads', type=int, default=2)
     parser.add_argument('--repeats', type=int, default=3)
+    parser.add_argument('--cpus', type=int, nargs='+', help='CPU IDs inherited by every trial, e.g. --cpus 0 2')
     args = parser.parse_args()
+    if args.cpus is not None:
+        os.sched_setaffinity(0, args.cpus)
     output = args.output.resolve()
     output.mkdir(exist_ok=False)
+    (output / 'benchmark_manifest.json').write_text(json.dumps({
+        'cpu_affinity': sorted(os.sched_getaffinity(0)), 'threads': args.threads,
+        'blas_threads': 1, 'repeats': args.repeats, 'script': fingerprint(Path(__file__).resolve()),
+        'software_directories': {name: str(path.resolve()) for name, path in
+                                [('uncached_dense', args.uncached_software),
+                                 ('cached_dense', args.dense_cached_software),
+                                 ('cached_sparse', args.cached_software)]}}, indent=2)+'\n')
     records = []
     expected = {}
     variants = [('uncached_dense', args.uncached_software), ('cached_dense', args.dense_cached_software),
@@ -164,6 +178,7 @@ def main() -> None:
                     if maximum_error > 8*np.finfo(np.float32).eps:
                         raise RuntimeError('sparse arithmetic differs beyond the FP32 product tolerance')
                     records.append({'frames': frames, 'variant': variant, 'requested_batch': batch,
+                        'cpu_affinity': sorted(os.sched_getaffinity(0)),
                         'bitwise_identical_vs_dense': bool(identical), 'maximum_stamp_relative_error_vs_dense': maximum_error,
                         'repeat': repeat, 'binary': fingerprint(executable), **complete,
                         'resources': resource_usage(stage / 'analytic/resource_usage.txt')})
@@ -175,6 +190,7 @@ def main() -> None:
                 runs = [r for r in records if (r['frames'], r['variant'], r['requested_batch']) ==
                         (frames, variant, batch)]
                 summary.append({'frames': frames, 'variant': variant, 'requested_batch': batch,
+                    'cpu_affinity': sorted(os.sched_getaffinity(0)),
                     'bitwise_identical_vs_dense': all(r['bitwise_identical_vs_dense'] for r in runs),
                     'maximum_stamp_relative_error_vs_dense': max(r['maximum_stamp_relative_error_vs_dense'] for r in runs),
                     'trials': len(runs), 'baseline_factor_count': runs[0]['baseline_factor_count'],

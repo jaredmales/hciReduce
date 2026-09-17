@@ -88,7 +88,8 @@ def main() -> None:
         science = fits.getdata(directory / "finim.fits")
         if stage == "baseline":
             baseline = science.copy()
-        elif not np.array_equal(science, baseline, equal_nan=True):
+        elif (science.shape != baseline.shape or science.dtype != baseline.dtype or
+              science.tobytes() != baseline.tobytes()):
             raise ValueError("analytic response calculation changed science")
     products = output / "analytic" / "finim_outputs"
     actual_coordinates, coordinate_header = fits.getdata(products / "response_coordinates.fits", header=True)

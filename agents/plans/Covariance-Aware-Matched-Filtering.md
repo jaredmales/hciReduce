@@ -890,10 +890,10 @@ Known non-blocking ownership follow-ups in [mxlib_cleanup.md](mxlib_cleanup.md).
 
 ### Step 3: scientific and computational validation (2026-09-17)
 
-The full-data comparison and implementation checks below are complete. At the user's request, work is paused
-after 54 of 84 injection reductions, including all 42 arithmetic-mean trials. Step 3 remains open: 30 sigma-mean
-reductions and the controlled timing benchmark remain. The [review checkpoint](results/p4-step3-20260917-review/README.md)
-contains the completed results, figure, raw comparisons, and exact continuation state.
+**Step 3 is complete.** The full-data comparison, all 84 injection reductions, 72 conditional fits, and controlled
+timing comparisons are recorded in the [final report](results/p4-step3-20260917/README.md). The report preserves
+photometric and spatial limitations and a CPU-placement reproducibility finding. The earlier
+[review checkpoint](results/p4-step3-20260917-review/README.md) remains as a record of the 54-trial pause.
 
 #### Shared factors, source sampling, and image coordinates
 
@@ -967,7 +967,7 @@ injection study below uses matching source support to separate this issue from r
 
 #### Injection protocol and computational measurements
 
-The planned study uses six integer detector positions `(120,137)`, `(137,120)`, `(109,143)`, `(146,112)`,
+The completed study uses six integer detector positions `(120,137)`, `(137,120)`, `(109,143)`, `(146,112)`,
 `(98,98)`, and `(157,157)`, at radii approximately 12.1, 24.1, and 41.7 pixels. At each position it evaluates
 zero contrast and both signs of 0.25, 1, and 4 times the accepted contrast `0.004763925929356391`, under arithmetic
 mean and 5-sigma mean combination: 84 local reductions of all 621 frames. The PSF is zero-padded after its central
@@ -981,15 +981,25 @@ within one pixel, with a complete 11-by-11 template at each candidate. Baseline 
 response calibration; raw-image fits and unsuccessful fit statuses are retained separately. Detection completeness
 and false-alarm calibration remain the held-out tests in Step 5.
 
-All 42 arithmetic-mean reductions are complete. Across the six positions, fixed-position analytic contrast bias
-has median `+3.38%`, `+2.23%`, and `-21.09%` at 0.25, 1, and 4 times the reference brightness; the paired-refit
-field gives `+5.54%`, `+3.73%`, and `-19.21%`. Analytic bias ranges from `-38.54%` to `-1.99%` in the brightest
-case. Median analytic position errors are `0.0397`, `0.0391`, and `0.0365` pixel; individual errors reach about
-`0.204` pixel. Median template/response cosine decreases from `0.9878` and `0.9870` to `0.9611`.
-All 36 conditional fits converge. The faintest raw-image fit at the first position reaches the search boundary
-with both fields; its status is retained. These results show a brightness limit for both fixed response fields
-and combine finite-amplitude effects with sparse spatial interpolation. They do not establish detection completeness.
-The [review table and figure](results/p4-step3-20260917-review/README.md) retain every position and fit status.
+All 84 reductions are complete. Across the six positions, fixed-position analytic contrast bias has median
+`+3.376%`, `+2.232%`, and `-21.087%` for mean combination at 0.25, 1, and 4 times the reference brightness;
+sigma-mean gives `+3.373%`, `+2.230%`, and `-21.087%`. Paired-refit medians are `+5.543%`, `+3.727%`, and
+`-19.209%` for mean and `+5.489%`, `+3.731%`, and `-19.209%` for sigma-mean. The largest individual analytic
+gain change between combinations is 0.125 percentage point. Brightest-case analytic bias spans `-38.54%` to
+`-1.99%` for mean and `-38.54%` to `-1.93%` for sigma-mean.
+
+Median analytic position errors are `0.0397`, `0.0391`, and `0.0365` pixel for mean, and `0.0397`, `0.0392`, and
+`0.0365` for sigma-mean; individual errors reach about `0.204` pixel. Median template/response cosine decreases
+from `0.9878` and `0.9870` to `0.9611` for mean, versus `0.9876`, `0.9869`, and `0.9612` for sigma-mean.
+Median one-sided versus symmetric response differences grow from `0.95%` to `3.61%` across the brightness range
+for mean and from `1.12%` to `3.61%` for sigma-mean; individual cases reach `8.31%`.
+
+All 72 conditional fits converge. Four raw-image fits reach the search boundary: the faintest first-position
+trial for both fields and combinations. Their statuses are retained. These results show a brightness limit for
+both fixed response fields and include finite-amplitude effects, sparse interpolation, and native arithmetic.
+Bias is measured against the **known added contrast**, not the negative-planet optimizer. Baseline subtraction
+cancels much of the shared residual noise, so the scatter across positions is not a detection-SNR estimate.
+The [final table and figures](results/p4-step3-20260917/README.md) retain every position and fit status.
 
 | Full-data run | Wall time (seconds) | Peak resident memory (GiB) |
 | --- | ---: | ---: |
@@ -999,21 +1009,52 @@ The [review table and figure](results/p4-step3-20260917-review/README.md) retain
 These are observed whole-process measurements with 20 OpenMP workers and one BLAS thread on an i9-12900HK,
 using the Release build. Small development checks overlapped portions of the analytic run. The archived refit
 run took 6574 seconds with 48 OpenMP workers; that historical comparison does not establish a controlled speedup.
-The pending 24/96-frame trials compare batches, source caching, sparse arithmetic, and production-precision/FP64
-paired-refit controls serially, using two workers, one BLAS thread, and medians of three repeats.
+The 24/96-frame trials compare batches, source caching, sparse arithmetic, and production-precision/FP64
+paired-refit controls serially, using two workers, one BLAS thread, and medians of three repeats. All processes
+are pinned to performance-core CPUs 0 and 2. All 36 analytic trials retain identical templates across batches
+and arithmetic variants; all 12 paired-refit controls preserve same-precision science. Two extra science-only
+baselines provide the FP64 controls.
+
+| Subset configuration | 24 frames: seconds / MiB | 96 frames: seconds / MiB |
+| --- | ---: | ---: |
+| Uncached dense, batch 8 | 1.75 / 298.2 | 9.38 / 354.1 |
+| Cached dense, batch 8 | 0.97 / 340.8 | 5.36 / 516.3 |
+| Cached sparse, batch 1 | 1.00 / 298.2 | 5.06 / 354.1 |
+| Cached sparse, batch 8 | 0.95 / 340.7 | 4.93 / 515.0 |
+| Paired refit, M32D64 | 3.33 / 298.1 | 17.34 / 354.1 |
+| Paired refit, D64 | 3.41 / 297.8 | 16.06 / 354.1 |
+
+Batch 8 is the realized size for a request of 32 in these subsets. Native refit uses half-contrast
+`0.004763925929356391`; FP64 refit uses `1e-5`. Analytic trials use M32D64 science with FP64 responses, while
+the FP64 refit also uses FP64 science. Native refit maximum stamp differences from the analytic field are
+`0.114%` and `0.760%`; FP64 differences are at most `3.15e-7` and `1.96e-7` in relative norm.
+The subsets use 5-pixel stamps, eight measurements, and three mode fractions; their roughly 3.5-fold speedup
+over native paired refits does not establish a full-dataset speedup. Source caching supplies most of the measured
+improvement; larger batches also increase memory. The full report retains all batch-one and batch-eight cases.
+
+**CPU-placement limitation:** the initial unpinned timing attempt stopped after 12 successful trials when its
+next science equality check failed. Native science differs by up to `0.0024900436401367188` between performance
+cores 0/2 and efficiency cores 12/13. Two repeats of both science-only and response-enabled reductions on each
+CPU set reproduce the corresponding result exactly; enabling responses changes neither within a set. Response
+templates also remain identical. The internal arithmetic mechanism is not yet isolated. The corrected benchmark
+pins one core class and retains strict equality checks; the original failure and diagnostics are archived.
+Cross-core-class bitwise reproducibility is not asserted. The full-data and injection results retain their
+original unpinned 20-worker execution policy and describe those recorded runs.
 
 The maintained drivers are [`run_p4_step3_products.py`](scripts/run_p4_step3_products.py),
 [`analyze_p4_step3.py`](scripts/analyze_p4_step3.py),
 [`run_p4_step3_injections.py`](scripts/run_p4_step3_injections.py),
 [`benchmark_p4_step3_reuse.py`](scripts/benchmark_p4_step3_reuse.py), and
-[`summarize_p4_step3.py`](scripts/summarize_p4_step3.py). Paused records remain under `/tmp/p4-step3-aflep`, with
-a review archive at `working/roc/p4_analytic_step3_20260917_review`. It preserves frozen software, commands,
-input hashes, raw products, resources, and analysis scripts. All 621 input, configuration, and PSF hashes were
-reverified at the pause. No trial was interrupted; the next trial is `sigmaMean_p1_a5`.
+[`summarize_p4_step3.py`](scripts/summarize_p4_step3.py). Final records are archived at
+`working/roc/p4_analytic_step3_20260917`, with compact summaries and inspected figures under
+[`results/p4-step3-20260917`](results/p4-step3-20260917/README.md). The archive preserves frozen software,
+commands, input hashes, raw products, resources, analysis scripts, and the failed unpinned timing attempt.
+All 621 input, configuration, and PSF hashes were reverified after the injection study. The original review
+archive remains at `working/roc/p4_analytic_step3_20260917_review`.
 
-**Still required for Step 3:** finish the remaining 30 injections and controlled timing comparisons, summarize
-both combination methods, inspect the final figures, and preserve the completed experiment archive.
-Covariance weighting remains Step 4.
+**Next:** Step 4 adds noise weighting independently, retaining identity-filter behavior. Bright-source response
+calibration, outer-edge support, and CPU-class reproducibility remain explicit limitations of the measured scope;
+they are not claims of universal calibration or detection completeness.
 
 ## 8. Notation
 
