@@ -29,7 +29,7 @@ def fingerprint(path: Path) -> dict:
     return {"path": str(path), "sha256": digest}
 
 
-def read_stamp(directory: Path, modes: list[float], size: int, trial: tuple) -> tuple:
+def read_stamp(directory: Path, modes: list[float], size: int, trial: tuple, precision: str | None = None) -> tuple:
     """Validate the requested local product and its explicit validity map."""
     data, header = fits.getdata(directory / "finim.fits", header=True)
     validity, validity_header = fits.getdata(directory / "finim_outputs/finim_local_validity.fits", header=True)
@@ -42,6 +42,8 @@ def read_stamp(directory: Path, modes: list[float], size: int, trial: tuple) -> 
         raise ValueError(f"unexpected local product shape in {directory}")
     if str(header["P4 PRODUCT ROLE"]).strip() != "LOCAL_RESIDUAL":
         raise ValueError(f"not a local residual: {directory}")
+    if precision is not None and str(header["P4POLCY"]).strip() != precision.removeprefix("P4-"):
+        raise ValueError(f"PCA precision policy does not match: {directory}")
     if str(validity_header["P4 PRODUCT ROLE"]).strip() != "LOCAL_VALIDITY":
         raise ValueError(f"not a local validity map: {directory}")
     actual_modes = [float(value) for value in str(header["P4 MODE FRACTIONS"]).split(",")]
@@ -106,6 +108,10 @@ def main() -> None:
     parser.add_argument("--pattern", default="*.fits", help="input filename glob, sorted lexically")
     parser.add_argument("--psf", required=True, type=Path, help="stored unit-contrast PSF in P4 input units")
     parser.add_argument("--binary", default="p4Reduce")
+    parser.add_argument("--precision", choices=["P4-D64", "P4-M32D64"],
+                        help="requires p4ReductionPrecisionBenchmark; image storage remains FP32")
+    parser.add_argument("--capture-detectors", action="store_true",
+                        help="capture detector inputs at zero/unit amplitude and residuals at every amplitude")
     parser.add_argument("--output", required=True, type=Path,
                         help="new experiment directory; existing paths are refused")
     parser.add_argument("--radii", nargs="+", type=float, required=True)
@@ -114,6 +120,8 @@ def main() -> None:
     parser.add_argument("--amplitudes", nargs="+", type=float, required=True, help="positive half-amplitudes")
     parser.add_argument("--stamp-size", type=int, default=11)
     args = parser.parse_args()
+    if args.capture_detectors and args.precision is None:
+        parser.error("--capture-detectors requires --precision and the experimental benchmark binary")
     if args.stamp_size <= 0 or args.stamp_size % 2 != 1:
         parser.error("--stamp-size must be positive and odd")
     numeric_groups = (args.radii, args.angles, args.modes, args.amplitudes)
@@ -180,6 +188,8 @@ def main() -> None:
     common = [str(binary), "--config", str(config)]
     for key, value in fixed.items():
         common.append(f"--{key}={value}")
+    if args.precision is not None:
+        common.extend([f"--precision={args.precision}", "--p4.memoryFraction=0"])
     environment = os.environ.copy()
     environment.pop("P4REDUCE_GLOBAL_CONFIG", None)
 
@@ -188,13 +198,16 @@ def main() -> None:
         directory.mkdir()
         command = common + ["--output.directory", str(directory), "--fake.sep", str(radius),
                             "--fake.PA", str(angle), "--fake.contrast", str(amplitude)]
+        if args.capture_detectors:
+            command.append(f"--capture-detectors={directory / 'detectors'}")
+            command.append(f"--capture-inputs={'true' if amplitude in (0, 1) else 'false'}")
         (directory / "command.json").write_text(json.dumps(command, indent=2) + "\n")
         print(f"{directory.name}: radius={radius:g} PA={angle:g} contrast={amplitude:g}", flush=True)
         start = time.monotonic()
         with (directory / "run.log").open("w") as log:
             subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, cwd=directory, env=environment, check=True)
         (directory / "timing.json").write_text(json.dumps({"wall_seconds": time.monotonic() - start}) + "\n")
-        return read_stamp(directory, args.modes, args.stamp_size, (radius, angle, amplitude))
+        return read_stamp(directory, args.modes, args.stamp_size, (radius, angle, amplitude), args.precision)
 
     rows = []
     position_index = 0
@@ -204,6 +217,8 @@ def main() -> None:
             position_index += 1
             position_dir.mkdir()
             baseline = run(position_dir / "baseline", radius, angle, 0)
+            if args.capture_detectors:
+                run(position_dir / "unit_source", radius, angle, 1)
             pairs = []
             for index, amplitude in enumerate(amplitudes):
                 positive = run(position_dir / f"amplitude_{index:02d}_positive", radius, angle, amplitude)

@@ -282,6 +282,15 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Add a direct read-only view test for `eigenCube<float>::image(Index) const`. The 2026-09-17 detector-capture
+      change to `P4Reduction::fitDetectorSearch()` rechecked
+      `/home/jrmales/Source/mxlib/_build/coverage_filtered.info`: `eigenCube.hpp` has 185/185 executable lines covered,
+      but the const `image()` overload at lines 540--543 has only a double instantiation in its function records.
+      The called const-float specialization has no recorded instantiation, so its exact coverage is unverified.
+      Exercise image indexing and view contents through a const float cube in mxlib and regenerate LCOV. The
+      non-const float overload used by the new downstream test, `isFinite<double>()`, the `exception<verbose::vv>`
+      constructor, and the configuration overloads edited in the benchmark have covered executable lines.
+
 - [ ] Add a direct float-cube behavioral and coverage test for `mx::improc::stddevImageCube()`. The 2026-09-13
       `hciAnalyze` sparse-response extension rechecked
       `/home/jrmales/Source/mxlib/_build/coverage_filtered.info`: the called float `zeroNaNCube`, `maskCircle`, and

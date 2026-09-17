@@ -516,6 +516,8 @@ struct P4ReductionPCADispatch
     P4ReductionHeldOutFunction heldOut;           ///< Explicit held-out evaluator.
 
     P4ReductionHeldOutProbeFunction heldOutProbe; ///< Explicit held-out frozen-probe evaluator.
+
+    detail::P4DetectorFitObserver *observer{ nullptr }; ///< Caller-owned optional detector capture.
 };
 
 /// Invoke one direct PCA policy without worker-loop policy selection.
@@ -711,6 +713,8 @@ struct P4ReductionPrecisionSelection
     bool active{ false }; ///< Whether the calling thread requested an experimental dispatch.
 
     detail::P4PCAPrecisionPolicy policy{ detail::P4PCAPrecisionPolicy::doubleDouble }; ///< Selected policy.
+
+    detail::P4DetectorFitObserver *observer{ nullptr }; ///< Caller-owned observer inherited by workers.
 };
 
 /// Calling-thread selection inherited explicitly by each reduction worker binding.
@@ -722,10 +726,11 @@ class P4ReductionPrecisionSelectionScope
   public:
     /// Install one validated reduction-level precision selection.
     explicit P4ReductionPrecisionSelectionScope(
-        detail::P4PCAPrecisionPolicy policy /**< [in] validated scalar policy to install */ )
+        detail::P4PCAPrecisionPolicy policy, /**< [in] validated scalar policy to install */
+        detail::P4DetectorFitObserver *observer /**< [in,out] optional worker-safe detector observer */ )
         : m_previous( p4ReductionPrecisionSelection )
     {
-        p4ReductionPrecisionSelection = { true, policy };
+        p4ReductionPrecisionSelection = { true, policy, observer };
     }
 
     /// Restore the selection that preceded this scope.
@@ -753,7 +758,9 @@ std::optional<P4ReductionPCADispatch> p4ReductionSelectedPCADispatch()
     {
         return std::nullopt;
     }
-    return p4ReductionPCADispatch( p4ReductionPrecisionSelection.policy );
+    auto dispatch = p4ReductionPCADispatch( p4ReductionPrecisionSelection.policy );
+    dispatch.observer = p4ReductionPrecisionSelection.observer;
+    return dispatch;
 }
 
 /// Worker-local binding of one immutable dispatch to one caller-owned typed workspace.
@@ -2736,6 +2743,11 @@ bool P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
                                    mixedWorkspace,
                                    &timing,
                                    coefficients );
+        if( p4ReductionWorkerPrecisionContext && p4ReductionWorkerPrecisionContext->dispatch->observer )
+        {
+            p4ReductionWorkerPrecisionContext->dispatch->observer
+                ->observe( coordinate, predictors, target, modes, m_rankTolerance, result );
+        }
 #else
         static_cast<void>( workspace );
         detail::p4PCACalculateMixed( result,
@@ -7656,7 +7668,9 @@ namespace detail
 {
 
 /** \cond P4Reduction_precision_experiment */
-int p4ReductionReduceExperimental( P4Reductionf &reduction, P4PCAPrecisionPolicy precisionPolicy )
+int p4ReductionReduceExperimental( P4Reductionf &reduction,
+                                   P4PCAPrecisionPolicy precisionPolicy,
+                                   P4DetectorFitObserver *observer )
 {
     switch( precisionPolicy )
     {
@@ -7674,7 +7688,7 @@ int p4ReductionReduceExperimental( P4Reductionf &reduction, P4PCAPrecisionPolicy
         throw std::invalid_argument( "experimental FP32 eigensolve does not support exact factor deletion" );
     }
 
-    P4ReductionPrecisionSelectionScope selectionScope( precisionPolicy );
+    P4ReductionPrecisionSelectionScope selectionScope( precisionPolicy, observer );
     return reduction.reduce();
 }
 /** \endcond */

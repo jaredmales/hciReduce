@@ -729,13 +729,33 @@ using P4Reductionf = P4Reduction<float, ADIDerotator<float, verbose::vv>, verbos
 namespace detail
 {
 
+/// Experimental observer of sampled, uncentered detector regressions before output conversion.
+/** The caller owns the observer through completion of the reduction. observe() may run concurrently on different
+ * workers; implementations must synchronize shared state and must not retain references to worker-owned inputs.
+ * Observations cover direct detector fits without target exclusions, including local source trials.
+ */
+struct P4DetectorFitObserver
+{
+    /// Destroy an observer through its interface.
+    virtual ~P4DetectorFitObserver() = default;
+
+    /// Inspect one completed detector regression without altering its inputs or result.
+    virtual void observe( const P4PixelCoordinate &coordinate, /**< [in] detector target pixel */
+                          const P4PCA::matrixT &predictors,    /**< [in] sampled FP64 ingress predictors */
+                          const P4PCA::vectorT &target,        /**< [in] sampled FP64 ingress target */
+                          const std::vector<int> &modes,       /**< [in] retained counts in result-column order */
+                          double rankTolerance,                /**< [in] relative numerical-rank threshold */
+                          const P4PCAResult &result /**< [in] kernel result before image-storage conversion */ ) = 0;
+};
+
 /// Run one P4 reduction through an explicitly selected experimental PCA scalar policy.
 /** FP32 eigensolve rejects exact factor deletion because the deletion implementation remains FP64. Other policies use
  * the same memory limiting, shared-PSF, and local-trial orchestration as production.
  */
 int p4ReductionReduceExperimental(
-    P4Reductionf &reduction, /**< [in,out] configured production-layout reduction object */
-    P4PCAPrecisionPolicy precisionPolicy /**< [in] PCA calculation/eigensolver scalar combination */ );
+    P4Reductionf &reduction,              /**< [in,out] configured production-layout reduction object */
+    P4PCAPrecisionPolicy precisionPolicy, /**< [in] PCA calculation/eigensolver scalar combination */
+    P4DetectorFitObserver *observer = nullptr /**< [in,out] optional worker-safe detector-regression observer */ );
 
 } // namespace detail
 /** \endcond */

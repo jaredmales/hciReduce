@@ -12,6 +12,7 @@
 #include <cmath>
 #include <filesystem>
 #include <limits>
+#include <mutex>
 #include <numbers>
 #include <sstream>
 #include <string>
@@ -307,6 +308,48 @@ void prepareReduction( reductionHarness &reduction, /**< [out] configured reduct
 }
 
 #ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+/// Retain owning snapshots of worker inputs and results for experimental observer checks.
+struct DetectorCapture : mx::improc::detail::P4DetectorFitObserver
+{
+    /// One completed direct detector fit.
+    struct Fit
+    {
+        mx::improc::P4PixelCoordinate coordinate; ///< Detector target coordinate.
+
+        mx::improc::P4PCA::matrixT predictors;    ///< Owned ingress predictor matrix.
+
+        mx::improc::P4PCA::vectorT target;        ///< Owned ingress target series.
+
+        std::vector<int> modes;                   ///< Requested retained counts.
+
+        double rankTolerance;                     ///< Rank threshold used for the recorded fit.
+
+        mx::improc::P4PCAResult result;           ///< Owned kernel output before float image conversion.
+    };
+
+    std::mutex m_mutex;      ///< Serializes worker access to the snapshot vector.
+
+    std::vector<Fit> m_fits; ///< Completed snapshots; inspected after workers join.
+
+    bool m_throw{ false };   ///< Simulate an observer failure before storing a snapshot.
+
+    /// Copy one worker's sampled inputs and unconverted result.
+    void observe( const mx::improc::P4PixelCoordinate &coordinate, /**< [in] detector target */
+                  const mx::improc::P4PCA::matrixT &predictors,    /**< [in] sampled predictor matrix */
+                  const mx::improc::P4PCA::vectorT &target,        /**< [in] sampled target series */
+                  const std::vector<int> &modes,                   /**< [in] retained counts */
+                  double rankTolerance,                            /**< [in] relative rank threshold */
+                  const mx::improc::P4PCAResult &result /**< [in] pre-storage kernel result */ ) override
+    {
+        const std::lock_guard<std::mutex> lock( m_mutex );
+        if( m_throw )
+        {
+            throw std::runtime_error( "detector observer failure" );
+        }
+        m_fits.push_back( { coordinate, predictors, target, modes, rankTolerance, result } );
+    }
+};
+
 /// Configure a well-conditioned, spatially varying cube for reduction-level precision comparisons.
 void preparePrecisionReduction( reductionHarness &reduction, /**< [out] configured reduction */
                                 bool rotated = false /**< [in] whether to select rotated-frame regression */ )
@@ -4701,6 +4744,77 @@ TEST_CASE( "P4 reduction diagnostics and provenance", "[P4Reduction][diagnostics
 }
 
 #ifdef HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+
+/** Verify mx::improc::detail::p4ReductionReduceExperimental() exposes exact worker inputs/results without changing
+ * science products, and restores observer/precision scope after success or failure. Captured regressions are replayed
+ * with mx::improc::P4PCA::calculate() and mx::improc::detail::p4PCACalculateMixed().
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 experimental detector observer preserves and scopes production regressions",
+           "[P4Reduction][experimental][precision][capture]" )
+{
+    OpenMPThreadGuard threads( 2 );
+    using precisionT = mx::improc::detail::P4PCAPrecisionPolicy;
+    for( const auto policy : { precisionT::doubleDouble, precisionT::floatDouble } )
+    {
+        DetectorCapture capture;
+        reductionHarness observed, reference;
+        preparePrecisionReduction( observed );
+        preparePrecisionReduction( reference );
+        REQUIRE( mx::improc::detail::p4ReductionReduceExperimental( observed, policy, &capture ) == 0 );
+        REQUIRE( mx::improc::detail::p4ReductionReduceExperimental( reference, policy ) == 0 );
+        requireSameReduction( observed, reference, 0 );
+        REQUIRE( capture.m_fits.size() == observed.m_regionStatistics.front().validLocalFitCount );
+        REQUIRE_FALSE( capture.m_fits.empty() );
+        mx::improc::P4PCA::workspaceT workspace;
+        mx::improc::detail::P4PCAMixedWorkspace mixedWorkspace;
+        for( const auto &fit : capture.m_fits )
+        {
+            mx::improc::P4PCAResult replay;
+            if( policy == precisionT::doubleDouble )
+            {
+                mx::improc::P4PCA::calculate( replay,
+                                              fit.predictors,
+                                              fit.target,
+                                              fit.modes,
+                                              fit.rankTolerance,
+                                              workspace );
+            }
+            else
+            {
+                mx::improc::detail::p4PCACalculateMixed( replay,
+                                                         fit.predictors,
+                                                         fit.target,
+                                                         fit.modes,
+                                                         fit.rankTolerance,
+                                                         mixedWorkspace );
+            }
+            REQUIRE( replay.modeStatus == fit.result.modeStatus );
+            REQUIRE( replay.numericalRank == fit.result.numericalRank );
+            REQUIRE( replay.residuals.isApprox( fit.result.residuals, 0 ) );
+            for( Eigen::Index row = 0; row < fit.target.size(); ++row )
+            {
+                REQUIRE( fit.target( row ) ==
+                         observed.m_tgtIms.image( row )( fit.coordinate.row(), fit.coordinate.column() ) );
+            }
+        }
+        const auto count = capture.m_fits.size();
+        reductionHarness ordinary;
+        preparePrecisionReduction( ordinary );
+        REQUIRE( ordinary.reduce() == 0 );
+        REQUIRE( capture.m_fits.size() == count );
+    }
+
+    DetectorCapture failure;
+    failure.m_throw = true;
+    reductionHarness failed;
+    preparePrecisionReduction( failed );
+    REQUIRE_THROWS( mx::improc::detail::p4ReductionReduceExperimental( failed, precisionT::doubleDouble, &failure ) );
+    reductionHarness recovered;
+    preparePrecisionReduction( recovered );
+    REQUIRE( recovered.reduce() == 0 );
+    REQUIRE( failure.m_fits.empty() );
+}
 
 /// Verify ordinary production is exactly the internal reduction-level M32D64 dispatch.
 /** This exercises mx::improc::detail::p4ReductionReduceExperimental() and mx::improc::P4Reduction::reduce().

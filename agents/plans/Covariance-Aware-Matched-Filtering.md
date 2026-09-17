@@ -569,6 +569,109 @@ and mean combination. Establish the usable amplitude windows on longer sequences
 as a reference for the analytic production implementation in Step 2. The covariance-filter stages remain as
 outlined above.
 
+### Real detector precision comparison (2026-09-17)
+
+The experimental precision build now offers a read-only `P4DetectorFitObserver` through
+`p4ReductionReduceExperimental()`. It observes the actual sampled predictor matrix, target, retained counts,
+rank threshold, and kernel residuals before conversion to image storage. The calling scope passes the observer
+to each worker and restores the previous scope on both success and failure. This hook is compiled only with
+`HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION`; it adds no observer dispatch to the default build.
+
+`p4ReductionPrecisionBenchmark` adds `--capture-detectors` and `--capture-inputs`. Capture metadata identifies the
+detector coordinate, dimensions, mode counts, numerical rank, supported modes, byte order, and array layout.
+The companion binary contains column-major FP64 predictors and target when requested, followed by FP64 residual
+storage. The latter holds promoted FP32 values for the mixed policy. Capture directories must be new, and I/O
+failures propagate out of the reduction. Capture is restricted to local direct P4 without temporal augmentation
+or target exclusion.
+
+The sweep driver accepts `--precision P4-D64` or `P4-M32D64` with the benchmark binary. With
+`--capture-detectors`, it records baseline and unit-source inputs and every signed trial's detector residuals.
+[`analyze_p4_detector_convergence.py`](scripts/analyze_p4_detector_convergence.py) verifies matching experiment
+inputs, exact equality of baseline/unit sampled matrices between policies, complete captures, geometry, and mode
+counts. It calculates an independent SVD projector derivative using `A=X(1)-X(0)` and `s=y(1)-y(0)`. The complete
+temporal complement is retained, including nullspace directions when `T>P`. Unresolved cutoff gaps and invalid
+modes are reported separately; they are not treated as zero responses.
+
+The reference is the derivative of continuous FP64 regression in that measured source direction. Unit-source
+sampling is still FP32, so it is not an assertion that the entire floating-point pipeline is differentiable.
+The analysis writes per-fit cutoff gaps, baseline agreement with SVD, per-fit derivative errors, aggregated
+detector errors, and same-amplitude final-stamp differences between policies. Detector norms include all temporal
+rows of the fits needed by the local stamp. Final-stamp differences use common valid pixels.
+
+#### Results on 24 and 96 frames
+
+Repeated the four positions and eight amplitudes above on both the original 24-frame subset and the first 96
+frames, with preprocessing performed once per subset and identical input files supplied to both policies. The
+96-frame realized mode counts were `4,14,28`. There were 305 captured detector fits across the four 24-frame
+positions and 351 across the 96-frame positions. Every tested mode remained rank-supported and every final
+comparison retained all 25 pixels. No cutoff gap was numerically unresolved by the analysis criterion.
+
+Baseline FP64 residuals agreed with independent SVD residuals to `9.23e-14` (24 frames) and `8.57e-13` (96 frames),
+normalized by the target norm. The smallest cutoff gap divided by the leading eigenvalue was `9.11e-5` and
+`5.67e-7`, respectively; divided by the last retained eigenvalue, the minima were `0.0147` and `0.000817`.
+
+Selected results below are maximum relative errors across the 12 position/mode cases, expressed as percentages.
+Each detector error compares with the independent derivative. The final column compares mixed and FP64-PCA
+final-stamp differences at the same amplitude; it does **not** treat the latter as an exact final-image derivative.
+Column maxima need not occur at the same position/mode.
+
+| Frames | Half-amplitude | FP64 detector error | Mixed detector error | Final mixed/FP64 difference |
+| --- | --- | --- | --- | --- |
+| 24 | `0.03` | `6.90%` | `6.90%` | `0.0275%` |
+| 24 | `0.001` | `0.00998%` | `3.02%` | `0.942%` |
+| 24 | `0.0001` | `0.000107%` | `22.5%` | `8.27%` |
+| 24 | `0.00001` | `0.0000623%` | `193%` | `78.4%` |
+| 96 | `0.03` | `26.2%` | `25.9%` | `0.228%` |
+| 96 | `0.001` | `0.0759%` | `20.5%` | `11.4%` |
+| 96 | `0.0001` | `0.000755%` | `105%` | `26.5%` |
+| 96 | `0.00001` | `0.0000623%` | `716%` | `313%` |
+
+The detector comparison separates finite-amplitude bias at large steps from mixed-precision error at small
+steps. FP64 reaches a roughly `6e-7` relative-error floor in these sampled directions. Agreement between two
+precision policies at a large amplitude does not establish negligible finite-amplitude bias.
+
+**The final-image difference has an additional precision limit.** `P4-D64` selects FP64 PCA, but residual image
+storage, spatial reconstruction, and frame combination remain FP32. At the smallest adjacent pair
+(`3e-5` versus `1e-5`), the FP64-PCA final responses still differ by up to `17.0%` in the 24-frame subset and
+`1.07%` in the 96-frame subset, even though pre-storage detector responses have converged. Thus subtracting two
+stored final images is not an adequate tight-tolerance derivative oracle. Form the detector response before
+image conversion, then reconstruct and combine that response. The existing `refitDifference` response path
+already follows this ordering; the local-stamp sweep exposes why it matters.
+
+Original artifacts are under `/tmp/p4-response-convergence-20260917`, with `24_D64`, `24_M32D64`, `96_D64`,
+`96_M32D64`, `analysis24`, and `analysis96` subdirectories. Each precision sweep comprises 72 reductions: four
+baselines, four unit-source captures, and 64 signed trials. These diagnostic timings include capture I/O and
+are not response-speed benchmarks.
+
+Build the optional benchmark with:
+
+```sh
+cmake -S . -B _build_response_precision -DHCIREDUCE_BUILD_TESTS=ON \
+  -DHCIREDUCE_BUILD_CPU_BENCHMARKS=ON -DHCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION=ON
+cmake --build _build_response_precision --target p4ReductionPrecisionBenchmark -j2
+```
+
+Use the earlier sweep invocation with `--binary _build_response_precision/benchmarks/p4ReductionPrecisionBenchmark`,
+`--precision P4-D64 --capture-detectors`, then repeat with `P4-M32D64` and a different output directory. Analyze with:
+
+```sh
+OPENBLAS_NUM_THREADS=1 python3 agents/plans/scripts/analyze_p4_detector_convergence.py \
+  --double /path/to/D64-sweep --mixed /path/to/M32D64-sweep --output /path/to/new-analysis
+```
+
+Verification: the experimental P4Reduction suite passed 33 cases / 349942 assertions, including exact replay of
+captured FP64 and mixed regressions, unchanged science products, parallel capture, and observer restoration on
+success/failure. The default-build P4Reduction suite passed 27 cases / 77657 assertions, and the seven response
+oracle cases passed 971 assertions in the experimental build. All 68 comparable mixed-policy final images from
+the 24-frame capture run matched the earlier production run bit for bit. Modified C++ sections were formatted.
+The mxlib audit found no recorded instantiation of `eigenCube<float>::image(Index) const`; the concrete upstream
+coverage follow-up is recorded in [mxlib_cleanup.md](mxlib_cleanup.md) under Known non-blocking ownership follow-ups.
+
+**Next:** validate reconstructed templates using FP64 paired detector differences before image conversion,
+including the longer sequence. Use those templates and the independently verified detector derivative to
+validate the analytic response in Step 2. The small-step mixed-precision final-image differences are diagnostic
+data, not the accuracy reference for that implementation.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
