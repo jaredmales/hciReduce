@@ -387,6 +387,43 @@ Gaussian produced 1.052--1.108. Thus the first exact response does not recover t
 interpolation an unlikely primary cause. The retained ROC run remains useful as an independent numerical and timing
 check before moving to signal/noise-term decomposition and covariance-aware filtering.
 
+The full signal-free pixel-response oracle in
+`working/roc/klip_signal_free_pixel_response_20260914T232006Z` used commit `9bfe31e`. The single-mode, end-to-end
+negative-planet fit at 200 KL modes converged after 173 evaluations to separation `12.3877505` pixels, PA
+`260.64315` degrees, and positive contrast `0.0045743625`. This is a 0.725-pixel Cartesian displacement and a 3.98%
+lower contrast than the initial P4-derived estimate. In the fixed 5-pixel aperture, subtracting the optimum reduced
+the mode-200 mean-square residual from `0.0690033` in the unsubtracted science image to `0.0249010`; the initial
+negative model had already reduced it to `0.0303946`. Repeating the best subtraction in the subsequent multi-mode
+run reproduced the optimizer's mode-200 final image to `3.95e-7` maximum absolute difference.
+
+The dense response stage measured every one of the 11,192 unique integer pixels in the `6 <= r < 60` search annulus.
+Its schema-2 manifest records `PIXEL_EXACT`, `refitDifference`, `PAIRED_FINAL_DIFFERENCE`, and exactly 22,384 signed
+KLIP trials. The stage took 59,874.89 seconds (16.63 hours), or 2.675 seconds per signed trial, with 3.11 GiB peak RSS
+and average utilization equivalent to 42.45 CPU cores. The response products retain 54,169,280 response/validity
+bytes in memory and the complete experiment occupies 197 MiB on disk, including the 96.6-MB progress log.
+
+Applying the exact signal-free response to the original planet-bearing science cube did not recover the S/N lost by
+the sparse filter. Across 125--350 modes, exact-response S/N was 0.8253--0.9018 times unfiltered, with mean 0.8598;
+the sparse response gave 0.8342--0.9039 with mean 0.8627. Exact divided by sparse S/N was 0.9853--1.0250, with mean
+0.9966. In contrast, a 3.6-pixel-FWHM Gaussian gave 1.0396--1.0975 times unfiltered S/N, with mean 1.0647. Here the
+`signal=0` value printed by hciAnalyze is the zero-based configured-source index, not a zero signal measurement.
+
+The dense field nevertheless validates most of the sparse spatial approximation. Treating the dense response as the
+measurement and the sparse radial response as the reference gives an all-field projection of `1.0069--1.0072` and
+cosine `0.99430--0.99436` across modes. Shape agreement is weakest at small radius: cosine is `0.939--0.946` at
+6--10 pixels and `0.966--0.969` at 10--15 pixels, compared with approximately `0.994--0.995` beyond 15 pixels. At
+the fitted planet pixel specifically, the exact response projects onto the sparse response by `0.824--0.838` with
+cosine `0.948--0.953`. The exact matched-filter amplitude peaks at the rounded negative-fit pixel and is
+`0.004283--0.004469` across modes, averaging `0.004370`, or 93.6--97.7% of the negative-fit contrast. The sparse
+filter tends to peak at the adjacent pixel but can recover a similar amplitude after that positional adjustment.
+
+This oracle therefore rules out sparse radial response modeling as the primary cause of the matched-filter S/N loss.
+The more likely limitation is the current white-noise estimator `h^T i / h^T h` applied to spatially correlated KLIP
+residuals. The next analysis should use these existing dense products, without another KLIP response run, to test a
+regularized covariance-aware estimator `h^T C^-1 i / h^T C^-1 h` or an equivalent noise-power-spectrum whitening.
+It should train covariance away from the candidate, cross-validate the regularization, and compare exact and sparse
+whitened filters against the 3.6-pixel Gaussian baseline.
+
 ## Implementation sequence
 
 ### 1. Align response semantics and provenance
