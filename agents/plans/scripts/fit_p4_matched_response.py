@@ -540,8 +540,8 @@ def main() -> int:
     manifest_header = fits.getheader(manifest_path)
     if int(manifest_header.get("P4 PSF COMPLETE", 0)) != 1:
         raise RuntimeError(f"P4 response manifest is incomplete: {manifest_path}")
-    detector_rows = int(manifest_header.get("P4 PSF TEMPLATE ROWS", 0))
-    detector_columns = int(manifest_header.get("P4 PSF TEMPLATE COLUMNS", 0))
+    detector_rows = int(manifest_header.get("P4 PSF DETECTOR ROWS", manifest_header.get("P4 PSF TEMPLATE ROWS", 0)))
+    detector_columns = int(manifest_header.get("P4 PSF DETECTOR COLUMNS", manifest_header.get("P4 PSF TEMPLATE COLUMNS", 0)))
     mode_count = int(manifest_header.get("P4 PSF MODE COUNT", 0))
     if detector_rows <= 0 or detector_columns <= 0 or mode_count <= 0:
         raise RuntimeError(f"P4 response manifest lacks detector or mode dimensions: {manifest_path}")

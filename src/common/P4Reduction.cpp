@@ -6975,6 +6975,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                                             m_psfFactorOrthogonalityToleranceAtMaximumDefect,
                                             "tolerance paired with largest PSF factor defect" );
         }
+        header.template append<int>( "P4 PSF DETECTOR ROWS", this->m_Nrows, "uncropped detector row count" );
+        header.template append<int>( "P4 PSF DETECTOR COLUMNS", this->m_Ncols, "uncropped detector column count" );
         header.template append<int>( "P4 PSF TEMPLATE ROWS", m_psfTemplateRows, "input template row count" );
         header.template append<int>( "P4 PSF TEMPLATE COLUMNS", m_psfTemplateColumns, "input template column count" );
         header.template append<double>( "P4 PSF TEMPLATE CENTER ROW",

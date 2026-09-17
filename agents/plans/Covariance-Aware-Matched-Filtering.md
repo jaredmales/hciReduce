@@ -903,13 +903,15 @@ consuming source directions. FITS provenance records `P4 PSF ANALYTIC FACTOR COU
 
 Automatic cropping now uses the same residual crop, derotation, and final crop with integrated filtering enabled
 or disabled. All newly written P4 response methods publish final-image coordinates plus detector-origin cards.
-The analysis script honors those offsets, including odd detector-to-output size differences. A 24-frame D64
+The analysis script honors those offsets, including odd detector-to-output size differences. New products also
+record detector dimensions separately from input-template dimensions, so smaller or larger PSF files do not
+change the coordinate frame inferred by the reader. Legacy manifests retain the template-size fallback. A 24-frame D64
 AF Lep check with integrated filtering produced science bit-for-bit identical to the unfiltered baseline and
 900 finite filtered pixels. The synthetic regression covers analytic, paired-refit, detector-local, and exact-sky
 product coordinates and unchanged science; its thin annulus provides only one or two usable pixels in some
 3-by-3 stamps, so the analytic/refit finite-output check explicitly permits that support fraction.
 
-The experimental P4Reduction suite passes 35 cases / 354799 assertions, including identical products and
+The experimental P4Reduction suite passes 35 cases / 354802 assertions, including identical products and
 per-measurement diagnostic counts for batch sizes 1 and 32 with fewer baseline factorizations in the shared run.
 The numerical response suite passes 11 cases / 1417 assertions, including independent derivative checks for
 successive directions, both Gram orientations, owned baseline inputs, and rejection after failed preparation.
@@ -928,7 +930,7 @@ The realized eight-source batch uses 424 baseline factorizations for 610 source 
 
 An additional broad PCA regression caught a refactoring change in overflow handling for unresolved modes.
 The original error behavior is restored. Experimental suites pass 42 / 4677 (PCA), 11 / 1417 (response), and
-35 / 354799 (reduction). Default suites pass 33 / 2220, 11 / 1417, and 28 / 78138, respectively;
+35 / 354802 (reduction). Default suites pass 33 / 2220, 11 / 1417, and 28 / 78141, respectively;
 `hciAnalyze` passes 13 / 166. These include the cached source path. No new mxlib call is introduced by caching.
 
 Stack sampling of the full response run then identified dense FP64 products as the dominant active work.

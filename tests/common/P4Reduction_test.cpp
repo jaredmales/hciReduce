@@ -2771,6 +2771,9 @@ TEST_CASE( "P4 analytic products preserve science and record boundary fallback",
                             coordinateHeader,
                             ( products / "response_coordinates.fits" ).string() ) == mx::error_t::noerror );
         const int origin = ( reduction.m_Nrows - reduction.m_finim.rows() ) / 2;
+        REQUIRE( coordinateHeader["P4 PSF DETECTOR ROWS"].value<int>() == reduction.m_Nrows );
+        REQUIRE( coordinateHeader["P4 PSF DETECTOR COLUMNS"].value<int>() == reduction.m_Ncols );
+        REQUIRE( coordinateHeader["P4 PSF TEMPLATE ROWS"].value<int>() == psf.rows() );
         REQUIRE( coordinateHeader["P4 PSF COORDINATE ORIGIN ROW"].value<int>() == origin );
         REQUIRE( coordinateHeader["P4 PSF COORDINATE ORIGIN COLUMN"].value<int>() == origin );
         REQUIRE( ( croppedCoordinates.leftCols( 2 ) == fullCoordinates.leftCols( 2 ) - origin ).all() );
