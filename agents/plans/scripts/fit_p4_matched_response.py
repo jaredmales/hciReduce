@@ -50,7 +50,8 @@ def product_prefix(manifest: Path) -> tuple[Path, str]:
     return manifest.parent, manifest.name[: -len(suffix)]
 
 
-def read_science(science_path: Path, detector_rows: int, detector_columns: int) -> tuple[np.ndarray, fits.Header]:
+def read_science(science_path: Path, detector_rows: int, detector_columns: int,
+                 origin: tuple[int, int] | None = None) -> tuple[np.ndarray, fits.Header]:
     """Read a science cube and restore an automatic centered crop when necessary."""
     science_header = fits.getheader(science_path)
     science = np.asarray(fits.getdata(science_path), dtype=np.float64)
@@ -70,11 +71,12 @@ def read_science(science_path: Path, detector_rows: int, detector_columns: int) 
         )
     column_difference = detector_columns - science.shape[1]
     row_difference = detector_rows - science.shape[2]
-    if column_difference % 2 != 0 or row_difference % 2 != 0:
+    if origin is None and (column_difference % 2 != 0 or row_difference % 2 != 0):
         raise RuntimeError("a cropped science product cannot be centered on the response detector dimensions")
     restored = np.full(target_shape, np.nan, dtype=np.float64)
-    first_column = column_difference // 2
-    first_row = row_difference // 2
+    first_row, first_column = origin if origin is not None else (row_difference // 2, column_difference // 2)
+    if not (0 <= first_row <= row_difference and 0 <= first_column <= column_difference):
+        raise RuntimeError("science crop origin lies outside the response detector dimensions")
     restored[
         :,
         first_column : first_column + science.shape[1],
@@ -547,7 +549,11 @@ def main() -> int:
     if manifest_mode >= mode_count:
         raise RuntimeError("selected manifest mode exceeds the declared mode count")
 
-    science, science_header = read_science(science_path, detector_rows, detector_columns)
+    origin = None
+    if str(manifest_header.get("P4 PSF COORDINATE FRAME", "")).strip() == "FINAL_IMAGE":
+        origin = (int(manifest_header["P4 PSF COORDINATE ORIGIN ROW"]),
+                  int(manifest_header["P4 PSF COORDINATE ORIGIN COLUMN"]))
+    science, science_header = read_science(science_path, detector_rows, detector_columns, origin)
     science_mode = selected_mode_index(science_header, arguments.mode_fraction, science_path)
     if science_mode >= science.shape[0]:
         raise RuntimeError("selected science mode exceeds the science cube plane count")
@@ -560,6 +566,8 @@ def main() -> int:
             raise RuntimeError(f"missing P4 response product: {path}")
 
     coordinates = read_coordinates(coordinate_path)
+    if origin is not None:
+        coordinates[:, :2] += origin
     model = np.asarray(fits.getdata(model_path), dtype=np.float64)
     source_validity = np.asarray(fits.getdata(validity_path), dtype=np.float64).reshape(-1)
     minimum_support = float(manifest_header.get("P4 PSF FILTER MIN GOOD FRACTION", 1.0))

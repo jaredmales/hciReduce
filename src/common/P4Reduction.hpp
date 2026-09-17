@@ -353,6 +353,12 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, pu
     std::size_t m_psfRefitDifferenceFitCount{ 0 };
     ///< Positive-plus-negative detector fits used by refitDifference or analytic boundary fallback.
 
+    std::size_t m_psfAnalyticBatchSize{ 32 };        ///< Configured maximum simultaneous source measurements.
+
+    std::size_t m_psfAnalyticRealizedBatchSize{ 0 }; ///< Memory-limited source batch size for the current reduction.
+
+    std::size_t m_psfAnalyticFactorCount{ 0 };       ///< FP64 baseline factorizations shared across source directions.
+
     double m_psfAnalyticGapTolerance{ 0 }; ///< Optional larger relative resolution floor for analytic boundaries.
 
     std::vector<std::vector<P4ResponseStatistics>> m_psfResponseStatistics;
@@ -719,9 +725,22 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, pu
         std::vector<P4ResponseStatistics> &statistics, /**< [in,out] per-mode worker-local outcome counts */
         const pixelGridT &grid,                        /**< [in] direct detector geometry */
         std::size_t search,                            /**< [in] valid annulus-local search index */
+        const P4PCAResponseBasis &basis,               /**< [in] prepared FP64 baseline for this detector fit */
         const P4TrialSource &unitSource,               /**< [in] sampled unit-amplitude physical source */
         const std::vector<int> &modes,                 /**< [in] realized retained counts */
         P4PCA::workspaceT &workspace /**< [in,out] worker-private FP64 eigensolver scratch */ ) const;
+
+    /// Measure analytic responses in bounded source batches sharing each detector factorization.
+    void calculateAnalyticSamples(
+        std::vector<std::vector<imageT>> &responses, /**< [out] output-mode by measurement response stamps */
+        std::vector<std::vector<psfValidityT>> &validities,
+        /**< [out] output-mode by measurement response validity */
+        const std::vector<pixelGridT> &grids,        /**< [in] retained detector-frame annulus geometry */
+        const imageT &psfTemplate,                   /**< [in] finite centered post-preprocessing source template */
+        const std::vector<RadialPSFSample> &samples, /**< [in] selected uncontaminated sky measurements */
+        const std::vector<double> &derotationAngles, /**< [in] one finite radians angle per target frame */
+        HCI::combine responseCombineMethod,          /**< [in] effective response combination method */
+        realT responseSigmaThreshold /**< [in] effective response sigma threshold */ );
 
     /// Measure sparse source-centered analytic or paired-refit responses through shared spatial reconstruction.
     void calculateRefitDifferenceSamples(

@@ -293,6 +293,10 @@ Known non-blocking ownership follow-ups:
       constructor, and the configuration overloads edited in the benchmark have covered executable lines.
       The same integration audit found only double function records for cube copy/move assignment; add direct
       float assignment tests for the existing final-cube transfers in `P4Reduction::regions()` as well.
+      The Step-3 shared-factor/crop audit rechecked the same trace: the new batched baseline sampler uses the
+      covered mutable float image view; `cropAutomaticFinalImage()` and `cropAutomaticFinalResiduals()` still
+      require the exact float assignment coverage above. FP64 response preparation calls covered `eigenSYEVR`
+      (60/60 lines), workspace construction/destruction (3/3 each), and cleanup (13/13).
 
 - [ ] Instantiate and test the exact float geometry/view overloads called by `KLIPreduction::regions()`:
       `radAngImage<degreesT<float>>`, `annulusIndices<degreesT<float>>`, and `cutImageRegion` from a float cube image

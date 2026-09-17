@@ -2780,6 +2780,75 @@ TEST_CASE( "P4 analytic products preserve science and record boundary fallback",
                  mx::error_t::noerror );
         REQUIRE( diagnostics( 0, 1 ) == croppedCoordinates( sample.sourceIndex, 0 ) );
         REQUIRE( diagnostics( 0, 2 ) == croppedCoordinates( sample.sourceIndex, 1 ) );
+        const reductionT::imageT croppedScience = reduction.m_finim.cube();
+        reduction.m_psfFilter = true;
+        // The narrow annulus leaves only one or two finite pixels per 3x3 response stamp.
+        reduction.m_psfFilterMinGoodFract = 0.1F;
+        reduction.m_psfRefitContrast = 0.001F;
+        for( const auto method : { mx::improc::P4PSFSamplingMode::analytic,
+                                   mx::improc::P4PSFSamplingMode::refitDifference,
+                                   mx::improc::P4PSFSamplingMode::detectorLocal,
+                                   mx::improc::P4PSFSamplingMode::skyExact } )
+        {
+            CAPTURE( static_cast<int>( method ) );
+            reduction.m_psfSamplingMode = method;
+            reduction.m_psfSampleAvoidRadius = method == mx::improc::P4PSFSamplingMode::skyExact ? 0 : 1.25F;
+            REQUIRE( reduction.reduce() == 0 );
+            REQUIRE( ( ( reduction.m_finim.cube() == croppedScience ) ||
+                       ( reduction.m_finim.cube().isNaN() && croppedScience.isNaN() ) )
+                         .all() );
+            REQUIRE( fits.read( croppedCoordinates, ( products / "response_coordinates.fits" ).string() ) ==
+                     mx::error_t::noerror );
+            REQUIRE( ( croppedCoordinates.leftCols( 2 ) == fullCoordinates.leftCols( 2 ) - origin ).all() );
+            mx::improc::eigenCube<float> filtered;
+            REQUIRE( fits.read( filtered, directory.file( "products/science_filtered.fits" ).string() ) ==
+                     mx::error_t::noerror );
+            REQUIRE( filtered.rows() == reduction.m_finim.rows() );
+            REQUIRE( filtered.cols() == reduction.m_finim.cols() );
+            CAPTURE( reduction.m_finim.cube().isFinite().count(), filtered.cube().isFinite().count() );
+            // Frozen approximations can have no supported center in this narrow annulus.
+            if( method == mx::improc::P4PSFSamplingMode::analytic ||
+                method == mx::improc::P4PSFSamplingMode::refitDifference )
+            {
+                REQUIRE( filtered.cube().isFinite().any() );
+            }
+        }
+    }
+    if( gap == 0 && contrast == 0 )
+    {
+        reduction.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::analytic;
+        reduction.m_psfSampleRadii = { 6, 7 };
+        reduction.m_psfSamplesPerRadius = 4;
+        reduction.m_psfFilter = false;
+        reduction.m_psfRefitContrast = 0;
+        REQUIRE( reduction.reduce() == 0 );
+        const auto sharedFactors = reduction.m_psfAnalyticFactorCount;
+        const auto sharedCounts = reduction.m_psfResponseStatistics;
+        std::vector<reductionT::imageT> shared;
+        for( std::size_t mode = 0; mode < reduction.m_modeFractions.size(); ++mode )
+        {
+            mx::improc::eigenCube<float> model;
+            REQUIRE( fits.read( model,
+                                ( products / ( "response_model_000" + std::to_string( mode ) + ".fits" ) ).string() ) ==
+                     mx::error_t::noerror );
+            shared.emplace_back( model.cube() );
+        }
+        reduction.m_psfAnalyticBatchSize = 1;
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_psfAnalyticFactorCount > sharedFactors );
+        REQUIRE( reduction.m_psfAnalyticRealizedBatchSize == 1 );
+        for( std::size_t mode = 0; mode < reduction.m_modeFractions.size(); ++mode )
+        {
+            mx::improc::eigenCube<float> model;
+            REQUIRE( fits.read( model,
+                                ( products / ( "response_model_000" + std::to_string( mode ) + ".fits" ) ).string() ) ==
+                     mx::error_t::noerror );
+            REQUIRE( ( ( model.cube() == shared[mode] ) || ( model.cube().isNaN() && shared[mode].isNaN() ) ).all() );
+            for( std::size_t sample = 0; sample < sharedCounts[mode].size(); ++sample )
+                REQUIRE( reduction.m_psfResponseStatistics[mode][sample].counts == sharedCounts[mode][sample].counts );
+        }
+        reduction.m_psfAnalyticBatchSize = 0;
+        REQUIRE_THROWS( reduction.reduce() );
     }
     if( gap == 1 && contrast > 0 )
     {
@@ -2798,6 +2867,7 @@ TEST_CASE( "P4 analytic products preserve science and record boundary fallback",
     // clang-format off
 #ifdef __DOXY_ONLY__
     mx::improc::P4Reductionf::calculateAnalyticDetectorResponse();
+    mx::improc::P4Reductionf::calculateAnalyticSamples();
     mx::improc::P4PCA::calculateResponse();
 #endif
     // clang-format on

@@ -259,6 +259,43 @@ struct P4PCADowndateWorkspace
     mx::math::svdDeletionWorkspace<double> m_deletionWorkspace; ///< Reusable mxlib deletion scratch.
 };
 
+/// Owned baseline eigensystem reused for independent source directions at one detector fit.
+/** Preparation replaces this state; response evaluation only reads it. A prepared instance may be shared by
+ * concurrent evaluators with separate output objects. It owns its inputs so subsequent caller mutations are safe.
+ * \ingroup programming_library
+ */
+class P4PCAResponseBasis
+{
+  public:
+    /// Construct an unprepared baseline.
+    P4PCAResponseBasis() = default;
+
+    /// Return the independently owned baseline predictor samples.
+    const Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic> &predictors() const noexcept;
+
+    /// Return the independently owned baseline target samples.
+    const Eigen::Array<double, Eigen::Dynamic, 1> &target() const noexcept;
+
+  private:
+    friend struct P4PCA;
+
+    bool m_ready{ false };                                             ///< Whether preparation completed successfully.
+
+    Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic> m_predictors; ///< Owned baseline predictor matrix.
+
+    Eigen::Array<double, Eigen::Dynamic, 1> m_target;                  ///< Owned baseline target time series.
+
+    Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic> m_eigenvectors; ///< Complete smaller-Gram eigenvectors.
+
+    Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic> m_eigenvalues;  ///< Ascending smaller-Gram eigenvalues.
+
+    Eigen::MatrixXd m_temporalVectors; ///< Temporal eigenvectors, or unnormalized X*v on the predictor-Gram path.
+
+    std::vector<int> m_modes;          ///< Retained counts in output order.
+
+    P4PCAResponseResult m_diagnostics; ///< Source-independent rank/cutoff diagnostics; no response storage.
+};
+
 /// Pure all-double principal-component regression for one P4 search pixel.
 /** This component forms the smaller of the temporal and predictor Gram matrices. calculate() uses the inputs directly,
  * while calculateCentered() centers the fit and applies the resulting coefficients to the uncentered predictors. A
@@ -278,6 +315,24 @@ struct P4PCA
 
     /// Reusable all-double LAPACK workspace. It must not be copied or shared by concurrent calls.
     using workspaceT = mx::math::syevrMem<double>;
+
+    /// Prepare an immutable FP64 baseline for repeated direct-response evaluations.
+    /** On failure the basis is unprepared and cannot be evaluated. Input arrays must not alias its owned inputs. */
+    static void
+    prepareResponse( P4PCAResponseBasis &basis,     /**< [out] owned baseline eigensystem and diagnostics */
+                     const matrixT &predictors,     /**< [in] finite T-by-K baseline predictors */
+                     const vectorT &target,         /**< [in] finite T-sample baseline target */
+                     const std::vector<int> &modes, /**< [in] positive increasing retained counts */
+                     double rankTolerance,          /**< [in] nonnegative relative rank threshold */
+                     workspaceT &workspace,         /**< [in,out] caller-owned FP64 eigensolver scratch */
+                     double relativeGapTolerance = 0 /**< [in] optional larger relative resolution floor */ );
+
+    /// Differentiate one source direction using a prepared baseline without another factorization.
+    static void
+    calculateResponse( P4PCAResponseResult &output,     /**< [out] response and baseline diagnostics */
+                       const P4PCAResponseBasis &basis, /**< [in] successfully prepared immutable baseline */
+                       const matrixT &predictorSource,  /**< [in] finite T-by-K source direction */
+                       const vectorT &targetSource /**< [in] finite T-sample source direction */ );
 
     /// Calculate truncated-PCA residual time series for ordered retained-mode counts.
     /** On success, \p output is completely replaced. On exception it remains destructible, but its values are

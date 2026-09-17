@@ -1001,6 +1001,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::setupConfig( mx::app::appConfi
     HCIobservation<realT, verboseT>::setupConfig( config );
     ADIobservation<realT, derotFunctObj, verboseT>::setupConfig( config );
     this->setupPSFResponseConfig( config );
+    config.add( "psfResponse.analyticBatchSize",
+                "",
+                "psfResponse.analyticBatchSize",
+                mx::app::argType::Required,
+                "psfResponse",
+                "analyticBatchSize",
+                false,
+                "size_t",
+                "Maximum analytic source measurements sharing baseline factors (default 32; memory limited)" );
     config.add( "psfResponse.analyticGapTolerance",
                 "",
                 "psfResponse.analyticGapTolerance",
@@ -1382,6 +1391,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
     config( m_orMaxHalfAngle, "p4.orMaxHalfAngle" );
     config( m_psfRadius, "p4.psfRadius" );
     this->template loadPSFResponseConfig<verboseT>( config );
+    config( m_psfAnalyticBatchSize, "psfResponse.analyticBatchSize" );
     config( m_psfAnalyticGapTolerance, "psfResponse.analyticGapTolerance" );
     config( m_localStampSize, "p4.localStampSize" );
 
@@ -1915,6 +1925,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::validateConfiguration() const
     {
         throw mx::exception<verboseT>( mx::error_t::invalidconfig,
                                        "psfResponse.refitContrast must be finite and nonnegative" );
+    }
+    if( m_psfAnalyticBatchSize == 0 )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidconfig, "psfResponse.analyticBatchSize must be positive" );
     }
     if( !mx::math::isFinite( m_psfAnalyticGapTolerance ) || m_psfAnalyticGapTolerance < 0 )
     {
@@ -3675,6 +3689,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     m_psfRequestedSamplesPerRadius.clear();
     m_psfSampleExcludedCount = 0;
     m_psfRefitDifferenceFitCount = 0;
+    m_psfAnalyticFactorCount = 0;
+    m_psfAnalyticRealizedBatchSize = 0;
     m_psfResponseStatistics.clear();
     m_localPSFComponentCounts.clear();
     m_localPSFRows = 0;
@@ -5253,6 +5269,10 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     if( !compactFinalization )
     {
         const int result = finalProcess();
+        if( result == 0 )
+        {
+            cropAutomaticFinalImage();
+        }
         if( result == 0 && processPSF )
         {
             const double reconstructionBegin = omp_get_wtime();
@@ -5273,8 +5293,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         return result;
     }
 
-    const int combinedImageSize =
-        m_automaticDerotationSize != 0 && !m_psfFilter ? m_automaticDerotationSize : this->m_Nrows;
+    const int combinedImageSize = m_automaticDerotationSize != 0 ? m_automaticDerotationSize : this->m_Nrows;
     eigenCube<realT> combinedImages;
     combinedImages.resize( combinedImageSize, combinedImageSize, static_cast<int>( m_modeFractions.size() ) );
     const int configuredWriteFinim = this->m_doWriteFinim;
@@ -5357,6 +5376,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     if( result == 0 )
     {
         this->m_finim = std::move( combinedImages );
+        cropAutomaticFinalImage();
         const double timingReference = mx::sys::get_curr_time();
         this->t_derotate_begin = timingReference;
         this->t_derotate_end = timingReference + derotationSeconds;
@@ -5724,6 +5744,7 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticDetect
     std::vector<P4ResponseStatistics> &statistics,
     const pixelGridT &grid,
     std::size_t search,
+    const P4PCAResponseBasis &basis,
     const P4TrialSource &unitSource,
     const std::vector<int> &modes,
     P4PCA::workspaceT &workspace ) const
@@ -5733,32 +5754,22 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticDetect
         throw std::invalid_argument( "analytic P4 response requires valid geometry and per-mode counters" );
     }
     const auto &coordinate = grid.searchPixel( search ).coordinate();
-    P4PCA::matrixT predictors( this->m_Nims, grid.predictorCount() );
+    const auto &predictors = basis.predictors();
+    const auto &target = basis.target();
     P4PCA::matrixT source( this->m_Nims, grid.predictorCount() );
-    P4PCA::vectorT target( this->m_Nims ), targetSource( this->m_Nims );
+    P4PCA::vectorT targetSource( this->m_Nims );
     for( int frame = 0; frame < this->m_Nims; ++frame )
     {
-        const auto image = this->m_tgtIms.image( frame );
-        target( frame ) = checkedPredictorPromotion( image( coordinate.row(), coordinate.column() ) );
         targetSource( frame ) =
             checkedPredictorPromotion( unitSource.value( frame, coordinate.row(), coordinate.column() ) );
         for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
         {
-            predictors( frame, predictor ) = checkedPredictorPromotion( grid.sample( image, search, predictor ) );
             source( frame, predictor ) =
                 checkedPredictorPromotion( unitSource.sample( frame, grid.interpolation( search, predictor ) ) );
         }
     }
     P4PCAResponseResult analytic;
-    P4PCA::calculateResponse( analytic,
-                              predictors,
-                              target,
-                              source,
-                              targetSource,
-                              modes,
-                              m_rankTolerance,
-                              workspace,
-                              m_psfAnalyticGapTolerance );
+    P4PCA::calculateResponse( analytic, basis, source, targetSource );
     responses = std::move( analytic.responses );
     supported.assign( modes.size(), 0 );
     using statusT = P4PCAResponseStatus;
@@ -5819,6 +5830,302 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticDetect
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+void P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticSamples(
+    std::vector<std::vector<imageT>> &responses,
+    std::vector<std::vector<psfValidityT>> &validities,
+    const std::vector<pixelGridT> &grids,
+    const imageT &psfTemplate,
+    const std::vector<RadialPSFSample> &samples,
+    const std::vector<double> &derotationAngles,
+    HCI::combine responseCombineMethod,
+    realT responseSigmaThreshold )
+{
+    P4LocalGeometry::lookupImageT searchLookup =
+        P4LocalGeometry::lookupImageT::Constant( this->m_Nrows, this->m_Ncols, -1 );
+    std::vector<std::size_t> offsets;
+    std::vector<std::pair<std::size_t, std::size_t>> searches;
+    for( std::size_t region = 0; region < grids.size(); ++region )
+    {
+        offsets.push_back( searches.size() );
+        for( std::size_t search = 0; search < grids[region].searchPixelCount(); ++search )
+        {
+            const auto &coordinate = grids[region].searchPixel( search ).coordinate();
+            searchLookup( coordinate.row(), coordinate.column() ) = search;
+            searches.emplace_back( region, search );
+        }
+    }
+    responses.assign( m_modeFractions.size(), std::vector<imageT>( samples.size() ) );
+    validities.assign( m_modeFractions.size(), std::vector<psfValidityT>( samples.size() ) );
+    m_psfResponseStatistics.assign( m_modeFractions.size(), std::vector<P4ResponseStatistics>( samples.size() ) );
+    const long double frames = this->m_Nims, modes = m_modeFractions.size();
+    const long double pixels = static_cast<long double>( m_psfStampSize ) * m_psfStampSize;
+    long double largestWorker{ 0 };
+    int requestedWorkers = omp_get_max_threads();
+    for( std::size_t region = 0; region < grids.size(); ++region )
+    {
+        const long double predictors = grids[region].predictorCount(), dimension = std::min( frames, predictors );
+        largestWorker = std::max( largestWorker,
+                                  1.25L * sizeof( double ) *
+                                          ( 8 * frames * predictors + 10 * frames * dimension +
+                                            10 * dimension * dimension + 10 * frames * modes + 80 * dimension ) +
+                                      1024 * 1024 );
+        requestedWorkers = std::min( requestedWorkers, std::max( 1, m_regionStatistics[region].effectiveWorkerCount ) );
+    }
+    // Bound simultaneous geometry, dependency allocation, residuals, source images, and consumer lookup storage.
+    const long double perSample =
+        1.25L *
+            ( frames * pixels *
+                  ( sizeof( P4LocalOutputSample ) + 16 * ( sizeof( P4LocalResidualSample ) + sizeof( int ) ) +
+                    16 * modes * ( sizeof( realT ) + sizeof( std::uint8_t ) ) ) +
+              static_cast<long double>( this->m_Nrows ) * this->m_Ncols * ( 128 + sizeof( realT ) ) + 256 * frames ) +
+        1024 * 1024;
+    const long double retained =
+        static_cast<long double>( m_compactResidualBytes ) + m_targetExclusionBytes + m_localPSFBytes +
+        m_psfModelBytes + m_psfReconstructionBytes +
+        ( pixels * ( sizeof( realT ) + sizeof( std::uint8_t ) ) + sizeof( P4ResponseStatistics ) +
+          ( 4 + P4ResponseStatistics::count ) * sizeof( realT ) ) *
+            modes * samples.size();
+    std::size_t batchSize = std::min( m_psfAnalyticBatchSize, samples.size() );
+    if( m_memoryBudgetBytes != 0 )
+    {
+        while( batchSize > 1 &&
+               retained + perSample * batchSize + largestWorker * requestedWorkers > m_memoryBudgetBytes )
+        {
+            --batchSize;
+        }
+        if( retained + perSample * batchSize + largestWorker > m_memoryBudgetBytes )
+        {
+            throw mx::exception<verboseT>( mx::error_t::allocerr,
+                                           "one analytic P4 response batch exceeds the memory budget" );
+        }
+        requestedWorkers =
+            memoryLimitedWorkerCount( requestedWorkers,
+                                      m_memoryBudgetBytes,
+                                      static_cast<std::size_t>( std::ceil( retained + perSample * batchSize ) ),
+                                      static_cast<std::size_t>( std::ceil( largestWorker ) ) );
+    }
+    m_psfAnalyticRealizedBatchSize = batchSize;
+    const std::vector<float> scales( this->m_Nims, 1 );
+    using localResidualT = Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic>;
+    for( std::size_t first = 0; first < samples.size(); first += batchSize )
+    {
+        const std::size_t count = std::min( batchSize, samples.size() - first );
+        std::vector<P4LocalGeometry> geometries( count );
+        std::vector<P4TrialSource> sources( count );
+        std::vector<std::vector<localResidualT>> residuals( count );
+        std::vector<std::vector<psfValidityT>> validity( count );
+        std::vector<std::vector<std::pair<std::size_t, std::size_t>>> consumers( searches.size() );
+        for( std::size_t sample = 0; sample < count; ++sample )
+        {
+            const auto [region, search] = searches.at( samples[first + sample].sourceIndex );
+            const auto &coordinate = grids[region].searchPixel( search ).coordinate();
+            const double row = coordinate.row(), column = coordinate.column();
+            const double dr = row - grids.front().xCenter(), dc = column - grids.front().yCenter();
+            geometries[sample].configure( this->m_Nrows,
+                                          this->m_Ncols,
+                                          m_psfStampSize,
+                                          row,
+                                          column,
+                                          derotationAngles,
+                                          this->m_doDerotate,
+                                          m_ownership.template cast<std::int64_t>(),
+                                          searchLookup );
+            sources[sample].configure( psfTemplate,
+                                       this->m_Nrows,
+                                       this->m_Ncols,
+                                       m_psfStampSize,
+                                       derotationAngles,
+                                       std::hypot( dr, dc ),
+                                       -std::atan2( dr, dc ) * 180.0 / std::numbers::pi,
+                                       1,
+                                       scales );
+            const auto &requests = geometries[sample].searchRequests();
+            residuals[sample].resize( requests.size() );
+            validity[sample].resize( requests.size() );
+            for( std::size_t request = 0; request < requests.size(); ++request )
+            {
+                const auto &entry = requests[request];
+                consumers[offsets[entry.region()] + entry.searchIndex()].emplace_back( sample, request );
+                residuals[sample][request] = localResidualT::Zero( entry.frames().size(), m_modeFractions.size() );
+                validity[sample][request] = psfValidityT::Zero( entry.frames().size(), m_modeFractions.size() );
+            }
+        }
+        std::vector<std::size_t> work;
+        for( std::size_t index = 0; index < consumers.size(); ++index )
+        {
+            if( !consumers[index].empty() )
+                work.push_back( index );
+        }
+        const int workers = std::min( requestedWorkers, std::max( 1, static_cast<int>( work.size() ) ) );
+        std::cerr << "P4 analytic response batch " << first + 1 << '-' << first + count << " / " << samples.size()
+                  << ": " << work.size() << " baseline factors, workers " << workers << '\n';
+        std::atomic<bool> failed{ false };
+        std::exception_ptr workerException;
+        // clang-format off
+#pragma omp parallel num_threads(workers)
+        // clang-format on
+        {
+            P4PCA::workspaceT workspace;
+            P4PCAResponseBasis basis;
+            P4PCA::matrixT predictors, response;
+            P4PCA::vectorT target( this->m_Nims );
+            std::vector<std::uint8_t> supported;
+            std::vector<std::vector<P4ResponseStatistics>> statistics(
+                count,
+                std::vector<P4ResponseStatistics>( m_modeFractions.size() ) );
+            std::size_t factors{ 0 }, refits{ 0 };
+            double seconds{ 0 };
+            // clang-format off
+#pragma omp for schedule(dynamic)
+            // clang-format on
+            for( std::size_t item = 0; item < work.size(); ++item )
+            {
+                if( failed.load( std::memory_order_acquire ) )
+                    continue;
+                try
+                {
+                    const double start = omp_get_wtime();
+                    const std::size_t index = work[item];
+                    const auto [region, search] = searches[index];
+                    const auto &grid = grids[region];
+                    if( !grid.searchPixel( search ).valid() )
+                        continue;
+                    const auto &coordinate = grid.searchPixel( search ).coordinate();
+                    predictors.resize( this->m_Nims, grid.predictorCount() );
+                    for( int frame = 0; frame < this->m_Nims; ++frame )
+                    {
+                        const auto image = this->m_tgtIms.image( frame );
+                        target( frame ) = checkedPredictorPromotion( image( coordinate.row(), coordinate.column() ) );
+                        for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+                            predictors( frame, predictor ) =
+                                checkedPredictorPromotion( grid.sample( image, search, predictor ) );
+                    }
+                    P4PCA::prepareResponse( basis,
+                                            predictors,
+                                            target,
+                                            m_realizedModes[region],
+                                            m_rankTolerance,
+                                            workspace,
+                                            m_psfAnalyticGapTolerance );
+                    ++factors;
+                    for( const auto &[sample, requestIndex] : consumers[index] )
+                    {
+                        refits += calculateAnalyticDetectorResponse( response,
+                                                                     supported,
+                                                                     statistics[sample],
+                                                                     grid,
+                                                                     search,
+                                                                     basis,
+                                                                     sources[sample],
+                                                                     m_realizedModes[region],
+                                                                     workspace );
+                        const auto &request = geometries[sample].searchRequests()[requestIndex];
+                        for( std::size_t mode = 0; mode < m_modeFractions.size(); ++mode )
+                        {
+                            if( !supported[mode] )
+                                continue;
+                            for( std::size_t frame = 0; frame < request.frames().size(); ++frame )
+                            {
+                                residuals[sample][requestIndex]( frame, mode ) =
+                                    checkedResidualCast( response( request.frames()[frame], mode ) );
+                                validity[sample][requestIndex]( frame, mode ) = 1;
+                            }
+                        }
+                    }
+                    seconds += omp_get_wtime() - start;
+                }
+                catch( ... )
+                {
+                    // clang-format off
+#pragma omp critical(P4AnalyticBatchException)
+                    // clang-format on
+                    {
+                        if( !workerException )
+                            workerException = std::current_exception();
+                    }
+                    failed.store( true, std::memory_order_release );
+                }
+            }
+            // clang-format off
+#pragma omp critical(P4AnalyticBatchStatistics)
+            // clang-format on
+            {
+                m_psfAnalyticFactorCount += factors;
+                m_psfRefitDifferenceFitCount += refits;
+                m_timing.psfWorkerSeconds += seconds;
+                for( std::size_t sample = 0; sample < count; ++sample )
+                    for( std::size_t mode = 0; mode < m_modeFractions.size(); ++mode )
+                        for( std::size_t diagnostic = 0; diagnostic < P4ResponseStatistics::count; ++diagnostic )
+                            m_psfResponseStatistics[mode][first + sample].counts[diagnostic] +=
+                                statistics[sample][mode].counts[diagnostic];
+            }
+        }
+        if( workerException )
+            std::rethrow_exception( workerException );
+        for( std::size_t sample = 0; sample < count; ++sample )
+        {
+            const std::size_t sampleIndex = first + sample;
+            const auto &geometry = geometries[sample];
+            const auto &localResiduals = residuals[sample];
+            const auto &localValidities = validity[sample];
+            for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
+            {
+                P4PSFReconstructor::cubeT frames;
+                P4PSFReconstructor::cubeT frameValidities;
+                frames.resize( m_psfStampSize, m_psfStampSize, this->m_Nims );
+                frames.setZero();
+                frameValidities.resize( m_psfStampSize, m_psfStampSize, this->m_Nims );
+                frameValidities.setZero();
+                for( int stampColumn = 0; stampColumn < m_psfStampSize; ++stampColumn )
+                {
+                    for( int stampRow = 0; stampRow < m_psfStampSize; ++stampRow )
+                    {
+                        for( std::size_t frame = 0; frame < static_cast<std::size_t>( this->m_Nims ); ++frame )
+                        {
+                            const P4LocalOutputSample &outputSample =
+                                geometry.outputSample( stampRow, stampColumn, frame );
+                            if( !outputSample.valid() )
+                            {
+                                continue;
+                            }
+                            realT value{ 0 };
+                            bool valid{ true };
+                            for( const P4LocalResidualSample &dependency : outputSample.samples() )
+                            {
+                                if( localValidities[dependency.requestIndex()](
+                                        static_cast<Eigen::Index>( dependency.frameOffset() ),
+                                        static_cast<Eigen::Index>( output ) ) == 0 )
+                                {
+                                    valid = false;
+                                    break;
+                                }
+                                value += localResiduals[dependency.requestIndex()](
+                                             static_cast<Eigen::Index>( dependency.frameOffset() ),
+                                             static_cast<Eigen::Index>( output ) ) *
+                                         dependency.weight();
+                            }
+                            if( valid )
+                            {
+                                frames.image( static_cast<int>( frame ) )( stampRow, stampColumn ) = value;
+                                frameValidities.image( static_cast<int>( frame ) )( stampRow, stampColumn ) = 1;
+                            }
+                        }
+                    }
+                }
+                P4PSFReconstructor::combineFrames( responses[output][sampleIndex],
+                                                   validities[output][sampleIndex],
+                                                   frames,
+                                                   frameValidities,
+                                                   responseCombineMethod,
+                                                   this->m_comboWeights,
+                                                   responseSigmaThreshold,
+                                                   this->m_minGoodFract );
+            }
+        }
+    }
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::calculateRefitDifferenceSamples(
     std::vector<std::vector<imageT>> &responses,
     std::vector<std::vector<psfValidityT>> &validities,
@@ -5864,6 +6171,19 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateRefitDifferenceSample
         }
     }
 
+    if( analytic )
+    {
+        calculateAnalyticSamples( responses,
+                                  validities,
+                                  grids,
+                                  psfTemplate,
+                                  samples,
+                                  derotationAngles,
+                                  responseCombineMethod,
+                                  responseSigmaThreshold );
+        return;
+    }
+
     P4LocalGeometry::lookupImageT searchIndexLookup =
         P4LocalGeometry::lookupImageT::Constant( this->m_Nrows, this->m_Ncols, -1 );
     std::vector<P4PixelCoordinate> sourceCoordinates;
@@ -5884,10 +6204,6 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateRefitDifferenceSample
 
     responses.assign( m_modeFractions.size(), std::vector<imageT>( samples.size() ) );
     validities.assign( m_modeFractions.size(), std::vector<psfValidityT>( samples.size() ) );
-    if( analytic )
-    {
-        m_psfResponseStatistics.assign( m_modeFractions.size(), std::vector<P4ResponseStatistics>( samples.size() ) );
-    }
     const std::vector<float> scales( static_cast<std::size_t>( this->m_Nims ), 1 );
     const std::vector<P4PixelCoordinate> temporalOffsets = p4TemporalPredictorOffsets( m_psfRadius );
     const imageT *mask = this->m_mask.size() == 0 ? nullptr : &this->m_mask;
@@ -5930,9 +6246,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateRefitDifferenceSample
                                   derotationAngles,
                                   separation,
                                   positionAngle,
-                                  analytic ? 1.0 : static_cast<double>( m_psfRefitContrast ),
+                                  static_cast<double>( m_psfRefitContrast ),
                                   scales );
-        if( !analytic )
         {
             negativeSource.configure( psfTemplate,
                                       this->m_Nrows,
@@ -5955,48 +6270,6 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateRefitDifferenceSample
         {
             effectiveWorkers = std::min( effectiveWorkers, std::max( 1, statistics.effectiveWorkerCount ) );
         }
-        if( analytic && m_memoryBudgetBytes != 0 )
-        {
-            long double largestWorker{ 0 };
-            const long double frames = this->m_Nims, modeCount = m_modeFractions.size();
-            for( const auto &grid : grids )
-            {
-                const long double predictors = grid.predictorCount(), dimension = std::min( frames, predictors );
-                // Includes input/source arrays, both Gram orientations, projector scratch, and paired-refit
-                // temporaries.
-                const long double worker =
-                    1.25L * sizeof( double ) *
-                        ( 6 * frames * predictors + 10 * frames * dimension + 10 * dimension * dimension +
-                          10 * frames * modeCount + 80 * dimension ) +
-                    1024 * 1024;
-                largestWorker = std::max( largestWorker, worker );
-            }
-            const long double stampPixels = static_cast<long double>( m_psfStampSize ) * m_psfStampSize;
-            const long double retained =
-                static_cast<long double>( m_compactResidualBytes ) + m_targetExclusionBytes + m_localPSFBytes +
-                m_psfModelBytes + m_psfReconstructionBytes + geometry.storageBytes() +
-                ( stampPixels * ( sizeof( realT ) + sizeof( std::uint8_t ) ) + sizeof( P4ResponseStatistics ) +
-                  ( 4 + P4ResponseStatistics::count ) * sizeof( realT ) ) *
-                    modeCount * samples.size() +
-                256 * frames +
-                ( sizeof( realT ) + sizeof( std::uint8_t ) ) * frames * modeCount * geometry.searchRequests().size() +
-                2 * sizeof( realT ) * stampPixels * frames +
-                2 * sizeof( realT ) * static_cast<long double>( this->m_Nrows ) * this->m_Ncols;
-            if( largestWorker > std::numeric_limits<std::size_t>::max() || retained > m_memoryBudgetBytes )
-            {
-                throw mx::exception<verboseT>( mx::error_t::allocerr,
-                                               "analytic P4 response exceeds the memory budget" );
-            }
-            effectiveWorkers = memoryLimitedWorkerCount( effectiveWorkers,
-                                                         m_memoryBudgetBytes,
-                                                         static_cast<std::size_t>( std::ceil( retained ) ),
-                                                         static_cast<std::size_t>( std::ceil( largestWorker ) ) );
-            if( effectiveWorkers == 0 )
-            {
-                throw mx::exception<verboseT>( mx::error_t::allocerr,
-                                               "one analytic P4 response worker exceeds the memory budget" );
-            }
-        }
         using localResidualT = Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic>;
         std::vector<localResidualT> localResiduals( geometry.searchRequests().size() );
         std::vector<psfValidityT> localValidities( geometry.searchRequests().size() );
@@ -6010,10 +6283,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateRefitDifferenceSample
             localValidities[request].setZero();
         }
 
-        std::cerr << "P4 " << ( analytic ? "analytic" : "refit-difference" ) << " response " << sampleIndex + 1 << " / "
-                  << samples.size() << ": " << geometry.searchRequests().size()
-                  << ( analytic ? " detector pixels, workers " : " detector pixels per sign, workers " )
-                  << effectiveWorkers << '\n';
+        std::cerr << "P4 refit-difference response " << sampleIndex + 1 << " / " << samples.size() << ": "
+                  << geometry.searchRequests().size() << " detector pixels per sign, workers " << effectiveWorkers
+                  << '\n';
 
         std::exception_ptr workerException;
         std::atomic<bool> failed{ false };
@@ -6039,9 +6311,6 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateRefitDifferenceSample
             P4PCA::vectorT target;
             P4PCAResult positiveResult;
             P4PCAResult negativeResult;
-            P4PCA::matrixT analyticResponses;
-            std::vector<std::uint8_t> analyticSupported;
-            std::vector<P4ResponseStatistics> threadStatistics( m_modeFractions.size() );
             double threadResponseSeconds{ 0 };
             std::size_t threadFitCount{ 0 };
 
@@ -6071,32 +6340,6 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateRefitDifferenceSample
                         continue;
                     }
 
-                    if( analytic )
-                    {
-                        threadFitCount += calculateAnalyticDetectorResponse( analyticResponses,
-                                                                             analyticSupported,
-                                                                             threadStatistics,
-                                                                             grid,
-                                                                             request.searchIndex(),
-                                                                             positiveSource,
-                                                                             m_realizedModes[region],
-                                                                             workspace );
-                        for( std::size_t output = 0; output < m_modeFractions.size(); ++output )
-                        {
-                            if( !analyticSupported[output] )
-                            {
-                                continue;
-                            }
-                            for( std::size_t frameOffset = 0; frameOffset < request.frames().size(); ++frameOffset )
-                            {
-                                localResiduals[requestIndex]( frameOffset, output ) =
-                                    checkedResidualCast( analyticResponses( request.frames()[frameOffset], output ) );
-                                localValidities[requestIndex]( frameOffset, output ) = 1;
-                            }
-                        }
-                        threadResponseSeconds += omp_get_wtime() - responseBegin;
-                        continue;
-                    }
                     double sameImageSamplingSeconds{ 0 };
                     double temporalSamplingSeconds{ 0 };
                     P4PCATiming timing;
@@ -6191,17 +6434,6 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateRefitDifferenceSample
             {
                 responseWorkerSeconds += threadResponseSeconds;
                 responseFitCount += threadFitCount;
-                if( analytic )
-                {
-                    for( std::size_t mode = 0; mode < m_modeFractions.size(); ++mode )
-                    {
-                        for( std::size_t diagnostic = 0; diagnostic < P4ResponseStatistics::count; ++diagnostic )
-                        {
-                            m_psfResponseStatistics[mode][sampleIndex].counts[diagnostic] +=
-                                threadStatistics[mode].counts[diagnostic];
-                        }
-                    }
-                }
             }
         }
         if( workerException )
@@ -6309,7 +6541,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
             }
         }
     }
-    if( m_psfFilter && ( this->m_finim.rows() != this->m_Nrows || this->m_finim.cols() != this->m_Ncols ||
+    const int finalRows = m_automaticOutputSize != 0 ? m_automaticOutputSize : this->m_Nrows;
+    const int finalColumns = m_automaticOutputSize != 0 ? m_automaticOutputSize : this->m_Ncols;
+    if( m_psfFilter && ( this->m_finim.rows() != finalRows || this->m_finim.cols() != finalColumns ||
                          this->m_finim.planes() != static_cast<int>( m_modeFractions.size() ) ) )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr,
@@ -6379,11 +6613,9 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
         radialApproximation && m_psfSamplingMode == P4PSFSamplingMode::refitDifference;
     const bool analyticApproximation = radialApproximation && m_psfSamplingMode == P4PSFSamplingMode::analytic;
     const bool differentiatedApproximation = refitDifferenceApproximation || analyticApproximation;
-    // Schema 8 publishes source coordinates in the final science image, including its automatic crop.
-    const int coordinateOriginRow =
-        analyticApproximation && m_automaticOutputSize != 0 ? ( this->m_Nrows - m_automaticOutputSize ) / 2 : 0;
-    const int coordinateOriginColumn =
-        analyticApproximation && m_automaticOutputSize != 0 ? ( this->m_Ncols - m_automaticOutputSize ) / 2 : 0;
+    // Publish source coordinates in the final science image, including its automatic crop.
+    const int coordinateOriginRow = m_automaticOutputSize != 0 ? ( this->m_Nrows - m_automaticOutputSize ) / 2 : 0;
+    const int coordinateOriginColumn = m_automaticOutputSize != 0 ? ( this->m_Ncols - m_automaticOutputSize ) / 2 : 0;
     const std::vector<double> &radialRadii = psfSamplingGrid.radii;
     RadialPSFModel::regionMapT targetResponseRegions;
     if( detectorLocalApproximation )
@@ -6605,15 +6837,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
             : refitDifferenceApproximation ? "REFIT_CENTRAL_DIFFERENCE"
                                            : "FROZEN_SIGNED",
             "forward-model convention" );
+        header.template append<std::string>( "P4 PSF COORDINATE FRAME", "FINAL_IMAGE", "published source pixels" );
+        header.template append<int>( "P4 PSF COORDINATE ORIGIN ROW",
+                                     coordinateOriginRow,
+                                     "detector row at final-image row zero" );
+        header.template append<int>( "P4 PSF COORDINATE ORIGIN COLUMN",
+                                     coordinateOriginColumn,
+                                     "detector column at final-image column zero" );
         if( analyticApproximation )
         {
-            header.template append<std::string>( "P4 PSF COORDINATE FRAME", "FINAL_IMAGE", "published source pixels" );
-            header.template append<int>( "P4 PSF COORDINATE ORIGIN ROW",
-                                         coordinateOriginRow,
-                                         "detector row at final-image row zero" );
-            header.template append<int>( "P4 PSF COORDINATE ORIGIN COLUMN",
-                                         coordinateOriginColumn,
-                                         "detector column at final-image column zero" );
             header.template append<std::string>( "P4 PSF RESPONSE PRECISION",
                                                  "D64",
                                                  "analytic and fallback calculation precision" );
@@ -6657,6 +6889,15 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
         header.template append<std::string>( "P4 PSF COMPOSITION",
                                              detectorLocalApproximation ? "TARGET_PIXEL" : "SOURCE_POSITION",
                                              "position selecting the local response operator" );
+        if( analyticApproximation )
+        {
+            header.template append<std::string>( "P4 PSF ANALYTIC FACTOR COUNT",
+                                                 std::to_string( m_psfAnalyticFactorCount ),
+                                                 "FP64 baseline factorizations across source batches" );
+            header.template append<std::string>( "P4 PSF ANALYTIC BATCH SIZE",
+                                                 std::to_string( m_psfAnalyticRealizedBatchSize ),
+                                                 "maximum realized source measurements per batch" );
+        }
         if( differentiatedApproximation )
         {
             header.template append<std::string>( "P4 PSF REFIT FIT COUNT",
@@ -6864,10 +7105,10 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
     if( m_psfFilter )
     {
         const int outputCount = static_cast<int>( m_modeFractions.size() );
-        filtered.resize( this->m_Nrows, this->m_Ncols, outputCount );
-        filterNormalization.resize( this->m_Nrows, this->m_Ncols, outputCount );
-        filterSupport.resize( this->m_Nrows, this->m_Ncols, outputCount );
-        filterValidity.resize( this->m_Nrows, this->m_Ncols, outputCount );
+        filtered.resize( finalRows, finalColumns, outputCount );
+        filterNormalization.resize( finalRows, finalColumns, outputCount );
+        filterSupport.resize( finalRows, finalColumns, outputCount );
+        filterValidity.resize( finalRows, finalColumns, outputCount );
         filtered.cube().setConstant( invalidNumber<realT>() );
         filterNormalization.cube().setConstant( invalidNumber<realT>() );
         filterSupport.cube().setConstant( invalidNumber<realT>() );
@@ -7186,8 +7427,8 @@ void P4Reduction<realT, derotFunctObj, verboseT>::processPSFProducts(
                         {
                             reconstructExact( combined, combinedValidity, source );
                         }
-                        const int imageRow = static_cast<int>( sourceRow );
-                        const int imageColumn = static_cast<int>( sourceColumn );
+                        const int imageRow = static_cast<int>( sourceRow ) - coordinateOriginRow;
+                        const int imageColumn = static_cast<int>( sourceColumn ) - coordinateOriginColumn;
                         const bool sourceCenterValid = !radialModel || centerValidity( 0, 0 ) != 0;
                         if( m_psfFilter && sourceCenterValid )
                         {
@@ -7884,7 +8125,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::cropAutomaticFinalImage()
 template <typename realT, class derotFunctObj, class verboseT>
 void P4Reduction<realT, derotFunctObj, verboseT>::cropAutomaticFinalResiduals()
 {
-    if( m_automaticDerotationSize == 0 || m_psfFilter )
+    if( m_automaticDerotationSize == 0 )
     {
         return;
     }

@@ -613,5 +613,50 @@ TEST_CASE( "Analytic P4 response validates source directions and controls", "[P4
                        std::invalid_argument );
 }
 
+/** Verify P4PCA::prepareResponse() owns one reusable baseline and calculateResponse() preserves the
+ * independent projector derivative for successive directions, both Gram orientations, and invalid preparation.
+ */
+TEST_CASE( "P4 response factors are reusable across source directions", "[P4PCA][response][reuse]" )
+{
+    const bool temporal = GENERATE( true, false );
+    ResponseFixture fixture( temporal ? 6 : 9, temporal ? 9 : 6, { 36, 25, 16, 9, 4, 1 } );
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCAResponseBasis basis;
+    mx::improc::P4PCAResponseResult response;
+    REQUIRE_THROWS_AS(
+        mx::improc::P4PCA::calculateResponse( response, basis, fixture.m_predictorSource, fixture.m_targetSource ),
+        std::invalid_argument );
+    mx::improc::P4PCA::prepareResponse( basis, fixture.m_predictors, fixture.m_target, { 1, 3, 5 }, 1e-12, workspace );
+    const auto savedPredictors = fixture.m_predictors;
+    const auto savedTarget = fixture.m_target;
+    fixture.m_predictors.setZero();
+    fixture.m_target.setZero();
+    REQUIRE( ( basis.predictors() == savedPredictors ).all() );
+    REQUIRE( ( basis.target() == savedTarget ).all() );
+    fixture.m_predictors = savedPredictors;
+    fixture.m_target = savedTarget;
+    for( const double scale : { 1.0, -2.0, 0.0, 0.5 } )
+    {
+        const pcaT::matrixT direction = scale * fixture.m_predictorSource;
+        const pcaT::vectorT targetDirection = scale * fixture.m_targetSource;
+        mx::improc::P4PCA::calculateResponse( response, basis, direction, targetDirection );
+        for( std::size_t mode = 0; mode < 3; ++mode )
+        {
+            const pcaT::vectorT expected = scale * fixture.derivative( 2 * mode + 1 );
+            REQUIRE( ( response.responses.col( mode ) - expected ).matrix().norm() < 2e-12 );
+        }
+    }
+    pcaT::matrixT invalidSource = fixture.m_predictorSource;
+    invalidSource( 0, 0 ) = std::numeric_limits<double>::infinity();
+    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateResponse( response, basis, invalidSource, fixture.m_targetSource ),
+                       std::invalid_argument );
+    REQUIRE_THROWS_AS(
+        mx::improc::P4PCA::prepareResponse( basis, fixture.m_predictors, fixture.m_target, { 0 }, 0, workspace ),
+        std::invalid_argument );
+    REQUIRE_THROWS_AS(
+        mx::improc::P4PCA::calculateResponse( response, basis, fixture.m_predictorSource, fixture.m_targetSource ),
+        std::invalid_argument );
+}
+
 } // namespace P4PCAResponse_test
 } // namespace unitTest

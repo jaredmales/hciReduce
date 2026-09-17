@@ -888,13 +888,48 @@ covered, but exact float instantiations remain unverified for the const cube ima
 KLIP's float annular-geometry/view-extraction calls. Concrete upstream tests are listed under
 Known non-blocking ownership follow-ups in [mxlib_cleanup.md](mxlib_cleanup.md).
 
-**Next under Step 3:** reuse baseline factorizations across source directions and benchmark end-to-end time/memory;
-then reproduce the accepted post-avoidance AF Lep scientific result and broaden injection positions/brightnesses.
-Before that comparison, unify automatic-crop finalization: integrated filtering currently retains the full detector
-cube through derotation while the unfiltered run crops first. In the 24-frame D64 check this changed the final
-science image by `8.38e-6` in relative norm. Response generation alone preserves science exactly; external filtering
-with `hciAnalyze` avoids changing its finalization. Also align the older response schemas' coordinate provenance
-with automatically cropped science images. No speedup or covariance-weighting gain is claimed at this milestone.
+### Step 3 implementation checkpoint: shared factors and consistent cropping (2026-09-17)
+
+`P4PCA::prepareResponse()` now owns an FP64 baseline eigensystem and its rank/cutoff diagnostics;
+`calculateResponse()` can apply successive independently sampled source directions without another eigensolve.
+The one-shot API delegates to these operations. The response calculation and boundary policy are unchanged.
+
+The reduction groups source measurements into batches, gathers their detector requests, and factors each unique
+valid detector fit once per batch. `psfResponse.analyticBatchSize` defaults to 32; 1 provides a comparison without
+cross-source reuse. The existing memory budget limits both the source batch and worker count using conservative
+geometry, residual, factor, and scratch estimates. Factors remain worker-local and are discarded after their
+consuming source directions. FITS provenance records `P4 PSF ANALYTIC FACTOR COUNT` and the realized
+`P4 PSF ANALYTIC BATCH SIZE`, separately from response-direction and fallback counts.
+
+Automatic cropping now uses the same residual crop, derotation, and final crop with integrated filtering enabled
+or disabled. All newly written P4 response methods publish final-image coordinates plus detector-origin cards.
+The analysis script honors those offsets, including odd detector-to-output size differences. A 24-frame D64
+AF Lep check with integrated filtering produced science bit-for-bit identical to the unfiltered baseline and
+900 finite filtered pixels. The synthetic regression covers analytic, paired-refit, detector-local, and exact-sky
+product coordinates and unchanged science; its thin annulus provides only one or two usable pixels in some
+3-by-3 stamps, so the analytic/refit finite-output check explicitly permits that support fraction.
+
+The experimental P4Reduction suite passes 35 cases / 354799 assertions, including identical products and
+per-measurement diagnostic counts for batch sizes 1 and 32 with fewer baseline factorizations in the shared run.
+The numerical response suite passes 11 cases / 1417 assertions, including independent derivative checks for
+successive directions, both Gram orientations, owned baseline inputs, and rejection after failed preparation.
+
+The mxlib coverage gate rechecked the current filtered LCOV trace. The called FP64 `eigenSYEVR` range is 60/60
+executable lines, workspace construction/destruction 3/3 each, and workspace cleanup 13/13. The called mutable
+float cube views, allocation/access, FITS, finite-check, and configuration ranges are covered. Exact const-float
+cube views and float assignment instantiations remain the previously documented non-blocking upstream coverage
+follow-ups in [mxlib_cleanup.md](mxlib_cleanup.md).
+
+Full-data validation is in progress under `/tmp/p4-step3-aflep`. The 621-frame science baseline took 241.43 s
+and 5,170,444 KiB peak RSS with 20 OpenMP workers and one BLAS thread. Its maximum difference from the archived
+post-avoidance science image is `1.61e-6` per pixel. Applying the archived post-avoidance response field to this
+current baseline reproduces the accepted fit: contrast `0.004884882067` (change `-4.08e-11`), separation
+`11.49649042` pixels (change `-3.88e-8`), PA `262.32662166` degrees, and SNR `4.32275218`.
+This checks reference replay; it is separate from the same-build bitwise science-invariance requirement.
+
+**Still required for Step 3:** complete the full analytic scientific comparison, measure reuse time/memory,
+and broaden injections in position and brightness. No new photometric-calibration or speedup conclusion is
+claimed at this checkpoint. Covariance estimation and noise weighting remain Step 4 and later work.
 
 ## 8. Notation
 
