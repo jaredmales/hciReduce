@@ -4,7 +4,8 @@
 Use exact local reductions of the full frame list, at six integer sky positions
 and three brightnesses. Baseline subtraction isolates response calibration from
 realization-specific residual noise; this is not a completeness/false-alarm test.
-Mean and sigmaMean runs separate response nonlinearity from clipping changes.
+Mean and sigmaMean runs expose clipping changes relative to the same mean-combined
+response fields. Finite amplitude and sparse spatial interpolation both contribute.
 """
 from __future__ import annotations
 
@@ -146,7 +147,7 @@ def recovered(data: np.ndarray, support: np.ndarray, origin: tuple, position: tu
 def analyze(args: argparse.Namespace) -> None:
     """Compare published analytic and paired-refit templates against all signed injection trials."""
     root = args.output.resolve()
-    if not (root / 'runs_complete.json').is_file():
+    if not args.completed_mean_only and not (root / 'runs_complete.json').is_file():
         raise RuntimeError('injection reductions are incomplete')
     fields = {}
     for name, path in (('analytic', args.products / 'finim_outputs'), ('refit', args.refit_products)):
@@ -154,8 +155,14 @@ def analyze(args: argparse.Namespace) -> None:
         model = fits.getdata(path / 'p4PSF_model_0000.fits').astype(float)
         fields[name] = {(int(c[0]), int(c[1])): m for c, m in zip(coords, model)}
     rows = []
-    for combination in ('mean', 'sigmaMean'):
+    for combination in ('mean',) if args.completed_mean_only else ('mean', 'sigmaMean'):
         for index, position in enumerate(POSITIONS):
+            for level in range(7):
+                header = fits.getheader(root / f'{combination}_p{index}_a{level}/finim.fits')
+                if str(header['COMBINATION METHOD']).strip() != combination:
+                    raise RuntimeError('injection combination differs from its experiment label')
+                if combination == 'sigmaMean' and header['SIGMA THRESHOLD'] != 5:
+                    raise RuntimeError('injection clipping threshold differs from the protocol')
             row, column = position
             radius = math.hypot(row - 127.5, column - 127.5)
             angle = math.degrees(-math.atan2(row - 127.5, column - 127.5)) % 360
@@ -198,12 +205,13 @@ def analyze(args: argparse.Namespace) -> None:
                         'raw_contrast_bias_fraction': None if raw['contrast'] is None else raw['contrast']/amplitude-1,
                         'raw_position_error_pixels': raw['position_error_pixels'],
                         'raw_row_error_pixels': raw['row_error_pixels'], 'raw_column_error_pixels': raw['column_error_pixels']})
-    write_json(root / 'summary.json', rows)
-    with (root / 'summary.csv').open('w') as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+    stem = 'mean_summary' if args.completed_mean_only else 'summary'
+    write_json(root / f'{stem}.json', rows)
+    with (root / f'{stem}.csv').open('w') as stream:
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator='\n')
         writer.writeheader()
         writer.writerows(rows)
-    print(json.dumps({'rows': len(rows), 'summary': str(root / 'summary.json')}))
+    print(json.dumps({'rows': len(rows), 'summary': str(root / f'{stem}.json')}))
 
 
 def main() -> None:
@@ -215,9 +223,13 @@ def main() -> None:
     parser.add_argument('--refit-products', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--threads', type=int, default=20)
+    parser.add_argument('--completed-mean-only', action='store_true',
+                        help='analyze all 42 completed mean trials into separate mean_summary files')
     args = parser.parse_args()
     if args.action == 'analyze' and args.refit_products is None:
         parser.error('--refit-products is required for analysis')
+    if args.action == 'run' and args.completed_mean_only:
+        parser.error('--completed-mean-only is only available for analysis')
     (run if args.action == 'run' else analyze)(args)
 
 

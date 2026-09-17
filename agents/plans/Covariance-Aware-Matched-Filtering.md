@@ -890,8 +890,10 @@ Known non-blocking ownership follow-ups in [mxlib_cleanup.md](mxlib_cleanup.md).
 
 ### Step 3: scientific and computational validation (2026-09-17)
 
-The full-data comparison and implementation checks below are complete. Broader injection and controlled timing
-runs are in progress; Step 3 remains open until those results are recorded.
+The full-data comparison and implementation checks below are complete. At the user's request, work is paused
+after 54 of 84 injection reductions, including all 42 arithmetic-mean trials. Step 3 remains open: 30 sigma-mean
+reductions and the controlled timing benchmark remain. The [review checkpoint](results/p4-step3-20260917-review/README.md)
+contains the completed results, figure, raw comparisons, and exact continuation state.
 
 #### Shared factors, source sampling, and image coordinates
 
@@ -917,7 +919,8 @@ an analytic/FP64 paired-refit difference of `2.05e-9` at half-amplitude `1e-5`.
 Automatic cropping uses the same residual crop, derotation, and final crop with integrated filtering enabled or
 disabled. All newly written P4 response methods publish final-image coordinates and detector-origin cards.
 Detector dimensions are recorded separately from input-template dimensions, and the reader handles odd crop
-parity. Legacy manifests retain their template-size fallback. A 24-frame D64 AF Lep run with integrated filtering
+parity. Legacy manifests retain their template-size fallback; old unequal detector/template products without
+detector-dimension cards should be regenerated. A 24-frame D64 AF Lep run with integrated filtering
 preserves the science pixels bit-for-bit and produces 900 finite filtered pixels. The synthetic regression covers
 analytic, paired-refit, detector-local, and exact-sky coordinates, including a PSF smaller than the detector.
 
@@ -964,17 +967,29 @@ injection study below uses matching source support to separate this issue from r
 
 #### Injection protocol and computational measurements
 
-The queued study uses six integer detector positions `(120,137)`, `(137,120)`, `(109,143)`, `(146,112)`,
+The planned study uses six integer detector positions `(120,137)`, `(137,120)`, `(109,143)`, `(146,112)`,
 `(98,98)`, and `(157,157)`, at radii approximately 12.1, 24.1, and 41.7 pixels. At each position it evaluates
 zero contrast and both signs of 0.25, 1, and 4 times the accepted contrast `0.004763925929356391`, under arithmetic
 mean and 5-sigma mean combination: 84 local reductions of all 621 frames. The PSF is zero-padded after its central
 12-pixel crop, preserving the original contrast scale while allowing a 15-pixel local fitting window.
+Both combination experiments use the same mean-combined response field. The sigma-mean comparison therefore also
+measures this approximation for clipped science; the response model does not differentiate the final clipping rule.
 
 Analysis measures fixed-position gain, fitted contrast and astrometric offsets, template cosine and shape error,
 and one-sided versus symmetric response differences. The free-position estimate uses a bounded quadratic peak
 within one pixel, with a complete 11-by-11 template at each candidate. Baseline subtraction measures conditional
 response calibration; raw-image fits and unsuccessful fit statuses are retained separately. Detection completeness
 and false-alarm calibration remain the held-out tests in Step 5.
+
+All 42 arithmetic-mean reductions are complete. Across the six positions, fixed-position analytic contrast bias
+has median `+3.38%`, `+2.23%`, and `-21.09%` at 0.25, 1, and 4 times the reference brightness; the paired-refit
+field gives `+5.54%`, `+3.73%`, and `-19.21%`. Analytic bias ranges from `-38.54%` to `-1.99%` in the brightest
+case. Median analytic position errors are `0.0397`, `0.0391`, and `0.0365` pixel; individual errors reach about
+`0.204` pixel. Median template/response cosine decreases from `0.9878` and `0.9870` to `0.9611`.
+All 36 conditional fits converge. The faintest raw-image fit at the first position reaches the search boundary
+with both fields; its status is retained. These results show a brightness limit for both fixed response fields
+and combine finite-amplitude effects with sparse spatial interpolation. They do not establish detection completeness.
+The [review table and figure](results/p4-step3-20260917-review/README.md) retain every position and fit status.
 
 | Full-data run | Wall time (seconds) | Peak resident memory (GiB) |
 | --- | ---: | ---: |
@@ -984,18 +999,21 @@ and false-alarm calibration remain the held-out tests in Step 5.
 These are observed whole-process measurements with 20 OpenMP workers and one BLAS thread on an i9-12900HK,
 using the Release build. Small development checks overlapped portions of the analytic run. The archived refit
 run took 6574 seconds with 48 OpenMP workers; that historical comparison does not establish a controlled speedup.
-The queued 24/96-frame trials compare batches, source caching, sparse arithmetic, and production-precision/FP64
+The pending 24/96-frame trials compare batches, source caching, sparse arithmetic, and production-precision/FP64
 paired-refit controls serially, using two workers, one BLAS thread, and medians of three repeats.
 
 The maintained drivers are [`run_p4_step3_products.py`](scripts/run_p4_step3_products.py),
 [`analyze_p4_step3.py`](scripts/analyze_p4_step3.py),
 [`run_p4_step3_injections.py`](scripts/run_p4_step3_injections.py),
 [`benchmark_p4_step3_reuse.py`](scripts/benchmark_p4_step3_reuse.py), and
-[`summarize_p4_step3.py`](scripts/summarize_p4_step3.py). Active records are under `/tmp/p4-step3-aflep`; the final
-archive will preserve frozen software, commands, input hashes, raw products, resources, and exported summaries.
+[`summarize_p4_step3.py`](scripts/summarize_p4_step3.py). Paused records remain under `/tmp/p4-step3-aflep`, with
+a review archive at `working/roc/p4_analytic_step3_20260917_review`. It preserves frozen software, commands,
+input hashes, raw products, resources, and analysis scripts. All 621 input, configuration, and PSF hashes were
+reverified at the pause. No trial was interrupted; the next trial is `sigmaMean_p1_a5`.
 
-**Still required for Step 3:** finish and summarize the broader injection study and controlled timing comparisons,
-inspect the exported figures, and preserve the final experiment archive. Covariance weighting remains Step 4.
+**Still required for Step 3:** finish the remaining 30 injections and controlled timing comparisons, summarize
+both combination methods, inspect the final figures, and preserve the completed experiment archive.
+Covariance weighting remains Step 4.
 
 ## 8. Notation
 

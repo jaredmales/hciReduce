@@ -116,6 +116,8 @@ def main() -> None:
             'fraction_of_full_squared_energy': float(np.sum(crop**2)/np.sum(psf**2)),
             'fraction_of_full_signed_sum': float(crop.sum()/psf.sum())})
     summary = {'schema': 1, 'science_bitwise_equal': True, 'same_build_control': control, 'frames': 621, 'mode_fraction': .15,
+        'combination': {'science': header['P4 SCIENCE COMBINATION'], 'response': header['P4 PSF COMBINATION'],
+                        'science_sigma_threshold': header['P4 SCIENCE SIGMA THRESHOLD']},
         'sampling': {k: header[k] for k in ['P4 PSF MEASUREMENT COUNT', 'P4 PSF SAMPLE EXCLUDED COUNT',
                     'P4 PSF ANALYTIC FACTOR COUNT', 'P4 PSF ANALYTIC BATCH SIZE']},
         'outcome_counts': dict(zip(str(diagnostic_header['P4 PSF DIAGNOSTIC COLUMNS']).split(',')[4:],

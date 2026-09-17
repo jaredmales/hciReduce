@@ -32,13 +32,15 @@ def distribution(rows: list[dict], key: str) -> dict:
 
 def injection_figure(rows: list[dict], destination: Path) -> None:
     """Show all six analytic-template recoveries as brightness changes."""
-    figure, axes = plt.subplots(3, 2, figsize=(10, 9), sharex=True, layout='constrained')
+    combinations = [name for name in ('mean', 'sigmaMean') if any(row['combination'] == name for row in rows)]
+    figure, axes = plt.subplots(3, len(combinations), figsize=(5*len(combinations), 9),
+                               sharex=True, sharey='row', squeeze=False, layout='constrained')
     metrics = [('fixed_position_bias_fraction', 'Fixed-position contrast bias (%)', 100),
                ('position_error_pixels', 'Fitted position error (pixels)', 1),
                ('cosine', 'Template / injected-response cosine', 1)]
     colors = plt.get_cmap('tab10').colors
     reference = sorted({row['amplitude'] for row in rows})[1]
-    for column, combination in enumerate(('mean', 'sigmaMean')):
+    for column, combination in enumerate(combinations):
         for position in sorted({row['position'] for row in rows}):
             trials = sorted([row for row in rows if row['combination'] == combination and
                              row['position'] == position and row['template'] == 'analytic'],
@@ -58,9 +60,12 @@ def injection_figure(rows: list[dict], destination: Path) -> None:
         axes[2, column].set_xticks([.25, 1, 4], ['0.25', '1', '4'])
         axes[2, column].set_xlabel('Injected contrast / AF Lep reference contrast')
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    figure.legend(handles, labels, loc='outside lower center', ncol=3, frameon=False)
-    figure.suptitle('P4 analytic response: conditional injection calibration\n'
-                    '621 frames; six positions; baseline-subtracted residuals', fontsize=13)
+    figure.legend(handles, labels, loc='outside lower center', ncol=3 if len(combinations) == 2 else 2, frameon=False)
+    title = ('P4 analytic response: conditional injection calibration\n'
+             '621 frames; six positions; baseline-subtracted residuals') if len(combinations) == 2 else (
+             'P4 analytic response: injection calibration\n621 frames; six positions\n'
+             'Baseline-subtracted residuals')
+    figure.suptitle(title, fontsize=13)
     figure.savefig(destination, dpi=180)
     plt.close(figure)
 
@@ -130,6 +135,8 @@ def main() -> None:
                 groups.append({'combination': combination, 'template': template, 'amplitude': amplitude,
                     'fit_status_counts': {status: sum(row['fit_status'] == status for row in rows)
                                          for status in sorted({row['fit_status'] for row in rows})},
+                    'raw_fit_status_counts': {status: sum(row['raw_fit_status'] == status for row in rows)
+                                             for status in sorted({row['raw_fit_status'] for row in rows})},
                     **{key: distribution(rows, key) for key in metrics}})
     output.mkdir(parents=True, exist_ok=False)
     for source, name in ((science_path, 'science.json'), (injections_path, 'injections.json'),

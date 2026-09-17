@@ -1,0 +1,21 @@
+{
+  "status": "review_checkpoint_not_step3_completion",
+  "records": [
+    {
+      "path": "working/roc/p4_analytic_step3_20260917_review/archive_index.json",
+      "sha256": "8487349e1c99e3baa8b60793a5baa1a38f36370ee53671dcdc2ed492563a5b48"
+    },
+    {
+      "path": "agents/plans/scripts/analyze_p4_step3.py",
+      "sha256": "83af0f14aaa4fbfc8ec29fa04a5c1b5c670125025d01418ca620a952551507f4"
+    },
+    {
+      "path": "agents/plans/scripts/run_p4_step3_injections.py",
+      "sha256": "43e364e75fe3e8b6037641c4ca0e6379d57bacfb8f019aef6186866423cd367f"
+    },
+    {
+      "path": "agents/plans/scripts/summarize_p4_step3.py",
+      "sha256": "e8c13c4a2a5051a3331200341d791fd6fb7abc243792d733795559b4f58529d1"
+    }
+  ]
+}

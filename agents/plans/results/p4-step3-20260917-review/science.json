@@ -1,0 +1,278 @@
+{
+  "schema": 1,
+  "science_bitwise_equal": true,
+  "same_build_control": {
+    "science_bitwise_equal": true,
+    "science_reference": {
+      "path": "/tmp/p4-step3-aflep/analytic_sparse_batch32/finim.fits",
+      "sha256": "c2a46fd5fccc55b9a25ce0f10a7613f9a52303ccb6c54f8d895607d1d621100d"
+    },
+    "science_max_absolute_difference": 0.0,
+    "response_header": {},
+    "resources": "wall_seconds=310.21\nuser_seconds=5354.19\nsystem_seconds=25.51\nmaximum_rss_kib=5170172\n"
+  },
+  "frames": 621,
+  "mode_fraction": 0.15,
+  "sampling": {
+    "P4 PSF MEASUREMENT COUNT": "232",
+    "P4 PSF SAMPLE EXCLUDED COUNT": "221",
+    "P4 PSF ANALYTIC FACTOR COUNT": "30166",
+    "P4 PSF ANALYTIC BATCH SIZE": "32"
+  },
+  "outcome_counts": {
+    "analytic": 176566,
+    "rankInsufficient": 0,
+    "rankBoundary": 0,
+    "cutoffUnresolved": 0,
+    "fallbackAttempted": 0,
+    "fallbackAccepted": 0,
+    "unavailable": 0
+  },
+  "all_templates": {
+    "pixels": 1219552,
+    "cosine": 0.9990494904326134,
+    "reference_projection_on_template": 0.967287404374513,
+    "relative_error": 0.055151250583009626,
+    "best_scaled_error": 0.04359031619833382
+  },
+  "per_template_relative_error": {
+    "count": 11304,
+    "median": 0.056091238015683116,
+    "p95": 0.0625897827982439,
+    "maximum": 0.8055966150484971
+  },
+  "exact_optimizer": {
+    "separation": 11.73795339222688,
+    "position_angle": 262.1667995998323,
+    "contrast": 0.004763925929356391
+  },
+  "fits": {
+    "analytic": {
+      "separation": 11.487547213308082,
+      "position_angle": 262.32672117284864,
+      "contrast": 0.004856152652036112,
+      "contrast_standard_error": 0.0011147534772069083,
+      "snr": 4.334440326965471,
+      "contrast_bias_fraction_vs_exact": 0.01935939476124071,
+      "position_error_pixels_vs_exact": 0.25249502085260583
+    },
+    "accepted_refit": {
+      "separation": 11.496490461030445,
+      "position_angle": 262.32662163588725,
+      "contrast": 0.004884882107699982,
+      "contrast_standard_error": 0.00112495229890929,
+      "snr": 4.322752221726042,
+      "contrast_bias_fraction_vs_exact": 0.0253900207805986,
+      "position_error_pixels_vs_exact": 0.24362745699453042
+    },
+    "replayed_refit": {
+      "separation": 11.496490422217569,
+      "position_angle": 262.32662165900064,
+      "contrast": 0.004884882066863161,
+      "contrast_standard_error": 0.0011249523011637671,
+      "snr": 4.3227521760367384,
+      "contrast_bias_fraction_vs_exact": 0.025390012208504453,
+      "position_error_pixels_vs_exact": 0.24362749607858064
+    }
+  },
+  "source_support": [
+    {
+      "crop_pixels": 12,
+      "fraction_of_full_squared_energy": 0.9908372157129159,
+      "fraction_of_full_signed_sum": 0.7985836700113436
+    },
+    {
+      "crop_pixels": 14,
+      "fraction_of_full_squared_energy": 0.9964240876465537,
+      "fraction_of_full_signed_sum": 0.8461647708222491
+    },
+    {
+      "crop_pixels": 16,
+      "fraction_of_full_squared_energy": 0.9981498577166178,
+      "fraction_of_full_signed_sum": 0.87353733589574
+    }
+  ],
+  "known_source_stamp": {
+    "row": 139,
+    "column": 126,
+    "reference": "finite negative-planet removal with sigmaMean",
+    "interpretation": "Total mismatch includes finite amplitude, subpixel registration, clipping, and source support: the archived full-image removal shifts the full 256-pixel PSF, while the 11-pixel sparse response crops it to 12 pixels. The accepted optimizer used a 13-pixel local window with a 14-pixel source crop. These metrics do not isolate analytic-derivative error; the new injection study matches source support.",
+    "analytic": {
+      "pixels": 121,
+      "cosine": 0.9780537962224005,
+      "reference_projection_on_template": 1.0531395349325556,
+      "relative_error": 0.21411743834185748,
+      "best_scaled_error": 0.20835251785123887
+    },
+    "accepted_refit": {
+      "pixels": 121,
+      "cosine": 0.9784447629512782,
+      "reference_projection_on_template": 1.0584144337314196,
+      "relative_error": 0.21345242903091896,
+      "best_scaled_error": 0.2065087064828433
+    }
+  },
+  "resources": {
+    "baseline": {
+      "wall_seconds": 310.21,
+      "user_seconds": 5354.19,
+      "system_seconds": 25.51,
+      "maximum_rss_kib": 5170172.0
+    },
+    "analytic": {
+      "wall_seconds": 9894.06,
+      "user_seconds": 181047.87,
+      "system_seconds": 679.75,
+      "maximum_rss_kib": 12501372.0
+    },
+    "archived_refit": {
+      "wall_seconds": 6574.0,
+      "user_seconds": 170198.2,
+      "system_seconds": 243.7,
+      "maximum_rss_kib": 6333264.0
+    }
+  },
+  "provenance": [
+    {
+      "path": "/tmp/p4-step3-aflep/analytic_sparse_batch32/finim_outputs/p4PSF_manifest.fits",
+      "sha256": "92af1acb0fe0a223cfdfe105dda69ba210be8d693c698acabdd5b0f0493fdcab"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_refit_difference_20260912T200301Z/refit_response/finim_outputs/p4PSF_manifest.fits",
+      "sha256": "66eb2bc4f18982cb817dae23a0996e3c6fa3352aff5c13d742ba6de9c9d3406d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_matched_response_20260907T225744Z/exact_optimizer/finim_outputs/p4Negative_summary.yaml",
+      "sha256": "10f0fef635abe06a643bae629b898be981aae39641b22eca084887dd7ec2792c"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_matched_response_20260907T225744Z/sparse_response/finim.fits",
+      "sha256": "04cf4d7b753420dd026a2c7cdfb20b974ce61b0aec1e1a8c74db225a7061fcad"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_matched_response_20260907T225744Z/signal_free_oracle/finim.fits",
+      "sha256": "e32a4ba74c415c04df9f65faaaca0cc0a91908a1b7f20a6a76033ab387909758"
+    }
+  ],
+  "template_error_radial_groups": [
+    {
+      "minimum_radius": 0,
+      "maximum_radius": 3.5,
+      "count": 32,
+      "median": 0.005946288620204101,
+      "p95": 0.01024844652721405,
+      "maximum": 0.010248446527214052
+    },
+    {
+      "minimum_radius": 3.5,
+      "maximum_radius": 6,
+      "count": 80,
+      "median": 0.00164527456379457,
+      "p95": 0.0027321279798089232,
+      "maximum": 0.0027793362931550587
+    },
+    {
+      "minimum_radius": 6,
+      "maximum_radius": 12,
+      "count": 336,
+      "median": 0.008876380235514509,
+      "p95": 0.014694034471640359,
+      "maximum": 0.01656178649764389
+    },
+    {
+      "minimum_radius": 12,
+      "maximum_radius": 24,
+      "count": 1356,
+      "median": 0.01941068954321007,
+      "p95": 0.02541277326753919,
+      "maximum": 0.02619281127370808
+    },
+    {
+      "minimum_radius": 24,
+      "maximum_radius": 42,
+      "count": 3740,
+      "median": 0.05092508714809488,
+      "p95": 0.05933658344742793,
+      "maximum": 0.05958826844229043
+    },
+    {
+      "minimum_radius": 42,
+      "maximum_radius": 60,
+      "count": 5760,
+      "median": 0.05950753219067459,
+      "p95": 0.3365516607875375,
+      "maximum": 0.8055966150484971
+    }
+  ],
+  "largest_template_errors": [
+    {
+      "row": 162,
+      "column": 80,
+      "radius": 58.706899083497845,
+      "relative_error": 0.8055966150484971,
+      "reference_norm": 17.421708525625355,
+      "finite_pixels": 19
+    },
+    {
+      "row": 93,
+      "column": 175,
+      "radius": 58.706899083497845,
+      "relative_error": 0.8055966150484971,
+      "reference_norm": 17.421708525625355,
+      "finite_pixels": 19
+    },
+    {
+      "row": 175,
+      "column": 162,
+      "radius": 58.706899083497845,
+      "relative_error": 0.8055966150484971,
+      "reference_norm": 17.421708525625355,
+      "finite_pixels": 19
+    },
+    {
+      "row": 80,
+      "column": 93,
+      "radius": 58.706899083497845,
+      "relative_error": 0.8055966150484971,
+      "reference_norm": 17.421708525625355,
+      "finite_pixels": 19
+    },
+    {
+      "row": 176,
+      "column": 161,
+      "radius": 58.94488951554664,
+      "relative_error": 0.7349411874316761,
+      "reference_norm": 18.247465954077118,
+      "finite_pixels": 19
+    },
+    {
+      "row": 161,
+      "column": 79,
+      "radius": 58.94488951554664,
+      "relative_error": 0.7349411874316761,
+      "reference_norm": 18.247465954077118,
+      "finite_pixels": 19
+    },
+    {
+      "row": 79,
+      "column": 94,
+      "radius": 58.94488951554664,
+      "relative_error": 0.7349411874316761,
+      "reference_norm": 18.247465954077118,
+      "finite_pixels": 19
+    },
+    {
+      "row": 94,
+      "column": 176,
+      "radius": 58.94488951554664,
+      "relative_error": 0.7349411874316761,
+      "reference_norm": 18.247465954077118,
+      "finite_pixels": 19
+    }
+  ],
+  "combination": {
+    "science": "sigmaMean",
+    "response": "mean",
+    "science_sigma_threshold": 5.0
+  }
+}
