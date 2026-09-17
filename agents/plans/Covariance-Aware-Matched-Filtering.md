@@ -667,10 +667,71 @@ the 24-frame capture run matched the earlier production run bit for bit. Modifie
 The mxlib audit found no recorded instantiation of `eigenCube<float>::image(Index) const`; the concrete upstream
 coverage follow-up is recorded in [mxlib_cleanup.md](mxlib_cleanup.md) under Known non-blocking ownership follow-ups.
 
-**Next:** validate reconstructed templates using FP64 paired detector differences before image conversion,
-including the longer sequence. Use those templates and the independently verified detector derivative to
-validate the analytic response in Step 2. The small-step mixed-precision final-image differences are diagnostic
-data, not the accuracy reference for that implementation.
+### Reconstruction oracle validated (2026-09-17)
+
+The existing `refitDifference` path was exercised with FP64 paired detector fits, subtraction before the float
+image-storage boundary, local spatial reconstruction, mean combination, and the published radial PSF model.
+No production behavior or default precision policy changed.
+
+The maintained runner is [`run_p4_refit_convergence.py`](scripts/run_p4_refit_convergence.py). It reuses and verifies
+the input, PSF, geometry, and precision provenance of a completed local sweep. A new output directory records the
+commands, logs, timings, FITS products, and adjacent-amplitude comparisons. A response-disabled baseline checks
+that enabling the products leaves the final science image exactly unchanged. An explicit `--binary` permits a
+rebuilt experimental executable and records its new hash; other experiment inputs must retain their hashes.
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=2 python3 agents/plans/scripts/run_p4_refit_convergence.py \
+  --experiment /path/to/D64-sweep --output /path/to/new-refit-sweep --samples-per-radius 4
+```
+
+Both the 24- and 96-frame subsets used the same eight amplitudes and three mode fractions as the preceding
+detector experiment. Each run measured four angular positions at each of the two requested radii (`7.8,10.8`),
+then published `5x5` radial-model stamps at all 800 search coordinates. These come from eight distinct measurement
+locations before angular averaging, not 800 independent response measurements; their noise is not assumed
+independent. Selection uses available integer detector coordinates, so these measurements are distinct
+from the preceding fractional-position local trials.
+
+The table reports the maximum `||h_large-h_small||/||h_small||` over all published source/mode stamps. Values are
+dimensionless fractions. Every comparison retained all 25 pixels per stamp, with no support changes.
+
+| Larger / smaller half-amplitude | FP64, 24 frames | FP64, 96 frames | M32D64, 24 frames | M32D64, 96 frames |
+| --- | --- | --- | --- | --- |
+| `0.03 / 0.01` | `2.19e-3` | `3.31e-2` | `2.18e-3` | `3.33e-2` |
+| `0.003 / 0.001` | `2.20e-5` | `1.19e-3` | `4.91e-3` | `9.57e-3` |
+| `0.0003 / 0.0001` | `3.58e-7` | `9.76e-6` | `3.52e-2` | `5.58e-2` |
+| `0.00003 / 0.00001` | `3.41e-7` | `2.49e-7` | `3.41e-1` | `5.77e-1` |
+
+FP64 therefore converges through reconstruction at roughly the float response-storage floor in these cases.
+Small-amplitude mixed refits remain unreliable even with the correct subtraction ordering, because that ordering
+cannot recover information already lost inside the PCA kernel. At `epsilon=1e-5`, mixed versus FP64 templates at
+the same amplitude differ by up to `29.0%` (24 frames) and `74.2%` (96 frames). Agreement at the largest amplitudes
+still does not establish a negligible finite-amplitude bias. These results do not set a universal refit contrast.
+
+A new experimental Catch2 case in [`P4Reduction_test.cpp`](../../tests/common/P4Reduction_test.cpp) checks the
+reconstruction against an independent projector derivative, with and without derotation. It captures the exact
+baseline and signed ingress matrices, uses Eigen's full temporal eigensystem to evaluate the derivative, then
+applies the production geometry's interpolation weights and an independently accumulated FP64 mean. One on-axis
+sample at its radial node avoids conflating this check with angular averaging. The source direction comes from
+the signed ingress difference at `epsilon=1e-5`, so this specifically tests differentiation and reconstruction
+after source sampling. Relative response errors were `1.8e-8`–`1.3e-7` across two modes and both derotation settings;
+the regression bound is `2e-5`. The same case verifies unchanged final science pixels.
+
+Artifacts: `/tmp/p4-response-convergence-20260917/refit{24,96}_{D64,M32D64}`. Each directory contains nine reductions:
+one baseline plus eight response-enabled runs. All 32 response-enabled final science images equal their respective
+baselines exactly. These short subsets and angular averages establish an oracle for this scope; they do not
+replace the full scientific and performance validation in Step 3.
+
+Verification: the experimental P4Reduction suite passed 34 cases / 354282 assertions (the new case accounts for
+4340 assertions); the default build passed 27 cases / 77657 assertions. Both builds succeeded, modified C++ was
+formatted, and the runner passed Python syntax checking and all four complete sweeps. The mxlib audit checked
+the new test's float FITS constructor/read/write and mutable float-cube access calls: their exact instantiations
+are present, and all executable lines in their function ranges are covered in the current LCOV report
+(`fitsFile.hpp`: 491/491; `eigenCube.hpp`: 185/185). No new coverage gap was found.
+
+**Next: Step 2.** Implement the analytic direct-P4 response against the independent detector derivative and
+these converged FP64 pre-storage refit templates. Preserve paired refits as the oracle/fallback. The small-step
+mixed-precision differences remain diagnostics, not the accuracy reference. Covariance estimation and noise
+weighting remain separate later steps.
 
 ## 8. Notation
 

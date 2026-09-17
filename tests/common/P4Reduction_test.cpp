@@ -12,6 +12,7 @@
 #include <cmath>
 #include <filesystem>
 #include <limits>
+#include <map>
 #include <mutex>
 #include <numbers>
 #include <sstream>
@@ -4814,6 +4815,190 @@ TEST_CASE( "P4 experimental detector observer preserves and scopes production re
     preparePrecisionReduction( recovered );
     REQUIRE( recovered.reduce() == 0 );
     REQUIRE( failure.m_fits.empty() );
+}
+
+/** Verify P4Reduction::calculateRefitDifferenceSamples() subtracts FP64 detector residuals before image conversion.
+ * The experimental reduction API supplies captured regressions for an independent Eigen projector derivative.
+ * P4LocalGeometry supplies the actual interpolation weights; an independent double-precision masked mean then
+ * checks the published response, with and without derotation. Enabling PSF products must preserve science pixels.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 FP64 refit response reconstructs the independent detector derivative",
+           "[P4Reduction][experimental][precision][refitDifference][derivative]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    const bool derotate = GENERATE( false, true );
+    TestDirectory directory;
+    constexpr int stampSize = 3;
+    constexpr float halfAmplitude = 1e-5F;
+    reductionT::imageT psf( 9, 9 );
+    for( int column = 0; column < psf.cols(); ++column )
+    {
+        for( int row = 0; row < psf.rows(); ++row )
+        {
+            psf( row, column ) =
+                std::exp( -0.24F * ( row - 4 ) * ( row - 4 ) - 0.15F * ( column - 4 ) * ( column - 4 ) );
+        }
+    }
+    mx::fits::fitsFile<float, mx::verbose::vv> fits;
+    const auto psfPath = directory.file( "template.fits" );
+    REQUIRE( fits.write( psfPath.string(), psf ) == mx::error_t::noerror );
+    reductionHarness reduction, baseline;
+    for( auto *configured : { &reduction, &baseline } )
+    {
+        preparePrecisionReduction( *configured );
+        configured->m_maxRadius = { 8 };
+        configured->m_numberImages = 0;
+        configured->m_doDerotate = derotate;
+        configured->m_skipPreProcess = true;
+        configured->m_combineMethod = mx::improc::HCI::combine::mean;
+    }
+    reduction.m_psfFile = psfPath.string();
+    reduction.m_psfStampSize = stampSize;
+    reduction.m_psfSampleRadii = { 6 };
+    reduction.m_psfSamplesPerRadius = 1;
+    reduction.m_psfSamplingMode = mx::improc::P4PSFSamplingMode::refitDifference;
+    reduction.m_psfRefitContrast = halfAmplitude;
+    reduction.m_outputPSFModels = true;
+    reduction.m_psfOutputPrefix = "response_";
+    reduction.m_outputDir = directory.file( "products" ).string();
+    reduction.m_finimName = "science.fits";
+    reduction.m_exactFinimName = true;
+    reduction.m_doWriteFinim = true;
+    DetectorCapture capture;
+    const auto policy = mx::improc::detail::P4PCAPrecisionPolicy::doubleDouble;
+    REQUIRE( mx::improc::detail::p4ReductionReduceExperimental( baseline, policy ) == 0 );
+    REQUIRE( mx::improc::detail::p4ReductionReduceExperimental( reduction, policy, &capture ) == 0 );
+    REQUIRE( reduction.m_finim.cube().size() == baseline.m_finim.cube().size() );
+    for( Eigen::Index index = 0; index < reduction.m_finim.cube().size(); ++index )
+    {
+        const float actual = reduction.m_finim.cube().data()[index];
+        const float expected = baseline.m_finim.cube().data()[index];
+        REQUIRE( ( actual == expected || ( std::isnan( actual ) && std::isnan( expected ) ) ) );
+    }
+    REQUIRE( reduction.m_psfMeasurementSamples.size() == 1 );
+    const auto sample = reduction.m_psfMeasurementSamples.front();
+    REQUIRE( sample.radius == 6 );
+    REQUIRE( sample.angle == 0 ); // No radial-model rotation/averaging obscures this source's raw response.
+
+    using matrixT = Eigen::MatrixXd;
+    using keyT = std::pair<int, int>;
+    std::map<keyT, std::vector<const DetectorCapture::Fit *>> fitsByCoordinate;
+    mx::improc::P4LocalGeometry::lookupImageT lookup =
+        mx::improc::P4LocalGeometry::lookupImageT::Constant( reduction.m_Nrows, reduction.m_Ncols, -1 );
+    for( const auto &fit : capture.m_fits )
+    {
+        const keyT key{ fit.coordinate.row(), fit.coordinate.column() };
+        lookup( key.first, key.second ) = 0; // Only presence matters when replaying output dependencies.
+        fitsByCoordinate[key].push_back( &fit );
+    }
+    std::map<keyT, matrixT> derivatives;
+    for( const auto &[key, recorded] : fitsByCoordinate )
+    {
+        REQUIRE( ( recorded.size() == 1 || recorded.size() == 3 ) );
+        if( recorded.size() == 1 )
+        {
+            continue;
+        }
+        const auto &base = *recorded[0];
+        const auto &positive = *recorded[1];
+        const auto &negative = *recorded[2];
+        REQUIRE( ( 0.5 * ( positive.predictors + negative.predictors ) - base.predictors ).matrix().norm() < 1e-12 );
+        const matrixT direction = ( positive.predictors - negative.predictors ) / ( 2.0 * halfAmplitude );
+        const Eigen::VectorXd targetDirection = ( positive.target - negative.target ) / ( 2.0 * halfAmplitude );
+        const matrixT predictors = base.predictors.matrix();
+        const matrixT gram = predictors * predictors.transpose();
+        const matrixT gramDirection = direction * predictors.transpose() + predictors * direction.transpose();
+        const Eigen::SelfAdjointEigenSolver<matrixT> eigensystem( gram );
+        REQUIRE( eigensystem.info() == Eigen::Success );
+        const auto &vectors = eigensystem.eigenvectors();
+        const auto &values = eigensystem.eigenvalues();
+        matrixT response( base.target.size(), base.modes.size() );
+        for( std::size_t mode = 0; mode < base.modes.size(); ++mode )
+        {
+            REQUIRE( base.result.sampleSupported( 0, mode ) );
+            REQUIRE( positive.result.sampleSupported( 0, mode ) );
+            REQUIRE( negative.result.sampleSupported( 0, mode ) );
+            const Eigen::Index cutoff = values.size() - base.modes[mode];
+            REQUIRE( values[cutoff] - values[cutoff - 1] > 1e-10 * values.tail( 1 )[0] );
+            const matrixT retained = vectors.rightCols( base.modes[mode] );
+            Eigen::VectorXd derivative = targetDirection - retained * ( retained.transpose() * targetDirection );
+            for( Eigen::Index i = cutoff; i < values.size(); ++i )
+            {
+                for( Eigen::Index j = 0; j < cutoff; ++j )
+                {
+                    const double coupling =
+                        vectors.col( j ).dot( gramDirection * vectors.col( i ) ) / ( values[i] - values[j] );
+                    derivative -= coupling * ( vectors.col( j ) * vectors.col( i ).dot( base.target.matrix() ) +
+                                               vectors.col( i ) * vectors.col( j ).dot( base.target.matrix() ) );
+                }
+            }
+            response.col( mode ) = derivative;
+        }
+        derivatives.emplace( key, std::move( response ) );
+    }
+    REQUIRE_FALSE( derivatives.empty() );
+    std::vector<double> angles;
+    for( int frame = 0; frame < reduction.m_Nims; ++frame )
+    {
+        angles.push_back( reduction.m_derotF.derotAngle( frame ) );
+    }
+    mx::improc::P4LocalGeometry geometry;
+    geometry.configure( reduction.m_Nrows,
+                        reduction.m_Ncols,
+                        stampSize,
+                        15,
+                        21,
+                        angles,
+                        derotate,
+                        reduction.m_ownership.cast<std::int64_t>(),
+                        lookup );
+    for( std::size_t mode = 0; mode < reduction.m_modeFractions.size(); ++mode )
+    {
+        mx::improc::eigenCube<float> models;
+        const auto file =
+            directory.file( "products/science_outputs/response_model_000" + std::to_string( mode ) + ".fits" );
+        REQUIRE( fits.read( models, file.string() ) == mx::error_t::noerror );
+        Eigen::ArrayXXd expected = Eigen::ArrayXXd::Zero( stampSize, stampSize );
+        for( int column = 0; column < stampSize; ++column )
+        {
+            for( int row = 0; row < stampSize; ++row )
+            {
+                int count = 0;
+                for( int frame = 0; frame < reduction.m_Nims; ++frame )
+                {
+                    const auto &output = geometry.outputSample( row, column, frame );
+                    if( !output.valid() )
+                    {
+                        continue;
+                    }
+                    for( const auto &dependency : output.samples() )
+                    {
+                        const auto &request = geometry.searchRequests()[dependency.requestIndex()];
+                        const auto &coordinate = request.coordinate();
+                        const int physicalFrame = request.frames()[dependency.frameOffset()];
+                        expected( row, column ) +=
+                            dependency.weight() *
+                            derivatives.at( { coordinate.row(), coordinate.column() } )( physicalFrame, mode );
+                    }
+                    ++count;
+                }
+                REQUIRE( count > 0 );
+                expected( row, column ) /= count;
+            }
+        }
+        const Eigen::ArrayXXd actual = models.image( static_cast<int>( sample.sourceIndex ) ).cast<double>();
+        REQUIRE( actual.isFinite().all() );
+        REQUIRE( expected.matrix().norm() > 0 );
+        const double error = ( actual - expected ).matrix().norm() / expected.matrix().norm();
+        INFO( "derotate=" << derotate << " mode=" << mode << " response relative error=" << error );
+        REQUIRE( error < 2e-5 );
+    }
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4Reductionf::calculateRefitDifferenceSamples();
+#endif
+    // clang-format on
 }
 
 /// Verify ordinary production is exactly the internal reduction-level M32D64 dispatch.
