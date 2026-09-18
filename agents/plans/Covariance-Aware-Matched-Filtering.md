@@ -458,6 +458,10 @@ above supplies the initial sampling geometry for the later covariance-filter pro
 6. **Consider time-resolved likelihoods after the final-image prototype.** Measure the information gained against
    storage and covariance-training costs before expanding the output format.
 
+Current checkpoint (2026-09-18): the [initial fixed-policy Step-5 evaluation](results/p4-step5-evaluation-20260918/README.md)
+is complete. It establishes neither a covariance detection gain nor calibrated conditional uncertainties;
+the report records the remaining calibration and independent-validation work.
+
 A useful response-approximation metric in the adopted noise model is
 
 $$
@@ -1150,7 +1154,8 @@ held-out data. No covariance-related gain on AF Lep is claimed by the Step-4 num
 
 ### Step 5 started: annular training and application integration (2026-09-17)
 
-**Step 5 is in progress.** `PSFNoiseTraining` now selects complete, finite annular patches and applies the Step-4
+**Initial integration checkpoint; the completed fixed-policy evaluation is recorded below.** `PSFNoiseTraining`
+now selects complete, finite annular patches and applies the Step-4
 shared filter. `hciAnalyze` exposes this for both P4 and KLIP responses through `noise.model=diagonal|pca`.
 Identity remains the default; `noise.outputDiagnostics=true` also exports its conditional products for comparisons.
 The [configuration dictionary](../../doc/hciAnalyze_config.dox) documents the options and output roles.
@@ -1282,12 +1287,55 @@ order-statistic rule selects the largest of the 28 calibration scores. The separ
 2/28 (identity), 0/28 (diagonal), 1/28 (zero-mode PCA), and 1/28 (three-mode PCA). These overlapping spatial trials
 and four angular blocks do not establish a precise tail probability or a detection gain.
 
-Eighteen fresh full-image evaluations are running unattended at six preassigned evaluation sites, at 0.5, 1, and 2 times the
+Eighteen fresh full-image evaluations were launched at six preassigned evaluation sites, at 0.5, 1, and 2 times the
 contrast scale from the frozen zero-mode threshold and training-only conditional sigma. Their runner freezes the
 software, inputs, thresholds, masks, and response subset; it then measures all four filters automatically. Recovery
 uses raw injected images, with no baseline subtraction. Invalid searches remain nondetections, and amplitude bias
-and conditional-interval coverage use the exact injected position. See the report for queue status and artifacts.
-Step 5 remains in progress until those results are reviewed.
+and conditional-interval coverage use the exact injected position. The completed review follows.
+
+### Step 5: initial held-out evaluation complete (2026-09-18)
+
+All **18 full-image injections and 72 model measurements** finished successfully, with no invalid injection searches.
+The [evaluation report](results/p4-step5-evaluation-20260918/README.md) preserves individual results, recovery and
+photometry plots, and the independent product audit. All 621 input frames and recorded frozen/product hashes agree;
+all 72 measurements reproduce exactly from their FITS maps. The reduction wall times total 1 h 58 min 52 s,
+excluding the subsequent filter analysis.
+
+Each brightness is a multiple of a site-specific reference contrast: the frozen zero-mode PCA threshold times
+that site's baseline conditional sigma. It is not a measured SNR or each model's own threshold contrast. Three
+brightnesses reuse six sites at nominal separations 26, 38, and 50 pixels, so these are not 18 independent noise
+realizations. The rank-three/floor-0.1 policy and all thresholds remained fixed throughout evaluation.
+
+| Method | Detections at 0.5× | Detections at 1× | Detections at 2× | Evaluation null exceedances | Positive amplitudes within ±1 conditional sigma |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Identity | 3/6 | 6/6 | 6/6 | 2/28 | 18/18 |
+| Diagonal | 1/6 | 4/6 | 6/6 | 0/28 | 3/18 |
+| Zero-mode PCA | 2/6 | 4/6 | 6/6 | 1/28 | 0/18 |
+| Three-mode PCA | 2/6 | 5/6 | 6/6 | 1/28 | 1/18 |
+
+**No covariance detection gain is established.** The target false-positive rate is common, but the observed null
+rates differ and their uncertainty is large. Identity's greater recovery count is not a matched-rate superiority
+result. Three-mode PCA recovers one more middle-brightness site than the zero-mode control; six sites cannot
+establish a general gain. Some evaluation sites already exceed threshold before injection and remain in the
+preassigned sample; the report identifies them explicitly.
+
+The learned conditional sigmas fail to describe the raw amplitude errors in this sample. Identity's sigma assumes
+unit pixel covariance, so its 18/18 coverage does not demonstrate successful noise calibration. At unmodified
+evaluation null centers, the corresponding ±1-sigma coverage is 28/28, 6/28, 2/28, and 1/28, respectively; the
+mismatch is therefore not solely finite-source nonlinearity. Scores remain uncalibrated as Gaussian significances.
+
+Raw median contrast errors decrease with brightness: identity +33.6/+18.5/+10.8%, diagonal +20.4/+12.2/+8.0%,
+zero-mode PCA +40.7/+22.0/+12.4%, and three-mode PCA +32.7/+17.1/+9.2%. These include substantial preexisting
+background offsets. A **secondary paired-amplitude increment** subtracts the separately measured baseline amplitude:
+its median errors are about +2–2.4%, with individual errors +0.36% to +6.14% across all methods and levels.
+Those increments are neither negative-injection results nor raw completeness/coverage measurements. Learned weights
+adapt between the baseline and positive image, so they do not isolate the response derivative alone.
+
+This completes the initial fixed-policy Step-5 evaluation and supplies a review checkpoint. Remaining scientific
+work is to investigate conditional-uncertainty calibration and rank/floor choices on development data, resolve
+small-separation training support and source wings, and evaluate any revised policy on fresh held-out data with
+more independent null/injection coverage. The inspected evaluation sample cannot serve as an untouched test of
+subsequent tuning. No production code changed during this results review.
 
 ## 8. Notation
 

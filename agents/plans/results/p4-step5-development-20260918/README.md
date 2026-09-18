@@ -1,8 +1,9 @@
 # Step 5: exclusion audit, full-image development, and held-out null calibration
 
-**Status: development and null calibration complete; the 18-injection evaluation is running unattended.**
-The queue also performs all four filter measurements and writes a results table when it finishes.
-No covariance detection gain has been established at this checkpoint.
+**Status: development, null calibration, and the initial 18-injection evaluation are complete.**
+All 72 filter measurements passed review; see the
+[completed evaluation report](../p4-step5-evaluation-20260918/README.md) for recovery and photometry plots.
+No covariance detection gain has been established, and the learned conditional uncertainties under-cover.
 
 ![Response support and held-out null scores](diagnostics.png)
 
@@ -109,7 +110,7 @@ exceedances are in one block. Block-resampling percentiles are retained in
 In particular, the diagonal method's zero events and degenerate bootstrap interval do not bound its tail at zero.
 These counts cannot establish a preferred method or a precise 5% operating point.
 
-## Running evaluation
+## Evaluation batch
 
 The frozen batch launched at **2026-09-18 14:55:59 UTC**, detached supervisor PID **934537**.
 It contains **18 separate full-image injections**: six preassigned evaluation positions at 0.5, 1, and 2 times
@@ -126,8 +127,8 @@ Raw queue: `working/roc/p4_noise_step5_evaluation_20260918/`.
 - `complete.json`: written only after all 18 reductions and 72 model measurements finish successfully.
 - `results.json`, `results.md`: individual measurements and the automatic recovery table, produced on completion.
 
-The completed development reductions took roughly seven minutes each. The evaluation is expected to take
-about two hours plus analysis, with no session polling required. Recovery uses raw scores at the frozen threshold.
+The completed evaluation reductions took 1 h 58 min 52 s in total, followed by all 72 filter measurements.
+Recovery uses raw scores at the frozen threshold.
 Invalid searches count as nondetections. Contrast bias and one-conditional-sigma coverage use the exact injected
 position, without baseline subtraction or selecting a fitted amplitude peak. Identity sigma assumes unit pixel
 covariance and is not a trained noise uncertainty. The six positions provide a small spatial sample.
@@ -162,5 +163,6 @@ correction changed trial geometry, reduction settings, science values, or noise 
 
 Maintained scripts are `run_p4_step5_pilot.py`, `run_p4_step5_full_injections.py`,
 `analyze_p4_step5_development.py`, `run_p4_step5_holdout.py`, `run_p4_step5_evaluation.py`, and
-`plot_p4_step5_development.py` in `agents/plans/scripts/`. Step 5 remains in progress pending review of the
-positive-injection completeness, raw contrast errors, and conditional-uncertainty coverage.
+`plot_p4_step5_development.py` in `agents/plans/scripts/`. The completed evaluation is audited and plotted by
+`review_p4_step5_evaluation.py`. The initial fixed-policy Step-5 study is complete; its report records the
+remaining uncertainty-calibration, small-separation support, and independent-validation work.
