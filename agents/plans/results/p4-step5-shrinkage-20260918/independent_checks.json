@@ -1,0 +1,23 @@
+{
+  "projection_groups_independently_recomputed": 2304,
+  "all_paired_variance_and_MSE_ratios_recomputed": true,
+  "all_24_policy_medians_recomputed": true,
+  "independent_real_sample_SVD_solves": 768,
+  "maximum_relative_SVD_precision_vector_error": 8.77319257343001e-15,
+  "synthetic_trace_and_isotropic_endpoint_checks_passed": true,
+  "invalid_strength_and_insufficient_or_degenerate_sample_checks_passed": true,
+  "unchanged_projection_and_summary_scalars_after_support_metadata_added": 161509,
+  "all_768_recorded_sample_ranks_and_nullspace_fractions_match_independent_SVD_checks": true,
+  "independent_verification_provenance": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_shrinkage_20260918_before_support_metadata/independent_checks.json",
+      "bytes": 418,
+      "sha256": "72803d3a8c3e7ad47e40b6659215ef25dd9b3f1f7da0a74ad34f37d62ddbd648"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_shrinkage_20260918_before_support_metadata/sample_support.json",
+      "bytes": 171323,
+      "sha256": "a4be8c14059dad447b97bf6f4f8297e82257ffe42f852cac23fbfe039e768933"
+    }
+  ]
+}

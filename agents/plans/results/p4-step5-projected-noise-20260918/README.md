@@ -134,9 +134,10 @@ on its eligible subset; the number and composition of fits differ across offsets
 inward differences but does not make the projected covariance transferable across radius. Pooling many rings
 therefore still requires validation of covariance shape, even after radial variance normalization.
 
-## Next comparison
+## Follow-on comparison
 
-Test a **trace-preserving shrinkage covariance** that keeps all empirical modes:
+The [shrinkage comparison](../p4-step5-shrinkage-20260918/README.md) is now complete. It tests the specified
+**trace-preserving shrinkage covariance**:
 
 $$
 C_\gamma=(1-\gamma_{\rm shrink})\widehat C+
@@ -149,7 +150,8 @@ isotropic component regularizes the sample nullspace; all empirical correlations
 of discarding every mode after the third. The endpoint 1.0 is an isotropic covariance with the same fitted mean,
 which need not reproduce the original identity reference's background handling. Check held-out directional
 variance and stability before interpreting injection recovery; retain identity/Gaussian detection references for
-that subsequent comparison. No shrinkage result or production change is claimed here.
+that subsequent comparison. The follow-on report records unfavorable held-out behavior for these strengths;
+production filtering remains unchanged.
 
 ## Verification and artifacts
 

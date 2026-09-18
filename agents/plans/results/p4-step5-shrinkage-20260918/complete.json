@@ -1,0 +1,21 @@
+{
+  "baseline_images": 1,
+  "new_reductions": 0,
+  "new_positive_images": 0,
+  "policies": 24,
+  "control_policies": 8,
+  "common_sites": 16,
+  "directional_fits": 768,
+  "verification": {
+    "archived_control_scalar_values": 51136,
+    "shrinkage_directional_fits": 768,
+    "pca_control_directional_fits": 256,
+    "split_comparisons": 384,
+    "native_train_validation_support_disjoint": true,
+    "trace_and_positive_variance_bound_preserved": true,
+    "projected_shrinkage_variance_identity_agrees": true,
+    "physical_unit_and_standardized_weights_agree": true,
+    "isotropic_weights_and_band_invariant_absolute_variance_agree": true,
+    "input_and_script_fingerprints_unchanged": true
+  }
+}

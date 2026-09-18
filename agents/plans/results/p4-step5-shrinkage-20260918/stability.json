@@ -1,0 +1,2306 @@
+[
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.8029658172157005,
+    "relative_covariance_difference": 1.285230286864117
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.8168860821829256,
+    "relative_covariance_difference": 1.2527350102719759
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.11190340322412773
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.4681814900579094,
+    "relative_covariance_difference": 1.0899665470507456
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.5697673164244289,
+    "relative_covariance_difference": 1.0269393239151356
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.02843349973135085
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.33900073361878086,
+    "relative_covariance_difference": 1.064229852597552
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.4781268369687298,
+    "relative_covariance_difference": 1.0007027512707802
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.04046831865047326
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.3639844007266243,
+    "relative_covariance_difference": 1.023101398113931
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.49417029941014723,
+    "relative_covariance_difference": 0.9596659846278227
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.1483824572708035
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.8081603788728333,
+    "relative_covariance_difference": 1.2851241127373363
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.8217097587188045,
+    "relative_covariance_difference": 1.2525743220629015
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.10168260518849244
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.485935768486337,
+    "relative_covariance_difference": 1.0869730056109819
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.5880003290502926,
+    "relative_covariance_difference": 1.0236630302663752
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.03422947266415703
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.33807534187273963,
+    "relative_covariance_difference": 1.0580141144031017
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.4837565111525228,
+    "relative_covariance_difference": 0.9938321649706942
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.03800318401474169
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.3658099820710605,
+    "relative_covariance_difference": 1.0065286922978136
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.5051577282109172,
+    "relative_covariance_difference": 0.9418810302450966
+  },
+  {
+    "site": "calibration_r46_b0",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.09556464492373147
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.7699509036526625,
+    "relative_covariance_difference": 1.315883307593187
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.7824633230992429,
+    "relative_covariance_difference": 1.2835931726347007
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.08502475164304794
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.3043406188030571,
+    "relative_covariance_difference": 1.149547901607143
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.3859839994833827,
+    "relative_covariance_difference": 1.0906677654334107
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.024402712736998608
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.24945927221444683,
+    "relative_covariance_difference": 1.0786993073955662
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.38118028038246976,
+    "relative_covariance_difference": 1.0167889556068042
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.02279843673961221
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.25038135040949866,
+    "relative_covariance_difference": 1.0333056405975163
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.37577484763164976,
+    "relative_covariance_difference": 0.970286758294266
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.101736834783174
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.7687809922998848,
+    "relative_covariance_difference": 1.3158281791835282
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.7813961295364859,
+    "relative_covariance_difference": 1.283474681014286
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.07689292929770301
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.32293611502194725,
+    "relative_covariance_difference": 1.1395585293083836
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.40609330416570866,
+    "relative_covariance_difference": 1.080372854181101
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.01712409696160685
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.26587678061443454,
+    "relative_covariance_difference": 1.0677406140144792
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.4002354837678498,
+    "relative_covariance_difference": 1.0057930670765014
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.00887014376109621
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.25908885681245064,
+    "relative_covariance_difference": 1.0126230684268476
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.39050554956120304,
+    "relative_covariance_difference": 0.9493080289145658
+  },
+  {
+    "site": "calibration_r46_b1",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.07738867542527858
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.7606115959903877,
+    "relative_covariance_difference": 1.3004628387985102
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.7755211792039386,
+    "relative_covariance_difference": 1.2663517503085548
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.06337322881982572
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.35694834699653155,
+    "relative_covariance_difference": 1.1384870424839013
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.43230587110665325,
+    "relative_covariance_difference": 1.0828035507394174
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.05837125658740725
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.3283477784374007,
+    "relative_covariance_difference": 1.0843978461241823
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.4270681347689399,
+    "relative_covariance_difference": 1.0237342563609144
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.0325648465251537
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.3059708901259828,
+    "relative_covariance_difference": 1.0411042691854269
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.3942239841537834,
+    "relative_covariance_difference": 0.9783576467508135
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 0.9999999999999998,
+    "relative_covariance_difference": 0.11776615169043397
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.7589630298834722,
+    "relative_covariance_difference": 1.300426603996904
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.77397802117031,
+    "relative_covariance_difference": 1.2662246670776025
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.05817886639203064
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.36203348229131244,
+    "relative_covariance_difference": 1.1152040353000723
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.43639778831927795,
+    "relative_covariance_difference": 1.0566670863531533
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.0015893415208684217
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.3255801005015821,
+    "relative_covariance_difference": 1.0615546600689643
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.4264889446256977,
+    "relative_covariance_difference": 0.9993559543004001
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.009022516224410677
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.30847193158032965,
+    "relative_covariance_difference": 1.0187248581419943
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.4018698167820825,
+    "relative_covariance_difference": 0.9547054503844289
+  },
+  {
+    "site": "calibration_r46_b2",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.047520415587798945
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.7569000825565664,
+    "relative_covariance_difference": 1.291556633611272
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.7740567669170276,
+    "relative_covariance_difference": 1.2563212941834572
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.05185465512386142
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.4210645274240406,
+    "relative_covariance_difference": 1.1005151396609913
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.5112333908624501,
+    "relative_covariance_difference": 1.0391039691428292
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.054155998229888536
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.35852512670750925,
+    "relative_covariance_difference": 1.0692439067217778
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.4706781828687565,
+    "relative_covariance_difference": 1.0045227340951595
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.03132541708750154
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.2680518705710066,
+    "relative_covariance_difference": 1.0033625024667154
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.41941285441614135,
+    "relative_covariance_difference": 0.9409145580245488
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.11426771467710665
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.7612585372862062,
+    "relative_covariance_difference": 1.291434595089949
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.7781465401422234,
+    "relative_covariance_difference": 1.2561092853975804
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.03841925859514598
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.45125463880918937,
+    "relative_covariance_difference": 1.095033271484799
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.5377956469478965,
+    "relative_covariance_difference": 1.0334134133833295
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.06566656026732033
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.38344114283271047,
+    "relative_covariance_difference": 1.0620922254366718
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.4916157442563371,
+    "relative_covariance_difference": 0.9971758078700306
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.04287817607951423
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.2836744464353053,
+    "relative_covariance_difference": 0.9939535586087205
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.4349994464091553,
+    "relative_covariance_difference": 0.9302553835074016
+  },
+  {
+    "site": "calibration_r46_b3",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.08583211465681202
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.6482200332802622,
+    "relative_covariance_difference": 1.2842390638175913
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.678519983878396,
+    "relative_covariance_difference": 1.2437993252271369
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.19178243042556595
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.5012236190416096,
+    "relative_covariance_difference": 1.166482939276598
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.5662959055837582,
+    "relative_covariance_difference": 1.1103397999781186
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.058649269785323116
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.39905663230273036,
+    "relative_covariance_difference": 1.0904950304133167
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.48552371663324045,
+    "relative_covariance_difference": 1.028006994017559
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.02417347607634166
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.30999286911528867,
+    "relative_covariance_difference": 1.0232662741200018
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.429455889260263,
+    "relative_covariance_difference": 0.9592486724939988
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.07936355511670594
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.6514465346522038,
+    "relative_covariance_difference": 1.2843097250467976
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.6812360645756621,
+    "relative_covariance_difference": 1.242867031970357
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.18205369082736897
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.4991164098731372,
+    "relative_covariance_difference": 1.1659452309049885
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.5628007913394641,
+    "relative_covariance_difference": 1.1080910215282487
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.062081128289825295
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.4005276628297052,
+    "relative_covariance_difference": 1.0921406636943305
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.48803574719663284,
+    "relative_covariance_difference": 1.0275014246745018
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.036353026086046375
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.3181171916122492,
+    "relative_covariance_difference": 1.022539590984698
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.4376525698210907,
+    "relative_covariance_difference": 0.9549795212814929
+  },
+  {
+    "site": "calibration_r50_b0",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.06030378832971055
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.6165477428982086,
+    "relative_covariance_difference": 1.3300923306561745
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.6481412354739855,
+    "relative_covariance_difference": 1.2908611121061802
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.2583351053573872
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.5673584782161695,
+    "relative_covariance_difference": 1.1964394882556306
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.6314199294807096,
+    "relative_covariance_difference": 1.1385683383269487
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.11759698817339112
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.4281823325445412,
+    "relative_covariance_difference": 1.101090610311731
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.5394629596453888,
+    "relative_covariance_difference": 1.0380892924382943
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.044740702885336894
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.2550648997313631,
+    "relative_covariance_difference": 1.0327874204231264
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.37992438391679,
+    "relative_covariance_difference": 0.9683390419560747
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.10635842612166142
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.6051845933971379,
+    "relative_covariance_difference": 1.3298662846991303
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.6375216236176569,
+    "relative_covariance_difference": 1.284090518566488
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.2480240439234153
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.5592557657465252,
+    "relative_covariance_difference": 1.1964275924094359
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.6232377930343418,
+    "relative_covariance_difference": 1.1270091636644124
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.11613710305590441
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.43675572963569387,
+    "relative_covariance_difference": 1.085260502267796
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.5430550048723461,
+    "relative_covariance_difference": 1.009216158894679
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.05263423750720819
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.26116240185806006,
+    "relative_covariance_difference": 1.0138433217972649
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.3870541389422363,
+    "relative_covariance_difference": 0.935004343829433
+  },
+  {
+    "site": "calibration_r50_b1",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.07983318928864436
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.7155830613815913,
+    "relative_covariance_difference": 1.3126011632148629
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.7436245272264748,
+    "relative_covariance_difference": 1.2719055340104772
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.22860026306408823
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.6499276192154773,
+    "relative_covariance_difference": 1.1841046206511043
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.7096064657901082,
+    "relative_covariance_difference": 1.1262482200903552
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.1151635974151297
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.4719608243885189,
+    "relative_covariance_difference": 1.0928312352374945
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.5745785576480759,
+    "relative_covariance_difference": 1.0303768567628604
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.032280984337366134
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.37463430379676654,
+    "relative_covariance_difference": 1.0172515420920598
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.48589944227826587,
+    "relative_covariance_difference": 0.9532431728202705
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.05157578255349216
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.7089144301910264,
+    "relative_covariance_difference": 1.3111669363785363
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.737629424313639,
+    "relative_covariance_difference": 1.264277707795212
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.21923508659633337
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.6461867368953027,
+    "relative_covariance_difference": 1.16703623168071
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.7065192108637497,
+    "relative_covariance_difference": 1.0982630846211927
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.11461812193101738
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.4890554966093452,
+    "relative_covariance_difference": 1.07457269948394
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.5877842048706489,
+    "relative_covariance_difference": 0.999182875073448
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.0460300570203803
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.38942935707842685,
+    "relative_covariance_difference": 0.998489928673038
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.5038588048338225,
+    "relative_covariance_difference": 0.9205725597853531
+  },
+  {
+    "site": "calibration_r50_b2",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.04186147101301368
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.602110433364524,
+    "relative_covariance_difference": 1.3180461266711245
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.6430419052940596,
+    "relative_covariance_difference": 1.2765426365758914
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.2299272034447469
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.5809755069213188,
+    "relative_covariance_difference": 1.1764963041555803
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.6451082429027268,
+    "relative_covariance_difference": 1.118397340684286
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.10437789882356256
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.42803068190656735,
+    "relative_covariance_difference": 1.0940816302955665
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.5279082298950748,
+    "relative_covariance_difference": 1.0316348535290614
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.03918245915998235
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.3690063251945001,
+    "relative_covariance_difference": 1.0190277392575424
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.4656900116411928,
+    "relative_covariance_difference": 0.954668007197514
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.04367049254916537
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.5978444441085242,
+    "relative_covariance_difference": 1.3171987924752568
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.6392910715485766,
+    "relative_covariance_difference": 1.2714943553216327
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.22845977172601908
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.5800570871174614,
+    "relative_covariance_difference": 1.169305943331149
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.6433766278345402,
+    "relative_covariance_difference": 1.1037888193247656
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.1093034360877591
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.4392320202624424,
+    "relative_covariance_difference": 1.0862947951201551
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.5360769195557192,
+    "relative_covariance_difference": 1.0150239559104937
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.05685906599180695
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.3753008161109152,
+    "relative_covariance_difference": 1.0184712650987209
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.4768968580030122,
+    "relative_covariance_difference": 0.943568640307244
+  },
+  {
+    "site": "calibration_r50_b3",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.043551153252353876
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.8029658172157003,
+    "relative_covariance_difference": 1.2852302868641168
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.8168860821829254,
+    "relative_covariance_difference": 1.2527350102719754
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.1119034032241284
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.4681814900579086,
+    "relative_covariance_difference": 1.0899665470507456
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.5697673164244279,
+    "relative_covariance_difference": 1.026939323915136
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.02843349973134994
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.33900073361877975,
+    "relative_covariance_difference": 1.0642298525975518
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.478126836968729,
+    "relative_covariance_difference": 1.0007027512707802
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.040468318650472256
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.36398440072662286,
+    "relative_covariance_difference": 1.0231013981139314
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.4941702994101468,
+    "relative_covariance_difference": 0.9596659846278224
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.1483824572708028
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.8081603788728333,
+    "relative_covariance_difference": 1.2851241127373358
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.8217097587188045,
+    "relative_covariance_difference": 1.2525743220629018
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.10168260518849266
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.48593576848633546,
+    "relative_covariance_difference": 1.086973005610982
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.5880003290502918,
+    "relative_covariance_difference": 1.023663030266375
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.03422947266415592
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.3380753418727392,
+    "relative_covariance_difference": 1.0580141144031014
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.48375651115252194,
+    "relative_covariance_difference": 0.9938321649706935
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.03800318401474096
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.36580998207105947,
+    "relative_covariance_difference": 1.0065286922978136
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.5051577282109165,
+    "relative_covariance_difference": 0.9418810302450964
+  },
+  {
+    "site": "evaluation_r46_b0",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.09556464492373112
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.769950903652663,
+    "relative_covariance_difference": 1.3158833075931868
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.7824633230992432,
+    "relative_covariance_difference": 1.2835931726347007
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.08502475164304861
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.3043406188030571,
+    "relative_covariance_difference": 1.1495479016071426
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.38598399948338313,
+    "relative_covariance_difference": 1.0906677654334103
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.024402712736998892
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.249459272214447,
+    "relative_covariance_difference": 1.078699307395566
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.38118028038246965,
+    "relative_covariance_difference": 1.016788955606804
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.02279843673961221
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.2503813504094981,
+    "relative_covariance_difference": 1.033305640597516
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.3757748476316498,
+    "relative_covariance_difference": 0.9702867582942665
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.10173683478317376
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.7687809922998845,
+    "relative_covariance_difference": 1.3158281791835278
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.7813961295364861,
+    "relative_covariance_difference": 1.283474681014286
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.07689292929770379
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.3229361150219478,
+    "relative_covariance_difference": 1.1395585293083836
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.4060933041657089,
+    "relative_covariance_difference": 1.080372854181101
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.01712409696160685
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.26587678061443426,
+    "relative_covariance_difference": 1.0677406140144792
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.4002354837678496,
+    "relative_covariance_difference": 1.0057930670765012
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.008870143761095487
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.2590888568124503,
+    "relative_covariance_difference": 1.0126230684268474
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.39050554956120304,
+    "relative_covariance_difference": 0.9493080289145657
+  },
+  {
+    "site": "evaluation_r46_b1",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.0773886754252784
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.7606115959903884,
+    "relative_covariance_difference": 1.30046283879851
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.7755211792039389,
+    "relative_covariance_difference": 1.266351750308555
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.06337322881982554
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.3569483469965329,
+    "relative_covariance_difference": 1.1384870424839013
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.4323058711066545,
+    "relative_covariance_difference": 1.082803550739417
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 0.9999999999999998,
+    "relative_covariance_difference": 0.05837125658740615
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.32834777843740265,
+    "relative_covariance_difference": 1.0843978461241823
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.42706813476894084,
+    "relative_covariance_difference": 1.0237342563609138
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.03256484652515302
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.3059708901259833,
+    "relative_covariance_difference": 1.0411042691854269
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.3942239841537833,
+    "relative_covariance_difference": 0.978357646750813
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.11776615169043346
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.758963029883473,
+    "relative_covariance_difference": 1.300426603996904
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.77397802117031,
+    "relative_covariance_difference": 1.266224667077603
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.05817886639203004
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.3620334822913122,
+    "relative_covariance_difference": 1.1152040353000725
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.4363977883192779,
+    "relative_covariance_difference": 1.0566670863531533
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.0015893415208682363
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.32558010050158237,
+    "relative_covariance_difference": 1.0615546600689647
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.42648894462569753,
+    "relative_covariance_difference": 0.9993559543004
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.009022516224410677
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.3084719315803302,
+    "relative_covariance_difference": 1.0187248581419943
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.4018698167820823,
+    "relative_covariance_difference": 0.9547054503844289
+  },
+  {
+    "site": "evaluation_r46_b2",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.04752041558779896
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.8080749273664449,
+    "relative_covariance_difference": 1.2879952969076085
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.8200772235288234,
+    "relative_covariance_difference": 1.2537985850027245
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.07225752873974026
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.4385710955642382,
+    "relative_covariance_difference": 1.093512788695216
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.5378042434888288,
+    "relative_covariance_difference": 1.0310174800669185
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.039014461809252644
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.4234278800130003,
+    "relative_covariance_difference": 1.057526194585323
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.5261175151272434,
+    "relative_covariance_difference": 0.9927390834544868
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.017145072488818493
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.40812336120490716,
+    "relative_covariance_difference": 1.0015755687402919
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.5131817626083345,
+    "relative_covariance_difference": 0.9380874896554426
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.10256086883387622
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.81215281714759,
+    "relative_covariance_difference": 1.2878169672390893
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.8239698000376278,
+    "relative_covariance_difference": 1.2535037225535395
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 0.9999999999999998,
+    "relative_covariance_difference": 0.05932878495084959
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.47080913301821065,
+    "relative_covariance_difference": 1.0923905776705827
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.5662337096403027,
+    "relative_covariance_difference": 1.029431422018408
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.05658385427878821
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.44318373031900343,
+    "relative_covariance_difference": 1.0547260423708587
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.5454663200883169,
+    "relative_covariance_difference": 0.9893118386143738
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.03573796655441282
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.42634357398792605,
+    "relative_covariance_difference": 0.9902685342014934
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.5338791051405265,
+    "relative_covariance_difference": 0.9255905871400424
+  },
+  {
+    "site": "evaluation_r46_b3",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.07173018730745517
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.648220033280264,
+    "relative_covariance_difference": 1.2842390638175916
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.6785199838783968,
+    "relative_covariance_difference": 1.2437993252271367
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.19178243042556498
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.5012236190416094,
+    "relative_covariance_difference": 1.1664829392765979
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.5662959055837586,
+    "relative_covariance_difference": 1.1103397999781188
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.058649269785322214
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.3990566323027308,
+    "relative_covariance_difference": 1.090495030413317
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.4855237166332404,
+    "relative_covariance_difference": 1.028006994017559
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.02417347607634078
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.3099928691152873,
+    "relative_covariance_difference": 1.0232662741200018
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.42945588926026185,
+    "relative_covariance_difference": 0.9592486724939989
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.07936355511670541
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.6514465346522038,
+    "relative_covariance_difference": 1.2843097250467972
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.6812360645756629,
+    "relative_covariance_difference": 1.242867031970356
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.18205369082736755
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.49911640987313827,
+    "relative_covariance_difference": 1.1659452309049883
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.5628007913394645,
+    "relative_covariance_difference": 1.108091021528249
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.062081128289824566
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.4005276628297049,
+    "relative_covariance_difference": 1.0921406636943307
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.48803574719663256,
+    "relative_covariance_difference": 1.0275014246745016
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.03635302608604508
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.31811719161224883,
+    "relative_covariance_difference": 1.0225395909846986
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.43765256982108997,
+    "relative_covariance_difference": 0.9549795212814931
+  },
+  {
+    "site": "evaluation_r50_b0",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.06030378832970999
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.6165477428982076,
+    "relative_covariance_difference": 1.3300923306561745
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.6481412354739851,
+    "relative_covariance_difference": 1.29086111210618
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.2583351053573875
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.5673584782161697,
+    "relative_covariance_difference": 1.1964394882556306
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.6314199294807097,
+    "relative_covariance_difference": 1.1385683383269494
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.11759698817339179
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.42818233254454063,
+    "relative_covariance_difference": 1.101090610311731
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.5394629596453885,
+    "relative_covariance_difference": 1.0380892924382943
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.04474070288533703
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.25506489973136315,
+    "relative_covariance_difference": 1.032787420423126
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.37992438391679023,
+    "relative_covariance_difference": 0.9683390419560749
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.10635842612166103
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.6051845933971385,
+    "relative_covariance_difference": 1.3298662846991307
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.6375216236176567,
+    "relative_covariance_difference": 1.284090518566488
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.24802404392341548
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.5592557657465255,
+    "relative_covariance_difference": 1.1964275924094359
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.6232377930343422,
+    "relative_covariance_difference": 1.1270091636644124
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.11613710305590517
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.43675572963569426,
+    "relative_covariance_difference": 1.0852605022677961
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.5430550048723461,
+    "relative_covariance_difference": 1.0092161588946793
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.0526342375072084
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.2611624018580595,
+    "relative_covariance_difference": 1.0138433217972649
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.3870541389422361,
+    "relative_covariance_difference": 0.9350043438294331
+  },
+  {
+    "site": "evaluation_r50_b1",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.07983318928864393
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.7155830613815917,
+    "relative_covariance_difference": 1.3126011632148626
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.7436245272264752,
+    "relative_covariance_difference": 1.271905534010477
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.2286002630640885
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.6499276192154768,
+    "relative_covariance_difference": 1.1841046206511046
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.7096064657901084,
+    "relative_covariance_difference": 1.126248220090355
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.11516359741512973
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.471960824388519,
+    "relative_covariance_difference": 1.0928312352374945
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.5745785576480763,
+    "relative_covariance_difference": 1.0303768567628604
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.032280984337366286
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.3746343037967661,
+    "relative_covariance_difference": 1.01725154209206
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.4858994422782656,
+    "relative_covariance_difference": 0.9532431728202705
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.05157578255349258
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.7089144301910272,
+    "relative_covariance_difference": 1.3111669363785359
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.7376294243136396,
+    "relative_covariance_difference": 1.2642777077952119
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.21923508659633373
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.6461867368953034,
+    "relative_covariance_difference": 1.16703623168071
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.7065192108637499,
+    "relative_covariance_difference": 1.0982630846211925
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.1146181219310172
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.4890554966093461,
+    "relative_covariance_difference": 1.0745726994839402
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.5877842048706493,
+    "relative_covariance_difference": 0.999182875073448
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.04603005702038049
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.3894293570784257,
+    "relative_covariance_difference": 0.9984899286730377
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.5038588048338218,
+    "relative_covariance_difference": 0.9205725597853529
+  },
+  {
+    "site": "evaluation_r50_b2",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.04186147101301385
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b0_g0.1",
+    "weight_cosine": 0.6908431508507026,
+    "relative_covariance_difference": 1.297743158045366
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b0_g0.3",
+    "weight_cosine": 0.717565835653773,
+    "relative_covariance_difference": 1.2571887873758343
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b0_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.15321300527049508
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b5_g0.1",
+    "weight_cosine": 0.5369877174556422,
+    "relative_covariance_difference": 1.182172921375403
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b5_g0.3",
+    "weight_cosine": 0.5951604485306101,
+    "relative_covariance_difference": 1.1258227720286946
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.02860445955803457
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b10_g0.1",
+    "weight_cosine": 0.4635160680945673,
+    "relative_covariance_difference": 1.1003891017729248
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b10_g0.3",
+    "weight_cosine": 0.5386461086773184,
+    "relative_covariance_difference": 1.0390735167202694
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b10_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.004193816052311767
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b20_g0.1",
+    "weight_cosine": 0.34306426765589115,
+    "relative_covariance_difference": 1.0195087388336892
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b20_g0.3",
+    "weight_cosine": 0.4552280337176157,
+    "relative_covariance_difference": 0.9567040045968875
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "raw_b20_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.06416454478495534
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b0_g0.1",
+    "weight_cosine": 0.6872309113046831,
+    "relative_covariance_difference": 1.2973513366760014
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b0_g0.3",
+    "weight_cosine": 0.7138217740399722,
+    "relative_covariance_difference": 1.2558690007877713
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b0_g1",
+    "weight_cosine": 0.9999999999999999,
+    "relative_covariance_difference": 0.14670637453347338
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b5_g0.1",
+    "weight_cosine": 0.5328142531988588,
+    "relative_covariance_difference": 1.181178927322522
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b5_g0.3",
+    "weight_cosine": 0.5895347958140186,
+    "relative_covariance_difference": 1.1228083597266905
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b5_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.03340347670628123
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b10_g0.1",
+    "weight_cosine": 0.46028931486851277,
+    "relative_covariance_difference": 1.1031263747689473
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b10_g0.3",
+    "weight_cosine": 0.5346795933246092,
+    "relative_covariance_difference": 1.039136666949394
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b10_g1",
+    "weight_cosine": 1.0,
+    "relative_covariance_difference": 0.008513906922625542
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b20_g0.1",
+    "weight_cosine": 0.33982002836775116,
+    "relative_covariance_difference": 1.0161499053203127
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b20_g0.3",
+    "weight_cosine": 0.44965897622815465,
+    "relative_covariance_difference": 0.9494785452516689
+  },
+  {
+    "site": "evaluation_r50_b3",
+    "policy": "normalized_b20_g1",
+    "weight_cosine": 1.0000000000000002,
+    "relative_covariance_difference": 0.039949423110232536
+  }
+]

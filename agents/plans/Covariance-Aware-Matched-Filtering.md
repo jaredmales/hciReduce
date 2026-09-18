@@ -1609,7 +1609,7 @@ ratios on 24 eligible directional fits). Ten pixels inward the ratios are 5.15 a
 counts and paired comparisons prevent attributing a change in validation support to a covariance improvement.
 The experiment does not establish inner-separation performance or a preferred production policy.
 
-**Next comparison:** retain all empirical modes using trace-preserving shrinkage,
+**Follow-on comparison (completed below):** retain all empirical modes using trace-preserving shrinkage,
 $C_\gamma=(1-\gamma_{\rm shrink})\widehat C+
 \gamma_{\rm shrink}\operatorname{tr}(\widehat C)I/p$, for $\gamma_{\rm shrink}=0.1,0.3,1.0$.
 Use the same sampling and fixed directional splits first, with the three-mode controls. This tests whether
@@ -1623,6 +1623,55 @@ identities, and independently recomputes 3,072 projection groups. Opposite-half 
 matrices unchanged with the profile fixed; analytic white-noise gains agree with dense covariance calculations
 on 32 real stencils. The report contains the variance budgets, individual projections, radial-transfer counts,
 figure, and reproduction command.
+
+### Step 5 development result: covariance shrinkage (2026-09-18)
+
+The [shrinkage comparison](results/p4-step5-shrinkage-20260918/README.md) tests the specified strengths 0.1, 0.3,
+and 1.0 with all eight sampling/normalization choices. It retains the same 16 sites at radii 46 and 50, both angular
+directions, and opposite-half same-radius validation patches. The three-mode, floor-1 control is reproduced on
+identical samples. Training/validation native support is disjoint; normalized fits retain the shared fixed radial
+profile. The 32 directional fits per policy remain correlated development measurements, not independent trials.
+
+**These shrinkage settings do not improve the held-out projection diagnostic.** Ranges below span policy medians,
+not confidence intervals. Actual variance ratios are paired by site and direction to the three-mode, floor-1
+control, so increasing reported sigma cannot by itself appear as reduced noise.
+
+| Shrinkage strength | Training variance / prediction | Held-out variance / prediction | Actual held-out amplitude variance / control | Split-weight cosine |
+| --- | --- | --- | --- | --- |
+| 0.1 | 0.0055–0.142 | 10.51–25.64 | 0.985–2.070 | 0.310–0.736 |
+| 0.3 | 0.025–0.363 | 3.70–8.47 | 0.987–1.648 | 0.429–0.759 |
+| 1.0 | 3.48–4.92 | 2.98–3.72 | 0.985–1.085 | 1.000 |
+
+At ±20 pixels, strength 0.1 roughly doubles actual held-out amplitude variance: paired median ratios are 2.017
+for raw and 2.070 for normalized pixels. Strength 0.3 gives 1.614 and 1.648. These weights also agree less well
+between halves than the three-mode control. Near-unity same-radius variance ratios do not establish a gain.
+Strength 1.0 is stable by construction because its covariance is isotropic, but its conditional variance remains
+underestimated. Its fitted mean and radial scaling distinguish it from the original identity detection reference.
+
+The training halves contain only 8–56 patches for 121 pixels, with measured sample ranks 7–55. At strength 0.1,
+98.45–99.99% of the squared weight norm lies in the empirical sample nullspace in the policy medians; at 0.3,
+90.52–99.90% does. These are weight-norm fractions in fitting coordinates, not true variance fractions. The
+inverse favors directions assigned a small floor, achieving tiny training projections while held-out noise still
+occupies those directions. Preserving total covariance trace and positive definiteness has not prevented this
+failure to generalize.
+
+The prior three-mode diagnostic identified omitted directional covariance; the full-mode test identifies poorly
+supported empirical directions. Neither establishes that covariance weighting cannot help, and other shrinkage
+strengths remain untested. No shrinkage policy is promoted to production or selected for the ROC study. This
+checkpoint uses one saved baseline and generates no new source-recovery results, reductions, or thresholds.
+
+**Next candidate:** a structured covariance in a fixed spatial-frequency basis, following the user's Welch/PSD
+motivation. Average patch power with explicit window/edge handling and a positive floor, avoiding learned
+eigenvectors from the small patch sample. Test unit response, consistent interpolation/normalization, and held-out
+projected variance on the same splits before interpreting recovery. Local stationarity and radial transfer remain
+assumptions to check. Retain Gaussian and identity references when saved-image recovery comparisons resume.
+
+Verification reproduces 51,136 archived control scalars across 256 three-mode fits. All 768 shrinkage fits satisfy
+trace, positive-variance, unit-response, and covariance-projection identities; physical-unit and standardized
+solutions agree. Isotropic weights and band-independent actual centered validation variance are checked explicitly.
+Independent SVD solves agree within 8.78e-15 relative precision-vector error, and 2,304 projection groups and paired
+variance/MSE summaries are independently recomputed. The report contains all policies, sample-support diagnostics,
+individual projections, stability comparisons, and the figure.
 
 ## 8. Notation
 
@@ -1690,7 +1739,7 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $t_{\mathrm{std}},z_{\mathrm{std}}$ | Consistently standardized template and background-subtracted candidate data | $t_{\mathrm{std}}=D_{\sigma,q}^{-1}t$, $z_{\mathrm{std}}=D_{\sigma,q}^{-1}d-\widehat\mu_{\mathrm{std}}$; contrast retains its original units. |
 | $x_j,\bar x$ | Vectorized training patch and mean training patch | Length $p$ in a common radial/tangential coordinate system; $\bar x$ is the mean over retained training patches. |
 | $\widehat C$ | Empirical centered patch covariance | $p\times p$; regularize before inversion, and calibrate the effect of overlap on its estimation. |
-| $\gamma_{\rm shrink}, C_\gamma$ | Shrinkage fraction and proposed covariance retaining all empirical modes | $C_\gamma=(1-\gamma_{\rm shrink})\widehat C+\gamma_{\rm shrink}\operatorname{tr}(\widehat C)I/p$; proposed grid 0.1, 0.3, 1.0. Distinct from Gram eigenvalues $\gamma_i$. |
+| $\gamma_{\rm shrink}, C_\gamma$ | Shrinkage fraction and covariance that continuously reduces all empirical modes toward isotropy | $C_\gamma=(1-\gamma_{\rm shrink})\widehat C+\gamma_{\rm shrink}\operatorname{tr}(\widehat C)I/p$; tested grid 0.1, 0.3, 1.0. The endpoint 1.0 is isotropic. Distinct from Gram eigenvalues $\gamma_i$. |
 | $v_i,\gamma_i$ | Eigenvector and eigenvalue of the training Gram matrix | $RR^Tv_i=\gamma_i v_i$; for $\gamma_i>0$, $q_i=R^Tv_i/\sqrt{\gamma_i}$ and $\nu_i=\gamma_i/(n-1)$. |
 | $C_s,C_n$ | Signal and noise covariance matrices in Wiener estimation | Defined for zero-mean, uncorrelated random signal and noise. $C_n$ is $C$ when referring to the same filtered stamp space. |
 | $\widehat s$ | Wiener estimate of the random signal image | $\widehat s=C_s(C_s+C_n)^{-1}d$ for zero-mean data; distinct from the unit-source input $s_q$. |
