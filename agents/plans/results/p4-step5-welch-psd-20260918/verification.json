@@ -1,0 +1,11 @@
+{
+  "archived_control_scalar_values": 101692,
+  "psd_directional_fits": 1024,
+  "control_directional_fits": 512,
+  "split_comparisons": 512,
+  "windowed_isotropic_endpoint_checks": 512,
+  "native_support_disjoint_and_excluded": true,
+  "spectral_floor_and_trace_preserved": true,
+  "physical_unit_and_standardized_solutions_agree": true,
+  "input_and_script_fingerprints_unchanged": true
+}

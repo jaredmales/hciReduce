@@ -1,0 +1,3947 @@
+{
+  "common_sites": [
+    "calibration_r46_b0",
+    "calibration_r46_b1",
+    "calibration_r46_b2",
+    "calibration_r46_b3",
+    "calibration_r50_b0",
+    "calibration_r50_b1",
+    "calibration_r50_b2",
+    "calibration_r50_b3",
+    "evaluation_r46_b0",
+    "evaluation_r46_b1",
+    "evaluation_r46_b2",
+    "evaluation_r46_b3",
+    "evaluation_r50_b0",
+    "evaluation_r50_b1",
+    "evaluation_r50_b2",
+    "evaluation_r50_b3"
+  ],
+  "directional_fits_per_policy": 32,
+  "pca_controls": {
+    "raw_b0": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.71234283883762,
+        "variance_ratio_10_90_percentiles": [
+          0.7084447241392974,
+          2.632851496027329
+        ],
+        "median_mse_over_predicted": 1.5900326360635044,
+        "median_mean_squared_fraction_of_mse": 1.7069042672801302e-33,
+        "median_within_one_sigma_fraction": 0.5773809523809523
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.4631434607909437,
+        "variance_ratio_10_90_percentiles": [
+          1.3143518714205529,
+          5.828811339015504
+        ],
+        "median_mse_over_predicted": 3.9912371676376326,
+        "median_mean_squared_fraction_of_mse": 0.10664450426026628,
+        "median_within_one_sigma_fraction": 0.4117647058823529
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 3.4631434607909437,
+        "variance_ratio_10_90_percentiles": [
+          1.3143518714205529,
+          5.828811339015504
+        ],
+        "median_mse_over_predicted": 3.9912371676376326,
+        "median_mean_squared_fraction_of_mse": 0.10664450426026628,
+        "median_within_one_sigma_fraction": 0.4117647058823529
+      },
+      "median_split_weight_cosine": 0.9036726858934978,
+      "median_split_relative_covariance_difference": 1.282329989547799,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 7.746488450996323,
+          "median_paired_ring_over_same_radius_variance": 3.0557175120957725
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 4.649645149211367,
+          "median_paired_ring_over_same_radius_variance": 1.5449111099412987
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.4631434607909437,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 3.4331996682370463,
+          "median_paired_ring_over_same_radius_variance": 1.684144922264595
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 1.0,
+      "median_paired_variance_over_isotropic": 1.005980437008044
+    },
+    "raw_b5": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 2.337548041304247,
+        "variance_ratio_10_90_percentiles": [
+          1.3070931906830332,
+          3.176606151689698
+        ],
+        "median_mse_over_predicted": 2.2511726976681006,
+        "median_mean_squared_fraction_of_mse": 1.0311074338899039e-33,
+        "median_within_one_sigma_fraction": 0.5211805555555555
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.0544927184945827,
+        "variance_ratio_10_90_percentiles": [
+          0.9166382977944445,
+          4.5157464330146295
+        ],
+        "median_mse_over_predicted": 2.940522135363334,
+        "median_mean_squared_fraction_of_mse": 0.042790001153968894,
+        "median_within_one_sigma_fraction": 0.4027777777777778
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 3.9505354861947435,
+        "variance_ratio_10_90_percentiles": [
+          2.5297056104859124,
+          6.935415225360872
+        ],
+        "median_mse_over_predicted": 4.002485452002036,
+        "median_mean_squared_fraction_of_mse": 0.04227917778994478,
+        "median_within_one_sigma_fraction": 0.4090909090909091
+      },
+      "median_split_weight_cosine": 0.8432016911901363,
+      "median_split_relative_covariance_difference": 1.1397811996698346,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 6.27326643199982,
+          "median_paired_ring_over_same_radius_variance": 2.653214343131299
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 4.126432176307014,
+          "median_paired_ring_over_same_radius_variance": 1.3861296329309494
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.0544927184945827,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 2.7694022325779475,
+          "median_paired_ring_over_same_radius_variance": 2.2868841408483274
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 1.0,
+      "median_paired_variance_over_isotropic": 1.0145296435048405
+    },
+    "raw_b10": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 2.112369567040148,
+        "variance_ratio_10_90_percentiles": [
+          1.5853041911633186,
+          2.7416292208429995
+        ],
+        "median_mse_over_predicted": 2.0643653264941753,
+        "median_mean_squared_fraction_of_mse": 1.1480842306800089e-33,
+        "median_within_one_sigma_fraction": 0.5
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 2.2605897774085855,
+        "variance_ratio_10_90_percentiles": [
+          0.8052758204362643,
+          3.7777657952941777
+        ],
+        "median_mse_over_predicted": 2.18087856703711,
+        "median_mean_squared_fraction_of_mse": 0.020547884468657296,
+        "median_within_one_sigma_fraction": 0.5147058823529411
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 4.043357698980984,
+        "variance_ratio_10_90_percentiles": [
+          2.7224992794303544,
+          4.963670252639693
+        ],
+        "median_mse_over_predicted": 4.017782394393107,
+        "median_mean_squared_fraction_of_mse": 0.02434484500853654,
+        "median_within_one_sigma_fraction": 0.4444444444444444
+      },
+      "median_split_weight_cosine": 0.7649472105126194,
+      "median_split_relative_covariance_difference": 1.0353149540858955,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 7.787488001619257,
+          "median_paired_ring_over_same_radius_variance": 3.426129283182032
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 4.162109183887015,
+          "median_paired_ring_over_same_radius_variance": 1.8810502897236863
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 2.2605897774085855,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 2.1591825583037254,
+          "median_paired_ring_over_same_radius_variance": 2.07001734217596
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 1.0,
+      "median_paired_variance_over_isotropic": 0.9219473265267616
+    },
+    "raw_b20": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 2.887348247167591,
+        "variance_ratio_10_90_percentiles": [
+          1.9236967581595958,
+          3.838749275627585
+        ],
+        "median_mse_over_predicted": 2.822882148312802,
+        "median_mean_squared_fraction_of_mse": 5.552787779457909e-34,
+        "median_within_one_sigma_fraction": 0.46755637367694436
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 1.8478400367440542,
+        "variance_ratio_10_90_percentiles": [
+          1.3841167556444984,
+          3.635099284359841
+        ],
+        "median_mse_over_predicted": 1.7811059061193375,
+        "median_mean_squared_fraction_of_mse": 0.013120047327527057,
+        "median_within_one_sigma_fraction": 0.5608974358974359
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 4.532060875674178,
+        "variance_ratio_10_90_percentiles": [
+          3.835242944153878,
+          7.381937622055967
+        ],
+        "median_mse_over_predicted": 4.466598564048196,
+        "median_mean_squared_fraction_of_mse": 0.005675952441706783,
+        "median_within_one_sigma_fraction": 0.4254958877600387
+      },
+      "median_split_weight_cosine": 0.708249699553819,
+      "median_split_relative_covariance_difference": 1.0310013100194473,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 9.181469541916545,
+          "median_paired_ring_over_same_radius_variance": 5.149682895505297
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 4.071970026283037,
+          "median_paired_ring_over_same_radius_variance": 2.203965692053665
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 1.8478400367440542,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.9420813776196295,
+          "median_paired_ring_over_same_radius_variance": 1.2213068010599857
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 1.0,
+      "median_paired_variance_over_isotropic": 0.9423509301929855
+    },
+    "normalized_b0": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.7351818134185923,
+        "variance_ratio_10_90_percentiles": [
+          0.6950893998005288,
+          2.6347444204259984
+        ],
+        "median_mse_over_predicted": 1.6006590488813375,
+        "median_mean_squared_fraction_of_mse": 1.8343562493659233e-33,
+        "median_within_one_sigma_fraction": 0.5934065934065934
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.625452553424255,
+        "variance_ratio_10_90_percentiles": [
+          1.2689170541286716,
+          5.729100834584726
+        ],
+        "median_mse_over_predicted": 3.9192684807002665,
+        "median_mean_squared_fraction_of_mse": 0.11127985956129545,
+        "median_within_one_sigma_fraction": 0.4117647058823529
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 3.625452553424255,
+        "variance_ratio_10_90_percentiles": [
+          1.2689170541286716,
+          5.729100834584726
+        ],
+        "median_mse_over_predicted": 3.9192684807002665,
+        "median_mean_squared_fraction_of_mse": 0.11127985956129545,
+        "median_within_one_sigma_fraction": 0.4117647058823529
+      },
+      "median_split_weight_cosine": 0.90079496492639,
+      "median_split_relative_covariance_difference": 1.2667035729300604,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 6.521458181076076,
+          "median_paired_ring_over_same_radius_variance": 2.5684552578678685
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 4.767631241594813,
+          "median_paired_ring_over_same_radius_variance": 1.5212289728737813
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.625452553424255,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 3.39234098424558,
+          "median_paired_ring_over_same_radius_variance": 1.7617129016366164
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 1.0,
+      "median_paired_variance_over_isotropic": 1.015502405256007
+    },
+    "normalized_b5": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 2.309331743380578,
+        "variance_ratio_10_90_percentiles": [
+          1.2195173008842364,
+          3.246499252494436
+        ],
+        "median_mse_over_predicted": 2.2211166717412576,
+        "median_mean_squared_fraction_of_mse": 1.0733493637390379e-33,
+        "median_within_one_sigma_fraction": 0.5526315789473685
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.0752602677917302,
+        "variance_ratio_10_90_percentiles": [
+          0.9395762263405466,
+          4.659121571868951
+        ],
+        "median_mse_over_predicted": 3.008020671370004,
+        "median_mean_squared_fraction_of_mse": 0.04781665464803443,
+        "median_within_one_sigma_fraction": 0.38461538461538464
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 3.854661171012858,
+        "variance_ratio_10_90_percentiles": [
+          2.3880407782582904,
+          6.891193767359367
+        ],
+        "median_mse_over_predicted": 3.924255700130737,
+        "median_mean_squared_fraction_of_mse": 0.046266222055847725,
+        "median_within_one_sigma_fraction": 0.4090909090909091
+      },
+      "median_split_weight_cosine": 0.8419348869691976,
+      "median_split_relative_covariance_difference": 1.0930804807798,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 5.00057188472514,
+          "median_paired_ring_over_same_radius_variance": 2.15795367816847
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 4.310657937232248,
+          "median_paired_ring_over_same_radius_variance": 1.390320752535019
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.0752602677917302,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 2.7113236105638823,
+          "median_paired_ring_over_same_radius_variance": 2.0794024216691334
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 1.0,
+      "median_paired_variance_over_isotropic": 1.0057670357960096
+    },
+    "normalized_b10": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 2.0428648480492844,
+        "variance_ratio_10_90_percentiles": [
+          1.5139506436308845,
+          2.575797115674394
+        ],
+        "median_mse_over_predicted": 1.9964459984910754,
+        "median_mean_squared_fraction_of_mse": 1.1790277235035545e-33,
+        "median_within_one_sigma_fraction": 0.5
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 2.327090400534888,
+        "variance_ratio_10_90_percentiles": [
+          0.863426766843859,
+          3.585672605745297
+        ],
+        "median_mse_over_predicted": 2.269507287244796,
+        "median_mean_squared_fraction_of_mse": 0.03662708173817969,
+        "median_within_one_sigma_fraction": 0.5
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 3.8050596801431533,
+        "variance_ratio_10_90_percentiles": [
+          2.610810175949848,
+          4.909706732423545
+        ],
+        "median_mse_over_predicted": 3.9353792644345438,
+        "median_mean_squared_fraction_of_mse": 0.031145853115765544,
+        "median_within_one_sigma_fraction": 0.4888888888888889
+      },
+      "median_split_weight_cosine": 0.7777306601133466,
+      "median_split_relative_covariance_difference": 0.9990953473050663,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 6.570080343366761,
+          "median_paired_ring_over_same_radius_variance": 2.908029290985222
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 4.318654250958513,
+          "median_paired_ring_over_same_radius_variance": 1.873735253099154
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 2.327090400534888,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 2.082015973399551,
+          "median_paired_ring_over_same_radius_variance": 1.8750317020586535
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 1.0,
+      "median_paired_variance_over_isotropic": 0.9329350277079493
+    },
+    "normalized_b20": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 2.6890015551912043,
+        "variance_ratio_10_90_percentiles": [
+          2.011007711873967,
+          3.630716672800998
+        ],
+        "median_mse_over_predicted": 2.6341239724322003,
+        "median_mean_squared_fraction_of_mse": 4.597897799931785e-34,
+        "median_within_one_sigma_fraction": 0.4727941176470588
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 2.01967692906881,
+        "variance_ratio_10_90_percentiles": [
+          1.2873982198516827,
+          3.9481348900559095
+        ],
+        "median_mse_over_predicted": 1.9431013081646675,
+        "median_mean_squared_fraction_of_mse": 0.012780949532803322,
+        "median_within_one_sigma_fraction": 0.5470085470085471
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 4.140906614006428,
+        "variance_ratio_10_90_percentiles": [
+          3.5273948063512144,
+          6.815728409950512
+        ],
+        "median_mse_over_predicted": 4.084456608362199,
+        "median_mean_squared_fraction_of_mse": 0.005869601963708946,
+        "median_within_one_sigma_fraction": 0.425531914893617
+      },
+      "median_split_weight_cosine": 0.7506926747921223,
+      "median_split_relative_covariance_difference": 0.9916356927901613,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 7.7022824610103955,
+          "median_paired_ring_over_same_radius_variance": 3.8582407290252423
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 4.2112746005132,
+          "median_paired_ring_over_same_radius_variance": 1.8724228556214717
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 2.01967692906881,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.793366392838334,
+          "median_paired_ring_over_same_radius_variance": 1.519038920895313
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 1.0,
+      "median_paired_variance_over_isotropic": 1.0161908335134773
+    }
+  },
+  "isotropic_controls": {
+    "raw_b0": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 3.4809167040018965,
+        "variance_ratio_10_90_percentiles": [
+          1.5956698244859921,
+          4.705361070493972
+        ],
+        "median_mse_over_predicted": 3.2817145267741488,
+        "median_mean_squared_fraction_of_mse": 1.3715174618206764e-33,
+        "median_within_one_sigma_fraction": 0.45555555555555555
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.624224310685963,
+        "variance_ratio_10_90_percentiles": [
+          1.4841400991496976,
+          5.282858028832707
+        ],
+        "median_mse_over_predicted": 4.7339906993628205,
+        "median_mean_squared_fraction_of_mse": 0.1313696126380171,
+        "median_within_one_sigma_fraction": 0.3660714285714286
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 3.624224310685963,
+        "variance_ratio_10_90_percentiles": [
+          1.4841400991496976,
+          5.282858028832707
+        ],
+        "median_mse_over_predicted": 4.7339906993628205,
+        "median_mean_squared_fraction_of_mse": 0.1313696126380171,
+        "median_within_one_sigma_fraction": 0.3660714285714286
+      },
+      "median_split_weight_cosine": 1.0,
+      "median_split_relative_covariance_difference": 0.13255820424731174,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 8.77484006755039,
+          "median_paired_ring_over_same_radius_variance": 3.6604338206844975
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 4.925436422217748,
+          "median_paired_ring_over_same_radius_variance": 1.7110802537108878
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.624224310685963,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 3.737787415216958,
+          "median_paired_ring_over_same_radius_variance": 2.414640260745657
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_isotropic": 1.0,
+      "median_paired_variance_over_pca1": 0.9940551159962604
+    },
+    "raw_b5": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 4.198820321439175,
+        "variance_ratio_10_90_percentiles": [
+          3.3379714244748215,
+          6.820043244603427
+        ],
+        "median_mse_over_predicted": 4.0352122675256785,
+        "median_mean_squared_fraction_of_mse": 4.072443541108186e-34,
+        "median_within_one_sigma_fraction": 0.3946441155743481
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.296944342136301,
+        "variance_ratio_10_90_percentiles": [
+          1.525608431074573,
+          4.865790305987957
+        ],
+        "median_mse_over_predicted": 3.6146796199554894,
+        "median_mean_squared_fraction_of_mse": 0.042244509461274865,
+        "median_within_one_sigma_fraction": 0.38461538461538464
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 4.235065054654827,
+        "variance_ratio_10_90_percentiles": [
+          3.423403340924165,
+          6.693803089733847
+        ],
+        "median_mse_over_predicted": 4.269211750640304,
+        "median_mean_squared_fraction_of_mse": 0.05226552873156074,
+        "median_within_one_sigma_fraction": 0.36602870813397126
+      },
+      "median_split_weight_cosine": 1.0,
+      "median_split_relative_covariance_difference": 0.0583712565874067,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 9.191211653610273,
+          "median_paired_ring_over_same_radius_variance": 3.6604338206844966
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 5.1591514254962565,
+          "median_paired_ring_over_same_radius_variance": 1.7110802537108882
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.296944342136301,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 3.6712804317784813,
+          "median_paired_ring_over_same_radius_variance": 2.4146402607456565
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_isotropic": 1.0,
+      "median_paired_variance_over_pca1": 0.9856882873523571
+    },
+    "raw_b10": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 4.58090180247887,
+        "variance_ratio_10_90_percentiles": [
+          3.515327636016244,
+          5.762450961277615
+        ],
+        "median_mse_over_predicted": 4.462535862923167,
+        "median_mean_squared_fraction_of_mse": 4.598966530898963e-34,
+        "median_within_one_sigma_fraction": 0.4186046511627907
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.2126837078440964,
+        "variance_ratio_10_90_percentiles": [
+          1.4440880600537862,
+          4.673003036770925
+        ],
+        "median_mse_over_predicted": 3.4567413242142395,
+        "median_mean_squared_fraction_of_mse": 0.018643828727755572,
+        "median_within_one_sigma_fraction": 0.4145299145299145
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 4.5221241492273005,
+        "variance_ratio_10_90_percentiles": [
+          3.6762047427403597,
+          5.662180633645799
+        ],
+        "median_mse_over_predicted": 4.631264134128799,
+        "median_mean_squared_fraction_of_mse": 0.036519004607861255,
+        "median_within_one_sigma_fraction": 0.4117647058823529
+      },
+      "median_split_weight_cosine": 1.0,
+      "median_split_relative_covariance_difference": 0.03228098433736621,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 9.008066655816169,
+          "median_paired_ring_over_same_radius_variance": 3.6604338206844975
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 5.056349660935563,
+          "median_paired_ring_over_same_radius_variance": 1.7110802537108882
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.2126837078440964,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 3.4919195977424087,
+          "median_paired_ring_over_same_radius_variance": 2.414640260745655
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_isotropic": 1.0,
+      "median_paired_variance_over_pca1": 1.084660664690341
+    },
+    "raw_b20": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 4.9101133525464,
+        "variance_ratio_10_90_percentiles": [
+          4.519209393860047,
+          6.446251526777658
+        ],
+        "median_mse_over_predicted": 4.807770406537913,
+        "median_mean_squared_fraction_of_mse": 1.5056100688712256e-34,
+        "median_within_one_sigma_fraction": 0.42857142857142855
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 2.9789559962215293,
+        "variance_ratio_10_90_percentiles": [
+          1.4018415176611292,
+          4.202436227159115
+        ],
+        "median_mse_over_predicted": 3.1741985307269154,
+        "median_mean_squared_fraction_of_mse": 0.006197998341375664,
+        "median_within_one_sigma_fraction": 0.5
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 4.852864417205177,
+        "variance_ratio_10_90_percentiles": [
+          4.085543925680686,
+          7.252899686695708
+        ],
+        "median_mse_over_predicted": 4.768409296979498,
+        "median_mean_squared_fraction_of_mse": 0.004511734132551093,
+        "median_within_one_sigma_fraction": 0.39673635900050996
+      },
+      "median_split_weight_cosine": 1.0,
+      "median_split_relative_covariance_difference": 0.1021488518085251,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 8.025200199442999,
+          "median_paired_ring_over_same_radius_variance": 3.6604338206844993
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 4.55145164905611,
+          "median_paired_ring_over_same_radius_variance": 1.7110802537108882
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 2.9789559962215293,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 3.302525970755831,
+          "median_paired_ring_over_same_radius_variance": 2.414640260745657
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_isotropic": 1.0,
+      "median_paired_variance_over_pca1": 1.0611757976353973
+    },
+    "normalized_b0": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 3.586427830890595,
+        "variance_ratio_10_90_percentiles": [
+          1.6595504321444552,
+          4.867193950094587
+        ],
+        "median_mse_over_predicted": 3.2935377029553905,
+        "median_mean_squared_fraction_of_mse": 9.482412799277694e-34,
+        "median_within_one_sigma_fraction": 0.45555555555555555
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.724159718951041,
+        "variance_ratio_10_90_percentiles": [
+          1.5651661865609254,
+          5.474544398259855
+        ],
+        "median_mse_over_predicted": 4.782129431054427,
+        "median_mean_squared_fraction_of_mse": 0.13364655706215428,
+        "median_within_one_sigma_fraction": 0.35294117647058826
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 3.724159718951041,
+        "variance_ratio_10_90_percentiles": [
+          1.5651661865609254,
+          5.474544398259855
+        ],
+        "median_mse_over_predicted": 4.782129431054427,
+        "median_mean_squared_fraction_of_mse": 0.13364655706215428,
+        "median_within_one_sigma_fraction": 0.35294117647058826
+      },
+      "median_split_weight_cosine": 1.0,
+      "median_split_relative_covariance_difference": 0.12419448986098303,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 7.574001302119408,
+          "median_paired_ring_over_same_radius_variance": 3.1904281000486128
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 5.1126920060834244,
+          "median_paired_ring_over_same_radius_variance": 1.6417745048897892
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.724159718951041,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 3.747350975587933,
+          "median_paired_ring_over_same_radius_variance": 2.252700024215429
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_isotropic": 1.0,
+      "median_paired_variance_over_pca1": 0.9849040023866883
+    },
+    "normalized_b5": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 4.321929564743154,
+        "variance_ratio_10_90_percentiles": [
+          3.4239621022760938,
+          7.012706606589957
+        ],
+        "median_mse_over_predicted": 4.153674924808907,
+        "median_mean_squared_fraction_of_mse": 4.394153214544806e-34,
+        "median_within_one_sigma_fraction": 0.39285714285714285
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.6309989255758124,
+        "variance_ratio_10_90_percentiles": [
+          1.6570333667405646,
+          5.115540749100656
+        ],
+        "median_mse_over_predicted": 4.016572174708076,
+        "median_mean_squared_fraction_of_mse": 0.04568544515739404,
+        "median_within_one_sigma_fraction": 0.3798076923076923
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 4.2250270961057454,
+        "variance_ratio_10_90_percentiles": [
+          3.5305652047132186,
+          7.166991514723685
+        ],
+        "median_mse_over_predicted": 4.270857989751036,
+        "median_mean_squared_fraction_of_mse": 0.05448537232628885,
+        "median_within_one_sigma_fraction": 0.36363636363636365
+      },
+      "median_split_weight_cosine": 1.0,
+      "median_split_relative_covariance_difference": 0.059332491284306385,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 7.965016570411581,
+          "median_paired_ring_over_same_radius_variance": 3.190428100048612
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 5.37663976060712,
+          "median_paired_ring_over_same_radius_variance": 1.6417745048897894
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.6309989255758124,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 3.7853676103352543,
+          "median_paired_ring_over_same_radius_variance": 2.2527000242154287
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_isotropic": 1.0,
+      "median_paired_variance_over_pca1": 0.9942660322015373
+    },
+    "normalized_b10": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 4.558340162281834,
+        "variance_ratio_10_90_percentiles": [
+          3.5691127083762373,
+          6.039661131875172
+        ],
+        "median_mse_over_predicted": 4.438444800886222,
+        "median_mean_squared_fraction_of_mse": 4.938162922751518e-34,
+        "median_within_one_sigma_fraction": 0.4186046511627907
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.5214953976916283,
+        "variance_ratio_10_90_percentiles": [
+          1.6019117197650954,
+          5.023431776553846
+        ],
+        "median_mse_over_predicted": 3.804005730593017,
+        "median_mean_squared_fraction_of_mse": 0.019926719941267296,
+        "median_within_one_sigma_fraction": 0.375
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 4.547295756352909,
+        "variance_ratio_10_90_percentiles": [
+          3.762047728186997,
+          6.1132290867996275
+        ],
+        "median_mse_over_predicted": 4.6015854957477895,
+        "median_mean_squared_fraction_of_mse": 0.03893211604226356,
+        "median_within_one_sigma_fraction": 0.4117647058823529
+      },
+      "median_split_weight_cosine": 1.0,
+      "median_split_relative_covariance_difference": 0.037178105050393664,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 7.956272063836945,
+          "median_paired_ring_over_same_radius_variance": 3.190428100048612
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 5.370736940277691,
+          "median_paired_ring_over_same_radius_variance": 1.6417745048897892
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.5214953976916283,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 3.6743898929381738,
+          "median_paired_ring_over_same_radius_variance": 2.2527000242154296
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_isotropic": 1.0,
+      "median_paired_variance_over_pca1": 1.0718860052417767
+    },
+    "normalized_b20": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 4.922599126141377,
+        "variance_ratio_10_90_percentiles": [
+          4.445129034735906,
+          6.7881481852411865
+        ],
+        "median_mse_over_predicted": 4.810796295564658,
+        "median_mean_squared_fraction_of_mse": 4.016524155168246e-34,
+        "median_within_one_sigma_fraction": 0.4170445956160242
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 3.462654889330852,
+        "variance_ratio_10_90_percentiles": [
+          1.585912910175237,
+          4.804958875340992
+        ],
+        "median_mse_over_predicted": 3.5535177371024926,
+        "median_mean_squared_fraction_of_mse": 0.006643680505679951,
+        "median_within_one_sigma_fraction": 0.45555555555555555
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 4.834359408650602,
+        "variance_ratio_10_90_percentiles": [
+          4.173759494200378,
+          7.118574813421618
+        ],
+        "median_mse_over_predicted": 4.744941247708947,
+        "median_mean_squared_fraction_of_mse": 0.003568439116859833,
+        "median_within_one_sigma_fraction": 0.39289289289289286
+      },
+      "median_split_weight_cosine": 1.0,
+      "median_split_relative_covariance_difference": 0.06601698781858287,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 7.536955663256043,
+          "median_paired_ring_over_same_radius_variance": 3.1904281000486128
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 5.122592527686832,
+          "median_paired_ring_over_same_radius_variance": 1.6417745048897896
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 3.462654889330852,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 3.5856548388559775,
+          "median_paired_ring_over_same_radius_variance": 2.2527000242154296
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_isotropic": 1.0,
+      "median_paired_variance_over_pca1": 0.985224943655514
+    }
+  },
+  "policies": {
+    "raw_b0_rectangular_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 0.8448818755487947,
+        "variance_ratio_10_90_percentiles": [
+          0.4400516807186454,
+          0.9829463464439361
+        ],
+        "median_mse_over_predicted": 0.788556417178875,
+        "median_mean_squared_fraction_of_mse": 2.8621155375941372e-33,
+        "median_within_one_sigma_fraction": 0.7058823529411765
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8190220726532729,
+        "variance_ratio_10_90_percentiles": [
+          0.3279783512517534,
+          1.2736240129034557
+        ],
+        "median_mse_over_predicted": 0.996671928786216,
+        "median_mean_squared_fraction_of_mse": 0.149212145297495,
+        "median_within_one_sigma_fraction": 0.7058823529411765
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 0.8190220726532729,
+        "variance_ratio_10_90_percentiles": [
+          0.3279783512517534,
+          1.2736240129034557
+        ],
+        "median_mse_over_predicted": 0.996671928786216,
+        "median_mean_squared_fraction_of_mse": 0.149212145297495,
+        "median_within_one_sigma_fraction": 0.7058823529411765
+      },
+      "median_split_weight_cosine": 0.956864255213301,
+      "median_split_relative_covariance_difference": 0.33885318880749904,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.8755846354521495,
+          "median_paired_ring_over_same_radius_variance": 4.107386878890212
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.1829088643171284,
+          "median_paired_ring_over_same_radius_variance": 1.5797831271942182
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8190220726532729,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.070406882927911,
+          "median_paired_ring_over_same_radius_variance": 3.350866505746828
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.7818565366318151,
+      "median_paired_variance_over_isotropic": 0.7867453215504179,
+      "median_paired_mse_over_pca1": 0.7690385786759417,
+      "median_paired_mse_over_isotropic": 0.762731261906999,
+      "median_paired_sigma_over_pca1": 1.8215646771292304,
+      "median_paired_sigma_over_isotropic": 1.821261067122322,
+      "median_condition_number": 25.46248445806576,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000004
+      ]
+    },
+    "raw_b0_rectangular_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.018040056503829,
+        "variance_ratio_10_90_percentiles": [
+          0.5403767796143908,
+          1.2138961858986768
+        ],
+        "median_mse_over_predicted": 0.9571163476773266,
+        "median_mean_squared_fraction_of_mse": 2.1771402707778965e-33,
+        "median_within_one_sigma_fraction": 0.6990950226244343
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.9408904624183769,
+        "variance_ratio_10_90_percentiles": [
+          0.3683771175692101,
+          1.4948638509958228
+        ],
+        "median_mse_over_predicted": 1.1954395695488358,
+        "median_mean_squared_fraction_of_mse": 0.16947948014914946,
+        "median_within_one_sigma_fraction": 0.6428571428571429
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 0.9408904624183769,
+        "variance_ratio_10_90_percentiles": [
+          0.3683771175692101,
+          1.4948638509958228
+        ],
+        "median_mse_over_predicted": 1.1954395695488358,
+        "median_mean_squared_fraction_of_mse": 0.16947948014914946,
+        "median_within_one_sigma_fraction": 0.6428571428571429
+      },
+      "median_split_weight_cosine": 0.9668077719282875,
+      "median_split_relative_covariance_difference": 0.2987561235961737,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 3.319753565641843,
+          "median_paired_ring_over_same_radius_variance": 4.060728055745885
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.4046124189514022,
+          "median_paired_ring_over_same_radius_variance": 1.615308892417671
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.9408904624183769,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.2686450271292746,
+          "median_paired_ring_over_same_radius_variance": 3.3343189780080307
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.7805188004976858,
+      "median_paired_variance_over_isotropic": 0.8063164515157206,
+      "median_paired_mse_over_pca1": 0.7978001455903578,
+      "median_paired_mse_over_isotropic": 0.7909892143682313,
+      "median_paired_sigma_over_pca1": 1.6813205265900857,
+      "median_paired_sigma_over_isotropic": 1.684152666657062,
+      "median_condition_number": 10.707594973859873,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000004
+      ]
+    },
+    "raw_b0_hann_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 0.8793448533042119,
+        "variance_ratio_10_90_percentiles": [
+          0.46950532378066256,
+          1.0419251516763322
+        ],
+        "median_mse_over_predicted": 0.8162116537070747,
+        "median_mean_squared_fraction_of_mse": 9.589464149208848e-34,
+        "median_within_one_sigma_fraction": 0.7735042735042735
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8141517708892899,
+        "variance_ratio_10_90_percentiles": [
+          0.31163251498297867,
+          1.6222002923896521
+        ],
+        "median_mse_over_predicted": 1.0493772152088168,
+        "median_mean_squared_fraction_of_mse": 0.17707512805140693,
+        "median_within_one_sigma_fraction": 0.6
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 0.8141517708892899,
+        "variance_ratio_10_90_percentiles": [
+          0.31163251498297867,
+          1.6222002923896521
+        ],
+        "median_mse_over_predicted": 1.0493772152088168,
+        "median_mean_squared_fraction_of_mse": 0.17707512805140693,
+        "median_within_one_sigma_fraction": 0.6
+      },
+      "median_split_weight_cosine": 0.9714893097549003,
+      "median_split_relative_covariance_difference": 0.38600047984879116,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.6785906281706087,
+          "median_paired_ring_over_same_radius_variance": 4.169453502707123
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2584914338244984,
+          "median_paired_ring_over_same_radius_variance": 1.6801117845546258
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8141517708892899,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.1435218573760115,
+          "median_paired_ring_over_same_radius_variance": 3.292151739977163
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.834519407161846,
+      "median_paired_variance_over_isotropic": 0.8484019820797388,
+      "median_paired_mse_over_pca1": 0.8337567363213358,
+      "median_paired_mse_over_isotropic": 0.8480765600522717,
+      "median_paired_sigma_over_pca1": 1.7847212375016102,
+      "median_paired_sigma_over_isotropic": 1.7868029383154935,
+      "median_condition_number": 23.921030623163766,
+      "median_psd_rescaling": 1.0375615489878456,
+      "psd_rescaling_range": [
+        0.8907911927730663,
+        1.22680608027532
+      ]
+    },
+    "raw_b0_hann_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.041050226423815,
+        "variance_ratio_10_90_percentiles": [
+          0.5556183762813739,
+          1.2364896700829362
+        ],
+        "median_mse_over_predicted": 0.9798119778106493,
+        "median_mean_squared_fraction_of_mse": 2.1368809907192327e-33,
+        "median_within_one_sigma_fraction": 0.7058823529411765
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.9317051346235778,
+        "variance_ratio_10_90_percentiles": [
+          0.3464875523067123,
+          1.9440043636316122
+        ],
+        "median_mse_over_predicted": 1.258690649892308,
+        "median_mean_squared_fraction_of_mse": 0.16932310788728389,
+        "median_within_one_sigma_fraction": 0.5607843137254902
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 0.9317051346235778,
+        "variance_ratio_10_90_percentiles": [
+          0.3464875523067123,
+          1.9440043636316122
+        ],
+        "median_mse_over_predicted": 1.258690649892308,
+        "median_mean_squared_fraction_of_mse": 0.16932310788728389,
+        "median_within_one_sigma_fraction": 0.5607843137254902
+      },
+      "median_split_weight_cosine": 0.9781192923814999,
+      "median_split_relative_covariance_difference": 0.3465217125368363,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 3.1032738469078742,
+          "median_paired_ring_over_same_radius_variance": 4.138699953460384
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.4934756831199905,
+          "median_paired_ring_over_same_radius_variance": 1.7000989983127213
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.9317051346235778,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.3426346105742044,
+          "median_paired_ring_over_same_radius_variance": 3.340626408723638
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8392572141790677,
+      "median_paired_variance_over_isotropic": 0.8635985823243562,
+      "median_paired_mse_over_pca1": 0.8571266348695393,
+      "median_paired_mse_over_isotropic": 0.8623646690033686,
+      "median_paired_sigma_over_pca1": 1.6484684781886352,
+      "median_paired_sigma_over_isotropic": 1.6492354552733124,
+      "median_condition_number": 9.526656517412388,
+      "median_psd_rescaling": 1.0375615489878456,
+      "psd_rescaling_range": [
+        0.8907911927730663,
+        1.22680608027532
+      ]
+    },
+    "raw_b5_rectangular_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.0490789331571038,
+        "variance_ratio_10_90_percentiles": [
+          0.7695768882276557,
+          1.3434596066581934
+        ],
+        "median_mse_over_predicted": 1.0081759679882225,
+        "median_mean_squared_fraction_of_mse": 8.619830768042274e-34,
+        "median_within_one_sigma_fraction": 0.7014802631578947
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8135177853146975,
+        "variance_ratio_10_90_percentiles": [
+          0.3305967231009683,
+          1.11427462349186
+        ],
+        "median_mse_over_predicted": 0.8774974031676287,
+        "median_mean_squared_fraction_of_mse": 0.026951400229993115,
+        "median_within_one_sigma_fraction": 0.7238095238095238
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.0721204546870013,
+        "variance_ratio_10_90_percentiles": [
+          0.7925613886255347,
+          2.0268932681544527
+        ],
+        "median_mse_over_predicted": 1.083704517189208,
+        "median_mean_squared_fraction_of_mse": 0.02034778250228941,
+        "median_within_one_sigma_fraction": 0.6781183932346723
+      },
+      "median_split_weight_cosine": 0.9663837174867869,
+      "median_split_relative_covariance_difference": 0.21727223012932323,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.773842029230517,
+          "median_paired_ring_over_same_radius_variance": 3.854895205195472
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2398183762897752,
+          "median_paired_ring_over_same_radius_variance": 1.5775331619562514
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8135177853146975,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.8617532751216181,
+          "median_paired_ring_over_same_radius_variance": 2.9223310553896127
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.797563775112087,
+      "median_paired_variance_over_isotropic": 0.8349698342686209,
+      "median_paired_mse_over_pca1": 0.8275962515593864,
+      "median_paired_mse_over_isotropic": 0.8109829097895978,
+      "median_paired_sigma_over_pca1": 1.7048513862304708,
+      "median_paired_sigma_over_isotropic": 1.8487462671093242,
+      "median_condition_number": 23.964810265341683,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999999,
+        1.0000000000000002
+      ]
+    },
+    "raw_b5_rectangular_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.2480297267357798,
+        "variance_ratio_10_90_percentiles": [
+          0.9245297713234205,
+          1.601844336416989
+        ],
+        "median_mse_over_predicted": 1.199336538278363,
+        "median_mean_squared_fraction_of_mse": 3.837372696716141e-34,
+        "median_within_one_sigma_fraction": 0.6700258397932817
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.9453440956832316,
+        "variance_ratio_10_90_percentiles": [
+          0.3747913047470552,
+          1.3414087464204203
+        ],
+        "median_mse_over_predicted": 1.045700724140457,
+        "median_mean_squared_fraction_of_mse": 0.032838943185545234,
+        "median_within_one_sigma_fraction": 0.6794871794871795
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.2777840364928488,
+        "variance_ratio_10_90_percentiles": [
+          0.9564954511389236,
+          2.384410417497263
+        ],
+        "median_mse_over_predicted": 1.2902619025668547,
+        "median_mean_squared_fraction_of_mse": 0.021684740103480364,
+        "median_within_one_sigma_fraction": 0.6071428571428571
+      },
+      "median_split_weight_cosine": 0.9727041271420713,
+      "median_split_relative_covariance_difference": 0.19450963783601566,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 3.237365493157019,
+          "median_paired_ring_over_same_radius_variance": 3.8779651598982423
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.477205106856149,
+          "median_paired_ring_over_same_radius_variance": 1.5877836228271471
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.9453440956832316,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.0301858845342284,
+          "median_paired_ring_over_same_radius_variance": 2.949157934474553
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.7826422471381,
+      "median_paired_variance_over_isotropic": 0.8383856239556299,
+      "median_paired_mse_over_pca1": 0.8486146873377605,
+      "median_paired_mse_over_isotropic": 0.8319697526476203,
+      "median_paired_sigma_over_pca1": 1.5724552553597078,
+      "median_paired_sigma_over_isotropic": 1.7046388005354471,
+      "median_condition_number": 10.365542064932303,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999999,
+        1.0000000000000002
+      ]
+    },
+    "raw_b5_hann_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.0318326148180628,
+        "variance_ratio_10_90_percentiles": [
+          0.8054782128263503,
+          1.522112386258695
+        ],
+        "median_mse_over_predicted": 1.001613484149474,
+        "median_mean_squared_fraction_of_mse": 8.403054049305184e-34,
+        "median_within_one_sigma_fraction": 0.7014802631578947
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.7914642164139538,
+        "variance_ratio_10_90_percentiles": [
+          0.32119098424093534,
+          1.169195383977941
+        ],
+        "median_mse_over_predicted": 0.8541842637309887,
+        "median_mean_squared_fraction_of_mse": 0.03261868363484908,
+        "median_within_one_sigma_fraction": 0.7100840336134454
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.0453994262950812,
+        "variance_ratio_10_90_percentiles": [
+          0.8478285155430659,
+          1.731850155061167
+        ],
+        "median_mse_over_predicted": 1.039989949342203,
+        "median_mean_squared_fraction_of_mse": 0.02542130403305884,
+        "median_within_one_sigma_fraction": 0.6559139784946236
+      },
+      "median_split_weight_cosine": 0.9872028612286335,
+      "median_split_relative_covariance_difference": 0.18027098131361052,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.668446282726658,
+          "median_paired_ring_over_same_radius_variance": 3.929907600378984
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2135756751002185,
+          "median_paired_ring_over_same_radius_variance": 1.6434881264695447
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.7914642164139538,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.8952845185724093,
+          "median_paired_ring_over_same_radius_variance": 2.8732959738852077
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8441015270925747,
+      "median_paired_variance_over_isotropic": 0.8274707199329641,
+      "median_paired_mse_over_pca1": 0.8743853426413208,
+      "median_paired_mse_over_isotropic": 0.8069836297406047,
+      "median_paired_sigma_over_pca1": 1.7234456679603127,
+      "median_paired_sigma_over_isotropic": 1.8732697144962398,
+      "median_condition_number": 24.687803652719236,
+      "median_psd_rescaling": 0.9901651686795612,
+      "psd_rescaling_range": [
+        0.907793222409751,
+        1.097842162898067
+      ]
+    },
+    "raw_b5_hann_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.241957456826289,
+        "variance_ratio_10_90_percentiles": [
+          0.9717385311752281,
+          1.849918544047407
+        ],
+        "median_mse_over_predicted": 1.2056133427520173,
+        "median_mean_squared_fraction_of_mse": 6.641009641355294e-34,
+        "median_within_one_sigma_fraction": 0.668233082706767
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.9485696995397589,
+        "variance_ratio_10_90_percentiles": [
+          0.36880138789048583,
+          1.4059461101716424
+        ],
+        "median_mse_over_predicted": 1.0262945880376007,
+        "median_mean_squared_fraction_of_mse": 0.0316500122366904,
+        "median_within_one_sigma_fraction": 0.6568627450980392
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.248948961171394,
+        "variance_ratio_10_90_percentiles": [
+          1.0151332244857119,
+          2.069459088201377
+        ],
+        "median_mse_over_predicted": 1.2430635615039642,
+        "median_mean_squared_fraction_of_mse": 0.02730608308031702,
+        "median_within_one_sigma_fraction": 0.6321353065539113
+      },
+      "median_split_weight_cosine": 0.9891689210518246,
+      "median_split_relative_covariance_difference": 0.1615056280556108,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 3.111263207636227,
+          "median_paired_ring_over_same_radius_variance": 3.916829646201026
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.4504048150900688,
+          "median_paired_ring_over_same_radius_variance": 1.684923549721975
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.9485696995397589,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.0845979994920152,
+          "median_paired_ring_over_same_radius_variance": 2.9301797937841867
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.84033870134122,
+      "median_paired_variance_over_isotropic": 0.840028098053708,
+      "median_paired_mse_over_pca1": 0.8867635622330339,
+      "median_paired_mse_over_isotropic": 0.8267190904112209,
+      "median_paired_sigma_over_pca1": 1.5865042343834472,
+      "median_paired_sigma_over_isotropic": 1.7228668640411975,
+      "median_condition_number": 10.354170755600583,
+      "median_psd_rescaling": 0.9901651686795612,
+      "psd_rescaling_range": [
+        0.907793222409751,
+        1.097842162898067
+      ]
+    },
+    "raw_b10_rectangular_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.0487640796069546,
+        "variance_ratio_10_90_percentiles": [
+          0.7516999342216517,
+          1.2075011421419573
+        ],
+        "median_mse_over_predicted": 1.0254582111712445,
+        "median_mean_squared_fraction_of_mse": 2.050626643747369e-33,
+        "median_within_one_sigma_fraction": 0.7052139037433156
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.7585297710584458,
+        "variance_ratio_10_90_percentiles": [
+          0.3121944186161503,
+          1.063452754439726
+        ],
+        "median_mse_over_predicted": 0.8411923530759635,
+        "median_mean_squared_fraction_of_mse": 0.027080263259756116,
+        "median_within_one_sigma_fraction": 0.7573529411764706
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.1980129893953317,
+        "variance_ratio_10_90_percentiles": [
+          0.8293573025293289,
+          1.5746203228541962
+        ],
+        "median_mse_over_predicted": 1.239787808855617,
+        "median_mean_squared_fraction_of_mse": 0.018340121272087805,
+        "median_within_one_sigma_fraction": 0.6705426356589147
+      },
+      "median_split_weight_cosine": 0.9550028808193054,
+      "median_split_relative_covariance_difference": 0.2406303395696034,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.7896883074564567,
+          "median_paired_ring_over_same_radius_variance": 4.105806892249449
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2088382428713143,
+          "median_paired_ring_over_same_radius_variance": 1.7441091946756562
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.7585297710584458,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.8221257282926858,
+          "median_paired_ring_over_same_radius_variance": 2.747907415614768
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.9237180080537108,
+      "median_paired_variance_over_isotropic": 0.8263941971127373,
+      "median_paired_mse_over_pca1": 0.9435945330841431,
+      "median_paired_mse_over_isotropic": 0.7849797908163196,
+      "median_paired_sigma_over_pca1": 1.6363358791287057,
+      "median_paired_sigma_over_isotropic": 1.8800330130262144,
+      "median_condition_number": 25.309884987590607,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999999,
+        1.0000000000000002
+      ]
+    },
+    "raw_b10_rectangular_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.247922133172918,
+        "variance_ratio_10_90_percentiles": [
+          0.9071824988109353,
+          1.4275190906576165
+        ],
+        "median_mse_over_predicted": 1.2201905302135199,
+        "median_mean_squared_fraction_of_mse": 7.356274588296248e-34,
+        "median_within_one_sigma_fraction": 0.6705426356589147
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8950897921755472,
+        "variance_ratio_10_90_percentiles": [
+          0.36149795881649405,
+          1.2744624181833495
+        ],
+        "median_mse_over_predicted": 0.9973403998693682,
+        "median_mean_squared_fraction_of_mse": 0.02547312748786809,
+        "median_within_one_sigma_fraction": 0.6923076923076923
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.4106148619700565,
+        "variance_ratio_10_90_percentiles": [
+          1.0131705838521476,
+          1.8626120888968045
+        ],
+        "median_mse_over_predicted": 1.4814853826656715,
+        "median_mean_squared_fraction_of_mse": 0.02069482176826007,
+        "median_within_one_sigma_fraction": 0.6428571428571429
+      },
+      "median_split_weight_cosine": 0.9602740047320505,
+      "median_split_relative_covariance_difference": 0.20881029042654503,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 3.2244461557333763,
+          "median_paired_ring_over_same_radius_variance": 4.12521808204343
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.4334721670133157,
+          "median_paired_ring_over_same_radius_variance": 1.7237949338032692
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8950897921755472,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.978198335554409,
+          "median_paired_ring_over_same_radius_variance": 2.7922657553899777
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.9042475001771964,
+      "median_paired_variance_over_isotropic": 0.8361300854061711,
+      "median_paired_mse_over_pca1": 0.9697748591387918,
+      "median_paired_mse_over_isotropic": 0.8155384255019615,
+      "median_paired_sigma_over_pca1": 1.507023841937058,
+      "median_paired_sigma_over_isotropic": 1.7324731995371383,
+      "median_condition_number": 10.802588758249957,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999999,
+        1.0000000000000002
+      ]
+    },
+    "raw_b10_hann_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.041226257798125,
+        "variance_ratio_10_90_percentiles": [
+          0.778728273628848,
+          1.2502382609375136
+        ],
+        "median_mse_over_predicted": 1.0204017326421626,
+        "median_mean_squared_fraction_of_mse": 6.6013124007058905e-34,
+        "median_within_one_sigma_fraction": 0.713406292749658
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.733190982488982,
+        "variance_ratio_10_90_percentiles": [
+          0.31070157383281666,
+          1.0115191776343293
+        ],
+        "median_mse_over_predicted": 0.7544194919944949,
+        "median_mean_squared_fraction_of_mse": 0.02642461093543092,
+        "median_within_one_sigma_fraction": 0.75
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.1514690089505737,
+        "variance_ratio_10_90_percentiles": [
+          0.8406574817472576,
+          1.4461602015121093
+        ],
+        "median_mse_over_predicted": 1.1220505745017078,
+        "median_mean_squared_fraction_of_mse": 0.022350122598181157,
+        "median_within_one_sigma_fraction": 0.6628787878787878
+      },
+      "median_split_weight_cosine": 0.9724006224043167,
+      "median_split_relative_covariance_difference": 0.20107997119029938,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.8206106485847084,
+          "median_paired_ring_over_same_radius_variance": 4.2966943059685585
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2502619816419416,
+          "median_paired_ring_over_same_radius_variance": 1.8188683877765461
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.733190982488982,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.851455103933173,
+          "median_paired_ring_over_same_radius_variance": 2.77139772529764
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8654805765218219,
+      "median_paired_variance_over_isotropic": 0.8132905818856877,
+      "median_paired_mse_over_pca1": 0.9542131425681069,
+      "median_paired_mse_over_isotropic": 0.7932437286806611,
+      "median_paired_sigma_over_pca1": 1.6533624661022563,
+      "median_paired_sigma_over_isotropic": 1.892025759218951,
+      "median_condition_number": 25.888992650415247,
+      "median_psd_rescaling": 0.9833249122243712,
+      "psd_rescaling_range": [
+        0.9374917177687427,
+        1.0383190705560625
+      ]
+    },
+    "raw_b10_hann_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.241051544993044,
+        "variance_ratio_10_90_percentiles": [
+          0.9461193575395945,
+          1.522597093072193
+        ],
+        "median_mse_over_predicted": 1.216230514093183,
+        "median_mean_squared_fraction_of_mse": 8.504080152606945e-34,
+        "median_within_one_sigma_fraction": 0.6511627906976745
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8758552342711418,
+        "variance_ratio_10_90_percentiles": [
+          0.35956262021496305,
+          1.2345720053656444
+        ],
+        "median_mse_over_predicted": 0.9093170921940376,
+        "median_mean_squared_fraction_of_mse": 0.024604797564179964,
+        "median_within_one_sigma_fraction": 0.7058823529411765
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.3831240204487871,
+        "variance_ratio_10_90_percentiles": [
+          1.0144942082925703,
+          1.7300234134860608
+        ],
+        "median_mse_over_predicted": 1.349689281687435,
+        "median_mean_squared_fraction_of_mse": 0.024674819229261083,
+        "median_within_one_sigma_fraction": 0.6325396825396825
+      },
+      "median_split_weight_cosine": 0.9767795386576676,
+      "median_split_relative_covariance_difference": 0.17503954781416367,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 3.280745045008911,
+          "median_paired_ring_over_same_radius_variance": 4.2606626164385775
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.4898085662318823,
+          "median_paired_ring_over_same_radius_variance": 1.8380416462197169
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8758552342711418,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.0230271642305842,
+          "median_paired_ring_over_same_radius_variance": 2.821500192786649
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8856128073612552,
+      "median_paired_variance_over_isotropic": 0.8320016271970649,
+      "median_paired_mse_over_pca1": 0.9512435048214026,
+      "median_paired_mse_over_isotropic": 0.8026515223241942,
+      "median_paired_sigma_over_pca1": 1.520234606343497,
+      "median_paired_sigma_over_isotropic": 1.7400396549048325,
+      "median_condition_number": 10.900673147546177,
+      "median_psd_rescaling": 0.9833249122243712,
+      "psd_rescaling_range": [
+        0.9374917177687427,
+        1.0383190705560625
+      ]
+    },
+    "raw_b20_rectangular_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.1299952084961333,
+        "variance_ratio_10_90_percentiles": [
+          1.0094324061065854,
+          1.3056410211014464
+        ],
+        "median_mse_over_predicted": 1.1090693713017605,
+        "median_mean_squared_fraction_of_mse": 3.938697917843167e-34,
+        "median_within_one_sigma_fraction": 0.6818181818181818
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.730681187248139,
+        "variance_ratio_10_90_percentiles": [
+          0.29420610514062645,
+          0.8702466078615779
+        ],
+        "median_mse_over_predicted": 0.7459346569055874,
+        "median_mean_squared_fraction_of_mse": 0.020917527251463085,
+        "median_within_one_sigma_fraction": 0.7735042735042735
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.2602468574283865,
+        "variance_ratio_10_90_percentiles": [
+          1.1040302852940824,
+          2.140613925317009
+        ],
+        "median_mse_over_predicted": 1.2364366765025172,
+        "median_mean_squared_fraction_of_mse": 0.0033963995589292367,
+        "median_within_one_sigma_fraction": 0.6992781155015197
+      },
+      "median_split_weight_cosine": 0.9463018481067538,
+      "median_split_relative_covariance_difference": 0.3069180308181393,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.584464932459335,
+          "median_paired_ring_over_same_radius_variance": 5.260877498228949
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.0920253679845071,
+          "median_paired_ring_over_same_radius_variance": 2.020592219968284
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.730681187248139,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.7440288664701403,
+          "median_paired_ring_over_same_radius_variance": 2.515414867860467
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.895736314473038,
+      "median_paired_variance_over_isotropic": 0.8097099961127737,
+      "median_paired_mse_over_pca1": 0.975723887595205,
+      "median_paired_mse_over_isotropic": 0.8188755613617924,
+      "median_paired_sigma_over_pca1": 1.6716919472303684,
+      "median_paired_sigma_over_isotropic": 1.940321359024702,
+      "median_condition_number": 27.26211979144299,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000002
+      ]
+    },
+    "raw_b20_rectangular_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.3478376795158642,
+        "variance_ratio_10_90_percentiles": [
+          1.2085923627644364,
+          1.5686218811683112
+        ],
+        "median_mse_over_predicted": 1.3228777224877928,
+        "median_mean_squared_fraction_of_mse": 6.206778110869878e-34,
+        "median_within_one_sigma_fraction": 0.6415094339622641
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8629973337544239,
+        "variance_ratio_10_90_percentiles": [
+          0.3415836266389497,
+          1.0607847492492408
+        ],
+        "median_mse_over_predicted": 0.8966527246994734,
+        "median_mean_squared_fraction_of_mse": 0.017445108202582618,
+        "median_within_one_sigma_fraction": 0.7142857142857143
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.4956101774637962,
+        "variance_ratio_10_90_percentiles": [
+          1.296743618219383,
+          2.518197019167974
+        ],
+        "median_mse_over_predicted": 1.4654074324043298,
+        "median_mean_squared_fraction_of_mse": 0.0025184322042937817,
+        "median_within_one_sigma_fraction": 0.6163570691434468
+      },
+      "median_split_weight_cosine": 0.952851038175855,
+      "median_split_relative_covariance_difference": 0.2726353743780479,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.9986087565529242,
+          "median_paired_ring_over_same_radius_variance": 5.166929236328695
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2907050775017956,
+          "median_paired_ring_over_same_radius_variance": 1.9651421806395266
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8629973337544239,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.8872331568544836,
+          "median_paired_ring_over_same_radius_variance": 2.569885445033166
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.887326390638292,
+      "median_paired_variance_over_isotropic": 0.8423047613278865,
+      "median_paired_mse_over_pca1": 0.9594818932800273,
+      "median_paired_mse_over_isotropic": 0.8336942100489138,
+      "median_paired_sigma_over_pca1": 1.536440496055416,
+      "median_paired_sigma_over_isotropic": 1.7838286068138463,
+      "median_condition_number": 11.501605855637234,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000002
+      ]
+    },
+    "raw_b20_hann_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.1037172918756446,
+        "variance_ratio_10_90_percentiles": [
+          1.0082900841015483,
+          1.3087804268763967
+        ],
+        "median_mse_over_predicted": 1.0784046516624213,
+        "median_mean_squared_fraction_of_mse": 2.297453235798904e-34,
+        "median_within_one_sigma_fraction": 0.6830143540669856
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.6440957498906821,
+        "variance_ratio_10_90_percentiles": [
+          0.27976178075137864,
+          0.8732180907144714
+        ],
+        "median_mse_over_predicted": 0.647626754716935,
+        "median_mean_squared_fraction_of_mse": 0.014269802233299971,
+        "median_within_one_sigma_fraction": 0.7777777777777778
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.254828970881222,
+        "variance_ratio_10_90_percentiles": [
+          0.9922155574170358,
+          1.9769035031243372
+        ],
+        "median_mse_over_predicted": 1.2308117978716742,
+        "median_mean_squared_fraction_of_mse": 0.004146594311197107,
+        "median_within_one_sigma_fraction": 0.6792452830188679
+      },
+      "median_split_weight_cosine": 0.9704253270365324,
+      "median_split_relative_covariance_difference": 0.25997917820866023,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.383763036314311,
+          "median_paired_ring_over_same_radius_variance": 4.630830354819779
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.0503441071535402,
+          "median_paired_ring_over_same_radius_variance": 1.8632731907516962
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.6440957498906821,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.7384094590059435,
+          "median_paired_ring_over_same_radius_variance": 2.5675341624103494
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.9092261070076956,
+      "median_paired_variance_over_isotropic": 0.8220420617381806,
+      "median_paired_mse_over_pca1": 0.944325057750814,
+      "median_paired_mse_over_isotropic": 0.801986866151218,
+      "median_paired_sigma_over_pca1": 1.7187045511343637,
+      "median_paired_sigma_over_isotropic": 1.9415405813674949,
+      "median_condition_number": 28.670432587330414,
+      "median_psd_rescaling": 0.9879721283975083,
+      "psd_rescaling_range": [
+        0.9411755336227743,
+        1.041032603620898
+      ]
+    },
+    "raw_b20_hann_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.3235540140419655,
+        "variance_ratio_10_90_percentiles": [
+          1.225843450552597,
+          1.5899199895863085
+        ],
+        "median_mse_over_predicted": 1.2900972694682071,
+        "median_mean_squared_fraction_of_mse": 4.0693932068436e-34,
+        "median_within_one_sigma_fraction": 0.6363636363636364
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.7667893780690822,
+        "variance_ratio_10_90_percentiles": [
+          0.32308446117782175,
+          1.073134524456285
+        ],
+        "median_mse_over_predicted": 0.7814327081121353,
+        "median_mean_squared_fraction_of_mse": 0.013620220992442821,
+        "median_within_one_sigma_fraction": 0.7182539682539683
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.4898241002115271,
+        "variance_ratio_10_90_percentiles": [
+          1.1761742271524394,
+          2.3653615405219597
+        ],
+        "median_mse_over_predicted": 1.4616281877045885,
+        "median_mean_squared_fraction_of_mse": 0.00327800339900405,
+        "median_within_one_sigma_fraction": 0.6250604741170779
+      },
+      "median_split_weight_cosine": 0.975430125915814,
+      "median_split_relative_covariance_difference": 0.23371800982077734,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.791754230598123,
+          "median_paired_ring_over_same_radius_variance": 4.572874258345202
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2515839501504649,
+          "median_paired_ring_over_same_radius_variance": 1.871295201458901
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.7667893780690822,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.8876905877897736,
+          "median_paired_ring_over_same_radius_variance": 2.6332154891988946
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.9131653289171288,
+      "median_paired_variance_over_isotropic": 0.8273981376103332,
+      "median_paired_mse_over_pca1": 0.9475183676463519,
+      "median_paired_mse_over_isotropic": 0.8177534826275157,
+      "median_paired_sigma_over_pca1": 1.5731215394060094,
+      "median_paired_sigma_over_isotropic": 1.782813703788558,
+      "median_condition_number": 11.413938996611495,
+      "median_psd_rescaling": 0.9879721283975083,
+      "psd_rescaling_range": [
+        0.9411755336227743,
+        1.041032603620898
+      ]
+    },
+    "normalized_b0_rectangular_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 0.8856905250240765,
+        "variance_ratio_10_90_percentiles": [
+          0.45795502371283553,
+          1.0102748756825803
+        ],
+        "median_mse_over_predicted": 0.8100122159289054,
+        "median_mean_squared_fraction_of_mse": 2.054346007101782e-33,
+        "median_within_one_sigma_fraction": 0.7058823529411765
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8681112629345884,
+        "variance_ratio_10_90_percentiles": [
+          0.328732176043342,
+          1.250036034966159
+        ],
+        "median_mse_over_predicted": 1.0397811438465943,
+        "median_mean_squared_fraction_of_mse": 0.14689599008833065,
+        "median_within_one_sigma_fraction": 0.7058823529411765
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 0.8681112629345884,
+        "variance_ratio_10_90_percentiles": [
+          0.328732176043342,
+          1.250036034966159
+        ],
+        "median_mse_over_predicted": 1.0397811438465943,
+        "median_mean_squared_fraction_of_mse": 0.14689599008833065,
+        "median_within_one_sigma_fraction": 0.7058823529411765
+      },
+      "median_split_weight_cosine": 0.9552822875555035,
+      "median_split_relative_covariance_difference": 0.3323032054811422,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.5238627134690805,
+          "median_paired_ring_over_same_radius_variance": 3.497731993734136
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2502491428974611,
+          "median_paired_ring_over_same_radius_variance": 1.6621075342422902
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8681112629345884,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.0931298912688547,
+          "median_paired_ring_over_same_radius_variance": 3.1303734159326546
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.7962036272837618,
+      "median_paired_variance_over_isotropic": 0.790876714822552,
+      "median_paired_mse_over_pca1": 0.77418645643608,
+      "median_paired_mse_over_isotropic": 0.760948351912359,
+      "median_paired_sigma_over_pca1": 1.7954830858175987,
+      "median_paired_sigma_over_isotropic": 1.824864722494127,
+      "median_condition_number": 25.592424517255125,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000004
+      ]
+    },
+    "normalized_b0_rectangular_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.023798138228455,
+        "variance_ratio_10_90_percentiles": [
+          0.5447698711720095,
+          1.2144492437417886
+        ],
+        "median_mse_over_predicted": 0.9511273320472324,
+        "median_mean_squared_fraction_of_mse": 1.216016112070342e-33,
+        "median_within_one_sigma_fraction": 0.6990950226244343
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.9963783366842405,
+        "variance_ratio_10_90_percentiles": [
+          0.3716464041654124,
+          1.5061033925054994
+        ],
+        "median_mse_over_predicted": 1.248838064875537,
+        "median_mean_squared_fraction_of_mse": 0.1663886407764857,
+        "median_within_one_sigma_fraction": 0.6055555555555556
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 0.9963783366842405,
+        "variance_ratio_10_90_percentiles": [
+          0.3716464041654124,
+          1.5061033925054994
+        ],
+        "median_mse_over_predicted": 1.248838064875537,
+        "median_mean_squared_fraction_of_mse": 0.1663886407764857,
+        "median_within_one_sigma_fraction": 0.6055555555555556
+      },
+      "median_split_weight_cosine": 0.9640414981897449,
+      "median_split_relative_covariance_difference": 0.29218483990130745,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.897532403481218,
+          "median_paired_ring_over_same_radius_variance": 3.5218072387099117
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.481715156839412,
+          "median_paired_ring_over_same_radius_variance": 1.6956853987114782
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.9963783366842405,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.2891809379295964,
+          "median_paired_ring_over_same_radius_variance": 3.109320562824404
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.7920493752089328,
+      "median_paired_variance_over_isotropic": 0.8102590643159463,
+      "median_paired_mse_over_pca1": 0.7912786352524623,
+      "median_paired_mse_over_isotropic": 0.7882387781914411,
+      "median_paired_sigma_over_pca1": 1.657843323974773,
+      "median_paired_sigma_over_isotropic": 1.6844190107271895,
+      "median_condition_number": 10.736004347883842,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000004
+      ]
+    },
+    "normalized_b0_hann_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 0.8898594444802905,
+        "variance_ratio_10_90_percentiles": [
+          0.490596567557458,
+          1.0416744945504655
+        ],
+        "median_mse_over_predicted": 0.8295049371995848,
+        "median_mean_squared_fraction_of_mse": 1.2554894269743612e-33,
+        "median_within_one_sigma_fraction": 0.7647058823529411
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8658964854225386,
+        "variance_ratio_10_90_percentiles": [
+          0.3148042500130426,
+          1.6804935059535195
+        ],
+        "median_mse_over_predicted": 1.110220226160589,
+        "median_mean_squared_fraction_of_mse": 0.1758289711886193,
+        "median_within_one_sigma_fraction": 0.6055555555555556
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 0.8658964854225386,
+        "variance_ratio_10_90_percentiles": [
+          0.3148042500130426,
+          1.6804935059535195
+        ],
+        "median_mse_over_predicted": 1.110220226160589,
+        "median_mean_squared_fraction_of_mse": 0.1758289711886193,
+        "median_within_one_sigma_fraction": 0.6055555555555556
+      },
+      "median_split_weight_cosine": 0.9714401346328724,
+      "median_split_relative_covariance_difference": 0.36670271467160487,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.357502909174576,
+          "median_paired_ring_over_same_radius_variance": 3.633434398000004
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.3206445136881368,
+          "median_paired_ring_over_same_radius_variance": 1.7380655233037394
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8658964854225386,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.1518985935172639,
+          "median_paired_ring_over_same_radius_variance": 3.0394217925714058
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8424976791748127,
+      "median_paired_variance_over_isotropic": 0.85823762626464,
+      "median_paired_mse_over_pca1": 0.8397077039282252,
+      "median_paired_mse_over_isotropic": 0.8524996445015567,
+      "median_paired_sigma_over_pca1": 1.7705082132176693,
+      "median_paired_sigma_over_isotropic": 1.788251923239604,
+      "median_condition_number": 23.86747292312224,
+      "median_psd_rescaling": 1.0158119048913155,
+      "psd_rescaling_range": [
+        0.8725187615817054,
+        1.1631216427078688
+      ]
+    },
+    "normalized_b0_hann_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.050318656180841,
+        "variance_ratio_10_90_percentiles": [
+          0.5815925085066376,
+          1.2596631251632922
+        ],
+        "median_mse_over_predicted": 0.9885352058172622,
+        "median_mean_squared_fraction_of_mse": 1.1114192663555069e-33,
+        "median_within_one_sigma_fraction": 0.7058823529411765
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.9957845482948414,
+        "variance_ratio_10_90_percentiles": [
+          0.35237861304531715,
+          1.9841463395790604
+        ],
+        "median_mse_over_predicted": 1.3081161971645017,
+        "median_mean_squared_fraction_of_mse": 0.17122499137792493,
+        "median_within_one_sigma_fraction": 0.5607843137254902
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 0.9957845482948414,
+        "variance_ratio_10_90_percentiles": [
+          0.35237861304531715,
+          1.9841463395790604
+        ],
+        "median_mse_over_predicted": 1.3081161971645017,
+        "median_mean_squared_fraction_of_mse": 0.17122499137792493,
+        "median_within_one_sigma_fraction": 0.5607843137254902
+      },
+      "median_split_weight_cosine": 0.977946877389315,
+      "median_split_relative_covariance_difference": 0.32862500613685747,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.7317608077063724,
+          "median_paired_ring_over_same_radius_variance": 3.6059004097406278
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.5650328383837258,
+          "median_paired_ring_over_same_radius_variance": 1.7401352672253982
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.9957845482948414,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.3402255822340883,
+          "median_paired_ring_over_same_radius_variance": 3.079930740193136
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8364904508916562,
+      "median_paired_variance_over_isotropic": 0.872807164794174,
+      "median_paired_mse_over_pca1": 0.8557027100655302,
+      "median_paired_mse_over_isotropic": 0.8659570257699835,
+      "median_paired_sigma_over_pca1": 1.6343903113817,
+      "median_paired_sigma_over_isotropic": 1.650490686468201,
+      "median_condition_number": 9.535401650453181,
+      "median_psd_rescaling": 1.0158119048913155,
+      "psd_rescaling_range": [
+        0.8725187615817054,
+        1.1631216427078688
+      ]
+    },
+    "normalized_b5_rectangular_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.0619026815492,
+        "variance_ratio_10_90_percentiles": [
+          0.7949200099602495,
+          1.380410690242611
+        ],
+        "median_mse_over_predicted": 1.0308000902682461,
+        "median_mean_squared_fraction_of_mse": 4.8753280510115816e-34,
+        "median_within_one_sigma_fraction": 0.6976608187134503
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.9064389897932319,
+        "variance_ratio_10_90_percentiles": [
+          0.3483838899882747,
+          1.164979550140478
+        ],
+        "median_mse_over_predicted": 0.9248756545069823,
+        "median_mean_squared_fraction_of_mse": 0.029595891195991486,
+        "median_within_one_sigma_fraction": 0.7238095238095238
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.1093502461738844,
+        "variance_ratio_10_90_percentiles": [
+          0.8092699779081323,
+          2.0845015274067844
+        ],
+        "median_mse_over_predicted": 1.1232710604184093,
+        "median_mean_squared_fraction_of_mse": 0.024432799380216374,
+        "median_within_one_sigma_fraction": 0.6648671096345515
+      },
+      "median_split_weight_cosine": 0.9654817888113256,
+      "median_split_relative_covariance_difference": 0.2072355862614544,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.3821873867450023,
+          "median_paired_ring_over_same_radius_variance": 3.3008830186594595
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2899217751153165,
+          "median_paired_ring_over_same_radius_variance": 1.6655921551868575
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.9064389897932319,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.9139793385646868,
+          "median_paired_ring_over_same_radius_variance": 2.708818103908134
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.790454068876465,
+      "median_paired_variance_over_isotropic": 0.8342642406223171,
+      "median_paired_mse_over_pca1": 0.8745236860932972,
+      "median_paired_mse_over_isotropic": 0.8111473502995256,
+      "median_paired_sigma_over_pca1": 1.6815750470051767,
+      "median_paired_sigma_over_isotropic": 1.8575344937483373,
+      "median_condition_number": 24.761723072963242,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000004
+      ]
+    },
+    "normalized_b5_rectangular_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.2723666754027319,
+        "variance_ratio_10_90_percentiles": [
+          0.954885282113269,
+          1.6445070367625563
+        ],
+        "median_mse_over_predicted": 1.2351440818865818,
+        "median_mean_squared_fraction_of_mse": 5.736080079720968e-34,
+        "median_within_one_sigma_fraction": 0.6700258397932817
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 1.0538277634118685,
+        "variance_ratio_10_90_percentiles": [
+          0.39682705546020686,
+          1.3984525251398723
+        ],
+        "median_mse_over_predicted": 1.0884928604651138,
+        "median_mean_squared_fraction_of_mse": 0.03395061273378737,
+        "median_within_one_sigma_fraction": 0.6794871794871795
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.3154549831816427,
+        "variance_ratio_10_90_percentiles": [
+          0.976550877208858,
+          2.452476136544488
+        ],
+        "median_mse_over_predicted": 1.3294268069104431,
+        "median_mean_squared_fraction_of_mse": 0.02326645170912844,
+        "median_within_one_sigma_fraction": 0.6190476190476191
+      },
+      "median_split_weight_cosine": 0.9720153468173267,
+      "median_split_relative_covariance_difference": 0.18339054514105596,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.779295431516159,
+          "median_paired_ring_over_same_radius_variance": 3.270485220423595
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.5367156463707212,
+          "median_paired_ring_over_same_radius_variance": 1.6877871703725096
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 1.0538277634118685,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.0902215287972905,
+          "median_paired_ring_over_same_radius_variance": 2.7326751017085478
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.7890693907537308,
+      "median_paired_variance_over_isotropic": 0.8436187722810294,
+      "median_paired_mse_over_pca1": 0.8825349254927255,
+      "median_paired_mse_over_isotropic": 0.8293816261715573,
+      "median_paired_sigma_over_pca1": 1.5508272533040794,
+      "median_paired_sigma_over_isotropic": 1.7132425427629034,
+      "median_condition_number": 10.45420394396412,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000004
+      ]
+    },
+    "normalized_b5_hann_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.0671881414964401,
+        "variance_ratio_10_90_percentiles": [
+          0.8290253408370081,
+          1.5910373676575709
+        ],
+        "median_mse_over_predicted": 1.035927423805585,
+        "median_mean_squared_fraction_of_mse": 5.603705943774678e-34,
+        "median_within_one_sigma_fraction": 0.7014802631578947
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8425153511879934,
+        "variance_ratio_10_90_percentiles": [
+          0.340285751000506,
+          1.231126992590986
+        ],
+        "median_mse_over_predicted": 0.9029077900769109,
+        "median_mean_squared_fraction_of_mse": 0.034231257520614206,
+        "median_within_one_sigma_fraction": 0.7058823529411765
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.0867868202381912,
+        "variance_ratio_10_90_percentiles": [
+          0.8679497048483097,
+          1.8690635070133563
+        ],
+        "median_mse_over_predicted": 1.0821768123445494,
+        "median_mean_squared_fraction_of_mse": 0.02656173478128134,
+        "median_within_one_sigma_fraction": 0.6376262626262625
+      },
+      "median_split_weight_cosine": 0.9871203017964456,
+      "median_split_relative_covariance_difference": 0.17279639692865495,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.32383143755779,
+          "median_paired_ring_over_same_radius_variance": 3.413661953520747
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2817076227588124,
+          "median_paired_ring_over_same_radius_variance": 1.750470929084019
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8425153511879934,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.9694665998206036,
+          "median_paired_ring_over_same_radius_variance": 2.6754117985130645
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8367226527729299,
+      "median_paired_variance_over_isotropic": 0.8306066183581227,
+      "median_paired_mse_over_pca1": 0.8972508668327552,
+      "median_paired_mse_over_isotropic": 0.8131728545269139,
+      "median_paired_sigma_over_pca1": 1.69141742430013,
+      "median_paired_sigma_over_isotropic": 1.8713745204742893,
+      "median_condition_number": 25.027659964385418,
+      "median_psd_rescaling": 0.9563592225666709,
+      "psd_rescaling_range": [
+        0.8941766883049477,
+        1.0691887619748912
+      ]
+    },
+    "normalized_b5_hann_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.2836113431259766,
+        "variance_ratio_10_90_percentiles": [
+          0.9982938503902313,
+          1.9147883677288442
+        ],
+        "median_mse_over_predicted": 1.246040577665692,
+        "median_mean_squared_fraction_of_mse": 2.5467502258199997e-34,
+        "median_within_one_sigma_fraction": 0.6595394736842105
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 1.0077739277030897,
+        "variance_ratio_10_90_percentiles": [
+          0.39341675945122156,
+          1.4692826450742453
+        ],
+        "median_mse_over_predicted": 1.085669237714166,
+        "median_mean_squared_fraction_of_mse": 0.03365539428262164,
+        "median_within_one_sigma_fraction": 0.6547619047619048
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.2979058711620226,
+        "variance_ratio_10_90_percentiles": [
+          1.0460921536313041,
+          2.22739478453143
+        ],
+        "median_mse_over_predicted": 1.2931101024631402,
+        "median_mean_squared_fraction_of_mse": 0.0285177304704778,
+        "median_within_one_sigma_fraction": 0.6190476190476191
+      },
+      "median_split_weight_cosine": 0.9890411280392354,
+      "median_split_relative_covariance_difference": 0.15590968695304103,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.709427083375508,
+          "median_paired_ring_over_same_radius_variance": 3.4025691441872503
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.530678896543343,
+          "median_paired_ring_over_same_radius_variance": 1.7441628138886096
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 1.0077739277030897,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.1587039181718457,
+          "median_paired_ring_over_same_radius_variance": 2.7185661957882217
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8344053152191951,
+      "median_paired_variance_over_isotropic": 0.8373449917542068,
+      "median_paired_mse_over_pca1": 0.9126464173660185,
+      "median_paired_mse_over_isotropic": 0.8322964405352961,
+      "median_paired_sigma_over_pca1": 1.5572780986034274,
+      "median_paired_sigma_over_isotropic": 1.7221678324946552,
+      "median_condition_number": 10.436968183316015,
+      "median_psd_rescaling": 0.9563592225666709,
+      "psd_rescaling_range": [
+        0.8941766883049477,
+        1.0691887619748912
+      ]
+    },
+    "normalized_b10_rectangular_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.0285394729639212,
+        "variance_ratio_10_90_percentiles": [
+          0.7787610518565591,
+          1.2408076173720464
+        ],
+        "median_mse_over_predicted": 1.0056830402313897,
+        "median_mean_squared_fraction_of_mse": 1.2035623653645006e-33,
+        "median_within_one_sigma_fraction": 0.7011099365750528
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8489613260188199,
+        "variance_ratio_10_90_percentiles": [
+          0.3346249079579302,
+          1.1270860929280109
+        ],
+        "median_mse_over_predicted": 0.8718803808428227,
+        "median_mean_squared_fraction_of_mse": 0.026669939782765523,
+        "median_within_one_sigma_fraction": 0.7222222222222222
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.1811555008919712,
+        "variance_ratio_10_90_percentiles": [
+          0.8459935941913639,
+          1.659335824163418
+        ],
+        "median_mse_over_predicted": 1.2051972636604127,
+        "median_mean_squared_fraction_of_mse": 0.018591724368058924,
+        "median_within_one_sigma_fraction": 0.6705426356589147
+      },
+      "median_split_weight_cosine": 0.9574019629880273,
+      "median_split_relative_covariance_difference": 0.22823757153815477,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.4407232664862635,
+          "median_paired_ring_over_same_radius_variance": 3.48698814117702
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2801780578018251,
+          "median_paired_ring_over_same_radius_variance": 1.7967785443762603
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8489613260188199,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.8966153365391314,
+          "median_paired_ring_over_same_radius_variance": 2.5849369467356365
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.924927984479714,
+      "median_paired_variance_over_isotropic": 0.8224592123809449,
+      "median_paired_mse_over_pca1": 0.9591567683319773,
+      "median_paired_mse_over_isotropic": 0.7887401589260181,
+      "median_paired_sigma_over_pca1": 1.603083760818381,
+      "median_paired_sigma_over_isotropic": 1.8813987628792983,
+      "median_condition_number": 26.30958320843409,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000004
+      ]
+    },
+    "normalized_b10_rectangular_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.2303001549757537,
+        "variance_ratio_10_90_percentiles": [
+          0.9377140022037672,
+          1.4793092634087828
+        ],
+        "median_mse_over_predicted": 1.1975697265600151,
+        "median_mean_squared_fraction_of_mse": 5.4769360417811815e-34,
+        "median_within_one_sigma_fraction": 0.6666666666666666
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 1.0123996126430632,
+        "variance_ratio_10_90_percentiles": [
+          0.3890245733500862,
+          1.3485698145481346
+        ],
+        "median_mse_over_predicted": 1.0347839585264254,
+        "median_mean_squared_fraction_of_mse": 0.025226834936923632,
+        "median_within_one_sigma_fraction": 0.6666666666666666
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.4038349787629616,
+        "variance_ratio_10_90_percentiles": [
+          1.0323254292178525,
+          1.963154699184242
+        ],
+        "median_mse_over_predicted": 1.4220392307991152,
+        "median_mean_squared_fraction_of_mse": 0.021215434421348753,
+        "median_within_one_sigma_fraction": 0.6227770177838577
+      },
+      "median_split_weight_cosine": 0.9628510713544585,
+      "median_split_relative_covariance_difference": 0.19755118916375652,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.8225483417762365,
+          "median_paired_ring_over_same_radius_variance": 3.5039917799215226
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.5190412989682258,
+          "median_paired_ring_over_same_radius_variance": 1.8127382905911267
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 1.0123996126430632,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.0629445809304803,
+          "median_paired_ring_over_same_radius_variance": 2.618840701713335
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.9424618963804592,
+      "median_paired_variance_over_isotropic": 0.8387831731181197,
+      "median_paired_mse_over_pca1": 0.9645833859079112,
+      "median_paired_mse_over_isotropic": 0.8176442332328788,
+      "median_paired_sigma_over_pca1": 1.4781649792586524,
+      "median_paired_sigma_over_isotropic": 1.7352375591712774,
+      "median_condition_number": 11.087143718781114,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000004
+      ]
+    },
+    "normalized_b10_hann_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.0468005754777772,
+        "variance_ratio_10_90_percentiles": [
+          0.8014285919837204,
+          1.334088614590787
+        ],
+        "median_mse_over_predicted": 1.0224563760480614,
+        "median_mean_squared_fraction_of_mse": 8.573179783885801e-34,
+        "median_within_one_sigma_fraction": 0.7043927648578812
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8002586740639286,
+        "variance_ratio_10_90_percentiles": [
+          0.3362499543807238,
+          1.060891958501593
+        ],
+        "median_mse_over_predicted": 0.7997308319154535,
+        "median_mean_squared_fraction_of_mse": 0.026245429511747874,
+        "median_within_one_sigma_fraction": 0.7142857142857143
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.1594495467840593,
+        "variance_ratio_10_90_percentiles": [
+          0.8570782451560823,
+          1.5756290264537216
+        ],
+        "median_mse_over_predicted": 1.131362451937626,
+        "median_mean_squared_fraction_of_mse": 0.023407183984260845,
+        "median_within_one_sigma_fraction": 0.6666666666666666
+      },
+      "median_split_weight_cosine": 0.9755780166214872,
+      "median_split_relative_covariance_difference": 0.1788740795833004,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.4746351538988565,
+          "median_paired_ring_over_same_radius_variance": 3.6974947652489685
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.3363866976023506,
+          "median_paired_ring_over_same_radius_variance": 1.9167963304114815
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8002586740639286,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.9348528635214142,
+          "median_paired_ring_over_same_radius_variance": 2.585381834582405
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8921631052778798,
+      "median_paired_variance_over_isotropic": 0.8198161596340623,
+      "median_paired_mse_over_pca1": 0.9422184063936094,
+      "median_paired_mse_over_isotropic": 0.7998947626719156,
+      "median_paired_sigma_over_pca1": 1.6391980879805663,
+      "median_paired_sigma_over_isotropic": 1.8906180894423588,
+      "median_condition_number": 25.822640139739637,
+      "median_psd_rescaling": 0.9642040810649098,
+      "psd_rescaling_range": [
+        0.9055052348317305,
+        1.022293393088075
+      ]
+    },
+    "normalized_b10_hann_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.2489100755686482,
+        "variance_ratio_10_90_percentiles": [
+          0.9730099280703546,
+          1.6083272214393243
+        ],
+        "median_mse_over_predicted": 1.2198656552065867,
+        "median_mean_squared_fraction_of_mse": 6.395804327411975e-34,
+        "median_within_one_sigma_fraction": 0.6321353065539113
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.9497196804069841,
+        "variance_ratio_10_90_percentiles": [
+          0.391505538293819,
+          1.2931503147437167
+        ],
+        "median_mse_over_predicted": 0.9633132041781467,
+        "median_mean_squared_fraction_of_mse": 0.024058834214464635,
+        "median_within_one_sigma_fraction": 0.6666666666666666
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.3908972652786158,
+        "variance_ratio_10_90_percentiles": [
+          1.0342373334202137,
+          1.8811614408837551
+        ],
+        "median_mse_over_predicted": 1.3571152776564408,
+        "median_mean_squared_fraction_of_mse": 0.02591048923244263,
+        "median_within_one_sigma_fraction": 0.6188235294117648
+      },
+      "median_split_weight_cosine": 0.9795217421008868,
+      "median_split_relative_covariance_difference": 0.15507714510875392,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.8733805639721384,
+          "median_paired_ring_over_same_radius_variance": 3.6680764386287477
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.5913014080705705,
+          "median_paired_ring_over_same_radius_variance": 1.8883191685014915
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.9497196804069841,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.115730911612686,
+          "median_paired_ring_over_same_radius_variance": 2.623349727571228
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.892385853793066,
+      "median_paired_variance_over_isotropic": 0.8346365115743413,
+      "median_paired_mse_over_pca1": 0.9478446011397255,
+      "median_paired_mse_over_isotropic": 0.8057043946168568,
+      "median_paired_sigma_over_pca1": 1.5056397442547653,
+      "median_paired_sigma_over_isotropic": 1.738892773159201,
+      "median_condition_number": 10.800012399151171,
+      "median_psd_rescaling": 0.9642040810649098,
+      "psd_rescaling_range": [
+        0.9055052348317305,
+        1.022293393088075
+      ]
+    },
+    "normalized_b20_rectangular_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.1110540139295937,
+        "variance_ratio_10_90_percentiles": [
+          1.0104685462562983,
+          1.313904187035015
+        ],
+        "median_mse_over_predicted": 1.0874145668247086,
+        "median_mean_squared_fraction_of_mse": 6.684886564579593e-34,
+        "median_within_one_sigma_fraction": 0.6772727272727272
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.8499021256685949,
+        "variance_ratio_10_90_percentiles": [
+          0.3243225350932642,
+          1.020305896091554
+        ],
+        "median_mse_over_predicted": 0.8261530876203458,
+        "median_mean_squared_fraction_of_mse": 0.02607075449993996,
+        "median_within_one_sigma_fraction": 0.75
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.24697119068076,
+        "variance_ratio_10_90_percentiles": [
+          1.1194035154827953,
+          2.006777674922539
+        ],
+        "median_mse_over_predicted": 1.2223420403512835,
+        "median_mean_squared_fraction_of_mse": 0.0018624990991595175,
+        "median_within_one_sigma_fraction": 0.6817279046673287
+      },
+      "median_split_weight_cosine": 0.9505318429857287,
+      "median_split_relative_covariance_difference": 0.2741231941866088,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.3504393627298246,
+          "median_paired_ring_over_same_radius_variance": 4.340211990733729
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.2160616821592698,
+          "median_paired_ring_over_same_radius_variance": 2.0206735358848613
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.8499021256685949,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.8358318743495208,
+          "median_paired_ring_over_same_radius_variance": 2.38376324135814
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8797651796702337,
+      "median_paired_variance_over_isotropic": 0.7953301986622863,
+      "median_paired_mse_over_pca1": 0.9859891653684818,
+      "median_paired_mse_over_isotropic": 0.7971796005388052,
+      "median_paired_sigma_over_pca1": 1.6128165115234543,
+      "median_paired_sigma_over_isotropic": 1.931968408633415,
+      "median_condition_number": 26.936923761843907,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000002
+      ]
+    },
+    "normalized_b20_rectangular_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.32756931691548,
+        "variance_ratio_10_90_percentiles": [
+          1.2071611966690226,
+          1.5638578375459937
+        ],
+        "median_mse_over_predicted": 1.2993231612364275,
+        "median_mean_squared_fraction_of_mse": 8.446255202147018e-34,
+        "median_within_one_sigma_fraction": 0.6274509803921569
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 1.0044834273623326,
+        "variance_ratio_10_90_percentiles": [
+          0.37823282648552076,
+          1.1944267986480912
+        ],
+        "median_mse_over_predicted": 0.9852760773398797,
+        "median_mean_squared_fraction_of_mse": 0.019867893240811545,
+        "median_within_one_sigma_fraction": 0.7100840336134454
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.468443508206828,
+        "variance_ratio_10_90_percentiles": [
+          1.2992969959426448,
+          2.3786059120834087
+        ],
+        "median_mse_over_predicted": 1.4394606060393351,
+        "median_mean_squared_fraction_of_mse": 0.0021239557212272622,
+        "median_within_one_sigma_fraction": 0.6137254901960785
+      },
+      "median_split_weight_cosine": 0.9568344573556569,
+      "median_split_relative_covariance_difference": 0.24038814561438615,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.7315439744584395,
+          "median_paired_ring_over_same_radius_variance": 4.238877725888852
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.4389509840749324,
+          "median_paired_ring_over_same_radius_variance": 1.9695578995524792
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 1.0044834273623326,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.9929504605495152,
+          "median_paired_ring_over_same_radius_variance": 2.428460005294555
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8805852171047566,
+      "median_paired_variance_over_isotropic": 0.8130458550952891,
+      "median_paired_mse_over_pca1": 0.9679850333259159,
+      "median_paired_mse_over_isotropic": 0.8201267289993255,
+      "median_paired_sigma_over_pca1": 1.4837296080147748,
+      "median_paired_sigma_over_isotropic": 1.776656259656758,
+      "median_condition_number": 11.360088337371353,
+      "median_psd_rescaling": 1.0,
+      "psd_rescaling_range": [
+        0.9999999999999998,
+        1.0000000000000002
+      ]
+    },
+    "normalized_b20_hann_m0.1": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.092073262841042,
+        "variance_ratio_10_90_percentiles": [
+          1.0239608090538272,
+          1.3197289681475766
+        ],
+        "median_mse_over_predicted": 1.0691216014958618,
+        "median_mean_squared_fraction_of_mse": 5.085010080106094e-34,
+        "median_within_one_sigma_fraction": 0.6792452830188679
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.768295392139313,
+        "variance_ratio_10_90_percentiles": [
+          0.3116909662956294,
+          0.9637871484930711
+        ],
+        "median_mse_over_predicted": 0.747822469874429,
+        "median_mean_squared_fraction_of_mse": 0.015017883643104694,
+        "median_within_one_sigma_fraction": 0.7596153846153846
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.220094905005491,
+        "variance_ratio_10_90_percentiles": [
+          1.0092337158541762,
+          1.8876457743326964
+        ],
+        "median_mse_over_predicted": 1.1956675025788166,
+        "median_mean_squared_fraction_of_mse": 0.0022305621518714366,
+        "median_within_one_sigma_fraction": 0.6591360476663357
+      },
+      "median_split_weight_cosine": 0.9748129786868392,
+      "median_split_relative_covariance_difference": 0.20892751031814016,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.1841783416701825,
+          "median_paired_ring_over_same_radius_variance": 3.9049186429410208
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.1793108249719881,
+          "median_paired_ring_over_same_radius_variance": 1.9157031317067148
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.768295392139313,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 0.8440430072398664,
+          "median_paired_ring_over_same_radius_variance": 2.4238324084628116
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8613125086514879,
+      "median_paired_variance_over_isotropic": 0.8091206204086716,
+      "median_paired_mse_over_pca1": 0.9972584195988083,
+      "median_paired_mse_over_isotropic": 0.7974120318855753,
+      "median_paired_sigma_over_pca1": 1.6385704507488819,
+      "median_paired_sigma_over_isotropic": 1.934262239273207,
+      "median_condition_number": 27.755186164617946,
+      "median_psd_rescaling": 0.9745200454141054,
+      "psd_rescaling_range": [
+        0.9327114522253914,
+        1.0348334814221993
+      ]
+    },
+    "normalized_b20_hann_m0.3": {
+      "directional_fits": 32,
+      "split_sites": 16,
+      "training": {
+        "median_variance_over_predicted": 1.3055261434154923,
+        "variance_ratio_10_90_percentiles": [
+          1.2206042188633264,
+          1.6122697825499699
+        ],
+        "median_mse_over_predicted": 1.2764574421601602,
+        "median_mean_squared_fraction_of_mse": 2.6186244611302684e-34,
+        "median_within_one_sigma_fraction": 0.6319073083778965
+      },
+      "same_radius": {
+        "median_variance_over_predicted": 0.9073224492419769,
+        "variance_ratio_10_90_percentiles": [
+          0.36284291018542086,
+          1.1829470028117413
+        ],
+        "median_mse_over_predicted": 0.9003843530700717,
+        "median_mean_squared_fraction_of_mse": 0.012112244851926073,
+        "median_within_one_sigma_fraction": 0.7142857142857143
+      },
+      "matched_band": {
+        "median_variance_over_predicted": 1.4493586633153641,
+        "variance_ratio_10_90_percentiles": [
+          1.194348594478354,
+          2.2551596229846123
+        ],
+        "median_mse_over_predicted": 1.4205773897778835,
+        "median_mean_squared_fraction_of_mse": 0.002561508734202989,
+        "median_within_one_sigma_fraction": 0.6233862959285005
+      },
+      "median_split_weight_cosine": 0.9789837764218363,
+      "median_split_relative_covariance_difference": 0.18417270335967648,
+      "radial_transfer": {
+        "-20": {
+          "directional_fits": 0
+        },
+        "-15": {
+          "directional_fits": 0
+        },
+        "-10": {
+          "directional_fits": 8,
+          "median_variance_over_predicted": 2.554868821767329,
+          "median_paired_ring_over_same_radius_variance": 3.861963298874957
+        },
+        "-5": {
+          "directional_fits": 24,
+          "median_variance_over_predicted": 1.4045231998811987,
+          "median_paired_ring_over_same_radius_variance": 1.9294434694830338
+        },
+        "0": {
+          "directional_fits": 32,
+          "median_variance_over_predicted": 0.9073224492419769,
+          "median_paired_ring_over_same_radius_variance": 1.0
+        },
+        "5": {
+          "directional_fits": 16,
+          "median_variance_over_predicted": 1.0101376222220164,
+          "median_paired_ring_over_same_radius_variance": 2.473577215004166
+        },
+        "10": {
+          "directional_fits": 0
+        },
+        "15": {
+          "directional_fits": 0
+        },
+        "20": {
+          "directional_fits": 0
+        }
+      },
+      "median_paired_variance_over_pca1": 0.8558236734900408,
+      "median_paired_variance_over_isotropic": 0.8224939753435379,
+      "median_paired_mse_over_pca1": 0.9951169124858293,
+      "median_paired_mse_over_isotropic": 0.8186957289834232,
+      "median_paired_sigma_over_pca1": 1.5024629586739917,
+      "median_paired_sigma_over_isotropic": 1.7754717253611725,
+      "median_condition_number": 11.321203086354414,
+      "median_psd_rescaling": 0.9745200454141054,
+      "psd_rescaling_range": [
+        0.9327114522253914,
+        1.0348334814221993
+      ]
+    }
+  }
+}

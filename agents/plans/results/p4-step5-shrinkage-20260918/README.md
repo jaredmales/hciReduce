@@ -132,6 +132,11 @@ properties of this image. Gaussian and identity remain the detection references 
 
 No shrinkage policy is promoted to production or selected for the fresh ROC injection study at this checkpoint.
 
+**Follow-up completed:** the [Welch-style PSD comparison](../p4-step5-welch-psd-20260918/README.md) executes this
+proposal on the same directional splits. It improves both actual held-out amplitude variance and variance
+prediction in the policy medians, with more stable weights. Radial transfer and native-pixel source recovery
+remain to be checked; see that report for the estimator, all policies, and limitations.
+
 ## Verification and artifacts
 
 - [`summary.json`](summary.json): all 24 policies, eight three-mode controls, sample support, scatter, and radial transfer.

@@ -392,8 +392,10 @@ The raw centered covariance from 19 patches has rank at most 18, regardless of t
 Use the positive-floor PCA model or diagonal shrinkage from Section 5 so the unmeasured complement retains finite
 uncertainty. Eigendecomposition of this covariance is a representation of the same matched filter; truncation or
 regularization changes the covariance model. Fifty-percent spacing is an initial geometry to test, rather than a
-claim of optimality for full covariance estimation. Choose tapering separately and propagate any taper through
-the data, template, and covariance consistently.
+claim of optimality for full covariance estimation. Choose tapering separately and propagate any measurement
+taper through the data, template, and covariance consistently. A window used only inside a spectral estimator
+is a different choice: the later PSD prototype reconstructs a covariance for untapered stamps, leaves the data
+and template untapered, and explicitly retains the estimator's window-induced lag bias.
 
 For candidate exclusion and validation, hold out whole angular neighborhoods, including every training patch
 whose footprint intersects the candidate's exclusion region. Leaving out only the patch centered on the candidate
@@ -1660,8 +1662,8 @@ supported empirical directions. Neither establishes that covariance weighting ca
 strengths remain untested. No shrinkage policy is promoted to production or selected for the ROC study. This
 checkpoint uses one saved baseline and generates no new source-recovery results, reductions, or thresholds.
 
-**Next candidate:** a structured covariance in a fixed spatial-frequency basis, following the user's Welch/PSD
-motivation. Average patch power with explicit window/edge handling and a positive floor, avoiding learned
+**Follow-on PSD comparison (completed below):** a structured covariance in a fixed spatial-frequency representation,
+following the user's Welch/PSD motivation. Average patch power with explicit window/edge handling and a positive floor, avoiding learned
 eigenvectors from the small patch sample. Test unit response, consistent interpolation/normalization, and held-out
 projected variance on the same splits before interpreting recovery. Local stationarity and radial transfer remain
 assumptions to check. Retain Gaussian and identity references when saved-image recovery comparisons resume.
@@ -1672,6 +1674,67 @@ solutions agree. Isotropic weights and band-independent actual centered validati
 Independent SVD solves agree within 8.78e-15 relative precision-vector error, and 2,304 projection groups and paired
 variance/MSE summaries are independently recomputed. The report contains all policies, sample-support diagnostics,
 individual projections, stability comparisons, and the figure.
+
+### Step 5 development result: Welch-style spectral covariance (2026-09-18)
+
+The [PSD comparison](results/p4-step5-welch-psd-20260918/README.md) averages windowed patch powers in a fixed
+spatial-frequency representation. It crosses rectangular/Hann windows and 0.1/0.3 isotropic spectral mixtures
+with all eight sampling/normalization policies, retaining the same 16 outer sites and both angular directions.
+The primary held-out ring, exact native exclusions, and shared radial profile are unchanged. Both the three-mode,
+floor-1 and fitted-mean isotropic controls are reproduced on identical samples. No new reductions or positive-source
+recovery measurements are part of this diagnostic.
+
+**This structured model improves the held-out noise diagnostic.** Ranges below span the eight sampling-policy
+medians for each window/mixture. Actual amplitude variance ratios are paired by site and training direction, so
+inflating predicted sigma alone cannot account for the measured noise reduction. These ranges are descriptive,
+not confidence intervals or independent trials.
+
+| Estimation window / isotropic mixture | Held-out variance / prediction | Actual variance / three-mode control | Actual variance / isotropic control | Split-weight cosine |
+| --- | --- | --- | --- | --- |
+| Rectangular / 0.1 | 0.731–0.906 | 0.782–0.925 | 0.787–0.835 | 0.946–0.966 |
+| Rectangular / 0.3 | 0.863–1.054 | 0.781–0.942 | 0.806–0.844 | 0.953–0.973 |
+| Hann / 0.1 | 0.644–0.866 | 0.835–0.909 | 0.809–0.858 | 0.970–0.987 |
+| Hann / 0.3 | 0.767–1.008 | 0.834–0.913 | 0.822–0.873 | 0.975–0.989 |
+
+The three-mode control has held-out variance/prediction medians 1.85–3.63 and split-weight cosines 0.708–0.904.
+PSD training variance/prediction medians span 0.84–1.35, avoiding the large training/validation gap of full empirical
+shrinkage. The isotropic control retains the fitted mean and optional radial scaling, so its comparison does not
+replace the original identity or `filter.lpfGaussFW=3.6` Gaussian detection references.
+
+The estimator subtracts the unwindowed across-patch mean, averages windowed powers with normalization
+$(n-1)\sum W^2$, and rescales their spectral mean to the unwindowed mean pixel variance $\bar v$. It then uses
+$\widehat P_\beta=(1-\beta_{\rm PSD})\widehat P+\beta_{\rm PSD}\bar v$. A 21×21 zero-padded FFT keeps every
+linear lag of an 11×11 patch distinct; the reconstructed 121×121 finite lag covariance does not wrap opposite
+patch edges together. Its diagonal is $\bar v$ and its minimum eigenvalue is at least $\beta_{\rm PSD}\bar v$.
+The finite covariance is solved directly; its eigenvectors need not be 11×11 Fourier modes. At mixture one,
+either estimation window reproduces the isotropic control exactly.
+
+The window is used only to estimate covariance; candidate data and response remain untapered and consistently
+radial-scaled where requested. No correction divides out the window autocorrelation or finite-patch lag-overlap
+factor. This biases long-lag correlations downward, including for the rectangular window, and is an explicit
+structural assumption rather than an unbiased covariance reconstruction.
+
+**Calibration and radial transfer still need work.** Normalized ±20 pixels with rectangular mixture 0.3 has
+same-radius median variance/prediction 1.00, but its directional 10th–90th percentile range is 0.38–1.19. Its
+−10-pixel ring has 4.24 times the same-radius projected variance on the eight eligible paired fits; raw pixels
+give 5.17. Normalization has not removed the radial-transfer problem. Including mean offsets, PSD/PCA MSE
+ratios span 0.769–0.997 in policy medians; the normalized ±20-pixel Hann arms barely improve MSE despite reduced
+centered variance. These reused, correlated outer sites and the shared profile do not establish inner-separation
+performance, native-candidate calibration, or a preferred production policy.
+
+**Next comparison:** apply the structured PSD family to the existing saved null and positive-injection images,
+retaining common support and the Gaussian/identity references. Fix the candidate grid and threshold rule before
+examining recovery; use only designated calibration nulls to set thresholds. Check contrast error, native-pixel
+noise prediction, false positives, and recovery. This can reuse the existing reductions. It remains development;
+freeze any eventual policy before fresh ROC injections.
+
+Verification reproduces 101,692 archived control scalars and checks all 1,024 PSD fits, 512 windowed isotropic
+endpoints, unit response, positive variance, and consistent physical-unit/standardized solutions. Independent
+direct linear-lag sums and dense solves agree with every PSD covariance and held-out same-radius projection:
+maximum relative covariance and weight differences are 7.97e-16 and 2.53e-15. Independent calculations also check
+8,448 projection groups, 6,144 paired variance/MSE/sigma ratios, and all 512 stability pairs. Exact white ensembles
+and constant patches verify normalization and edge lags. The report records the complete design, equations,
+policy tables, radial-transfer support, limitations, provenance, figure, and reproduction command.
 
 ## 8. Notation
 
@@ -1740,6 +1803,11 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $x_j,\bar x$ | Vectorized training patch and mean training patch | Length $p$ in a common radial/tangential coordinate system; $\bar x$ is the mean over retained training patches. |
 | $\widehat C$ | Empirical centered patch covariance | $p\times p$; regularize before inversion, and calibrate the effect of overlap on its estimation. |
 | $\gamma_{\rm shrink}, C_\gamma$ | Shrinkage fraction and covariance that continuously reduces all empirical modes toward isotropy | $C_\gamma=(1-\gamma_{\rm shrink})\widehat C+\gamma_{\rm shrink}\operatorname{tr}(\widehat C)I/p$; tested grid 0.1, 0.3, 1.0. The endpoint 1.0 is isotropic. Distinct from Gram eigenvalues $\gamma_i$. |
+| $W,U_W$ | Spectral estimation window and its squared energy | $U_W=\sum_a W_a^2$; tested windows are rectangular and separable symmetric Hann on 11×11 patches. Used inside the covariance estimator, not applied to candidate data or templates. |
+| $\bar v$ | Mean unwindowed empirical pixel variance | $\sum_j\lVert x_j-\bar x\rVert^2/[(n-1)p]$; the PSD model preserves covariance trace $p\bar v$. Distinct from the radial variance profile. |
+| $\widehat P_{\rm raw}(k),\widehat P(k)$ | Averaged windowed patch power before and after rescaling | Forward FFT is unnormalized on a 21×21 padded grid. Divide summed powers by $(n-1)U_W$, then rescale their spectral mean to $\bar v$; $k$ here indexes spatial frequency, not retained P4 modes. |
+| $\beta_{\rm PSD},\widehat P_\beta$ | Isotropic spectral mixing fraction and regularized power | $\widehat P_\beta=(1-\beta_{\rm PSD})\widehat P+\beta_{\rm PSD}\bar v$; tested mixtures 0.1 and 0.3, with 1.0 checked as the isotropic endpoint. Distinct from P4 regression coefficients $\beta_k$. |
+| $\widehat c(u_a-u_b),C_{\rm PSD}$ | Inverse-transform lag kernel and reconstructed finite stamp covariance | $u_a$ is the two-dimensional coordinate of stamp pixel $a$; $(C_{\rm PSD})_{ab}=\widehat c(u_a-u_b)$. The inverse FFT divides by $21^2$; all lags −10 through +10 remain distinct and long-lag window bias is retained. |
 | $v_i,\gamma_i$ | Eigenvector and eigenvalue of the training Gram matrix | $RR^Tv_i=\gamma_i v_i$; for $\gamma_i>0$, $q_i=R^Tv_i/\sqrt{\gamma_i}$ and $\nu_i=\gamma_i/(n-1)$. |
 | $C_s,C_n$ | Signal and noise covariance matrices in Wiener estimation | Defined for zero-mean, uncorrelated random signal and noise. $C_n$ is $C$ when referring to the same filtered stamp space. |
 | $\widehat s$ | Wiener estimate of the random signal image | $\widehat s=C_s(C_s+C_n)^{-1}d$ for zero-mean data; distinct from the unit-source input $s_q$. |

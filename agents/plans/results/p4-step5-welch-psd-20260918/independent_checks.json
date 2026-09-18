@@ -1,0 +1,60 @@
+{
+  "method": "Recompute saved statistics and summary scalars, independent scipy.signal.correlate2d linear lags and numpy.linalg.solve on every real fit; no FFT or Cholesky in the independent calculation.",
+  "counts": {
+    "projection_groups": 8448,
+    "paired_variance_mse_and_sigma_ratios": 6144,
+    "real_direct_lag_fits": 1024,
+    "direct_stability_pairs": 512,
+    "summary_scalars": 1216
+  },
+  "maximum_errors": {
+    "covariance_relative": 7.960523107162852e-16,
+    "weight_relative": 2.529208320591102e-15,
+    "sigma_relative": 6.661338147750939e-16,
+    "score_absolute": 3.9968028886505635e-15
+  },
+  "exact_white_ensemble_both_windows_all_three_mixings": true,
+  "constant_patch_linear_corner_and_neighbor_lags": true,
+  "invalid_mixing_rejected": true,
+  "insufficient_and_zero_variance_samples_rejected": true,
+  "hann_zero_windowed_variance_rejected": true,
+  "real_covariance_positive_floor": true,
+  "input_and_script_fingerprints_unchanged": true,
+  "artifacts": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-welch-psd-20260918/manifest.json",
+      "bytes": 7770,
+      "sha256": "2637727a6ca29cd2e98b6ba6b399e065283d91f85382c99e5122c7bda2dea02d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-welch-psd-20260918/projections.json",
+      "bytes": 8049894,
+      "sha256": "2d0f58e50d276ebdda45d6a5384e0f3aeb40a25024c865c03f2ea7d6946ee033"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-welch-psd-20260918/stability.json",
+      "bytes": 93449,
+      "sha256": "7bb9b75a1277dbb6af367be06b33860894b6694cb75c66f0f7e171159ca855c7"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-welch-psd-20260918/summary.json",
+      "bytes": 141508,
+      "sha256": "6711a26637dbfe3afcd11f64872d70794b812ddc59cc80af2e77e17d0c350dc8"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-welch-psd-20260918/verification.json",
+      "bytes": 390,
+      "sha256": "beaac9b2aa562718b647bd67685201a83e17e717ec6dcd2570836054f0470f7a"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-welch-psd-20260918/complete.json",
+      "bytes": 601,
+      "sha256": "b1abe6f55eeda996db8b593e3bb8d207d50eaafc3e18496b9b4ced6cf048a99c"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-welch-psd-20260918/comparison.png",
+      "bytes": 440587,
+      "sha256": "4bca1eef6288f1f5623ee5091d890bd51bef63fb8c5e1aecdeef7ab526c14892"
+    }
+  ]
+}
