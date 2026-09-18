@@ -1,0 +1,932 @@
+{
+  "purpose": "development geometry and variance-scale audit; no detection-gain test",
+  "inputs": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/baseline/finim.fits",
+      "bytes": 293760,
+      "sha256": "729be7686b9b368061b5eabe75854d70c1a16c3037d177ee31b59b7e73089c79"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_holdout_20260918/protocol.json",
+      "bytes": 23123,
+      "sha256": "da36e6d507a6115b69ed024c50cb6f62f8eeb3788acd859a6d523d81506b413a"
+    }
+  ],
+  "scripts": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/scripts/audit_p4_step5_radial_pooling.py",
+      "bytes": 8473,
+      "sha256": "4271fe4bbc8c70b8b37a62a03a2ff8d4218a770c4bc4f7e35f1daff136bff0a6"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/scripts/analyze_p4_step5_development.py",
+      "bytes": 10210,
+      "sha256": "15649fe7e5916230c5a20ea202ddc642037d9ab934362b63111c1ae0fe469f6d"
+    }
+  ],
+  "normalization": "native pixels divided by sigma(radius) before patch interpolation; annular variance estimated after excluding all known-source/development/calibration/evaluation circles",
+  "profile_bin_width_pixels": 3.6,
+  "profile_minimum_pixels": 20,
+  "profile_interpolation": "log variance between bin centers; constant within endpoint half-bins; undefined outside [0,60)",
+  "radial_step_pixels": 5,
+  "angular_arc_step_pixels": 5,
+  "patch_size_pixels": 11,
+  "patch_weighting": "equal weight per accepted patch; outer rings offer more centers",
+  "same_radius_backward_compatibility": true,
+  "raw_normalized_geometry_identical": true,
+  "variance_profile": [
+    {
+      "lower": 0.0,
+      "upper": 3.6,
+      "center": 1.8,
+      "pixels": 44,
+      "variance": 10.774662472639234
+    },
+    {
+      "lower": 3.6,
+      "upper": 7.2,
+      "center": 5.4,
+      "pixels": 85,
+      "variance": 1.3777377746234005
+    },
+    {
+      "lower": 7.2,
+      "upper": 10.8,
+      "center": 9.0,
+      "pixels": 121,
+      "variance": 0.19833538714992602
+    },
+    {
+      "lower": 10.8,
+      "upper": 14.4,
+      "center": 12.600000000000001,
+      "pixels": 122,
+      "variance": 0.09935435109704305
+    },
+    {
+      "lower": 14.4,
+      "upper": 18.0,
+      "center": 16.2,
+      "pixels": 153,
+      "variance": 0.04121260680851449
+    },
+    {
+      "lower": 18.0,
+      "upper": 21.6,
+      "center": 19.8,
+      "pixels": 216,
+      "variance": 0.02149972733139461
+    },
+    {
+      "lower": 21.6,
+      "upper": 25.200000000000003,
+      "center": 23.400000000000002,
+      "pixels": 269,
+      "variance": 0.026100231738821214
+    },
+    {
+      "lower": 25.2,
+      "upper": 28.8,
+      "center": 27.0,
+      "pixels": 339,
+      "variance": 0.02337322499760038
+    },
+    {
+      "lower": 28.8,
+      "upper": 32.4,
+      "center": 30.6,
+      "pixels": 418,
+      "variance": 0.028290610875595826
+    },
+    {
+      "lower": 32.4,
+      "upper": 36.0,
+      "center": 34.2,
+      "pixels": 522,
+      "variance": 0.01869545154298882
+    },
+    {
+      "lower": 36.0,
+      "upper": 39.6,
+      "center": 37.8,
+      "pixels": 553,
+      "variance": 0.02174015052885424
+    },
+    {
+      "lower": 39.6,
+      "upper": 43.2,
+      "center": 41.400000000000006,
+      "pixels": 606,
+      "variance": 0.021992736046447633
+    },
+    {
+      "lower": 43.2,
+      "upper": 46.800000000000004,
+      "center": 45.0,
+      "pixels": 683,
+      "variance": 0.01726342400432165
+    },
+    {
+      "lower": 46.800000000000004,
+      "upper": 50.400000000000006,
+      "center": 48.60000000000001,
+      "pixels": 765,
+      "variance": 0.01877352928797907
+    },
+    {
+      "lower": 50.4,
+      "upper": 54.0,
+      "center": 52.2,
+      "pixels": 883,
+      "variance": 0.019285356278394335
+    },
+    {
+      "lower": 54.0,
+      "upper": 57.6,
+      "center": 55.8,
+      "pixels": 983,
+      "variance": 0.01804632157581158
+    },
+    {
+      "lower": 57.6,
+      "upper": 60,
+      "center": 58.8,
+      "pixels": 429,
+      "variance": 0.6977062936128431
+    }
+  ],
+  "candidates": [
+    {
+      "position_row_column": [
+        120,
+        137
+      ],
+      "radius": 12.103718436910205,
+      "bands": [
+        {
+          "half_width_pixels": 0,
+          "raw": {
+            "samples": 3,
+            "mean_pixel_variance": 0.11092898273563741,
+            "top_three_variance_fraction": 1.0000000000000004
+          },
+          "normalized": {
+            "samples": 3,
+            "mean_pixel_variance": 0.9172635719418513,
+            "top_three_variance_fraction": 1.0
+          },
+          "rings": [
+            {
+              "center_radius": 12.103718436910205,
+              "attempted": 16,
+              "excluded": 13,
+              "incomplete": 0,
+              "accepted": 3
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 5,
+          "raw": {
+            "samples": 8,
+            "mean_pixel_variance": 0.1201262776156994,
+            "top_three_variance_fraction": 0.836716785431873
+          },
+          "normalized": {
+            "samples": 8,
+            "mean_pixel_variance": 0.7593894968141133,
+            "top_three_variance_fraction": 0.6502036320047565
+          },
+          "rings": [
+            {
+              "center_radius": 7.103718436910205,
+              "attempted": 9,
+              "excluded": 8,
+              "incomplete": 0,
+              "accepted": 1
+            },
+            {
+              "center_radius": 12.103718436910205,
+              "attempted": 16,
+              "excluded": 13,
+              "incomplete": 0,
+              "accepted": 3
+            },
+            {
+              "center_radius": 17.103718436910206,
+              "attempted": 22,
+              "excluded": 18,
+              "incomplete": 0,
+              "accepted": 4
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 10,
+          "raw": {
+            "samples": 15,
+            "mean_pixel_variance": 0.07415565923789273,
+            "top_three_variance_fraction": 0.7491580630101141
+          },
+          "normalized": {
+            "samples": 15,
+            "mean_pixel_variance": 0.7571844171834123,
+            "top_three_variance_fraction": 0.45277037835912703
+          },
+          "rings": [
+            {
+              "center_radius": 2.1037184369102047,
+              "attempted": 3,
+              "excluded": 3,
+              "incomplete": 0,
+              "accepted": 0
+            },
+            {
+              "center_radius": 7.103718436910205,
+              "attempted": 9,
+              "excluded": 8,
+              "incomplete": 0,
+              "accepted": 1
+            },
+            {
+              "center_radius": 12.103718436910205,
+              "attempted": 16,
+              "excluded": 13,
+              "incomplete": 0,
+              "accepted": 3
+            },
+            {
+              "center_radius": 17.103718436910206,
+              "attempted": 22,
+              "excluded": 18,
+              "incomplete": 0,
+              "accepted": 4
+            },
+            {
+              "center_radius": 22.103718436910206,
+              "attempted": 28,
+              "excluded": 21,
+              "incomplete": 0,
+              "accepted": 7
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 20,
+          "raw": {
+            "samples": 37,
+            "mean_pixel_variance": 0.04062640267531608,
+            "top_three_variance_fraction": 0.5804022314850215
+          },
+          "normalized": {
+            "samples": 37,
+            "mean_pixel_variance": 0.7434891465591723,
+            "top_three_variance_fraction": 0.30165774890989033
+          },
+          "rings": [
+            {
+              "center_radius": 2.1037184369102047,
+              "attempted": 3,
+              "excluded": 3,
+              "incomplete": 0,
+              "accepted": 0
+            },
+            {
+              "center_radius": 7.103718436910205,
+              "attempted": 9,
+              "excluded": 8,
+              "incomplete": 0,
+              "accepted": 1
+            },
+            {
+              "center_radius": 12.103718436910205,
+              "attempted": 16,
+              "excluded": 13,
+              "incomplete": 0,
+              "accepted": 3
+            },
+            {
+              "center_radius": 17.103718436910206,
+              "attempted": 22,
+              "excluded": 18,
+              "incomplete": 0,
+              "accepted": 4
+            },
+            {
+              "center_radius": 22.103718436910206,
+              "attempted": 28,
+              "excluded": 21,
+              "incomplete": 0,
+              "accepted": 7
+            },
+            {
+              "center_radius": 27.103718436910206,
+              "attempted": 35,
+              "excluded": 26,
+              "incomplete": 0,
+              "accepted": 9
+            },
+            {
+              "center_radius": 32.103718436910206,
+              "attempted": 41,
+              "excluded": 28,
+              "incomplete": 0,
+              "accepted": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "position_row_column": [
+        109,
+        143
+      ],
+      "radius": 24.13503677229434,
+      "bands": [
+        {
+          "half_width_pixels": 0,
+          "raw": {
+            "samples": 7,
+            "mean_pixel_variance": 0.019848084929058207,
+            "top_three_variance_fraction": 0.6862251841400258
+          },
+          "normalized": {
+            "samples": 7,
+            "mean_pixel_variance": 0.7997985233913892,
+            "top_three_variance_fraction": 0.685813289314934
+          },
+          "rings": [
+            {
+              "center_radius": 24.13503677229434,
+              "attempted": 31,
+              "excluded": 24,
+              "incomplete": 0,
+              "accepted": 7
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 5,
+          "raw": {
+            "samples": 22,
+            "mean_pixel_variance": 0.0206987208226673,
+            "top_three_variance_fraction": 0.3777797219881148
+          },
+          "normalized": {
+            "samples": 22,
+            "mean_pixel_variance": 0.7489273258596219,
+            "top_three_variance_fraction": 0.3526538289429207
+          },
+          "rings": [
+            {
+              "center_radius": 19.13503677229434,
+              "attempted": 25,
+              "excluded": 20,
+              "incomplete": 0,
+              "accepted": 5
+            },
+            {
+              "center_radius": 24.13503677229434,
+              "attempted": 31,
+              "excluded": 24,
+              "incomplete": 0,
+              "accepted": 7
+            },
+            {
+              "center_radius": 29.13503677229434,
+              "attempted": 37,
+              "excluded": 27,
+              "incomplete": 0,
+              "accepted": 10
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 10,
+          "raw": {
+            "samples": 39,
+            "mean_pixel_variance": 0.02202451417369742,
+            "top_three_variance_fraction": 0.35392348434131554
+          },
+          "normalized": {
+            "samples": 39,
+            "mean_pixel_variance": 0.7396502534751401,
+            "top_three_variance_fraction": 0.2853819235026154
+          },
+          "rings": [
+            {
+              "center_radius": 14.135036772294342,
+              "attempted": 18,
+              "excluded": 15,
+              "incomplete": 0,
+              "accepted": 3
+            },
+            {
+              "center_radius": 19.13503677229434,
+              "attempted": 25,
+              "excluded": 20,
+              "incomplete": 0,
+              "accepted": 5
+            },
+            {
+              "center_radius": 24.13503677229434,
+              "attempted": 31,
+              "excluded": 24,
+              "incomplete": 0,
+              "accepted": 7
+            },
+            {
+              "center_radius": 29.13503677229434,
+              "attempted": 37,
+              "excluded": 27,
+              "incomplete": 0,
+              "accepted": 10
+            },
+            {
+              "center_radius": 34.13503677229434,
+              "attempted": 43,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 14
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 20,
+          "raw": {
+            "samples": 90,
+            "mean_pixel_variance": 0.04153201880494218,
+            "top_three_variance_fraction": 0.6631295326868807
+          },
+          "normalized": {
+            "samples": 90,
+            "mean_pixel_variance": 0.6781857767172503,
+            "top_three_variance_fraction": 0.19884944635870613
+          },
+          "rings": [
+            {
+              "center_radius": 4.135036772294342,
+              "attempted": 6,
+              "excluded": 5,
+              "incomplete": 0,
+              "accepted": 1
+            },
+            {
+              "center_radius": 9.135036772294342,
+              "attempted": 12,
+              "excluded": 11,
+              "incomplete": 0,
+              "accepted": 1
+            },
+            {
+              "center_radius": 14.135036772294342,
+              "attempted": 18,
+              "excluded": 15,
+              "incomplete": 0,
+              "accepted": 3
+            },
+            {
+              "center_radius": 19.13503677229434,
+              "attempted": 25,
+              "excluded": 20,
+              "incomplete": 0,
+              "accepted": 5
+            },
+            {
+              "center_radius": 24.13503677229434,
+              "attempted": 31,
+              "excluded": 24,
+              "incomplete": 0,
+              "accepted": 7
+            },
+            {
+              "center_radius": 29.13503677229434,
+              "attempted": 37,
+              "excluded": 27,
+              "incomplete": 0,
+              "accepted": 10
+            },
+            {
+              "center_radius": 34.13503677229434,
+              "attempted": 43,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 14
+            },
+            {
+              "center_radius": 39.13503677229434,
+              "attempted": 50,
+              "excluded": 28,
+              "incomplete": 0,
+              "accepted": 22
+            },
+            {
+              "center_radius": 44.13503677229434,
+              "attempted": 56,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "position_row_column": [
+        98,
+        98
+      ],
+      "radius": 41.71930009000631,
+      "bands": [
+        {
+          "half_width_pixels": 0,
+          "raw": {
+            "samples": 24,
+            "mean_pixel_variance": 0.012634284335372406,
+            "top_three_variance_fraction": 0.32593409812253926
+          },
+          "normalized": {
+            "samples": 24,
+            "mean_pixel_variance": 0.6203127929267311,
+            "top_three_variance_fraction": 0.31944109293775713
+          },
+          "rings": [
+            {
+              "center_radius": 41.71930009000631,
+              "attempted": 53,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 24
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 5,
+          "raw": {
+            "samples": 69,
+            "mean_pixel_variance": 0.012605335704542949,
+            "top_three_variance_fraction": 0.21610979519120543
+          },
+          "normalized": {
+            "samples": 69,
+            "mean_pixel_variance": 0.6282781736231104,
+            "top_three_variance_fraction": 0.20911878603369363
+          },
+          "rings": [
+            {
+              "center_radius": 36.71930009000631,
+              "attempted": 47,
+              "excluded": 32,
+              "incomplete": 0,
+              "accepted": 15
+            },
+            {
+              "center_radius": 41.71930009000631,
+              "attempted": 53,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 24
+            },
+            {
+              "center_radius": 46.71930009000631,
+              "attempted": 59,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 30
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 10,
+          "raw": {
+            "samples": 82,
+            "mean_pixel_variance": 0.013246677400911944,
+            "top_three_variance_fraction": 0.20375938189780018
+          },
+          "normalized": {
+            "samples": 82,
+            "mean_pixel_variance": 0.6410551717330728,
+            "top_three_variance_fraction": 0.19596416866311794
+          },
+          "rings": [
+            {
+              "center_radius": 31.719300090006307,
+              "attempted": 40,
+              "excluded": 27,
+              "incomplete": 0,
+              "accepted": 13
+            },
+            {
+              "center_radius": 36.71930009000631,
+              "attempted": 47,
+              "excluded": 32,
+              "incomplete": 0,
+              "accepted": 15
+            },
+            {
+              "center_radius": 41.71930009000631,
+              "attempted": 53,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 24
+            },
+            {
+              "center_radius": 46.71930009000631,
+              "attempted": 59,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 30
+            },
+            {
+              "center_radius": 51.71930009000631,
+              "attempted": 65,
+              "excluded": 28,
+              "incomplete": 37,
+              "accepted": 0
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 20,
+          "raw": {
+            "samples": 99,
+            "mean_pixel_variance": 0.014200301991062973,
+            "top_three_variance_fraction": 0.20283076764437086
+          },
+          "normalized": {
+            "samples": 99,
+            "mean_pixel_variance": 0.6577443402575446,
+            "top_three_variance_fraction": 0.19620542090234705
+          },
+          "rings": [
+            {
+              "center_radius": 21.719300090006307,
+              "attempted": 28,
+              "excluded": 21,
+              "incomplete": 0,
+              "accepted": 7
+            },
+            {
+              "center_radius": 26.719300090006307,
+              "attempted": 34,
+              "excluded": 24,
+              "incomplete": 0,
+              "accepted": 10
+            },
+            {
+              "center_radius": 31.719300090006307,
+              "attempted": 40,
+              "excluded": 27,
+              "incomplete": 0,
+              "accepted": 13
+            },
+            {
+              "center_radius": 36.71930009000631,
+              "attempted": 47,
+              "excluded": 32,
+              "incomplete": 0,
+              "accepted": 15
+            },
+            {
+              "center_radius": 41.71930009000631,
+              "attempted": 53,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 24
+            },
+            {
+              "center_radius": 46.71930009000631,
+              "attempted": 59,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 30
+            },
+            {
+              "center_radius": 51.71930009000631,
+              "attempted": 65,
+              "excluded": 28,
+              "incomplete": 37,
+              "accepted": 0
+            },
+            {
+              "center_radius": 56.71930009000631,
+              "attempted": 72,
+              "excluded": 23,
+              "incomplete": 49,
+              "accepted": 0
+            },
+            {
+              "center_radius": 61.71930009000631,
+              "attempted": 78,
+              "excluded": 20,
+              "incomplete": 58,
+              "accepted": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "position_row_column": [
+        145,
+        138
+      ],
+      "radius": 20.40833163195855,
+      "bands": [
+        {
+          "half_width_pixels": 0,
+          "raw": {
+            "samples": 6,
+            "mean_pixel_variance": 0.02254285238398263,
+            "top_three_variance_fraction": 0.7871607680565773
+          },
+          "normalized": {
+            "samples": 6,
+            "mean_pixel_variance": 0.7718404126284271,
+            "top_three_variance_fraction": 0.7769977719702127
+          },
+          "rings": [
+            {
+              "center_radius": 20.40833163195855,
+              "attempted": 26,
+              "excluded": 20,
+              "incomplete": 0,
+              "accepted": 6
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 5,
+          "raw": {
+            "samples": 19,
+            "mean_pixel_variance": 0.026542013569938815,
+            "top_three_variance_fraction": 0.4735892519905554
+          },
+          "normalized": {
+            "samples": 19,
+            "mean_pixel_variance": 0.7717629508067426,
+            "top_three_variance_fraction": 0.4182956581940752
+          },
+          "rings": [
+            {
+              "center_radius": 15.40833163195855,
+              "attempted": 20,
+              "excluded": 16,
+              "incomplete": 0,
+              "accepted": 4
+            },
+            {
+              "center_radius": 20.40833163195855,
+              "attempted": 26,
+              "excluded": 20,
+              "incomplete": 0,
+              "accepted": 6
+            },
+            {
+              "center_radius": 25.40833163195855,
+              "attempted": 32,
+              "excluded": 23,
+              "incomplete": 0,
+              "accepted": 9
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 10,
+          "raw": {
+            "samples": 34,
+            "mean_pixel_variance": 0.03490671917569979,
+            "top_three_variance_fraction": 0.4825079134965583
+          },
+          "normalized": {
+            "samples": 34,
+            "mean_pixel_variance": 0.735903987716089,
+            "top_three_variance_fraction": 0.32291153057524496
+          },
+          "rings": [
+            {
+              "center_radius": 10.40833163195855,
+              "attempted": 14,
+              "excluded": 11,
+              "incomplete": 0,
+              "accepted": 3
+            },
+            {
+              "center_radius": 15.40833163195855,
+              "attempted": 20,
+              "excluded": 16,
+              "incomplete": 0,
+              "accepted": 4
+            },
+            {
+              "center_radius": 20.40833163195855,
+              "attempted": 26,
+              "excluded": 20,
+              "incomplete": 0,
+              "accepted": 6
+            },
+            {
+              "center_radius": 25.40833163195855,
+              "attempted": 32,
+              "excluded": 23,
+              "incomplete": 0,
+              "accepted": 9
+            },
+            {
+              "center_radius": 30.40833163195855,
+              "attempted": 39,
+              "excluded": 27,
+              "incomplete": 0,
+              "accepted": 12
+            }
+          ]
+        },
+        {
+          "half_width_pixels": 20,
+          "raw": {
+            "samples": 74,
+            "mean_pixel_variance": 0.023459937611251685,
+            "top_three_variance_fraction": 0.358999855676929
+          },
+          "normalized": {
+            "samples": 74,
+            "mean_pixel_variance": 0.6915380903344871,
+            "top_three_variance_fraction": 0.23385447978014293
+          },
+          "rings": [
+            {
+              "center_radius": 0.40833163195854993,
+              "attempted": 1,
+              "excluded": 1,
+              "incomplete": 0,
+              "accepted": 0
+            },
+            {
+              "center_radius": 5.40833163195855,
+              "attempted": 7,
+              "excluded": 7,
+              "incomplete": 0,
+              "accepted": 0
+            },
+            {
+              "center_radius": 10.40833163195855,
+              "attempted": 14,
+              "excluded": 11,
+              "incomplete": 0,
+              "accepted": 3
+            },
+            {
+              "center_radius": 15.40833163195855,
+              "attempted": 20,
+              "excluded": 16,
+              "incomplete": 0,
+              "accepted": 4
+            },
+            {
+              "center_radius": 20.40833163195855,
+              "attempted": 26,
+              "excluded": 20,
+              "incomplete": 0,
+              "accepted": 6
+            },
+            {
+              "center_radius": 25.40833163195855,
+              "attempted": 32,
+              "excluded": 23,
+              "incomplete": 0,
+              "accepted": 9
+            },
+            {
+              "center_radius": 30.40833163195855,
+              "attempted": 39,
+              "excluded": 27,
+              "incomplete": 0,
+              "accepted": 12
+            },
+            {
+              "center_radius": 35.408331631958546,
+              "attempted": 45,
+              "excluded": 29,
+              "incomplete": 0,
+              "accepted": 16
+            },
+            {
+              "center_radius": 40.408331631958546,
+              "attempted": 51,
+              "excluded": 27,
+              "incomplete": 0,
+              "accepted": 24
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "caveats": [
+    "Counts are overlapping patches, not independent samples.",
+    "A positive variance profile does not guarantee transferable covariance shape.",
+    "Profile scale uncertainty and interpolation effects require subsequent calibration.",
+    "The outer variance rise must be investigated before choosing a pooling band."
+  ]
+}

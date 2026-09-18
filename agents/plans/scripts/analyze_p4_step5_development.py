@@ -19,12 +19,21 @@ from run_p4_step5_full_injections import fingerprint, write_json
 
 
 def samples(science: np.ndarray, position: tuple[int, int], exclusions: list,
-            half: int = 5, arc_step: float = 5) -> tuple[np.ndarray, list, dict]:
-    """Independently gather complete stencils and audit every nonzero input pixel."""
+            half: int = 5, arc_step: float = 5,
+            training_radius: float | None = None) -> tuple[np.ndarray, list, dict]:
+    """Gather complete stencils, optionally placing their centers at a different stellar radius.
+
+    Candidate coordinates still determine the exclusion footprint and orientation.
+    Omitting training_radius preserves the original same-radius audit exactly.
+    """
     row, column = position
     cy, cx = (np.array(science.shape) - 1) / 2
     radius = math.hypot(row - cx, column - cy)
     angle = math.atan2(column - cy, row - cx)
+    if training_radius is not None:
+        if not math.isfinite(training_radius) or training_radius <= 0:
+            raise ValueError('explicit training radius must be finite and positive')
+        radius = training_radius
     count = math.ceil(2 * math.pi * radius / arc_step)
     dy, dx = np.mgrid[-half:half+1, -half:half+1]
     accepted, centers = [], []

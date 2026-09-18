@@ -1,0 +1,118 @@
+{
+  "same_radius_production_geometry_checks": 16,
+  "all_match": true,
+  "records": [
+    {
+      "trial": "calibration_r20_b0",
+      "attempted": 26,
+      "excluded": 20,
+      "incomplete": 0,
+      "accepted": 6
+    },
+    {
+      "trial": "calibration_r26_b0",
+      "attempted": 33,
+      "excluded": 23,
+      "incomplete": 0,
+      "accepted": 10
+    },
+    {
+      "trial": "calibration_r30_b0",
+      "attempted": 37,
+      "excluded": 28,
+      "incomplete": 0,
+      "accepted": 9
+    },
+    {
+      "trial": "calibration_r34_b0",
+      "attempted": 43,
+      "excluded": 30,
+      "incomplete": 0,
+      "accepted": 13
+    },
+    {
+      "trial": "calibration_r38_b0",
+      "attempted": 47,
+      "excluded": 29,
+      "incomplete": 0,
+      "accepted": 18
+    },
+    {
+      "trial": "calibration_r42_b0",
+      "attempted": 53,
+      "excluded": 27,
+      "incomplete": 0,
+      "accepted": 26
+    },
+    {
+      "trial": "calibration_r46_b0",
+      "attempted": 58,
+      "excluded": 29,
+      "incomplete": 0,
+      "accepted": 29
+    },
+    {
+      "trial": "calibration_r50_b0",
+      "attempted": 63,
+      "excluded": 27,
+      "incomplete": 0,
+      "accepted": 36
+    },
+    {
+      "trial": "evaluation_r20_b0",
+      "attempted": 26,
+      "excluded": 20,
+      "incomplete": 0,
+      "accepted": 6
+    },
+    {
+      "trial": "evaluation_r26_b0",
+      "attempted": 33,
+      "excluded": 23,
+      "incomplete": 0,
+      "accepted": 10
+    },
+    {
+      "trial": "evaluation_r30_b0",
+      "attempted": 37,
+      "excluded": 28,
+      "incomplete": 0,
+      "accepted": 9
+    },
+    {
+      "trial": "evaluation_r34_b0",
+      "attempted": 43,
+      "excluded": 30,
+      "incomplete": 0,
+      "accepted": 13
+    },
+    {
+      "trial": "evaluation_r38_b0",
+      "attempted": 47,
+      "excluded": 29,
+      "incomplete": 0,
+      "accepted": 18
+    },
+    {
+      "trial": "evaluation_r42_b0",
+      "attempted": 53,
+      "excluded": 27,
+      "incomplete": 0,
+      "accepted": 26
+    },
+    {
+      "trial": "evaluation_r46_b0",
+      "attempted": 58,
+      "excluded": 29,
+      "incomplete": 0,
+      "accepted": 29
+    },
+    {
+      "trial": "evaluation_r50_b0",
+      "attempted": 63,
+      "excluded": 27,
+      "incomplete": 0,
+      "accepted": 36
+    }
+  ]
+}

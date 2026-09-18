@@ -401,6 +401,70 @@ would still expose the covariance estimate to that source through overlapping ne
 filter with identity weighting using held-out null scores, injected-source completeness, and amplitude uncertainty
 calibration, as planned in Section 7.
 
+### Pooling patches across radii and testing radial variance normalization
+
+The next development comparison (agreed 2026-09-18) should explicitly pool training patches whose centers lie
+at different stellar radii. The user's motivation is that the P4 optimization/predictor region (OR) is much wider
+than the search region (SR), and making the OR smaller worsens the reduction. That motivates testing radial
+correlations and shared residual structure over a wider range. It does not alone establish that final-image noise
+covariances are interchangeable across that range; covariance shape and variance scale must both be measured.
+
+Keep the current 11×11 patch and five-pixel angular arc spacing. Around candidate radius $R_{\mathrm{ann}}$, use
+training-center radii from $R_{\mathrm{ann}}-b$ to $R_{\mathrm{ann}}+b$, with spacing $\Delta R=5$ pixels and initial
+radial half-widths $b\in\{0,5,10,20\}$ pixels. Skip nonpositive center radii and retain the existing complete-support/exact-stencil
+checks. Rotate each patch into the candidate's orientation without magnifying it radially. This changes the
+locations supplying covariance samples, not the response footprint or the P4 reduction's OR/SR settings.
+
+Use a four-way comparison to separate sampling from normalization:
+
+| Training centers | Raw residual pixels | Radial-variance-normalized pixels |
+| --- | --- | --- |
+| Candidate radius only | Existing sampler/control | Normalization-only control |
+| Radial band | Pooling-only change | Pooling plus normalization |
+
+For the normalization arm, estimate a positive radial variance profile $\widehat v_{\mathrm{rad}}(\rho)$ from
+unfiltered native image pixels, with known sources and all declared development/calibration/evaluation footprints
+excluded. Divide by the **standard deviation**, $\widehat\sigma_{\mathrm{rad}}(\rho)=\sqrt{\widehat v_{\mathrm{rad}}(\rho)}$,
+before rotating/interpolating training patches. Pixelwise normalization
+handles a gradient across a stamp; dividing each entire stamp by its center's scale is a distinct approximation.
+The profile estimator, binning/smoothing, minimum support, and endpoint behavior belong to the frozen policy.
+Do not infer its scale from a held-out candidate or extrapolate through unsupported radii.
+
+For candidate $q$, let $D_{\sigma,q}$ be the diagonal matrix of those standard deviations at its native stamp
+pixels. If $\widehat C_{\mathrm{std}}$ and $\widehat\mu_{\mathrm{std}}$ are the regularized covariance and mean
+estimated from standardized training patches, filter with
+
+$$
+t_{\mathrm{std}}=D_{\sigma,q}^{-1}t,\qquad
+z_{\mathrm{std}}=D_{\sigma,q}^{-1}d-\widehat\mu_{\mathrm{std}}.
+$$
+
+Equivalently, in original image units use
+
+$$
+\widehat C_q=D_{\sigma,q}\widehat C_{\mathrm{std}}D_{\sigma,q},\qquad
+\widehat\mu_q=D_{\sigma,q}\widehat\mu_{\mathrm{std}}.
+$$
+
+Transforming the response as well as the data preserves the contrast parameter. The standardized covariance
+need not have a unit diagonal: its training samples undergo interpolation and overlap, and local covariance
+shape may vary even after removal of a radial scale. Profile uncertainty also belongs to the eventual empirical
+uncertainty-calibration problem.
+
+First hold rank three and floor fraction 0.1 fixed to isolate the sampling/normalization changes. On the existing
+development data, compare accepted patches by radius, covariance spectra and shape across bands, split-block
+stability, held-out residual prediction/conditional coverage, and source leakage using the saved full-image
+injections. Evaluate the profile and covariance with the same footprint exclusions. Then investigate rank/floor
+separately rather than choosing every parameter from the same recovery curve. Equal weight per retained patch
+is the initial convention; outer rings offer more centers, so record their contribution explicitly. More overlapping
+patches do not imply an equal increase in independent information.
+
+The [first radial-pooling audit](results/p4-step5-radial-pooling-20260918/README.md) checks geometry and variance
+scale only. It confirms a useful increase in available patches, a strong inner variance gradient, and a large
+outermost-bin variance rise. Assess processing-region boundaries and covariance shape before choosing a band;
+neither the count increase nor variance normalization alone demonstrates a detection gain. Retain Gaussian and
+identity references when the new filters are evaluated.
+
 ### Covariance constraints and later extensions
 
 Key constraints:
@@ -1373,6 +1437,36 @@ No production filter or application default changed, and no reduction was rerun.
 part of subsequent validation, alongside the identity and covariance controls. Any revised policy needs fresh
 held-out confirmation after its development choices are fixed.
 
+### Step 5 development: radial pooling and subsequent ROC validation (2026-09-18)
+
+The user requested testing patches at different radii, motivated by the larger OR required for good P4 reduction,
+and suggested radial-variance normalization as a separate experiment. The four-way development comparison and
+consistent data/template normalization are specified in Section 6 above. Production covariance training still
+uses one radius; this checkpoint extends only the independent audit sampler and records a baseline feasibility check.
+
+With the existing union of known-source and development/calibration/evaluation exclusions, accepted patches are:
+
+| Candidate radius (pixels) | Same radius | ±5-pixel band | ±10-pixel band | ±20-pixel band |
+| --- | ---: | ---: | ---: | ---: |
+| 12.1, development | 3 | 8 | 15 | 37 |
+| 24.1, development | 7 | 22 | 39 | 90 |
+| 41.7, development | 24 | 69 | 82 | 99 |
+| 20.4, previously insufficient null site | 6 | 19 | 34 | 74 |
+
+These are overlapping counts, not independent samples or detection measurements. The native radial standard
+deviation is roughly 0.13–0.17 in the 18–57.6-pixel bins, rises strongly inward, and reaches 0.84 in the outermost
+57.6–60-pixel bin. A masked 3.6-pixel-bin variance profile supplies an initial normalization diagnostic, not a
+selected final estimator. See the [audit report](results/p4-step5-radial-pooling-20260918/README.md) for its exact
+profile, endpoint policy, sample covariance summaries, and figure. The default Python sampler retains its original
+behavior and agrees with production geometry at 16 calibration/evaluation centers spanning all eight test radii.
+
+The next work uses saved images to evaluate the four filter variants and covariance-shape stability. Once a revised
+policy is frozen, the tentative fresh confirmation study remains 30 new sites at three transition brightnesses
+(90 full reductions shared by every filter). The user intends to run that study on **ROC** and expects at least
+a 3–4× speedup. That would put the local approximately ten-hour estimate near 2.5–3.3 hours, before analysis;
+this is a planning estimate, not a measured ROC benchmark. Validate numerical consistency and throughput there
+before launching the batch. No new injections or ROC jobs were launched for this baseline audit.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
@@ -1428,6 +1522,12 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $a$ | Radius of a covariance-training patch | A footprint of diameter $2a$ has half-width center spacing $\Delta s=a$. |
 | $R_{\mathrm{ann}}$ | Radius of the annulus of patch centers | Measured from the star in image pixels; distinct from the training matrix $R$. |
 | $\Delta s$ | Azimuthal arc spacing between patch centers | The half-overlap starting geometry uses $\Delta s=a$, giving approximately $2\pi R_{\mathrm{ann}}/a$ patches. |
+| $b,\Delta R$ | Radial pooling half-width and center-ring spacing | Development grid: $b=0,5,10,20$ pixels and $\Delta R=5$ pixels; independent of the response footprint and P4 OR/SR dimensions. |
+| $\rho$ | Stellar radius of an individual native image pixel | Used to normalize pixels within a patch, not just its center. |
+| $\widehat v_{\mathrm{rad}}(\rho),\widehat\sigma_{\mathrm{rad}}(\rho)$ | Estimated radial variance and its square-root standard deviation | Estimated outside all declared source/held-out footprints; normalize by standard deviation. |
+| $D_{\sigma,q}$ | Diagonal matrix of radial standard deviations at candidate $q$ | Positive scale factors at native stamp pixels; distinct from covariance-floor matrix $D$. |
+| $\widehat C_{\mathrm{std}},\widehat\mu_{\mathrm{std}}$ | Covariance and mean of standardized training patches | Estimate and regularize after native variance normalization and patch interpolation; the covariance need not have unit diagonal. |
+| $t_{\mathrm{std}},z_{\mathrm{std}}$ | Consistently standardized template and background-subtracted candidate data | $t_{\mathrm{std}}=D_{\sigma,q}^{-1}t$, $z_{\mathrm{std}}=D_{\sigma,q}^{-1}d-\widehat\mu_{\mathrm{std}}$; contrast retains its original units. |
 | $x_j,\bar x$ | Vectorized training patch and mean training patch | Length $p$ in a common radial/tangential coordinate system; $\bar x$ is the mean over retained training patches. |
 | $\widehat C$ | Empirical centered patch covariance | $p\times p$; regularize before inversion, and calibrate the effect of overlap on its estimation. |
 | $v_i,\gamma_i$ | Eigenvector and eigenvalue of the training Gram matrix | $RR^Tv_i=\gamma_i v_i$; for $\gamma_i>0$, $q_i=R^Tv_i/\sqrt{\gamma_i}$ and $\nu_i=\gamma_i/(n-1)$. |
