@@ -1,4 +1,10 @@
 if(HCIREDUCE_BUILD_CPU_BENCHMARKS)
+    add_executable(hciGaussianReference hciGaussianReference.cpp)
+
+    target_include_directories(hciGaussianReference PRIVATE "${PROJECT_SOURCE_DIR}")
+
+    target_link_libraries(hciGaussianReference PRIVATE hcireduce-shared)
+
     add_executable(klipPrecisionBenchmark klipPrecisionBenchmark.cpp)
 
     target_include_directories(klipPrecisionBenchmark PRIVATE "${PROJECT_SOURCE_DIR}")

@@ -1,0 +1,173 @@
+{
+  "trace": "/home/jrmales/Source/mxlib/_build/coverage_filtered.info",
+  "sha256": "3bbca951e8919556583cf2e67f66fe243d650a3f85639a60a3d3c90da0a2133f",
+  "edited_function": "benchmarks/hciGaussianReference.cpp:main",
+  "all_direct_mxlib_calls_have_100_percent_recorded_executable_line_coverage": true,
+  "functions": [
+    {
+      "file": "/home/jrmales/Source/mxlib/include/improc/eigenCube.hpp",
+      "symbol": "mx::improc::eigenCube<float>::eigenCube()",
+      "calls": 10,
+      "lines": [
+        325,
+        331
+      ],
+      "executable_lines": 6,
+      "covered_lines": 6
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/improc/eigenCube.hpp",
+      "symbol": "mx::improc::eigenCube<float>::~eigenCube()",
+      "calls": 13,
+      "lines": [
+        373,
+        379
+      ],
+      "executable_lines": 4,
+      "covered_lines": 4
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/improc/eigenCube.hpp",
+      "symbol": "mx::improc::eigenCube<float>::rows() const",
+      "calls": 45,
+      "lines": [
+        510,
+        513
+      ],
+      "executable_lines": 2,
+      "covered_lines": 2
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/improc/eigenCube.hpp",
+      "symbol": "mx::improc::eigenCube<float>::cols() const",
+      "calls": 25,
+      "lines": [
+        516,
+        519
+      ],
+      "executable_lines": 2,
+      "covered_lines": 2
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/improc/eigenCube.hpp",
+      "symbol": "mx::improc::eigenCube<float>::planes() const",
+      "calls": 20,
+      "lines": [
+        522,
+        525
+      ],
+      "executable_lines": 2,
+      "covered_lines": 2
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/improc/eigenCube.hpp",
+      "symbol": "mx::improc::eigenCube<float>::image(long)",
+      "calls": 70,
+      "lines": [
+        534,
+        537
+      ],
+      "executable_lines": 2,
+      "covered_lines": 2
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/improc/imageUtils.hpp",
+      "symbol": "void mx::improc::zeroNaNCube<mx::improc::eigenCube<float>, mx::improc::eigenCube<float> >(mx::improc::eigenCube<float>&, mx::improc::eigenCube<float>*)",
+      "calls": 2,
+      "lines": [
+        174,
+        201
+      ],
+      "executable_lines": 12,
+      "covered_lines": 12
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/ioutils/fits/fitsFile.hpp",
+      "symbol": "mx::error_t mx::fits::fitsFile<float, mx::verbose::vv>::read<mx::improc::eigenCube<float> >(mx::improc::eigenCube<float>&, mx::fits::fitsHeader<mx::verbose::vv>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)",
+      "calls": 1,
+      "lines": [
+        1356,
+        1378
+      ],
+      "executable_lines": 11,
+      "covered_lines": 11
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/ioutils/fits/fitsFile.hpp",
+      "symbol": "mx::error_t mx::fits::fitsFile<float, mx::verbose::vv>::write<mx::improc::eigenCube<float> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, mx::improc::eigenCube<float> const&, mx::fits::fitsHeader<mx::verbose::vv>&)",
+      "calls": 2,
+      "lines": [
+        1766,
+        1771
+      ],
+      "executable_lines": 2,
+      "covered_lines": 2
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/ioutils/fits/fitsFile.hpp",
+      "symbol": "mx::fits::fitsFile<float, mx::verbose::vv>::fitsFile()",
+      "calls": 67,
+      "lines": [
+        712,
+        714
+      ],
+      "executable_lines": 2,
+      "covered_lines": 2
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/ioutils/fits/fitsFile.hpp",
+      "symbol": "mx::fits::fitsFile<float, mx::verbose::vv>::~fitsFile()",
+      "calls": 74,
+      "lines": [
+        746,
+        752
+      ],
+      "executable_lines": 4,
+      "covered_lines": 4
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/ioutils/fits/fitsHeader.hpp",
+      "symbol": "mx::fits::fitsHeader<mx::verbose::vv>::fitsHeader()",
+      "calls": 113,
+      "lines": [
+        297,
+        299
+      ],
+      "executable_lines": 2,
+      "covered_lines": 2
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/ioutils/fits/fitsHeader.hpp",
+      "symbol": "mx::fits::fitsHeader<mx::verbose::vv>::~fitsHeader()",
+      "calls": 115,
+      "lines": [
+        308,
+        311
+      ],
+      "executable_lines": 3,
+      "covered_lines": 3
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/ioutils/fits/fitsHeader.hpp",
+      "symbol": "mx::error_t mx::fits::fitsHeader<mx::verbose::vv>::append<float>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, float const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)",
+      "calls": 32,
+      "lines": [
+        617,
+        620
+      ],
+      "executable_lines": 2,
+      "covered_lines": 2
+    },
+    {
+      "file": "/home/jrmales/Source/mxlib/include/ioutils/fits/fitsHeader.hpp",
+      "symbol": "mx::error_t mx::fits::fitsHeader<mx::verbose::vv>::append<int>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)",
+      "calls": 33,
+      "lines": [
+        617,
+        620
+      ],
+      "executable_lines": 2,
+      "covered_lines": 2
+    }
+  ]
+}

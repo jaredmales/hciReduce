@@ -1,0 +1,11 @@
+{
+  "images": 19,
+  "new_injection_measurements": 54,
+  "all_gaussian_cli_replays_bitwise_equal": true,
+  "frozen_inputs_unchanged": true,
+  "results": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/results.json",
+    "bytes": 244874,
+    "sha256": "2f092d51d81af22df3d3d1d5e5153668e62c1cdc8a9790c46940348712d64f5d"
+  }
+}

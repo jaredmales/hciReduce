@@ -1,0 +1,12 @@
+{
+  "input_and_product_hashes_unchanged": true,
+  "archived_results_equal_original": true,
+  "new_null_searches_recomputed_from_fits": 168,
+  "new_positive_searches_recomputed_from_fits": 54,
+  "total_searches_recomputed": 222,
+  "calibration_thresholds_reproduced": true,
+  "gaussian_calibration_evaluation_input_footprint_overlap_pixels": 0,
+  "existing_output_refused_without_modification": true,
+  "production_gaussian_snr_bitwise_replays": 19,
+  "independent_convolution_max_error_relative_to_peak": 1.1838820029835403e-06
+}

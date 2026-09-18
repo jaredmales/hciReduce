@@ -1,5 +1,9 @@
 # Step 5: completed held-out positive-injection evaluation
 
+**Added reference:** the subsequent [Gaussian FWHM 3.6 comparison](../p4-step5-gaussian-20260918/README.md) matches
+the original identity recovery and null-exceedance counts when using the application's usual annular SNR output.
+This experiment has not established an advantage over that Gaussian baseline.
+
 **Status: the initial fixed-policy evaluation is complete.** All 18 full-image reductions and 72 filter
 measurements succeeded, with no invalid injection searches. The saved FITS measurements and frozen input hashes
 pass an independent review. The reductions took **1 h 58 min 52 s** in total, excluding subsequent filter analysis;

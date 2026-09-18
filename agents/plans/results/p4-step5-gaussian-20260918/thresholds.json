@@ -1,0 +1,166 @@
+{
+  "identity": {
+    "calibration_trials": 28,
+    "threshold_rank": 28,
+    "threshold": 0.6759753823280334,
+    "calibration_exceedances": 0,
+    "evaluation_trials": 28,
+    "evaluation_exceedances": 2,
+    "angular_blocks": [
+      {
+        "angular_block": 0,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 1,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 2,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 3,
+        "trials": 7,
+        "exceedances": 2
+      }
+    ],
+    "block_resampling_2p5_97p5_percentiles": [
+      0.0,
+      0.21428571428571427
+    ],
+    "uncertainty_caveat": "four spatial blocks are few and may be correlated; zero observed events cannot bound the tail"
+  },
+  "diagonal": {
+    "calibration_trials": 28,
+    "threshold_rank": 28,
+    "threshold": 7.766144275665283,
+    "calibration_exceedances": 0,
+    "evaluation_trials": 28,
+    "evaluation_exceedances": 0,
+    "angular_blocks": [
+      {
+        "angular_block": 0,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 1,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 2,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 3,
+        "trials": 7,
+        "exceedances": 0
+      }
+    ],
+    "block_resampling_2p5_97p5_percentiles": [
+      0.0,
+      0.0
+    ],
+    "uncertainty_caveat": "four spatial blocks are few and may be correlated; zero observed events cannot bound the tail"
+  },
+  "pca0": {
+    "calibration_trials": 28,
+    "threshold_rank": 28,
+    "threshold": 20.180095672607422,
+    "calibration_exceedances": 0,
+    "evaluation_trials": 28,
+    "evaluation_exceedances": 1,
+    "angular_blocks": [
+      {
+        "angular_block": 0,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 1,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 2,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 3,
+        "trials": 7,
+        "exceedances": 1
+      }
+    ],
+    "block_resampling_2p5_97p5_percentiles": [
+      0.0,
+      0.10714285714285714
+    ],
+    "uncertainty_caveat": "four spatial blocks are few and may be correlated; zero observed events cannot bound the tail"
+  },
+  "pca": {
+    "calibration_trials": 28,
+    "threshold_rank": 28,
+    "threshold": 17.836469650268555,
+    "calibration_exceedances": 0,
+    "evaluation_trials": 28,
+    "evaluation_exceedances": 1,
+    "angular_blocks": [
+      {
+        "angular_block": 0,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 1,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 2,
+        "trials": 7,
+        "exceedances": 0
+      },
+      {
+        "angular_block": 3,
+        "trials": 7,
+        "exceedances": 1
+      }
+    ],
+    "block_resampling_2p5_97p5_percentiles": [
+      0.0,
+      0.10714285714285714
+    ],
+    "uncertainty_caveat": "four spatial blocks are few and may be correlated; zero observed events cannot bound the tail"
+  },
+  "gaussian_raw": {
+    "threshold": 0.10517889261245728,
+    "threshold_rank": 28,
+    "calibration_trials": 28,
+    "calibration_exceedances": 0,
+    "evaluation_trials": 28,
+    "evaluation_exceedances": 2
+  },
+  "gaussian_snr": {
+    "threshold": 1.96212637424469,
+    "threshold_rank": 28,
+    "calibration_trials": 28,
+    "calibration_exceedances": 0,
+    "evaluation_trials": 28,
+    "evaluation_exceedances": 2
+  },
+  "identity_snr": {
+    "threshold": 2.040724992752075,
+    "threshold_rank": 28,
+    "calibration_trials": 28,
+    "calibration_exceedances": 0,
+    "evaluation_trials": 28,
+    "evaluation_exceedances": 3
+  }
+}

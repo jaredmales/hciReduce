@@ -455,6 +455,8 @@ above supplies the initial sampling geometry for the later covariance-filter pro
    compare low-rank solves with dense positive-definite solves, including changing valid support.
 5. **Evaluate covariance gains on held-out data.** Compare detection completeness at a fixed false-positive rate
    and photometric uncertainty calibration. A larger value at the known planet alone is insufficient evidence.
+   Include Gaussian smoothing (`filter.lpfGaussFW=3.6` for this dataset) as a reference before claiming a gain
+   from either the response template or covariance weighting; distinguish filter shape from noise normalization.
 6. **Consider time-resolved likelihoods after the final-image prototype.** Measure the information gained against
    storage and covariance-training costs before expanding the output format.
 
@@ -1336,6 +1338,40 @@ work is to investigate conditional-uncertainty calibration and rank/floor choice
 small-separation training support and source wings, and evaluate any revised policy on fresh held-out data with
 more independent null/injection coverage. The inspected evaluation sample cannot serve as an untouched test of
 subsequent tuning. No production code changed during this results review.
+
+### Step 5 reference added: Gaussian smoothing (2026-09-18)
+
+The user pointed out that the identity matched filter had not been shown to improve on the existing Gaussian
+low-pass filter, and requested **`filter.lpfGaussFW=3.6`** as a reference. The
+[Gaussian comparison](results/p4-step5-gaussian-20260918/README.md) now applies that fixed width to the same saved
+baseline and 18 positive images, with the same 28 calibration searches, 28 evaluation searches, common eligibility,
+and five-pixel search. New thresholds follow the original calibration-only rule and were frozen before processing
+positive images. The extension was requested after inspecting the initial evaluation; it is not a fresh blind test.
+
+| Statistic | Detections at 0.5× / 1× / 2× | Evaluation null exceedances |
+| --- | --- | ---: |
+| Gaussian 3.6 px, application annular SNR | 3/6, 6/6, 6/6 | 2/28 |
+| Identity matched filter, original conditional score | 3/6, 6/6, 6/6 | 2/28 |
+| Gaussian 3.6 px, smoothed intensity only | 3/6, 5/6, 6/6 | 2/28 |
+| Identity matched filter, application annular SNR | 4/6, 6/6, 6/6 | 3/28 |
+
+**No advantage over the Gaussian reference is established.** The usual Gaussian/SNR pipeline matches the original
+identity recovery counts and observed null rate. Identity's one extra faint recovery when both filters use the
+application SNR path comes with an additional null exceedance. The smoothing-only Gaussian misses one more
+middle-brightness injection, but this six-site sample cannot establish a general difference.
+
+The references separate the existing application's annular normalization from the smoothing operation. The new
+optional `hciGaussianReference` benchmark exports the actual production Gaussian filter before SNR normalization.
+For all 19 images, passing that output through the ordinary SNR path with smoothing disabled reproduces the direct
+Gaussian/SNR output bit for bit. An independent mask-aware FP64 convolution agrees within 1.19e-6 of the peak
+absolute image value. The production kernel is 15×15 at FWHM 3.6; its calibration/evaluation input-support unions
+are disjoint. Both SNR controls retain the ordinary application's use of trial neighborhoods in annular
+normalization, unlike the held-out covariance estimator; the report records this distinction and full-field
+support differences. Raw Gaussian intensity is not reported as recovered contrast.
+
+No production filter or application default changed, and no reduction was rerun. The Gaussian reference remains
+part of subsequent validation, alongside the identity and covariance controls. Any revised policy needs fresh
+held-out confirmation after its development choices are fixed.
 
 ## 8. Notation
 

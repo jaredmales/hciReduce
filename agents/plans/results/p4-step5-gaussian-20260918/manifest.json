@@ -1,0 +1,305 @@
+{
+  "purpose": "post-review fixed Gaussian reference; no FWHM tuning and no new reductions",
+  "fwhm_pixels": 3.6,
+  "kernel_size_pixels": 15,
+  "references": [
+    "gaussian_raw",
+    "gaussian_snr",
+    "identity_snr"
+  ],
+  "search_offsets_row_column": [
+    [
+      0,
+      0
+    ],
+    [
+      -1,
+      0
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      0,
+      -1
+    ],
+    [
+      0,
+      1
+    ]
+  ],
+  "common_eligibility": "original 28 calibration and 28 evaluation searches",
+  "threshold_rule": "ceil((n+1)*0.95) order statistic; strict exceedance",
+  "snr_reference": "ordinary application annular mean/stddev and small-sample correction; known source masked at radius 7.3; trial neighborhoods are NOT excluded from this legacy normalization",
+  "raw_reference": "production Gaussian-smoothed intensity, no data-fitted noise normalization; raw scale is arbitrary",
+  "inputs": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/baseline/finim.fits",
+      "bytes": 293760,
+      "sha256": "729be7686b9b368061b5eabe75854d70c1a16c3037d177ee31b59b7e73089c79"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_coordinates.fits",
+      "bytes": 221760,
+      "sha256": "a22c4f23d573144913598ffedb765231b490f94d95bc37d506b8924efd008970"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_manifest.fits",
+      "bytes": 43200,
+      "sha256": "92af1acb0fe0a223cfdfe105dda69ba210be8d693c698acabdd5b0f0493fdcab"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_measurement_diagnostics.fits",
+      "bytes": 51840,
+      "sha256": "40be0f6daf251c4d61bcba14673f65bb60007b811f4cc46c9d4116bf63ebeaeb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_model_0000.fits",
+      "bytes": 5512320,
+      "sha256": "9a31db93aa2b889aa8a42a48b1d02305f644c4142eab15a793a346984ea484a3"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_validity_0000.fits",
+      "bytes": 86400,
+      "sha256": "e45d24bacf7b720362a57237df0e172b594913977a68a6b5e30de77aa8287f0b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/software/hciAnalyze",
+      "bytes": 451072,
+      "sha256": "3ab9a69c5798512f9a35f7c96dda0c503d7e4274e819df11eb811779ed1d96e6"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/software/libhcireduce.so",
+      "bytes": 2882472,
+      "sha256": "7ef284dc24263a99c1ba5bdb9b95ca38c145f3a70fa628997a143349fe998bf8"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/software/liblapack.so.3",
+      "bytes": 7023672,
+      "sha256": "77c93ee1be164772c90e344fda6cd756dac846cfa0267a6196cfdeb00be2caab"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/software/libmxlib.so",
+      "bytes": 3834568,
+      "sha256": "1e7083653585de027d2221eb47734496e483dda36071e11db91d0f4c4783c550"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/software/libopenblas.so.0",
+      "bytes": 38556136,
+      "sha256": "be2e7d119279836105e0361be92c78dbcd8a6e7357e74339bdbb32a5195ee35e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/software/run_p4_step5_evaluation.py",
+      "bytes": 14588,
+      "sha256": "5c618d23e712b7ed123809e1a4c75aef69dda06c502c599893194b1f68c57323"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/software/run_p4_step5_full_injections.py",
+      "bytes": 11840,
+      "sha256": "428bb38c0c82d524add9989fcf2833cc65c1ce89d7df23c2e4446d4d4ea5bb62"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/response/p4PSF_coordinates.fits",
+      "bytes": 46080,
+      "sha256": "eece06c7691c3faa743b885b64799937928c6826f6a1316e45439577a88f5af5"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/response/p4PSF_manifest.fits",
+      "bytes": 43200,
+      "sha256": "3dccf140dd470d0ac9a63759542b5fd0db97293c0e2b12f738645281d8b9849d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/response/p4PSF_model_0000.fits",
+      "bytes": 195840,
+      "sha256": "c3fe2c0d0dcb587a3a1abe4f27794fa37698561e141ccc01b81e620f0e44fa43"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/response/p4PSF_validity_0000.fits",
+      "bytes": 43200,
+      "sha256": "ee63263729f407959aa36736767241381dd501f13fbb0e09d657a3ecd478638e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/jobs.json",
+      "bytes": 5320,
+      "sha256": "0f7ad1b65755204a23ae3426e9f6ba52f7b5a50bf3cd1618f35d7583892fdfa8"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/null_results.json",
+      "bytes": 104415,
+      "sha256": "91929b4de453cec8cf637302490326acdef46d3351a4c6f91b2e591bf65909c7"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/protocol.json",
+      "bytes": 23123,
+      "sha256": "da36e6d507a6115b69ed024c50cb6f62f8eeb3788acd859a6d523d81506b413a"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/injection_design.json",
+      "bytes": 623,
+      "sha256": "1f5ed35ba8b76db27a8fcc4478797d2efa64b79a1de71240598fad326d63cc4b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/results.json",
+      "bytes": 332329,
+      "sha256": "4acfe554714225dceaa1ae31a16bf575eb6fb83eb8cd1964bbe9a304f4b14ce7"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r26_b0_l0/finim.fits",
+      "bytes": 293760,
+      "sha256": "d532ae46ab1f51300b2882532445242d3c96d5888fd8524f740dc2b1789213f0"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r26_b0_l1/finim.fits",
+      "bytes": 293760,
+      "sha256": "b8867404b2c9f37de3806d26200dc091e6109e17256c8d09f1b0ef149d5759d0"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r26_b0_l2/finim.fits",
+      "bytes": 293760,
+      "sha256": "532def313cf69632e2c6976c6320a6603fc36f20b423fe53b73b016674ecce90"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r26_b3_l0/finim.fits",
+      "bytes": 293760,
+      "sha256": "15be7858fcc939aacfdc2ba608ab883de1fa0a7203853505f5895c451f0be63d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r26_b3_l1/finim.fits",
+      "bytes": 293760,
+      "sha256": "ec25f7bf937f1e687381fbf479fc42e02898cd60d2d257eb613bf36cdd1eaf6c"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r26_b3_l2/finim.fits",
+      "bytes": 293760,
+      "sha256": "daee231ef7e9f980c0a600fa42b88a8cb4854689a2e0ecaaf41cd244eada0402"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r38_b1_l0/finim.fits",
+      "bytes": 293760,
+      "sha256": "f49cd47eaa5b0b555c9229e67fa53056eb3b35c1919c4c7de6b67cd7c2602f4f"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r38_b1_l1/finim.fits",
+      "bytes": 293760,
+      "sha256": "2b46aaba3802d83530e918483ab0759b0c8b6dcb70ab29f1b3e1d3a0655c4fe4"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r38_b1_l2/finim.fits",
+      "bytes": 293760,
+      "sha256": "0599d17ed445ebe6cd7a029ce09dca5cd45bffdeebbda130ebb1789f5b2a6e3e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r38_b2_l0/finim.fits",
+      "bytes": 293760,
+      "sha256": "f7f9fb2bf59a8ce42e33b9206ed2351cc3891fcc674e7ad06b2c2fb876a84926"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r38_b2_l1/finim.fits",
+      "bytes": 293760,
+      "sha256": "000dd507b7a2f9be3de40afbbf0be1a8e9c32cfd6485defc34a2588fde372d6b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r38_b2_l2/finim.fits",
+      "bytes": 293760,
+      "sha256": "1e0f2dbe104e8d49dfa04ae581129ec45f44fb676fb2c82cc5221f15aec550b4"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r50_b0_l0/finim.fits",
+      "bytes": 293760,
+      "sha256": "a31e5fe84c4887e78bad27cac3789959cfe23da58ad77f09eaede1fe48a14e45"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r50_b0_l1/finim.fits",
+      "bytes": 293760,
+      "sha256": "13ae2b8318c58a54a8c0e813b93cdc58cca8a88c1ce5bacebff58dfacaeac350"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r50_b0_l2/finim.fits",
+      "bytes": 293760,
+      "sha256": "2ca9ec1832adc22bd178d19b47e46b37b00c4fa0780fa547c64b52437335a1bf"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r50_b3_l0/finim.fits",
+      "bytes": 293760,
+      "sha256": "749a4b99260afa9defaea7d0705635e0b9f511e39246ce7aec4b6a1f7e81c033"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r50_b3_l1/finim.fits",
+      "bytes": 293760,
+      "sha256": "933eddaa908fd2fd8dd18ec5ed2ede821a5214743e54b040ac31f2c86aef9b34"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/reductions/evaluation_r50_b3_l2/finim.fits",
+      "bytes": 293760,
+      "sha256": "cb9869dfbaedecda6e879d14189b93aa6f2ab3fe37309a0b38bd94cfa0c50cb2"
+    }
+  ],
+  "software": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/software/hciAnalyze",
+      "bytes": 451072,
+      "sha256": "3ab9a69c5798512f9a35f7c96dda0c503d7e4274e819df11eb811779ed1d96e6"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/software/hciAnalyze.cpp",
+      "bytes": 105696,
+      "sha256": "991a42a51af61d0efc6d376776b1769dc3e2a7dd4d5c42dd274e6f0baa8a781b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/software/hciGaussianReference",
+      "bytes": 456288,
+      "sha256": "3dedb5fa2bb9ee1e44c99b8ec895cd759d2c394cd35f5186cbb7a8baf78b3159"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/software/hciGaussianReference.cpp",
+      "bytes": 2652,
+      "sha256": "1cd6c8f38023eca3105b86e80bdad339c4224f643ef7adbcaa96a4ab6c38ed56"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/software/libhcireduce.so",
+      "bytes": 2882472,
+      "sha256": "7ef284dc24263a99c1ba5bdb9b95ca38c145f3a70fa628997a143349fe998bf8"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/software/liblapack.so.3",
+      "bytes": 7023672,
+      "sha256": "77c93ee1be164772c90e344fda6cd756dac846cfa0267a6196cfdeb00be2caab"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/software/libmxlib.so",
+      "bytes": 3834568,
+      "sha256": "1e7083653585de027d2221eb47734496e483dda36071e11db91d0f4c4783c550"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/software/libopenblas.so.0",
+      "bytes": 38556136,
+      "sha256": "be2e7d119279836105e0361be92c78dbcd8a6e7357e74339bdbb32a5195ee35e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/software/run_p4_step5_full_injections.py",
+      "bytes": 11840,
+      "sha256": "428bb38c0c82d524add9989fcf2833cc65c1ce89d7df23c2e4446d4d4ea5bb62"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/software/run_p4_step5_gaussian.py",
+      "bytes": 14614,
+      "sha256": "a65cae6032c7ffb00202ec51cae238139ec8c528930de31869e687b99fde8c67"
+    }
+  ],
+  "original_protocol": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/protocol.json",
+    "bytes": 23123,
+    "sha256": "da36e6d507a6115b69ed024c50cb6f62f8eeb3788acd859a6d523d81506b413a"
+  },
+  "original_nulls": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/null_results.json",
+    "bytes": 104415,
+    "sha256": "91929b4de453cec8cf637302490326acdef46d3351a4c6f91b2e591bf65909c7"
+  },
+  "original_results": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/results.json",
+    "bytes": 332329,
+    "sha256": "4acfe554714225dceaa1ae31a16bf575eb6fb83eb8cd1964bbe9a304f4b14ce7"
+  }
+}
