@@ -1,0 +1,1050 @@
+{
+  "schema": 1,
+  "purpose": "single-field held-out covariance pilot, not independent high-significance calibration",
+  "trials": [
+    {
+      "name": "calibration_r20_b0",
+      "role": "calibration",
+      "nominal_radius": 20,
+      "angle_degrees_from_positive_first_axis": -60,
+      "angular_block": 0,
+      "row": 138,
+      "column": 110
+    },
+    {
+      "name": "calibration_r20_b1",
+      "role": "calibration",
+      "nominal_radius": 20,
+      "angle_degrees_from_positive_first_axis": -50,
+      "angular_block": 1,
+      "row": 140,
+      "column": 112
+    },
+    {
+      "name": "calibration_r20_b2",
+      "role": "calibration",
+      "nominal_radius": 20,
+      "angle_degrees_from_positive_first_axis": -40,
+      "angular_block": 2,
+      "row": 143,
+      "column": 115
+    },
+    {
+      "name": "calibration_r20_b3",
+      "role": "calibration",
+      "nominal_radius": 20,
+      "angle_degrees_from_positive_first_axis": -30,
+      "angular_block": 3,
+      "row": 145,
+      "column": 118
+    },
+    {
+      "name": "calibration_r26_b0",
+      "role": "calibration",
+      "nominal_radius": 26,
+      "angle_degrees_from_positive_first_axis": -60,
+      "angular_block": 0,
+      "row": 140,
+      "column": 105
+    },
+    {
+      "name": "calibration_r26_b1",
+      "role": "calibration",
+      "nominal_radius": 26,
+      "angle_degrees_from_positive_first_axis": -50,
+      "angular_block": 1,
+      "row": 144,
+      "column": 108
+    },
+    {
+      "name": "calibration_r26_b2",
+      "role": "calibration",
+      "nominal_radius": 26,
+      "angle_degrees_from_positive_first_axis": -40,
+      "angular_block": 2,
+      "row": 147,
+      "column": 111
+    },
+    {
+      "name": "calibration_r26_b3",
+      "role": "calibration",
+      "nominal_radius": 26,
+      "angle_degrees_from_positive_first_axis": -30,
+      "angular_block": 3,
+      "row": 150,
+      "column": 114
+    },
+    {
+      "name": "calibration_r30_b0",
+      "role": "calibration",
+      "nominal_radius": 30,
+      "angle_degrees_from_positive_first_axis": -60,
+      "angular_block": 0,
+      "row": 142,
+      "column": 102
+    },
+    {
+      "name": "calibration_r30_b1",
+      "role": "calibration",
+      "nominal_radius": 30,
+      "angle_degrees_from_positive_first_axis": -50,
+      "angular_block": 1,
+      "row": 147,
+      "column": 105
+    },
+    {
+      "name": "calibration_r30_b2",
+      "role": "calibration",
+      "nominal_radius": 30,
+      "angle_degrees_from_positive_first_axis": -40,
+      "angular_block": 2,
+      "row": 150,
+      "column": 108
+    },
+    {
+      "name": "calibration_r30_b3",
+      "role": "calibration",
+      "nominal_radius": 30,
+      "angle_degrees_from_positive_first_axis": -30,
+      "angular_block": 3,
+      "row": 153,
+      "column": 112
+    },
+    {
+      "name": "calibration_r34_b0",
+      "role": "calibration",
+      "nominal_radius": 34,
+      "angle_degrees_from_positive_first_axis": -60,
+      "angular_block": 0,
+      "row": 144,
+      "column": 98
+    },
+    {
+      "name": "calibration_r34_b1",
+      "role": "calibration",
+      "nominal_radius": 34,
+      "angle_degrees_from_positive_first_axis": -50,
+      "angular_block": 1,
+      "row": 149,
+      "column": 101
+    },
+    {
+      "name": "calibration_r34_b2",
+      "role": "calibration",
+      "nominal_radius": 34,
+      "angle_degrees_from_positive_first_axis": -40,
+      "angular_block": 2,
+      "row": 154,
+      "column": 106
+    },
+    {
+      "name": "calibration_r34_b3",
+      "role": "calibration",
+      "nominal_radius": 34,
+      "angle_degrees_from_positive_first_axis": -30,
+      "angular_block": 3,
+      "row": 157,
+      "column": 110
+    },
+    {
+      "name": "calibration_r38_b0",
+      "role": "calibration",
+      "nominal_radius": 38,
+      "angle_degrees_from_positive_first_axis": -60,
+      "angular_block": 0,
+      "row": 146,
+      "column": 95
+    },
+    {
+      "name": "calibration_r38_b1",
+      "role": "calibration",
+      "nominal_radius": 38,
+      "angle_degrees_from_positive_first_axis": -50,
+      "angular_block": 1,
+      "row": 152,
+      "column": 98
+    },
+    {
+      "name": "calibration_r38_b2",
+      "role": "calibration",
+      "nominal_radius": 38,
+      "angle_degrees_from_positive_first_axis": -40,
+      "angular_block": 2,
+      "row": 157,
+      "column": 103
+    },
+    {
+      "name": "calibration_r38_b3",
+      "role": "calibration",
+      "nominal_radius": 38,
+      "angle_degrees_from_positive_first_axis": -30,
+      "angular_block": 3,
+      "row": 160,
+      "column": 108
+    },
+    {
+      "name": "calibration_r42_b0",
+      "role": "calibration",
+      "nominal_radius": 42,
+      "angle_degrees_from_positive_first_axis": -60,
+      "angular_block": 0,
+      "row": 148,
+      "column": 91
+    },
+    {
+      "name": "calibration_r42_b1",
+      "role": "calibration",
+      "nominal_radius": 42,
+      "angle_degrees_from_positive_first_axis": -50,
+      "angular_block": 1,
+      "row": 154,
+      "column": 95
+    },
+    {
+      "name": "calibration_r42_b2",
+      "role": "calibration",
+      "nominal_radius": 42,
+      "angle_degrees_from_positive_first_axis": -40,
+      "angular_block": 2,
+      "row": 160,
+      "column": 101
+    },
+    {
+      "name": "calibration_r42_b3",
+      "role": "calibration",
+      "nominal_radius": 42,
+      "angle_degrees_from_positive_first_axis": -30,
+      "angular_block": 3,
+      "row": 164,
+      "column": 106
+    },
+    {
+      "name": "calibration_r46_b0",
+      "role": "calibration",
+      "nominal_radius": 46,
+      "angle_degrees_from_positive_first_axis": -60,
+      "angular_block": 0,
+      "row": 150,
+      "column": 88
+    },
+    {
+      "name": "calibration_r46_b1",
+      "role": "calibration",
+      "nominal_radius": 46,
+      "angle_degrees_from_positive_first_axis": -50,
+      "angular_block": 1,
+      "row": 157,
+      "column": 92
+    },
+    {
+      "name": "calibration_r46_b2",
+      "role": "calibration",
+      "nominal_radius": 46,
+      "angle_degrees_from_positive_first_axis": -40,
+      "angular_block": 2,
+      "row": 163,
+      "column": 98
+    },
+    {
+      "name": "calibration_r46_b3",
+      "role": "calibration",
+      "nominal_radius": 46,
+      "angle_degrees_from_positive_first_axis": -30,
+      "angular_block": 3,
+      "row": 167,
+      "column": 104
+    },
+    {
+      "name": "calibration_r50_b0",
+      "role": "calibration",
+      "nominal_radius": 50,
+      "angle_degrees_from_positive_first_axis": -60,
+      "angular_block": 0,
+      "row": 152,
+      "column": 84
+    },
+    {
+      "name": "calibration_r50_b1",
+      "role": "calibration",
+      "nominal_radius": 50,
+      "angle_degrees_from_positive_first_axis": -50,
+      "angular_block": 1,
+      "row": 160,
+      "column": 89
+    },
+    {
+      "name": "calibration_r50_b2",
+      "role": "calibration",
+      "nominal_radius": 50,
+      "angle_degrees_from_positive_first_axis": -40,
+      "angular_block": 2,
+      "row": 166,
+      "column": 95
+    },
+    {
+      "name": "calibration_r50_b3",
+      "role": "calibration",
+      "nominal_radius": 50,
+      "angle_degrees_from_positive_first_axis": -30,
+      "angular_block": 3,
+      "row": 171,
+      "column": 102
+    },
+    {
+      "name": "evaluation_r20_b0",
+      "role": "evaluation",
+      "nominal_radius": 20,
+      "angle_degrees_from_positive_first_axis": 30,
+      "angular_block": 0,
+      "row": 145,
+      "column": 138
+    },
+    {
+      "name": "evaluation_r20_b1",
+      "role": "evaluation",
+      "nominal_radius": 20,
+      "angle_degrees_from_positive_first_axis": 40,
+      "angular_block": 1,
+      "row": 143,
+      "column": 140
+    },
+    {
+      "name": "evaluation_r20_b2",
+      "role": "evaluation",
+      "nominal_radius": 20,
+      "angle_degrees_from_positive_first_axis": 50,
+      "angular_block": 2,
+      "row": 140,
+      "column": 143
+    },
+    {
+      "name": "evaluation_r20_b3",
+      "role": "evaluation",
+      "nominal_radius": 20,
+      "angle_degrees_from_positive_first_axis": 60,
+      "angular_block": 3,
+      "row": 138,
+      "column": 145
+    },
+    {
+      "name": "evaluation_r26_b0",
+      "role": "evaluation",
+      "nominal_radius": 26,
+      "angle_degrees_from_positive_first_axis": 30,
+      "angular_block": 0,
+      "row": 150,
+      "column": 140
+    },
+    {
+      "name": "evaluation_r26_b1",
+      "role": "evaluation",
+      "nominal_radius": 26,
+      "angle_degrees_from_positive_first_axis": 40,
+      "angular_block": 1,
+      "row": 147,
+      "column": 144
+    },
+    {
+      "name": "evaluation_r26_b2",
+      "role": "evaluation",
+      "nominal_radius": 26,
+      "angle_degrees_from_positive_first_axis": 50,
+      "angular_block": 2,
+      "row": 144,
+      "column": 147
+    },
+    {
+      "name": "evaluation_r26_b3",
+      "role": "evaluation",
+      "nominal_radius": 26,
+      "angle_degrees_from_positive_first_axis": 60,
+      "angular_block": 3,
+      "row": 140,
+      "column": 150
+    },
+    {
+      "name": "evaluation_r30_b0",
+      "role": "evaluation",
+      "nominal_radius": 30,
+      "angle_degrees_from_positive_first_axis": 30,
+      "angular_block": 0,
+      "row": 153,
+      "column": 142
+    },
+    {
+      "name": "evaluation_r30_b1",
+      "role": "evaluation",
+      "nominal_radius": 30,
+      "angle_degrees_from_positive_first_axis": 40,
+      "angular_block": 1,
+      "row": 150,
+      "column": 147
+    },
+    {
+      "name": "evaluation_r30_b2",
+      "role": "evaluation",
+      "nominal_radius": 30,
+      "angle_degrees_from_positive_first_axis": 50,
+      "angular_block": 2,
+      "row": 147,
+      "column": 150
+    },
+    {
+      "name": "evaluation_r30_b3",
+      "role": "evaluation",
+      "nominal_radius": 30,
+      "angle_degrees_from_positive_first_axis": 60,
+      "angular_block": 3,
+      "row": 142,
+      "column": 153
+    },
+    {
+      "name": "evaluation_r34_b0",
+      "role": "evaluation",
+      "nominal_radius": 34,
+      "angle_degrees_from_positive_first_axis": 30,
+      "angular_block": 0,
+      "row": 157,
+      "column": 144
+    },
+    {
+      "name": "evaluation_r34_b1",
+      "role": "evaluation",
+      "nominal_radius": 34,
+      "angle_degrees_from_positive_first_axis": 40,
+      "angular_block": 1,
+      "row": 154,
+      "column": 149
+    },
+    {
+      "name": "evaluation_r34_b2",
+      "role": "evaluation",
+      "nominal_radius": 34,
+      "angle_degrees_from_positive_first_axis": 50,
+      "angular_block": 2,
+      "row": 149,
+      "column": 154
+    },
+    {
+      "name": "evaluation_r34_b3",
+      "role": "evaluation",
+      "nominal_radius": 34,
+      "angle_degrees_from_positive_first_axis": 60,
+      "angular_block": 3,
+      "row": 144,
+      "column": 157
+    },
+    {
+      "name": "evaluation_r38_b0",
+      "role": "evaluation",
+      "nominal_radius": 38,
+      "angle_degrees_from_positive_first_axis": 30,
+      "angular_block": 0,
+      "row": 160,
+      "column": 146
+    },
+    {
+      "name": "evaluation_r38_b1",
+      "role": "evaluation",
+      "nominal_radius": 38,
+      "angle_degrees_from_positive_first_axis": 40,
+      "angular_block": 1,
+      "row": 157,
+      "column": 152
+    },
+    {
+      "name": "evaluation_r38_b2",
+      "role": "evaluation",
+      "nominal_radius": 38,
+      "angle_degrees_from_positive_first_axis": 50,
+      "angular_block": 2,
+      "row": 152,
+      "column": 157
+    },
+    {
+      "name": "evaluation_r38_b3",
+      "role": "evaluation",
+      "nominal_radius": 38,
+      "angle_degrees_from_positive_first_axis": 60,
+      "angular_block": 3,
+      "row": 146,
+      "column": 160
+    },
+    {
+      "name": "evaluation_r42_b0",
+      "role": "evaluation",
+      "nominal_radius": 42,
+      "angle_degrees_from_positive_first_axis": 30,
+      "angular_block": 0,
+      "row": 164,
+      "column": 148
+    },
+    {
+      "name": "evaluation_r42_b1",
+      "role": "evaluation",
+      "nominal_radius": 42,
+      "angle_degrees_from_positive_first_axis": 40,
+      "angular_block": 1,
+      "row": 160,
+      "column": 154
+    },
+    {
+      "name": "evaluation_r42_b2",
+      "role": "evaluation",
+      "nominal_radius": 42,
+      "angle_degrees_from_positive_first_axis": 50,
+      "angular_block": 2,
+      "row": 154,
+      "column": 160
+    },
+    {
+      "name": "evaluation_r42_b3",
+      "role": "evaluation",
+      "nominal_radius": 42,
+      "angle_degrees_from_positive_first_axis": 60,
+      "angular_block": 3,
+      "row": 148,
+      "column": 164
+    },
+    {
+      "name": "evaluation_r46_b0",
+      "role": "evaluation",
+      "nominal_radius": 46,
+      "angle_degrees_from_positive_first_axis": 30,
+      "angular_block": 0,
+      "row": 167,
+      "column": 150
+    },
+    {
+      "name": "evaluation_r46_b1",
+      "role": "evaluation",
+      "nominal_radius": 46,
+      "angle_degrees_from_positive_first_axis": 40,
+      "angular_block": 1,
+      "row": 163,
+      "column": 157
+    },
+    {
+      "name": "evaluation_r46_b2",
+      "role": "evaluation",
+      "nominal_radius": 46,
+      "angle_degrees_from_positive_first_axis": 50,
+      "angular_block": 2,
+      "row": 157,
+      "column": 163
+    },
+    {
+      "name": "evaluation_r46_b3",
+      "role": "evaluation",
+      "nominal_radius": 46,
+      "angle_degrees_from_positive_first_axis": 60,
+      "angular_block": 3,
+      "row": 150,
+      "column": 167
+    },
+    {
+      "name": "evaluation_r50_b0",
+      "role": "evaluation",
+      "nominal_radius": 50,
+      "angle_degrees_from_positive_first_axis": 30,
+      "angular_block": 0,
+      "row": 171,
+      "column": 152
+    },
+    {
+      "name": "evaluation_r50_b1",
+      "role": "evaluation",
+      "nominal_radius": 50,
+      "angle_degrees_from_positive_first_axis": 40,
+      "angular_block": 1,
+      "row": 166,
+      "column": 160
+    },
+    {
+      "name": "evaluation_r50_b2",
+      "role": "evaluation",
+      "nominal_radius": 50,
+      "angle_degrees_from_positive_first_axis": 50,
+      "angular_block": 2,
+      "row": 160,
+      "column": 166
+    },
+    {
+      "name": "evaluation_r50_b3",
+      "role": "evaluation",
+      "nominal_radius": 50,
+      "angle_degrees_from_positive_first_axis": 60,
+      "angular_block": 3,
+      "row": 152,
+      "column": 171
+    }
+  ],
+  "search_offsets_row_column": [
+    [
+      0,
+      0
+    ],
+    [
+      -1,
+      0
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      0,
+      -1
+    ],
+    [
+      0,
+      1
+    ]
+  ],
+  "known_source_circle": [
+    139.16879332335546,
+    125.87064847966589,
+    7.3
+  ],
+  "extra_exclusions": [
+    [
+      138,
+      110,
+      7.810249675906654
+    ],
+    [
+      140,
+      112,
+      7.810249675906654
+    ],
+    [
+      143,
+      115,
+      7.810249675906654
+    ],
+    [
+      145,
+      118,
+      7.810249675906654
+    ],
+    [
+      140,
+      105,
+      7.810249675906654
+    ],
+    [
+      144,
+      108,
+      7.810249675906654
+    ],
+    [
+      147,
+      111,
+      7.810249675906654
+    ],
+    [
+      150,
+      114,
+      7.810249675906654
+    ],
+    [
+      142,
+      102,
+      7.810249675906654
+    ],
+    [
+      147,
+      105,
+      7.810249675906654
+    ],
+    [
+      150,
+      108,
+      7.810249675906654
+    ],
+    [
+      153,
+      112,
+      7.810249675906654
+    ],
+    [
+      144,
+      98,
+      7.810249675906654
+    ],
+    [
+      149,
+      101,
+      7.810249675906654
+    ],
+    [
+      154,
+      106,
+      7.810249675906654
+    ],
+    [
+      157,
+      110,
+      7.810249675906654
+    ],
+    [
+      146,
+      95,
+      7.810249675906654
+    ],
+    [
+      152,
+      98,
+      7.810249675906654
+    ],
+    [
+      157,
+      103,
+      7.810249675906654
+    ],
+    [
+      160,
+      108,
+      7.810249675906654
+    ],
+    [
+      148,
+      91,
+      7.810249675906654
+    ],
+    [
+      154,
+      95,
+      7.810249675906654
+    ],
+    [
+      160,
+      101,
+      7.810249675906654
+    ],
+    [
+      164,
+      106,
+      7.810249675906654
+    ],
+    [
+      150,
+      88,
+      7.810249675906654
+    ],
+    [
+      157,
+      92,
+      7.810249675906654
+    ],
+    [
+      163,
+      98,
+      7.810249675906654
+    ],
+    [
+      167,
+      104,
+      7.810249675906654
+    ],
+    [
+      152,
+      84,
+      7.810249675906654
+    ],
+    [
+      160,
+      89,
+      7.810249675906654
+    ],
+    [
+      166,
+      95,
+      7.810249675906654
+    ],
+    [
+      171,
+      102,
+      7.810249675906654
+    ],
+    [
+      145,
+      138,
+      7.810249675906654
+    ],
+    [
+      143,
+      140,
+      7.810249675906654
+    ],
+    [
+      140,
+      143,
+      7.810249675906654
+    ],
+    [
+      138,
+      145,
+      7.810249675906654
+    ],
+    [
+      150,
+      140,
+      7.810249675906654
+    ],
+    [
+      147,
+      144,
+      7.810249675906654
+    ],
+    [
+      144,
+      147,
+      7.810249675906654
+    ],
+    [
+      140,
+      150,
+      7.810249675906654
+    ],
+    [
+      153,
+      142,
+      7.810249675906654
+    ],
+    [
+      150,
+      147,
+      7.810249675906654
+    ],
+    [
+      147,
+      150,
+      7.810249675906654
+    ],
+    [
+      142,
+      153,
+      7.810249675906654
+    ],
+    [
+      157,
+      144,
+      7.810249675906654
+    ],
+    [
+      154,
+      149,
+      7.810249675906654
+    ],
+    [
+      149,
+      154,
+      7.810249675906654
+    ],
+    [
+      144,
+      157,
+      7.810249675906654
+    ],
+    [
+      160,
+      146,
+      7.810249675906654
+    ],
+    [
+      157,
+      152,
+      7.810249675906654
+    ],
+    [
+      152,
+      157,
+      7.810249675906654
+    ],
+    [
+      146,
+      160,
+      7.810249675906654
+    ],
+    [
+      164,
+      148,
+      7.810249675906654
+    ],
+    [
+      160,
+      154,
+      7.810249675906654
+    ],
+    [
+      154,
+      160,
+      7.810249675906654
+    ],
+    [
+      148,
+      164,
+      7.810249675906654
+    ],
+    [
+      167,
+      150,
+      7.810249675906654
+    ],
+    [
+      163,
+      157,
+      7.810249675906654
+    ],
+    [
+      157,
+      163,
+      7.810249675906654
+    ],
+    [
+      150,
+      167,
+      7.810249675906654
+    ],
+    [
+      171,
+      152,
+      7.810249675906654
+    ],
+    [
+      166,
+      160,
+      7.810249675906654
+    ],
+    [
+      160,
+      166,
+      7.810249675906654
+    ],
+    [
+      152,
+      171,
+      7.810249675906654
+    ],
+    [
+      120,
+      137,
+      7.810249675906654
+    ],
+    [
+      109,
+      143,
+      7.810249675906654
+    ],
+    [
+      98,
+      98,
+      7.810249675906654
+    ]
+  ],
+  "holdout_radius_pixels": 7.810249675906654,
+  "models": [
+    "identity",
+    "diagonal",
+    "pca0",
+    "pca"
+  ],
+  "pca_modes": 3,
+  "pca0_modes": 0,
+  "floor_fraction": 0.1,
+  "minimum_training_patches": 8,
+  "arc_step_pixels": 5,
+  "guard_pixels": 0,
+  "exact_exclusion": true,
+  "lambdaD_pixels": 3.6,
+  "target_false_positive_fraction": 0.05,
+  "selection": "fixed initial policy; no rank/floor tuning on any recovered score",
+  "threshold_rule": "calibration order statistic ceil((n+1)*0.95), strict exceedance; unresolvable if rank>n",
+  "uncertainty": "descriptive resampling of four angular blocks; blocks may remain correlated",
+  "science": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/baseline/finim.fits",
+    "bytes": 293760,
+    "sha256": "729be7686b9b368061b5eabe75854d70c1a16c3037d177ee31b59b7e73089c79"
+  },
+  "cpu_ids": [
+    12,
+    13
+  ],
+  "source_response_inputs": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_coordinates.fits",
+      "bytes": 221760,
+      "sha256": "a22c4f23d573144913598ffedb765231b490f94d95bc37d506b8924efd008970"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_manifest.fits",
+      "bytes": 43200,
+      "sha256": "92af1acb0fe0a223cfdfe105dda69ba210be8d693c698acabdd5b0f0493fdcab"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_measurement_diagnostics.fits",
+      "bytes": 51840,
+      "sha256": "40be0f6daf251c4d61bcba14673f65bb60007b811f4cc46c9d4116bf63ebeaeb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_model_0000.fits",
+      "bytes": 5512320,
+      "sha256": "9a31db93aa2b889aa8a42a48b1d02305f644c4142eab15a793a346984ea484a3"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_validity_0000.fits",
+      "bytes": 86400,
+      "sha256": "e45d24bacf7b720362a57237df0e172b594913977a68a6b5e30de77aa8287f0b"
+    }
+  ],
+  "frozen_response_inputs": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_holdout_20260918/response/p4PSF_coordinates.fits",
+      "bytes": 46080,
+      "sha256": "eece06c7691c3faa743b885b64799937928c6826f6a1316e45439577a88f5af5"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_holdout_20260918/response/p4PSF_manifest.fits",
+      "bytes": 43200,
+      "sha256": "3dccf140dd470d0ac9a63759542b5fd0db97293c0e2b12f738645281d8b9849d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_holdout_20260918/response/p4PSF_model_0000.fits",
+      "bytes": 195840,
+      "sha256": "c3fe2c0d0dcb587a3a1abe4f27794fa37698561e141ccc01b81e620f0e44fa43"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_holdout_20260918/response/p4PSF_validity_0000.fits",
+      "bytes": 43200,
+      "sha256": "ee63263729f407959aa36736767241381dd501f13fbb0e09d657a3ecd478638e"
+    }
+  ],
+  "software": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_holdout_20260918/software/hciAnalyze",
+      "bytes": 451072,
+      "sha256": "3ab9a69c5798512f9a35f7c96dda0c503d7e4274e819df11eb811779ed1d96e6"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_holdout_20260918/software/libhcireduce.so",
+      "bytes": 2882472,
+      "sha256": "7ef284dc24263a99c1ba5bdb9b95ca38c145f3a70fa628997a143349fe998bf8"
+    }
+  ],
+  "script": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/scripts/run_p4_step5_holdout.py",
+    "bytes": 13150,
+    "sha256": "c68ebaf39475d7abc9626669c059d6de4fa55e92b5f5728dc478433e78647f38"
+  },
+  "software_revision": {
+    "reason": "Conditional-map-only application mode avoids requiring an unrelated SNR aperture in a sparse response field.",
+    "initial_protocol": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_holdout_20260918/protocol.initial.json",
+      "bytes": 22631,
+      "sha256": "e68e16881ae197b3bcab5c06144a8f4fb27faf2d291df341bd093860be69be0f"
+    },
+    "geometry_and_policies_unchanged": true
+  },
+  "conditional_maps_only": true
+}

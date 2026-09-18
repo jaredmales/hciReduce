@@ -1,0 +1,14 @@
+{
+  "pid": 934537,
+  "launched_utc": "2026-09-18T14:55:59.270604+00:00",
+  "detached": true,
+  "command": [
+    "/usr/bin/python3",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/software/run_p4_step5_evaluation.py",
+    "run",
+    "--output",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918"
+  ],
+  "log": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/background.log",
+  "status": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_evaluation_20260918/state.json"
+}

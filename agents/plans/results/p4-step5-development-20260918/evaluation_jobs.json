@@ -1,0 +1,200 @@
+[
+  {
+    "name": "evaluation_r26_b0_l0",
+    "row": 150,
+    "column": 140,
+    "contrast": 0.00030946384455791953,
+    "nominal_radius": 26,
+    "angular_block": 0,
+    "brightness_multiplier": 0.5,
+    "reference_contrast_scale": 0.0006189276891158391,
+    "null_trial": "evaluation_r26_b0"
+  },
+  {
+    "name": "evaluation_r26_b0_l1",
+    "row": 150,
+    "column": 140,
+    "contrast": 0.0006189276891158391,
+    "nominal_radius": 26,
+    "angular_block": 0,
+    "brightness_multiplier": 1,
+    "reference_contrast_scale": 0.0006189276891158391,
+    "null_trial": "evaluation_r26_b0"
+  },
+  {
+    "name": "evaluation_r26_b0_l2",
+    "row": 150,
+    "column": 140,
+    "contrast": 0.0012378553782316781,
+    "nominal_radius": 26,
+    "angular_block": 0,
+    "brightness_multiplier": 2,
+    "reference_contrast_scale": 0.0006189276891158391,
+    "null_trial": "evaluation_r26_b0"
+  },
+  {
+    "name": "evaluation_r26_b3_l0",
+    "row": 140,
+    "column": 150,
+    "contrast": 0.00032317893314082885,
+    "nominal_radius": 26,
+    "angular_block": 3,
+    "brightness_multiplier": 0.5,
+    "reference_contrast_scale": 0.0006463578662816577,
+    "null_trial": "evaluation_r26_b3"
+  },
+  {
+    "name": "evaluation_r26_b3_l1",
+    "row": 140,
+    "column": 150,
+    "contrast": 0.0006463578662816577,
+    "nominal_radius": 26,
+    "angular_block": 3,
+    "brightness_multiplier": 1,
+    "reference_contrast_scale": 0.0006463578662816577,
+    "null_trial": "evaluation_r26_b3"
+  },
+  {
+    "name": "evaluation_r26_b3_l2",
+    "row": 140,
+    "column": 150,
+    "contrast": 0.0012927157325633154,
+    "nominal_radius": 26,
+    "angular_block": 3,
+    "brightness_multiplier": 2,
+    "reference_contrast_scale": 0.0006463578662816577,
+    "null_trial": "evaluation_r26_b3"
+  },
+  {
+    "name": "evaluation_r38_b1_l0",
+    "row": 157,
+    "column": 152,
+    "contrast": 0.00018353200051981697,
+    "nominal_radius": 38,
+    "angular_block": 1,
+    "brightness_multiplier": 0.5,
+    "reference_contrast_scale": 0.00036706400103963394,
+    "null_trial": "evaluation_r38_b1"
+  },
+  {
+    "name": "evaluation_r38_b1_l1",
+    "row": 157,
+    "column": 152,
+    "contrast": 0.00036706400103963394,
+    "nominal_radius": 38,
+    "angular_block": 1,
+    "brightness_multiplier": 1,
+    "reference_contrast_scale": 0.00036706400103963394,
+    "null_trial": "evaluation_r38_b1"
+  },
+  {
+    "name": "evaluation_r38_b1_l2",
+    "row": 157,
+    "column": 152,
+    "contrast": 0.0007341280020792679,
+    "nominal_radius": 38,
+    "angular_block": 1,
+    "brightness_multiplier": 2,
+    "reference_contrast_scale": 0.00036706400103963394,
+    "null_trial": "evaluation_r38_b1"
+  },
+  {
+    "name": "evaluation_r38_b2_l0",
+    "row": 152,
+    "column": 157,
+    "contrast": 0.0001841434537053488,
+    "nominal_radius": 38,
+    "angular_block": 2,
+    "brightness_multiplier": 0.5,
+    "reference_contrast_scale": 0.0003682869074106976,
+    "null_trial": "evaluation_r38_b2"
+  },
+  {
+    "name": "evaluation_r38_b2_l1",
+    "row": 152,
+    "column": 157,
+    "contrast": 0.0003682869074106976,
+    "nominal_radius": 38,
+    "angular_block": 2,
+    "brightness_multiplier": 1,
+    "reference_contrast_scale": 0.0003682869074106976,
+    "null_trial": "evaluation_r38_b2"
+  },
+  {
+    "name": "evaluation_r38_b2_l2",
+    "row": 152,
+    "column": 157,
+    "contrast": 0.0007365738148213952,
+    "nominal_radius": 38,
+    "angular_block": 2,
+    "brightness_multiplier": 2,
+    "reference_contrast_scale": 0.0003682869074106976,
+    "null_trial": "evaluation_r38_b2"
+  },
+  {
+    "name": "evaluation_r50_b0_l0",
+    "row": 171,
+    "column": 152,
+    "contrast": 0.00014736844016633235,
+    "nominal_radius": 50,
+    "angular_block": 0,
+    "brightness_multiplier": 0.5,
+    "reference_contrast_scale": 0.0002947368803326647,
+    "null_trial": "evaluation_r50_b0"
+  },
+  {
+    "name": "evaluation_r50_b0_l1",
+    "row": 171,
+    "column": 152,
+    "contrast": 0.0002947368803326647,
+    "nominal_radius": 50,
+    "angular_block": 0,
+    "brightness_multiplier": 1,
+    "reference_contrast_scale": 0.0002947368803326647,
+    "null_trial": "evaluation_r50_b0"
+  },
+  {
+    "name": "evaluation_r50_b0_l2",
+    "row": 171,
+    "column": 152,
+    "contrast": 0.0005894737606653294,
+    "nominal_radius": 50,
+    "angular_block": 0,
+    "brightness_multiplier": 2,
+    "reference_contrast_scale": 0.0002947368803326647,
+    "null_trial": "evaluation_r50_b0"
+  },
+  {
+    "name": "evaluation_r50_b3_l0",
+    "row": 152,
+    "column": 171,
+    "contrast": 0.00014474072400166849,
+    "nominal_radius": 50,
+    "angular_block": 3,
+    "brightness_multiplier": 0.5,
+    "reference_contrast_scale": 0.00028948144800333697,
+    "null_trial": "evaluation_r50_b3"
+  },
+  {
+    "name": "evaluation_r50_b3_l1",
+    "row": 152,
+    "column": 171,
+    "contrast": 0.00028948144800333697,
+    "nominal_radius": 50,
+    "angular_block": 3,
+    "brightness_multiplier": 1,
+    "reference_contrast_scale": 0.00028948144800333697,
+    "null_trial": "evaluation_r50_b3"
+  },
+  {
+    "name": "evaluation_r50_b3_l2",
+    "row": 152,
+    "column": 171,
+    "contrast": 0.0005789628960066739,
+    "nominal_radius": 50,
+    "angular_block": 3,
+    "brightness_multiplier": 2,
+    "reference_contrast_scale": 0.00028948144800333697,
+    "null_trial": "evaluation_r50_b3"
+  }
+]

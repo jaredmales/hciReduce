@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run a fixed-policy covariance-filter integration pilot, not a completeness study.
 
-All three models use the same existing final science image and response manifest.
+All models use the same existing final science image and response manifest.
 Outputs go to a new directory, with frozen software and input hashes. No parameter
 is selected from the known planet's score. Spatial training is candidate-excluded;
 held-out threshold calibration and fresh full-image injections remain separate work.
@@ -53,8 +53,13 @@ def run(args: argparse.Namespace) -> None:
                        LD_LIBRARY_PATH=str(software) + ':' + environment.get('LD_LIBRARY_PATH', ''))
     environment.pop('HCIANALYZE_GLOBAL_CONFIG', None)
     policy = {'arc_step_pixels': 0, 'extra_guard_pixels': 0, 'minimum_samples': 8,
-              'maximum_modes': 3, 'floor_fraction': 0.1, 'known_source_exclusion_pixels': 10,
-              'lambdaD_pixels': 2.5, 'cpu_ids': args.cpus}
+              'maximum_modes': 3, 'floor_fraction': 0.1, 'known_source_exclusion_pixels': args.source_radius,
+              'exact_exclusion': args.exact_exclusion,
+              'conditional_maps_only': args.conditional_only,
+              'extra_exclusions_row_column_radius': args.exclusion,
+              'lambdaD_pixels': args.lambda_d, 'cpu_ids': args.cpus,
+              'science_combination': fits.getheader(args.science)['COMBINATION METHOD'].strip(),
+              'response_combination': fits.getheader(manifest)['P4 PSF COMBINATION'].strip()}
     repository = Path(__file__).resolve().parents[3]
     sources = software / 'sources'
     sources.mkdir()
@@ -72,17 +77,26 @@ def run(args: argparse.Namespace) -> None:
         'inputs': inputs, 'policy': policy, 'binary': fingerprint(binary),
         'library': fingerprint(software / 'libhcireduce.so'), 'script': fingerprint(Path(__file__))})
     results = {}
-    for model in ('identity', 'diagonal', 'pca'):
+    for model in (('identity', 'diagonal', 'pca0', 'pca') if args.zero_mode_control else
+                  ('identity', 'diagonal', 'pca')):
         directory = root / model
         directory.mkdir()
         science = directory / 'science.fits'
         shutil.copy2(args.science, science)
         command = ['taskset', '-c', ','.join(map(str, args.cpus)), str(binary),
-            f'--file={science}', f'--filter.psfResponse={manifest}', f'--noise.model={model}',
-            '--noise.outputDiagnostics=true', '--noise.minimumSamples=8', '--noise.maximumModes=3',
+            f'--file={science}', f'--filter.psfResponse={manifest}',
+            f'--noise.model={"pca" if model == "pca0" else model}',
+            '--noise.outputDiagnostics=true', '--noise.minimumSamples=8',
+            f'--noise.maximumModes={0 if model == "pca0" else 3}',
             '--noise.floorFraction=0.1', '--noise.arcStep=0', '--noise.guardRadius=0',
-            '--lambdaD=2.5', '--planet.sep=11.782', '--planet.PA=262.051', '--planet.R=10',
+            f'--noise.exactExclusion={str(args.exact_exclusion).lower()}',
+            f'--noise.only={str(args.conditional_only).lower()}',
+            f'--lambdaD={args.lambda_d}', '--planet.sep=11.782', '--planet.PA=262.051',
+            f'--planet.R={args.source_radius}',
             '--snr.apertureR=2', '--filter.hpfGaussFW=0', '--filter.lpfGaussFW=0']
+        if args.exclusion:
+            command += [f'--noise.exclude{key}=' + ','.join(str(circle[i]) for circle in args.exclusion)
+                        for i, key in enumerate(('Rows', 'Columns', 'Radii'))]
         write_json(directory / 'command.json', command)
         start = time.monotonic()
         with (directory / 'run.log').open('w') as log:
@@ -129,9 +143,18 @@ def main() -> None:
     parser.add_argument('--library', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--cpus', type=int, nargs='+', default=[0, 2])
+    parser.add_argument('--lambda-d', type=float, required=True, help='explicit dataset scale in pixels per lambda/D')
+    parser.add_argument('--source-radius', type=float, required=True, help='known-source mask radius in pixels')
+    parser.add_argument('--exact-exclusion', action='store_true')
+    parser.add_argument('--conditional-only', action='store_true', help='skip the separate empirical annular SNR stage')
+    parser.add_argument('--zero-mode-control', action='store_true')
+    parser.add_argument('--exclusion', type=float, nargs=3, action='append', default=[],
+                        metavar=('ROW', 'COLUMN', 'RADIUS'), help='extra held-out circle; may be repeated')
     args = parser.parse_args()
     if not args.manifest.name.endswith('manifest.fits'):
         parser.error('--manifest must name a manifest.fits product')
+    if not np.isfinite(args.lambda_d) or args.lambda_d <= 0 or not np.isfinite(args.source_radius) or args.source_radius < 0:
+        parser.error('require a positive finite lambda/D scale and a nonnegative finite source radius')
     run(args)
 
 

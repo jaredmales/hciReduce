@@ -1,0 +1,3233 @@
+{
+  "schema": 1,
+  "purpose": "development-only full-image source leakage and covariance-mask validation",
+  "input_records": [
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000000.fits",
+      "bytes": 273600,
+      "sha256": "f18d3cb16c8ed43841a4ffbbeeb28bae1fe0c17cdf26468722cd03b13fa85dfc"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000001.fits",
+      "bytes": 273600,
+      "sha256": "4a54e097d57227c3f0ebff4326cf02eaf01996753dceba2dab4a00b3c2614585"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000002.fits",
+      "bytes": 273600,
+      "sha256": "97d6f575173ae4b1961f03dba91ad989d34615000fbd8a841815bfb096293954"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000003.fits",
+      "bytes": 273600,
+      "sha256": "01bb7743181fe7a5a3c72e59f3090e44215efe4da943eed622d676ff7d03aced"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000004.fits",
+      "bytes": 273600,
+      "sha256": "0c330f985a2422ab0ed9187d2777276199d356ea692713b997d0fe0c7efc7454"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000005.fits",
+      "bytes": 273600,
+      "sha256": "b43844b7d131be2c0f6beef2ea837df83dc60d0f2ec1ad55fea2e308e4339cf0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000006.fits",
+      "bytes": 273600,
+      "sha256": "f175599519ca2a0dbca37d3e141fbc9527f18ba83e5b1c2a84b8ee60f4cb2f8f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000007.fits",
+      "bytes": 273600,
+      "sha256": "641ecdcf538e85fce724c2ac72f9731d28e6592b462e3ca205daf4d196830f06"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000008.fits",
+      "bytes": 273600,
+      "sha256": "a31ec31ac5e4a14ff75429d8923f90456fb60bd9f2ce2d7ccd1f34183cf3c762"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000009.fits",
+      "bytes": 273600,
+      "sha256": "3bd1f8e511f5d1f217a25e0985a9b96a4825f6ed207dd80576a8011a4baa50b3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000010.fits",
+      "bytes": 273600,
+      "sha256": "e16cea2444b67c3e00e2171a04deeffdf0696702970efb0fcc2e88dd700cbde7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000011.fits",
+      "bytes": 273600,
+      "sha256": "e7896a12db0a282bc70e5e1f68ad51b4effdbeacff2210238c28597e0030486e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000012.fits",
+      "bytes": 273600,
+      "sha256": "d4beed83b2bb1f2fe632f5acf61c55f5a9b23465c9df0e3f9b3e646f3e49ae06"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000013.fits",
+      "bytes": 273600,
+      "sha256": "22a8c913f52d9b127ef23b1d2270bed9ddd664cb8e70cc352af4b9c966005ea0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000014.fits",
+      "bytes": 273600,
+      "sha256": "4964ac4cd7a8118eb81a0fe74cc8b2a2edbaea1dd8de770ae98b4c960d94c67d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000015.fits",
+      "bytes": 273600,
+      "sha256": "59fc25f5b5ca2597c978165b2d13756be4d6a10630807b9ab3d17b72c7d6b708"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000016.fits",
+      "bytes": 273600,
+      "sha256": "d2f2d5d6a88a9fe76e020c92290aa6bad1c5f3429b55853667160df843181c42"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000017.fits",
+      "bytes": 273600,
+      "sha256": "8d51dae582271cd40562b521a23c0bc2280fdcfe32b3c7ea8bdbd0311d5e82f9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000018.fits",
+      "bytes": 273600,
+      "sha256": "28bbfe9c76efa558275c9f1211a9f109910eaabb66306d37736d13110303d9f2"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000019.fits",
+      "bytes": 273600,
+      "sha256": "c82094d2049335a12041e0c4f37b22e56422976a6ad5812de2f963c515b9a5e7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000020.fits",
+      "bytes": 273600,
+      "sha256": "4d902e7a4e7601019ee1a1b3974431c183f1101476ac075882955f625c258641"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000021.fits",
+      "bytes": 273600,
+      "sha256": "c4910a70c4d9412e8f62ded5556224145a92fa481713d7901a99eba0e5f0473d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000022.fits",
+      "bytes": 273600,
+      "sha256": "ea2b7fc37344723e13f973d9da25fc421def6c64aa7375d4c12f26b9dfa127b7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000023.fits",
+      "bytes": 273600,
+      "sha256": "c52089a277ec642b176156de9ca097995e1b145d83baa91edc5d738e5d8a99bd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000024.fits",
+      "bytes": 273600,
+      "sha256": "204c0d48b4cbea1f44b0a19113fd3d7a35143942403f4892059060e670804089"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000025.fits",
+      "bytes": 273600,
+      "sha256": "8dbced8a74adcf9e487cdac3403a9c776427360664a3172d2d9b643b0b992e00"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000026.fits",
+      "bytes": 273600,
+      "sha256": "c1aad7c073ca34b2f29bde492e585414e7abde80738f56d5e248d5c8de36f329"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000027.fits",
+      "bytes": 273600,
+      "sha256": "9005a17935a73244252f4d86c40e7b41ab6c98137152a6f528dd409485e939c8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000028.fits",
+      "bytes": 273600,
+      "sha256": "09bb2ba734b23577b4aab6c459594f9e3a652571b5650f3b9390afd44698b290"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000029.fits",
+      "bytes": 273600,
+      "sha256": "3bd5f73b944e8e03a3340c2730c5ec143993a863f0a0858b87746cef8b7eb2cd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000030.fits",
+      "bytes": 273600,
+      "sha256": "ceabd7407845a299e81187030f1df92bc4b5f188ca6f18c74f7284949f377002"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000031.fits",
+      "bytes": 273600,
+      "sha256": "70275155ab4bccc2945d8e7e8d309b894d64c2de8c63b65e5c6f31aa697fbf88"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000032.fits",
+      "bytes": 273600,
+      "sha256": "c498d9d2868018519223c50fe695ffdf247e87702d397856d2e7543d2921cdf9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000033.fits",
+      "bytes": 273600,
+      "sha256": "453ebc49fb99015b02c3b751b44ded014df8dcd0f7220d03d12e5ba4d39d6245"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000034.fits",
+      "bytes": 273600,
+      "sha256": "87c85843c6d01510d4f8ee7abe0dc0f454b2d17d14b4878e8fae23c971a7c919"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000035.fits",
+      "bytes": 273600,
+      "sha256": "f47ce76847514b504376f461487afb41608e94b607b04a3489afb249b66392b7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000036.fits",
+      "bytes": 273600,
+      "sha256": "581c87b6f29b7779f96c70f33375f3374741c4998fa79b64028653ebea6f7e54"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000037.fits",
+      "bytes": 273600,
+      "sha256": "44c814576151a71fd663b05a859347d8914b0fae1f10249353b70956f336f5d5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000038.fits",
+      "bytes": 273600,
+      "sha256": "7e7479e96ecf5ad8c44ebc2d8ab25c9191c2db46d79dfe76c8a169002d021437"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000039.fits",
+      "bytes": 273600,
+      "sha256": "6762fbed9dc2c44a3a7e0e113cfdd8c752c0ee4eef51381c474933335009e81b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000040.fits",
+      "bytes": 273600,
+      "sha256": "dd914976908a40a2a1866158e2d2e99ac3c7d23ae6d9373582a58afc354ff3af"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000041.fits",
+      "bytes": 273600,
+      "sha256": "48c8b740dc736d26ed88bf27d7da34645e11c0ff59386267a0c854bf4303c901"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000042.fits",
+      "bytes": 273600,
+      "sha256": "435469bf6906ddc2f26a7a9120c0e9228731c4213fd2370e9216cf426f6c5f82"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000043.fits",
+      "bytes": 273600,
+      "sha256": "90045fd7f815fdbd8be07a06f1079212767e8e260925e9ecf68bca13b3d26512"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000044.fits",
+      "bytes": 273600,
+      "sha256": "726f5618dc253f11707db1f39ea5edeec4b663fa9e8b1dce22d707d309303d67"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000045.fits",
+      "bytes": 273600,
+      "sha256": "96a2b77ad3bed201476750dacd0c8ac252a414db76f93e94cd4aa97fd04ae854"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000046.fits",
+      "bytes": 273600,
+      "sha256": "51e1e8d3c3fc338a90039fd43763d94e75639b49b7679a94041917bbbe81ece6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000047.fits",
+      "bytes": 273600,
+      "sha256": "d5e4f4993e75e75e4c7c7b3b7afa077430e6305402b00eaeaebde1c5a4e98171"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000048.fits",
+      "bytes": 273600,
+      "sha256": "f3fce889fa00d5a15f6589e65118298b59b54e16e873d6cb6385ee93bbd45bfd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000049.fits",
+      "bytes": 273600,
+      "sha256": "76a74efc3d78cf62dcfe4ccd2d4ec3fd82274a7c44b22652fab350aa1234484a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000050.fits",
+      "bytes": 273600,
+      "sha256": "7cc92cd7fb228ee3eadfcbde1227206fcbaf70957743a40ea7fa1b0ca7be3744"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000051.fits",
+      "bytes": 273600,
+      "sha256": "d6e14e85f7092c12258ad1ca71d5be9aa755de6d35c9d42a241be6a150d4db86"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000052.fits",
+      "bytes": 273600,
+      "sha256": "79f173a22fa38532e2444eadff62446bd985d362ba109030610c16138f5fb424"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000053.fits",
+      "bytes": 273600,
+      "sha256": "fd192e2d40df3fdfd4a4ef4ab586bcea0f17060c7d729c088e5918e2914e61c8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000054.fits",
+      "bytes": 273600,
+      "sha256": "e48ccc329474253eaef5c592db4567b0acd1a409ab2d8bb1c5d284f26bcf50b9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000055.fits",
+      "bytes": 273600,
+      "sha256": "bb1e1d6fe320b1afae1155d5456b50613ab03fb480b4cef5faac53acffe990d0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000056.fits",
+      "bytes": 273600,
+      "sha256": "d1acaafde52e7c1a219218bd271162e2ef9e079d6062d18b048a3ceb9b1fb612"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000057.fits",
+      "bytes": 273600,
+      "sha256": "270f58464f981357166fdf4bdb1041609b47b89d3721949326593b1adb295315"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000058.fits",
+      "bytes": 273600,
+      "sha256": "5e8cf83076dfcb499e0ea6c240bb17355b5b438cc9924f696a9a3bbea1e240c3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000059.fits",
+      "bytes": 273600,
+      "sha256": "36ae8eff8d95cf5543868c3239abe235c4d4081a46a23ccac954c699592ce65e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000060.fits",
+      "bytes": 273600,
+      "sha256": "4f48829d466ede81e4acb2f0e18b50b786292732d70a14802e98f666fd17d6ce"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000061.fits",
+      "bytes": 273600,
+      "sha256": "f103ef04f2fbea45f2ac7a97df66ba34531e87b1206e918530815abef8c6dcb2"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000062.fits",
+      "bytes": 273600,
+      "sha256": "7f452c8577e989055fd74be7062a11469491886d2fa22a43d7a9d9070b1a0d2a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000063.fits",
+      "bytes": 273600,
+      "sha256": "9b6661d83769349bc217db6933eaaa7ac668eb222d0bfbb4e2273e9ab672ef2a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000064.fits",
+      "bytes": 273600,
+      "sha256": "d2c08f5968ae6845c14ffad7e1daa3cccbd83d2d9b5f96d54f5722a513337887"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000065.fits",
+      "bytes": 273600,
+      "sha256": "c82ac0216a0108f1b632c52b8ce33e26c0be93935d1e1ae72ba1494e23df7324"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000066.fits",
+      "bytes": 273600,
+      "sha256": "35c0153441dc54e120937a171bb22a4562435bf422a1daae5ebdc72c637801eb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000067.fits",
+      "bytes": 273600,
+      "sha256": "3103136b9182707b733ec359a855a56849eed07a0cdde58cbfa30b6061a8fd37"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000068.fits",
+      "bytes": 273600,
+      "sha256": "bf61f2353f7916bae65c1d923612fd8b0a7f7b5fdca1222f47de57176fce570a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000069.fits",
+      "bytes": 273600,
+      "sha256": "8fb81bf327725abba25df3a4b49b50f781fd42208f03d8919f0522bc66ebb41f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000070.fits",
+      "bytes": 273600,
+      "sha256": "7eda21fe55657b863946482e6ffb2ec6546f810aef5bf1655383d279dd84a330"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000071.fits",
+      "bytes": 273600,
+      "sha256": "8cfa760734bef64a292953705099e5cbbeb25ae4c5cd9da7e03bca52861b7a6c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000072.fits",
+      "bytes": 273600,
+      "sha256": "45da59a2d3a257fa636facdf5117e16751da65e1f988b0e68d71239e0b2638f5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000073.fits",
+      "bytes": 273600,
+      "sha256": "7cf347ec3f92f5e850ce313dff394b86b5c20a41355824fa0522344cb8a03edb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000074.fits",
+      "bytes": 273600,
+      "sha256": "e9b2b92531f7ea50f71f04fc8f7dd283266acf281004593ae27e857d5ece35e2"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000075.fits",
+      "bytes": 273600,
+      "sha256": "6f8631d93c4f8fd82502ca8fc6f24fb49f9f1537d65a7a7f7b35ad235c15093b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000076.fits",
+      "bytes": 273600,
+      "sha256": "a99f78f671d0fccbf0e19586ca3d7d51c5c1590a2e1651863bf9270f6ff75c6d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000077.fits",
+      "bytes": 273600,
+      "sha256": "6ad881936e5fb7ab6f3fb70b2e6431d6cf57683b650072ca9e28076b00121ce4"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000078.fits",
+      "bytes": 273600,
+      "sha256": "4aaf76e21b54570e9b90d7c1206532459e08969b35ee75e7e39a0d2cb02217a9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000079.fits",
+      "bytes": 273600,
+      "sha256": "59f57fa948a7372ac4dc2a8a4fe95d383247712fdeb78e4ad10b7b4d7fcd1823"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000080.fits",
+      "bytes": 273600,
+      "sha256": "e0d60990bd5029b793167e82e997712204dd6ec2a75df5feba94f5e2e91a5cbf"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000081.fits",
+      "bytes": 273600,
+      "sha256": "54e2c0e9552ff2922736a14268da97d35926e9a06ddeb99681d7c6fafa74848c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000082.fits",
+      "bytes": 273600,
+      "sha256": "9db87e129b2683b98ca96d31783c647d2aceb6d42c6781fe3c7f36a32c082d53"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000083.fits",
+      "bytes": 273600,
+      "sha256": "00d0b4cdf309e50cb29c851a920314918f0c32a029988238c43bd6dc07fbef33"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000084.fits",
+      "bytes": 273600,
+      "sha256": "3e042e4082c27016e0c7f1f752bf2c75930b67552ca7fd796d9161666467120c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000085.fits",
+      "bytes": 273600,
+      "sha256": "f2ca0e5dabc44c2c232ab887ea1bbf69bdda37a19bdb47f41d28b070f613ebeb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000086.fits",
+      "bytes": 273600,
+      "sha256": "eeb986d7f16e3bae39aeb35c684eca3aae5a95f4cedda2b7eb486ff35e4a5079"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000087.fits",
+      "bytes": 273600,
+      "sha256": "ff9f6a84a643fdbcc37bb7b125a8f426d066ac355da6b147cfff0de91cc8e900"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000088.fits",
+      "bytes": 273600,
+      "sha256": "1d4cf0ba8d21a8ee7e150888ebbc8444d67e107a8d73753db1dfd6ae6cff01a7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000089.fits",
+      "bytes": 273600,
+      "sha256": "33d98479f2977f0e95da9a0c81800b90a57f9ec96628b142870cf62ec70da5ad"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000090.fits",
+      "bytes": 273600,
+      "sha256": "2d071b3e303c2bd9d4bfd0f37cd41231fe13c2cdf1905224187de011630f1963"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000091.fits",
+      "bytes": 273600,
+      "sha256": "899b0e09cd58952e59a6beae1d634f9dbb6e1c8d165e8380246729c84b59c70e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000092.fits",
+      "bytes": 273600,
+      "sha256": "715544a146217832a805a91adad93632ceb1d49599061f2db62136a2c6232e75"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000093.fits",
+      "bytes": 273600,
+      "sha256": "65430e656fc4b2dffecd84bb8bfb1ea37ac2faf6cc4cacd7766876cf70e514d0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000094.fits",
+      "bytes": 273600,
+      "sha256": "0c84aee0ca0ce7bf67e18606bb436fd90312571202ee12dd7c5e830a6f21f43f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000095.fits",
+      "bytes": 273600,
+      "sha256": "35fefbdfc692e345f976dfb449ca1811956c4cf43dccbdcc0ad58cb5528ddd22"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000096.fits",
+      "bytes": 273600,
+      "sha256": "db8132e30a4f8b72e0c4216c941982104fd29914dd75d42dd01faa1fd0878442"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000097.fits",
+      "bytes": 273600,
+      "sha256": "abe9dec5276cab528963442024e3a5e891f3a9d570f892e5e75461e1c1502b53"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000098.fits",
+      "bytes": 273600,
+      "sha256": "830ceedc3e5ccc4137750ded6bc38256e2d99a7f027d6b5d0f89b5461ad4391f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000099.fits",
+      "bytes": 273600,
+      "sha256": "54590cf7d20336ba1a90075178da5aaf36be5bc81eef0454b6ad551b94feac3d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000100.fits",
+      "bytes": 273600,
+      "sha256": "788a2d7d908149423c703d357b0895f41152475a256e059015184d801eb0e098"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000101.fits",
+      "bytes": 273600,
+      "sha256": "e3d3bbb06900675316fc31c5636fd87ca146a024618813fa6688f380ebad7bee"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000102.fits",
+      "bytes": 273600,
+      "sha256": "f007444fcd3f07026878c0b7b52dff9cac3d2f7323559f80e9ffb248fbd1da0e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000103.fits",
+      "bytes": 273600,
+      "sha256": "1b8a6668015e1ef4b1143b20a8da6f522bff2685623727a026b6244be3b4eef1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000104.fits",
+      "bytes": 273600,
+      "sha256": "c84967c3e19ca5b982d43491ea7e9382d1321de11625aebf714356457d195a1e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000105.fits",
+      "bytes": 273600,
+      "sha256": "9dc900a6cc726d9208d894162705dca928396cdd0d629f089f0322781566ba55"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000106.fits",
+      "bytes": 273600,
+      "sha256": "6af306effcc9e5b151b2ac262e27ba7a0b8ea5ce97ec96d332fb8f9aee6c90b8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000107.fits",
+      "bytes": 273600,
+      "sha256": "d9616e1f13bf9e0b245babf59b9a7a0ca27e9ebe1430b9e0ae1296ae4aa14f68"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000108.fits",
+      "bytes": 273600,
+      "sha256": "1282af42d8e55dc7448df75aa1d9781dbbaf2344b8b130eb93ce5160dadf8474"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000109.fits",
+      "bytes": 273600,
+      "sha256": "33adb2a4a144262ba5040637310aba15cda5febae06a695435c0a1b2762d439e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000110.fits",
+      "bytes": 273600,
+      "sha256": "bd23ed2d516675b2c32f8986a6cd8293cbcdbf5a461dc4524ae74253bb29f347"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000111.fits",
+      "bytes": 273600,
+      "sha256": "b8c0edb0fa66a2619014f618e36c63dc89e6d1d6ad3a98710641d2563f10522c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000112.fits",
+      "bytes": 273600,
+      "sha256": "b0cb6a645a7f32c3e0db8cd76d8141ea1d9e5bb0218eb5c2318b322006207396"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000113.fits",
+      "bytes": 273600,
+      "sha256": "a91e9eade36cdf8f544b062f9c4733a0d98cacabd8620a8f9a5eeee211379dd1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000114.fits",
+      "bytes": 273600,
+      "sha256": "e781048d7e4802c3d48f632ce44526fe7786b0b457c762d9a2e54654c8001e4a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000115.fits",
+      "bytes": 273600,
+      "sha256": "fdd6aeba39b5cae04e9f2ff112714b048735eba8dd5b22c69db596753bf2b69f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000116.fits",
+      "bytes": 273600,
+      "sha256": "f2b524f0a7259c17d14e7147a17ac898ab2dcd55a003cefd36e5f54bba906205"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000117.fits",
+      "bytes": 273600,
+      "sha256": "75ae0eebe6d188334c0bfff334ee837a17b7775f4cd02d481d03efda3e137e51"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000118.fits",
+      "bytes": 273600,
+      "sha256": "25d9051c2e5414e85df0f1f1c19827b5f8444b87faca230e12ebaef568cdcd5f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000119.fits",
+      "bytes": 273600,
+      "sha256": "56d092aef618c4fc9ae24541cbfbc4b2acd124f8a92716540ed04a426e8cd722"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000120.fits",
+      "bytes": 273600,
+      "sha256": "fd4e66dc6ca14b99fc962e1cd41aadb8aa2014925ef6260fe3399bfab2c454f7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000121.fits",
+      "bytes": 273600,
+      "sha256": "9c6496963866655290fa2bfae4db128cfcda35863d4472c3cb503bf94861b2cb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000122.fits",
+      "bytes": 273600,
+      "sha256": "66775e19b58257878952e7482b23021e7e64646f4a0aa164911a7d268785e72e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000123.fits",
+      "bytes": 273600,
+      "sha256": "91d9d310e33844ab30afb24fb49a9481f417f2e745a6397d5fdf2c33cffe2539"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000124.fits",
+      "bytes": 273600,
+      "sha256": "b9ffb0b1c15a8c7bf8975d4ad16c9c647216ac04b961a7d1bf194e0d209942ff"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000125.fits",
+      "bytes": 273600,
+      "sha256": "165023f0a1249ea71caefc3942280a5833c26bbe9a457fc41549b1f74e7317d6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000126.fits",
+      "bytes": 273600,
+      "sha256": "7b7028e34edefa9d1ca33a39c46245e8e130d470d594b9d76672b0d602af454a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000127.fits",
+      "bytes": 273600,
+      "sha256": "f6f598a3197d681b7f12e9fdac7b6f4332de2f92386b1133bef669ba5417fc3d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000128.fits",
+      "bytes": 273600,
+      "sha256": "540660c4445d8d21f5340bd560dd49eac03f2c00463d68d02b7f9bd69864abea"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000129.fits",
+      "bytes": 273600,
+      "sha256": "6fedcb4abb4b3b2c24e3ee4f01db508415c52f47f548bbccef451cbc23cc2175"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000130.fits",
+      "bytes": 273600,
+      "sha256": "15653fa763b185cae7a7009c31336150407cdc5f0a6b48cf901bcc0fad5736c0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000131.fits",
+      "bytes": 273600,
+      "sha256": "23fb3bc5a0c814a5ed93e5b08cf5ab10043b08ed516fd71becebf3e16623964c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000132.fits",
+      "bytes": 273600,
+      "sha256": "6ffb395e83ee586e18768a5149c6ea8aa784e548a6d0c6350e97d6dc70e61944"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000133.fits",
+      "bytes": 273600,
+      "sha256": "02668bb6f9012e5dcbf1cdf778484544535eb6bf5287ea3c523e8c0b974ffc1b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000134.fits",
+      "bytes": 273600,
+      "sha256": "a1442b5792097573e95049b4e17ef3febc6d9c813a0ec789cae0238bc6edbf58"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000135.fits",
+      "bytes": 273600,
+      "sha256": "f94daab58ce38b78e3bb5e28a4c4aae239abadf56bf632641103f4afadb36ebe"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000136.fits",
+      "bytes": 273600,
+      "sha256": "42785b26d65dc0f5828d02d690f0df8bcb62c365f784dbb24c99fbb7db6354a0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000137.fits",
+      "bytes": 273600,
+      "sha256": "f3642309e23da6ea8ddc28036e09f12a066500364ab8aa45ffc8e221c941d732"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000138.fits",
+      "bytes": 273600,
+      "sha256": "a375413497641a5814db57913682fb269e2eea148c2f7a4ef4075448ef88f90f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000139.fits",
+      "bytes": 273600,
+      "sha256": "691446c70fee31caf18c0022f0f2585ff69799a8e89c2487d2f5a2576299ff6c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000140.fits",
+      "bytes": 273600,
+      "sha256": "05065fad0424928f326f67202022d511acfc541152520bd9bdd77bad6e77d1cf"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000141.fits",
+      "bytes": 273600,
+      "sha256": "ff2e079be131fef5c2a85ccd571df4a180d9e68f4f8efcdbfb2f4da266a0e07d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000142.fits",
+      "bytes": 273600,
+      "sha256": "8ef93c29240992a32a396a37a9578584af280ce4de6260fdfae6e75af1ca2310"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000143.fits",
+      "bytes": 273600,
+      "sha256": "de560ce4f64ed8db883537d718a863506b417c85dd3f78e9f80000d97701bcf1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000144.fits",
+      "bytes": 273600,
+      "sha256": "5ddc5d7ef9bfd273a2a9e8eb22938b2f8ca8a1e62aea605fb38270aa8ddcc679"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000145.fits",
+      "bytes": 273600,
+      "sha256": "20c8184dec19d0204df2136307342a1f61fc730ac46ebe2a782da54d151389e1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000146.fits",
+      "bytes": 273600,
+      "sha256": "de82ec96387d5e3df23ea6e29d9bf5f0b20e0950d8a16eed23bdf9c61ca0f7c2"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000147.fits",
+      "bytes": 273600,
+      "sha256": "4dcc4706105025526964fad295cc29a3476fd90120df1bdeaade7fd3706ecad1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000148.fits",
+      "bytes": 273600,
+      "sha256": "ac4ceb95ea57ab50ffc0b69e3e88fa8460baa89275d143af30655c81b6a92898"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000149.fits",
+      "bytes": 273600,
+      "sha256": "91db115ccb490824a3ba2af854320b4f96b01c85fce6a236949b3c9f955805b1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000150.fits",
+      "bytes": 273600,
+      "sha256": "c4708e364b5ba3fe159b5c1d790c48b0c068c90d6e174eb846ed00815b9c9f80"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000151.fits",
+      "bytes": 273600,
+      "sha256": "79ad9edf52f2759aa7efb1f1eafca399c15bf9ccac315bd263c62db766313dad"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000152.fits",
+      "bytes": 273600,
+      "sha256": "c42220d60513060a60b3dde19dcc63bebd50ad08700afff8c4a6ed8eb35c0f54"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000153.fits",
+      "bytes": 273600,
+      "sha256": "24c49c7de2b45a6a74e3a83f69a57a1a6a3cda536c0ce04c2d155f98870b5def"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000154.fits",
+      "bytes": 273600,
+      "sha256": "fad94c47b0c1f0982ac12cfe32545481bb6b461a4da6e5105cd7aebcfba5a053"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000155.fits",
+      "bytes": 273600,
+      "sha256": "1984eae5909bea79fcc0103987c9ea8d5ada1916fe250f0036e13a2431982141"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000156.fits",
+      "bytes": 273600,
+      "sha256": "d5fc5117a4bc49c9352c24f17f736c235ddab71bc7d8f2c5607f1779ca5ce0ec"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000157.fits",
+      "bytes": 273600,
+      "sha256": "510e4880305707daa197798cc5d1cb2e50febd22c3251eec4b69c6374b041089"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000158.fits",
+      "bytes": 273600,
+      "sha256": "e1e188ac581303ec11b2dc034046e4ee8805fd5462329bd67dad641a103d35dc"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000159.fits",
+      "bytes": 273600,
+      "sha256": "564919d61e323c5b394e480460b61207247bd73e233d4542c5dbbb248db91b96"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000160.fits",
+      "bytes": 273600,
+      "sha256": "b234197d68d8f18d39b576efbdf7a12976e25e5fed041313818e36f577333985"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000161.fits",
+      "bytes": 273600,
+      "sha256": "93db08ae045c917f8fe8dfb2b414a989b1d19c9fbc88478d39f80360b6ecada1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000162.fits",
+      "bytes": 273600,
+      "sha256": "fc99f4ad44f2540eb0f0a7cf996c5dd9c83247f391be9d8aff1bda1e396d9123"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000163.fits",
+      "bytes": 273600,
+      "sha256": "f29fa31b6b9e99065e137823be79a5593cc2de0f24a66c5ced2bb6302a89be0f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000164.fits",
+      "bytes": 273600,
+      "sha256": "da2b7fc8b7daebc763dc86a4a4cfa7da2cd5e382c97fa45f3cf0d4d0a3c5b354"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000165.fits",
+      "bytes": 273600,
+      "sha256": "29918ec484b84ea8591ac4fa245a438b5f1c56b1e8520048f7536376e1ee9e36"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000166.fits",
+      "bytes": 273600,
+      "sha256": "015fd13d36faf6fe2fef247de344a1246e0d205ae70a123f41dfa5c5a7381ab3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000167.fits",
+      "bytes": 273600,
+      "sha256": "da44de7e5c137a4114bc112ff39bf1298f9ead084e544ae2e09432157e358a82"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000168.fits",
+      "bytes": 273600,
+      "sha256": "61c93da9fd07e756436acbfe36c7ad48c4d36d24bf4ed364efb057313061465e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000169.fits",
+      "bytes": 273600,
+      "sha256": "9bdacf715d848f0261313d2a2f7c28608f40c74a06ca127c57efa3bf367fde0b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000170.fits",
+      "bytes": 273600,
+      "sha256": "df3bd191f4c0b0e593fdc902040f8b151bf89373a90fed8f249819556d06e428"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000171.fits",
+      "bytes": 273600,
+      "sha256": "4d0c87acd2293d5ae445235a4d1596d487b6cdd66f83970ae34efab9a65c844d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000172.fits",
+      "bytes": 273600,
+      "sha256": "0340ad684c3c31ae20906bdefe79beab8e805fac33b480a9a543801e7006448d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000173.fits",
+      "bytes": 273600,
+      "sha256": "df55de8ff3e63dc6b70f1c8cbd68ef5aaf03a87b8c3eabf286f3d1db8ff79dbd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000174.fits",
+      "bytes": 273600,
+      "sha256": "e1ed46afdf3de23b39e5b2bef15a6dc57051330af6770cf9b5a63c6996c0cb3f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000175.fits",
+      "bytes": 273600,
+      "sha256": "a914333528f6e547b191caf51e43bc14a49968fc7b1527999fe4c5f223261696"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000176.fits",
+      "bytes": 273600,
+      "sha256": "dc6472520eecbf4959b2ebbf452e708bf52275c8de8c544424745d6487bfbe6c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000177.fits",
+      "bytes": 273600,
+      "sha256": "78ef6485ed3902971578d21125f84fff09f097aecfe3635d89e1c1685f830602"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000178.fits",
+      "bytes": 273600,
+      "sha256": "56bf3d8319f47c03f62621fa91c3e61c635e8ed307230b8330ec9ca985a2e625"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000179.fits",
+      "bytes": 273600,
+      "sha256": "3e5712718767fcc669b4f71991e76e01670e076b87bfa38145c90e6e0ca35bbf"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000180.fits",
+      "bytes": 273600,
+      "sha256": "12b669cda6054f8e1eb4ed819a7a824ed60bf1e7926ac5013254fc7a77b29164"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000181.fits",
+      "bytes": 273600,
+      "sha256": "2a80d181cc762c3f9698a562c78817ab5806fa0f67b450d2d6fe4c8d16ac8d13"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000182.fits",
+      "bytes": 273600,
+      "sha256": "4fcb0dea81a53decaa4a9ef1ec69ed5094aa2a2b24e9d1147ce642540cb875f3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000183.fits",
+      "bytes": 273600,
+      "sha256": "611c6e22099bff0e1d20fb9554065e3b05ec8fe2cdfa8cfb5b6fbafce652d2ed"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000184.fits",
+      "bytes": 273600,
+      "sha256": "e180970d8e9f93cc02397bf317852ab2e71b3963757d0baac9e92f0326896ca4"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000185.fits",
+      "bytes": 273600,
+      "sha256": "a2c04cdbdcb71a3cadcda57eb3201118f3e4f31110b36126c9fe9d1d5ec399de"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000186.fits",
+      "bytes": 273600,
+      "sha256": "f14ace8e4ca4e1eaa97df2db4e88c235b4f5c7f985abacd86e6fd09f41abcf84"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000187.fits",
+      "bytes": 273600,
+      "sha256": "e6a95cc5184362c679e4a6ea547c435d865d05eb7bb3245a277486dabccba5d1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000188.fits",
+      "bytes": 273600,
+      "sha256": "c71b50f01f24184b36210223043b99285ec6b035ec39d73cb79014cf95cf9e33"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000189.fits",
+      "bytes": 273600,
+      "sha256": "32064547f08d249b0f57e2a2e3c1a74768390cdb36400e59469de34ce2e1ae1e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000190.fits",
+      "bytes": 273600,
+      "sha256": "8104c01d31f1a10b3b07609b37b4735d96a2c1296a71fbe7e0fd6cf4276724a0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000191.fits",
+      "bytes": 273600,
+      "sha256": "69d2f1f0d1ce0296cdfc989d030636c9518ee076abfc8cf5a8c0a821dbec5be3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000192.fits",
+      "bytes": 270720,
+      "sha256": "f50f043704add180ad2ee59b5b001ce861e71f616e066e7cc341d4057485294c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000193.fits",
+      "bytes": 273600,
+      "sha256": "f4af322cd59c97ac0579ef74ca16758e29e5539822e077f53098203422cc2e61"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000194.fits",
+      "bytes": 273600,
+      "sha256": "8e40d79a67df563f9e3a365ea5a31e4d97ca38d2ad6aa6d87d22cdf921650264"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000195.fits",
+      "bytes": 273600,
+      "sha256": "56b471f8d9100486b862a2297fda39b0f8ed324a0fda531570a321cf906c68ee"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000196.fits",
+      "bytes": 273600,
+      "sha256": "948e1f1e40b0416667733de9d38daf0615d4423439c83072c4e4b69d410c83df"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000197.fits",
+      "bytes": 273600,
+      "sha256": "427f40e36e6245f287487530e154f4c5ef6eaf1600a0e71879d6e67fd23c819f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000198.fits",
+      "bytes": 273600,
+      "sha256": "075eda232f68a4c1436bf049ccd980bb870ab5b4882051a3051b2ee34a3809a4"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000199.fits",
+      "bytes": 273600,
+      "sha256": "3bccba370b9607470b875d229885e95cfe86935928f2a7282d540ba400bab3ff"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000200.fits",
+      "bytes": 273600,
+      "sha256": "e09fb6b5aafde0d424924638cbee32c12c4033d5374c40dd05f0199d4fb02668"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000201.fits",
+      "bytes": 273600,
+      "sha256": "e3704b89811cb708d98c6a440a6db7a40ec525f66179dcac1351a2f1106469c3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000202.fits",
+      "bytes": 273600,
+      "sha256": "ec52c2b3886941d6fe52676478f3504601aeec89cfd39f0b702d51885079edb0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000203.fits",
+      "bytes": 273600,
+      "sha256": "9ef9af3aec0703daacb537109ff94ccb5d4fb3391a986d26a7e1f75d1293b7b3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000204.fits",
+      "bytes": 273600,
+      "sha256": "c24b04a40ef9d23a87ece286442ed0d26a8b587c322ee7bb7135591d31761108"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000205.fits",
+      "bytes": 273600,
+      "sha256": "e30ddbab99b8445c4cc45e5c893ea56e0e2accb8cd590c51f831feabbfba78d5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000206.fits",
+      "bytes": 273600,
+      "sha256": "7de34df96d6c3e2dd25c00c654e20d1c363ea05b9052da341b07e2b836e221b1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000207.fits",
+      "bytes": 273600,
+      "sha256": "07b0d89262a830bd4c1e41e2f27f02a95a535556db5bb3bdcecadac84567ad8d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000208.fits",
+      "bytes": 273600,
+      "sha256": "15445acdf1647c57c14715b5e76b4b3579bd94f21e8c1137e84b4c59e8692a3d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000209.fits",
+      "bytes": 273600,
+      "sha256": "2d2b1022c39667eaadeae579d3b4037ec4d4ae3611e0199948b223a4c0a804a3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000210.fits",
+      "bytes": 273600,
+      "sha256": "6cded8c73891a55fd86014779410e229dbc0237a2712ba40b5dbb64b25fab8c7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000211.fits",
+      "bytes": 273600,
+      "sha256": "e9652bedd1526f09daebffae2f0f388d5e1a28c4d2b15a76db6b979522a01301"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000212.fits",
+      "bytes": 273600,
+      "sha256": "238dedda2e337be789466a259cd30b469f0dc1d4dea59e9c21caed832cacbd72"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000213.fits",
+      "bytes": 273600,
+      "sha256": "169b3786ccc41399aea25bb32b7fb14602dbc928623ced886e29eda88096c4d8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000214.fits",
+      "bytes": 273600,
+      "sha256": "f397ad0b169e871ae1b91ac1e7f3631e4580a6bbacd146047f638e7f65dd0859"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000215.fits",
+      "bytes": 273600,
+      "sha256": "3754ba7e8942c10a72d0ade2f42556d98849ce080175a91ac963f351a8d8d83e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000216.fits",
+      "bytes": 273600,
+      "sha256": "1b4b0a75b297b33fa9b4f3c897d71c6b30fc69f1d36b1b8c524f49d588efcaa3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000217.fits",
+      "bytes": 273600,
+      "sha256": "2e41e7424462cfcf92312f80f08f0651618245a5182a0993f87e6b79dea3e630"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000218.fits",
+      "bytes": 273600,
+      "sha256": "ad0c535f5c7bbcfe480c6b9f98066b6ebcc7ba4e43a21742fea46fe4a97e6f3f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000219.fits",
+      "bytes": 273600,
+      "sha256": "2232733f1ddd8a5f2521f7e945945ac2c7247ede5a265b04d065b3cb8c4e99e6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000220.fits",
+      "bytes": 273600,
+      "sha256": "ba9cdb7e42bfd5458baa51adc6a63ffa7c75440cfd7f18f8b066be7213b0163a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000221.fits",
+      "bytes": 273600,
+      "sha256": "019d651c076d6f1c6a26cd5ffdbdd6d5eba9776580d38ed63f7a8144b564a36d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000222.fits",
+      "bytes": 273600,
+      "sha256": "d5d44e07168708f8d9371d65cf2ab47ffcb1de9f9612144309086790fafa9464"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000223.fits",
+      "bytes": 273600,
+      "sha256": "05affb67df23796d089b7067459d860f7a66557dad4287594e049f0ca15072f3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000224.fits",
+      "bytes": 273600,
+      "sha256": "88338b115e349cceb4682dac3265ded7d8b806e1377a851ad44b8378c999c777"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000225.fits",
+      "bytes": 273600,
+      "sha256": "56c3b58f0f888930d916d42d343b05530efad00545e880d0cce2b1d86ac110fe"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000226.fits",
+      "bytes": 273600,
+      "sha256": "37060568d76d8cef7562b3ea8878595cdd22c345cff4d93f51aa05f5b7d574c0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000227.fits",
+      "bytes": 273600,
+      "sha256": "99e89a71d985d4b7032feab484a87ffcf94fe22c16bffe5ac6addcd7c3a5de78"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000228.fits",
+      "bytes": 273600,
+      "sha256": "7cc9e2492481d8d82d331bdf9628fa54596589d5624e280800268beeb93d89c8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000229.fits",
+      "bytes": 273600,
+      "sha256": "97dc7657d5309b79e7520d3d3cfc6e26c33e0b58ea138809b91ff9538bdd4d05"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000230.fits",
+      "bytes": 273600,
+      "sha256": "17d532aa8c0e0f7b4b7b9d45b61b2c76d5049661efceaf227997da28336737ae"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000231.fits",
+      "bytes": 273600,
+      "sha256": "751f6355aee38053cbe5bc7e2370002486d8b9f9408c071e88a15012436cf0a4"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000232.fits",
+      "bytes": 273600,
+      "sha256": "b5024b2c495982b062ad68bec1948bc2d08864a639565a55b594a36b876e9f5e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000233.fits",
+      "bytes": 273600,
+      "sha256": "bdde956d2158f7c3b417c4faf7c35097f207c5d636a82424399ead9a4b69b77b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000234.fits",
+      "bytes": 273600,
+      "sha256": "d7c4c149363de532273a42f4c2b588f1d1c5c50ade469d8e505650bc5e08af1a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000235.fits",
+      "bytes": 273600,
+      "sha256": "c83d10bcb2a2574b6a079aa5386955b665c4a721af26988584695372b25a1ad8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000236.fits",
+      "bytes": 273600,
+      "sha256": "b2615b78a0bcb00ce62473dec6a9a37fdcaecc4787c164772832fe2e363a60b9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000237.fits",
+      "bytes": 273600,
+      "sha256": "5da5ce29985318de92f13d8c5a80205eb8b4b7424de901700d373ae60139f330"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000238.fits",
+      "bytes": 273600,
+      "sha256": "f1022eef0c69992cdd4ad7821eda517cc52e79783f50a66f7f19c8279d9d983d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000239.fits",
+      "bytes": 273600,
+      "sha256": "99ad529b1e6d84a5351b6365482bb798873a7682c7b2be1b26da91a597f18bd8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000240.fits",
+      "bytes": 273600,
+      "sha256": "dd102543711f55f1216d17a66b46626b3cb21a810d392ac08d9b9f71d769a86a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000241.fits",
+      "bytes": 273600,
+      "sha256": "4f864acc819735779c6168e454edc3bbbffbce883577c7a0d34d782fb1950c08"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000242.fits",
+      "bytes": 273600,
+      "sha256": "fe60a2d067ec05d75c224f304bbb11b41b01ff0793b57b49374142bbd67a6705"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000243.fits",
+      "bytes": 273600,
+      "sha256": "b31f1cf9ff4290334e1bbbd018e2f7ffa002d4d44bffaa95d822910182cd542c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000244.fits",
+      "bytes": 273600,
+      "sha256": "0917ac416314b5aa9056ff9c38d9370533f159b44d01867103201ac5227472cb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000245.fits",
+      "bytes": 273600,
+      "sha256": "a32f6196b123b36c9717c2e41637713ce42b5fc3c493cb39f75425b43521be2b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000246.fits",
+      "bytes": 273600,
+      "sha256": "72a62fe215d0d5ff8534f4f5d33a511f091a5b88674c48ec56f5a83c071519a9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000247.fits",
+      "bytes": 273600,
+      "sha256": "d6bcfd0aafa9ac94aea8e8ae34a2aec0bf8cec800dc2ebb62518c35979387f56"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000248.fits",
+      "bytes": 273600,
+      "sha256": "a5a58f3e7fe8ef789e860f73da827b4da1f158800bb601404f5fa483ad9424fd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000249.fits",
+      "bytes": 273600,
+      "sha256": "8eee33d09e99e0ef4e423c16187cea4eb85cec305f8e12d9ef1c678d8f67e1c1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000250.fits",
+      "bytes": 273600,
+      "sha256": "5c3f8ee407bf8ab785d58d9e315ae6d91718e847e38309d72d9c91933bad57f9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000251.fits",
+      "bytes": 273600,
+      "sha256": "ef00165715c04b920c1d35ce6149ce79ca24256be230dbeb5a80e69cf09f7da6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000252.fits",
+      "bytes": 273600,
+      "sha256": "991f872e37312f8f98beb3064ee7048d6a1a3564409c06a8226e676ce94ef13b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000253.fits",
+      "bytes": 273600,
+      "sha256": "4b2ae11e16ebab4f5a034b85cb91ff0f3c0f4fa7f7324e0d9b6ca3ee0ff46fa8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000254.fits",
+      "bytes": 273600,
+      "sha256": "85c7fc2b7390aa15b9e2ed16f9096ed2e5305e448bdd1f9b30717e6ba3bd226e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000255.fits",
+      "bytes": 273600,
+      "sha256": "6a6c870c86f1f62148783645091a86a150700cdeff32f70fc0f93b576a6971dc"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000256.fits",
+      "bytes": 273600,
+      "sha256": "3284ffb096ae266155f25af740bc64a46c9df32c998520f4f61422f1c926052c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000257.fits",
+      "bytes": 273600,
+      "sha256": "5d03f036fad23c9f9929ab569674b78f0c80a04802c568c441231cb388aac3b0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000258.fits",
+      "bytes": 273600,
+      "sha256": "b42ff7ccac22e5fac2ec6130780a9bf783d8ac917d55aa60941e6e905f5d580b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000259.fits",
+      "bytes": 273600,
+      "sha256": "6e51ea8f94bf43a286cbe3b269c75f6ad597746d3ce6e816046efdbad073f152"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000260.fits",
+      "bytes": 273600,
+      "sha256": "26e2e38bb7290c85ed782a156e1bb82826ef79c6d82eaa5fe42b8394cec24353"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000261.fits",
+      "bytes": 273600,
+      "sha256": "c7de4e02fed0471409976016a78ee2d8e35eee2e01458b4f175441c8c70c6b1b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000262.fits",
+      "bytes": 273600,
+      "sha256": "d29e89fdf73e97b00766c9deddf8a18f451b3c9fee8f86c732db419b4b4c6793"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000263.fits",
+      "bytes": 273600,
+      "sha256": "3b5db180c3e3925b70cb317d263d9e9427d8cc0face2d9cc5686fc5d6447ab1d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000264.fits",
+      "bytes": 273600,
+      "sha256": "4bf7b51c0f3e5672b72ba01b421487b4011391f52dc3ed7b03d31b8ecd622bed"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000265.fits",
+      "bytes": 273600,
+      "sha256": "1646a3e69d976b4be24b34274ee415d5f9ec6dcb22345bf102ee9298b45779d7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000266.fits",
+      "bytes": 273600,
+      "sha256": "ff3b8f0cc528d7ad180f98f013a0cc0ee79ef0ff1dc36385c957590bacc7a329"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000267.fits",
+      "bytes": 273600,
+      "sha256": "36f626e99eaf8ea9cc41b29cca1338e2810495efa0b79354ed805fdccbbae31c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000268.fits",
+      "bytes": 273600,
+      "sha256": "2dabf9eee5b726eede06d86b6bee73335b692e94a36df49fa30fb31c4775ac97"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000269.fits",
+      "bytes": 273600,
+      "sha256": "4047e9e9ad1e3f7187102dfa1ef5114f1a8ad26a941825c2cef5886720a7fb22"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000270.fits",
+      "bytes": 273600,
+      "sha256": "e46548cde2c52b7a7afa64d19f04ac66667d69edae2b879f9eb80a68de71fefc"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000271.fits",
+      "bytes": 273600,
+      "sha256": "6ac8148a2e6b4dcbd1fdfcf055bb8fb8cc0e8502d048374fe52531add7957194"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000272.fits",
+      "bytes": 273600,
+      "sha256": "cbc0017a8cef58d25b2f66d85c980fc0781aff5e9a60c88666620c6dcb6174e5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000273.fits",
+      "bytes": 273600,
+      "sha256": "973b2dbabaee50afa7025c4215e19ce1024e701c126034a4ec52d61a1cf7d69c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000274.fits",
+      "bytes": 273600,
+      "sha256": "ecda071dbcd911c01368053efae41a10f263b9d9069c0fc2f03392077f908030"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000275.fits",
+      "bytes": 273600,
+      "sha256": "9318b38c0e6654457b5a8ba3246285488283cdf686c923c35d6719f060b9a509"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000276.fits",
+      "bytes": 273600,
+      "sha256": "d80b86eea8632037740865dab50ffc839ed0252c9450cf4152d58cad7e3ee3c0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000277.fits",
+      "bytes": 273600,
+      "sha256": "40591429a795098e8458ef5a279520128e08a34c74fc0e13878aa4536cc4aa0b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000278.fits",
+      "bytes": 273600,
+      "sha256": "412ae6f1310a1222c522eae9b3e105ea8a05bd086a37a7acfe538d119ff2de3a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000279.fits",
+      "bytes": 273600,
+      "sha256": "d8e2363a2ccf701d151bc385eb5ec90a67793a8cea4c18977c995a91fb16d11d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000280.fits",
+      "bytes": 273600,
+      "sha256": "51a719448737b244778b8ae4adf1f07e9e85af7e6faa2d9b1d6d234e97c4e7bd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000281.fits",
+      "bytes": 273600,
+      "sha256": "ef86005bcf26cf40a02d365c6eaf73f83319affaa200294dc0870b6605e02f60"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000282.fits",
+      "bytes": 273600,
+      "sha256": "b90913b857ae118d6c97773055c276c3d6f0b75d4acf5d0aa3d5dc039f407695"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000283.fits",
+      "bytes": 273600,
+      "sha256": "6d0c41f9bcdbae8414be11967e28472e75eb685feb2e9a7dfaa77cde47a19a2e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000284.fits",
+      "bytes": 273600,
+      "sha256": "fb59ea10af807f6d7c02c179ef72344f71c4ca6ed2ad3176976b39e3d9d892e0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000285.fits",
+      "bytes": 273600,
+      "sha256": "a48095389c62858fff1da399776600b3d79e1163fbd6a7e9b9e17d74620d5234"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000286.fits",
+      "bytes": 273600,
+      "sha256": "a42e2c4825d9485c94ac44e8b9035de1df7f86cace7acf5b1181c8f02cfaaaf5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000287.fits",
+      "bytes": 273600,
+      "sha256": "0dfbc4a787112dce1bfbc51b5ef673ee5e0e09cb13697010f7a57d39840dca40"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000288.fits",
+      "bytes": 273600,
+      "sha256": "97b2060859437f7ffcd566849d1630c596bfbe425e2af52a0a08c4bbe2f1f5fb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000289.fits",
+      "bytes": 273600,
+      "sha256": "c08d545087058a96e97c85f2bf61810647e3dd75c4954aa03f50169f8b3d106f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000290.fits",
+      "bytes": 273600,
+      "sha256": "bfe5f29b3b6a1f2cd458fe1e65a2e50ea7db5d2604816388032cb0d436a7ef9f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000291.fits",
+      "bytes": 273600,
+      "sha256": "ceb45e444a5e9a33077358e508848ac1751a641a757ace123d20d9dae4121894"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000292.fits",
+      "bytes": 273600,
+      "sha256": "fd4595e6f9b00463889c2ea0f381562cb96816fb326e85b855909f4efb56c684"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000293.fits",
+      "bytes": 273600,
+      "sha256": "29eff31bfb9bd1f10bbedba27adead50714b7246611b57e47d3065e2a82958c8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000294.fits",
+      "bytes": 273600,
+      "sha256": "55a37d14f6f808fc079a245f82de2708df9067ee851a6766e0e8f352bf19d754"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000295.fits",
+      "bytes": 273600,
+      "sha256": "2c201cdcab4f2269d09a4087a8aa4e4734e914c61b5883402540b342c590f151"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000296.fits",
+      "bytes": 273600,
+      "sha256": "26c1c539d085d1cb944a199c8cbab9e8deddf60b6784d9e6c39fce21266fb3fb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000297.fits",
+      "bytes": 273600,
+      "sha256": "e0e868371c0ac7d147c935a2153ed0ce0fadffcc856a571f9b22f59f439b088e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000298.fits",
+      "bytes": 273600,
+      "sha256": "66eeadf5ab8b313d0a4ec6c8c2b2e3199d7073051724a8b41df73de802cc9e29"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000299.fits",
+      "bytes": 273600,
+      "sha256": "7bf9b958e19c96fe2debaed4eb758fb4c1c1e779148e3d6220342ef72d2de487"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000300.fits",
+      "bytes": 273600,
+      "sha256": "232f4ebffee41726f4f7ab3c2578f335ff63e2f77b67be578cf65330c4a0f35f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000301.fits",
+      "bytes": 273600,
+      "sha256": "7d77bb3299f5db68b9022b44a7812ba78cc1d771e207907fc5f981837afe9564"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000302.fits",
+      "bytes": 273600,
+      "sha256": "007c8b59db0a7eefbfc5c3e787c11ad33d2ed4f871246882fa2649a4772211e3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000303.fits",
+      "bytes": 273600,
+      "sha256": "40ecf284c39a92d78ee4a329649b136502161df1450f413416261be4a88bbee5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000304.fits",
+      "bytes": 273600,
+      "sha256": "0c5526f8e97f009454243172040c060b8d830769d827dbb358c405becb6d71d4"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000305.fits",
+      "bytes": 273600,
+      "sha256": "1b3921c069bbfd697070a3eb0513208aea68af60e5ad0dcdd75f4388542bc22c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000306.fits",
+      "bytes": 273600,
+      "sha256": "162c53fcde2d5c50283e3c92ebabdf969595c66729a0774bba490a1eba1ffbcc"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000307.fits",
+      "bytes": 273600,
+      "sha256": "fac4948399e19bcf357b8ac133ea8a61f661f287d3aefcc0e37ec11ba115b090"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000308.fits",
+      "bytes": 273600,
+      "sha256": "341d97b2b724db06e4baf412c5dbae8ec00b8e6deaf778c46fc645d08978667e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000309.fits",
+      "bytes": 273600,
+      "sha256": "fc7f44efd7c848b1ed3d5973b888a0777fe3f52316989aaa9ac85e8b0820a03c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000310.fits",
+      "bytes": 273600,
+      "sha256": "1a957532ca2939ba7a516ac6f9b9dd5a1b89848e07f7e5f067e9991bf1670c08"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000311.fits",
+      "bytes": 273600,
+      "sha256": "3cec702805a6ee9b1f556102d31ccc450b9301417653a6899aa0504137cc807b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000312.fits",
+      "bytes": 273600,
+      "sha256": "53634bed2c604c5eebfc0e3c613ace178e1137c1e9175e0d4ca8f5ab17e803ba"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000313.fits",
+      "bytes": 273600,
+      "sha256": "a39594ef44adef54da506b10fcb9998982a94708d2b4f55798055b95920f723f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000314.fits",
+      "bytes": 273600,
+      "sha256": "12256274a50425b4a6296329240287339af96f6d860ba6db9a8d779bba31d219"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000315.fits",
+      "bytes": 273600,
+      "sha256": "c3a083a4aa49082f58da80abc0e00949084d1a855754a72224bd13ea4ef5ffea"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000316.fits",
+      "bytes": 273600,
+      "sha256": "28bd61675efe49b2125f5030b377b4106d6bfa459c33258af04a1f82054353b7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000317.fits",
+      "bytes": 273600,
+      "sha256": "beddd7605344d0af857ca1e1639ee8cc483ad29319c4b757e9a6181e9794c102"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000318.fits",
+      "bytes": 273600,
+      "sha256": "fcbb02eeaa825599a1c732f3a4630c3bea5eac2128fbc19c59902e074f529263"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000319.fits",
+      "bytes": 273600,
+      "sha256": "8070c82897f1a463c3b13726002ac27a5ed397989a65110bf137ab617b482c42"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000320.fits",
+      "bytes": 273600,
+      "sha256": "67454a3dea3b493a644286d11ee43b910bcaafa8c77e22240856710bffba1fd1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000321.fits",
+      "bytes": 273600,
+      "sha256": "9cee5f71f32cad0def0520ce0089d27acce75ab7e9abf9f34c39a8b5db30dea6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000322.fits",
+      "bytes": 273600,
+      "sha256": "d6146cf623e8227af6db3074e3f4379d050dd6ac5ee1f55fcd113fd13698158e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000323.fits",
+      "bytes": 273600,
+      "sha256": "9a696944469e467979345de6a0ac4ad728433ae00161fe7d7b4e3109a944ba58"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000324.fits",
+      "bytes": 273600,
+      "sha256": "337b6f95846563a15ee3e662b03075df5148c994c2b7175cfbd170eb571f2913"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000325.fits",
+      "bytes": 273600,
+      "sha256": "086aede34fc89c782ea8333a9939939b8165790c2beebc14ed4f6778cb174fca"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000326.fits",
+      "bytes": 273600,
+      "sha256": "5d00e1d1e31172be839dbcc849c0da27856d90a63fc08c7d4f58895201b9e545"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000327.fits",
+      "bytes": 273600,
+      "sha256": "c7cba935f3667abb0e17865d7b94e04ddd7f80c38ffaee9d55f9e9ea3c42ddb5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000328.fits",
+      "bytes": 273600,
+      "sha256": "b301a9301171cc8d97a1be072ffba15ccbd51b376c2e18c2e6e87c3285a07415"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000329.fits",
+      "bytes": 273600,
+      "sha256": "11cb07bf590b7486639c5dd8ef65452a1e19c7182bad2f992aa3c8b707e41b88"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000330.fits",
+      "bytes": 273600,
+      "sha256": "e36d6b04f5dfdbbc13ad10ccfae3c4af0e07da6664935ec9716d52ff9e2b4e23"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000331.fits",
+      "bytes": 273600,
+      "sha256": "6a3d4c9fd2f2bf830f2f6fdcbaaac06bc3bae9f2563f2d0bffe2752dc581f2ca"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000332.fits",
+      "bytes": 273600,
+      "sha256": "b72e502e191d2f516fe7ae4c696927e7b1fb3f0a734bc7b19824f3ebd84f9d6d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000333.fits",
+      "bytes": 273600,
+      "sha256": "b4a26341d6d1ef4c79aeed963556a4700ea4548328a9eb9426c06fe6aa5dc10c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000334.fits",
+      "bytes": 273600,
+      "sha256": "8beade9fdc6745cd3670358cd2283ff680752765a0d50d6b2f98e1d62d4c2645"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000335.fits",
+      "bytes": 273600,
+      "sha256": "3742d3cb6b4e0c375c7e05a25ef4859b53829801235a812b7f1155412f77e808"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000336.fits",
+      "bytes": 273600,
+      "sha256": "85db3174cbbca6b020ae6207373bf2ea65d6625d254ce2f75dd39d5d2e0fd51d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000337.fits",
+      "bytes": 273600,
+      "sha256": "caf2bf4678cb02cf0be7fae978f378f8a8b1ea8470b0506b9f7e49b84726334b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000338.fits",
+      "bytes": 273600,
+      "sha256": "f419424c273a1660467f2fbc8a578043cbffbbf326d04e6eb8a000b7c99f6ca0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000339.fits",
+      "bytes": 273600,
+      "sha256": "6b1e6d1c2de0f1cd9bef23e1766f84021b352659e392855330cd587684c57daf"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000340.fits",
+      "bytes": 273600,
+      "sha256": "fbcba0d44b20dd04995652634d5bb4a81cd049fbe5a5646e6a15a60ef3961d89"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000341.fits",
+      "bytes": 273600,
+      "sha256": "2ff5356e07cafaaa5d9f7e9b9d9312628f42a31af7a0d1d0b7f29f0ee9a464a7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000342.fits",
+      "bytes": 273600,
+      "sha256": "83e304b49b79fa69ec872ec394a36a9761d1852ad0fcfeff7db6e34059f7528a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000343.fits",
+      "bytes": 273600,
+      "sha256": "6a81c782b72fe95a969f59dc50b17fdc073bb9b406fcd30244bc38cabaf3ed2c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000344.fits",
+      "bytes": 273600,
+      "sha256": "c13d721f6c6d84f09127d858f0886426b7ce7abc5bd9778cca2f3eafe6ff9365"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000345.fits",
+      "bytes": 273600,
+      "sha256": "06352a9ec22683113ed1510ed6d43b04a81014e1989d763e4c6ca2276ae437d0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000346.fits",
+      "bytes": 273600,
+      "sha256": "8f68db5dec572c2532cd08cbbfd1906bfa392d88b4dc386b5c71a1578b23d123"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000347.fits",
+      "bytes": 273600,
+      "sha256": "1a348b1ecd1bb4a5b03828840e8c0752445c218f07239b34c88baf7625725fe1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000348.fits",
+      "bytes": 273600,
+      "sha256": "0380aa1e9b463591f2f79d3e38da350e8e8468b4ad3f74c985202d17371ada2b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000349.fits",
+      "bytes": 273600,
+      "sha256": "7505f15d9251e040b584a2bece068d1ff4ac9522dc7852f217a0f9abb25b2bf7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000350.fits",
+      "bytes": 273600,
+      "sha256": "5bcb8bf536e8359b0663484ecc7d6bbe2c6698bf107e3c3e0fa0d588409cd1c7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000351.fits",
+      "bytes": 273600,
+      "sha256": "847e9ddfe237865107fc836218031a9fcd21ee26b54d54177e50fd3525823ff8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000352.fits",
+      "bytes": 273600,
+      "sha256": "120a6c4512644b4f0c71fe8e9e5d9bcf8d9c49cf45874e2ff681435d0cf239c7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000353.fits",
+      "bytes": 273600,
+      "sha256": "012d13228baf06dc25755141991b2dae13539d32e011abcfa2f97124c26af28e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000354.fits",
+      "bytes": 273600,
+      "sha256": "deb31c078d6beba24ffb1fa7a1908406f033174feb0ca31de512d26daf5b6316"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000355.fits",
+      "bytes": 273600,
+      "sha256": "242fb7f01fc63a1ca23fb1bd31f7077824bbf7194fa56aeaaefd002546a513ce"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000356.fits",
+      "bytes": 273600,
+      "sha256": "8cdcc78ce72b4d83555f3106cc9bec5bd4e95435c62d691a38d42fced19d448c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000357.fits",
+      "bytes": 273600,
+      "sha256": "f3742e3cb74ee7f55093e543d3ac9d06cb63f18f13f7e5ab805fe4e0014d224c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000358.fits",
+      "bytes": 273600,
+      "sha256": "30e566414bb80620fcd4513c6a0097c6a5a893f9500363d5ea2d9b3cf4435e09"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000359.fits",
+      "bytes": 273600,
+      "sha256": "2d589522b8a9eeec3162b88bc2dbb93d959ba7ffedd9fe306e2ad1f52dad58ef"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000360.fits",
+      "bytes": 273600,
+      "sha256": "ab49a7543672133f5278c4bc102c63364557c6104e0bafcdaad5afd8b13ef7ee"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000361.fits",
+      "bytes": 273600,
+      "sha256": "4c88d451c13f419f8b0877f2cf92e82431ad6f23c7a302864614242e11dd5871"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000362.fits",
+      "bytes": 273600,
+      "sha256": "a20c303f5780026ae23afe6cb6e635d187a98d37f91d51a8c77c9ab4bb96ed2b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000363.fits",
+      "bytes": 273600,
+      "sha256": "03ea8f2e8ef4cc099bbea789b96b71363d13cc006876a5e1c3a30bfafed132d7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000364.fits",
+      "bytes": 273600,
+      "sha256": "e0a2667daeff9482cd1aa02c1c37ad31f599df92263a4f0443112859da143fda"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000365.fits",
+      "bytes": 273600,
+      "sha256": "f36eb6eb08494a7eb81c977782c9f3d1f2af89768b92a63280ae2edac2882624"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000366.fits",
+      "bytes": 273600,
+      "sha256": "6bdf427d638c0d1d9e2dbd75c2530bfcd55a0697d533c0b6143a3dc3b2ddc22c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000367.fits",
+      "bytes": 273600,
+      "sha256": "a3ee74073ccd92ed976bfcf76aae74797ead8ed17a18bd99958729609a1c235e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000368.fits",
+      "bytes": 273600,
+      "sha256": "6e483c9e9357de4b3c8cfc2e967232ff700a044747dceb2bdb35a4f59d9f0ed6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000369.fits",
+      "bytes": 273600,
+      "sha256": "1f445fe994d133bc9fe55b3df0e0fbd5ca85de48961b71e0e94c85fc33e69cdd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000370.fits",
+      "bytes": 273600,
+      "sha256": "d4dd2b4ce7e286db5dcce339ef72128f8330aae9bed1aaf308e64779dca2b227"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000371.fits",
+      "bytes": 273600,
+      "sha256": "e77567348d70fc11fa7754a77780d9d996a24bd1e97fcd24228f5ebc1ab8c876"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000372.fits",
+      "bytes": 273600,
+      "sha256": "8f339cf98893df2ce983f0e80721dfbbc8aabe1cbcd90a95a332870427689d98"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000373.fits",
+      "bytes": 273600,
+      "sha256": "1b9633f68ba03f5f43d443b1fa68cadcd5b18d607d83fafebbbf2562c2d2e15f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000374.fits",
+      "bytes": 273600,
+      "sha256": "07528d5b03d0ca4825a0e236109e8dca152b64d30f0dd54a4361abb7a1060a2d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000375.fits",
+      "bytes": 273600,
+      "sha256": "3f5450aa4de1ca720a9ada932e06cdc3f4a0e8ffcb422286f7fe7453439f917e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000376.fits",
+      "bytes": 273600,
+      "sha256": "7842ec7d6f7d80dbf4faef52e23f28aa417a447f485cc87ce3b8bafbb6a9ef4e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000377.fits",
+      "bytes": 273600,
+      "sha256": "74bf8f196a1c7ae8d54d7b46cc696b3ebd636e1ad31cdb0dd11c3c95caa0eabd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000378.fits",
+      "bytes": 273600,
+      "sha256": "10ef5acc7c384a4ce064240caede73e794762888d2ab156ec9a332a6783813e9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000379.fits",
+      "bytes": 273600,
+      "sha256": "624800d9a1869085d878fe58804d18a2b6c910e76326db3159d6c7bd496ee98a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000380.fits",
+      "bytes": 273600,
+      "sha256": "ffbb14ccdec0ba1c74b42c0e57f25e2d30f51149017031ebef4db1c4999a0fd7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000381.fits",
+      "bytes": 273600,
+      "sha256": "bf735f4036c40a0d4e5c715bac3f4ddc83366bb026d43e41e5437e896aa83cc6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000382.fits",
+      "bytes": 273600,
+      "sha256": "ebd1c91e36eff84c2f752026a655715a7cbe60254544a720f46da3605157ebf4"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000383.fits",
+      "bytes": 273600,
+      "sha256": "946f35166f69c5119492b9cb07199593943c7040b3fbbab0e618ed218ae99052"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000384.fits",
+      "bytes": 273600,
+      "sha256": "048d0879f54afe4787dce76fd11b6e77e997bec2054035533cbb8b8e30b9d14e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000385.fits",
+      "bytes": 273600,
+      "sha256": "bd13fd565965f66c9d9d8f0aef76457268c71808c45fcadfe1bb6ab5459c2428"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000386.fits",
+      "bytes": 273600,
+      "sha256": "603cefec7685e4dfd3837e8c8dee16a8e505d6147fb1a8358b2f666beda05e8f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000387.fits",
+      "bytes": 273600,
+      "sha256": "ef50bdf908b9fd09ef809f161a02592166037d9331e689b572091521e64055cf"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000388.fits",
+      "bytes": 273600,
+      "sha256": "03474d0f66baa82708bc43a78544eeca04185726031d21af7a9c0965c4651b52"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000389.fits",
+      "bytes": 273600,
+      "sha256": "ff10f68362c56b8acc0ce05b99e638af6a393fef0031890fc4908643d8cfd712"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000390.fits",
+      "bytes": 273600,
+      "sha256": "31d982c48c762a9e34ffbe6183df12093ca06cb71920ec48e1fd2dc9dbd8051f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000391.fits",
+      "bytes": 273600,
+      "sha256": "f656331e999d28bbd11d1a3c8d438a29b4d34a7b0d054ae7120e069e5c43ef50"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000392.fits",
+      "bytes": 273600,
+      "sha256": "71db1dc64068537d0b99189f7286bd3059ad6b383ed770f602d1812b3dacdb84"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000393.fits",
+      "bytes": 273600,
+      "sha256": "8124c6fb9f8fdb6da7ade45bae14b79e15f0b762f69c2358d7921f27d36db099"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000394.fits",
+      "bytes": 273600,
+      "sha256": "13bc5f48797998ce21bdab7676d6de4bdd2a39cee8f955e3b7c0e20302f64a80"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000395.fits",
+      "bytes": 273600,
+      "sha256": "6f1f4aa8342ba406c303aecc82ae240df5feddfd60b9c28738c8030cc8430469"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000396.fits",
+      "bytes": 273600,
+      "sha256": "5443a4a48774eb46bb300d3ef1d1886941752de0d0b1daf9973d0ed033c69c0d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000397.fits",
+      "bytes": 273600,
+      "sha256": "881c84b75737e0d06419465b91c8e675c3652b70ce131757a39081ad608996be"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000398.fits",
+      "bytes": 273600,
+      "sha256": "f2d4f4b7984093083eff4e22a683adcc63540913419e742b2f6315f618bb67fc"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000399.fits",
+      "bytes": 273600,
+      "sha256": "e7ea09ea94e62eef21780deb26144ec8cb1d64e52256cf662f28684c59203d63"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000400.fits",
+      "bytes": 273600,
+      "sha256": "9242893b16444378e79d2931ddf35117047e36117e1b386cae1e97840a522d03"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000401.fits",
+      "bytes": 273600,
+      "sha256": "80b04bd3c1d6c32679f94ff3492a4264648bfc36ce2f4b3ffae9712bbfcc3850"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000402.fits",
+      "bytes": 273600,
+      "sha256": "fecf7fb1ed6951048e1fdaf63e6932a0342230b5097c6be303aded43a3bfbb6e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000403.fits",
+      "bytes": 273600,
+      "sha256": "a142fcfe7e208c76d953e453e19de8c7f0f5411f7ddc588ba6b0b88cd091ddeb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000404.fits",
+      "bytes": 273600,
+      "sha256": "d8c2fa9c943500331830cc9ef873d14f020da859905ee1f2a5ee3b4f126325ea"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000405.fits",
+      "bytes": 273600,
+      "sha256": "4000f9bb3d8be0ffbfba28aaffd946b50755e747ffdfd3dc7807816aa901eb28"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000406.fits",
+      "bytes": 273600,
+      "sha256": "aa21edc2732338e19db607e1956a9d50fd221d2a4eeed0f7b48cfa8a21bda49e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000407.fits",
+      "bytes": 273600,
+      "sha256": "02122ea3363583701c198dc94f3617e3db659a529bfca8c851dfbd041d3e00bf"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000408.fits",
+      "bytes": 273600,
+      "sha256": "f1f8ffb1e881ccef13b560958d3265fe8da09f87b4dcff46e307e048e98c4272"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000409.fits",
+      "bytes": 273600,
+      "sha256": "ab61741b46a143610f260deda0e2e6c8c4479acce2852bbbc0bb270fd62cf0b7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000410.fits",
+      "bytes": 273600,
+      "sha256": "1f894b1699602a0fbbc66d9eabfb3ba35b53a62285019e52871c2aaf93cbdc3d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000411.fits",
+      "bytes": 273600,
+      "sha256": "530f7239b19ab8b681b99c9bd9ffe998990514d2797a61cf82c6313e211f0eda"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000412.fits",
+      "bytes": 273600,
+      "sha256": "118427d475523f69df335de9abfa1d8a128bc7fe87582c3531283323f3d0d39b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000413.fits",
+      "bytes": 273600,
+      "sha256": "e51d95217ae635b677f6e907534e690760b82a82cfaf1ac0a3fc1b10600f1f51"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000414.fits",
+      "bytes": 273600,
+      "sha256": "f33d9f7cfcad3c0c6567478e1f48f1ce1d5e36dcf7c29fb1f43bbd2f14d7d27a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000415.fits",
+      "bytes": 273600,
+      "sha256": "30cfe5102b81d2357548ae96a84fcb4232d62703d1e4f52e33e2618c41db2d95"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000416.fits",
+      "bytes": 273600,
+      "sha256": "ed697f7e33e0d47ef157c30121f2d3d03d269579b4a1b25c095ba52b27049e2e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000417.fits",
+      "bytes": 273600,
+      "sha256": "f8f07d94aa3a39b0b408322664fead1f1835ebb4f17f9236be130c08fa603619"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000418.fits",
+      "bytes": 273600,
+      "sha256": "ed0aaf97a5dbb50c3b9ca26424b5576fd88861f3b90d628cabd106cffa908125"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000419.fits",
+      "bytes": 273600,
+      "sha256": "2329cb9536a1eb02eb04099e963a2c19b412a5fbe244c7544eb0e9d21bcd3051"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000420.fits",
+      "bytes": 273600,
+      "sha256": "70f5bbac171c7790e709a49ecdc0544cbcf605f0cccf98af860c3fdaaf8bde3d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000421.fits",
+      "bytes": 273600,
+      "sha256": "733bd308fa7d69cc3a6a88852ca43c29a5691b1a07cc3f415c534f924216e685"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000422.fits",
+      "bytes": 273600,
+      "sha256": "cab6e452c78840ebd6f052f896d9ae9790963c764e3106ead0cd25583539b71f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000423.fits",
+      "bytes": 273600,
+      "sha256": "50f2e73cc87c0f93964b46fbae3d4729e86b30ae609003fadd7507cf357a06a5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000424.fits",
+      "bytes": 273600,
+      "sha256": "c33269634022de49d993f91b706c9ec6dfa0d2fe54ff605be00ad6683336ed41"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000425.fits",
+      "bytes": 273600,
+      "sha256": "a5cf7f1e12a055e711220da00c82ac089307239f0e2425bde15a08faa26b14ad"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000426.fits",
+      "bytes": 273600,
+      "sha256": "f104936bd4a499de258dd832f318d434ed1f1dd32da4409e9524d66c246b6391"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000427.fits",
+      "bytes": 273600,
+      "sha256": "81e23fd313e38cdffb709c018d71e056e4af4ab4798c826240467babcce5b338"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000428.fits",
+      "bytes": 273600,
+      "sha256": "cbec441be1285b0e45c5dbe27b00a4cfc9a1141950d715fd9c077652b3e010c5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000429.fits",
+      "bytes": 273600,
+      "sha256": "e32ab21c49fcb6bac8d1b5d76756926be05af9d911bb963495371e82ecfb8ca9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000430.fits",
+      "bytes": 273600,
+      "sha256": "250d9aca1ae01a8e76cda75dae26949cb407a04c9d826eb450b581c25576d646"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000431.fits",
+      "bytes": 270720,
+      "sha256": "e901642d551394a9757bcb001ed1cc1e2ed63aebf172c0b1c2a0f4a6e3162ccc"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000432.fits",
+      "bytes": 273600,
+      "sha256": "c26e1973cda1e65f058cf87771c100f40b9c6ecba20035d4cc94bbe7aedde0a7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000433.fits",
+      "bytes": 273600,
+      "sha256": "2ff504d70656d159a681c16fe85a033977ca2ae2e14134a15829b9b1d8a4187d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000434.fits",
+      "bytes": 273600,
+      "sha256": "fc506a9f9e606fdb709dcdfb06aa3ddf551eb133aac8ddc3cd2915fc3a17cb3f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000435.fits",
+      "bytes": 273600,
+      "sha256": "40111245a7ab695c5cd80ddac1be879762270ed502605ce5cd19d24292e51aa7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000436.fits",
+      "bytes": 273600,
+      "sha256": "ca7daa25bfcc36a05d5c8d2805eb9042e8a4097cf5071e9c2598f81307d58dfb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000437.fits",
+      "bytes": 273600,
+      "sha256": "054083484877991860540b500c2657581ec3c521b36272e4c5d29ac3ff6c9b38"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000438.fits",
+      "bytes": 273600,
+      "sha256": "e2256eb291fc66b96cd9ed18648f24b1d3e0efb10ccb9aeb73bae3772bccf373"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000439.fits",
+      "bytes": 273600,
+      "sha256": "05c5fc5d45e3415f21b7e0b400b00432870431c013b353c816a76db6bd9c0765"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000440.fits",
+      "bytes": 273600,
+      "sha256": "965589c6497788d2cdee0413df3495c9a4f5a3ab21d0daae9fdf1bd64faf053c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000441.fits",
+      "bytes": 273600,
+      "sha256": "17bf9360efd7d7907115d2b66eea6483e321b54d00393b4dbd4f3925c25aecc5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000442.fits",
+      "bytes": 273600,
+      "sha256": "7f6d27da981fc1f73e42481854dad43bbcaa4d9a056a9e2dde0d6f0be439a051"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000443.fits",
+      "bytes": 273600,
+      "sha256": "85d6bd11a1fdd4f71f2ad5c106111ad52ccffc7594de9cb30a201b6343b2d083"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000444.fits",
+      "bytes": 273600,
+      "sha256": "71f5586c3a39576ef5ba716428ba6c4f68bed8520e12282fd2e1b7830b3216e8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000445.fits",
+      "bytes": 273600,
+      "sha256": "df3c661a38f275154f532279a789adcc0a50660a2e6f85a1d9e56a123f3d9dcb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000446.fits",
+      "bytes": 273600,
+      "sha256": "8b5446edfa48e7c9ab5d7fc6e257dabd9c6e5b9c13019e87032dcf4cfe4dd163"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000447.fits",
+      "bytes": 273600,
+      "sha256": "c3252da91608cdece7794be9fa944290c3e37e7afb42aa1179196c62f1e85ce7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000448.fits",
+      "bytes": 273600,
+      "sha256": "14670e27e4e3236ee84bafccac2e1e443c1553c999e559d4ca273c57f4d83858"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000449.fits",
+      "bytes": 273600,
+      "sha256": "0b29f5829b9cbb133fb771095c7a57c84bb6e77aa7e993b9d644809e7eeafe69"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000450.fits",
+      "bytes": 273600,
+      "sha256": "c78a48c2ad8f6316d4d151b5771f908584c9fa457850e6acb4ffbfa8dd13129b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000451.fits",
+      "bytes": 273600,
+      "sha256": "01dc8e9dfe9e07b9e233d3ce188128f39deb506d0e719eb0707e653f8d05e41a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000452.fits",
+      "bytes": 273600,
+      "sha256": "47f6351655b7c0ae298162a47116cf6429b3d5ddc776ffaeee7772d739792cd8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000453.fits",
+      "bytes": 273600,
+      "sha256": "a27f1f67106870f187c5745b1457023161f47d9c4608916a8675809722f20de7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000454.fits",
+      "bytes": 273600,
+      "sha256": "33d0914d0bb943f6253c1a4ce69098bf07d2c5d9376f51228b6504bf66af328c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000455.fits",
+      "bytes": 273600,
+      "sha256": "450fca7bf86ea6c25448ab6dfbb3f6a1b1a1328adcdc84151b6d139a498d4e89"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000456.fits",
+      "bytes": 273600,
+      "sha256": "eeb16296ecce2c04c39434dbca93266b41a0b06d4872147cb69b11f5b79a2c5b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000457.fits",
+      "bytes": 273600,
+      "sha256": "ac10c47e6723a960a1639839b0b09ae4363cfa03a586f0a9d0efb2f0762d7a31"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000458.fits",
+      "bytes": 273600,
+      "sha256": "a37cede0405a7866525fd16d5656f0cd3f73fd6c35b71ec9c37abbb67a051fd0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000459.fits",
+      "bytes": 273600,
+      "sha256": "11b66ccd33cc0675d19b1cc9ee4bc032a4242dc760685b119844bea6ba2d19a9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000460.fits",
+      "bytes": 273600,
+      "sha256": "7cd5c9bfffd6630ce33d8b04accfb9e9fc06895f10e64d9ff36a2e50d0241e10"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000461.fits",
+      "bytes": 273600,
+      "sha256": "f6dc3d049e0e565f4e156b9073d5ef75e63d2a10c24d89e979bee67c1b383615"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000462.fits",
+      "bytes": 273600,
+      "sha256": "a03b1ccbf03cdfc91520517d07f6ed254d5ddee623f247ae40644144a5f2b803"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000463.fits",
+      "bytes": 273600,
+      "sha256": "b0d73f9c2338d8b93b21646f1d4856d5633174f7047b93ac2583a839529838b7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000464.fits",
+      "bytes": 273600,
+      "sha256": "04ba5a5ed412eba52d9f88706548bdba61ac6678b42be488a5e9ccfbd68452be"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000465.fits",
+      "bytes": 273600,
+      "sha256": "206a0d3fea26fe4c4ac7aaf6de63fe8671c8226b8d30ab594bbd864133a11ff0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000466.fits",
+      "bytes": 273600,
+      "sha256": "b83912200126ed3ae4a7aa68c38655d07cd101d9b379e58288b9fd05a66ef090"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000467.fits",
+      "bytes": 273600,
+      "sha256": "a744f16ced2a368e6d2f89eb07e7d667e91951aedd9227031d7afb0f7e18dc31"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000468.fits",
+      "bytes": 273600,
+      "sha256": "a43cd83c80c6748c8c868fdaa32ead7eca2f997b4203316152dcb1139f43796c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000469.fits",
+      "bytes": 273600,
+      "sha256": "e84bce22473d60de7fc9ab6e1afa8b27e0105223de74cd3d8ec7cea5decc01ec"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000470.fits",
+      "bytes": 273600,
+      "sha256": "5d64f36942c224eeb75b8276fe2970e43624528e9f3d00e80ba259f280343eb3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000471.fits",
+      "bytes": 273600,
+      "sha256": "bc90b2608338dffe8628260aef20101298d3acb839c494c835d06db4b58bdd66"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000472.fits",
+      "bytes": 273600,
+      "sha256": "ff52b938d09c1e62780df6315ea132a8a43287fe59b33dbeca487ca00b234221"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000473.fits",
+      "bytes": 273600,
+      "sha256": "edbf7523847385def8e4d5efd7c2f84a786ffce9508b9074bb9c6c138de11fab"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000474.fits",
+      "bytes": 273600,
+      "sha256": "d41de8ce284ef49c017182c795d23ffff37924e4f6df379c60fae85666cce68a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000475.fits",
+      "bytes": 273600,
+      "sha256": "19580a9bde65b590015c10c681ca344f2c883ebc156bec7d343b84776c81ab76"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000476.fits",
+      "bytes": 273600,
+      "sha256": "37a839fcdd3da6d6ffb49e388fd159ddf427a4608abb0685318dc1d9e9243216"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000477.fits",
+      "bytes": 273600,
+      "sha256": "a39682a856a40be444144fa2825b4983a579c59ac63a5e8e8a8a5a17b3e7b738"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000478.fits",
+      "bytes": 273600,
+      "sha256": "777f3d0c30644b59a3d96523c70cd70e90e5ef464bf1dc0b7f2aac1c8383d76b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000479.fits",
+      "bytes": 273600,
+      "sha256": "34c59fed20ca59b5f460c3c51dba0e4cbd5b48e4b26a4a379d7b695bb0b37407"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000480.fits",
+      "bytes": 273600,
+      "sha256": "fe49c0703cb1b6315f1b0a2c22f630b3db315af0fbdbec30d3909f7d7d8e221f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000481.fits",
+      "bytes": 273600,
+      "sha256": "b688759164b12d87353d16e7bf26b73833379d1f1539c49bd7c812cb0d6b826c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000482.fits",
+      "bytes": 273600,
+      "sha256": "510fe0c233294a1dcbc539ad023ff467cd07499a26107c2520ef77ac3e08ec27"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000483.fits",
+      "bytes": 273600,
+      "sha256": "4b6444d13673c13bfa95b1c11a9f652695353747c26ceaccff3cd875476f7126"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000484.fits",
+      "bytes": 273600,
+      "sha256": "6c559a9f0a679da59067854ba8ff0989e285a8a471cb88c0defc228e27354636"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000485.fits",
+      "bytes": 273600,
+      "sha256": "99ad883545b3e11f90bc7ee7ca8a7ad8c7827ad15f3640c8a0aeef625461724e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000486.fits",
+      "bytes": 273600,
+      "sha256": "3cd12939173c2c9ce837ffe2bdbe70d50bb84448a7004b5f0c08622d329dab39"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000487.fits",
+      "bytes": 273600,
+      "sha256": "6a8b969c568cb6aa2c0f078c54845c789881ed6653c605b145c6d46f7e3314fe"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000488.fits",
+      "bytes": 273600,
+      "sha256": "401c6481cf19794baff5cb654fb20d9b73d2b24f2f49cc36175811a5f7fb0d7b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000489.fits",
+      "bytes": 273600,
+      "sha256": "da42f74d2ae4d3eccbbcaff2d803496d3616ab173c1b262df93befd0c5e4fe02"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000490.fits",
+      "bytes": 273600,
+      "sha256": "73e0e04a0aaa118ec4c5f6972892d2a993e2f510e907c7c6eff29d9f12dda483"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000491.fits",
+      "bytes": 273600,
+      "sha256": "160557d08bd860ab2a90e8e896f81c9076fdbb6ad5fe5141c181af237697657c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000492.fits",
+      "bytes": 273600,
+      "sha256": "07c070e5035023c35818ac056c55e63f5dbc3059aba1b608adba1f0d17e4299b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000493.fits",
+      "bytes": 273600,
+      "sha256": "f32d12e89758091ba71851b0803c830ea29e72b7a08f4518a25e36bbf8ac3adb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000494.fits",
+      "bytes": 273600,
+      "sha256": "0dace566dfb4ae07bd32b56a43eda4cefaec482295ad7690241feefa52bb7ad2"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000495.fits",
+      "bytes": 273600,
+      "sha256": "749ea03c9ca26d0937e11444cd36b35e07592603749fc928cb5eafe577fb9278"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000496.fits",
+      "bytes": 273600,
+      "sha256": "c41458e46c5c6094fd34d321d6fbe6961f326816f4968403e24b959a86a8e2de"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000497.fits",
+      "bytes": 273600,
+      "sha256": "788eefa05a1c08697a5bfb58b35a680ab7baf03f64aab7d5c4fd39498efe348a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000498.fits",
+      "bytes": 273600,
+      "sha256": "dd410dd748906ea37aeb9670115ca83c5e74097dd594e77c3259d648e820d795"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000499.fits",
+      "bytes": 273600,
+      "sha256": "a2e5c601182afbef68e3c3ff8cae3731ff176226597f448067caa32efea7a756"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000500.fits",
+      "bytes": 273600,
+      "sha256": "dc0bd806e1845fdf2a652c405d66ea78c9d19198f98f5721f136dc74f72864c7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000501.fits",
+      "bytes": 273600,
+      "sha256": "41772981037ead62b66c61cf102da5c102e000045f26aabac41002b4a730d767"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000502.fits",
+      "bytes": 273600,
+      "sha256": "64f75cbd7e9e1e3c67e8225ac7de5bf3b061dcc1b01ff1b98d9b1c00cdeacecc"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000503.fits",
+      "bytes": 273600,
+      "sha256": "ff43e3d1f00c29f6d6a0c7aeb48da65a2c303ceedfda047a097e355e9678e781"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000504.fits",
+      "bytes": 273600,
+      "sha256": "09f6936d4890c434d3120e25681dafea3cd18a18be34f866a8b165c633005f55"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000505.fits",
+      "bytes": 273600,
+      "sha256": "1f21bee0d4c9b067b7e3967f982417e94008df1c754e1475cb97196d2198cd88"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000506.fits",
+      "bytes": 273600,
+      "sha256": "b874bb27e829cb9d4f97a2595b0e17a2fb4e84633453dd54e0a077eb7c3583fd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000507.fits",
+      "bytes": 273600,
+      "sha256": "b1058f59ba941f206d52624061a9a9f46c6b7951c38bb9ad78a44fe403fd3fad"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000508.fits",
+      "bytes": 273600,
+      "sha256": "b65c0fbba25a4f0d55de0ac05eff8d43ebd1611523fc9baf69bae51d9e184df9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000509.fits",
+      "bytes": 273600,
+      "sha256": "6d4c3eba67d9932fc56c97181f2c319607a3fee407c0f09472c493190b39dc9f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000510.fits",
+      "bytes": 273600,
+      "sha256": "4d04699057d5342ecadf63843e6844e0451537808393cad8ddbfdc0c1c2dc500"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000511.fits",
+      "bytes": 273600,
+      "sha256": "e49dbd7c69816208d99d8a30c35a8860d81153badef8b12efbac0d794c83889c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000512.fits",
+      "bytes": 273600,
+      "sha256": "d0086a4ae2b9ae8e3888015300119aa77c7c7c30bc8e22bd0d011a78dec364fd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000513.fits",
+      "bytes": 273600,
+      "sha256": "e95936ab94000fc86e75c68ce2090167a723e952fb972c6fe22fc5efb5d334f7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000514.fits",
+      "bytes": 273600,
+      "sha256": "1f4177a338a7db5905dd4e3bbd1c6aa8de3da4636304a5cdd2d8017063392287"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000515.fits",
+      "bytes": 273600,
+      "sha256": "623c0ca5d51925dbcb2cd7270d863031e57050326a805a990b65c676141af3ee"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000516.fits",
+      "bytes": 273600,
+      "sha256": "53e96d63699d46f0d68499bfe71efb7d0788593d15de38809c4f4a8899165440"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000517.fits",
+      "bytes": 273600,
+      "sha256": "45f52dc452ae5625973e8d1d482802ce510c4f52da8b23487ab3caee37421350"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000518.fits",
+      "bytes": 273600,
+      "sha256": "48f44e3334e395c0cb8e6d1859fa3d097ed6896821fda356a312eec0162a6702"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000519.fits",
+      "bytes": 273600,
+      "sha256": "89eb4097ec1257cc6e565d819e4bce2a5356c635aa149c59dcac95ba177961b3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000520.fits",
+      "bytes": 273600,
+      "sha256": "b489761c652efe924582331b6f9bfb9afe7d6aea9b18f80a941f69f731281787"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000521.fits",
+      "bytes": 273600,
+      "sha256": "65d80dd9e5809f6cffb5531df66000f34da52106549ccb576b000a712d1712e6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000522.fits",
+      "bytes": 273600,
+      "sha256": "16044b3e8239e9b934ff410254cef44f300ab171971734538e19c3e194267e5f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000523.fits",
+      "bytes": 273600,
+      "sha256": "86934924316cd01f170c49e9d5e3568534ed914cb8ab8cf0c4435b9c87260d46"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000524.fits",
+      "bytes": 273600,
+      "sha256": "aa78718a321318929602f5b11a1dbed82d0b3450e9841b1a5101b5f6ba1097da"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000525.fits",
+      "bytes": 273600,
+      "sha256": "7dc151c25fa57bd9dcc8e8eae501143ba013b99fcaf116c820ff45efe766a8c9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000526.fits",
+      "bytes": 273600,
+      "sha256": "37724990ddba398a59f4cf6d466ff92d407bbcd6ee85f5393fc3f253c514fc98"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000527.fits",
+      "bytes": 273600,
+      "sha256": "5b3d307b186adddd69151532e0edda97e1d420beb76290149ec041dbbb4a416e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000528.fits",
+      "bytes": 273600,
+      "sha256": "44122a9b24d81849d0df4052d81ca8dc2e664e8ba45399ee89f84b862d0e9ef5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000529.fits",
+      "bytes": 273600,
+      "sha256": "b6479646ac35edaf2e7fb908ddd8f1b3eac620c8df982a7c3f4a604fb37d2115"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000530.fits",
+      "bytes": 273600,
+      "sha256": "d7b17d1d8c812dbcea8739b471b8c455d6eaa26814edbb8ebfd0106c8f98f4a9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000531.fits",
+      "bytes": 273600,
+      "sha256": "aa5c725b3ec6036ca57f96bf1ec24e7ced46a540b621c63070649e168c5d7d34"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000532.fits",
+      "bytes": 273600,
+      "sha256": "d02386d137e1b272438a6da342705e9a73a14739a3ad024cc2b4fa2af04605aa"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000533.fits",
+      "bytes": 273600,
+      "sha256": "fb819ff50fc5edb8d0255153e1b1627c3b16b8e66f2dd1844511be493217ff64"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000534.fits",
+      "bytes": 273600,
+      "sha256": "d7184bd35989b5e7a1804b9a0d9c5548c5698ec9097838ffa84d6d174e20ea6a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000535.fits",
+      "bytes": 273600,
+      "sha256": "1c5f47a32adc21e6399ea3d2e3e6fcf01493dfa4941e6fed1f161f063e1548f5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000536.fits",
+      "bytes": 273600,
+      "sha256": "880f6b5f6b05373013f2599e3652cfcf71f0a19e611db80d8d59f72c691613d1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000537.fits",
+      "bytes": 273600,
+      "sha256": "0b38d256964f423382b95e316131e1a69a3f47e8ff179f54376b7477daf5ac9e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000538.fits",
+      "bytes": 273600,
+      "sha256": "1cd5979abcc0361d2d2998894cb0d197216c0cbec29c7f4e2f6bd3c207dbdf2f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000539.fits",
+      "bytes": 273600,
+      "sha256": "73f096d0926085a68b60f8dd918d7e99ec818e40e976484fcf6fe2f47502c09e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000540.fits",
+      "bytes": 273600,
+      "sha256": "5f6abe2f801815c81f95c5b76f5ee792f6d52392b68b608154e2e8603bfc3b22"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000541.fits",
+      "bytes": 273600,
+      "sha256": "10472375d67235be04a46f029c1a3154c518459e6d0553143a5544832b3af0ec"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000542.fits",
+      "bytes": 273600,
+      "sha256": "05f3047f1fefb15ae83d7c7cbe7e1ef1d0b397227dcef3746bb123d3a415178b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000543.fits",
+      "bytes": 273600,
+      "sha256": "fde8733f98bb0c0b25e44fc28880cc752ceea3c2fb769f582272f61d5df38fbb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000544.fits",
+      "bytes": 273600,
+      "sha256": "590320347f1a781883a9ccffbb3b596ad24f5daf5e343039e59b041163e81080"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000545.fits",
+      "bytes": 273600,
+      "sha256": "4b537422f40bce12b87f55427d7224c393b3112ab9ffbd47c3b2eef2f05c5934"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000546.fits",
+      "bytes": 273600,
+      "sha256": "b62323bebff03d6814674e94aed1f70115023a712bdec609c5a61ce817113362"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000547.fits",
+      "bytes": 273600,
+      "sha256": "9b8bb8e6e6c79ad5fe4df59402c9ce428db91b536586143637d4af8b54072eb9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000548.fits",
+      "bytes": 273600,
+      "sha256": "6febf4b19696ef939265dd048fb8a830f018544720eae8c593d5c29cbf266350"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000549.fits",
+      "bytes": 273600,
+      "sha256": "1d328edce4eba2f1b59da0e0694949f412e2020c973860b878d5ae33ea7d5262"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000550.fits",
+      "bytes": 273600,
+      "sha256": "1020d0f10429955cfa4f2fb0e1853c28f876d642e4b740d5c42d0829f5feabe2"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000551.fits",
+      "bytes": 273600,
+      "sha256": "6ce4c40b5bd19c3c29d7381d6a4bb49bf6812f7fea2e8bfa482fa61a599fdcc9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000552.fits",
+      "bytes": 273600,
+      "sha256": "57b64dbcdc4c6cf8c1ed7e8f54473fdc0f9ca285695b372d8adfaf6f5bc7aa80"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000553.fits",
+      "bytes": 273600,
+      "sha256": "1bbe322ab7151e591654d0b5395713566dae5726dd7ec955f1029f43dc50bd4d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000554.fits",
+      "bytes": 273600,
+      "sha256": "e02c8d0e657f7b8811041b11ffc0f03e99e8563b64a2ba9fc9e8399c2dcf81d6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000555.fits",
+      "bytes": 273600,
+      "sha256": "314ecdf7149f07f5f2d67c07897d966239dc0cb0e5a9ce58209d431c91428f08"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000556.fits",
+      "bytes": 273600,
+      "sha256": "0153a3d3bcae0f339ea6b34beca1e81a8ac8b0f0a9a39863a632f8713ca19173"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000557.fits",
+      "bytes": 273600,
+      "sha256": "8ccc51f2876e617c21982ed16ab8c073a09f44a68633fb85e8ffedd1d1bc7906"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000558.fits",
+      "bytes": 273600,
+      "sha256": "a1008e62c05a768ec600cc71b770661028393bafb775f1fc21380023ccdf41d3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000559.fits",
+      "bytes": 273600,
+      "sha256": "e78623203a9ad50b61f428cba0bc9fe515d9d80b3ceaa5b98bf5e63710eae1bb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000560.fits",
+      "bytes": 273600,
+      "sha256": "37352c225d69b5444e83a78144671da829b8fabd93c7296935fdec4330745536"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000561.fits",
+      "bytes": 273600,
+      "sha256": "76b7866f85e31a893b223c2079184eefebdb996b2dd71cda411a4d510a8e2aa5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000562.fits",
+      "bytes": 273600,
+      "sha256": "0978358ddec2ca7109fcbbae8c8cb7b553dd58695f3762101e58cf9e563ba480"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000563.fits",
+      "bytes": 273600,
+      "sha256": "41d89de63c7097518a43e0d514d56ff17d6b82da6bb10a7bd23dd12d3f84177a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000564.fits",
+      "bytes": 273600,
+      "sha256": "5434801294257ed6bd85ec440739efbd0584f10ee19ec5fa99feaf9bfa23b12a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000565.fits",
+      "bytes": 273600,
+      "sha256": "ef3ac031c214cabcb579358bc7961027691b6f9f54d8bc94761f69fddca05cf1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000566.fits",
+      "bytes": 273600,
+      "sha256": "288f7868975268901cacc3428b8034f789df63e4c52ff61bb86e0e76cb19976f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000567.fits",
+      "bytes": 273600,
+      "sha256": "b42a31b43ccd5cda04b89e3a62e690d666d51c7105be844a6bc85a55cf647204"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000568.fits",
+      "bytes": 273600,
+      "sha256": "3fc16620809d5ab3a645bee4ed21e5008c911236c4bcc3ed402509052a6565f8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000569.fits",
+      "bytes": 273600,
+      "sha256": "2a71d0116416e672b29a30551d69666d5474a5c352b1f2f85893660b004f5649"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000570.fits",
+      "bytes": 273600,
+      "sha256": "fca91bc1318930a6cb288dd061e9e84e1ef5f93c88d32372f59ba229d556938f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000571.fits",
+      "bytes": 273600,
+      "sha256": "fc297293c921706e2787567b6077b0d014c053b628ae7361af6be8d18141f37c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000572.fits",
+      "bytes": 273600,
+      "sha256": "6fa94eacac6e9455145862c1a1156ff4c19471fb0373c7cf21719917fbdf0547"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000573.fits",
+      "bytes": 273600,
+      "sha256": "43cf664bc39023648308e76096dbdadce03704d2e699957e38af89f533e6ede9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000574.fits",
+      "bytes": 273600,
+      "sha256": "fa635320103c9908f801a89671a78300c800f0c7d094a3194a7380846a8622ba"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000575.fits",
+      "bytes": 273600,
+      "sha256": "05e4adc5696948019a6cd8fed5e124f372b4067115fd16587e5749f27cef55be"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000576.fits",
+      "bytes": 273600,
+      "sha256": "5fef70f6f3300d70e6c99eae3798b72d25ca56af545ea8de13cdb5e711ccc97d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000577.fits",
+      "bytes": 273600,
+      "sha256": "7eca6c278d4d7d68ec56da9bc6d723d646c799a457cce8ddb8f5ca30201bd09d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000578.fits",
+      "bytes": 273600,
+      "sha256": "74dcfc257899aef88f9b431016a16bbc7b139b1134ed60376284a03b670e669a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000579.fits",
+      "bytes": 273600,
+      "sha256": "2c146e5ddb442b13695fe2580d39927088c632dbdb4816910bfe5b8e0a07e7a6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000580.fits",
+      "bytes": 273600,
+      "sha256": "1bcd39d11b3a48e17491f9def014bde856e8260aae5e955f85d7201536f4ff91"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000581.fits",
+      "bytes": 273600,
+      "sha256": "72ed1c64b2d3cd49cc99afd9b4a7cb9625e08ecf0ea1aaeb95d24eac3110b460"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000582.fits",
+      "bytes": 273600,
+      "sha256": "3c9755ae953980330ead9188826886831ab30cb97e58b73a531589a4e788f357"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000583.fits",
+      "bytes": 273600,
+      "sha256": "01db8bb7652f7a3e3e3c324bb5b542778003a46d23c8b962ec3c0de36dce24e5"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000584.fits",
+      "bytes": 273600,
+      "sha256": "ecccd3d0e06aa1ca0802c365ad7f4b2bfdada039df677075c4ff3d2cdc8b62cc"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000585.fits",
+      "bytes": 273600,
+      "sha256": "929975e703ab5a153b7ba4ea0a06e07828b42b1d24101618310a83841f0edd2c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000586.fits",
+      "bytes": 273600,
+      "sha256": "6d170fc64c4783da888ad1dc2b4592594377660e68df2cb511ead39aa9081cd9"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000587.fits",
+      "bytes": 273600,
+      "sha256": "f533c4f39b63654668ad352901ada5a6acd276094914e290296d91b46b2f141d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000588.fits",
+      "bytes": 273600,
+      "sha256": "a8e94034c6d06095ef59edc0b172846ef38c01187f6dabc0855c5f872ce312c1"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000589.fits",
+      "bytes": 273600,
+      "sha256": "3b55b20f11fcd4800ab2f89db44afdf851eb27a95fc8fd4216dc51cd72301254"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000590.fits",
+      "bytes": 273600,
+      "sha256": "89dce3d45fee2ac624ffb1ec7beb113d74321fc669bf44add050172d6eb52b35"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000591.fits",
+      "bytes": 273600,
+      "sha256": "ab8d9e0d4df52d763c05fd081453702c5cd48cbc3abf23570880750e45d432f7"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000592.fits",
+      "bytes": 273600,
+      "sha256": "b11c7aa831b76ef773d531cadc90b2cc3422a9ae5c0220d52b85c0cb238b7b62"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000593.fits",
+      "bytes": 273600,
+      "sha256": "dc0a91627a5e39ce6b9f1028b22cb4261fd2054ef1810972caeccd115f8b9ceb"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000594.fits",
+      "bytes": 273600,
+      "sha256": "229250bc840ccd3c247b39b8a1d7a69ecc0179c7558a75fe26183c6ded4563e8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000595.fits",
+      "bytes": 273600,
+      "sha256": "165dcb6f3bcf5bda42f2c8559d2b167471851d6041091aa9193f4d3f563f5a1c"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000596.fits",
+      "bytes": 273600,
+      "sha256": "dc5e20320fc78f80553c5b489b3a57edf17bab714d86a1c104306a7ecd554de8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000597.fits",
+      "bytes": 273600,
+      "sha256": "81b5c8b434e4b3fb39fd26a696a83c0cf24edecd1d19a8400d4b123948ca4281"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000598.fits",
+      "bytes": 273600,
+      "sha256": "e94e3512d62691943c6d14945524592bed8003c6e48ae3f2e1dc51f8bb74feca"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000599.fits",
+      "bytes": 273600,
+      "sha256": "929373683c87a5cf9f4af8bfef036bebbe1fbda716892d74c1cf0659c8e1599a"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000600.fits",
+      "bytes": 273600,
+      "sha256": "c1b7cb9f4ff0f424a6ab0dab1524fe32a3170fea4d02ed3bc306ab82ce86f144"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000601.fits",
+      "bytes": 273600,
+      "sha256": "a889c2aac3a1adff5cf508d83f8df180d622a67fa7375281be2201b2c0f90a1f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000602.fits",
+      "bytes": 273600,
+      "sha256": "049535274643ad7e384b3852a4251f1d594315fb52464aa08fb3a3cd4fde3501"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000603.fits",
+      "bytes": 273600,
+      "sha256": "4e63ea17135c38c0f17f009b51098dd516e5bffd11b0aebe30088d6b9a2c5718"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000604.fits",
+      "bytes": 273600,
+      "sha256": "7ba8a76b0bb3b2700dae0c44493b096f2d1e4b89bbad90a209cdc3f677a7210b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000605.fits",
+      "bytes": 273600,
+      "sha256": "f3c29c8530abc5f308e0ca008c7d00b7f2095ab13333857dc1fb21f408a9b828"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000606.fits",
+      "bytes": 273600,
+      "sha256": "91e84c548466389e79a1577dec98f14e652573b1ec9847a28e66e15334d06569"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000607.fits",
+      "bytes": 273600,
+      "sha256": "a599e1a63d29910e3644deb9520878ec50607a8c6fa451f75f55791ca9452f99"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000608.fits",
+      "bytes": 273600,
+      "sha256": "b8140c679b19aaa72a1d509fe8b52d2735aad17c572da3ff44766ea87348a636"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000609.fits",
+      "bytes": 273600,
+      "sha256": "867bd5ac7f4e8fa150161547f6aefd26b833f62b1bd51415f1f2b0300b526fd8"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000610.fits",
+      "bytes": 273600,
+      "sha256": "53dfe2dd472176bd24215d3c776fa49ae788b342110eb5dbfb649beb85ca260b"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000611.fits",
+      "bytes": 273600,
+      "sha256": "bc5c4a07c42bcc00ef260942790816f2efe0d3b7628e741d2b3dc8d091461310"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000612.fits",
+      "bytes": 273600,
+      "sha256": "226a9eec5bfcb0450138c39a18c4160b5772bde352a34b175b71245c9a5a0ddd"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000613.fits",
+      "bytes": 273600,
+      "sha256": "6715ff6a1369a834fa821a069065ac040a93080df23dec78d42189d5f2a8bcd0"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000614.fits",
+      "bytes": 273600,
+      "sha256": "98b0060e901e2651cf7bf166b300b07cd14fd3c797d64fdc90d206f54c85d8a6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000615.fits",
+      "bytes": 273600,
+      "sha256": "788e46e5fec1b7d502e448d25124a4c2d199f21d7a36c07e1d228d0d49957ad6"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000616.fits",
+      "bytes": 273600,
+      "sha256": "768a1c13c479c4917feaa90406fea44aed46d13058ead5f07c247b0c4c1ef3a3"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000617.fits",
+      "bytes": 273600,
+      "sha256": "102d21119dc92088ac8f0cf868513c862d853734a8de8387825ebab1d263f98e"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000618.fits",
+      "bytes": 273600,
+      "sha256": "c340c5bc90ef8e5b1532df660cdcdc683c49b77bfbeb094599facd57d390855d"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000619.fits",
+      "bytes": 273600,
+      "sha256": "8058ff2815668cabf2bce601ccc873493e457bc95b7ad12fa862befb44cfd92f"
+    },
+    {
+      "path": "/home/jrmales/Data/NACO/AFLep/2011-10-21/obs/full2/cut/reg/coadd5/pp/pp_000620.fits",
+      "bytes": 273600,
+      "sha256": "aaa0ccdd24c7e48763a8b4ce76e13f9cad48944c2de57b7ca23366b6590cd8a6"
+    }
+  ],
+  "frozen_records": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/software/p4ReductionPrecisionBenchmark",
+      "bytes": 341352,
+      "sha256": "232882e10ab3535215e6d9c37020098dfe52a26e45450214e63ce845e4a6e380"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/software/libhcireduce.so",
+      "bytes": 2818272,
+      "sha256": "f53eab2b0c3d3ada8b8d61f98aee07f306c037d2b3271981743076500bf2ff20"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/software/libmxlib.so",
+      "bytes": 3834568,
+      "sha256": "1e7083653585de027d2221eb47734496e483dda36071e11db91d0f4c4783c550"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/software/liblapack.so.3",
+      "bytes": 7023672,
+      "sha256": "77c93ee1be164772c90e344fda6cd756dac846cfa0267a6196cfdeb00be2caab"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/software/libopenblas.so.0",
+      "bytes": 38556136,
+      "sha256": "be2e7d119279836105e0361be92c78dbcd8a6e7357e74339bdbb32a5195ee35e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/software/run_p4_step5_full_injections.py",
+      "bytes": 11840,
+      "sha256": "428bb38c0c82d524add9989fcf2833cc65c1ce89d7df23c2e4446d4d4ea5bb62"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/reduction.conf",
+      "bytes": 2252,
+      "sha256": "c10303d10450f4d24b7379dc9d9e20229c31d792b1da2a0e55243236873205bb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/injection_psf.fits",
+      "bytes": 267840,
+      "sha256": "178e703812411f8a4e467171d6632624b9b875a729c5696b3d48555f5500f0fb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/inputs.txt",
+      "bytes": 52164,
+      "sha256": "76f5756d8dce2d75adb789e6b320f1e4fbeadea12e9ababc4a2ecfb54a979cbb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/common_command.json",
+      "bytes": 1188,
+      "sha256": "d7ea252fd38f5cbae12575f5c16e4d480a47289973b80cc51abb69b89ead7f67"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/trials.json",
+      "bytes": 428,
+      "sha256": "f514488ef1650dd511a55a479b9f0db4f07d992babff96d334948a777d4829b8"
+    }
+  ],
+  "source_product_manifest": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/manifest.json",
+    "bytes": 125723,
+    "sha256": "abf59ffa38e33734c84dc548f44f990cac8b0aa72080fda0245d5158af12a569"
+  },
+  "response_manifest": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_manifest.fits",
+    "bytes": 43200,
+    "sha256": "92af1acb0fe0a223cfdfe105dda69ba210be8d693c698acabdd5b0f0493fdcab"
+  },
+  "source_crop_size": 12,
+  "response_stamp_size": 11,
+  "source_normalization": "stored; no renormalization",
+  "combination": "mean",
+  "cpu_ids": [
+    0,
+    2,
+    4,
+    6,
+    8,
+    10
+  ],
+  "openmp_threads": 6,
+  "blas_threads": 1,
+  "trials": [
+    {
+      "name": "baseline",
+      "row": 120,
+      "column": 137,
+      "contrast": 0.0
+    },
+    {
+      "name": "development_r12",
+      "row": 120,
+      "column": 137,
+      "contrast": 0.0011909814823390977
+    },
+    {
+      "name": "development_r24",
+      "row": 109,
+      "column": 143,
+      "contrast": 0.0011909814823390977
+    },
+    {
+      "name": "development_r42",
+      "row": 98,
+      "column": 98,
+      "contrast": 0.0011909814823390977
+    }
+  ],
+  "lambdaD_pixels": 3.6,
+  "lambdaD_provenance": "working/analyze.conf; descriptive scale, not a reduction parameter",
+  "runner_revision": {
+    "reason": "Accept singleton-mode FITS images with two axes as well as three.",
+    "initial_manifest": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/manifest.initial.json",
+      "bytes": 140871,
+      "sha256": "0e01d2ae3fd76d34af75155bb190941da04896360b9bd92cc52eb2e612c7afa4"
+    },
+    "initial_runner": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_development_20260918/software/run_p4_step5_full_injections.initial.py",
+      "bytes": 11822,
+      "sha256": "722651957db2c3e64254a70fd6ee5a1a4fa88885636bf08dd28ec0ec62981958"
+    }
+  }
+}

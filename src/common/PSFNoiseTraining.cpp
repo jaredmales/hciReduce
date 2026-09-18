@@ -70,6 +70,51 @@ bool sampleNoisePixel( double &value,                       /**< [out] interpola
     return true;
 }
 
+/// Determine whether any nonzero bilinear input belongs to a withheld candidate or supplied circle.
+bool touchesNoiseExclusion(
+    double row,       /**< [in] first-index interpolation coordinate */
+    double column,    /**< [in] second-index interpolation coordinate */
+    int sourceRow,    /**< [in] candidate first-index center */
+    int sourceColumn, /**< [in] candidate second-index center */
+    int halfRows,     /**< [in] candidate support half-width in rows */
+    int halfColumns,  /**< [in] candidate support half-width in columns */
+    double guard,     /**< [in] Euclidean expansion of candidate support */
+    const std::vector<PSFNoiseExclusion> &exclusions /**< [in] circles withholding native pixel centers */ )
+{
+    // Use floating-point integer coordinates here: a large out-of-bounds rotated stencil need not fit an int.
+    const double firstRow = std::floor( row );
+    const double firstColumn = std::floor( column );
+    for( int dc = 0; dc < 2; ++dc )
+    {
+        if( dc == 1 && column == firstColumn )
+        {
+            continue;
+        }
+        for( int dr = 0; dr < 2; ++dr )
+        {
+            if( dr == 1 && row == firstRow )
+            {
+                continue;
+            }
+            const double rr = firstRow + dr;
+            const double cc = firstColumn + dc;
+            if( std::hypot( std::max( 0.0, std::abs( rr - sourceRow ) - halfRows ),
+                            std::max( 0.0, std::abs( cc - sourceColumn ) - halfColumns ) ) <= guard )
+            {
+                return true;
+            }
+            for( const auto &exclusion : exclusions )
+            {
+                if( std::hypot( rr - exclusion.m_row, cc - exclusion.m_column ) <= exclusion.m_radius )
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 PSFNoiseSamples PSFNoiseTraining::sample( P4PSFFilter::imageConstRefT science,
@@ -128,13 +173,39 @@ PSFNoiseSamples PSFNoiseTraining::sample( P4PSFFilter::imageConstRefT science,
             excluded = excluded || std::hypot( row - exclusion.m_row, column - exclusion.m_column ) <=
                                        result.m_footprintRadius + exclusion.m_radius;
         }
+        const double cosine = std::cos( trainingAngle - angle );
+        const double sine = std::sin( trainingAngle - angle );
+        if( excluded && config.m_exactExclusion )
+        {
+            // Enclosing circles provide a cheap overlap screen. Only ambiguous overlaps need pixel checks.
+            // Finish the geometry pass before looking at science, so mask counts cannot depend on pixel values.
+            excluded = false;
+            for( int sc = 0; sc < stampColumns && !excluded; ++sc )
+            {
+                for( int sr = 0; sr < stampRows; ++sr )
+                {
+                    const double dr = sr - halfRows;
+                    const double dc = sc - halfColumns;
+                    if( touchesNoiseExclusion( row + cosine * dr - sine * dc,
+                                               column + sine * dr + cosine * dc,
+                                               sourceRow,
+                                               sourceColumn,
+                                               halfRows,
+                                               halfColumns,
+                                               config.m_guardRadius,
+                                               exclusions ) )
+                    {
+                        excluded = true;
+                        break;
+                    }
+                }
+            }
+        }
         if( excluded )
         {
             ++result.m_excluded;
             continue;
         }
-        const double cosine = std::cos( trainingAngle - angle );
-        const double sine = std::sin( trainingAngle - angle );
         bool complete = true;
         for( int sc = 0; sc < stampColumns && complete; ++sc )
         {

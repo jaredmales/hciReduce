@@ -91,6 +91,9 @@ class hciAnalyze : public mx::app::application
     realT m_psfResponseMinimumSupport{ 1 };   ///< Minimum usable response-stamp fraction read from the manifest.
     std::string m_noiseModel{ "identity" };   ///< Residual-noise weighting: identity, diagonal, or pca.
     bool m_noiseDiagnostics{ false };         ///< Also write conditional diagnostic products for identity weighting.
+
+    bool m_noiseOnly{ false }; ///< Write conditional maps without measuring annular SNR at the listed sources.
+
     mx::improc::PSFNoiseTrainingConfig m_noiseConfig; ///< Annular geometry and explicit covariance regularization.
     std::vector<double> m_noiseExcludeRows;    ///< Additional source or held-out circle centers, first image index.
     std::vector<double> m_noiseExcludeColumns; ///< Additional source or held-out circle centers, second image index.
@@ -393,6 +396,15 @@ void hciAnalyze::setupConfig()
                 false,
                 "double",
                 "training-center arc spacing in pixels; zero uses half the response width" );
+    config.add( "noise.only",
+                "",
+                "noise.only",
+                mx::app::argType::Optional,
+                "noise",
+                "only",
+                false,
+                "bool",
+                "write conditional maps without subsequent empirical annular SNR measurement; implies diagnostics" );
     config.add( "noise.guardRadius",
                 "",
                 "noise.guardRadius",
@@ -402,6 +414,15 @@ void hciAnalyze::setupConfig()
                 false,
                 "double",
                 "additional candidate exclusion radius in pixels beyond the full response footprint" );
+    config.add( "noise.exactExclusion",
+                "",
+                "noise.exactExclusion",
+                mx::app::argType::Optional,
+                "noise",
+                "exactExclusion",
+                false,
+                "bool",
+                "check actual nonzero interpolation stencils against withheld pixels instead of enclosing circles" );
     config.add( "noise.minimumSamples",
                 "",
                 "noise.minimumSamples",
@@ -487,8 +508,10 @@ void hciAnalyze::loadConfig()
     config( m_psfResponse, "filter.psfResponse" );
     config( m_noiseModel, "noise.model" );
     mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_noiseDiagnostics, "noise.outputDiagnostics" );
+    mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_noiseOnly, "noise.only" );
     config( m_noiseConfig.m_arcStep, "noise.arcStep" );
     config( m_noiseConfig.m_guardRadius, "noise.guardRadius" );
+    mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_noiseConfig.m_exactExclusion, "noise.exactExclusion" );
     config( m_noiseConfig.m_minimumSamples, "noise.minimumSamples" );
     config( m_noiseConfig.m_maximumModes, "noise.maximumModes" );
     config( m_noiseConfig.m_floorFraction, "noise.floorFraction" );
@@ -571,6 +594,12 @@ int hciAnalyze::execute()
     }
 
     resolveSignals( header, cube.rows(), cube.cols() );
+    if( m_noiseOnly )
+    {
+        m_results.clear();
+        filterCubePSFResponse( cube, header );
+        return EXIT_SUCCESS;
+    }
     analyzeCube( cube, header );
     printResults();
     return EXIT_SUCCESS;
@@ -849,6 +878,10 @@ void hciAnalyze::filterCube( cubeT &cube, const cubeT &invalidMask, realT highPa
 
 void hciAnalyze::checkNoiseConfig()
 {
+    if( m_noiseOnly )
+    {
+        m_noiseDiagnostics = true;
+    }
     if( m_noiseModel == "identity" )
     {
         m_noiseConfig.m_kind = mx::improc::PSFNoiseKind::identity;
@@ -865,7 +898,8 @@ void hciAnalyze::checkNoiseConfig()
     {
         throw std::invalid_argument( "noise.model must be identity, diagonal, or pca" );
     }
-    if( m_noiseModel != "identity" && ( m_psfResponse.empty() || m_highPassFwhm > 0 || m_lowPassFwhm > 0 ) )
+    if( ( m_noiseModel != "identity" || m_noiseOnly ) &&
+        ( m_psfResponse.empty() || m_highPassFwhm > 0 || m_lowPassFwhm > 0 ) )
     {
         throw std::invalid_argument( "covariance weighting requires filter.psfResponse and disabled Gaussian filters" );
     }
@@ -1001,14 +1035,16 @@ void hciAnalyze::writeNoiseProducts( const fitsHeaderT &scienceHeader ) const
     add( "HCIA NOISE MODEL", m_noiseModel, "residual-noise covariance representation" );
     add( "HCIA NOISE TRAINED", m_noiseModel == "identity" ? 0 : 1, "whether a noise covariance was estimated" );
     add( "HCIA NOISE ARC STEP", m_noiseConfig.m_arcStep, "requested spacing [pix]; 0=half stamp width" );
-    add( "HCIA NOISE GUARD", m_noiseConfig.m_guardRadius, "extra candidate guard beyond stamp radius [pix]" );
+    add( "HCIA NOISE GUARD", m_noiseConfig.m_guardRadius, "extra candidate guard beyond exclusion footprint [pix]" );
     add( "HCIA NOISE MIN SAMPLES",
          static_cast<int>( m_noiseConfig.m_minimumSamples ),
          "minimum patches, not independent samples" );
     add( "HCIA NOISE MAX MODES", static_cast<int>( m_noiseConfig.m_maximumModes ), "maximum retained noise PCA rank" );
     add( "HCIA NOISE FLOOR FRACTION", m_noiseConfig.m_floorFraction, "floor / median training pixel variance" );
     add( "HCIA NOISE SAMPLING", std::string( "BILINEAR_NATIVE_ALIGNED" ), "fixed radius, absolute angular phase zero" );
-    add( "HCIA NOISE EXCLUSION", std::string( "CIRCUMCIRCLE_PLUS_SQRT2" ), "whole training footprint dilation [pix]" );
+    add( "HCIA NOISE EXCLUSION",
+         std::string( m_noiseConfig.m_exactExclusion ? "NONZERO_STENCIL_PIXEL_CENTERS" : "CIRCUMCIRCLE_PLUS_SQRT2" ),
+         "candidate rectangle plus guard and circles, or enclosing-circle dilation" );
     add( "HCIA NOISE STATUS",
          std::string( "0=valid,1=few_samples,2=zero_variance,3=invalid_filter" ),
          "NaN=no usable response" );

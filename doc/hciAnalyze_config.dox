@@ -77,8 +77,10 @@
  * |---|---|---|---|---|
  * | `--noise.model` | `noise.model=pca` | `identity`, `diagonal`, `pca` | `identity` | Noise weighting for the supplied PSF response; identity preserves the original filter. |
  * | `--noise.outputDiagnostics` | `noise.outputDiagnostics=true` | bool | `false` | Also write conditional products for identity weighting. Diagonal and PCA always write them. |
+ * | `--noise.only` | `noise.only=true` | bool | `false` | Write conditional products and skip empirical annular SNR measurement. Implies diagnostics and permits a sparse response field with no valid source aperture. |
  * | `--noise.arcStep` | `noise.arcStep=5` | finite nonnegative pixels | `0` | Training-center arc step; zero uses `(max(stampRows,stampColumns)-1)/2`, bounded below by one pixel. |
- * | `--noise.guardRadius` | `noise.guardRadius=2.5` | finite nonnegative pixels | `0` | Extra candidate exclusion beyond the enclosing circle of its response stamp. |
+ * | `--noise.guardRadius` | `noise.guardRadius=2.5` | finite nonnegative pixels | `0` | Extra candidate exclusion beyond its enclosing circle, or Euclidean expansion of its rectangle with exact exclusions. |
+ * | `--noise.exactExclusion` | `noise.exactExclusion=true` | bool | `false` | Reject actual nonzero interpolation stencils touching withheld native pixels instead of using enclosing-circle overlap. |
  * | `--noise.minimumSamples` | `noise.minimumSamples=8` | integer, 2 through `INT_MAX` | `8` | Minimum complete finite training patches. Overlapping patches are not independent samples. |
  * | `--noise.maximumModes` | `noise.maximumModes=3` | integer, 0 through `INT_MAX` | `3` | Maximum noise PCA modes above the variance floor; zero keeps only the floor with the trained mean. |
  * | `--noise.floorFraction` | `noise.floorFraction=0.1` | finite fraction in `(0,1]` | `0.1` | Absolute covariance floor is this fraction of the median training-pixel sample variance. |
@@ -98,6 +100,13 @@
  * stamp's half diagonal plus `sqrt(2)` pixels for the interpolation stencil. Every patch whose enclosing circle
  * intersects the candidate or another exclusion circle is discarded in full. Other incomplete/nonfinite patches
  * are discarded, with no zero filling. There is no taper or automatic overlap correction.
+ *
+ * With `noise.exactExclusion=true`, the candidate holdout is its native rectangular stamp expanded by the specified
+ * Euclidean guard. Other exclusions withhold native pixels whose centers lie inside or on their circles. A training
+ * patch is rejected if any nonzero bilinear weight reads any withheld pixel. Geometry is checked before science
+ * values, and enclosing circles are used only to skip impossible overlaps. The `sqrt(2)` interpolation margin is
+ * not added again to these exact stencil checks. This protects the declared support; it does not establish that
+ * a processed source has no wings outside that support. Validate source masks with full-image injections.
  *
  * Diagonal/PCA training subtracts the sample mean from science only and uses `n-1` variance normalization. PCA retains
  * the selected excess eigenvalues above a positive isotropic floor; its unmodeled complement keeps that floor.

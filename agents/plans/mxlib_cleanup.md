@@ -298,6 +298,10 @@ Known non-blocking ownership follow-ups:
       header-card value<int,float,double>/String, `exception<verbose::vv>`, configuration registration, and the other
       used scalar/vector configuration overloads all have nonzero exact function records and 100% recorded executable
       lines. The annular sampler itself calls Eigen and standard-library APIs only.
+      Rechecked the current LCOV report on 2026-09-18 for the exact-stencil exclusion option: configuration
+      registration/retrieval, diagnostic-header writing, and both modified application tests call the same upstream
+      API set. The unsigned-long retrieval, 34/40-line command-line parser, and missing exact float lifecycle
+      instantiations remain open; the added geometry kernel calls only Eigen and the standard library.
 
 - [ ] Add a direct read-only view test for `eigenCube<float>::image(Index) const`. The 2026-09-17 detector-capture
       change to `P4Reduction::fitDetectorSearch()` and analytic-product integration in

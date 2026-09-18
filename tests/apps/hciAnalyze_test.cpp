@@ -26,6 +26,7 @@ struct appHarness : public hciAnalyze
     using hciAnalyze::checkConfig;
     using hciAnalyze::config;
     using hciAnalyze::correctSmallSampleSNR;
+    using hciAnalyze::execute;
     using hciAnalyze::filterCube;
     using hciAnalyze::filterCubePSFResponse;
     using hciAnalyze::loadConfig;
@@ -44,6 +45,7 @@ struct appHarness : public hciAnalyze
     using hciAnalyze::m_noiseExcludeRadii;
     using hciAnalyze::m_noiseExcludeRows;
     using hciAnalyze::m_noiseModel;
+    using hciAnalyze::m_noiseOnly;
     using hciAnalyze::m_planetContrast;
     using hciAnalyze::m_planetPositionAngle;
     using hciAnalyze::m_planetRadius;
@@ -739,6 +741,8 @@ TEST_CASE( "hciAnalyze covariance configuration", "[hciAnalyze][noise][config]" 
                                       "--noise.floorFraction=0.25",
                                       "--noise.arcStep=1.25",
                                       "--noise.guardRadius=2",
+                                      "--noise.exactExclusion=true",
+                                      "--noise.only=true",
                                       "--lambdaD=2.5" };
     std::vector<char *> arguments;
     for( auto &option : options )
@@ -753,6 +757,8 @@ TEST_CASE( "hciAnalyze covariance configuration", "[hciAnalyze][noise][config]" 
     REQUIRE( application.m_noiseConfig.m_floorFraction == 0.25 );
     REQUIRE( application.m_noiseConfig.m_arcStep == 1.25 );
     REQUIRE( application.m_noiseConfig.m_guardRadius == 2 );
+    REQUIRE( application.m_noiseConfig.m_exactExclusion );
+    REQUIRE( application.m_noiseOnly );
     application.m_file = "input.fits";
     REQUIRE( application.config.m_targets.count( "noise.model" ) == 1 );
     REQUIRE( application.config.m_targets.count( "noise.floorFraction" ) == 1 );
@@ -797,6 +803,7 @@ TEST_CASE( "hciAnalyze writes covariance filter products", "[hciAnalyze][noise][
 {
     // clang-format off
 #ifdef __DOXY_ONLY__
+    hciAnalyze::execute();
     hciAnalyze::filterCubePSFResponse( {}, {} );
     hciAnalyze::prepareNoiseProducts( {} );
     hciAnalyze::applyPSFFilter( {}, {}, {}, 0, 0, 0 );
@@ -858,6 +865,7 @@ TEST_CASE( "hciAnalyze writes covariance filter products", "[hciAnalyze][noise][
         application.m_file = directory.file( model + ".fits" ).string();
         application.m_noiseModel = model;
         application.m_noiseDiagnostics = true;
+        application.m_noiseConfig.m_exactExclusion = model == "pca";
         application.m_noiseExcludeRows = { 32 };
         application.m_noiseExcludeColumns = { 48 };
         application.m_noiseExcludeRadii = { 3 };
@@ -900,12 +908,27 @@ TEST_CASE( "hciAnalyze writes covariance filter products", "[hciAnalyze][noise][
             std::string recordedModel = header["HCIA NOISE MODEL"].String();
             recordedModel.erase( recordedModel.find_last_not_of( ' ' ) + 1 );
             REQUIRE( recordedModel == model );
+            REQUIRE( header["HCIA NOISE EXCLUSION"].String().find(
+                         model == "pca" ? "NONZERO_STENCIL_PIXEL_CENTERS" : "CIRCUMCIRCLE_PLUS_SQRT2" ) == 0 );
             REQUIRE( header["HCIA NOISE CALIBRATED"].value<int>() == 0 );
             REQUIRE( header["SNRSMALL"].value<int>() == 0 );
             std::string recordedExclusions = header["HCIA NOISE EXCLUSIONS"].String();
             recordedExclusions.erase( recordedExclusions.find_last_not_of( ' ' ) + 1 );
             REQUIRE( recordedExclusions == "32,48,3" );
         }
+        // A declared source can have no response/training support in a sparse field. Conditional-only execution
+        // still writes its explicit statuses without requiring an unrelated annular SNR aperture measurement.
+        writeFitsCube( directory.file( model + ".fits" ), original, &scienceHeader );
+        application.m_noiseOnly = true;
+        application.m_noiseDiagnostics = false;
+        application.m_planetSpecified = true;
+        application.m_planetSeparation = { 16 };
+        application.m_planetPositionAngle = { 0 };
+        application.m_planetRadius = { 3 };
+        REQUIRE( application.execute() == EXIT_SUCCESS );
+        REQUIRE( application.m_noiseDiagnostics );
+        REQUIRE( application.m_results.empty() );
+        REQUIRE_FALSE( std::filesystem::exists( directory.file( model + "_snr.fits" ) ) );
         if( model == "identity" )
         {
             continue;

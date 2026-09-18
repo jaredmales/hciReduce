@@ -1229,6 +1229,66 @@ Concrete upstream tests are listed under `Known non-blocking ownership follow-up
 The present checkpoint implements the sampler, application integration, and pilot machinery. The held-out
 threshold and fresh-injection study are required before Step 5 can be marked complete or covariance gains claimed.
 
+### Step 5 continued: exclusion audit and held-out null calibration (2026-09-18)
+
+The discussion of the pilot's **10-pixel exclusion radius** exposed an unjustified inherited setting: it came
+from `hciAnalyze`'s existing signal/SNR mask, rather than a response-support measurement or the Welch geometry.
+The dataset's `working/analyze.conf` specifies **3.6 pixels per lambda/D**, making ten pixels about 2.8 lambda/D.
+The first pilot explicitly used the application's 2.5-pixel default instead. Covariance sampling is specified in
+pixels; `lambdaD` affects its physical interpretation and the separate legacy SNR calculation. New pilot commands
+require an explicit scale and source radius. The old pilot remains archived with its actual settings.
+
+The old footprint rule also added an 8.49-pixel enclosing/interpolation radius to that source mask, excluding
+training centers within 18.49 pixels. Its separate candidate rule excluded centers within 15.56 pixels; these are
+union tests, not additive guards. Consequently, six accepted patches at AF Lep was a property of that conservative
+policy, not evidence of an intrinsic covariance-sampling limit.
+
+`noise.exactExclusion=true` now checks every native pixel read with a nonzero bilinear weight. It withholds the
+candidate's rectangular stamp, optionally expanded by a Euclidean guard, and native pixel centers inside the
+specified exclusion circles. Any touching training patch is rejected in full. Enclosing circles are only an early
+overlap screen; no interpolation margin is added a second time. The original enclosing-circle policy remains the
+default. `noise.only=true` writes conditional maps without requiring an empirical SNR measurement at a listed source;
+this supports sparse held-out response fields and explicit invalid-source outcomes.
+
+The experiment retains the **11-by-11 response and five-pixel arc spacing**. At 10–20 pixels separation, a 3.6-pixel
+circle contains median 80.1% of the stored response energy and 29.3% of its negative-lobe energy. Those fractions are
+relative to the finite stored stamp, not the entire processed source. A provisional **7.3-pixel source mask** encloses
+the stamp's 7.07-pixel half diagonal plus the known source's 0.21-pixel offset from the nearest response center.
+Full-image injections measure the remaining wings and changes outside this declared footprint; the mask is not
+asserted to make training source-free.
+
+The [development and null-calibration report](results/p4-step5-development-20260918/README.md) records the geometry
+ablation. Reducing the circle radius alone gives eight AF Lep patches; the exact stencil rule alone with radius ten
+gives seven; using both gives eight and expands covariance-valid coverage from 7,679 to 7,919 positions. There are
+15 proposed patches at the nearest AF Lep pixel. The approximately 19-patch example in Section 6 assumes a patch
+half-width of one lambda/D.
+
+The science FITS header audit also corrected the old report: the integration pilot used **sigma-mean science with
+mean response templates**. The fresh full-image development/evaluation reductions explicitly use mean combination,
+all 621 frames, fixed homogeneous CPU cores, the same unrenormalized 12-pixel source crop, and the existing 11-pixel
+mean response field. The maintained full-image runner replaces neither entire images nor training annuli with local
+injection cutouts.
+
+For the held-out pilot, development, calibration, and evaluation pixel neighborhoods are disjoint. Their union is
+excluded from every covariance fit. Sixty-four preassigned null searches use the same radius-one, five-pixel search
+aperture; 28 calibration and 28 evaluation searches have common support, while the eight searches at radius 20 fail
+the eight-patch minimum. Independent stencil checks match production counts at every search pixel. Inner-radius
+training coverage in the earlier single-candidate pilot does not imply that these stricter simultaneous holdouts
+can be supported there.
+
+Rank three and floor fraction 0.1 remain fixed, with identity, diagonal, and zero-mode PCA controls; no model setting
+was selected from evaluation scores. For a target 5% per-search false-positive rate, the prescribed conservative
+order-statistic rule selects the largest of the 28 calibration scores. The separate evaluation exceedances are
+2/28 (identity), 0/28 (diagonal), 1/28 (zero-mode PCA), and 1/28 (three-mode PCA). These overlapping spatial trials
+and four angular blocks do not establish a precise tail probability or a detection gain.
+
+Eighteen fresh full-image evaluations are running unattended at six preassigned evaluation sites, at 0.5, 1, and 2 times the
+contrast scale from the frozen zero-mode threshold and training-only conditional sigma. Their runner freezes the
+software, inputs, thresholds, masks, and response subset; it then measures all four filters automatically. Recovery
+uses raw injected images, with no baseline subtraction. Invalid searches remain nondetections, and amplitude bias
+and conditional-interval coverage use the exact injected position. See the report for queue status and artifacts.
+Step 5 remains in progress until those results are reviewed.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

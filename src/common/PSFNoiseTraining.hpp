@@ -30,7 +30,9 @@ struct PSFNoiseTrainingConfig
     double m_arcStep{
         0 }; ///< Center arc spacing; zero uses (max(stampRows,stampColumns)-1)/2, bounded below by one pixel.
 
-    double m_guardRadius{ 0 };         ///< Additional radius beyond the candidate stamp's enclosing circle to hold out.
+    double m_guardRadius{ 0 };      ///< Extra holdout beyond the candidate circle, or rectangle with exact exclusions.
+
+    bool m_exactExclusion{ false }; ///< Check actual nonzero interpolation stencils instead of enclosing circles.
 
     std::size_t m_minimumSamples{ 8 }; ///< Minimum complete training patches; does not imply independent samples.
 
@@ -93,7 +95,9 @@ struct PSFNoiseTrainingResult
  * Thus every sample is expressed in the candidate's native stamp coordinates; science and response stay on their
  * original pixel lattice. All patches have the same center radius and radial footprint, including across concentric
  * reduction-region boundaries. Interpolation changes the sampled noise and requires held-out calibration.
- * Exclusions conservatively dilate circles by the whole rotated stamp and interpolation stencil. Training never
+ * The default exclusions conservatively dilate circles by the whole rotated stamp and interpolation stencil.
+ * Exact exclusions instead withhold the candidate's rectangular pixel support (with an optional Euclidean guard)
+ * and the pixel centers inside supplied circles, rejecting every patch that reads any of those pixels. Training never
  * zero-fills missing pixels. No taper, effective-sample correction, or significance calibration is implied.
  * \ingroup programming_library
  */

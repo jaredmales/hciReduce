@@ -1,0 +1,36 @@
+{
+  "sites": [
+    [
+      26,
+      0
+    ],
+    [
+      26,
+      3
+    ],
+    [
+      38,
+      1
+    ],
+    [
+      38,
+      2
+    ],
+    [
+      50,
+      0
+    ],
+    [
+      50,
+      3
+    ]
+  ],
+  "brightness_multipliers": [
+    0.5,
+    1,
+    2
+  ],
+  "selection": "preassigned radii and angular blocks, before inspecting null scores; no substitution for ineligible sites",
+  "contrast_rule": "multiplier * frozen pca0 calibration threshold * pca0 conditional sigma at the exact source pixel",
+  "counts": "18 separate full reductions of all 621 frames; baseline eligibility required for every selected site"
+}

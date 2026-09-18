@@ -6,6 +6,7 @@
 
 #include "src/common/PSFNoiseTraining.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <numbers>
@@ -113,6 +114,64 @@ TEST_CASE( "Annular noise training withholds overlapping source neighborhoods",
     const auto edge = mx::improc::PSFNoiseTraining::sample( science, 5, 5, 80, 40, config, {} );
     REQUIRE( edge.m_incomplete > 0 );
     REQUIRE( edge.m_samples.allFinite() );
+}
+
+/** \brief Verify PSFNoiseTraining::sample retains disjoint stencils without reading any withheld native pixel.
+ * \ingroup PSFNoiseTraining_unit_tests
+ */
+TEST_CASE( "Exact annular exclusions protect pixel support without enclosing-circle losses",
+           "[PSFNoiseTraining][exclusion][stencil]" )
+{
+    imageT science = imageT::Ones( 81, 81 );
+    mx::improc::PSFNoiseTrainingConfig config;
+    config.m_guardRadius = 1.5;
+    const std::vector<mx::improc::PSFNoiseExclusion> exclusions{ { 36.3, 21.7, 4.2 }, { 21, 43, 0 } };
+    const auto conservative = mx::improc::PSFNoiseTraining::sample( science, 7, 11, 59, 44, config, exclusions );
+    config.m_exactExclusion = true;
+    const auto exact = mx::improc::PSFNoiseTraining::sample( science, 7, 11, 59, 44, config, exclusions );
+    REQUIRE( exact.m_attempted == conservative.m_attempted );
+    REQUIRE( exact.m_samples.rows() > conservative.m_samples.rows() );
+    REQUIRE( exact.m_excluded < conservative.m_excluded );
+    REQUIRE( exact.m_incomplete == 0 );
+    // Poison the entire declared holdout, not just the candidate center or the rotated sample points.
+    for( int column = 0; column < science.cols(); ++column )
+    {
+        for( int row = 0; row < science.rows(); ++row )
+        {
+            const int closestRow = std::clamp( row, 56, 62 );
+            const int closestColumn = std::clamp( column, 39, 49 );
+            if( std::hypot( row - closestRow, column - closestColumn ) <= 1.5 ||
+                std::hypot( row - 36.3, column - 21.7 ) <= 4.2 || ( row == 21 && column == 43 ) )
+            {
+                science( row, column ) = std::numeric_limits<float>::quiet_NaN();
+            }
+        }
+    }
+    const auto poisoned = mx::improc::PSFNoiseTraining::sample( science, 7, 11, 59, 44, config, exclusions );
+    REQUIRE( poisoned.m_samples == exact.m_samples );
+    REQUIRE( poisoned.m_centers == exact.m_centers );
+    REQUIRE( poisoned.m_excluded == exact.m_excluded );
+    REQUIRE( poisoned.m_incomplete == 0 );
+    REQUIRE( poisoned.m_samples.minCoeff() == 1 );
+    REQUIRE( poisoned.m_samples.maxCoeff() == 1 );
+    // A masked point outside the holdout still makes every stencil that reads it incomplete.
+    science( static_cast<int>( std::floor( exact.m_centers( 0, 0 ) ) ),
+             static_cast<int>( std::floor( exact.m_centers( 0, 1 ) ) ) ) = std::numeric_limits<float>::quiet_NaN();
+    const auto incomplete = mx::improc::PSFNoiseTraining::sample( science, 7, 11, 59, 44, config, exclusions );
+    REQUIRE( incomplete.m_excluded == exact.m_excluded );
+    REQUIRE( incomplete.m_incomplete > 0 );
+    REQUIRE( incomplete.m_samples.rows() < exact.m_samples.rows() );
+    REQUIRE( incomplete.m_samples.allFinite() );
+
+    // With integer-aligned samples, an unused zero-weight neighbor must not exclude the sample itself.
+    science.setOnes();
+    config.m_guardRadius = 0;
+    config.m_arcStep = 10 * std::numbers::pi;
+    const auto adjacent = mx::improc::PSFNoiseTraining::sample( science, 1, 1, 60, 40, config, { { 41, 60, 0 } } );
+    const auto touching = mx::improc::PSFNoiseTraining::sample( science, 1, 1, 60, 40, config, { { 40, 60, 0 } } );
+    REQUIRE( adjacent.m_attempted == 4 );
+    REQUIRE( adjacent.m_samples.rows() == 3 );
+    REQUIRE( touching.m_samples.rows() == 2 );
 }
 
 /** \brief Verify PSFNoiseTraining::calculate against a dense PCA covariance and source-isolated amplitude increments.

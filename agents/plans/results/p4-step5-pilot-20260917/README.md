@@ -6,7 +6,9 @@ It verifies annular training and analysis products on the existing full AF Lep s
 
 ## Fixed policy
 
-The three methods use the same 621-frame, mean-combined science image and analytic 11-by-11 response field.
+The three methods use the same 621-frame, **sigma-mean-combined science image** and analytic 11-by-11,
+**mean-combined response field**. This combination distinction was corrected from the original report on
+2026-09-18 after checking both FITS headers; the pilot did not use mean-combined science.
 Training stays at the candidate radius with a default 5-pixel arc step, whole-footprint source/candidate exclusions,
 and complete finite bilinear samples. The known source has a 10-pixel exclusion radius. There is no extra candidate
 guard beyond its response footprint. Covariance models require eight accepted patches; PCA retains at most three
@@ -73,6 +75,7 @@ python3 agents/plans/scripts/run_p4_step5_pilot.py \
   --science working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim.fits \
   --manifest working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_manifest.fits \
   --binary _build_fresh/src/hciAnalyze --library _build_fresh/src/libhcireduce.so \
+  --lambda-d 2.5 --source-radius 10 \
   --output /tmp/p4-step5-pilot-replay
 ```
 

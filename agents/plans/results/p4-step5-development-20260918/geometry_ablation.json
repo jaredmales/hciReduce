@@ -1,0 +1,38 @@
+[
+  {
+    "exact_stencil": false,
+    "source_radius_pixels": 10,
+    "valid_candidates": 7679,
+    "too_few_samples": 937,
+    "aflep_samples": 6,
+    "aflep_status": 1,
+    "directory": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal"
+  },
+  {
+    "exact_stencil": false,
+    "source_radius_pixels": 7.3,
+    "valid_candidates": 7793,
+    "too_few_samples": 823,
+    "aflep_samples": 8,
+    "aflep_status": 0,
+    "directory": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_stencil_20260918/circle_r7p3"
+  },
+  {
+    "exact_stencil": true,
+    "source_radius_pixels": 10,
+    "valid_candidates": 7834,
+    "too_few_samples": 782,
+    "aflep_samples": 7,
+    "aflep_status": 1,
+    "directory": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_stencil_20260918/stencil_r10"
+  },
+  {
+    "exact_stencil": true,
+    "source_radius_pixels": 7.3,
+    "valid_candidates": 7919,
+    "too_few_samples": 697,
+    "aflep_samples": 8,
+    "aflep_status": 0,
+    "directory": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_stencil_20260918/diagonal"
+  }
+]
