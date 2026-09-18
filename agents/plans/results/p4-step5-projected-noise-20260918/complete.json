@@ -1,0 +1,19 @@
+{
+  "baseline_images": 1,
+  "new_reductions": 0,
+  "new_positive_images": 0,
+  "policies": 24,
+  "common_sites": 16,
+  "directional_fits": 768,
+  "verification": {
+    "archived_control_scalar_values": 5828,
+    "ring_geometry_checks": 144,
+    "directional_projection_checks": 768,
+    "train_validation_native_support_disjoint_including_cross_ring": true,
+    "original_forbidden_pixels_unused": true,
+    "filter_unit_response_and_model_variance_agree": true,
+    "retained_and_complement_variance_budgets_agree": true,
+    "direct_covariance_projection_and_MSE_decomposition_agree": true,
+    "source_and_script_fingerprints_unchanged": true
+  }
+}

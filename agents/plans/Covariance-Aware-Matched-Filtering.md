@@ -1556,7 +1556,7 @@ training covariance represents the candidate location. Mean estimation, omitted 
 transfer, and interpolation remain possible contributors. This test does not isolate one cause or justify a global
 sigma correction. Floor 1.0 retains the leading covariance modes; it is not identity filtering.
 
-**Next diagnostic:** project disjoint held-out noise stamps through frozen weights fitted to another angular subset.
+**Follow-on diagnostic (completed below):** project disjoint held-out noise stamps through frozen weights fitted to another angular subset.
 Compare the projected mean and variance with zero and the model's predicted amplitude variance; separately audit
 interpolation versus native candidate statistics and radial transfer. This should distinguish mean offsets from
 covariance mismatch before another rank/floor sweep. Production defaults remain unchanged, and a fresh ROC study
@@ -1567,6 +1567,62 @@ scalar values across the previous null/positive measurements, profiles, and summ
 baseline checks. All 24 thresholds/counts and the common 16-site stability comparison were independently checked.
 Covariance/sigma ordering, the isotropic limit, consistent physical-unit normalization, and unchanged fingerprints
 also pass. See the report for full tables, individual records, and the figure.
+
+### Step 5 development result: projected noise and discarded modes (2026-09-18)
+
+The [projected-noise diagnostic](results/p4-step5-projected-noise-20260918/README.md) uses the saved baseline at the
+same 16 common split sites (radii 46 and 50), in both angular directions, for all 24 existing policies. Training
+and validation patches read disjoint native y half-planes, including across pooled rings. Primary validation always
+uses the opposite-half **same-radius ring**, so wider training does not change the validation sample. This gives
+32 directional fits per policy, with overlapping/reused patches rather than independent trials. Normalized fits
+condition on the existing shared radial profile. No positive images, reductions, or new detection thresholds ran.
+
+For frozen amplitude weights $g=C^{-1}t/(t^TC^{-1}t)$, compare the variance of
+$z_j^{\rm proj}=g^T(x_j-\widehat\mu)/\sigma_\alpha$ with one, where $\sigma_\alpha^2=g^TCg$.
+Separate the centered variance from squared mean error. Ranges below are ranges of policy medians over the same
+32 directional fits, not confidence intervals.
+
+| Floor fraction | Training projected variance / model | Held-out same-radius projected variance / model |
+| --- | --- | --- |
+| 0.1 | 17.18–29.57 | 17.88–36.23 |
+| 0.3 | 5.72–9.78 | 5.94–12.08 |
+| 1.0 | 1.71–2.89 | 1.85–3.63 |
+
+**The covariance approximation underestimates variance along the filter weights even in its own training data.**
+At floor 1.0, squared mean offsets account for only 1.3–11.1% of held-out MSE in the policy medians. Explicit
+eigenspace accounting places 98.01–99.66% of empirical training projection variance outside the retained three
+modes. The isotropic floor underestimates this complement contribution by factors 1.72–2.97. The retained
+empirical eigenvalues are represented exactly, so the in-training variance discrepancy is in the modeled complement.
+This identifies a limitation of the three-mode-plus-isotropic approximation without establishing that an
+unregularized full sample covariance would generalize.
+
+Paired bilinear/nearest-neighbor validation projections have median variance ratios 0.814–0.904 at floor 1.0.
+The exact bilinear white-noise gain relative to native-grid sampling is 0.867–0.902 in the policy medians, including
+shared native inputs. These controls show a smaller interpolation effect than the covariance mismatch; they do
+not justify a universal correction for correlated residuals. Nearest-neighbor resampling is not an exact native
+candidate stamp. The original 28 native evaluation-center scores from full-training fits retain variance 4.3–6.8
+at floor 1.0, but are a different spatial sample and fitting setup.
+
+Radial transfer also remains imperfect. For ±20-pixel training at floor 1.0, held-out rings five pixels inward
+have 2.20 times the same-radius projected variance for raw pixels and 1.87 times after normalization (median paired
+ratios on 24 eligible directional fits). Ten pixels inward the ratios are 5.15 and 3.86 on only eight fits. These
+counts and paired comparisons prevent attributing a change in validation support to a covariance improvement.
+The experiment does not establish inner-separation performance or a preferred production policy.
+
+**Next comparison:** retain all empirical modes using trace-preserving shrinkage,
+$C_\gamma=(1-\gamma_{\rm shrink})\widehat C+
+\gamma_{\rm shrink}\operatorname{tr}(\widehat C)I/p$, for $\gamma_{\rm shrink}=0.1,0.3,1.0$.
+Use the same sampling and fixed directional splits first, with the three-mode controls. This tests whether
+preserving more measured correlations improves held-out variance prediction while regularizing the sample
+nullspace. The isotropic endpoint retains the fitted mean, so it need not reproduce the original identity
+reference's background handling. Keep identity/Gaussian references for subsequent recovery comparisons. No
+shrinkage experiment or production change is claimed at this checkpoint.
+
+Verification reproduces 5,828 archived control values, checks 144 ring geometries and 768 directional variance
+identities, and independently recomputes 3,072 projection groups. Opposite-half NaN mutations leave 576 training
+matrices unchanged with the profile fixed; analytic white-noise gains agree with dense covariance calculations
+on 32 real stencils. The report contains the variance budgets, individual projections, radial-transfer counts,
+figure, and reproduction command.
 
 ## 8. Notation
 
@@ -1613,6 +1669,9 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $\sigma_\alpha$ | Conditional standard error of the amplitude | $E_C^{-1/2}$; does not include uncertainty in the supplied template or estimated covariance. |
 | $S$ (scalar score) | Signed theoretical matched-filter S/N | $N_C/\sqrt{E_C}$; distinct from the singular-value matrix $S$ and from the empirically calibrated `hciAnalyze` map. |
 | $w$ | Covariance-weighted template | Length $p$; solve $Cw=t$, then evaluate $N_C=w^Tz$ and $E_C=w^Tt$. |
+| $g$ | Unit-response amplitude weights | $g=C^{-1}t/(t^TC^{-1}t)$, so $g^Tt=1$ and the conditional amplitude variance is $g^TCg$. Uses the chosen raw or standardized coordinates. |
+| $z_j^{\rm proj}$ | Standardized frozen-weight projection of noise patch $j$ | $g^T(x_j-\widehat\mu)/\sigma_\alpha$; its centered sample variance diagnoses measured/model amplitude-variance mismatch. |
+| $A_{\rm samp}$ | Native-pixel sampling operator for a patch | Bilinear or nearest-neighbor extraction; $\lVert A_{\rm samp}^Tg\rVert^2/\lVert g\rVert^2$ is the projected white-noise variance gain relative to native-grid sampling. |
 | $Q$ | Complete orthonormal noise eigenbasis | $p\times p$; $C=Q\operatorname{diag}(\nu_i)Q^T$. Distinct from P4's temporal basis $U$. |
 | $q_i$ (noise eigenvector) | Column $i$ of $Q$ | Length $p$; used in the complete covariance-eigenbasis formulation. Distinct from scalar excess variance $q_i$ below. |
 | $\nu_i$ | Noise variance along eigenvector $q_i$ | Positive eigenvalue of $C$; modal matched-filter weights use $1/\nu_i$. |
@@ -1631,6 +1690,7 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $t_{\mathrm{std}},z_{\mathrm{std}}$ | Consistently standardized template and background-subtracted candidate data | $t_{\mathrm{std}}=D_{\sigma,q}^{-1}t$, $z_{\mathrm{std}}=D_{\sigma,q}^{-1}d-\widehat\mu_{\mathrm{std}}$; contrast retains its original units. |
 | $x_j,\bar x$ | Vectorized training patch and mean training patch | Length $p$ in a common radial/tangential coordinate system; $\bar x$ is the mean over retained training patches. |
 | $\widehat C$ | Empirical centered patch covariance | $p\times p$; regularize before inversion, and calibrate the effect of overlap on its estimation. |
+| $\gamma_{\rm shrink}, C_\gamma$ | Shrinkage fraction and proposed covariance retaining all empirical modes | $C_\gamma=(1-\gamma_{\rm shrink})\widehat C+\gamma_{\rm shrink}\operatorname{tr}(\widehat C)I/p$; proposed grid 0.1, 0.3, 1.0. Distinct from Gram eigenvalues $\gamma_i$. |
 | $v_i,\gamma_i$ | Eigenvector and eigenvalue of the training Gram matrix | $RR^Tv_i=\gamma_i v_i$; for $\gamma_i>0$, $q_i=R^Tv_i/\sqrt{\gamma_i}$ and $\nu_i=\gamma_i/(n-1)$. |
 | $C_s,C_n$ | Signal and noise covariance matrices in Wiener estimation | Defined for zero-mean, uncorrelated random signal and noise. $C_n$ is $C$ when referring to the same filtered stamp space. |
 | $\widehat s$ | Wiener estimate of the random signal image | $\widehat s=C_s(C_s+C_n)^{-1}d$ for zero-mean data; distinct from the unit-source input $s_q$. |

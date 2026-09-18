@@ -1,0 +1,8 @@
+{
+  "saved_projection_groups_independently_recomputed": 3072,
+  "all_24_policy_medians_recomputed_on_identical_16_sites": true,
+  "variance_budgets_reconstruct_model_and_empirical_projected_variance": true,
+  "training_ring_matrices_unchanged_after_opposite_half_nan_mutation_with_fixed_profile": 576,
+  "dense_real_stencil_white_noise_covariance_checks": 32,
+  "synthetic_constant_sampling_nearest_and_projection_checks_passed": true
+}

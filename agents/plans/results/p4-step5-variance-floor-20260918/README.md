@@ -105,12 +105,14 @@ one cause. A trace-matching correction or arbitrary global sigma multiplier is n
 
 ## Follow-up
 
-The next useful diagnostic is **projected noise calibration with frozen filter weights**. Fit on one angular
+The [projected-noise diagnostic](../p4-step5-projected-noise-20260918/README.md) is now complete. Its specification
+was **projected noise calibration with frozen filter weights**: fit on one angular
 training subset, project disjoint held-out noise stamps through those weights, and compare their mean and variance
 with zero and the model's predicted amplitude variance. Separate mean offsets from covariance mismatch and audit
 how interpolation changes training-stamp statistics relative to native candidate stamps. Keep the native exclusions
 and evaluate radial transfer explicitly. This should help decide whether to change the covariance representation,
-sampling, or uncertainty model before another rank/floor search.
+sampling, or uncertainty model before another rank/floor search. The report identifies underestimated variance
+in the discarded eigenspace and specifies a covariance-shrinkage comparison next.
 
 The current test leaves production defaults unchanged. The previously discussed fresh ROC injection study still
 requires a frozen policy and a numerical/throughput check; it has not launched.
