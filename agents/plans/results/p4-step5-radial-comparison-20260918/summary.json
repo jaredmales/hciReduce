@@ -1,0 +1,548 @@
+{
+  "policies": {
+    "raw_b0": {
+      "threshold": 17.836469022797132,
+      "evaluation_nulls": 28,
+      "evaluation_exceedances": 1,
+      "evaluation_invalid": 0,
+      "null_center_one_sigma": 1,
+      "positive_one_sigma": 1,
+      "new_radius20_valid_searches": 0,
+      "groups": [
+        {
+          "brightness_multiplier": 0.5,
+          "trials": 6,
+          "detections": 2,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.32725506221929734,
+          "inside_one_conditional_sigma": 0
+        },
+        {
+          "brightness_multiplier": 1,
+          "trials": 6,
+          "detections": 5,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.17067734411945434,
+          "inside_one_conditional_sigma": 0
+        },
+        {
+          "brightness_multiplier": 2,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.09197086620951178,
+          "inside_one_conditional_sigma": 1
+        }
+      ],
+      "split_stability_eligible_centers": 16,
+      "median_split_weight_cosine": 0.8947518591334855,
+      "median_split_relative_covariance_difference": 1.387844144773199,
+      "common_split_stability_centers": 16,
+      "common_median_split_weight_cosine": 0.8947518591334855,
+      "common_median_split_relative_covariance_difference": 1.387844144773199,
+      "median_modeled_sample_trace_fraction": 0.4525512799176249
+    },
+    "raw_b5": {
+      "threshold": 14.753678369399477,
+      "evaluation_nulls": 28,
+      "evaluation_exceedances": 2,
+      "evaluation_invalid": 0,
+      "null_center_one_sigma": 2,
+      "positive_one_sigma": 2,
+      "new_radius20_valid_searches": 8,
+      "groups": [
+        {
+          "brightness_multiplier": 0.5,
+          "trials": 6,
+          "detections": 3,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.2384201267212674,
+          "inside_one_conditional_sigma": 0
+        },
+        {
+          "brightness_multiplier": 1,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.1293629770989242,
+          "inside_one_conditional_sigma": 1
+        },
+        {
+          "brightness_multiplier": 2,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.07373088297798452,
+          "inside_one_conditional_sigma": 1
+        }
+      ],
+      "split_stability_eligible_centers": 44,
+      "median_split_weight_cosine": 0.8241228637254882,
+      "median_split_relative_covariance_difference": 1.339280718306112,
+      "common_split_stability_centers": 16,
+      "common_median_split_weight_cosine": 0.8141407806027687,
+      "common_median_split_relative_covariance_difference": 1.3553465943187075,
+      "median_modeled_sample_trace_fraction": 0.3268691440158882
+    },
+    "raw_b10": {
+      "threshold": 15.715970007577324,
+      "evaluation_nulls": 28,
+      "evaluation_exceedances": 1,
+      "evaluation_invalid": 0,
+      "null_center_one_sigma": 4,
+      "positive_one_sigma": 0,
+      "new_radius20_valid_searches": 8,
+      "groups": [
+        {
+          "brightness_multiplier": 0.5,
+          "trials": 6,
+          "detections": 3,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.08138504471368574,
+          "inside_one_conditional_sigma": 0
+        },
+        {
+          "brightness_multiplier": 1,
+          "trials": 6,
+          "detections": 5,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.048248473969564554,
+          "inside_one_conditional_sigma": 0
+        },
+        {
+          "brightness_multiplier": 2,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.031224340887703983,
+          "inside_one_conditional_sigma": 0
+        }
+      ],
+      "split_stability_eligible_centers": 56,
+      "median_split_weight_cosine": 0.7449286148918286,
+      "median_split_relative_covariance_difference": 1.330552791003359,
+      "common_split_stability_centers": 16,
+      "common_median_split_weight_cosine": 0.7149006632814802,
+      "common_median_split_relative_covariance_difference": 1.2766232723225,
+      "median_modeled_sample_trace_fraction": 0.3011394341458787
+    },
+    "raw_b20": {
+      "threshold": 16.42053909897148,
+      "evaluation_nulls": 28,
+      "evaluation_exceedances": 2,
+      "evaluation_invalid": 0,
+      "null_center_one_sigma": 0,
+      "positive_one_sigma": 2,
+      "new_radius20_valid_searches": 8,
+      "groups": [
+        {
+          "brightness_multiplier": 0.5,
+          "trials": 6,
+          "detections": 4,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.25053037682352675,
+          "inside_one_conditional_sigma": 0
+        },
+        {
+          "brightness_multiplier": 1,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.13367793199378086,
+          "inside_one_conditional_sigma": 1
+        },
+        {
+          "brightness_multiplier": 2,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.07512142558064938,
+          "inside_one_conditional_sigma": 1
+        }
+      ],
+      "split_stability_eligible_centers": 56,
+      "median_split_weight_cosine": 0.7114567214724644,
+      "median_split_relative_covariance_difference": 1.386078391644373,
+      "common_split_stability_centers": 16,
+      "common_median_split_weight_cosine": 0.6398574920266551,
+      "common_median_split_relative_covariance_difference": 1.2990018699104833,
+      "median_modeled_sample_trace_fraction": 0.29924174122244235
+    },
+    "normalized_b0": {
+      "threshold": 17.5567045553749,
+      "evaluation_nulls": 28,
+      "evaluation_exceedances": 1,
+      "evaluation_invalid": 0,
+      "null_center_one_sigma": 2,
+      "positive_one_sigma": 1,
+      "new_radius20_valid_searches": 0,
+      "groups": [
+        {
+          "brightness_multiplier": 0.5,
+          "trials": 6,
+          "detections": 3,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.3327391675074697,
+          "inside_one_conditional_sigma": 0
+        },
+        {
+          "brightness_multiplier": 1,
+          "trials": 6,
+          "detections": 5,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.17405688042320655,
+          "inside_one_conditional_sigma": 0
+        },
+        {
+          "brightness_multiplier": 2,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.09429730427310823,
+          "inside_one_conditional_sigma": 1
+        }
+      ],
+      "split_stability_eligible_centers": 16,
+      "median_split_weight_cosine": 0.8915009520337692,
+      "median_split_relative_covariance_difference": 1.387470204071659,
+      "common_split_stability_centers": 16,
+      "common_median_split_weight_cosine": 0.8915009520337692,
+      "common_median_split_relative_covariance_difference": 1.387470204071659,
+      "median_modeled_sample_trace_fraction": 0.44864965479344254
+    },
+    "normalized_b5": {
+      "threshold": 14.59749250337893,
+      "evaluation_nulls": 28,
+      "evaluation_exceedances": 2,
+      "evaluation_invalid": 0,
+      "null_center_one_sigma": 2,
+      "positive_one_sigma": 3,
+      "new_radius20_valid_searches": 8,
+      "groups": [
+        {
+          "brightness_multiplier": 0.5,
+          "trials": 6,
+          "detections": 3,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.24451265355300983,
+          "inside_one_conditional_sigma": 1
+        },
+        {
+          "brightness_multiplier": 1,
+          "trials": 6,
+          "detections": 5,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.13357972764722165,
+          "inside_one_conditional_sigma": 1
+        },
+        {
+          "brightness_multiplier": 2,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.07712854984981138,
+          "inside_one_conditional_sigma": 1
+        }
+      ],
+      "split_stability_eligible_centers": 44,
+      "median_split_weight_cosine": 0.8184359589433503,
+      "median_split_relative_covariance_difference": 1.3327904660964651,
+      "common_split_stability_centers": 16,
+      "common_median_split_weight_cosine": 0.8115589612727581,
+      "common_median_split_relative_covariance_difference": 1.3409862309822929,
+      "median_modeled_sample_trace_fraction": 0.32274921647722227
+    },
+    "normalized_b10": {
+      "threshold": 16.41855258096516,
+      "evaluation_nulls": 28,
+      "evaluation_exceedances": 1,
+      "evaluation_invalid": 0,
+      "null_center_one_sigma": 4,
+      "positive_one_sigma": 0,
+      "new_radius20_valid_searches": 8,
+      "groups": [
+        {
+          "brightness_multiplier": 0.5,
+          "trials": 6,
+          "detections": 2,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.08403997995052814,
+          "inside_one_conditional_sigma": 0
+        },
+        {
+          "brightness_multiplier": 1,
+          "trials": 6,
+          "detections": 5,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.05295546374783311,
+          "inside_one_conditional_sigma": 0
+        },
+        {
+          "brightness_multiplier": 2,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.03705765864011035,
+          "inside_one_conditional_sigma": 0
+        }
+      ],
+      "split_stability_eligible_centers": 56,
+      "median_split_weight_cosine": 0.7458650937832128,
+      "median_split_relative_covariance_difference": 1.3160663790317104,
+      "common_split_stability_centers": 16,
+      "common_median_split_weight_cosine": 0.7327725698215376,
+      "common_median_split_relative_covariance_difference": 1.2627162560626504,
+      "median_modeled_sample_trace_fraction": 0.2919888541005229
+    },
+    "normalized_b20": {
+      "threshold": 17.27405425565969,
+      "evaluation_nulls": 28,
+      "evaluation_exceedances": 2,
+      "evaluation_invalid": 0,
+      "null_center_one_sigma": 2,
+      "positive_one_sigma": 3,
+      "new_radius20_valid_searches": 8,
+      "groups": [
+        {
+          "brightness_multiplier": 0.5,
+          "trials": 6,
+          "detections": 4,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.3145185952555069,
+          "inside_one_conditional_sigma": 1
+        },
+        {
+          "brightness_multiplier": 1,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.16389306854113384,
+          "inside_one_conditional_sigma": 1
+        },
+        {
+          "brightness_multiplier": 2,
+          "trials": 6,
+          "detections": 6,
+          "invalid": 0,
+          "median_raw_contrast_error": 0.08816784347895262,
+          "inside_one_conditional_sigma": 1
+        }
+      ],
+      "split_stability_eligible_centers": 56,
+      "median_split_weight_cosine": 0.707500545412465,
+      "median_split_relative_covariance_difference": 1.3055468659403557,
+      "common_split_stability_centers": 16,
+      "common_median_split_weight_cosine": 0.6927446048273787,
+      "common_median_split_relative_covariance_difference": 1.2814897891175971,
+      "median_modeled_sample_trace_fraction": 0.28166110234113717
+    }
+  },
+  "common_split_stability_trials": [
+    "calibration_r46_b0",
+    "calibration_r46_b1",
+    "calibration_r46_b2",
+    "calibration_r46_b3",
+    "calibration_r50_b0",
+    "calibration_r50_b1",
+    "calibration_r50_b2",
+    "calibration_r50_b3",
+    "evaluation_r46_b0",
+    "evaluation_r46_b1",
+    "evaluation_r46_b2",
+    "evaluation_r46_b3",
+    "evaluation_r50_b0",
+    "evaluation_r50_b1",
+    "evaluation_r50_b2",
+    "evaluation_r50_b3"
+  ],
+  "references": {
+    "identity": {
+      "calibration_trials": 28,
+      "threshold_rank": 28,
+      "threshold": 0.6759753823280334,
+      "calibration_exceedances": 0,
+      "evaluation_trials": 28,
+      "evaluation_exceedances": 2,
+      "angular_blocks": [
+        {
+          "angular_block": 0,
+          "trials": 7,
+          "exceedances": 0
+        },
+        {
+          "angular_block": 1,
+          "trials": 7,
+          "exceedances": 0
+        },
+        {
+          "angular_block": 2,
+          "trials": 7,
+          "exceedances": 0
+        },
+        {
+          "angular_block": 3,
+          "trials": 7,
+          "exceedances": 2
+        }
+      ],
+      "block_resampling_2p5_97p5_percentiles": [
+        0.0,
+        0.21428571428571427
+      ],
+      "uncertainty_caveat": "four spatial blocks are few and may be correlated; zero observed events cannot bound the tail",
+      "detections_by_brightness": [
+        3,
+        6,
+        6
+      ]
+    },
+    "gaussian_raw": {
+      "threshold": 0.10517889261245728,
+      "threshold_rank": 28,
+      "calibration_trials": 28,
+      "calibration_exceedances": 0,
+      "evaluation_trials": 28,
+      "evaluation_exceedances": 2,
+      "detections_by_brightness": [
+        3,
+        5,
+        6
+      ]
+    },
+    "gaussian_snr": {
+      "threshold": 1.96212637424469,
+      "threshold_rank": 28,
+      "calibration_trials": 28,
+      "calibration_exceedances": 0,
+      "evaluation_trials": 28,
+      "evaluation_exceedances": 2,
+      "detections_by_brightness": [
+        3,
+        6,
+        6
+      ]
+    }
+  },
+  "reference_original_groups": [
+    {
+      "model": "identity",
+      "brightness_multiplier": 0.5,
+      "trials": 6,
+      "detections": 3,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.33584584454612787,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 6
+    },
+    {
+      "model": "diagonal",
+      "brightness_multiplier": 0.5,
+      "trials": 6,
+      "detections": 1,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.20416022807748213,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 1
+    },
+    {
+      "model": "pca0",
+      "brightness_multiplier": 0.5,
+      "trials": 6,
+      "detections": 2,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.40684480643978727,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 0
+    },
+    {
+      "model": "pca",
+      "brightness_multiplier": 0.5,
+      "trials": 6,
+      "detections": 2,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.32725507884894023,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 0
+    },
+    {
+      "model": "identity",
+      "brightness_multiplier": 1,
+      "trials": 6,
+      "detections": 6,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.1845143904404435,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 6
+    },
+    {
+      "model": "diagonal",
+      "brightness_multiplier": 1,
+      "trials": 6,
+      "detections": 4,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.12164512412069994,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 1
+    },
+    {
+      "model": "pca0",
+      "brightness_multiplier": 1,
+      "trials": 6,
+      "detections": 4,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.22049626553085522,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 0
+    },
+    {
+      "model": "pca",
+      "brightness_multiplier": 1,
+      "trials": 6,
+      "detections": 5,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.17067738343577255,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 0
+    },
+    {
+      "model": "identity",
+      "brightness_multiplier": 2,
+      "trials": 6,
+      "detections": 6,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.10838164126313565,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 6
+    },
+    {
+      "model": "diagonal",
+      "brightness_multiplier": 2,
+      "trials": 6,
+      "detections": 6,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.07992967677505669,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 1
+    },
+    {
+      "model": "pca0",
+      "brightness_multiplier": 2,
+      "trials": 6,
+      "detections": 6,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.12422157355925134,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 0
+    },
+    {
+      "model": "pca",
+      "brightness_multiplier": 2,
+      "trials": 6,
+      "detections": 6,
+      "invalid_searches": 0,
+      "median_contrast_bias_fraction": 0.09197086617158778,
+      "bias_available_trials": 6,
+      "inside_one_conditional_sigma": 1
+    }
+  ]
+}

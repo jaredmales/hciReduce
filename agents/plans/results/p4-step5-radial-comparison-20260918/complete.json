@@ -1,0 +1,16 @@
+{
+  "baseline_images": 1,
+  "positive_images": 21,
+  "policies": 8,
+  "new_reductions": 0,
+  "purpose": "development reuse, not blind validation",
+  "verification": {
+    "production_baseline_pixels_checked": 320,
+    "production_positive_trials_checked": 18,
+    "maximum_baseline_control_relative_difference": 5.6135184592817804e-08,
+    "independent_ring_stencil_checks": 25,
+    "normalized_and_original_unit_solves_agree": true,
+    "original_production_decisions_preserved": true,
+    "variance_profiles_and_geometry": "same native forbidden mask; finite support unchanged in all positive images"
+  }
+}

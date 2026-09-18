@@ -1460,12 +1460,63 @@ selected final estimator. See the [audit report](results/p4-step5-radial-pooling
 profile, endpoint policy, sample covariance summaries, and figure. The default Python sampler retains its original
 behavior and agrees with production geometry at 16 calibration/evaluation centers spanning all eight test radii.
 
-The next work uses saved images to evaluate the four filter variants and covariance-shape stability. Once a revised
-policy is frozen, the tentative fresh confirmation study remains 30 new sites at three transition brightnesses
+The subsequent saved-image comparison is recorded below. Once a revised policy is frozen, the tentative fresh
+confirmation study remains 30 new sites at three transition brightnesses
 (90 full reductions shared by every filter). The user intends to run that study on **ROC** and expects at least
 a 3–4× speedup. That would put the local approximately ten-hour estimate near 2.5–3.3 hours, before analysis;
 this is a planning estimate, not a measured ROC benchmark. Validate numerical consistency and throughput there
 before launching the batch. No new injections or ROC jobs were launched for this baseline audit.
+
+### Step 5 development result: radial pooling and normalization (2026-09-18)
+
+The [completed comparison](results/p4-step5-radial-comparison-20260918/README.md) applies the four sampling/normalization
+combinations to the saved baseline, 18 evaluation positives, and three original development positives. Radial
+half-widths are 0, 5, 10, and 20 pixels, with PCA rank three and variance-floor fraction 0.1 fixed. An independent
+NumPy/SciPy implementation reproduces the original same-radius production control before comparing extensions;
+production filtering remains unchanged. These previously inspected images are development data.
+
+| Training / half-width | Detections at 0.5× / 1× / 2× | Original evaluation null exceedances | Positive ±1-sigma coverage |
+| --- | --- | ---: | ---: |
+| Raw / 0 px | 2/6, 5/6, 6/6 | 1/28 | 1/18 |
+| Raw / 5 px | 3/6, 6/6, 6/6 | 2/28 | 2/18 |
+| Raw / 10 px | 3/6, 5/6, 6/6 | 1/28 | 0/18 |
+| Raw / 20 px | 4/6, 6/6, 6/6 | 2/28 | 2/18 |
+| Normalized / 0 px | 3/6, 5/6, 6/6 | 1/28 | 1/18 |
+| Normalized / 5 px | 3/6, 5/6, 6/6 | 2/28 | 3/18 |
+| Normalized / 10 px | 2/6, 5/6, 6/6 | 1/28 | 0/18 |
+| Normalized / 20 px | 4/6, 6/6, 6/6 | 2/28 | 3/18 |
+| Identity reference | 3/6, 6/6, 6/6 | 2/28 | — |
+| Gaussian 3.6 px + application SNR reference | 3/6, 6/6, 6/6 | 2/28 | — |
+
+All pooled policies make the eight originally invalid radius-20 null searches trainable. Those searches remain
+outside the original 28+28 common comparison set. At the radius-12 development position, ±5 pixels meets the
+eight-patch minimum at the center but fails at one search neighbor; ±10 pixels is needed for the full five-pixel
+search. Every normalized measurement uses consistent data/template scaling and agrees with an independent solve
+using the equivalent physical-unit covariance.
+
+Both ±20-pixel variants recover one extra faint site relative to identity and Gaussian/SNR at the same observed
+null count. **No general detection gain is established:** eight policies and six reused sites provide a development
+hint, and radial normalization gives no consistent benefit. Conditional sigmas still fail badly, including at
+unmodified null centers, where only 0–4 of 28 estimates lie within ±1 sigma of zero.
+
+Covariance fits to disjoint native y half-planes were compared on the same 16 eligible centers for every policy.
+Median physical-weight cosine decreases from 0.895 to 0.640 for raw widths 0 to 20, and from 0.892 to 0.693 with
+normalization. More patches have not made these weights agree better. Spatial covariance variation and finite-sample
+mode estimation remain possible explanations; shared radial profiles and spatial correlations make this a descriptive
+diagnostic rather than independent cross-validation. Source effects on training also remain measurable.
+
+The regularized model represents about 45% of centered sample covariance trace at one radius, falling to 28–30%
+with ±20-pixel pooling in the respective fitting coordinates. This is not a true-variance estimate or an amplitude-sigma
+rescaling factor. **Next test:** vary the variance-floor fraction through 0.1, 0.3, and 1.0 on these saved images,
+holding rank three and sampling/normalization fixed. Check conditional coverage and split-weight stability alongside
+recovery against identity/Gaussian. Modeling discarded-mode variance is a possible separate control. Retain the
+outer radial-profile rise and covariance transfer across radii as open questions, then freeze a policy before the
+fresh ROC study.
+
+Verification covers 320 production baseline pixels (maximum relative numerical difference 5.62e-8), all 18 original
+positive measurements and decisions, 25 independent interpolation-ring comparisons, and a 34-ring forbidden-pixel
+NaN mutation check. Original data and thresholds are fingerprinted; no new reductions ran. The report contains
+individual records, the common-support stability table, a figure, and the reproduction command.
 
 ## 8. Notation
 

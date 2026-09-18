@@ -4,6 +4,9 @@
 radial variance gradient near the star, making radial normalization a useful separate experiment. This checkpoint
 measures geometry and noise scale; it does not yet evaluate new matched filters or demonstrate a detection gain.
 
+The subsequent [saved-image filtering comparison](../p4-step5-radial-comparison-20260918/README.md) is now complete.
+It records recovery, conditional uncertainty, common-site split stability, and the next variance-floor test.
+
 The user proposed pooling across radii because the P4 optimization/predictor region (OR) is wider than the search
 region (SR), and reducing the OR worsens the reduction. That motivates testing broader residual structure.
 Whether the final-image covariance shape transfers across those radii remains to be measured.
@@ -52,10 +55,11 @@ differ from the radial average, and the patches are correlated. Normalization do
 correct covariance or calibrated conditional uncertainty. Sample covariance spectra, including the fraction in
 the leading three modes, are retained in the JSON as diagnostics, not as optimization criteria.
 
-## Next comparison
+## Follow-on comparison
 
-Evaluate the four combinations of **same-radius versus radial-band sampling**, and **raw versus radial-normalized
-pixels**, on the saved development data. Initially keep rank, floor, response footprint, and exclusions fixed to
+The [follow-on comparison](../p4-step5-radial-comparison-20260918/README.md) evaluates the four combinations of
+**same-radius versus radial-band sampling**, and **raw versus radial-normalized pixels**, on the saved development
+data. It keeps rank, floor, response footprint, and exclusions fixed to
 separate their effects. For an actual filter, apply the same native scale map to the candidate data **and response
 template**, and estimate the mean/covariance in that standardized space. The plan's Section 6 gives the equivalent
 covariance in original image units, preserving the contrast parameter.

@@ -1,0 +1,6 @@
+{
+  "heldout_pixel_nan_mutation_leaves_variance_profile_unchanged": true,
+  "radial_rings_with_identical_training_after_nan_mutation": 34,
+  "all_eight_policy_thresholds_and_counts_recomputed": true,
+  "split_stability_compared_on_identical_16_sites": true
+}
