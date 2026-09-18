@@ -52,7 +52,7 @@
  * also accepts native schema-2 `PIXEL_EXACT` products containing a coordinate table and one response/validity plane
  * at every retained integer pixel. Those responses are applied only at their exact recorded coordinates. It rejects
  * incomplete sets and mismatched image planes, mode labels, stamp geometry, radial grids, regions, validity, or
- * product roles. Filtering uses the recorded `PSF FILTER MIN GOOD FRACTION` and the same signed normalized
+ * product roles. With default identity noise, filtering uses the recorded `PSF FILTER MIN GOOD FRACTION` and the same signed normalized
  * estimator as the reduction: `sum(H*I)/sum(H*H)`. Pixels without a valid response remain excluded from the SNR
  * calculation.
  *
@@ -70,6 +70,60 @@
  * Its header records the resolved signal geometry, the resolved SNR annulus and aperture, both filter FWHMs, and the
  * PSF response manifest and minimum support when configured. `LAMBDAD` records the adopted sampling and `SNRSMALL=1`
  * records that the small-sample correction was applied.
+ *
+ * \section hcianalyze_noise Conditional covariance weighting
+ *
+ * | CLI | Config key/value shorthand | Type and limits | Default | Meaning |
+ * |---|---|---|---|---|
+ * | `--noise.model` | `noise.model=pca` | `identity`, `diagonal`, `pca` | `identity` | Noise weighting for the supplied PSF response; identity preserves the original filter. |
+ * | `--noise.outputDiagnostics` | `noise.outputDiagnostics=true` | bool | `false` | Also write conditional products for identity weighting. Diagonal and PCA always write them. |
+ * | `--noise.arcStep` | `noise.arcStep=5` | finite nonnegative pixels | `0` | Training-center arc step; zero uses `(max(stampRows,stampColumns)-1)/2`, bounded below by one pixel. |
+ * | `--noise.guardRadius` | `noise.guardRadius=2.5` | finite nonnegative pixels | `0` | Extra candidate exclusion beyond the enclosing circle of its response stamp. |
+ * | `--noise.minimumSamples` | `noise.minimumSamples=8` | integer, 2 through `INT_MAX` | `8` | Minimum complete finite training patches. Overlapping patches are not independent samples. |
+ * | `--noise.maximumModes` | `noise.maximumModes=3` | integer, 0 through `INT_MAX` | `3` | Maximum noise PCA modes above the variance floor; zero keeps only the floor with the trained mean. |
+ * | `--noise.floorFraction` | `noise.floorFraction=0.1` | finite fraction in `(0,1]` | `0.1` | Absolute covariance floor is this fraction of the median training-pixel sample variance. |
+ * | `--noise.excludeRows` | `noise.excludeRows=128,140` | finite vector | unset | Additional source/held-out centers along the first image index (display x). |
+ * | `--noise.excludeColumns` | `noise.excludeColumns=150,160` | finite vector | unset | Additional source/held-out centers along the second image index (display y). |
+ * | `--noise.excludeRadii` | `noise.excludeRadii=5,8` | matching nonnegative finite vector | unset | Radius of every additional exclusion circle, before training-footprint dilation. |
+ *
+ * Covariance weighting and requested conditional diagnostics require `filter.psfResponse` and disabled Gaussian
+ * filters. All resolved `planet` or `fake` circles are excluded from training, together with the additional
+ * circles above. Supply known sources explicitly when measured targets replace the header source list.
+ *
+ * Training uses the original final science image, before any matched filtering. Centers lie at the candidate's
+ * radius, with equally spaced angles anchored on the positive first image axis. Their count is rounded upward
+ * from circumference/requested spacing. Offsets rotate into the candidate's native response coordinates before
+ * bilinear sampling, so the science and response stamps themselves are not resampled. Patches have the same radial
+ * footprint across concentric reduction regions. The conservative training-footprint radius is the rectangular
+ * stamp's half diagonal plus `sqrt(2)` pixels for the interpolation stencil. Every patch whose enclosing circle
+ * intersects the candidate or another exclusion circle is discarded in full. Other incomplete/nonfinite patches
+ * are discarded, with no zero filling. There is no taper or automatic overlap correction.
+ *
+ * Diagonal/PCA training subtracts the sample mean from science only and uses `n-1` variance normalization. PCA retains
+ * the selected excess eigenvalues above a positive isotropic floor; its unmodeled complement keeps that floor.
+ * Insufficient training, zero median variance, and invalid filter support remain invalid instead of falling back
+ * to identity. The defaults are starting numerical settings, not empirically optimized detection settings.
+ *
+ * The following files are written beside the input with matching mode planes, as `<stem>_<role><extension>`:
+ *
+ * | Role | Quantity |
+ * |---|---|
+ * | `psf_amplitude` | Signed amplitude relative to the stored response normalization. |
+ * | `psf_sigma` | Conditional amplitude uncertainty for a fixed supplied covariance and response. |
+ * | `psf_score` | Signed correlation divided by the square root of the weighted normalization. |
+ * | `psf_support` | Fraction of response pixels actually used. |
+ * | `noise_samples`, `noise_attempted` | Accepted and proposed training-patch counts. |
+ * | `noise_excluded`, `noise_incomplete` | Rejections from footprint exclusions and incomplete interpolation. |
+ * | `noise_modes`, `noise_floor` | Actual retained rank and absolute variance floor. |
+ * | `noise_status` | `0`: valid; `1`: too few samples; `2`: zero variance; `3`: invalid filter; NaN: no usable response. |
+ *
+ * Unavailable statistics remain NaN. Headers record the covariance settings, response manifest, resolved source
+ * and held-out circles, sampling convention, and status definitions. Identity diagnostics use unit covariance,
+ * zero mean, and zero training counts. `HCIA NOISE CALIBRATED=0` and `SNRSMALL=0` distinguish these conditional
+ * products from the existing empirical annular SNR map, which still receives its small-sample multiplier.
+ * Bilinear interpolation, overlapping training, and estimated covariance/mean all affect the null distribution;
+ * `psf_score` is not a calibrated detection significance. Use held-out nulls and raw positive injections to measure
+ * completeness at a fixed false-positive rate before selecting a preferred model.
  *
  * @}
  */

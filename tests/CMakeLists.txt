@@ -36,6 +36,7 @@ set(HCIREDUCE_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/common/RadialPSFModel_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PSFFilter_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/PSFNoiseModel_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/PSFNoiseTraining_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PSFModel_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4PSFReconstructor_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/P4Reduction_test.cpp

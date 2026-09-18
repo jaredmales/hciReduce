@@ -282,6 +282,23 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Complete the exact configuration/cube APIs exercised by Step-5 annular noise integration (2026-09-17).
+      The current `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` has zero calls for
+      `appConfigurator::operator()<unsigned long>()`, used for the `size_t` noise sample/mode settings;
+      the shared range at `appConfigurator.hpp:1073–1076` is 2/2 covered only in aggregate. Add direct unsigned-long
+      configuration retrieval tests with valid, missing, and boundary values. The new CLI test also calls
+      `parseCommandLine()` at `source/app/appConfigurator.cpp:74–147`, which is 34/40 lines covered: exercise
+      zero arguments, targets without CLI options, command-line-only targets with and without options, and an empty
+      parsed option set to cover lines 77, 86, 95, 96, 98, and 122. Regenerate LCOV after those tests.
+      Float cube copy construction and copy/move assignment still lack exact instantiation records (only double
+      records exist), including the new downstream diagnostic tests and existing response-filter cube transfer;
+      extend the float lifecycle tests requested below. Shared ranges are covered, which does not establish exact
+      float coverage. The called float cube construction/destruction/resize/dimension/image/cube APIs, float FITS
+      image/cube reads and cube writes with headers, FITS header copy/count/erase/lookup/append<int,float,double,string>,
+      header-card value<int,float,double>/String, `exception<verbose::vv>`, configuration registration, and the other
+      used scalar/vector configuration overloads all have nonzero exact function records and 100% recorded executable
+      lines. The annular sampler itself calls Eigen and standard-library APIs only.
+
 - [ ] Add a direct read-only view test for `eigenCube<float>::image(Index) const`. The 2026-09-17 detector-capture
       change to `P4Reduction::fitDetectorSearch()` and analytic-product integration in
       `P4Reduction::calculateAnalyticDetectorResponse()` rechecked

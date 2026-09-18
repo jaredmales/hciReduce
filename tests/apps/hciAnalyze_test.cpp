@@ -35,8 +35,15 @@ struct appHarness : public hciAnalyze
     using hciAnalyze::m_fakeSeparation;
     using hciAnalyze::m_fakeSpecified;
     using hciAnalyze::m_file;
+    using hciAnalyze::m_highPassFwhm;
     using hciAnalyze::m_lambdaD;
     using hciAnalyze::m_lambdaDSpecified;
+    using hciAnalyze::m_noiseConfig;
+    using hciAnalyze::m_noiseDiagnostics;
+    using hciAnalyze::m_noiseExcludeColumns;
+    using hciAnalyze::m_noiseExcludeRadii;
+    using hciAnalyze::m_noiseExcludeRows;
+    using hciAnalyze::m_noiseModel;
     using hciAnalyze::m_planetContrast;
     using hciAnalyze::m_planetPositionAngle;
     using hciAnalyze::m_planetRadius;
@@ -716,6 +723,204 @@ TEST_CASE( "hciAnalyze cube SNR measurement", "[hciAnalyze][snr][nan]" )
     doxygenApplication.signalCoordinates( 0, 0, 1, 1 );
 #endif
     // clang-format on
+}
+
+/** \brief Verify hciAnalyze validates and loads covariance geometry and regularization options.
+ * \ingroup hciAnalyze_unit_tests
+ */
+TEST_CASE( "hciAnalyze covariance configuration", "[hciAnalyze][noise][config]" )
+{
+    appHarness application;
+    application.setupConfig();
+    std::vector<std::string> options{ "hciAnalyze",
+                                      "--noise.model=pca",
+                                      "--noise.minimumSamples=12",
+                                      "--noise.maximumModes=2",
+                                      "--noise.floorFraction=0.25",
+                                      "--noise.arcStep=1.25",
+                                      "--noise.guardRadius=2",
+                                      "--lambdaD=2.5" };
+    std::vector<char *> arguments;
+    for( auto &option : options )
+    {
+        arguments.push_back( option.data() );
+    }
+    application.config.parseCommandLine( static_cast<int>( arguments.size() ), arguments.data() );
+    application.loadConfig();
+    REQUIRE( application.m_noiseModel == "pca" );
+    REQUIRE( application.m_noiseConfig.m_minimumSamples == 12 );
+    REQUIRE( application.m_noiseConfig.m_maximumModes == 2 );
+    REQUIRE( application.m_noiseConfig.m_floorFraction == 0.25 );
+    REQUIRE( application.m_noiseConfig.m_arcStep == 1.25 );
+    REQUIRE( application.m_noiseConfig.m_guardRadius == 2 );
+    application.m_file = "input.fits";
+    REQUIRE( application.config.m_targets.count( "noise.model" ) == 1 );
+    REQUIRE( application.config.m_targets.count( "noise.floorFraction" ) == 1 );
+    application.m_noiseModel = "pca";
+    REQUIRE_THROWS( application.checkConfig() );
+    application.m_psfResponse = "field_manifest.fits";
+    REQUIRE_NOTHROW( application.checkConfig() );
+    REQUIRE( application.m_noiseConfig.m_kind == mx::improc::PSFNoiseKind::pca );
+    application.m_highPassFwhm = 2;
+    REQUIRE_THROWS( application.checkConfig() );
+    application.m_highPassFwhm = 0;
+    application.m_noiseConfig.m_floorFraction = 0;
+    REQUIRE_THROWS( application.checkConfig() );
+    application.m_noiseConfig.m_floorFraction = 0.1;
+    application.m_noiseConfig.m_minimumSamples = 1;
+    REQUIRE_THROWS( application.checkConfig() );
+    application.m_noiseConfig.m_minimumSamples = 8;
+    application.m_noiseConfig.m_maximumModes = std::numeric_limits<std::size_t>::max();
+    REQUIRE_THROWS( application.checkConfig() );
+    application.m_noiseConfig.m_maximumModes = 3;
+    application.m_noiseExcludeRows = { 20 };
+    REQUIRE_THROWS( application.checkConfig() );
+    application.m_noiseExcludeColumns = { 30 };
+    application.m_noiseExcludeRadii = { -1 };
+    REQUIRE_THROWS( application.checkConfig() );
+    application.m_noiseExcludeRadii = { 5 };
+    REQUIRE_NOTHROW( application.checkConfig() );
+    application.m_noiseModel = "unknown";
+    REQUIRE_THROWS( application.checkConfig() );
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    hciAnalyze::checkConfig();
+    hciAnalyze::checkNoiseConfig();
+#endif
+    // clang-format on
+}
+
+/** \brief Verify hciAnalyze routes P4 response filtering through PSFNoiseTraining and writes conditional diagnostics.
+ * \ingroup hciAnalyze_unit_tests
+ */
+TEST_CASE( "hciAnalyze writes covariance filter products", "[hciAnalyze][noise][products]" )
+{
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    hciAnalyze::filterCubePSFResponse( {}, {} );
+    hciAnalyze::prepareNoiseProducts( {} );
+    hciAnalyze::applyPSFFilter( {}, {}, {}, 0, 0, 0 );
+    hciAnalyze::writeNoiseProducts( {} );
+#endif
+    // clang-format on
+    TestDirectory directory;
+    const std::filesystem::path manifestPath = directory.file( "field_manifest.fits" );
+
+    hciAnalyze::fitsHeaderT manifestHeader;
+    REQUIRE( manifestHeader.append<int>( "P4 PSF PRODUCT SCHEMA", 2, "schema" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "P4 PSF PRODUCT", "MANIFEST", "role" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<int>( "P4 PSF COMPLETE", 1, "complete" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<int>( "P4 PSF MODE COUNT", 1, "modes" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "P4 PSF SOURCE COUNT", "1", "sources" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<int>( "P4 PSF STAMP SIZE", 3, "stamp" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<float>( "P4 PSF FILTER MIN GOOD FRACTION", 1, "support" ) == mx::error_t::noerror );
+    REQUIRE( manifestHeader.append<std::string>( "P4 MODE FRACTIONS", "0.5", "modes" ) == mx::error_t::noerror );
+    hciAnalyze::imageT manifest( 1, 1 );
+    manifest( 0, 0 ) = 1;
+    writeFitsImage( manifestPath, manifest, &manifestHeader );
+
+    hciAnalyze::fitsHeaderT coordinateHeader;
+    REQUIRE( coordinateHeader.append<std::string>( "P4 PSF PRODUCT", "COORDINATES", "role" ) == mx::error_t::noerror );
+    hciAnalyze::imageT coordinates( 1, 4 );
+    coordinates << 48, 32, 16, -90;
+    writeFitsImage( directory.file( "field_coordinates.fits" ), coordinates, &coordinateHeader );
+
+    hciAnalyze::fitsHeaderT modelHeader;
+    REQUIRE( modelHeader.append<std::string>( "P4 PSF PRODUCT", "MODEL", "role" ) == mx::error_t::noerror );
+    REQUIRE( modelHeader.append<int>( "P4 PSF MODE INDEX", 0, "mode" ) == mx::error_t::noerror );
+    hciAnalyze::cubeT models( 3, 3, 1 );
+    models.setZero();
+    models.image( 0 )( 1, 1 ) = 2;
+    writeFitsCube( directory.file( "field_model_0000.fits" ), models, &modelHeader );
+
+    hciAnalyze::fitsHeaderT validityHeader;
+    REQUIRE( validityHeader.append<std::string>( "P4 PSF PRODUCT", "VALIDITY", "role" ) == mx::error_t::noerror );
+    REQUIRE( validityHeader.append<int>( "P4 PSF MODE INDEX", 0, "mode" ) == mx::error_t::noerror );
+    hciAnalyze::imageT validity( 1, 1 );
+    validity( 0, 0 ) = 1;
+    writeFitsImage( directory.file( "field_validity_0000.fits" ), validity, &validityHeader );
+
+    hciAnalyze::cubeT original( 65, 65, 1 );
+    for( int column = 0; column < 65; ++column )
+    {
+        for( int row = 0; row < 65; ++row )
+        {
+            original.image( 0 )( row, column ) = std::sin( 0.3 * row ) + std::cos( 0.2 * column );
+        }
+    }
+    hciAnalyze::fitsHeaderT scienceHeader;
+    REQUIRE( scienceHeader.append<std::string>( "P4 MODE FRACTIONS", "0.5", "modes" ) == mx::error_t::noerror );
+    const auto responseValidity = mx::improc::P4PSFFilter::validityT::Ones( 3, 3 ).eval();
+    for( const std::string model : { "identity", "diagonal", "pca" } )
+    {
+        appHarness application;
+        application.m_psfResponse = manifestPath.string();
+        application.m_file = directory.file( model + ".fits" ).string();
+        application.m_noiseModel = model;
+        application.m_noiseDiagnostics = true;
+        application.m_noiseExcludeRows = { 32 };
+        application.m_noiseExcludeColumns = { 48 };
+        application.m_noiseExcludeRadii = { 3 };
+        application.checkConfig();
+        const mx::improc::PSFNoiseTrainingResult expected =
+            mx::improc::PSFNoiseTraining::calculate( original.image( 0 ),
+                                                     models.image( 0 ),
+                                                     responseValidity,
+                                                     48,
+                                                     32,
+                                                     1,
+                                                     application.m_noiseConfig,
+                                                     { { 32, 48, 3 } } );
+        REQUIRE( expected.m_filter.valid );
+        hciAnalyze::cubeT science = original;
+        application.filterCubePSFResponse( science, scienceHeader );
+        REQUIRE( science.image( 0 )( 48, 32 ) == Approx( expected.m_filter.amplitude ).epsilon( 1e-6 ) );
+        REQUIRE( std::isnan( science.image( 0 )( 0, 0 ) ) );
+        const std::array<std::pair<const char *, double>, 11> checks{
+            std::pair{ "psf_amplitude", expected.m_filter.amplitude },
+            { "psf_sigma", expected.m_filter.conditionalSigma },
+            { "psf_score", expected.m_filter.score },
+            { "noise_samples", static_cast<double>( expected.m_samples ) },
+            { "noise_modes", static_cast<double>( expected.m_modes ) },
+            { "noise_floor", expected.m_varianceFloor },
+            { "noise_status", 0 },
+            { "psf_support", 1 },
+            { "noise_attempted", static_cast<double>( expected.m_attempted ) },
+            { "noise_excluded", static_cast<double>( expected.m_excluded ) },
+            { "noise_incomplete", static_cast<double>( expected.m_incomplete ) } };
+        mx::fits::fitsFile<float, mx::verbose::vv> reader;
+        for( const auto &[role, value] : checks )
+        {
+            hciAnalyze::cubeT product;
+            hciAnalyze::fitsHeaderT header;
+            REQUIRE( reader.read( product, header, directory.file( model + "_" + role + ".fits" ).string() ) ==
+                     mx::error_t::noerror );
+            REQUIRE( product.image( 0 )( 48, 32 ) == Approx( value ).epsilon( 1e-6 ) );
+            REQUIRE( std::isnan( product.image( 0 )( 0, 0 ) ) );
+            std::string recordedModel = header["HCIA NOISE MODEL"].String();
+            recordedModel.erase( recordedModel.find_last_not_of( ' ' ) + 1 );
+            REQUIRE( recordedModel == model );
+            REQUIRE( header["HCIA NOISE CALIBRATED"].value<int>() == 0 );
+            REQUIRE( header["SNRSMALL"].value<int>() == 0 );
+            std::string recordedExclusions = header["HCIA NOISE EXCLUSIONS"].String();
+            recordedExclusions.erase( recordedExclusions.find_last_not_of( ' ' ) + 1 );
+            REQUIRE( recordedExclusions == "32,48,3" );
+        }
+        if( model == "identity" )
+        {
+            continue;
+        }
+        // Too little training is explicit and does not silently produce an identity-filter amplitude.
+        application.m_noiseConfig.m_minimumSamples = 1000;
+        science = original;
+        application.filterCubePSFResponse( science, scienceHeader );
+        REQUIRE( std::isnan( science.image( 0 )( 48, 32 ) ) );
+        hciAnalyze::cubeT status;
+        hciAnalyze::fitsHeaderT statusHeader;
+        REQUIRE( reader.read( status, statusHeader, directory.file( model + "_noise_status.fits" ).string() ) ==
+                 mx::error_t::noerror );
+        REQUIRE( status.image( 0 )( 48, 32 ) == 1 );
+    }
 }
 
 } // namespace hciAnalyze_test

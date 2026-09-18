@@ -1144,11 +1144,90 @@ is clean. A focused Doxygen build produced no warnings and confirmed test refere
 points and the noise-model public APIs. No edited function calls an upstream mxlib API, so this step adds no
 mxlib coverage-ownership follow-up.
 
-The application paths continue to call the identity filter. Step 4 supplies the common numerical API; selecting
-Welch-style annular training footprints, rotating them consistently with the response, recording training
-provenance, and exposing covariance options in `hciAnalyze` are the next integration work toward Step 5. Rank and
-floor selection, uncertainty calibration, and completeness at a fixed false-positive rate require held-out data.
-No covariance-related gain on AF Lep is claimed by these numerical checks.
+Step 4 supplied the common numerical API. Application integration and annular training are tracked in Step 5
+below. Rank and floor selection, uncertainty calibration, and completeness at a fixed false-positive rate require
+held-out data. No covariance-related gain on AF Lep is claimed by the Step-4 numerical checks.
+
+### Step 5 started: annular training and application integration (2026-09-17)
+
+**Step 5 is in progress.** `PSFNoiseTraining` now selects complete, finite annular patches and applies the Step-4
+shared filter. `hciAnalyze` exposes this for both P4 and KLIP responses through `noise.model=diagonal|pca`.
+Identity remains the default; `noise.outputDiagnostics=true` also exports its conditional products for comparisons.
+The [configuration dictionary](../../doc/hciAnalyze_config.dox) documents the options and output roles.
+
+#### Geometry and diagnostic contract
+
+Training centers stay at the candidate's exact radius. The default arc step is the response half-width, with a
+minimum of one pixel; the number of centers is rounded upward and their absolute angular phase is fixed. Each
+training offset is rotated from the candidate angle to the training angle before bilinear sampling. Thus training
+stamps are expressed in the candidate's native pixel coordinates, while science and response retain their original
+sampling. All patches have the same radial footprint, including across concentric reduction-region boundaries.
+Interpolation changes noise statistics; calibration must measure that consequence.
+
+A training patch is removed if its enclosing circle, enlarged by `sqrt(2)` pixels for interpolation support,
+intersects the candidate's enclosing circle plus `noise.guardRadius`, any resolved source-exclusion circle, or any
+explicit `noise.excludeRows/Columns/Radii` circle. This conservative rule excludes whole overlapping neighborhoods.
+Remaining patches require complete finite interpolation support. Defaults are eight accepted samples, three noise
+PCA modes, and a floor of 0.1 times the median pixel variance of the centered training matrix. Those are explicit
+initial settings, not settings chosen to improve the known planet. The full response footprint determines the patch
+size: the existing 11-by-11 response uses a 5-pixel default arc step, rather than silently assuming a one-lambda/D
+patch. The approximate 19-patch example in Section 6 still applies when the patch half-width is one lambda/D.
+
+No-training and invalid-support outcomes have explicit status maps and never fall back to a different noise model.
+Outputs separately retain amplitude, conditional sigma, signed score, support, accepted/attempted/excluded/incomplete
+sample counts, actual rank, and absolute floor. Metadata preserves the covariance settings, response field, mode,
+coordinate convention, exclusions, and uncalibrated status. Gaussian post-filtering is disallowed for this mode so
+those conditional products remain tied to the stated response and covariance. The existing annular SNR calculation
+is a separate output; its small-sample multiplier does not calibrate the conditional score.
+
+#### Fixed-policy integration pilot
+
+The maintained [`run_p4_step5_pilot.py`](scripts/run_p4_step5_pilot.py) freezes the analysis executable/library,
+fingerprints the full Step-3 science image and response products, and runs identity, diagonal, and PCA sequentially
+on homogeneous CPU cores. It measures runtime and valid training coverage by radius, without choosing settings
+from the planet's score. This is an integration pilot, not a completeness or false-positive measurement.
+
+The [pilot report](results/p4-step5-pilot-20260917/README.md) records the completed fixed-policy run. Identity,
+diagonal, and PCA took 0.121, 1.622, and 7.957 seconds including diagnostic I/O. Of 8,616 identity-valid positions,
+7,679 admit covariance training; 937 fail the eight-patch minimum. Another 2,188 response positions fail the original
+support policy for all methods. Covariance training is complete from 20–50 pixels, with median accepted patch counts
+of 20, 39, and 51 in the 20–30, 30–40, and 40–50 pixel bands. These overlapping counts are not independent sample counts.
+At the nearest AF Lep pixel (139, 126), only six patches survive, so the fixed eight-patch policy marks both covariance
+models invalid. Inner-radius footprint and regularization choices remain a development/held-out calibration task;
+neighboring valid aperture pixels do not establish a gain at the source.
+
+All six selected regression suites pass (107 test cases). The new geometry/filter suite has 1,141 assertions, and
+`hciAnalyze` has 445. A focused Doxygen build verifies production API test links; its included-fixture preprocessor
+warning is also present with the pre-change test file. The current mxlib LCOV audit found an unexercised exact
+unsigned-long configuration overload, a 34/40-line CLI parser, and missing exact float cube lifecycle instantiations.
+Concrete upstream tests are listed under `Known non-blocking ownership follow-ups` in
+[`mxlib_cleanup.md`](mxlib_cleanup.md); passing downstream tests do not establish upstream coverage.
+
+#### Held-out evaluation protocol and remaining work
+
+1. Define disjoint angular neighborhoods before inspecting their scores. Reserve separate development,
+   threshold-calibration, and evaluation neighborhoods, with full-footprint guards. Explicit exclusion circles can
+   cover those neighborhoods; record their union and verify that no accepted training stencil reaches a held-out
+   pixel. Use the same candidate support and exclusions for model comparisons.
+2. Fix an initial operating point of 5% false positives per preassigned spatial trial. A trial uses a predeclared
+   search aperture around its center, identically for nulls and injections. Thresholds come only from calibration
+   neighborhoods, with achieved rates and uncertainty reported on evaluation neighborhoods. Count spatial trials
+   explicitly and estimate uncertainty by angular blocks; do not count overlapped pixels as independent nulls or
+   extrapolate this pilot to five-sigma tails.
+3. Compare identity, diagonal, and PCA weighting, with a zero-mode PCA control to separate background centering and
+   local variance normalization from correlated weighting. Select rank/floor on development neighborhoods only;
+   freeze them before evaluation. Also report results for the fixed initial policy.
+4. Run fresh positive injections through the reduction at held-out positions and brightnesses spanning the detection
+   transition. Use raw recovered amplitudes and scores, with no baseline subtraction, for completeness and
+   uncertainty coverage. Keep template/PSF normalization, response support, mode count, and aperture policy fixed.
+   The six-position Step-3 baseline-subtracted study remains a response-bias diagnostic: its local 15-by-15 outputs
+   neither supply annular training data nor establish the global effect of injections on the residual field.
+5. Report recovery fraction at the frozen threshold, null exceedance rate, contrast bias, and empirical coverage of
+   conditional intervals. Keep known-planet inspection separate. Record mask/sample-count failures and compare on
+   common eligible support so a method cannot appear better merely by rejecting difficult locations.
+
+The present checkpoint implements the sampler, application integration, and pilot machinery. The held-out
+threshold and fresh-injection study are required before Step 5 can be marked complete or covariance gains claimed.
 
 ## 8. Notation
 

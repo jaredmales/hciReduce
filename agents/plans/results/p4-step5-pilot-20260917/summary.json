@@ -1,0 +1,458 @@
+{
+  "policy": {
+    "arc_step_pixels": 0,
+    "extra_guard_pixels": 0,
+    "minimum_samples": 8,
+    "maximum_modes": 3,
+    "floor_fraction": 0.1,
+    "known_source_exclusion_pixels": 10,
+    "lambdaD_pixels": 2.5,
+    "cpu_ids": [
+      0,
+      2
+    ]
+  },
+  "models": {
+    "identity": {
+      "returncode": 0,
+      "elapsed_seconds": 0.12146198202390224,
+      "radial_training_coverage": [
+        {
+          "radius_pixels": [
+            0,
+            10
+          ],
+          "attempted_candidates": 316,
+          "valid_candidates": 316,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 0.0
+        },
+        {
+          "radius_pixels": [
+            10,
+            20
+          ],
+          "attempted_candidates": 948,
+          "valid_candidates": 948,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 0.0
+        },
+        {
+          "radius_pixels": [
+            20,
+            30
+          ],
+          "attempted_candidates": 1564,
+          "valid_candidates": 1564,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 0.0
+        },
+        {
+          "radius_pixels": [
+            30,
+            40
+          ],
+          "attempted_candidates": 2196,
+          "valid_candidates": 2196,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 0.0
+        },
+        {
+          "radius_pixels": [
+            40,
+            50
+          ],
+          "attempted_candidates": 2836,
+          "valid_candidates": 2836,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 0.0
+        },
+        {
+          "radius_pixels": [
+            50,
+            60
+          ],
+          "attempted_candidates": 2944,
+          "valid_candidates": 756,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 2188,
+          "median_training_patches": 0.0
+        }
+      ],
+      "status_counts": {
+        "0": 8616,
+        "1": 0,
+        "2": 0,
+        "3": 2188
+      },
+      "no_response": 54732,
+      "products": [
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_noise_attempted.fits",
+          "bytes": 299520,
+          "sha256": "50a5cd26e699e6919fdff1bf155d53a68fa7f392372395b198bad8dff565450c"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_noise_excluded.fits",
+          "bytes": 299520,
+          "sha256": "c60f240191c1c928e4997d88a7fc8fbfb3c7c14dc4e5f3caa605a6300aa47236"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_noise_floor.fits",
+          "bytes": 299520,
+          "sha256": "8ffdb9227d100a05f4e52634587e8ba3a499ad02d3725c21fb8b20b3d01a1287"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_noise_incomplete.fits",
+          "bytes": 299520,
+          "sha256": "5c8e1e7f678c87ad6932f7b9343afc6a4e4ca81b5ba9d83017660b4c46c8006b"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_noise_modes.fits",
+          "bytes": 299520,
+          "sha256": "445634d2337727e4f1fb033dbc73e6e0c491dd02030271e70b7ec3b361e60a5b"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_noise_samples.fits",
+          "bytes": 299520,
+          "sha256": "c96670f5dfc1dac142d40a9a3883a6b56277d1c3bb260ff2b294d9e300a1ab6c"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_noise_status.fits",
+          "bytes": 299520,
+          "sha256": "41b9f7d102e46d36f4c29b84113c4d4b10885c71d45fbe66e518a59e718dc714"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_psf_amplitude.fits",
+          "bytes": 299520,
+          "sha256": "a4d4cc0483cbcfa77ce92454c8050621694780627afb06d42a9c1d2b2e1dc0c9"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_psf_score.fits",
+          "bytes": 299520,
+          "sha256": "1c515c57d3b1354ee43dcde3e55af6f85f3125cd88adc9225d11a864bf3651d4"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_psf_sigma.fits",
+          "bytes": 299520,
+          "sha256": "cf398373ce7c0572654450cb8d8750b032ea2e005f29012672f448602a0524fc"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_psf_support.fits",
+          "bytes": 299520,
+          "sha256": "e40a17278888991ec9c07c856c86104a184f86c0d45ff2603fd846e15e110ac3"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/identity/science_snr.fits",
+          "bytes": 296640,
+          "sha256": "3970a2d9b02e1bff42433b7ff5425d86b48089d14450b6961be26f38de6e45a8"
+        }
+      ]
+    },
+    "diagonal": {
+      "returncode": 0,
+      "elapsed_seconds": 1.6215437180362642,
+      "radial_training_coverage": [
+        {
+          "radius_pixels": [
+            0,
+            10
+          ],
+          "attempted_candidates": 316,
+          "valid_candidates": 0,
+          "too_few_samples": 316,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": null
+        },
+        {
+          "radius_pixels": [
+            10,
+            20
+          ],
+          "attempted_candidates": 948,
+          "valid_candidates": 433,
+          "too_few_samples": 515,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 10.0
+        },
+        {
+          "radius_pixels": [
+            20,
+            30
+          ],
+          "attempted_candidates": 1564,
+          "valid_candidates": 1564,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 20.0
+        },
+        {
+          "radius_pixels": [
+            30,
+            40
+          ],
+          "attempted_candidates": 2196,
+          "valid_candidates": 2196,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 39.0
+        },
+        {
+          "radius_pixels": [
+            40,
+            50
+          ],
+          "attempted_candidates": 2836,
+          "valid_candidates": 2836,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 51.0
+        },
+        {
+          "radius_pixels": [
+            50,
+            60
+          ],
+          "attempted_candidates": 2944,
+          "valid_candidates": 650,
+          "too_few_samples": 106,
+          "zero_variance": 0,
+          "invalid_filter": 2188,
+          "median_training_patches": 57.0
+        }
+      ],
+      "status_counts": {
+        "0": 7679,
+        "1": 937,
+        "2": 0,
+        "3": 2188
+      },
+      "no_response": 54732,
+      "products": [
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_noise_attempted.fits",
+          "bytes": 299520,
+          "sha256": "02fcf9d1e2af84e9205eedbdc09205b156b78e4bfb0494eaf31a4a5fa8394a8b"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_noise_excluded.fits",
+          "bytes": 299520,
+          "sha256": "02c442e09b00775d6e01ae8a7e28b153a899c8cf425e8154b318d481fcdcc3fb"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_noise_floor.fits",
+          "bytes": 299520,
+          "sha256": "b2d81fb4685182ad39ec0a4b4e0ea2beef5974f0d852d1a05225e2a753d6e1f0"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_noise_incomplete.fits",
+          "bytes": 299520,
+          "sha256": "ea439fd84c38916f6036491fb82e55980bb033fe45de4858ac5b88916794ebfb"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_noise_modes.fits",
+          "bytes": 299520,
+          "sha256": "6af607e16b0eef9d7ffcddaaa5c1c7ed3c8b05c0ac018b5a1fa2813162ebe46f"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_noise_samples.fits",
+          "bytes": 299520,
+          "sha256": "c9491eb6fb37c8df9cdca1f0ee35b676a6000ba13ecad02cf40dc8a3ffac63c7"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_noise_status.fits",
+          "bytes": 299520,
+          "sha256": "4fef4cb35025669756ff7e2fb45e3fd53502fbe7815f7540e0faf1cb2e06619f"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_psf_amplitude.fits",
+          "bytes": 299520,
+          "sha256": "dc3c9fbf827c4e75a5b0a0caf0f98343bfd8051e410d45fe82257d93e333d0d6"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_psf_score.fits",
+          "bytes": 299520,
+          "sha256": "ee464b9e10452cd14785474317a023ae29b729b187ae7d2fe8a64a15ae9f8b97"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_psf_sigma.fits",
+          "bytes": 299520,
+          "sha256": "d47eac0631ba6e0d2089b11ce5df451404c593f68df546512c48374567ffb238"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_psf_support.fits",
+          "bytes": 299520,
+          "sha256": "ff4c267aebcf10c4371b98741fa47bcab7fe6d6b77c8698ea00d172fd3c72ab1"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/diagonal/science_snr.fits",
+          "bytes": 299520,
+          "sha256": "af3091fa00e592be201ae0032e9607bbdc83f72a1648c3b6ee0508431b1dcffd"
+        }
+      ]
+    },
+    "pca": {
+      "returncode": 0,
+      "elapsed_seconds": 7.956699643051252,
+      "radial_training_coverage": [
+        {
+          "radius_pixels": [
+            0,
+            10
+          ],
+          "attempted_candidates": 316,
+          "valid_candidates": 0,
+          "too_few_samples": 316,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": null
+        },
+        {
+          "radius_pixels": [
+            10,
+            20
+          ],
+          "attempted_candidates": 948,
+          "valid_candidates": 433,
+          "too_few_samples": 515,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 10.0
+        },
+        {
+          "radius_pixels": [
+            20,
+            30
+          ],
+          "attempted_candidates": 1564,
+          "valid_candidates": 1564,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 20.0
+        },
+        {
+          "radius_pixels": [
+            30,
+            40
+          ],
+          "attempted_candidates": 2196,
+          "valid_candidates": 2196,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 39.0
+        },
+        {
+          "radius_pixels": [
+            40,
+            50
+          ],
+          "attempted_candidates": 2836,
+          "valid_candidates": 2836,
+          "too_few_samples": 0,
+          "zero_variance": 0,
+          "invalid_filter": 0,
+          "median_training_patches": 51.0
+        },
+        {
+          "radius_pixels": [
+            50,
+            60
+          ],
+          "attempted_candidates": 2944,
+          "valid_candidates": 650,
+          "too_few_samples": 106,
+          "zero_variance": 0,
+          "invalid_filter": 2188,
+          "median_training_patches": 57.0
+        }
+      ],
+      "status_counts": {
+        "0": 7679,
+        "1": 937,
+        "2": 0,
+        "3": 2188
+      },
+      "no_response": 54732,
+      "products": [
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_noise_attempted.fits",
+          "bytes": 299520,
+          "sha256": "4de69adf3cb8de2595ffbce9ea0b3a53b37daba61bca0821ed1d27c03e0ff57f"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_noise_excluded.fits",
+          "bytes": 299520,
+          "sha256": "59da9d2c9c2845c56974573a46ca0422dd56e7a07a60a97334a4887b453faba6"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_noise_floor.fits",
+          "bytes": 299520,
+          "sha256": "7a5f3204fc9961b73fe6b8474ff0ee86c936f5671db87c6bd1a982fbc878da85"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_noise_incomplete.fits",
+          "bytes": 299520,
+          "sha256": "727c534e9649bfb4f5063e3ae2e4fddb172ed99e3625abd51a5a8b0634c36a21"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_noise_modes.fits",
+          "bytes": 299520,
+          "sha256": "6791595dc7c88c2a18c4798e34c14a1fb34b3d7ca6d2d8f351dc60500f14ee57"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_noise_samples.fits",
+          "bytes": 299520,
+          "sha256": "a3085ab3caf6a691ef20b6f3a8f1978aedec30ecb808ed115e38e537fd2247b8"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_noise_status.fits",
+          "bytes": 299520,
+          "sha256": "c8aa56f8ca31092cd4f7c32c4695f0820d53ecf162681b93afae68d45f8905bc"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_psf_amplitude.fits",
+          "bytes": 299520,
+          "sha256": "3d405f34ef8fcdb5afe764396b125dd3fdbb09315186ccfc04bc1eaff7ecaca2"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_psf_score.fits",
+          "bytes": 299520,
+          "sha256": "281c62a77753241c245124e6bc6d83b2a82eae377eb2d15ac79b3884542bdc61"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_psf_sigma.fits",
+          "bytes": 299520,
+          "sha256": "cda291d8b11e66f7dfaaf0db2d61be4fbcaa8738e62c94d6af7203f08db9b551"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_psf_support.fits",
+          "bytes": 299520,
+          "sha256": "cb380ec02854d600087d262a26ccddefab8e1c4795c3f5907a4cf63aaa51f44e"
+        },
+        {
+          "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/pca/science_snr.fits",
+          "bytes": 299520,
+          "sha256": "689a994cc49ff4b16ba84545653c6c080fc7c24671bd52fc0d851fe4dc91e5a2"
+        }
+      ]
+    }
+  }
+}

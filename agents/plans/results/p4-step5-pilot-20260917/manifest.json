@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "purpose": "integration and training-coverage pilot; no detection-gain claim",
+  "inputs": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim.fits",
+      "bytes": 299520,
+      "sha256": "c2a46fd5fccc55b9a25ce0f10a7613f9a52303ccb6c54f8d895607d1d621100d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_coordinates.fits",
+      "bytes": 221760,
+      "sha256": "a22c4f23d573144913598ffedb765231b490f94d95bc37d506b8924efd008970"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_manifest.fits",
+      "bytes": 43200,
+      "sha256": "92af1acb0fe0a223cfdfe105dda69ba210be8d693c698acabdd5b0f0493fdcab"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_measurement_diagnostics.fits",
+      "bytes": 51840,
+      "sha256": "40be0f6daf251c4d61bcba14673f65bb60007b811f4cc46c9d4116bf63ebeaeb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_model_0000.fits",
+      "bytes": 5512320,
+      "sha256": "9a31db93aa2b889aa8a42a48b1d02305f644c4142eab15a793a346984ea484a3"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_analytic_step3_20260917/analytic_sparse_batch32/finim_outputs/p4PSF_validity_0000.fits",
+      "bytes": 86400,
+      "sha256": "e45d24bacf7b720362a57237df0e172b594913977a68a6b5e30de77aa8287f0b"
+    }
+  ],
+  "policy": {
+    "arc_step_pixels": 0,
+    "extra_guard_pixels": 0,
+    "minimum_samples": 8,
+    "maximum_modes": 3,
+    "floor_fraction": 0.1,
+    "known_source_exclusion_pixels": 10,
+    "lambdaD_pixels": 2.5,
+    "cpu_ids": [
+      0,
+      2
+    ]
+  },
+  "binary": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/software/hciAnalyze",
+    "bytes": 446976,
+    "sha256": "e916e3098b05c63e36d34c1ce657e6b8e93bd7d15cc2af1f1b1786560f58426c"
+  },
+  "library": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_20260917_final/software/libhcireduce.so",
+    "bytes": 2882472,
+    "sha256": "0fe92f32ea1556a3b9847350f91ab589a9046a9eae9ec11d8c64bd1f2eb45ff3"
+  },
+  "script": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/scripts/run_p4_step5_pilot.py",
+    "bytes": 7465,
+    "sha256": "6474961b05a8df891f1e66c4dec0fefdca97b9e38627e5dac49f760261731024"
+  }
+}

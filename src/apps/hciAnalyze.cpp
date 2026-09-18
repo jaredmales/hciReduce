@@ -3,6 +3,7 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdint>
@@ -30,6 +31,7 @@
 
 #include "src/common/ConfigUtils.hpp"
 #include "src/common/P4PSFFilter.hpp"
+#include "src/common/PSFNoiseTraining.hpp"
 #include "src/common/RadialPSFModel.hpp"
 
 /// One configured or header-derived signal to measure.
@@ -87,6 +89,16 @@ class hciAnalyze : public mx::app::application
     realT m_lowPassFwhm{ 0 };                 ///< Gaussian low-pass smoothing FWHM in pixels.
     std::string m_psfResponse;                ///< P4 or KLIP response manifest supplying the spatially variable filter.
     realT m_psfResponseMinimumSupport{ 1 };   ///< Minimum usable response-stamp fraction read from the manifest.
+    std::string m_noiseModel{ "identity" };   ///< Residual-noise weighting: identity, diagonal, or pca.
+    bool m_noiseDiagnostics{ false };         ///< Also write conditional diagnostic products for identity weighting.
+    mx::improc::PSFNoiseTrainingConfig m_noiseConfig; ///< Annular geometry and explicit covariance regularization.
+    std::vector<double> m_noiseExcludeRows;    ///< Additional source or held-out circle centers, first image index.
+    std::vector<double> m_noiseExcludeColumns; ///< Additional source or held-out circle centers, second image index.
+    std::vector<double> m_noiseExcludeRadii;   ///< Additional exclusion radii, one per supplied center.
+    std::vector<mx::improc::PSFNoiseExclusion> m_noiseExclusions; ///< Resolved signals and additional held-out circles.
+    std::array<cubeT, 11> m_noiseProducts;    ///< Amplitude, sigma, score, sample/mode counts, floor, status, support,
+                                              ///< attempted/excluded/incomplete counts.
+
     bool m_diagnostics{ false };              ///< Whether to print resolved measurement diagnostics to standard error.
 
     bool m_planetSpecified{ false };          ///< True when any explicit planet target was supplied.
@@ -154,6 +166,24 @@ class hciAnalyze : public mx::app::application
     /// Apply an externally generated P4 or KLIP PSF response field to every matching cube plane.
     void filterCubePSFResponse( cubeT &cube, /**< [in,out] science cube replaced by matched-filter amplitudes */
                                 fitsHeaderT &scienceHeader /**< [in] science header supplying mode labels */ );
+
+    /// Validate and resolve the optional covariance-weighting configuration.
+    void checkNoiseConfig();
+
+    /// Allocate conditional-statistic products and resolve all training exclusions.
+    void prepareNoiseProducts( const cubeT &cube /**< [in] unfiltered science cube supplying output dimensions */ );
+
+    /// Apply the selected noise model to one native response stamp and retain training diagnostics.
+    mx::improc::P4PSFFilterResult
+    applyPSFFilter( mx::improc::P4PSFFilter::imageConstRefT science,     /**< [in] unfiltered science image */
+                    mx::improc::P4PSFFilter::imageConstRefT response,    /**< [in] native signed response stamp */
+                    mx::improc::P4PSFFilter::validityConstRefT validity, /**< [in] valid response pixels */
+                    int sourceRow,                                       /**< [in] candidate row */
+                    int sourceColumn,                                    /**< [in] candidate column */
+                    int mode /**< [in] output mode-plane index */ );
+
+    /// Write covariance-filter diagnostics separately from the empirical annular SNR product.
+    void writeNoiseProducts( const fitsHeaderT &scienceHeader /**< [in] original science metadata */ ) const;
 
     /// Reconstruct and apply one sparse radial KLIP PSF response field.
     void filterCubeKLIPPSFResponse( cubeT &cube, /**< [in,out] science cube replaced by matched-filter amplitudes */
@@ -336,6 +366,96 @@ void hciAnalyze::setupConfig()
                 false,
                 "string",
                 "complete P4 or KLIP PSF response manifest used for spatially variable matched filtering" );
+    config.add( "noise.model",
+                "",
+                "noise.model",
+                mx::app::argType::Required,
+                "noise",
+                "model",
+                false,
+                "string",
+                "identity, diagonal, or pca residual-noise weighting; requires filter.psfResponse" );
+    config.add( "noise.outputDiagnostics",
+                "",
+                "noise.outputDiagnostics",
+                mx::app::argType::Optional,
+                "noise",
+                "outputDiagnostics",
+                false,
+                "bool",
+                "also write conditional products for identity weighting" );
+    config.add( "noise.arcStep",
+                "",
+                "noise.arcStep",
+                mx::app::argType::Required,
+                "noise",
+                "arcStep",
+                false,
+                "double",
+                "training-center arc spacing in pixels; zero uses half the response width" );
+    config.add( "noise.guardRadius",
+                "",
+                "noise.guardRadius",
+                mx::app::argType::Required,
+                "noise",
+                "guardRadius",
+                false,
+                "double",
+                "additional candidate exclusion radius in pixels beyond the full response footprint" );
+    config.add( "noise.minimumSamples",
+                "",
+                "noise.minimumSamples",
+                mx::app::argType::Required,
+                "noise",
+                "minimumSamples",
+                false,
+                "size_t",
+                "minimum complete noise patches; default 8; overlap does not imply independence" );
+    config.add( "noise.maximumModes",
+                "",
+                "noise.maximumModes",
+                mx::app::argType::Required,
+                "noise",
+                "maximumModes",
+                false,
+                "size_t",
+                "maximum retained noise PCA modes; default 3; zero retains only the variance floor" );
+    config.add( "noise.floorFraction",
+                "",
+                "noise.floorFraction",
+                mx::app::argType::Required,
+                "noise",
+                "floorFraction",
+                false,
+                "double",
+                "variance floor as a fraction of the median training-pixel variance in (0,1]; default 0.1" );
+    config.add( "noise.excludeRows",
+                "",
+                "noise.excludeRows",
+                mx::app::argType::Required,
+                "noise",
+                "excludeRows",
+                false,
+                "vector<double>",
+                "additional source or held-out centers along the first image index" );
+    config.add( "noise.excludeColumns",
+                "",
+                "noise.excludeColumns",
+                mx::app::argType::Required,
+                "noise",
+                "excludeColumns",
+                false,
+                "vector<double>",
+                "additional source or held-out centers along the second image index" );
+    config.add( "noise.excludeRadii",
+                "",
+                "noise.excludeRadii",
+                mx::app::argType::Required,
+                "noise",
+                "excludeRadii",
+                false,
+                "vector<double>",
+                "one exclusion radius in pixels per additional center" );
     config.add( "diagnostics",
                 "d",
                 "diagnostics",
@@ -365,6 +485,16 @@ void hciAnalyze::loadConfig()
     config( m_highPassFwhm, "filter.hpfGaussFW" );
     config( m_lowPassFwhm, "filter.lpfGaussFW" );
     config( m_psfResponse, "filter.psfResponse" );
+    config( m_noiseModel, "noise.model" );
+    mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_noiseDiagnostics, "noise.outputDiagnostics" );
+    config( m_noiseConfig.m_arcStep, "noise.arcStep" );
+    config( m_noiseConfig.m_guardRadius, "noise.guardRadius" );
+    config( m_noiseConfig.m_minimumSamples, "noise.minimumSamples" );
+    config( m_noiseConfig.m_maximumModes, "noise.maximumModes" );
+    config( m_noiseConfig.m_floorFraction, "noise.floorFraction" );
+    config( m_noiseExcludeRows, "noise.excludeRows" );
+    config( m_noiseExcludeColumns, "noise.excludeColumns" );
+    config( m_noiseExcludeRadii, "noise.excludeRadii" );
     mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_diagnostics, "diagnostics" );
 
     m_planetSpecified = targetSpecified( "planet.sep" ) || targetSpecified( "planet.PA" ) ||
@@ -422,6 +552,7 @@ void hciAnalyze::checkConfig()
         throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
                                               "snr.minRad must be smaller than snr.maxRad" );
     }
+    checkNoiseConfig();
 }
 
 int hciAnalyze::execute()
@@ -716,8 +847,224 @@ void hciAnalyze::filterCube( cubeT &cube, const cubeT &invalidMask, realT highPa
     }
 }
 
+void hciAnalyze::checkNoiseConfig()
+{
+    if( m_noiseModel == "identity" )
+    {
+        m_noiseConfig.m_kind = mx::improc::PSFNoiseKind::identity;
+    }
+    else if( m_noiseModel == "diagonal" )
+    {
+        m_noiseConfig.m_kind = mx::improc::PSFNoiseKind::diagonal;
+    }
+    else if( m_noiseModel == "pca" )
+    {
+        m_noiseConfig.m_kind = mx::improc::PSFNoiseKind::pca;
+    }
+    else
+    {
+        throw std::invalid_argument( "noise.model must be identity, diagonal, or pca" );
+    }
+    if( m_noiseModel != "identity" && ( m_psfResponse.empty() || m_highPassFwhm > 0 || m_lowPassFwhm > 0 ) )
+    {
+        throw std::invalid_argument( "covariance weighting requires filter.psfResponse and disabled Gaussian filters" );
+    }
+    if( !std::isfinite( m_noiseConfig.m_arcStep ) || m_noiseConfig.m_arcStep < 0 ||
+        !std::isfinite( m_noiseConfig.m_guardRadius ) || m_noiseConfig.m_guardRadius < 0 ||
+        m_noiseConfig.m_minimumSamples < 2 || m_noiseConfig.m_minimumSamples > std::numeric_limits<int>::max() ||
+        m_noiseConfig.m_maximumModes > std::numeric_limits<int>::max() ||
+        !std::isfinite( m_noiseConfig.m_floorFraction ) || m_noiseConfig.m_floorFraction <= 0 ||
+        m_noiseConfig.m_floorFraction > 1 )
+    {
+        throw std::invalid_argument( "noise settings require nonnegative finite geometry, at least two samples, "
+                                     "nonnegative modes, and floorFraction in (0,1]" );
+    }
+    if( m_noiseExcludeRows.size() != m_noiseExcludeColumns.size() ||
+        m_noiseExcludeRows.size() != m_noiseExcludeRadii.size() )
+    {
+        throw std::invalid_argument( "noise.excludeRows, excludeColumns, and excludeRadii must have equal lengths" );
+    }
+    for( std::size_t index = 0; index < m_noiseExcludeRows.size(); ++index )
+    {
+        if( !std::isfinite( m_noiseExcludeRows[index] ) || !std::isfinite( m_noiseExcludeColumns[index] ) ||
+            !std::isfinite( m_noiseExcludeRadii[index] ) || m_noiseExcludeRadii[index] < 0 )
+        {
+            throw std::invalid_argument( "additional noise exclusions require finite centers and nonnegative radii" );
+        }
+    }
+}
+
+void hciAnalyze::prepareNoiseProducts( const cubeT &cube )
+{
+    checkNoiseConfig();
+    if( m_noiseModel == "identity" && !m_noiseDiagnostics )
+    {
+        return;
+    }
+    m_noiseExclusions.clear();
+    for( const auto &signal : m_signals )
+    {
+        m_noiseExclusions.push_back( { signal.m_x, signal.m_y, signal.m_exclusionRadius } );
+    }
+    for( std::size_t index = 0; index < m_noiseExcludeRows.size(); ++index )
+    {
+        m_noiseExclusions.push_back(
+            { m_noiseExcludeRows[index], m_noiseExcludeColumns[index], m_noiseExcludeRadii[index] } );
+    }
+    for( auto &product : m_noiseProducts )
+    {
+        product.resize( cube.rows(), cube.cols(), cube.planes() );
+        product.cube().setConstant( std::numeric_limits<realT>::quiet_NaN() );
+    }
+}
+
+mx::improc::P4PSFFilterResult hciAnalyze::applyPSFFilter( mx::improc::P4PSFFilter::imageConstRefT science,
+                                                          mx::improc::P4PSFFilter::imageConstRefT response,
+                                                          mx::improc::P4PSFFilter::validityConstRefT validity,
+                                                          int sourceRow,
+                                                          int sourceColumn,
+                                                          int mode )
+{
+    if( m_noiseModel == "identity" && !m_noiseDiagnostics )
+    {
+        return mx::improc::P4PSFFilter::calculate( science,
+                                                   response,
+                                                   validity,
+                                                   sourceRow,
+                                                   sourceColumn,
+                                                   m_psfResponseMinimumSupport );
+    }
+    const mx::improc::PSFNoiseTrainingResult result =
+        mx::improc::PSFNoiseTraining::calculate( science,
+                                                 response,
+                                                 validity,
+                                                 sourceRow,
+                                                 sourceColumn,
+                                                 m_psfResponseMinimumSupport,
+                                                 m_noiseConfig,
+                                                 m_noiseExclusions );
+    const double missing = std::numeric_limits<double>::quiet_NaN();
+    const std::array<double, 11> values{ result.m_filter.valid ? result.m_filter.amplitude : missing,
+                                         result.m_filter.valid ? result.m_filter.conditionalSigma : missing,
+                                         result.m_filter.valid ? result.m_filter.score : missing,
+                                         static_cast<double>( result.m_samples ),
+                                         static_cast<double>( result.m_modes ),
+                                         result.m_varianceFloor > 0 ? result.m_varianceFloor : missing,
+                                         static_cast<double>( result.m_status ),
+                                         result.m_status == mx::improc::PSFNoiseTrainingStatus::tooFewSamples ||
+                                                 result.m_status == mx::improc::PSFNoiseTrainingStatus::zeroVariance
+                                             ? missing
+                                             : result.m_filter.supportFraction,
+                                         static_cast<double>( result.m_attempted ),
+                                         static_cast<double>( result.m_excluded ),
+                                         static_cast<double>( result.m_incomplete ) };
+    for( std::size_t index = 0; index < values.size(); ++index )
+    {
+        m_noiseProducts[index].image( mode )( sourceRow, sourceColumn ) =
+            std::isfinite( values[index] ) && std::abs( values[index] ) <= std::numeric_limits<realT>::max()
+                ? static_cast<realT>( values[index] )
+                : std::numeric_limits<realT>::quiet_NaN();
+    }
+    return result.m_filter;
+}
+
+void hciAnalyze::writeNoiseProducts( const fitsHeaderT &scienceHeader ) const
+{
+    if( m_noiseModel == "identity" && !m_noiseDiagnostics )
+    {
+        return;
+    }
+    if( m_file.empty() )
+    {
+        throw std::invalid_argument( "noise diagnostic products require an input file path" );
+    }
+    fitsHeaderT header = scienceHeader;
+    const auto add = [&header]( const std::string &keyword, const auto &value, const std::string &comment )
+    {
+        if( header.count( keyword ) && header.erase( keyword ) != mx::error_t::noerror )
+        {
+            throw std::runtime_error( "replacing noise diagnostic header " + keyword );
+        }
+        if( header.append( keyword, value, comment ) != mx::error_t::noerror )
+        {
+            throw std::runtime_error( "adding noise diagnostic header " + keyword );
+        }
+    };
+    for( const std::string &keyword : { "SIMPLE", "BITPIX", "NAXIS", "NAXIS1", "NAXIS2", "NAXIS3", "EXTEND" } )
+    {
+        if( header.count( keyword ) && header.erase( keyword ) != mx::error_t::noerror )
+        {
+            throw std::runtime_error( "removing structural noise-product header " + keyword );
+        }
+    }
+    add( "HCIA NOISE SCHEMA", 1, "conditional covariance-filter diagnostics" );
+    add( "HCIA NOISE MODEL", m_noiseModel, "residual-noise covariance representation" );
+    add( "HCIA NOISE TRAINED", m_noiseModel == "identity" ? 0 : 1, "whether a noise covariance was estimated" );
+    add( "HCIA NOISE ARC STEP", m_noiseConfig.m_arcStep, "requested spacing [pix]; 0=half stamp width" );
+    add( "HCIA NOISE GUARD", m_noiseConfig.m_guardRadius, "extra candidate guard beyond stamp radius [pix]" );
+    add( "HCIA NOISE MIN SAMPLES",
+         static_cast<int>( m_noiseConfig.m_minimumSamples ),
+         "minimum patches, not independent samples" );
+    add( "HCIA NOISE MAX MODES", static_cast<int>( m_noiseConfig.m_maximumModes ), "maximum retained noise PCA rank" );
+    add( "HCIA NOISE FLOOR FRACTION", m_noiseConfig.m_floorFraction, "floor / median training pixel variance" );
+    add( "HCIA NOISE SAMPLING", std::string( "BILINEAR_NATIVE_ALIGNED" ), "fixed radius, absolute angular phase zero" );
+    add( "HCIA NOISE EXCLUSION", std::string( "CIRCUMCIRCLE_PLUS_SQRT2" ), "whole training footprint dilation [pix]" );
+    add( "HCIA NOISE STATUS",
+         std::string( "0=valid,1=few_samples,2=zero_variance,3=invalid_filter" ),
+         "NaN=no usable response" );
+    add( "HCIA NOISE CALIBRATED", 0, "conditional quantities; no empirical significance calibration" );
+    add( "SNRSMALL", 0, "no small-sample multiplier on conditional products" );
+    add( "HCIAPSF", m_psfResponse, "PSF response manifest" );
+    add( "HCIAPSM", m_psfResponseMinimumSupport, "minimum response support fraction" );
+    std::string exclusions;
+    for( const auto &exclusion : m_noiseExclusions )
+    {
+        if( !exclusions.empty() )
+        {
+            exclusions += ";";
+        }
+        exclusions += std::format( "{:.17g},{:.17g},{:.17g}", exclusion.m_row, exclusion.m_column, exclusion.m_radius );
+    }
+    add( "HCIA NOISE EXCLUSIONS", exclusions, "resolved row,column,radius circles; semicolon separated" );
+    constexpr std::array<const char *, 11> roles{ "psf_amplitude",
+                                                  "psf_sigma",
+                                                  "psf_score",
+                                                  "noise_samples",
+                                                  "noise_modes",
+                                                  "noise_floor",
+                                                  "noise_status",
+                                                  "psf_support",
+                                                  "noise_attempted",
+                                                  "noise_excluded",
+                                                  "noise_incomplete" };
+    constexpr std::array<const char *, 11> units{ "template amplitude",
+                                                  "template amplitude",
+                                                  "conditional score",
+                                                  "patches",
+                                                  "modes",
+                                                  "image units squared",
+                                                  "status code",
+                                                  "fraction",
+                                                  "patches",
+                                                  "patches",
+                                                  "patches" };
+    mx::fits::fitsFile<realT, mx::verbose::vv> writer;
+    for( std::size_t index = 0; index < roles.size(); ++index )
+    {
+        add( "HCIA NOISE PRODUCT", std::string( roles[index] ), "diagnostic quantity" );
+        add( "BUNIT", std::string( units[index] ), "diagnostic units" );
+        const std::string path = mx::improc::psfFilterProductPath( m_file, roles[index], false );
+        const mx::error_t result = writer.write( path, m_noiseProducts[index], header );
+        if( result != mx::error_t::noerror )
+        {
+            throw mx::exception<mx::verbose::vv>( result, "writing covariance-filter diagnostic " + path );
+        }
+    }
+}
+
 void hciAnalyze::filterCubePSFResponse( cubeT &cube, fitsHeaderT &scienceHeader )
 {
+    prepareNoiseProducts( cube );
     const std::filesystem::path manifestPath{ m_psfResponse };
     const std::string manifestName = manifestPath.filename().string();
     constexpr std::string_view manifestSuffix{ "manifest.fits" };
@@ -740,6 +1087,7 @@ void hciAnalyze::filterCubePSFResponse( cubeT &cube, fitsHeaderT &scienceHeader 
     if( manifestHeader.count( "KLIP PSF PRODUCT" ) != 0 )
     {
         filterCubeKLIPPSFResponse( cube, scienceHeader, productPrefix, manifest, manifestHeader );
+        writeNoiseProducts( scienceHeader );
         return;
     }
     const auto requireHeader = [&manifestHeader]( const std::string &keyword )
@@ -919,13 +1267,12 @@ void hciAnalyze::filterCubePSFResponse( cubeT &cube, fitsHeaderT &scienceHeader 
                 }
             }
             const auto [sourceRow, sourceColumn] = sourceCoordinates[source];
-            const mx::improc::P4PSFFilterResult result =
-                mx::improc::P4PSFFilter::calculate( cube.image( mode ),
-                                                    models.image( static_cast<int>( source ) ),
-                                                    responseValidity,
-                                                    sourceRow,
-                                                    sourceColumn,
-                                                    m_psfResponseMinimumSupport );
+            const mx::improc::P4PSFFilterResult result = applyPSFFilter( cube.image( mode ),
+                                                                         models.image( static_cast<int>( source ) ),
+                                                                         responseValidity,
+                                                                         sourceRow,
+                                                                         sourceColumn,
+                                                                         mode );
             if( result.valid && std::isfinite( result.amplitude ) &&
                 std::abs( result.amplitude ) <= std::numeric_limits<realT>::max() )
             {
@@ -934,6 +1281,7 @@ void hciAnalyze::filterCubePSFResponse( cubeT &cube, fitsHeaderT &scienceHeader 
         }
     }
     cube = std::move( filtered );
+    writeNoiseProducts( scienceHeader );
 }
 
 void hciAnalyze::filterCubeKLIPPSFResponse( cubeT &cube,
@@ -1279,12 +1627,12 @@ void hciAnalyze::filterCubeKLIPPSFResponse( cubeT &cube,
                 }
                 const auto [sourceRow, sourceColumn] = sourceCoordinates[source];
                 const mx::improc::P4PSFFilterResult result =
-                    mx::improc::P4PSFFilter::calculate( cube.image( mode ),
-                                                        responseCube.image( static_cast<int>( source ) ),
-                                                        responseValidity,
-                                                        sourceRow,
-                                                        sourceColumn,
-                                                        m_psfResponseMinimumSupport );
+                    applyPSFFilter( cube.image( mode ),
+                                    responseCube.image( static_cast<int>( source ) ),
+                                    responseValidity,
+                                    sourceRow,
+                                    sourceColumn,
+                                    mode );
                 if( result.valid && std::isfinite( result.amplitude ) &&
                     std::abs( result.amplitude ) <= std::numeric_limits<realT>::max() )
                 {
@@ -1459,12 +1807,7 @@ void hciAnalyze::filterCubeKLIPPSFResponse( cubeT &cube,
                     continue;
                 }
                 const mx::improc::P4PSFFilterResult result =
-                    mx::improc::P4PSFFilter::calculate( cube.image( mode ),
-                                                        response,
-                                                        responseValidity,
-                                                        row,
-                                                        column,
-                                                        m_psfResponseMinimumSupport );
+                    applyPSFFilter( cube.image( mode ), response, responseValidity, row, column, mode );
                 if( result.valid && std::isfinite( result.amplitude ) &&
                     std::abs( result.amplitude ) <= std::numeric_limits<realT>::max() )
                 {
@@ -1681,6 +2024,15 @@ hciAnalyze::writeSNRMap( const cubeT &snrCube, fitsHeaderT &header, realT minRad
     addHeader( "LPFGFW", m_lowPassFwhm, "low-pass Gaussian FWHM [pix]" );
     addHeader( "HCIAPSF", m_psfResponse, "PSF response manifest" );
     addHeader( "HCIAPSM", m_psfResponseMinimumSupport, "PSF response minimum support" );
+    if( m_noiseModel != "identity" )
+    {
+        addHeader( "HCIA NOISE MODEL", m_noiseModel, "noise weighting applied before empirical annular SNR" );
+        addHeader( "HCIA NOISE MAX MODES", static_cast<int>( m_noiseConfig.m_maximumModes ), "maximum noise PCA rank" );
+        addHeader( "HCIA NOISE FLOOR FRACTION",
+                   m_noiseConfig.m_floorFraction,
+                   "floor / median training pixel variance" );
+        addHeader( "HCIA NOISE CALIBRATED", 0, "covariance-estimation uncertainty is not empirically calibrated" );
+    }
     addHeader( "HCISEPS", signalValues( &hciAnalyzeSignal::m_separation ), "signal separations [pix]" );
     addHeader( "HCIPAS", signalValues( &hciAnalyzeSignal::m_positionAngle ), "signal PAs [deg E of N]" );
     addHeader( "HCIRADS", signalValues( &hciAnalyzeSignal::m_exclusionRadius ), "signal exclusion radii [pix]" );

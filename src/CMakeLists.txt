@@ -22,6 +22,7 @@ set(libheaders common/HCI.hpp
                common/RadialPSFModel.hpp
                common/P4PSFFilter.hpp
                common/PSFNoiseModel.hpp
+               common/PSFNoiseTraining.hpp
                common/P4PSFModel.hpp
                common/P4PSFReconstructor.hpp
                common/P4Reduction.hpp
@@ -40,6 +41,7 @@ set(libsource common/HCIobservation.cpp
               common/RadialPSFModel.cpp
               common/P4PSFFilter.cpp
               common/PSFNoiseModel.cpp
+              common/PSFNoiseTraining.cpp
               common/P4PSFModel.cpp
               common/P4PSFReconstructor.cpp
               common/P4Reduction.cpp
