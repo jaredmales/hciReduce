@@ -1507,7 +1507,7 @@ diagnostic rather than independent cross-validation. Source effects on training 
 
 The regularized model represents about 45% of centered sample covariance trace at one radius, falling to 28–30%
 with ±20-pixel pooling in the respective fitting coordinates. This is not a true-variance estimate or an amplitude-sigma
-rescaling factor. **Next test:** vary the variance-floor fraction through 0.1, 0.3, and 1.0 on these saved images,
+rescaling factor. **Follow-on test (completed below):** vary the variance-floor fraction through 0.1, 0.3, and 1.0 on these saved images,
 holding rank three and sampling/normalization fixed. Check conditional coverage and split-weight stability alongside
 recovery against identity/Gaussian. Modeling discarded-mode variance is a possible separate control. Retain the
 outer radial-profile rise and covariance transfer across radii as open questions, then freeze a policy before the
@@ -1517,6 +1517,56 @@ Verification covers 320 production baseline pixels (maximum relative numerical d
 positive measurements and decisions, 25 independent interpolation-ring comparisons, and a 34-ring forbidden-pixel
 NaN mutation check. Original data and thresholds are fingerprinted; no new reductions ran. The report contains
 individual records, the common-support stability table, a figure, and the reproduction command.
+
+### Step 5 development result: variance-floor comparison (2026-09-18)
+
+The [completed floor comparison](results/p4-step5-variance-floor-20260918/README.md) tests fractions 0.1, 0.3, and 1.0
+with all eight existing sampling/normalization policies, retaining at most three PCA modes and the same exclusions,
+responses, profiles, and comparison support. All 24 calibration thresholds were frozen before filtering the same
+21 saved positive images. The recovery comparison still contains 18 positives at six sites and three brightnesses;
+the three original development positives remain separate. No new reductions or ROC jobs ran.
+
+**Higher floors modestly improve conditional coverage and weight stability, but do not resolve the uncertainty
+mismatch.** Ranges below span the eight sampling policies; they are not confidence intervals or pooled counts.
+
+| Floor fraction | Positive ±1-sigma coverage, out of 18 | Null-center ±1-sigma coverage, out of 28 | Median modeled / sample covariance trace across policies |
+| --- | --- | --- | --- |
+| 0.1 | 0–3 | 0–4 | 0.282–0.453 |
+| 0.3 | 0–5 | 3–5 | 0.476–0.630 |
+| 1.0 | 0–6 | 6–8 | 1.153–1.259 |
+
+Only two decisions change relative to each policy's floor-0.1 result. At floor 1.0, normalized ±10-pixel pooling
+adds a faint recovery at radius 26, block 3, going from 2/6 to 3/6 with 1/28 null exceedances. Raw ±20-pixel pooling
+adds a null exceedance at radius 34, block 2, going from 2/28 to 3/28 with faint recovery unchanged at 4/6. Floor
+0.3 changes no detection decisions. All middle- and high-brightness recovery counts remain unchanged. Normalized
+±20 retains 4/6, 6/6, 6/6 recoveries and 2/28 null exceedances at every floor, compared with 3/6, 6/6, 6/6 and 2/28
+for identity and Gaussian/SNR. This reused development sample still cannot establish a general gain or select a
+preferred policy.
+
+Conditional sigma increases monotonically at every valid fit; the median positive sigma ratio between floors
+1.0 and 0.1 is 2.99–3.14 across policies. Empirical calibration thresholds change with the scores, explaining why
+larger sigmas need not materially change recovery. Split-weight agreement improves modestly on the same 16 eligible
+centers: raw ±20 cosine increases from 0.640 to 0.708 and normalized ±20 from 0.693 to 0.751. Wider pooling still
+has poorer agreement between angular halves than same-radius training. These remain descriptive, spatially related
+splits, with a shared variance profile for normalized fits.
+
+Floor 1.0 now represents more total variance than the empirical training sample in the fitting coordinates, yet
+coverage remains poor. Total trace does not determine variance along a filter's weights, nor establish that the
+training covariance represents the candidate location. Mean estimation, omitted directional correlations, spatial
+transfer, and interpolation remain possible contributors. This test does not isolate one cause or justify a global
+sigma correction. Floor 1.0 retains the leading covariance modes; it is not identity filtering.
+
+**Next diagnostic:** project disjoint held-out noise stamps through frozen weights fitted to another angular subset.
+Compare the projected mean and variance with zero and the model's predicted amplitude variance; separately audit
+interpolation versus native candidate statistics and radial transfer. This should distinguish mean offsets from
+covariance mismatch before another rank/floor sweep. Production defaults remain unchanged, and a fresh ROC study
+still requires a frozen policy and numerical/throughput check.
+
+The optional floor parameter preserves the original helper default of 0.1. Verification reproduces 14,265 archived
+scalar values across the previous null/positive measurements, profiles, and summaries, plus 320 direct production
+baseline checks. All 24 thresholds/counts and the common 16-site stability comparison were independently checked.
+Covariance/sigma ordering, the isotropic limit, consistent physical-unit normalization, and unchanged fingerprints
+also pass. See the report for full tables, individual records, and the figure.
 
 ## 8. Notation
 
@@ -1588,6 +1638,7 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $r$ (covariance rank) | Number of retained noise-covariance modes | Scalar; sets the low-rank model size, independently of the P4 subtraction count $k$. |
 | $U_r$ | Retained residual-noise eigenmodes | $p\times r$ with orthonormal columns; despite its letter, it is not a block of P4's temporal basis $U$. |
 | $q_i$ (excess variance) | Correlated variance above the isotropic noise floor | Nonnegative scalar in $C=\tau^2I+U_r\operatorname{diag}(q_i)U_r^T$; total retained-mode variance is $\tau^2+q_i$. |
+| $f_{\rm floor}$ | Fraction multiplying the median empirical pixel variance to set the isotropic floor | $\tau_f^2=f_{\rm floor}\operatorname{median}_j(\widehat C_{jj})$; development grid 0.1, 0.3, 1.0. Applied in the selected raw or standardized fitting coordinates. |
 | $\tau^2$ | Isotropic residual-noise variance floor | Strictly positive; assigns finite uncertainty to the complement of $U_r$. |
 | $D$ | Diagonal residual-noise covariance floor | $p\times p$ with positive diagonal entries; allows spatially varying independent noise in $C=D+LL^T$. |
 | $L$ | Low-rank covariance factor | $p\times r$; $L=U_r\operatorname{diag}(\sqrt{q_i})$. Distinct from the reduction operator $L_{\mathrm{red}}$. |

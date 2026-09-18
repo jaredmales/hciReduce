@@ -114,14 +114,15 @@ def extract(science: np.ndarray, ring: dict) -> np.ndarray:
     return np.sum(ring['weights'] * values, axis=2)
 
 
-def fit(samples: np.ndarray) -> dict | None:
-    """Fit the production rank-three, median-variance-floor policy with an independent dense solve."""
+def fit(samples: np.ndarray, floor_fraction: float = 0.1) -> dict | None:
+    """Fit at most three modes with a configurable median-variance floor; default to the original policy."""
+    require(np.isfinite(floor_fraction) and floor_fraction > 0, 'floor fraction must be positive')
     if len(samples) < 8:
         return None
     mean = samples.mean(axis=0)
     centered = samples - mean
     covariance = centered.T @ centered / (len(samples) - 1)
-    floor = 0.1 * float(np.median(np.diag(covariance)))
+    floor = floor_fraction * float(np.median(np.diag(covariance)))
     if not np.isfinite(floor) or floor <= 0:
         return None
     eigenvalues, eigenvectors = eigh(covariance, subset_by_index=(118, 120), check_finite=False)
@@ -147,8 +148,9 @@ def filter_stamp(data: np.ndarray, template: np.ndarray, model: dict, scale: np.
 
 
 def analyze_position(science: np.ndarray, scale_map: np.ndarray, position: tuple[int, int],
-                     template: np.ndarray, rings: dict, split: bool = False) -> tuple[dict, dict]:
-    """Evaluate the fixed sampling/normalization grid at one native candidate."""
+                     template: np.ndarray, rings: dict, split: bool = False,
+                     floor_fraction: float = 0.1) -> tuple[dict, dict]:
+    """Evaluate the fixed sampling/normalization grid at one candidate and variance-floor fraction."""
     x, y = position
     data = science[y - 5:y + 6, x - 5:x + 6].ravel()
     scale = scale_map[y - 5:y + 6, x - 5:x + 6].ravel()
@@ -161,7 +163,7 @@ def analyze_position(science: np.ndarray, scale_map: np.ndarray, position: tuple
     for name, width, normalized in POLICIES:
         selected = [offset for offset in rings if abs(offset) <= width]
         samples = np.vstack([matrices[normalized][offset] for offset in selected])
-        model = fit(samples)
+        model = fit(samples, floor_fraction)
         rows[name] = {'valid': model is not None, 'samples': len(samples)}
         if model is None:
             continue
@@ -185,7 +187,7 @@ def analyze_position(science: np.ndarray, scale_map: np.ndarray, position: tuple
                     np.isclose(1 / math.sqrt(energy), measured['sigma'], rtol=1e-9), 'normalization changes contrast units')
         if split:
             halves = np.concatenate([rings[offset]['halves'] for offset in selected])
-            parts = [fit(samples[halves == half]) for half in (0, 1)]
+            parts = [fit(samples[halves == half], floor_fraction) for half in (0, 1)]
             diagnostic = {'samples_by_half': [int((halves == half).sum()) for half in (0, 1)],
                           'straddling_patches_removed': int((halves < 0).sum()), 'valid': all(p is not None for p in parts)}
             if diagnostic['valid']:

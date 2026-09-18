@@ -108,11 +108,12 @@ between raw widths 0 and 20, and from 24.0% to 7.7% for normalized pixels. Other
 These values concern the fitted model, unlike the earlier empirical sample-covariance audit. Pooling can dilute
 source effects without making the training field source-free.
 
-## Next test
+## Follow-on test
 
-On these same saved development images, compare variance-floor fractions **0.1, 0.3, and 1.0**, holding rank three
-and the sampling/normalization grid fixed. Examine null and positive conditional coverage, split-weight stability,
-and recovery with the same calibration rule and identity/Gaussian controls. A floor based on mean discarded-mode
+The [variance-floor comparison](../p4-step5-variance-floor-20260918/README.md) is now complete. It compares fractions
+**0.1, 0.3, and 1.0** on these same saved development images, holding rank three and the sampling/normalization
+grid fixed. It examines null and positive conditional coverage, split-weight stability, and recovery with the
+same calibration rule and identity/Gaussian controls. A floor based on mean discarded-mode
 variance is a possible separate control; it has not been tested. Avoid selecting solely by these six sites'
 recovery count. The radial profile's outer-edge rise and covariance transfer across radii remain open questions.
 

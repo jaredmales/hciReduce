@@ -1,0 +1,11 @@
+{
+  "archived_floor_0p1_scalar_controls": 14265,
+  "production_baseline_pixels_checked": 320,
+  "maximum_production_control_relative_difference": 5.6135184592817804e-08,
+  "original_positive_images_checked": 21,
+  "sigma_nondecreasing_with_floor_at_every_valid_fit": true,
+  "eligibility_unchanged_with_floor": true,
+  "normalized_and_original_unit_solves_agree": true,
+  "common_split_stability_centers": 16,
+  "source_script_threshold_fingerprints_unchanged": true
+}
