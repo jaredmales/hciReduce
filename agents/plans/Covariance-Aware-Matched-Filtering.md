@@ -1052,9 +1052,103 @@ commands, input hashes, raw products, resources, analysis scripts, and the faile
 All 621 input, configuration, and PSF hashes were reverified after the injection study. The original review
 archive remains at `working/roc/p4_analytic_step3_20260917_review`.
 
-**Next:** Step 4 adds noise weighting independently, retaining identity-filter behavior. Bright-source response
-calibration, outer-edge support, and CPU-class reproducibility remain explicit limitations of the measured scope;
-they are not claims of universal calibration or detection completeness.
+**Step 3 limitations:** Bright-source response calibration, outer-edge support, and CPU-class reproducibility
+remain explicit limitations of the measured scope; they are not claims of universal calibration or detection
+completeness.
+
+### Step 4: independent residual-noise weighting (2026-09-17)
+
+**Step 4 is complete.** The shared filtering API now accepts identity, diagonal, and regularized PCA residual-noise
+models. Response
+estimation remains independent of noise weighting. Implementation is in
+[`PSFNoiseModel.hpp`](../../src/common/PSFNoiseModel.hpp),
+[`PSFNoiseModel.cpp`](../../src/common/PSFNoiseModel.cpp), and
+[`P4PSFFilter`](../../src/common/P4PSFFilter.hpp).
+
+#### Model and filter contract
+
+- `PSFNoiseModel::identity(p)` uses unit variance and zero mean. `P4PSFFilter::calculateWeighted(..., noise)`
+  delegates this choice to the existing `calculate(...)` path, preserving its accumulation order, amplitude,
+  correlation, normalization, support fraction, and validity.
+- `diagonal(variances, mean)` accepts positive per-pixel variances and an optional background mean.
+  `lowRank(variances, factor, mean)` represents $C=D+LL^T$; the factor need not have orthogonal columns.
+- `estimateDiagonal(samples, varianceFloor)` and `estimatePCA(samples, maximumModes, varianceFloor)` take a finite
+  $n\times p$ matrix of already selected noise-only stamps, with $n\ge2$. They retain the sample mean and use
+  $n-1$ covariance normalization. The diagonal estimator bounds each variance below by the supplied floor. The PCA
+  estimator retains at most `min(maximumModes,n-1,p)` modes with eigenvalues above the floor, with factors
+  $L_i=u_i\sqrt{\nu_i-\mathrm{varianceFloor}}$. Discarded directions retain the isotropic floor. Zero requested modes
+  gives a floor-only covariance with the estimated mean.
+- Pixel ordering is `row + column * stampRows`. Samples, response, science, and mean must share coordinates and
+  image units. The floor is an absolute variance in squared image units and must be finite and strictly positive.
+  The caller selects source-free training footprints; the estimator does not infer exclusions or correct for
+  dependence among overlapping samples.
+- Filtering subtracts the model mean from science only. It selects response-valid, in-bounds, finite science pixels,
+  restricts both $D$ and the rows of $L$ to that support, and solves the resulting marginal covariance. It never
+  selects a submatrix of the full inverse. The original odd-stamp geometry and full-area support-fraction policy
+  still apply, including rectangular stamps.
+- Results contain signed amplitude, weighted correlation $N_C$, normalization $E_C$, support, validity,
+  `conditionalSigma` $=E_C^{-1/2}$, signed `score` $=N_C/\sqrt{E_C}$, and `nonnegativeLogLikelihood`
+  $=\max(0,\mathrm{score})^2/2$. Invalid support or unrepresentable statistics give an invalid result; malformed
+  inputs or failed covariance solves throw. Conditional uncertainties and scores assume the supplied mean,
+  covariance, and response are fixed. They are not calibrated detection significances.
+
+For example, after selecting and aligning the noise-only training stamps:
+
+```cpp
+const auto noise = mx::improc::PSFNoiseModel::estimatePCA(trainingSamples, maximumModes, varianceFloor);
+const auto result = mx::improc::P4PSFFilter::calculateWeighted(
+    science, response, validity, sourceRow, sourceColumn, minimumSupportFraction, noise);
+```
+
+#### Stable low-rank solve
+
+The implementation uses an orthogonal-basis form of the same covariance solve as Woodbury. With
+$B=D^{-1/2}L=Q[R;0]$, transform the right-hand side by $Q^TD^{-1/2}$, solve $I+RR^T$ in the leading coordinates,
+leave the complementary coordinates unchanged, then transform back by $D^{-1/2}Q$. Householder QR and a small
+Cholesky factorization avoid explicitly forming a $p\times p$ covariance or inverse.
+
+A regression case exposed cancellation in the direct subtractive Woodbury formula: for $D=I$ and a factor
+$L=(10^8,0,0)^T$, the precision along the first coordinate rounded to zero instead of approximately $10^{-16}$.
+The orthogonal implementation retains this finite weight, including when only that one pixel remains in support.
+Each call rebuilds the factorization for the retained pixels. For low rank $r\ll p$, setup/solve costs
+$O(pr^2+r^3)$ and storage is $O(pr+r^2)$; repeated-support caching is a possible later optimization.
+
+#### Verification and next work
+
+The Release build passed all five selected regression suites (101 test cases):
+
+| Suite | Test cases | Assertions |
+| --- | ---: | ---: |
+| `PSFNoiseModel` | 5 | 164 |
+| `P4PSFFilter` | 8 | 291 |
+| `P4Reduction` | 28 | 78,141 |
+| `KLIPreduction` | 47 | 9,441,812 |
+| `hciAnalyze` | 13 | 166 |
+
+The noise/filter tests cover explicit identity equivalence to the original long-double accumulation, diagonal
+and correlated dense-Cholesky references, reordered/masked/edge/NaN support, signed and rescaled templates,
+covariance rescaling, background subtraction, sample centering and normalization, PCA truncation and its finite
+complement, rank-deficient factors, strongly downweighted directions, and malformed or unrepresentable inputs.
+`p4Reduce`, `klipReduce`, and `hciAnalyze` were rebuilt against the extended result structure. The application
+regressions exercise their existing identity-filter behavior.
+
+The final run used the existing `_build_fresh` Release configuration and homogeneous CPU affinity:
+
+```sh
+OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=1 taskset -c 0,2 ctest --test-dir _build_fresh --output-on-failure -V \
+    -R 'hcireduceTest_(common_(PSFNoiseModel|P4PSFFilter|P4Reduction|KLIPreduction)|apps_hciAnalyze)_test_cpp'
+```
+
+Changed C++ sections were formatted; new files pass `clang-format --dry-run --Werror`, and `git diff --check`
+is clean. A focused Doxygen build produced no warnings and confirmed test references on both filter entry
+points and the noise-model public APIs. No edited function calls an upstream mxlib API, so this step adds no
+mxlib coverage-ownership follow-up.
+
+The application paths continue to call the identity filter. Step 4 supplies the common numerical API; selecting
+Welch-style annular training footprints, rotating them consistently with the response, recording training
+provenance, and exposing covariance options in `hciAnalyze` are the next integration work toward Step 5. Rank and
+floor selection, uncertainty calibration, and completeness at a fixed false-positive rate require held-out data.
+No covariance-related gain on AF Lep is claimed by these numerical checks.
 
 ## 8. Notation
 

@@ -114,6 +114,14 @@
   * \ingroup unit_tests
   */
 
+/** \defgroup P4PSFFilter_unit_tests Local PSF Filter Unit Tests
+  * \ingroup unit_tests
+  */
+
+/** \defgroup PSFNoiseModel_unit_tests Residual-Noise Covariance Unit Tests
+  * \ingroup unit_tests
+  */
+
 /** \defgroup RadialPSFModel_unit_tests Radial PSF Model Unit Tests
   * \ingroup unit_tests
   */
