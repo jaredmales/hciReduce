@@ -1972,6 +1972,29 @@ fingerprints pass on ROC. Results, maps, and provenance are archived without new
 changes. Independent noise support and threshold transfer remain the next validation; this reused field
 and the small observed differences do not justify a production default or an inner-radius conclusion.
 
+### Step 5 discussion: input normalization order and documentation audit (2026-09-19)
+
+The recent full ROC study, known-planet SNR comparison, and mean-subtraction/common-SNR comparison are
+recorded above and in their linked reports, including protocols, results, verification, and completion
+receipts (commits `0e94463`, `fa85392`, and `1a386a6`). The follow-up discussion is now recorded in the
+[normalization-order clarification](results/p4-step5-mean-snr-20260919/README.md#follow-up-discussion-what-is-pooled-and-when-normalization-happens).
+
+Pooled rectangular PSD uses radial centers r−5, r, r+5, aligned 11×11 patches, a flat estimation window,
+21×21 zero-padded power averaging, and 30% flat-spectrum mixing. The PSD retains directional correlations;
+its finite lag covariance weights the response template. The earlier input-normalized variants divided
+each native residual-image pixel by sigma(r) **before extracting/interpolating patches and before ensemble
+mean-patch subtraction**. Sigma(r) came from log-interpolated variance in masked 3.6-pixel annuli. Annular
+means entered variance estimation but were not separately subtracted from the image. Data and response
+scaling were consistent. There was no subsequent normalization of individual mean-subtracted patches.
+
+The earlier 18-injection rectangular/mixing-0.3 ±5-pixel comparison had identical raw/global-normalized
+recovery (4/6, 6/6, 6/6) and null counts (2/28). Normalization effects across that grid were mixed. This
+supports no consistent benefit for the tested global-first procedure, without ruling out other orders or
+per-patch scales. The latest 90-injection experiment instead compared output annular SNR on raw-input
+filters; global input normalization combined with that output SNR remains untested. Output normalization
+changed both recovery and null counts, so it cannot be judged at equal false-positive rate from those
+counts alone. The user now requests a test of per-patch normalization after mean subtraction.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

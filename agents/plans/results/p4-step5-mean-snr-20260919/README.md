@@ -203,3 +203,45 @@ settings. A larger held-out null sample would allow comparison at a common
 empirical false-positive rate. The inner-radius support issue from the known
 planet remains separate; no conclusion here extends below the 26-pixel injection
 sample. No production C++ or mxlib-calling functions changed.
+
+## Follow-up discussion: what is pooled and when normalization happens
+
+“Pooled rectangular PSD” collects aligned 11×11 training patches from centers at
+radii r−5, r, and r+5 pixels, with approximately five-pixel angular spacing.
+Every training patch has a flat rectangular estimation window. The estimator
+subtracts the ensemble mean patch, averages 21×21 zero-padded Fourier powers,
+and mixes 30% flat power into the spectrum. Its inverse transform supplies the
+finite 121×121 lag covariance used to weight the untapered candidate response.
+The [estimator derivation](../p4-step5-welch-psd-20260918/README.md) records the
+normalizations, variance preservation, and attenuation of long lags by the
+finite patch. No radial averaging of the two-dimensional PSD is performed.
+
+The user asked whether radial normalization had already failed to improve this
+method, then clarified the order relative to mean subtraction. Two separate
+operations have been tested:
+
+- **Input radial scaling:** estimate sample variance in 3.6-pixel annuli outside
+  the source/held-out exclusions, interpolate log variance, and divide native
+  image pixels by the resulting sigma(r). This happens globally **before**
+  patch extraction, rotation/interpolation, and subtraction of the ensemble
+  mean patch. The annular bin mean enters the variance calculation but is not
+  subtracted from the image. Candidate data and response are scaled consistently.
+- **Output annular SNR:** after matched filtering, use the filtered image's
+  one-pixel annular mean/stddev profiles and small-sample correction. This is
+  the normalization shared by all methods in the latest 90-injection comparison.
+
+In the [earlier 18-injection PSD grid](../p4-step5-psd-recovery-20260918/README.md),
+raw and globally normalized ±5-pixel rectangular/mixing-0.3 runs both recovered
+4/6, 6/6, 6/6 injections at that study's 0.5×, 1×, 2× levels, with 2/28 null
+exceedances. Other settings had mixed normalization effects. That finding is
+specific to global scaling before ensemble mean subtraction and the earlier
+conditional-score experiment. It does not rule out a benefit from normalizing
+individual residual patches after subtracting their ensemble mean.
+
+The completed 90-injection study used raw input pixels. It has not compared
+global input scaling combined with output annular SNR. Output annular SNR reduced
+rectangular PSD's recovery from 13/16/21 to 12/16/21 and null exceedances from
+6/30 to 2/30; those changes alone do not establish performance at equal underlying
+false-positive rates. The user's next requested experiment is per-patch
+normalization **after mean subtraction**, with the exact normalization recorded
+before running it.
