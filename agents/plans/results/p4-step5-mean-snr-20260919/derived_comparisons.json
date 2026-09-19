@@ -1,0 +1,319 @@
+{
+  "photometry": {
+    "identity": {
+      "median_raw_error": 0.02058610512051029,
+      "rms_raw_error": 0.7873740760503205
+    },
+    "hann_mean_only": {
+      "median_raw_error": 0.052095595184603605,
+      "rms_raw_error": 0.786174561776455
+    },
+    "hann_psd_no_mean": {
+      "median_raw_error": 0.028444987530188204,
+      "rms_raw_error": 0.7749939794767411
+    },
+    "hann_psd_mean": {
+      "median_raw_error": 0.0783836647631837,
+      "rms_raw_error": 0.7735010329576685
+    },
+    "rect_mean_only": {
+      "median_raw_error": 0.014426984818755595,
+      "rms_raw_error": 0.7894884075813641
+    },
+    "rect_psd_no_mean": {
+      "median_raw_error": 0.049171618450342125,
+      "rms_raw_error": 0.7800004739254766
+    },
+    "rect_psd_mean": {
+      "median_raw_error": 0.05256202710867619,
+      "rms_raw_error": 0.7808805259205752
+    }
+  },
+  "mean_toggles": {
+    "hann": {
+      "nulls": {
+        "mean_absolute_score_change": 0.03739127370839317,
+        "maximum_absolute_score_change": 0.1251535415649414,
+        "flips": []
+      },
+      "injections": {
+        "mean_absolute_score_change": 0.0377199649810791,
+        "maximum_absolute_score_change": 0.1234130859375,
+        "flips": []
+      }
+    },
+    "rect": {
+      "nulls": {
+        "mean_absolute_score_change": 0.02744535431265831,
+        "maximum_absolute_score_change": 0.10006186924874783,
+        "flips": []
+      },
+      "injections": {
+        "mean_absolute_score_change": 0.02391278909312354,
+        "maximum_absolute_score_change": 0.06874322891235352,
+        "flips": []
+      }
+    }
+  },
+  "normalization": {
+    "hann": [
+      {
+        "level": 0.5,
+        "annular_only": [],
+        "conditional_only": [
+          "fresh_r38_b0",
+          "fresh_r44_b4"
+        ]
+      },
+      {
+        "level": 0.75,
+        "annular_only": [],
+        "conditional_only": []
+      },
+      {
+        "level": 1.0,
+        "annular_only": [],
+        "conditional_only": [
+          "fresh_r26_b2"
+        ]
+      }
+    ],
+    "rect": [
+      {
+        "level": 0.5,
+        "annular_only": [],
+        "conditional_only": [
+          "fresh_r32_b4"
+        ]
+      },
+      {
+        "level": 0.75,
+        "annular_only": [],
+        "conditional_only": []
+      },
+      {
+        "level": 1.0,
+        "annular_only": [],
+        "conditional_only": []
+      }
+    ]
+  },
+  "by_radius": {
+    "gaussian": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 16
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 7
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 4
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 8
+      }
+    ],
+    "identity": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 8
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 7
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 9
+      }
+    ],
+    "hann_mean_only": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 8
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 5
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 8
+      }
+    ],
+    "hann_psd_no_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 9
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 9
+      }
+    ],
+    "hann_psd_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 9
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 9
+      }
+    ],
+    "rect_mean_only": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 8
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 8
+      }
+    ],
+    "rect_psd_no_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 10
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 10
+      }
+    ],
+    "rect_psd_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 10
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 10
+      }
+    ]
+  }
+}

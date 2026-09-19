@@ -1919,6 +1919,59 @@ verify 125 valid aperture covariance fits. Source/configuration/software fingerp
 The report archives maps/plot provenance, radial profiles, every aperture measurement, and support failures.
 No production C++ or mxlib-calling function changes.
 
+### Step 5 development: separate fitted means and PSD weighting (2026-09-19)
+
+The user considers the known planet's one-pixel peak shift acceptable and emphasizes injection testing
+for method selection. Pooled isotropic filtering subtracts a fitted mean patch; its scalar covariance
+cancels from amplitude weights. The approved [controlled comparison](results/p4-step5-mean-snr-20260919/README.md)
+therefore reuses the baseline and all 90 saved ROC positive reductions with a common production annular
+SNR. It compares Gaussian FWHM 3.6, original identity, and three variants for each fixed PSD family:
+mean-only identity, PSD without candidate mean subtraction, and PSD with mean subtraction. Both PSD
+settings estimate the same covariance from centered training patches; their weights remain identical.
+Each mean-only control uses that family's exact training support and fitted mean patch.
+
+Same-ring Hann/mixing 0.1 and ±5-pixel rectangular/mixing 0.3 retain their existing settings. All sites,
+brightnesses, five-pixel searches, calibration locations, and covariance exclusions remain fixed. Annular
+normalization retains the parent injection study's real-source mask and trial-neighborhood inclusion.
+All 240 baseline thresholds are frozen before positive analysis. Complete radial bins are computed for
+every required search interpolation, and Gaussian/identity must reproduce their archived annular-SNR
+results. No P4 reductions or production changes are needed. This reused sample tests the source of the
+gain; independent threshold transfer remains a later test.
+
+The complete analysis finished in **72.8 seconds** on ROC. Every search was valid. Recovery counts and
+baseline exceedances are:
+
+| Method with common annular SNR | 0.5× /30 | 0.75× /30 | 1× /30 | Nulls /30 |
+| --- | --- | --- | --- | --- |
+| Gaussian FWHM 3.6 | 11 | 14 | 16 | 3 |
+| Identity | 12 | 16 | 19 | 2 |
+| Same-ring mean only | 10 | 16 | 18 | 2 |
+| Hann PSD, no mean | 12 | 16 | 19 | 1 |
+| Hann PSD + mean | 12 | 16 | 19 | 1 |
+| Pooled mean only | 10 | 16 | 19 | 2 |
+| Rectangular PSD, no mean | 12 | 16 | 21 | 2 |
+| Rectangular PSD + mean | 12 | 16 | 21 | 2 |
+
+Mean subtraction changes SNR slightly but flips **no positive or null decisions** within either PSD
+family. Relative to their exact mean-only controls, Hann gains 2/0/1 recoveries and rectangular PSD gains
+2/0/2 with no losses. Against identity, each gains one and loses one faint detection; rectangular PSD
+also gains two bright detections. Its observed null count matches identity, without establishing equal
+underlying false-positive rates.
+
+Hann's original conditional-score recovery was 14/16/20 with 3/30 null exceedances; common annular SNR
+changes that to 12/16/19 with 1/30. Rectangular changes from 13/16/21 and 6/30 to 12/16/21 and 2/30.
+The earlier Hann recovery advantage therefore depends on normalization and is not solely an effect of
+amplitude weighting. The trade between recovery and observed nulls still needs comparison at a common
+false-positive rate. Mean-on/off fractional RMS photometric errors remain close: Hann 0.774/0.775,
+rectangular 0.781/0.780, identity 0.787. Mean subtraction does not consistently improve raw photometry.
+
+All Gaussian/identity reference decisions reproduce the parent study. Local reconstruction verifies
+38,400 searched SNR pixels exactly, 9,568 annular profile entries, all 240 thresholds and 960 decisions;
+38,400 archived candidate-fit scalar checks differ by at most 2.66e-15. All 120 task receipts and 1,593
+fingerprints pass on ROC. Results, maps, and provenance are archived without new reductions or production
+changes. Independent noise support and threshold transfer remain the next validation; this reused field
+and the small observed differences do not justify a production default or an inner-radius conclusion.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

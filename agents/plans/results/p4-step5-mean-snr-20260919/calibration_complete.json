@@ -1,0 +1,10 @@
+{
+  "all_thresholds_frozen_before_positive_analysis": true,
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_mean_snr_step5_20260919/thresholds.json",
+      "bytes": 10335,
+      "sha256": "f1f7e0a69234ff6f6cb49ab36c7dad5347f09bb8074428bfcfa184f0b89185b2"
+    }
+  ]
+}

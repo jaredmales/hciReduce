@@ -1,0 +1,53 @@
+{
+  "all_passed": true,
+  "checks": {
+    "tasks": 120,
+    "searches": 7680,
+    "snr_pixels": 38400,
+    "profiles": 9568,
+    "thresholds": 240,
+    "decisions": 960,
+    "mean_toggle_pixels": 9600
+  },
+  "verified_distinct_local_fingerprints": 1564,
+  "remote_only_dependencies": [
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/hciAnalyze",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/hciGaussianReference",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libImageStreamIO.so",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libblas.so.3",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libc.so.6",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libcfitsio.so.10",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libfftw3.so.3",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libfftw3f.so.3",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libfftw3l.so.3",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libfftw3q.so.3",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libgcc_s.so.1",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libgfortran.so.5",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libgomp.so.1",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libgsl.so.28",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libgslcblas.so.0",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libhcireduce.so",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/liblapack.so.3",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libm.so.6",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libmvec.so.1",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libmxlib.so",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libopenblas.so.0",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libquadmath.so.0",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libstdc++.so.6",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/libz.so.1",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/p4ReductionPrecisionBenchmark"
+  ],
+  "maximum_search_snr_difference": 0.0,
+  "elapsed_seconds": 3.8067054789862595,
+  "driver": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/scripts/compare_p4_step5_mean_snr.py",
+    "bytes": 27332,
+    "sha256": "aafc602564698dcb5273b7d434df65a87360a7aa197278575bc1e24c2524d6c8"
+  },
+  "results": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_mean_snr_step5_20260919/results.json",
+    "bytes": 11291110,
+    "sha256": "6860cf5d1c69ac22b7fdd5f3477a2d7f1b9e6835e2f9b35e88dd1e7f28fe85e0"
+  },
+  "new_reductions": 0
+}

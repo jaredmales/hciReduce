@@ -1,0 +1,11 @@
+{
+  "all_passed": true,
+  "verified_fingerprints": 1593,
+  "task_receipts": 120,
+  "started_utc": "2026-09-19T16:09:23Z",
+  "completed_utc": "2026-09-19T16:10:36Z",
+  "elapsed_seconds": 72.8256585597992,
+  "calibration_complete_timestamp": 1789834216.3515756,
+  "first_positive_amplitude_timestamp": 1789834218.2250905,
+  "new_reductions": 0
+}

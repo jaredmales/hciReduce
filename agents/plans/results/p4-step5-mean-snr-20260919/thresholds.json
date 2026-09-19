@@ -1,0 +1,302 @@
+{
+  "fresh_r26_b0": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.0968687534332275,
+    "hann_psd_no_mean": 2.2145988941192627,
+    "hann_psd_mean": 2.1760928630828857,
+    "rect_mean_only": 2.0586836338043213,
+    "rect_psd_no_mean": 2.1177046298980713,
+    "rect_psd_mean": 2.112424612045288
+  },
+  "fresh_r26_b1": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.063178539276123,
+    "hann_psd_no_mean": 2.2145988941192627,
+    "hann_psd_mean": 2.1760928630828857,
+    "rect_mean_only": 2.0575029850006104,
+    "rect_psd_no_mean": 2.1177046298980713,
+    "rect_psd_mean": 2.112424612045288
+  },
+  "fresh_r26_b2": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.088024854660034,
+    "hann_psd_no_mean": 2.2145988941192627,
+    "hann_psd_mean": 2.1760928630828857,
+    "rect_mean_only": 2.0600063800811768,
+    "rect_psd_no_mean": 2.1177046298980713,
+    "rect_psd_mean": 2.112424612045288
+  },
+  "fresh_r26_b3": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.117534637451172,
+    "hann_psd_no_mean": 2.2145988941192627,
+    "hann_psd_mean": 2.1760928630828857,
+    "rect_mean_only": 2.0654056072235107,
+    "rect_psd_no_mean": 2.1200454235076904,
+    "rect_psd_mean": 2.1128666400909424
+  },
+  "fresh_r26_b4": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.0430731773376465,
+    "hann_psd_no_mean": 2.2145988941192627,
+    "hann_psd_mean": 2.1760928630828857,
+    "rect_mean_only": 2.0657005310058594,
+    "rect_psd_no_mean": 2.1103413105010986,
+    "rect_psd_mean": 2.106814384460449
+  },
+  "fresh_r26_b5": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.0613949298858643,
+    "hann_psd_no_mean": 2.2145988941192627,
+    "hann_psd_mean": 2.1760928630828857,
+    "rect_mean_only": 2.059433937072754,
+    "rect_psd_no_mean": 2.1175174713134766,
+    "rect_psd_mean": 2.112382650375366
+  },
+  "fresh_r32_b0": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.134887933731079,
+    "hann_psd_no_mean": 2.214493989944458,
+    "hann_psd_mean": 2.1743004322052,
+    "rect_mean_only": 2.091057538986206,
+    "rect_psd_no_mean": 2.143449544906616,
+    "rect_psd_mean": 2.1262662410736084
+  },
+  "fresh_r32_b1": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.1041924953460693,
+    "hann_psd_no_mean": 2.2145988941192627,
+    "hann_psd_mean": 2.1760928630828857,
+    "rect_mean_only": 2.0737497806549072,
+    "rect_psd_no_mean": 2.127957344055176,
+    "rect_psd_mean": 2.1112191677093506
+  },
+  "fresh_r32_b2": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.064760446548462,
+    "hann_psd_no_mean": 2.2145988941192627,
+    "hann_psd_mean": 2.1760928630828857,
+    "rect_mean_only": 2.0542728900909424,
+    "rect_psd_no_mean": 2.1351401805877686,
+    "rect_psd_mean": 2.1244561672210693
+  },
+  "fresh_r32_b3": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.0690274238586426,
+    "hann_psd_no_mean": 2.2024247646331787,
+    "hann_psd_mean": 2.182133436203003,
+    "rect_mean_only": 2.037107467651367,
+    "rect_psd_no_mean": 2.1136858463287354,
+    "rect_psd_mean": 2.1200525760650635
+  },
+  "fresh_r32_b4": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.039470672607422,
+    "hann_psd_no_mean": 2.2142577171325684,
+    "hann_psd_mean": 2.1746158599853516,
+    "rect_mean_only": 2.0583276748657227,
+    "rect_psd_no_mean": 2.116529941558838,
+    "rect_psd_mean": 2.100950002670288
+  },
+  "fresh_r32_b5": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.0613949298858643,
+    "hann_psd_no_mean": 2.2154629230499268,
+    "hann_psd_mean": 2.1858632564544678,
+    "rect_mean_only": 2.06196665763855,
+    "rect_psd_no_mean": 2.1493380069732666,
+    "rect_psd_mean": 2.140444278717041
+  },
+  "fresh_r38_b0": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.105781078338623,
+    "hann_psd_no_mean": 2.2733540534973145,
+    "hann_psd_mean": 2.231243848800659,
+    "rect_mean_only": 2.0763792991638184,
+    "rect_psd_no_mean": 2.19063138961792,
+    "rect_psd_mean": 2.1849024295806885
+  },
+  "fresh_r38_b1": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.136521100997925,
+    "hann_psd_no_mean": 2.2288994789123535,
+    "hann_psd_mean": 2.179755687713623,
+    "rect_mean_only": 2.0654516220092773,
+    "rect_psd_no_mean": 2.1275086402893066,
+    "rect_psd_mean": 2.119624614715576
+  },
+  "fresh_r38_b2": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.1166880130767822,
+    "hann_psd_no_mean": 2.2126033306121826,
+    "hann_psd_mean": 2.168198823928833,
+    "rect_mean_only": 2.0491888523101807,
+    "rect_psd_no_mean": 2.096339702606201,
+    "rect_psd_mean": 2.074772596359253
+  },
+  "fresh_r38_b3": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.099496603012085,
+    "hann_psd_no_mean": 2.2228589057922363,
+    "hann_psd_mean": 2.1880505084991455,
+    "rect_mean_only": 2.049528121948242,
+    "rect_psd_no_mean": 2.140254020690918,
+    "rect_psd_mean": 2.131375312805176
+  },
+  "fresh_r38_b4": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.084082841873169,
+    "hann_psd_no_mean": 2.1793699264526367,
+    "hann_psd_mean": 2.1501967906951904,
+    "rect_mean_only": 2.0688109397888184,
+    "rect_psd_no_mean": 2.1010234355926514,
+    "rect_psd_mean": 2.097714424133301
+  },
+  "fresh_r38_b5": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.0775563716888428,
+    "hann_psd_no_mean": 2.192394733428955,
+    "hann_psd_mean": 2.15447735786438,
+    "rect_mean_only": 2.074570417404175,
+    "rect_psd_no_mean": 2.1615517139434814,
+    "rect_psd_mean": 2.137122392654419
+  },
+  "fresh_r44_b0": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.109264612197876,
+    "hann_psd_no_mean": 2.29213547706604,
+    "hann_psd_mean": 2.2568252086639404,
+    "rect_mean_only": 2.072540760040283,
+    "rect_psd_no_mean": 2.2123146057128906,
+    "rect_psd_mean": 2.2067625522613525
+  },
+  "fresh_r44_b1": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.1288206577301025,
+    "hann_psd_no_mean": 2.1858737468719482,
+    "hann_psd_mean": 2.1455764770507812,
+    "rect_mean_only": 2.0734317302703857,
+    "rect_psd_no_mean": 2.1118950843811035,
+    "rect_psd_mean": 2.0992512702941895
+  },
+  "fresh_r44_b2": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.1342403888702393,
+    "hann_psd_no_mean": 2.17319917678833,
+    "hann_psd_mean": 2.1341795921325684,
+    "rect_mean_only": 2.0640387535095215,
+    "rect_psd_no_mean": 2.021540641784668,
+    "rect_psd_mean": 2.0280027389526367
+  },
+  "fresh_r44_b3": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.135262966156006,
+    "hann_psd_no_mean": 2.221837043762207,
+    "hann_psd_mean": 2.1856770515441895,
+    "rect_mean_only": 2.0642781257629395,
+    "rect_psd_no_mean": 2.1447126865386963,
+    "rect_psd_mean": 2.1393163204193115
+  },
+  "fresh_r44_b4": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.0758273601531982,
+    "hann_psd_no_mean": 2.219190835952759,
+    "hann_psd_mean": 2.186673402786255,
+    "rect_mean_only": 2.0488524436950684,
+    "rect_psd_no_mean": 2.1422293186187744,
+    "rect_psd_mean": 2.131122589111328
+  },
+  "fresh_r44_b5": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.0583834648132324,
+    "hann_psd_no_mean": 2.1926679611206055,
+    "hann_psd_mean": 2.1587636470794678,
+    "rect_mean_only": 2.064567804336548,
+    "rect_psd_no_mean": 2.165083408355713,
+    "rect_psd_mean": 2.152937173843384
+  },
+  "fresh_r50_b0": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.1104376316070557,
+    "hann_psd_no_mean": 2.29213547706604,
+    "hann_psd_mean": 2.2568252086639404,
+    "rect_mean_only": 2.076392889022827,
+    "rect_psd_no_mean": 2.2122714519500732,
+    "rect_psd_mean": 2.206965446472168
+  },
+  "fresh_r50_b1": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.119476556777954,
+    "hann_psd_no_mean": 2.1960928440093994,
+    "hann_psd_mean": 2.1547036170959473,
+    "rect_mean_only": 2.0700905323028564,
+    "rect_psd_no_mean": 2.0988242626190186,
+    "rect_psd_mean": 2.113154649734497
+  },
+  "fresh_r50_b2": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.1156907081604004,
+    "hann_psd_no_mean": 2.1587929725646973,
+    "hann_psd_mean": 2.1281821727752686,
+    "rect_mean_only": 2.07292103767395,
+    "rect_psd_no_mean": 2.0279364585876465,
+    "rect_psd_mean": 2.038020133972168
+  },
+  "fresh_r50_b3": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.1062583923339844,
+    "hann_psd_no_mean": 2.222395896911621,
+    "hann_psd_mean": 2.186098098754883,
+    "rect_mean_only": 2.0562899112701416,
+    "rect_psd_no_mean": 2.140489101409912,
+    "rect_psd_mean": 2.1295042037963867
+  },
+  "fresh_r50_b4": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.084364891052246,
+    "hann_psd_no_mean": 2.182945728302002,
+    "hann_psd_mean": 2.150613784790039,
+    "rect_mean_only": 2.0615246295928955,
+    "rect_psd_no_mean": 2.0856916904449463,
+    "rect_psd_mean": 2.1037089824676514
+  },
+  "fresh_r50_b5": {
+    "gaussian": 1.96212637424469,
+    "identity": 2.040724992752075,
+    "hann_mean_only": 2.0464179515838623,
+    "hann_psd_no_mean": 2.1926679611206055,
+    "hann_psd_mean": 2.1587636470794678,
+    "rect_mean_only": 2.045088768005371,
+    "rect_psd_no_mean": 2.1645007133483887,
+    "rect_psd_mean": 2.1522064208984375
+  }
+}

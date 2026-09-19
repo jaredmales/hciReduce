@@ -1,0 +1,20 @@
+{
+  "host": "exao5",
+  "alias": "roc",
+  "launched_utc": "2026-09-19T16:09:22Z",
+  "tmux_session": "p4-mean-snr-20260919",
+  "root": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_mean_snr_step5_20260919",
+  "python": "/opt/conda/envs/xpy3_13/bin/python3",
+  "workers": 12,
+  "new_reductions": 0,
+  "protocol": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-mean-snr-20260919/protocol.json",
+    "sha256": "3bc0ce1ca064eafd8f2495349a021fd65f489100aabcafc8f254d6c498987639",
+    "bytes": 7619
+  },
+  "manifest": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-mean-snr-20260919/manifest.json",
+    "sha256": "c00f8a9c18bdc1252ec28d94063012d3ba784e98e47d34b6e603524d66e42dc9",
+    "bytes": 214802
+  }
+}

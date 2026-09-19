@@ -1,0 +1,20 @@
+{
+  "all_passed": true,
+  "checks": {
+    "training_matrices": 630,
+    "protected_stamps": 30,
+    "unit_increments": 210,
+    "generic_psd_solves": 60
+  },
+  "script": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/scripts/compare_p4_step5_mean_snr.py",
+    "bytes": 27332,
+    "sha256": "aafc602564698dcb5273b7d434df65a87360a7aa197278575bc1e24c2524d6c8"
+  },
+  "source": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/reductions/baseline/finim.fits",
+    "bytes": 293760,
+    "sha256": "93f64c71fc05f78eea418776ebad68fdb32983c18dd8210a63de3e7a93d50c79"
+  },
+  "new_reductions": 0
+}

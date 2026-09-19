@@ -1,0 +1,306 @@
+{
+  "schema": 1,
+  "purpose": "development ablation on inspected images: mean subtraction, PSD weights, common annular SNR",
+  "study": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918",
+  "methods": [
+    "gaussian",
+    "identity",
+    "hann_mean_only",
+    "hann_psd_no_mean",
+    "hann_psd_mean",
+    "rect_mean_only",
+    "rect_psd_no_mean",
+    "rect_psd_mean"
+  ],
+  "families": [
+    [
+      "hann",
+      "hann",
+      0.1,
+      0,
+      "psd_hann_b0_m0.1"
+    ],
+    [
+      "rect",
+      "rectangular",
+      0.3,
+      5,
+      "psd_rectangular_b5_m0.3"
+    ]
+  ],
+  "new_reductions": 0,
+  "sites": [
+    {
+      "name": "fresh_r26_b0",
+      "row": 102,
+      "column": 128,
+      "nominal_radius": 26,
+      "azimuth_rank": 0,
+      "azimuth_degrees": 178.87669728592456
+    },
+    {
+      "name": "fresh_r26_b1",
+      "row": 102,
+      "column": 124,
+      "nominal_radius": 26,
+      "azimuth_rank": 1,
+      "azimuth_degrees": 187.81529354676687
+    },
+    {
+      "name": "fresh_r26_b2",
+      "row": 103,
+      "column": 119,
+      "nominal_radius": 26,
+      "azimuth_rank": 2,
+      "azimuth_degrees": 199.13364320590549
+    },
+    {
+      "name": "fresh_r26_b3",
+      "row": 105,
+      "column": 114,
+      "nominal_radius": 26,
+      "azimuth_rank": 3,
+      "azimuth_degrees": 210.96375653207352
+    },
+    {
+      "name": "fresh_r26_b4",
+      "row": 115,
+      "column": 104,
+      "nominal_radius": 26,
+      "azimuth_rank": 4,
+      "azimuth_degrees": 241.99082329198615
+    },
+    {
+      "name": "fresh_r26_b5",
+      "row": 121,
+      "column": 102,
+      "nominal_radius": 26,
+      "azimuth_rank": 5,
+      "azimuth_degrees": 255.6997225508144
+    },
+    {
+      "name": "fresh_r32_b0",
+      "row": 121,
+      "column": 159,
+      "nominal_radius": 32,
+      "azimuth_rank": 0,
+      "azimuth_degrees": 101.659292653523
+    },
+    {
+      "name": "fresh_r32_b1",
+      "row": 96,
+      "column": 129,
+      "nominal_radius": 32,
+      "azimuth_rank": 1,
+      "azimuth_degrees": 177.27368900609375
+    },
+    {
+      "name": "fresh_r32_b2",
+      "row": 96,
+      "column": 124,
+      "nominal_radius": 32,
+      "azimuth_rank": 2,
+      "azimuth_degrees": 186.3401917459099
+    },
+    {
+      "name": "fresh_r32_b3",
+      "row": 97,
+      "column": 117,
+      "nominal_radius": 32,
+      "azimuth_rank": 3,
+      "azimuth_degrees": 198.99665415548856
+    },
+    {
+      "name": "fresh_r32_b4",
+      "row": 115,
+      "column": 98,
+      "nominal_radius": 32,
+      "azimuth_rank": 4,
+      "azimuth_degrees": 247.03622694014544
+    },
+    {
+      "name": "fresh_r32_b5",
+      "row": 121,
+      "column": 96,
+      "nominal_radius": 32,
+      "azimuth_rank": 5,
+      "azimuth_degrees": 258.340707346477
+    },
+    {
+      "name": "fresh_r38_b0",
+      "row": 125,
+      "column": 166,
+      "nominal_radius": 38,
+      "azimuth_rank": 0,
+      "azimuth_degrees": 93.71528910542877
+    },
+    {
+      "name": "fresh_r38_b1",
+      "row": 110,
+      "column": 161,
+      "nominal_radius": 38,
+      "azimuth_rank": 1,
+      "azimuth_degrees": 117.58202920779716
+    },
+    {
+      "name": "fresh_r38_b2",
+      "row": 91,
+      "column": 140,
+      "nominal_radius": 38,
+      "azimuth_rank": 2,
+      "azimuth_degrees": 161.09542415738835
+    },
+    {
+      "name": "fresh_r38_b3",
+      "row": 90,
+      "column": 127,
+      "nominal_radius": 38,
+      "azimuth_rank": 3,
+      "azimuth_degrees": 180.76389846092997
+    },
+    {
+      "name": "fresh_r38_b4",
+      "row": 92,
+      "column": 114,
+      "nominal_radius": 38,
+      "azimuth_rank": 4,
+      "azimuth_degrees": 200.8208928533108
+    },
+    {
+      "name": "fresh_r38_b5",
+      "row": 125,
+      "column": 89,
+      "nominal_radius": 38,
+      "azimuth_rank": 5,
+      "azimuth_degrees": 266.2847108945712
+    },
+    {
+      "name": "fresh_r44_b0",
+      "row": 127,
+      "column": 172,
+      "nominal_radius": 44,
+      "azimuth_rank": 0,
+      "azimuth_degrees": 90.64374571417538
+    },
+    {
+      "name": "fresh_r44_b1",
+      "row": 108,
+      "column": 167,
+      "nominal_radius": 44,
+      "azimuth_rank": 1,
+      "azimuth_degrees": 116.27421215472745
+    },
+    {
+      "name": "fresh_r44_b2",
+      "row": 92,
+      "column": 154,
+      "nominal_radius": 44,
+      "azimuth_rank": 2,
+      "azimuth_degrees": 143.2594379798788
+    },
+    {
+      "name": "fresh_r44_b3",
+      "row": 84,
+      "column": 136,
+      "nominal_radius": 44,
+      "azimuth_rank": 3,
+      "azimuth_degrees": 168.94358701975182
+    },
+    {
+      "name": "fresh_r44_b4",
+      "row": 85,
+      "column": 118,
+      "nominal_radius": 44,
+      "azimuth_rank": 4,
+      "azimuth_degrees": 192.60015982608067
+    },
+    {
+      "name": "fresh_r44_b5",
+      "row": 127,
+      "column": 83,
+      "nominal_radius": 44,
+      "azimuth_rank": 5,
+      "azimuth_degrees": 269.3562542858246
+    },
+    {
+      "name": "fresh_r50_b0",
+      "row": 127,
+      "column": 178,
+      "nominal_radius": 50,
+      "azimuth_rank": 0,
+      "azimuth_degrees": 90.56726640985794
+    },
+    {
+      "name": "fresh_r50_b1",
+      "row": 103,
+      "column": 171,
+      "nominal_radius": 50,
+      "azimuth_rank": 1,
+      "azimuth_degrees": 119.38901146632034
+    },
+    {
+      "name": "fresh_r50_b2",
+      "row": 84,
+      "column": 153,
+      "nominal_radius": 50,
+      "azimuth_rank": 2,
+      "azimuth_degrees": 149.62087398863164
+    },
+    {
+      "name": "fresh_r50_b3",
+      "row": 78,
+      "column": 128,
+      "nominal_radius": 50,
+      "azimuth_rank": 3,
+      "azimuth_degrees": 179.42127443439225
+    },
+    {
+      "name": "fresh_r50_b4",
+      "row": 83,
+      "column": 105,
+      "nominal_radius": 50,
+      "azimuth_rank": 4,
+      "azimuth_degrees": 206.8219812015815
+    },
+    {
+      "name": "fresh_r50_b5",
+      "row": 127,
+      "column": 77,
+      "nominal_radius": 50,
+      "azimuth_rank": 5,
+      "azimuth_degrees": 269.43273359014205
+    }
+  ],
+  "positive_images": 90,
+  "brightnesses": [
+    0.5,
+    0.75,
+    1.0
+  ],
+  "search": "unchanged native center plus four axial one-pixel neighbors; all five required; invalid search is nondetection",
+  "training": "unchanged sitewise parent holdout and complete finite 11x11 raw patches; offsets -5,0,+5; step5; minimum8",
+  "mean_toggle": "same centered training covariance and weights for both PSD variants; toggle only subtraction of the fitted mean from candidate data",
+  "mean_only": "identity weights with the exact same mean patch and support as the corresponding PSD family",
+  "annular_snr": "production hciAnalyze mean/stddev profile in one-pixel bins, interpolated to radius; small-sample correction; lambdaD3.6; range0..60",
+  "annular_exclusion": "unchanged legacy known source only: planet.R7.3 plus production0.5 pixel buffer; trial neighborhoods remain in radial normalization",
+  "threshold": "each site/method maximum of original28 calibration search scores; strict exceedance; all thresholds frozen before positive analysis",
+  "radial_computation": "complete radial bins required by search interpolation; baseline covers calibration+site; positives cover site; sparse maps elsewhere",
+  "validation_aperture": "CLI apertureR60 only avoids invalid known-planet aperture in sparse maps; does not change SNR maps; experiment searches remain five pixels",
+  "workers": 12,
+  "cpu_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "threads_per_worker": 1,
+  "dependence": "same correlated residual field and already inspected injections; this is not fresh validation"
+}
