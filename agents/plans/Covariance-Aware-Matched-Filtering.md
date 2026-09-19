@@ -2136,6 +2136,19 @@ verifies every earlier repair record. The repairs keep all 45 completed searches
 search. These changes affect recording and restart bookkeeping only; the frozen design and numerical analysis are
 unchanged.
 
+The next launch completed 93 baseline searches before exposing a distinct inner-edge case at
+`null_x123_y122`. The ±10 covariance fits were valid at all five search pixels, but one pixel at radius 6.36 had
+no lower bracketing annular-noise bin. The independent oracle therefore returned an undefined SNR there. Production
+converted that undefined value to zero when it zeroed non-finite pixels, causing the deliberate oracle comparison
+to stop the run. A zero cannot be accepted as a measured SNR: all five search pixels are required by the frozen
+contract. The runner now checks finite oracle normalization at all five pixels before sending a method through
+`hciAnalyze`; a method failing that check is an invalid nondetection. If such a trial belongs to a frozen 20-null
+calibration pool, it is replaced before threshold calculation by a valid candidate from the already frozen null
+union in the same radial band. The replacement maximizes its minimum spatial distance from retained trials, uses
+no score value, and is recorded in `effective_calibration_pools.json`. Thus every threshold still uses 20 valid
+five-pixel searches selected before positive reductions. In this case the frozen radius-8 ±10 pool has one valid
+reserve, `null_x121_y121`.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

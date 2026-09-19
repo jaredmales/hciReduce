@@ -263,8 +263,9 @@ def repair(args: argparse.Namespace) -> None:
     unsupported_layer = 'hciAnalyze' in error and 'SIGABRT' in error
     incomplete_collision = 'File exists' in error and '/analysis/' in error
     nonfinite_json = 'Out of range float values are not JSON compliant' in error
+    oracle_mismatch = 'annular oracle mismatch' in error
     full.radial.require(state['status'] == 'failed' and
-                        (unsupported_layer or incomplete_collision or nonfinite_json) and
+                        (unsupported_layer or incomplete_collision or nonfinite_json or oracle_mismatch) and
                         not (root/'calibration_complete.json').exists() and
                         not (root/'thresholds.json').exists() and not (root/'jobs.json').exists(),
                         'repair is allowed only after a recognized pre-calibration runner failure')
@@ -301,8 +302,10 @@ def repair(args: argparse.Namespace) -> None:
         reason = 'omit geometrically unsupported covariance layers from production SNR interpolation'
     elif incomplete_collision:
         reason = 'resume incomplete analysis directories without overwriting artifacts'
-    else:
+    elif nonfinite_json:
         reason = 'serialize unavailable per-pixel diagnostics for unsupported methods as JSON null'
+    else:
+        reason = 'exclude searches without complete five-pixel annular normalization and replace invalid nulls'
     record = {'schema': 1, 'repair_number': repair_number, 'reason': reason,
         'pre_calibration': True, 'positive_reductions_before_repair': 0, 'previous_runner': old,
         'updated_runner': updated, 'previous_state': previous_state, 'archived_partial_analysis': archived}
@@ -388,6 +391,25 @@ def score_trial(trial: dict, maps: np.ndarray, amplitudes: np.ndarray,
     return result
 
 
+def select_annular_methods(maps: np.ndarray, trial: dict, settings: dict) -> tuple[list, dict, dict, dict]:
+    """Require finite annular normalization at all five search pixels before production SNR."""
+    supported = active_methods(trial)
+    positions = [(trial['row']+dx, trial['column']+dy) for dx, dy in SEARCH_OFFSETS]
+    enabled, expected, profiles, diagnostics = [], {}, {}, {}
+    for index, name in enumerate(METHODS):
+        if name not in supported:
+            profiles[name] = []
+            diagnostics[name] = {'filter_support': False, 'annular_pixels': [False]*len(positions),
+                                 'valid': False}
+            continue
+        expected[name], profiles[name] = annular_oracle(maps[index], settings)
+        pixels = [bool(np.isfinite(expected[name][y, x])) for x, y in positions]
+        diagnostics[name] = {'filter_support': True, 'annular_pixels': pixels, 'valid': all(pixels)}
+        if all(pixels):
+            enabled.append(name)
+    return enabled, expected, profiles, diagnostics
+
+
 def analyze_image(root: Path, source: Path, analysis_name: str, trial: dict,
                   reference_name: str) -> dict:
     """Build clean amplitude maps, apply production annular SNR, and score trials."""
@@ -411,8 +433,6 @@ def analyze_image(root: Path, source: Path, analysis_name: str, trial: dict,
     radius = np.hypot(xx-127.5, yy-127.5).astype('f4')
     bins, positions, selected = required_bins([trial], radius)
     maps = np.full((len(METHODS), *science.shape), np.nan, dtype='f4')
-    enabled = active_methods(trial)
-    enabled_indices = [METHODS.index(name) for name in enabled]
     references = full.reference_maps(root, source, reference_name)
     maps[METHODS.index('gaussian')][selected & clean_centers] = references['gaussian_raw'][selected & clean_centers]
     details = {}
@@ -429,6 +449,11 @@ def analyze_image(root: Path, source: Path, analysis_name: str, trial: dict,
             details[f'{x},{y}'] = diagnostic
         if index % 1000 == 0:
             print(f'{analysis_name}: filtered {index}/{len(templates)} response positions', flush=True)
+    settings = {'source_x': protocol['known_source_circle'][0], 'source_y': protocol['known_source_circle'][1],
+        'source_radius': protocol['known_source_circle'][2], 'lambda_d': 3.6, 'min_radius': 0, 'max_radius': 60}
+    enabled, expected, profiles, annular_support = select_annular_methods(maps, trial, settings)
+    full.radial.require(bool(enabled), 'no method has complete five-pixel annular normalization')
+    enabled_indices = [METHODS.index(name) for name in enabled]
     header['HCI FILTER LABELS'] = ','.join(METHODS)
     header['HCI RADIAL BINS'] = ','.join(map(str, bins))
     fits.writeto(directory/'amplitudes.fits', maps, header)
@@ -452,32 +477,72 @@ def analyze_image(root: Path, source: Path, analysis_name: str, trial: dict,
     snr = np.full(maps.shape, np.nan, dtype='f4')
     snr[enabled_indices] = active_snr
     fits.writeto(directory/'amplitudes_snr.fits', snr, snr_header)
-    settings = {'source_x': protocol['known_source_circle'][0], 'source_y': protocol['known_source_circle'][1],
-        'source_radius': protocol['known_source_circle'][2], 'lambda_d': 3.6, 'min_radius': 0, 'max_radius': 60}
-    profiles, errors = {}, {}
+    errors = {}
     for index, name in enumerate(METHODS):
         if name not in enabled:
-            profiles[name], errors[name] = [], None
+            errors[name] = None
             continue
-        expected, profiles[name] = annular_oracle(maps[index], settings)
         checked = np.array([[y, x] for x, y in positions if np.isfinite(maps[index, y, x])])
         if len(checked):
-            difference = np.abs(snr[index, checked[:, 0], checked[:, 1]]-expected[checked[:, 0], checked[:, 1]])
+            oracle = expected[name]
+            difference = np.abs(snr[index, checked[:, 0], checked[:, 1]]-oracle[checked[:, 0], checked[:, 1]])
             errors[name] = float(np.nanmax(difference))
             full.radial.require(np.allclose(snr[index, checked[:, 0], checked[:, 1]],
-                                expected[checked[:, 0], checked[:, 1]], rtol=2e-6, atol=2e-6, equal_nan=True),
+                                oracle[checked[:, 0], checked[:, 1]], rtol=2e-6, atol=2e-6, equal_nan=True),
                                 'annular oracle mismatch for '+name)
         else:
             errors[name] = None
     rows = [{'trial': trial, 'models': score_trial(trial, snr, maps, profiles, radius)}]
     write_json(directory/'measurements.json', {'image': reference_name, 'analysis': analysis_name,
         'source': fingerprint(source), 'rows': rows,
-        'required_bins': bins, 'active_methods': enabled, 'search_details': details,
+        'required_bins': bins, 'filter_supported_methods': active_methods(trial), 'active_methods': enabled,
+        'annular_support': annular_support, 'search_details': details,
         'annular_oracle_max_errors': errors})
     products = [fingerprint(directory/name) for name in ('amplitudes.fits', 'active_amplitudes.fits',
         'active_amplitudes_snr.fits', 'amplitudes_snr.fits', 'measurements.json', 'command.json')]
     write_json(complete, {'products': products})
     return full.read(directory/'measurements.json')
+
+
+def select_effective_calibration_pools(protocol: dict, baseline_rows: list) -> dict:
+    """Replace invalid frozen nulls by geometry only, without consulting their score values."""
+    rows = {row['trial']['name']: row for row in baseline_rows}
+    trials = {trial['name']: trial for trial in protocol['calibration_trials']}
+    result = {}
+    for nominal in RADII:
+        result[str(nominal)] = {}
+        for method in METHODS:
+            pool = protocol['calibration_pools'][str(nominal)][method]
+            if pool is None:
+                result[str(nominal)][method] = None
+                continue
+            original = list(pool['trials'])
+            chosen = [name for name in original if rows[name]['models'][method]['valid']]
+            invalid = [name for name in original if name not in chosen]
+            lower, upper = pool['radius_range']
+            available = [trial for trial in trials.values() if trial['name'] not in chosen and
+                         lower <= trial['nominal_radius'] <= upper and
+                         rows[trial['name']]['models'][method]['valid']]
+            replacements = []
+            while len(chosen) < CALIBRATION_SEARCHES:
+                full.radial.require(bool(available),
+                                    f'insufficient valid calibration searches for radius {nominal} {method}')
+                prior = [trials[name] for name in chosen]
+                if prior:
+                    choice = max(available, key=lambda trial: (
+                        min(math.dist((trial['row'], trial['column']), (row['row'], row['column'])) for row in prior),
+                        -trial['azimuth_degrees'], -trial['row'], -trial['column']))
+                else:
+                    choice = min(available, key=lambda trial: (
+                        trial['azimuth_degrees'], trial['row'], trial['column']))
+                chosen.append(choice['name'])
+                replacements.append(choice['name'])
+                available.remove(choice)
+            full.radial.require(len(chosen) == CALIBRATION_SEARCHES,
+                                f'changed calibration search count for radius {nominal} {method}')
+            result[str(nominal)][method] = {**pool, 'trials': chosen, 'original_trials': original,
+                'invalid_original_trials': invalid, 'replacement_trials': replacements}
+    return result
 
 
 def calibrate(root: Path) -> tuple[dict, list, dict]:
@@ -496,11 +561,15 @@ def calibrate(root: Path) -> tuple[dict, list, dict]:
     baseline = {'rows': baseline_rows, 'source': fingerprint(root/'payload/baseline.fits'),
         'per_search_holdout': True}
     rows = {row['trial']['name']: row for row in baseline_rows}
+    effective_pools = select_effective_calibration_pools(protocol, baseline_rows)
+    write_json(root/'effective_calibration_pools.json', {'schema': 1, 'score_values_used_for_selection': False,
+        'selection': 'retain valid frozen trials, then add the valid frozen candidate maximizing minimum spatial distance',
+        'pools': effective_pools})
     thresholds = {}
     for nominal in RADII:
         thresholds[str(nominal)] = {}
         for method in METHODS:
-            pool = protocol['calibration_pools'][str(nominal)][method]
+            pool = effective_pools[str(nominal)][method]
             if pool is None:
                 thresholds[str(nominal)][method] = None
                 continue
@@ -522,7 +591,8 @@ def calibrate(root: Path) -> tuple[dict, list, dict]:
     write_json(root/'baseline.json', baseline)
     write_json(root/'thresholds.json', thresholds)
     write_json(root/'jobs.json', jobs)
-    products = [fingerprint(root/name) for name in ('baseline.json', 'thresholds.json', 'jobs.json')]
+    products = [fingerprint(root/name) for name in
+                ('baseline.json', 'thresholds.json', 'jobs.json', 'effective_calibration_pools.json')]
     write_json(record, {'all_thresholds_and_contrasts_frozen_before_positive_analysis': True,
                         'products': products})
     return thresholds, jobs, baseline
@@ -531,6 +601,7 @@ def calibrate(root: Path) -> tuple[dict, list, dict]:
 def summarize(root: Path, thresholds: dict, baseline: dict, measurements: list) -> None:
     """Write per-radius recovery, null exceedances, invalid counts, and a compact plot."""
     protocol = full.read(root/'protocol.json')
+    effective_pools = full.read(root/'effective_calibration_pools.json')['pools']
     baseline_rows = {row['trial']['name']: row for row in baseline['rows']}
     nulls, groups = [], []
     for site in protocol['sites']:
@@ -564,9 +635,11 @@ def summarize(root: Path, thresholds: dict, baseline: dict, measurements: list) 
                     'median_raw_contrast_error': float(np.median(errors)) if errors else None})
             groups.append(one)
     write_json(root/'results.json', {'groups': groups, 'nulls': nulls, 'measurements': measurements,
-        'thresholds': thresholds, 'calibration_pools': protocol['calibration_pools'],
+        'thresholds': thresholds, 'calibration_pools': effective_pools,
+        'original_calibration_pools': protocol['calibration_pools'],
         'caveats': [protocol['dependence'], 'Radius-6 planet-clean sites are necessarily close together.',
-                    'Method-specific calibration bands are recorded and can span adjacent radii.']})
+                    'Method-specific calibration bands are recorded and can span adjacent radii.',
+                    'Invalid frozen nulls are replaced before thresholding by validity and spatial geometry only.']})
     lines = ['# Inner-radius rectangular-PSD recovery', '',
         '| Radius | Method | 0.5× | 0.75× | 1× | Nulls | Invalid nulls |',
         '| ---: | --- | ---: | ---: | ---: | ---: | ---: |']

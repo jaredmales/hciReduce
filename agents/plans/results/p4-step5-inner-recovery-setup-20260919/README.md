@@ -155,6 +155,25 @@ remains invalid with no score. Applying the next repair writes
 `pre_repair_failures/repair_0003/`, and retains the 45 baseline analyses with
 verified receipts.
 
+The following launch reached 93 completed baseline searches before the ±10
+method at `null_x123_y122` exposed an annular-normalization edge case. Its five
+covariance fits were supported, but the innermost search pixel had no lower
+bracketing radial-noise bin. The oracle returned an undefined value there,
+while production converted the non-finite result to zero. The runner now
+requires finite annular normalization at all five search pixels before a
+method enters `hciAnalyze`; otherwise that method/search is an invalid
+nondetection. The next repair is `repair_0004.json` and retains the 93 complete
+searches.
+
+Because this trial is in the frozen radius-8 ±10 calibration pool, the runner
+replaces it before thresholding with a valid candidate from the already frozen
+null union in the same radial band. It chooses the candidate maximizing the
+minimum distance from retained trials and never reads a score during this
+selection. The effective 20-search pools, rejected original trials, and
+replacements are frozen in `effective_calibration_pools.json` before positive
+reductions. The available replacement for this pool is `null_x121_y121`,
+which already has a verified analysis receipt.
+
 ## Preparation validation
 
 The local `audit` action completed against the saved parent baseline and exact
