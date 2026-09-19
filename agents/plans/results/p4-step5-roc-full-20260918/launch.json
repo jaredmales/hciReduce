@@ -1,0 +1,30 @@
+{
+  "host": "exao5",
+  "ssh_alias": "roc",
+  "root": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918",
+  "tmux_session": "p4-psd-full-20260918",
+  "started_utc": "2026-09-19T03:45:56.308671+00:00",
+  "setup_commit": "35cfee7",
+  "cpp_source_commit": "882cb15",
+  "command": [
+    "env",
+    "OPENBLAS_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OMP_NUM_THREADS=2",
+    "MPLCONFIGDIR=/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/matplotlib",
+    "taskset",
+    "-c",
+    "12,13",
+    "/opt/conda/envs/xpy3_13/bin/python3",
+    "-u",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/software/run_p4_step5_roc_full.py",
+    "run",
+    "--root",
+    "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918"
+  ],
+  "manifest_sha256": "bef8b2692c7cb8141ef462e5e46a7599af568435b314df4c559a9b4b0df73e2d",
+  "protocol_sha256": "a778cfd14eb27c7549a12a50eda06cbf2a8ffde49f5bc0c9de80f06a7f47b294",
+  "baseline_reductions": 1,
+  "positive_reductions": 90,
+  "separate_pilot": false
+}

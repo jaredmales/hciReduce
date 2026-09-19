@@ -1831,7 +1831,10 @@ library loading and all 621 input-frame hashes. Local checks cover 30 independen
 stencils, 360 protected covariance fits, and five exact template increments. The unattended driver uses
 24 physical cores per reduction and produces reference maps, filter measurements, progress/completion
 records, and final summary/plots. No production C++ or mxlib-calling function changes in this checkpoint.
-See the setup report for execution status and provenance; scientific results remain pending.
+The full queue launched in ROC tmux session `p4-psd-full-20260918` at 2026-09-19 03:45:56 UTC, after setup
+commit `35cfee7`. The baseline completed in 51.22 seconds; all 30 calibrations finished and the first positive
+reduction was active at the launch checkpoint. See the setup report for
+execution status and provenance; scientific results remain pending.
 
 ## 8. Notation
 

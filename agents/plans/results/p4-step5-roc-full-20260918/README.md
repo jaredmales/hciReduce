@@ -1,9 +1,13 @@
 # Step 5: full PSD injection study on ROC
 
-**The full study is prepared: one baseline and 90 positive full-image reductions, followed by automatic analysis.**
+**The full study is running on ROC: one baseline and 90 positive full-image reductions, followed by automatic analysis.**
 The user explicitly waived the separate small ROC numerical/throughput pilot. Native compilation, dependency
 loading, input hashes, geometry, and local filter integration have been checked. This checkpoint fixes the
 experiment before new-site scores or positive images are inspected; it contains no new recovery results.
+Setup was committed as `35cfee7`; the detached supervisor started at **2026-09-19 03:45:56 UTC**
+(September 18, 21:45:56 MDT). At 03:47:16 UTC the baseline and all 30 calibrations had finished and the first
+positive reduction was running. The baseline took **51.22 seconds wall time** with **4.90 GiB peak RSS**.
+The live state and logs below are authoritative for subsequent progress.
 
 ## Fixed comparison
 
@@ -99,7 +103,7 @@ CPU IDs 12–13, OpenMP 2, and single-threaded BLAS. Python is the existing `xpy
 NumPy 2.4.3, SciPy 1.16.3, Astropy 7.2.0, and Matplotlib 3.10.8. Native dependency, build, and Python
 provenance is recorded in `manifest.json`; there were 740 GB available before launch.
 
-The driver is intended to run in detached tmux session `p4-psd-full-20260918`. It performs the baseline,
+The driver runs in detached tmux session `p4-psd-full-20260918` (supervisor PID 1530357). It performs the baseline,
 calibration, 30 new-site baseline measurements, all 90 positive reductions and reference/filter analyses,
 then writes `results.json`, `results.md`, `comparison.png`, and `complete.json`. Atomic `state.json`,
 `driver.log`, per-trial completion records, commands, FITS products, and resource logs preserve progress.
@@ -146,6 +150,12 @@ was edited, so this checkpoint adds no mxlib ownership follow-up.
 - [`geometry.json`](geometry.json): every site's candidate and calibration training-count audit.
 - [`native_manifest.json`](native_manifest.json): ROC-native executables, dependencies, source archive,
   build cache, Python environment, and all 621 source-frame fingerprints.
+- [`launch.json`](launch.json): launch time, detached session, command, setup commit, and manifest/protocol hashes.
+- [`startup_status.json`](startup_status.json): active supervisor, successful baseline, resource usage, and
+  production Gaussian replay/independent-reference checks.
+- [`thresholds.json`](thresholds.json), [`jobs.json`](jobs.json), and
+  [`calibration_complete.json`](calibration_complete.json): all site/model thresholds and 90 exact source contrasts,
+  frozen before new-site measurements; the full calibration measurements remain in the ROC run directory.
 - [`setup_checks.json`](setup_checks.json), [`setup_check.py`](setup_check.py), and
   [`independent_geometry.json`](independent_geometry.json): local verification and separate selection audit.
 - [`run_p4_step5_roc_full.py`](../../scripts/run_p4_step5_roc_full.py): maintained design/prepare/run driver.

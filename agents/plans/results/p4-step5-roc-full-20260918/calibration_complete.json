@@ -1,0 +1,20 @@
+{
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/thresholds.json",
+      "bytes": 10416,
+      "sha256": "96bbaeaa62d3f9502e4b21f00f9203c5c339b874b49bf9fa751771b5abd1755d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/jobs.json",
+      "bytes": 29018,
+      "sha256": "fae2c8dfdd9b765c8b0941a654bd0c435e223ea740f0fe335b7e57a52c0849a2"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/calibration.json",
+      "bytes": 7554033,
+      "sha256": "c7d32687c19262c2ccc527cb74d1c5f251ada75fab2161f35d85e3bd2d37e4b0"
+    }
+  ],
+  "all_thresholds_and_contrasts_frozen_before_new_site_measurements": true
+}
