@@ -119,6 +119,39 @@ omitted from the mean rather than assigned zero. The JSON output additionally
 preserves the mean center-pixel SNR, allowing a separate check of small
 search-position shifts.
 
+## Pre-calibration runner repair
+
+The first launch stopped after retaining 119 completed baseline analyses. The
+remaining 45 parent analysis receipts came from the earliest phase of the
+inner-radius study and predate its `active_methods` metadata field. Their
+amplitude maps, SNR maps, scores, validity flags, and completion receipts are
+complete; only that later convenience field is absent. No threshold was
+written and no positive analysis started.
+
+A read-only audit of all 272 parent analyses derives method support directly
+from finite values at the five search pixels in each frozen parent
+`hciAnalyze` SNR map. The derived sets reproduce all 272 recorded model-validity
+sets exactly and reproduce `active_methods` for all 227 receipts that contain
+it. The runner now uses this map-derived check for every receipt. The full raw
+SNR-map and result comparisons remain in place, so this changes compatibility
+handling rather than a numerical estimator.
+
+After pulling the repair commit on ROC, update only the frozen runner record:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
+  /opt/conda/envs/xpy3_13/bin/python3 \
+  agents/plans/scripts/compare_p4_step5_inner_patch_rms.py repair \
+  --root working/roc/p4_inner_patch_rms_20260919
+```
+
+The repair verifies every unchanged frozen input, requires the exact
+`'active_methods'` failure, refuses to run after calibration or any positive
+analysis, records old and new runner fingerprints in `repair_0001.json`, and
+retains the 119 completed baseline receipts. Restart the same `tmux` run command
+with a new log such as `driver-repaired.log`. Each of the 45 unreceipted task
+directories is preserved under `interrupted/baseline/` before recomputation.
+
 ## Prelaunch validation
 
 Local synthetic checks verify equal-RMS equivalence with the raw rectangular
@@ -129,8 +162,10 @@ with 164 baseline and 108 positive analysis receipts passes preparation and
 input-fingerprint verification. A synthetic full summary reproduces all raw
 parent controls and writes the expected 48 per-radius groups, eight aggregate
 rows, and 54 paired comparisons. It also verifies the per-radius and aggregate
-means of supplied production-map search and center SNR values. Python syntax
-compilation and repository whitespace checks also pass.
+means of supplied production-map search and center SNR values. A synthetic
+failure-root check verifies the repair guards, runner-fingerprint replacement,
+repair receipt, retained-baseline count, and complete post-repair fingerprint
+set. Python syntax compilation and repository whitespace checks also pass.
 
 ## Scope
 

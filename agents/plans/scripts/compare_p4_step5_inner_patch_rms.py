@@ -140,6 +140,43 @@ def prepare(args: argparse.Namespace) -> None:
     print(f'prepared {len(baseline_tasks)} baseline and {len(positive_tasks)} saved-positive analyses', flush=True)
 
 
+def repair(root: Path) -> None:
+    """Update only the frozen runner after the legacy parent-metadata failure."""
+    manifest_path = root/'manifest.json'
+    manifest = inner.full.read(manifest_path)
+    state = inner.full.read(root/'state.json')
+    inner.full.radial.require(state['status'] == 'failed' and state.get('error') == "'active_methods'",
+                              'repair applies only to the legacy active_methods failure')
+    inner.full.radial.require(not (root/'calibration_complete.json').exists() and
+                              not (root/'complete.json').exists(), 'repair must precede calibration')
+    positive_receipts = list((root/'positive').glob('*/complete.json')) if (root/'positive').exists() else []
+    inner.full.radial.require(not positive_receipts, 'repair must precede positive analysis')
+    runner = Path(__file__).resolve()
+    matches = [record for record in manifest['inputs'] if Path(record['path']).resolve() == runner]
+    inner.full.radial.require(len(matches) == 1, 'frozen runner fingerprint is missing or ambiguous')
+    previous = matches[0]
+    unchanged = [record for record in manifest['inputs'] if record != previous]
+    inner.full.verify([*unchanged, manifest['protocol'], *manifest.get('repair_records', [])])
+    updated = fingerprint(runner)
+    inner.full.radial.require(updated != previous, 'runner has not changed')
+    repair_number = len(manifest.get('repair_records', []))+1
+    repair_path = root/f'repair_{repair_number:04d}.json'
+    inner.full.radial.require(not repair_path.exists(), 'repair receipt already exists')
+    baseline_receipts = sorted((root/'baseline').glob('*/complete.json'))
+    record = {'schema': 1, 'repair_number': repair_number,
+        'reason': 'derive raw-control support from frozen parent SNR maps for legacy receipts without active_methods',
+        'pre_calibration': True, 'positive_analyses_before_repair': 0,
+        'completed_baseline_analyses_retained': len(baseline_receipts),
+        'previous_runner': previous, 'updated_runner': updated, 'previous_state': state}
+    write_json(repair_path, record)
+    manifest['inputs'] = [updated if one == previous else one for one in manifest['inputs']]
+    manifest.setdefault('repair_records', []).append(fingerprint(repair_path))
+    write_json(manifest_path, manifest)
+    write_json(root/'state.json', {'status': 'repaired', 'new_reductions': 0,
+        'completed_baseline_analyses_retained': len(baseline_receipts), 'repair': str(repair_path)})
+    print(f'repaired runner; retained {len(baseline_receipts)} completed baseline analyses', flush=True)
+
+
 def initialize(root: str, queue) -> None:
     """Pin one worker to one CPU and load its immutable parent context."""
     global _CONTEXT
@@ -255,7 +292,6 @@ def analyze(task: dict) -> str:
     parent_directory = study/'analysis'/task['name']
     parent_amplitudes = fits.getdata(parent_directory/'amplitudes.fits').reshape((len(inner.METHODS), *science.shape))
     parent_snr = fits.getdata(parent_directory/'amplitudes_snr.fits').reshape(parent_amplitudes.shape)
-    parent_measurement = inner.full.read(parent_directory/'measurements.json')
     yy, xx = np.indices(science.shape)
     radius = np.hypot(xx-127.5, yy-127.5).astype('f4')
     bins, positions, selected = inner.required_bins([trial], radius)
@@ -294,7 +330,9 @@ def analyze(task: dict) -> str:
     enabled, expected, profiles, annular_support = select_methods(maps, trial, settings)
     inner.full.radial.require('identity' in enabled and 'gaussian' in enabled,
                               'reference method lacks complete five-pixel normalization')
-    parent_active = set(parent_measurement['active_methods'])
+    search_positions = [(trial['row']+dx, trial['column']+dy) for dx, dy in inner.SEARCH_OFFSETS]
+    parent_active = {name for name in inner.METHODS if all(np.isfinite(
+        parent_snr[PARENT_INDEX[name], y, x]) for x, y in search_positions)}
     for name in (*RAW.values(), 'identity', 'gaussian'):
         inner.full.radial.require((name in enabled) == (name in parent_active),
                                   'raw/reference annular validity changed for '+name)
@@ -628,7 +666,7 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
 def run(root: Path) -> None:
     """Run baseline calibration, then analyze all saved positives without new reductions."""
     manifest = inner.full.read(root/'manifest.json')
-    inner.full.verify([*manifest['inputs'], manifest['protocol']])
+    inner.full.verify([*manifest['inputs'], manifest['protocol'], *manifest.get('repair_records', [])])
     with (root/'run.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if (root/'complete.json').exists():
@@ -644,7 +682,8 @@ def run(root: Path) -> None:
             write_json(root/'state.json', {'status': 'positive', 'pid': os.getpid(), 'new_reductions': 0})
             positives = run_phase(root, protocol['positive_tasks'], 'positive')
             summarize(root, baseline, positives, thresholds, pools)
-            inner.full.verify([*manifest['inputs'], manifest['protocol'], *calibration['products']])
+            inner.full.verify([*manifest['inputs'], manifest['protocol'], *manifest.get('repair_records', []),
+                               *calibration['products']])
             products = [fingerprint(root/name) for name in ('results.json', 'results.md', 'comparison.png',
                 'thresholds.json', 'effective_calibration_pools.json', 'baseline.json')]
             write_json(root/'complete.json', {'baseline_analyses': len(baseline),
@@ -661,13 +700,15 @@ def run(root: Path) -> None:
 def main() -> None:
     """Expose immutable preparation and resumable paired comparison actions."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('prepare', 'run'))
+    parser.add_argument('action', choices=('prepare', 'repair', 'run'))
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--study', type=Path, default=Path('working/roc/p4_inner_rectangular_20260919'))
     parser.add_argument('--cpus', type=int, nargs='+', default=list(range(12)))
     args = parser.parse_args()
     if args.action == 'prepare':
         prepare(args)
+    elif args.action == 'repair':
+        repair(args.root.resolve())
     else:
         run(args.root.resolve())
 

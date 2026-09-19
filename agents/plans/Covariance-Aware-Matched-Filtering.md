@@ -2244,6 +2244,19 @@ annular standard deviation, known-source exclusion, and small-sample
 correction. The independent Python annular calculation only verifies the
 production result.
 
+The first ROC launch stopped after retaining 119 of 164 baseline reanalyses,
+before calibration or any positive analysis. Forty-five complete parent
+receipts came from the earliest inner-radius run and predate the later
+`active_methods` convenience field. A read-only audit derived support from
+finite values at the five search pixels in every frozen parent `hciAnalyze`
+SNR map. Those sets reproduce the recorded model-validity sets for all 272
+parent analyses exactly and reproduce `active_methods` for all 227 receipts
+that contain it. The repaired comparison therefore derives this raw-control
+check from the frozen SNR maps. A guarded pre-calibration repair updates only
+the driver fingerprint, records both versions, retains the 119 completed
+baseline receipts, and leaves the estimator, thresholds, and saved images
+unchanged.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
