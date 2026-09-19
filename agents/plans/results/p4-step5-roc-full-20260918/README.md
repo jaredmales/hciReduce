@@ -1,13 +1,102 @@
 # Step 5: full PSD injection study on ROC
 
-**The full study is running on ROC: one baseline and 90 positive full-image reductions, followed by automatic analysis.**
-The user explicitly waived the separate small ROC numerical/throughput pilot. Native compilation, dependency
-loading, input hashes, geometry, and local filter integration have been checked. This checkpoint fixes the
-experiment before new-site scores or positive images are inspected; it contains no new recovery results.
-Setup was committed as `35cfee7`; the detached supervisor started at **2026-09-19 03:45:56 UTC**
-(September 18, 21:45:56 MDT). At 03:47:16 UTC the baseline and all 30 calibrations had finished and the first
-positive reduction was running. The baseline took **51.22 seconds wall time** with **4.90 GiB peak RSS**.
-The live state and logs below are authoritative for subsequent progress.
+**All 90 injections and the automatic analysis completed. Same-radius Hann PSD improves recovery over
+Gaussian/SNR in this sample, with the same observed baseline exceedance count.** The advantage over identity
+matched filtering with application SNR is smaller, and raw photometric errors remain broadly comparable to
+identity. The pooled rectangular PSD candidate has more baseline exceedances.
+
+The full study took **78.4 minutes**, from 2026-09-19 03:45:56 to 05:04:19 UTC (September 18, 21:45:56 to
+23:04:19 MDT). Median full-image reduction time was **51.26 seconds** across the baseline and 90 positives;
+the range was 51.13–52.02 seconds. Setup and launch were committed as `35cfee7` and `9f59d34`. The user
+waived a separate small ROC pilot; all thresholds, source contrasts, and filter settings were frozen before
+new-site measurements. The completed products and independent review are archived here.
+
+## Recovery results
+
+Each recovery entry is **detections out of 30** at the stated brightness. The last column is baseline
+exceedances at the 30 new sites, measured before injection. All searches are valid; no sites were dropped.
+
+| Method | 0.5× | 0.75× | 1× | Baseline exceedances |
+| --- | --- | --- | --- | --- |
+| Same-radius Hann PSD, mixture 0.1 | **14/30** | **16/30** | **20/30** | **3/30** |
+| ±5-pixel rectangular PSD, mixture 0.3 | 13/30 | 16/30 | 21/30 | 6/30 |
+| ±5-pixel PCA, three modes / floor 1 | 10/30 | 15/30 | 17/30 | 3/30 |
+| ±5-pixel fitted-mean isotropic | 10/30 | 14/30 | 17/30 | 3/30 |
+| Original identity matched-filter score | 9/30 | 13/30 | 16/30 | 4/30 |
+| Gaussian FWHM 3.6 + application SNR | 11/30 | 14/30 | 16/30 | 3/30 |
+| Gaussian FWHM 3.6, smoothed intensity | 10/30 | 11/30 | 17/30 | 2/30 |
+| Identity matched filter + application SNR | 12/30 | 16/30 | 19/30 | 2/30 |
+
+![Recovery and baseline exceedances for all eight fixed methods](comparison.png)
+
+Hann PSD recovers **every Gaussian/SNR detection**, plus 3, 2, and 4 sources at the three brightnesses.
+It also recovers every original-identity detection, plus 5, 3, and 4. Against identity with application SNR,
+the additions are only **2, 0, and 1**, with no lost detections. All these additional Hann detections were
+below its threshold in the baseline. Thus the additions are actual injection-induced crossings, although
+the overall counts also retain preassigned sites that already exceeded baseline threshold.
+
+Hann and Gaussian/SNR each have three baseline exceedances, at different locations: Hann at
+`fresh_r32_b1`, `fresh_r32_b2`, and `fresh_r38_b4`; Gaussian/SNR at `fresh_r26_b3`, `fresh_r26_b5`, and
+`fresh_r38_b4`. Equal counts do not establish equal underlying false-positive rates. Identity/SNR has two
+baseline exceedances, so this sample does not establish that Hann improves on that reference at a matched
+false-positive rate.
+
+The ±5-pixel rectangular PSD's six baseline exceedances make its 21/30 highest-level recovery insufficient
+to prefer it over Hann. Both candidates differ in window, spectral mixture, and training width; this comparison
+does not isolate the effect of pooling. The new baseline-to-positive crossings for Hann are **11, 13, 17 among
+its 27 baseline-below-threshold sites**, versus **7, 10, 15 among the rectangular candidate's 24**. These
+method-dependent subsets are descriptive diagnostics; the primary denominator remains the preassigned 30.
+
+At 1×, Hann's four additional Gaussian/SNR recoveries lie at radii 26 and 44 (two each). The three-level
+per-radius counts and individual paired decisions are preserved in [`review.json`](review.json). Sites on
+each ring can overlap, so multiple additional detections can share the same local noise structure.
+
+## Raw photometry and uncertainty
+
+The following values summarize all **90 exact-center positive measurements**. Raw fractional contrast error
+is `positive amplitude / injected contrast − 1`; it retains the background realization. Entries are errors
+relative to the injected contrast, not errors relative to a negative-injection fit or uncertainty on a median.
+
+| Method | Median signed error | Median absolute error | RMS error | Within ±1 conditional sigma |
+| --- | --- | --- | --- | --- |
+| Same-radius Hann PSD | +7.8% | 59.2% | 77.4% | 45/90 |
+| ±5-pixel rectangular PSD | +5.3% | 56.7% | 78.1% | 37/90 |
+| ±5-pixel PCA | +23.5% | 65.3% | 85.0% | 6/90 |
+| ±5-pixel isotropic | +1.4% | 61.1% | 78.9% | 15/90 |
+| Original identity | +2.1% | 57.3% | 78.7% | 90/90† |
+
+† Identity's `C=I` sigma is an algebraic quantity without an estimated physical noise scale; its apparent
+coverage is not evidence of calibrated uncertainty. Gaussian smoothed intensity is not a contrast estimator.
+
+Hann's per-brightness median absolute errors are **80.5%, 53.4%, and 39.8%**, versus identity's
+**90.7%, 59.9%, and 44.6%**. RMS errors are only modestly lower: **103.3%, 68.4%, 51.0%** versus
+**105.2%, 69.6%, 51.8%**. Pooling brightness levels changes the ordering of the median absolute errors,
+as the table shows; the overall evidence supports comparable photometry, with a modest improvement in
+some summaries.
+
+Conditional uncertainty is more realistic than PCA's but remains imperfect. Hann includes **15/30 native
+baseline centers** within one conditional sigma, rectangular PSD 12/30, PCA 2/30, and isotropic 5/30.
+The pooled baseline-center score variance is **1.95 for Hann**, 2.44 for rectangular PSD, 6.01 for PCA,
+and 8.14 for isotropic. Hann's pooled mean is 0.137. These heterogeneous, correlated sites do not form
+independent repeated draws of a single fixed filter; the statistics are descriptive calibration checks.
+
+The diagnostic paired increment `(positive amplitude − baseline amplitude) / injected contrast − 1`
+has median **−0.55% for Hann**, −0.67% for rectangular PSD, −0.72% for PCA, −0.69% for isotropic, and
+−0.73% for identity. This supports the analytic response approximation on these injections. It does not
+remove background errors from actual single-image photometry; the primary recovery and error tables use
+the unpaired positive measurements.
+
+## What this establishes
+
+The frozen comparison supports **same-radius Hann PSD as the leading PSD candidate here** and confirms
+a recovery gain over Gaussian smoothing with application SNR in this sample. Ordinary annular SNR
+normalization also improves identity recovery substantially, leaving a much smaller gap to Hann.
+
+This remains one reused residual field, with overlapping sites and shared training/calibration pixels.
+The next validation should address threshold transfer and conditional uncertainty using more independent
+noise support or another field, retaining identity/SNR as a close reference. The present counts do not
+justify a production default or independent-trial confidence intervals. Radii below 26 pixels remain untested
+by this full study. No additional reductions or production-policy changes were made during this review.
 
 ## Fixed comparison
 
@@ -103,18 +192,18 @@ CPU IDs 12–13, OpenMP 2, and single-threaded BLAS. Python is the existing `xpy
 NumPy 2.4.3, SciPy 1.16.3, Astropy 7.2.0, and Matplotlib 3.10.8. Native dependency, build, and Python
 provenance is recorded in `manifest.json`; there were 740 GB available before launch.
 
-The driver runs in detached tmux session `p4-psd-full-20260918` (supervisor PID 1530357). It performs the baseline,
+The driver ran in detached tmux session `p4-psd-full-20260918` (supervisor PID 1530357). It completed the baseline,
 calibration, 30 new-site baseline measurements, all 90 positive reductions and reference/filter analyses,
-then writes `results.json`, `results.md`, `comparison.png`, and `complete.json`. Atomic `state.json`,
+then wrote `results.json`, `results.md`, `comparison.png`, and `complete.json`. Atomic `state.json`,
 `driver.log`, per-trial completion records, commands, FITS products, and resource logs preserve progress.
-It needs no connection or further input to finish. A lock prevents concurrent supervisors.
+The run required no open connection or further input. Its final state is `complete`.
 
 Completed reductions and reference maps can be reused after hash verification. Partial output directories
 are deliberately not overwritten: preserve/quarantine a failed trial directory before restarting. A failure
 sets `state.json` to `failed` and stops; completion sets it to `complete`. A second invocation after completion
 verifies the summary products and returns.
 
-Check progress without attaching to the supervisor:
+Read the retained final status:
 
 ```sh
 ssh roc 'cat /home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/state.json'
@@ -144,6 +233,23 @@ Local setup checks passed:
 The native build, library loading/help checks, and all input hashes pass on ROC. No mxlib-calling function
 was edited, so this checkpoint adds no mxlib ownership follow-up.
 
+Completion verification on ROC checked **1,322 distinct file fingerprints**, including all 621 source frames,
+frozen software, build/source provenance, 91 completed reductions, 91 reference-map sets, and all measurements.
+Every recorded measurement matches the final summary. All 91 Gaussian CLI replays are bitwise equal;
+the maximum independent Gaussian error relative to image peak is 1.05e-6.
+
+The local review independently reconstructed all 30 holdout masks and audited **960 searches**: 840
+site-specific calibration searches, 30 new-site null searches, and 90 positive searches. Generic dense
+covariance solves reproduce **19,200 candidate-pixel fits**, with maximum absolute amplitude difference
+6.25e-18, relative sigma difference 6.33e-15, and absolute score difference 1.15e-13. The review reuses the
+already-tested covariance estimators and interpolation geometry; it independently checks masks, solves,
+native reference pixels, thresholds, decisions, and summaries.
+
+All **4,800 identity pixels**, **2,880 Gaussian/application-SNR reference searches**, **240 thresholds**, and
+**450 raw photometry/increment records** agree. The local review also verifies 644 distinct transferred
+product fingerprints. The comparison figure was visually inspected. Python syntax and whitespace checks
+pass; no production C++ changed.
+
 ### Artifacts
 
 - [`protocol.json`](protocol.json): fixed methods, sites, amplitudes rule, exclusions, and compute settings.
@@ -155,10 +261,24 @@ was edited, so this checkpoint adds no mxlib ownership follow-up.
   production Gaussian replay/independent-reference checks.
 - [`thresholds.json`](thresholds.json), [`jobs.json`](jobs.json), and
   [`calibration_complete.json`](calibration_complete.json): all site/model thresholds and 90 exact source contrasts,
-  frozen before new-site measurements; the full calibration measurements remain in the ROC run directory.
+  frozen before new-site measurements; [`calibration.json`](calibration.json) preserves the full calibration measurements.
 - [`setup_checks.json`](setup_checks.json), [`setup_check.py`](setup_check.py), and
   [`independent_geometry.json`](independent_geometry.json): local verification and separate selection audit.
 - [`run_p4_step5_roc_full.py`](../../scripts/run_p4_step5_roc_full.py): maintained design/prepare/run driver.
+- [`results.json`](results.json), [`results.md`](results.md), [`baseline_nulls.json`](baseline_nulls.json), and
+  [`comparison.png`](comparison.png): unchanged full-study measurements, summary, and plot.
+- [`complete.json`](complete.json), [`state.json`](state.json), and
+  [`completion_verification.json`](completion_verification.json): completion, timing, and ROC provenance checks.
+- [`review.json`](review.json) and [`review_p4_step5_roc_full.py`](../../scripts/review_p4_step5_roc_full.py):
+  generic-solve/native-pixel verification, descriptive photometry, per-radius recovery, and paired decisions.
 
-The ignored run directory contains the frozen inputs and software. The tracked report preserves the protocol
-and setup evidence; completed scientific results will be reviewed and archived at the next checkpoint.
+The ignored local run directory now also contains the transferred FITS products and per-trial logs. The tracked
+report preserves the frozen design, calibration, completed scientific measurements, and verification evidence.
+
+Reproduce the local review from the repository root, writing into a new output directory:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=2 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
+  taskset -c 12,13 python3 agents/plans/scripts/review_p4_step5_roc_full.py \
+  --root working/roc/p4_psd_full_20260918 --output /path/to/new/review-directory
+```

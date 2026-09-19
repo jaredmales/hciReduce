@@ -1,0 +1,571 @@
+{
+  "models": {
+    "psd_hann_b0_m0.1": {
+      "null_exceedances": 3,
+      "by_level": [
+        {
+          "level": 0.5,
+          "detections": 14,
+          "baseline_below_threshold": 27,
+          "new_crossings": 11,
+          "by_radius": {
+            "26": 3,
+            "32": 5,
+            "38": 2,
+            "44": 1,
+            "50": 3
+          }
+        },
+        {
+          "level": 0.75,
+          "detections": 16,
+          "baseline_below_threshold": 27,
+          "new_crossings": 13,
+          "by_radius": {
+            "26": 3,
+            "32": 6,
+            "38": 2,
+            "44": 2,
+            "50": 3
+          }
+        },
+        {
+          "level": 1.0,
+          "detections": 20,
+          "baseline_below_threshold": 27,
+          "new_crossings": 17,
+          "by_radius": {
+            "26": 4,
+            "32": 6,
+            "38": 3,
+            "44": 4,
+            "50": 3
+          }
+        }
+      ],
+      "photometry": {
+        "median_error": 0.07838364906932138,
+        "median_absolute_error": 0.5917458381872177,
+        "rms_error": 0.7735010296817768,
+        "within_one_conditional_sigma": 45,
+        "median_paired_increment_error": -0.005466037904563625,
+        "null_centers_within_one_sigma": 15,
+        "null_center_score_mean": 0.13707524362059692,
+        "null_center_score_sample_variance": 1.9517823475552951
+      }
+    },
+    "psd_rectangular_b5_m0.3": {
+      "null_exceedances": 6,
+      "by_level": [
+        {
+          "level": 0.5,
+          "detections": 13,
+          "baseline_below_threshold": 24,
+          "new_crossings": 7,
+          "by_radius": {
+            "26": 3,
+            "32": 6,
+            "38": 1,
+            "44": 0,
+            "50": 3
+          }
+        },
+        {
+          "level": 0.75,
+          "detections": 16,
+          "baseline_below_threshold": 24,
+          "new_crossings": 10,
+          "by_radius": {
+            "26": 3,
+            "32": 6,
+            "38": 2,
+            "44": 2,
+            "50": 3
+          }
+        },
+        {
+          "level": 1.0,
+          "detections": 21,
+          "baseline_below_threshold": 24,
+          "new_crossings": 15,
+          "by_radius": {
+            "26": 4,
+            "32": 6,
+            "38": 3,
+            "44": 4,
+            "50": 4
+          }
+        }
+      ],
+      "photometry": {
+        "median_error": 0.05256201577551489,
+        "median_absolute_error": 0.566512536846883,
+        "rms_error": 0.7808805275866206,
+        "within_one_conditional_sigma": 37,
+        "median_paired_increment_error": -0.006724801198525532,
+        "null_centers_within_one_sigma": 12,
+        "null_center_score_mean": 0.20962272493516826,
+        "null_center_score_sample_variance": 2.44103339119245
+      }
+    },
+    "pca_b5_f1": {
+      "null_exceedances": 3,
+      "by_level": [
+        {
+          "level": 0.5,
+          "detections": 10,
+          "baseline_below_threshold": 27,
+          "new_crossings": 7,
+          "by_radius": {
+            "26": 2,
+            "32": 4,
+            "38": 2,
+            "44": 0,
+            "50": 2
+          }
+        },
+        {
+          "level": 0.75,
+          "detections": 15,
+          "baseline_below_threshold": 27,
+          "new_crossings": 12,
+          "by_radius": {
+            "26": 3,
+            "32": 5,
+            "38": 3,
+            "44": 1,
+            "50": 3
+          }
+        },
+        {
+          "level": 1.0,
+          "detections": 17,
+          "baseline_below_threshold": 27,
+          "new_crossings": 14,
+          "by_radius": {
+            "26": 3,
+            "32": 5,
+            "38": 3,
+            "44": 2,
+            "50": 4
+          }
+        }
+      ],
+      "photometry": {
+        "median_error": 0.23458505449866007,
+        "median_absolute_error": 0.6530397804908477,
+        "rms_error": 0.8502506451531998,
+        "within_one_conditional_sigma": 6,
+        "median_paired_increment_error": -0.007200107154677726,
+        "null_centers_within_one_sigma": 2,
+        "null_center_score_mean": 0.4410803505190913,
+        "null_center_score_sample_variance": 6.01332499875736
+      }
+    },
+    "isotropic_b5": {
+      "null_exceedances": 3,
+      "by_level": [
+        {
+          "level": 0.5,
+          "detections": 10,
+          "baseline_below_threshold": 27,
+          "new_crossings": 7,
+          "by_radius": {
+            "26": 2,
+            "32": 5,
+            "38": 1,
+            "44": 0,
+            "50": 2
+          }
+        },
+        {
+          "level": 0.75,
+          "detections": 14,
+          "baseline_below_threshold": 27,
+          "new_crossings": 11,
+          "by_radius": {
+            "26": 3,
+            "32": 6,
+            "38": 2,
+            "44": 0,
+            "50": 3
+          }
+        },
+        {
+          "level": 1.0,
+          "detections": 17,
+          "baseline_below_threshold": 27,
+          "new_crossings": 14,
+          "by_radius": {
+            "26": 3,
+            "32": 6,
+            "38": 3,
+            "44": 2,
+            "50": 3
+          }
+        }
+      ],
+      "photometry": {
+        "median_error": 0.014427002690186375,
+        "median_absolute_error": 0.6107671520720093,
+        "rms_error": 0.7894884170973772,
+        "within_one_conditional_sigma": 15,
+        "median_paired_increment_error": -0.00689105426485459,
+        "null_centers_within_one_sigma": 5,
+        "null_center_score_mean": 0.23316399354153608,
+        "null_center_score_sample_variance": 8.144492248833869
+      }
+    },
+    "identity": {
+      "null_exceedances": 4,
+      "by_level": [
+        {
+          "level": 0.5,
+          "detections": 9,
+          "baseline_below_threshold": 26,
+          "new_crossings": 5,
+          "by_radius": {
+            "26": 3,
+            "32": 5,
+            "38": 1,
+            "44": 0,
+            "50": 0
+          }
+        },
+        {
+          "level": 0.75,
+          "detections": 13,
+          "baseline_below_threshold": 26,
+          "new_crossings": 9,
+          "by_radius": {
+            "26": 3,
+            "32": 6,
+            "38": 2,
+            "44": 0,
+            "50": 2
+          }
+        },
+        {
+          "level": 1.0,
+          "detections": 16,
+          "baseline_below_threshold": 26,
+          "new_crossings": 12,
+          "by_radius": {
+            "26": 4,
+            "32": 6,
+            "38": 3,
+            "44": 0,
+            "50": 3
+          }
+        }
+      ],
+      "photometry": {
+        "median_error": 0.02058611211132544,
+        "median_absolute_error": 0.5728027230700232,
+        "rms_error": 0.7873740716034179,
+        "within_one_conditional_sigma": 90,
+        "median_paired_increment_error": -0.007340953434291919,
+        "null_centers_within_one_sigma": 30,
+        "null_center_score_mean": 0.04768576423718846,
+        "null_center_score_sample_variance": 0.11459106264927112
+      }
+    },
+    "gaussian_snr": {
+      "null_exceedances": 3,
+      "by_level": [
+        {
+          "level": 0.5,
+          "detections": 11,
+          "baseline_below_threshold": 27,
+          "new_crossings": 8,
+          "by_radius": {
+            "26": 2,
+            "32": 5,
+            "38": 2,
+            "44": 0,
+            "50": 2
+          }
+        },
+        {
+          "level": 0.75,
+          "detections": 14,
+          "baseline_below_threshold": 27,
+          "new_crossings": 11,
+          "by_radius": {
+            "26": 2,
+            "32": 5,
+            "38": 2,
+            "44": 2,
+            "50": 3
+          }
+        },
+        {
+          "level": 1.0,
+          "detections": 16,
+          "baseline_below_threshold": 27,
+          "new_crossings": 13,
+          "by_radius": {
+            "26": 2,
+            "32": 6,
+            "38": 3,
+            "44": 2,
+            "50": 3
+          }
+        }
+      ]
+    },
+    "gaussian_raw": {
+      "null_exceedances": 2,
+      "by_level": [
+        {
+          "level": 0.5,
+          "detections": 10,
+          "baseline_below_threshold": 28,
+          "new_crossings": 8,
+          "by_radius": {
+            "26": 2,
+            "32": 5,
+            "38": 2,
+            "44": 0,
+            "50": 1
+          }
+        },
+        {
+          "level": 0.75,
+          "detections": 11,
+          "baseline_below_threshold": 28,
+          "new_crossings": 9,
+          "by_radius": {
+            "26": 2,
+            "32": 5,
+            "38": 2,
+            "44": 0,
+            "50": 2
+          }
+        },
+        {
+          "level": 1.0,
+          "detections": 17,
+          "baseline_below_threshold": 28,
+          "new_crossings": 15,
+          "by_radius": {
+            "26": 3,
+            "32": 6,
+            "38": 3,
+            "44": 2,
+            "50": 3
+          }
+        }
+      ]
+    },
+    "identity_snr": {
+      "null_exceedances": 2,
+      "by_level": [
+        {
+          "level": 0.5,
+          "detections": 12,
+          "baseline_below_threshold": 28,
+          "new_crossings": 10,
+          "by_radius": {
+            "26": 2,
+            "32": 5,
+            "38": 2,
+            "44": 0,
+            "50": 3
+          }
+        },
+        {
+          "level": 0.75,
+          "detections": 16,
+          "baseline_below_threshold": 28,
+          "new_crossings": 14,
+          "by_radius": {
+            "26": 3,
+            "32": 6,
+            "38": 2,
+            "44": 2,
+            "50": 3
+          }
+        },
+        {
+          "level": 1.0,
+          "detections": 19,
+          "baseline_below_threshold": 28,
+          "new_crossings": 17,
+          "by_radius": {
+            "26": 3,
+            "32": 6,
+            "38": 3,
+            "44": 4,
+            "50": 3
+          }
+        }
+      ]
+    }
+  },
+  "hann_paired_decisions": {
+    "gaussian_snr": [
+      {
+        "level": 0.5,
+        "hann_only": [
+          "fresh_r26_b1",
+          "fresh_r44_b4",
+          "fresh_r50_b0"
+        ],
+        "reference_only": []
+      },
+      {
+        "level": 0.75,
+        "hann_only": [
+          "fresh_r26_b1",
+          "fresh_r32_b4"
+        ],
+        "reference_only": []
+      },
+      {
+        "level": 1.0,
+        "hann_only": [
+          "fresh_r26_b1",
+          "fresh_r26_b2",
+          "fresh_r44_b0",
+          "fresh_r44_b3"
+        ],
+        "reference_only": []
+      }
+    ],
+    "identity": [
+      {
+        "level": 0.5,
+        "hann_only": [
+          "fresh_r38_b0",
+          "fresh_r44_b4",
+          "fresh_r50_b0",
+          "fresh_r50_b1",
+          "fresh_r50_b4"
+        ],
+        "reference_only": []
+      },
+      {
+        "level": 0.75,
+        "hann_only": [
+          "fresh_r44_b1",
+          "fresh_r44_b4",
+          "fresh_r50_b0"
+        ],
+        "reference_only": []
+      },
+      {
+        "level": 1.0,
+        "hann_only": [
+          "fresh_r44_b0",
+          "fresh_r44_b1",
+          "fresh_r44_b3",
+          "fresh_r44_b4"
+        ],
+        "reference_only": []
+      }
+    ],
+    "identity_snr": [
+      {
+        "level": 0.5,
+        "hann_only": [
+          "fresh_r26_b1",
+          "fresh_r44_b4"
+        ],
+        "reference_only": []
+      },
+      {
+        "level": 0.75,
+        "hann_only": [],
+        "reference_only": []
+      },
+      {
+        "level": 1.0,
+        "hann_only": [
+          "fresh_r26_b2"
+        ],
+        "reference_only": []
+      }
+    ],
+    "pca_b5_f1": [
+      {
+        "level": 0.5,
+        "hann_only": [
+          "fresh_r26_b1",
+          "fresh_r32_b5",
+          "fresh_r44_b4",
+          "fresh_r50_b0"
+        ],
+        "reference_only": []
+      },
+      {
+        "level": 0.75,
+        "hann_only": [
+          "fresh_r32_b4",
+          "fresh_r44_b1"
+        ],
+        "reference_only": [
+          "fresh_r38_b5"
+        ]
+      },
+      {
+        "level": 1.0,
+        "hann_only": [
+          "fresh_r26_b2",
+          "fresh_r32_b4",
+          "fresh_r44_b0",
+          "fresh_r44_b3"
+        ],
+        "reference_only": [
+          "fresh_r50_b2"
+        ]
+      }
+    ]
+  },
+  "verification": {
+    "all_passed": true,
+    "verified_local_product_hashes": 644,
+    "counts": {
+      "searches": 960,
+      "covariance_pixel_solves": 19200,
+      "identity_pixels": 4800,
+      "reference_searches": 2880,
+      "thresholds": 240,
+      "raw_photometry": 450
+    },
+    "maximum_differences": {
+      "amplitude_absolute_difference": 6.247715018947719e-18,
+      "sigma_relative_difference": 6.328271240363392e-15,
+      "score_absolute_difference": 1.1546319456101628e-13
+    },
+    "independent_masks": 30,
+    "covariance_estimator_and_geometry_reused": true
+  },
+  "inputs": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/results.json",
+      "bytes": 1321357,
+      "sha256": "c11d770530c21f1594bb3a76faf431e3b3c04b8dd578959471e1cf787a898bd7"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/protocol.json",
+      "bytes": 11709,
+      "sha256": "a778cfd14eb27c7549a12a50eda06cbf2a8ffde49f5bc0c9de80f06a7f47b294"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/jobs.json",
+      "bytes": 29018,
+      "sha256": "fae2c8dfdd9b765c8b0941a654bd0c435e223ea740f0fe335b7e57a52c0849a2"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/thresholds.json",
+      "bytes": 10416,
+      "sha256": "96bbaeaa62d3f9502e4b21f00f9203c5c339b874b49bf9fa751771b5abd1755d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/calibration.json",
+      "bytes": 7554033,
+      "sha256": "c7d32687c19262c2ccc527cb74d1c5f251ada75fab2161f35d85e3bd2d37e4b0"
+    }
+  ]
+}

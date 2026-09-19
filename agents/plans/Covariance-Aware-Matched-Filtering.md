@@ -1833,8 +1833,51 @@ stencils, 360 protected covariance fits, and five exact template increments. The
 records, and final summary/plots. No production C++ or mxlib-calling function changes in this checkpoint.
 The full queue launched in ROC tmux session `p4-psd-full-20260918` at 2026-09-19 03:45:56 UTC, after setup
 commit `35cfee7`. The baseline completed in 51.22 seconds; all 30 calibrations finished and the first positive
-reduction was active at the launch checkpoint. See the setup report for
-execution status and provenance; scientific results remain pending.
+reduction was active at the launch checkpoint. The completed result follows; the report preserves execution
+status and provenance.
+
+### Step 5 development result: completed full ROC study (2026-09-19)
+
+**All 90 injections and the automatic analysis completed in 78.4 minutes**, with a median full-image reduction
+time of 51.26 seconds. The [completed report](results/p4-step5-roc-full-20260918/README.md) archives the fixed
+calibration and all measurements. At 0.5×, 0.75×, and 1× brightness, recovery counts out of 30 are:
+
+| Fixed method | 0.5× | 0.75× | 1× | Baseline exceedances / 30 |
+| --- | --- | --- | --- | --- |
+| Same-radius Hann PSD, mixture 0.1 | 14 | 16 | 20 | 3 |
+| ±5-pixel rectangular PSD, mixture 0.3 | 13 | 16 | 21 | 6 |
+| ±5-pixel PCA, three modes / floor 1 | 10 | 15 | 17 | 3 |
+| ±5-pixel fitted-mean isotropic | 10 | 14 | 17 | 3 |
+| Original identity score | 9 | 13 | 16 | 4 |
+| Gaussian FWHM 3.6 + application SNR | 11 | 14 | 16 | 3 |
+| Gaussian FWHM 3.6, smoothed intensity | 10 | 11 | 17 | 2 |
+| Identity + application SNR | 12 | 16 | 19 | 2 |
+
+Every search is valid. Hann recovers every Gaussian/SNR detection, plus 3, 2, and 4 sources; all additions
+are below Hann's baseline threshold. Against identity with application SNR, additions shrink to 2, 0, and 1,
+while that reference has fewer baseline exceedances. The rectangular candidate's extra baseline exceedances
+preclude preferring its 21/30 high-level count alone. Its window, mixture, and width all differ from Hann,
+so this does not isolate a pooling effect. The fixed sample supports Hann as the leading PSD candidate here,
+without establishing equal underlying false-positive rates or a general advantage over identity/SNR.
+
+Raw photometry remains broadly comparable to identity: pooled fractional RMS error is **0.774 for Hann**,
+0.781 for rectangular PSD, 0.850 for PCA, 0.789 for isotropic, and 0.787 for identity. Hann's median signed
+error is +7.8%, versus identity's +2.1%. Conditional uncertainty improves relative to PCA but remains
+imperfect: Hann contains 45/90 positive estimates and 15/30 baseline centers within one sigma, versus
+PCA's 6/90 and 2/30. Pooled native-null score variance is 1.95 for Hann and 6.01 for PCA. Identity's
+algebraic sigma is not a fitted physical noise uncertainty. Median paired increment error is −0.55% for
+Hann, supporting the response approximation without removing background errors from raw measurements.
+
+ROC verification checks 1,322 distinct fingerprints, all 621 input frames, and 91 complete reduction/reference
+sets. Local reconstruction verifies 960 searches, 19,200 generic covariance solves, 4,800 identity pixels,
+2,880 reference searches, 240 thresholds, and 450 photometry records. Maximum amplitude/sigma differences
+are 6.25e-18 absolute and 6.33e-15 relative. All thresholds and source contrasts remain unchanged.
+
+**Next:** address threshold transfer and conditional uncertainty with more independent noise support or
+another field, keeping Gaussian/SNR and identity/SNR as references. These 30 sites remain correlated and
+partly overlapping in a reused field; the results do not establish a production default or independent-trial
+confidence intervals. Radii below 26 pixels remain a follow-up. No further reductions, production C++, or
+mxlib-calling functions changed during this review.
 
 ## 8. Notation
 

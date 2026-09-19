@@ -179,7 +179,7 @@ the records preserve both. The original thresholds are not validated at that inn
 
 ## Next step
 
-**Update:** the [full ROC study is now specified and running](../p4-step5-roc-full-20260918/README.md).
+**Update:** the [full ROC study is complete and reviewed](../p4-step5-roc-full-20260918/README.md).
 The user waived the separate small ROC pilot. That report records the fixed eight-method comparison,
 30 new sites, three transition brightnesses, and the necessary per-site holdout/recalibration change.
 The proposal below describes the recommendation at this recovery checkpoint.
