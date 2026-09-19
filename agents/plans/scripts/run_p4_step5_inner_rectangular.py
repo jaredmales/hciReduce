@@ -255,14 +255,17 @@ def setup(args: argparse.Namespace) -> None:
 
 
 def repair(args: argparse.Namespace) -> None:
-    """Update a pre-calibration frozen runner after the unsupported-layer abort."""
+    """Update a failed pre-calibration runner while preserving prior repair records."""
     root = args.root.resolve()
     manifest = full.read(root/'manifest.json')
     state = full.read(root/'state.json')
-    full.radial.require(state['status'] == 'failed' and 'hciAnalyze' in state.get('error', '') and
-                        'SIGABRT' in state.get('error', '') and not (root/'calibration_complete.json').exists() and
+    error = state.get('error', '')
+    unsupported_layer = 'hciAnalyze' in error and 'SIGABRT' in error
+    incomplete_collision = 'File exists' in error and '/analysis/' in error
+    full.radial.require(state['status'] == 'failed' and (unsupported_layer or incomplete_collision) and
+                        not (root/'calibration_complete.json').exists() and
                         not (root/'thresholds.json').exists() and not (root/'jobs.json').exists(),
-                        'repair is allowed only after the pre-calibration unsupported-layer failure')
+                        'repair is allowed only after a recognized pre-calibration runner failure')
     reductions = root/'reductions'
     full.radial.require(not reductions.exists() or not any(reductions.iterdir()),
                         'positive reductions already exist; do not repair this study in place')
@@ -273,13 +276,17 @@ def repair(args: argparse.Namespace) -> None:
                         'repair source is not a newer runner')
     full.verify([record for record in manifest['frozen_records'] if record != old])
     full.verify([*manifest['input_records'], *manifest.get('repair_records', [])])
+    repair_number = len(manifest.get('repair_records', []))+1
+    repair_name = f'repair_{repair_number:04d}'
+    repair_path = root/(repair_name+'.json')
+    full.radial.require(not repair_path.exists(), 'repair record already exists: '+str(repair_path))
     archived = []
     analysis = root/'analysis'
     if analysis.exists():
-        archive = root/'pre_repair_failures'
+        archive = root/'pre_repair_failures'/repair_name
         for directory in sorted(path for path in analysis.iterdir() if path.is_dir() and
                                 not (path/'complete.json').exists()):
-            archive.mkdir(exist_ok=True)
+            archive.mkdir(parents=True, exist_ok=True)
             destination = archive/directory.name
             full.radial.require(not destination.exists(), 'pre-repair archive already exists: '+str(destination))
             shutil.move(directory, destination)
@@ -288,15 +295,31 @@ def repair(args: argparse.Namespace) -> None:
     shutil.copy2(Path(__file__).resolve(), target)
     updated = fingerprint(target)
     manifest['frozen_records'] = [updated if record == old else record for record in manifest['frozen_records']]
-    record = {'schema': 1, 'reason': 'omit geometrically unsupported covariance layers from production SNR interpolation',
+    reason = ('omit geometrically unsupported covariance layers from production SNR interpolation'
+              if unsupported_layer else 'resume incomplete analysis directories without overwriting artifacts')
+    record = {'schema': 1, 'repair_number': repair_number, 'reason': reason,
         'pre_calibration': True, 'positive_reductions_before_repair': 0, 'previous_runner': old,
         'updated_runner': updated, 'previous_state': previous_state, 'archived_partial_analysis': archived}
-    write_json(root/'repair.json', record)
-    manifest.setdefault('repair_records', []).append(fingerprint(root/'repair.json'))
+    write_json(repair_path, record)
+    manifest.setdefault('repair_records', []).append(fingerprint(repair_path))
     write_json(root/'manifest.json', manifest)
     write_json(root/'state.json', {'status': 'repaired', 'positive_reductions': 0, 'finished': [],
-        'repair': str(root/'repair.json')})
+        'repair': str(repair_path)})
     print(f'repaired frozen runner and archived {len(archived)} partial analysis directories', flush=True)
+
+
+def archive_interrupted_analysis(root: Path, directory: Path) -> Path:
+    """Move an analysis lacking its completion receipt to a unique preserved path."""
+    full.radial.require(directory.is_dir() and not (directory/'complete.json').exists(),
+                        'only an incomplete analysis directory can be archived')
+    archive = root/'interrupted_analysis'/directory.name
+    archive.mkdir(parents=True, exist_ok=True)
+    attempt = 1
+    while (archive/f'attempt_{attempt:04d}').exists():
+        attempt += 1
+    destination = archive/f'attempt_{attempt:04d}'
+    shutil.move(directory, destination)
+    return destination
 
 
 def required_bins(trials: list, radius: np.ndarray) -> tuple[list, set, np.ndarray]:
@@ -366,6 +389,9 @@ def analyze_image(root: Path, source: Path, analysis_name: str, trial: dict,
     if complete.exists():
         full.verify(full.read(complete)['products'])
         return full.read(directory/'measurements.json')
+    if directory.exists():
+        archived = archive_interrupted_analysis(root, directory)
+        print(f'{analysis_name}: archived interrupted analysis as {archived}', flush=True)
     directory.mkdir(parents=True, exist_ok=False)
     science, header = fits.getdata(source, header=True)
     science = science.squeeze().astype(float)

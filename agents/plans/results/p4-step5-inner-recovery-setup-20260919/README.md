@@ -128,10 +128,26 @@ OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
 ```
 
 The repair verifies every unchanged frozen file and raw input, archives the
-partial failed analysis under `pre_repair_failures/`, replaces and rehashes
-only the frozen runner, and writes `repair.json`. It refuses to run after
-calibration or any positive reduction. Restart the same frozen run command,
-using a new log name such as `driver-repaired.log`.
+partial failed analysis under a numbered `pre_repair_failures/repair_NNNN/`
+directory, replaces and rehashes only the frozen runner, and appends a
+versioned repair record. Earlier repair records remain immutable and are
+verified before each update. It refuses to run after calibration or any
+positive reduction. Restart the same frozen run command, using a new log name
+such as `driver-repaired.log`.
+
+An interrupted analysis may have output files but no `complete.json` receipt.
+On resume, the runner preserves such a directory under
+`interrupted_analysis/<analysis>/attempt_NNNN/` and recomputes only that
+analysis. Directories with verified completion receipts are reused. This
+allows calibration and later positive analysis to resume after a process
+interruption without overwriting diagnostic artifacts or repeating completed
+work.
+
+For the existing 2026-09-19 root, the first repair remains recorded in the
+legacy `repair.json`. The resume correction writes `repair_0002.json`, archives
+the unreceipted `baseline__null_x119_y124` attempt under
+`pre_repair_failures/repair_0002/`, and retains the 45 baseline analyses that
+already have verified receipts.
 
 ## Preparation validation
 
