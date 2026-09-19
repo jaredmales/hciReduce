@@ -1,0 +1,10 @@
+{
+  "all_thresholds_frozen_before_positive_analysis": true,
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_patch_rms_step5_20260919/thresholds.json",
+      "bytes": 13596,
+      "sha256": "0b288cfcdbb664cc5e68dd4184ba92c46b93deba5f83505c5278327f7eee5b1a"
+    }
+  ]
+}

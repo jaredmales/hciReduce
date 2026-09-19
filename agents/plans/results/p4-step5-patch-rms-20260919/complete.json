@@ -1,0 +1,28 @@
+{
+  "baseline_maps": 30,
+  "positive_images": 90,
+  "new_reductions": 0,
+  "inputs_unchanged": true,
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_patch_rms_step5_20260919/results.json",
+      "bytes": 18697529,
+      "sha256": "6d2ca7f7bdad63aa4997c88fe4aa6fe87f7ab521fa0ced0bfe819fec18240204"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_patch_rms_step5_20260919/results.md",
+      "bytes": 536,
+      "sha256": "8ebb439b34a3a7b621be88269c56c2e08c1d53f381ebfd13d6524c5992e770be"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_patch_rms_step5_20260919/comparison.png",
+      "bytes": 131140,
+      "sha256": "190960e28954fe62ec2565e77d332629cc5a7623d2730e9f391db3ba809a5c8a"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_patch_rms_step5_20260919/thresholds.json",
+      "bytes": 13596,
+      "sha256": "0b288cfcdbb664cc5e68dd4184ba92c46b93deba5f83505c5278327f7eee5b1a"
+    }
+  ]
+}

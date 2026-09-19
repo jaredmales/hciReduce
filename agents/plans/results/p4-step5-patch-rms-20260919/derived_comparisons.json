@@ -1,0 +1,368 @@
+{
+  "photometry": {
+    "identity": {
+      "median_raw_error": 0.02058610512051029,
+      "rms_raw_error": 0.7873740760503205
+    },
+    "hann_psd_no_mean": {
+      "median_raw_error": 0.028444987530188204,
+      "rms_raw_error": 0.7749939794767411
+    },
+    "hann_psd_mean": {
+      "median_raw_error": 0.0783836647631837,
+      "rms_raw_error": 0.7735010329576685
+    },
+    "hann_patch_rms_no_mean": {
+      "median_raw_error": 0.023748624172766797,
+      "rms_raw_error": 0.77824614186545
+    },
+    "hann_patch_rms_mean": {
+      "median_raw_error": 0.07099804420645439,
+      "rms_raw_error": 0.777041536728082
+    },
+    "rect_psd_no_mean": {
+      "median_raw_error": 0.049171618450342125,
+      "rms_raw_error": 0.7800004739254766
+    },
+    "rect_psd_mean": {
+      "median_raw_error": 0.05256202710867619,
+      "rms_raw_error": 0.7808805259205752
+    },
+    "rect_patch_rms_no_mean": {
+      "median_raw_error": 0.050769160263739344,
+      "rms_raw_error": 0.7785055343098723
+    },
+    "rect_patch_rms_mean": {
+      "median_raw_error": 0.05114121213422573,
+      "rms_raw_error": 0.7797989950268716
+    }
+  },
+  "mean_toggles": {
+    "hann": {
+      "nulls": {
+        "mean_absolute_score_change": 0.037966159824281934,
+        "maximum_absolute_score_change": 0.1290884017944336,
+        "flips": []
+      },
+      "injections": {
+        "mean_absolute_score_change": 0.03833902892139223,
+        "maximum_absolute_score_change": 0.12771987915039062,
+        "flips": []
+      }
+    },
+    "rect": {
+      "nulls": {
+        "mean_absolute_score_change": 0.024649795951942603,
+        "maximum_absolute_score_change": 0.060974955558776855,
+        "flips": []
+      },
+      "injections": {
+        "mean_absolute_score_change": 0.02335536943541633,
+        "maximum_absolute_score_change": 0.06669425964355469,
+        "flips": []
+      }
+    }
+  },
+  "by_radius": {
+    "gaussian": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 16
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 7
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 4
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 8
+      }
+    ],
+    "identity": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 8
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 7
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 9
+      }
+    ],
+    "hann_psd_no_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 9
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 9
+      }
+    ],
+    "hann_psd_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 9
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 9
+      }
+    ],
+    "hann_patch_rms_no_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 9
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 9
+      }
+    ],
+    "hann_patch_rms_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 9
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 9
+      }
+    ],
+    "rect_psd_no_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 10
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 10
+      }
+    ],
+    "rect_psd_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 10
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 10
+      }
+    ],
+    "rect_patch_rms_no_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 10
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 10
+      }
+    ],
+    "rect_patch_rms_mean": [
+      {
+        "radius": 26,
+        "trials": 18,
+        "detections": 10
+      },
+      {
+        "radius": 32,
+        "trials": 18,
+        "detections": 17
+      },
+      {
+        "radius": 38,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 44,
+        "trials": 18,
+        "detections": 6
+      },
+      {
+        "radius": 50,
+        "trials": 18,
+        "detections": 10
+      }
+    ]
+  },
+  "normalization_effect": {
+    "hann_patch_rms_mean": {
+      "mean_absolute_positive_score_change": 0.023436773154470656,
+      "maximum_absolute_positive_score_change": 0.11664628982543945,
+      "median_training_max_min_rms_ratio": 1.5777860801271744,
+      "maximum_training_max_min_rms_ratio": 1.8678824828502751,
+      "null_decision_flips": []
+    },
+    "hann_patch_rms_no_mean": {
+      "mean_absolute_positive_score_change": 0.023655406799581315,
+      "maximum_absolute_positive_score_change": 0.1178131103515625,
+      "median_training_max_min_rms_ratio": 1.5777860801271744,
+      "maximum_training_max_min_rms_ratio": 1.8678824828502751,
+      "null_decision_flips": []
+    },
+    "rect_patch_rms_mean": {
+      "mean_absolute_positive_score_change": 0.017017549276351927,
+      "maximum_absolute_positive_score_change": 0.05906188488006592,
+      "median_training_max_min_rms_ratio": 1.7743527278951587,
+      "maximum_training_max_min_rms_ratio": 2.2747380616690442,
+      "null_decision_flips": []
+    },
+    "rect_patch_rms_no_mean": {
+      "mean_absolute_positive_score_change": 0.016260174247953625,
+      "maximum_absolute_positive_score_change": 0.061186790466308594,
+      "median_training_max_min_rms_ratio": 1.7743527278951587,
+      "maximum_training_max_min_rms_ratio": 2.2747380616690442,
+      "null_decision_flips": []
+    }
+  }
+}

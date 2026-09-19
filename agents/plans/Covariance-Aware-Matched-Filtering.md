@@ -1995,6 +1995,53 @@ filters; global input normalization combined with that output SNR remains untest
 changed both recovery and null counts, so it cannot be judged at equal false-positive rate from those
 counts alone. The user now requests a test of per-patch normalization after mean subtraction.
 
+### Step 5 development: per-patch normalization after ensemble mean subtraction (2026-09-19)
+
+The approved [comparison](results/p4-step5-patch-rms-20260919/README.md) interprets per-patch normalization
+as division by each training residual patch's own RMS. Extract raw aligned patches, subtract their raw
+ensemble mean patch mu, and divide each residual r_j by sqrt(mean(r_j^2)). Estimate the PSD from those
+normalized residuals without a second centering, then restore the original raw mean pixel variance before
+applying the fixed spectral mixture. There is no separate scalar spatial-mean subtraction. Candidate data
+and response remain in raw units, and the fitted candidate background remains the same raw mu. A fixed
+floating-point zero guard invalidates numerically zero residuals without discarding or refitting patches.
+
+The test keeps same-ring Hann/mixing 0.1 and ±5-pixel rectangular/mixing 0.3. Raw/RMS fits each retain the
+candidate-mean on/off toggle; Gaussian FWHM 3.6 and identity complete ten variants. It reuses all 90 saved
+positives, 30 sites, original masks, five-pixel searches, and production annular SNR. All 300 thresholds
+are frozen before positive analysis. Full raw-control maps, decisions, and summaries must reproduce the
+previous experiment. Direct lag sums, generic solves, and injected unit-response checks verify the new
+estimator before the run. No new reduction or production/mxlib-calling function change is needed.
+
+The completed comparison took **112.3 seconds** on ROC. Per-patch normalization changes no individual
+positive or null decision within either PSD family and either candidate-mean setting. All searches remain
+valid. Each PSD row below applies to candidate mean subtraction on and off:
+
+| Method with common annular SNR | 0.5× /30 | 0.75× /30 | 1× /30 | Nulls /30 |
+| --- | --- | --- | --- | --- |
+| Gaussian FWHM 3.6 | 11 | 14 | 16 | 3 |
+| Identity | 12 | 16 | 19 | 2 |
+| Same-ring Hann, raw | 12 | 16 | 19 | 1 |
+| Same-ring Hann, post-mean patch RMS | 12 | 16 | 19 | 1 |
+| Pooled rectangular, raw | 12 | 16 | 21 | 2 |
+| Pooled rectangular, post-mean patch RMS | 12 | 16 | 21 | 2 |
+
+With candidate mean subtraction, the mean absolute positive-search SNR change is 0.0234 for Hann and
+0.0170 for rectangular PSD; the maximum is 0.1166 and 0.0591. Median max/min training-patch RMS ratios
+are 1.58 and 1.77, so the input scaling changes power contributions despite unchanged decisions. Raw
+fractional photometric RMS error changes from 0.77350 to 0.77704 for Hann and 0.78088 to 0.77980 for
+rectangular with mean subtraction; the small differences are mixed. Per-level statistics and all paired
+site decisions are preserved in the report.
+
+All 1,440 raw-control amplitude/SNR planes reproduce the preceding run bitwise. Independent local
+reconstruction verifies 48,000 searched SNR pixels exactly, 11,960 profile entries, all 300 thresholds,
+and 1,200 decisions. Direct lag sums and generic solves verify 240 normalized baseline/positive center
+fits (maximum amplitude difference 7.05e-19), in addition to prelaunch covariance/unit-response checks.
+All 120 task receipts and 2,439 fingerprints pass on ROC. The full results and maps are archived locally.
+No production or mxlib-calling functions changed. These fixed widths show no detection gain from residual
+RMS normalization; wider pooling, inner radii, and independent-noise threshold transfer remain separate
+tests. Normalization after subtraction of a spatial scalar mean or by an external radial profile was not
+part of this experiment.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
@@ -2091,3 +2138,5 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | Dot or prime | Derivative with respect to source amplitude | For example, $\dot\Pi_k$ and $r_k'(0)$ refer to the specified source direction at $\alpha=0$. |
 | $\operatorname{diag}(a_i)$ | Diagonal matrix with entries $a_i$ | Used for singular values, covariance eigenvalues, and modal weights. |
 | $O(\cdot)$ | Asymptotic operation-count scaling | Describes leading computational work, not a measured wall-time speedup. |
+| $s_j$ | RMS of raw training residual patch $r_j=x_j-\mu$ | $\sqrt{\sum_a r_{j,a}^2/p}$; used after ensemble mean subtraction in the per-patch normalization test. No separate scalar spatial mean is removed. |
+| $z_j$ | Training residual normalized by its own patch RMS | $r_j/s_j$; normalization precedes the spectral window, with no second ensemble centering. |

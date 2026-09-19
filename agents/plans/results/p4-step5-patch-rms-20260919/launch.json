@@ -1,0 +1,26 @@
+{
+  "host": "exao5",
+  "alias": "roc",
+  "launched_utc": "2026-09-19T16:40:57Z",
+  "tmux_session": "p4-patch-rms-20260919",
+  "root": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_patch_rms_step5_20260919",
+  "python": "/opt/conda/envs/xpy3_13/bin/python3",
+  "workers": 12,
+  "new_reductions": 0,
+  "documentation_checkpoint": "5d70709",
+  "protocol": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-patch-rms-20260919/protocol.json",
+    "bytes": 8264,
+    "sha256": "c12dd352ac2f5c1c2a1a68f31a7d9555cb0b35d3b2736f25ec943e2dfc8d2ae6"
+  },
+  "manifest": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-patch-rms-20260919/manifest.json",
+    "bytes": 427429,
+    "sha256": "63823a28f2845eec3aac1dcdf85f684b87cc50ea5afe4489a286abc6e1b6a79a"
+  },
+  "setup_checks": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-patch-rms-20260919/setup_checks.json",
+    "bytes": 776,
+    "sha256": "c0ef723aa331968344be082e5551edad69edbf6009038ce071bef8a734e58e67"
+  }
+}

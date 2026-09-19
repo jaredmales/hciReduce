@@ -1,0 +1,22 @@
+{
+  "all_passed": true,
+  "checks": {
+    "direct_lag_covariances": 60,
+    "generic_filter_solves": 60,
+    "protected_training_matrices": 90,
+    "unit_response_increments": 270,
+    "synthetic_identities": 16
+  },
+  "maximum_covariance_difference_over_variance": 4.4183652007796695e-16,
+  "new_reductions": 0,
+  "script": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/scripts/compare_p4_step5_patch_rms.py",
+    "bytes": 30569,
+    "sha256": "525e0b8dd03106008a506faa85ef3319b169fc22fda524f195d6feac45ccf29e"
+  },
+  "source": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918/reductions/baseline/finim.fits",
+    "bytes": 293760,
+    "sha256": "93f64c71fc05f78eea418776ebad68fdb32983c18dd8210a63de3e7a93d50c79"
+  }
+}
