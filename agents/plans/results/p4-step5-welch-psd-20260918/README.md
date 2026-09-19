@@ -184,6 +184,12 @@ Keep the experiment labeled development because these images have already influe
 any eventual policy before the fresh ROC injection study. No production configuration or ROC policy is selected
 at this checkpoint, and no new detection/recovery result is claimed.
 
+**Follow-up completed:** the [saved-image PSD recovery comparison](../p4-step5-psd-recovery-20260918/README.md)
+applies all 32 spectral settings to the original null and positive images, alongside covariance controls and the
+Gaussian/identity references. It finds better conditional uncertainty than PCA and one extra faint recovery for
+nine settings at the same observed Gaussian/SNR null count, with comparable photometry to identity. The report
+records the small threshold margins, all settings, and the remaining validation limits.
+
 ## Verification and artifacts
 
 - [`summary.json`](summary.json): 32 PSD policies, 16 controls, dispersion, radial-transfer counts, and paired comparisons.

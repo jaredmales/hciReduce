@@ -1722,8 +1722,8 @@ ratios span 0.769–0.997 in policy medians; the normalized ±20-pixel Hann arms
 centered variance. These reused, correlated outer sites and the shared profile do not establish inner-separation
 performance, native-candidate calibration, or a preferred production policy.
 
-**Next comparison:** apply the structured PSD family to the existing saved null and positive-injection images,
-retaining common support and the Gaussian/identity references. Fix the candidate grid and threshold rule before
+**Follow-on recovery comparison (completed below):** apply the structured PSD family to the existing saved null
+and positive-injection images, retaining common support and the Gaussian/identity references. Fix the candidate grid and threshold rule before
 examining recovery; use only designated calibration nulls to set thresholds. Check contrast error, native-pixel
 noise prediction, false positives, and recovery. This can reuse the existing reductions. It remains development;
 freeze any eventual policy before fresh ROC injections.
@@ -1735,6 +1735,69 @@ maximum relative covariance and weight differences are 7.97e-16 and 2.53e-15. In
 8,448 projection groups, 6,144 paired variance/MSE/sigma ratios, and all 512 stability pairs. Exact white ensembles
 and constant patches verify normalization and edge lags. The report records the complete design, equations,
 policy tables, radial-transfer support, limitations, provenance, figure, and reproduction command.
+
+### Step 5 development result: PSD recovery on saved images (2026-09-18)
+
+The [saved-image PSD comparison](results/p4-step5-psd-recovery-20260918/README.md) retains all 32 spectral settings,
+eight matching three-mode/floor-1 controls, eight fitted-mean isotropic controls, and the original Gaussian/identity
+references. Each fit now uses all accepted annular/band patches outside the native source/held-out exclusions,
+including the previous diagnostic's split straddlers. It evaluates native candidate stamps. The radial profile
+and covariance are re-estimated on each image; the PSD estimator and response templates are unchanged.
+
+All 48 thresholds are the maxima of the original 28 calibration five-pixel searches, frozen before positive
+filtering, with strict exceedance required. The primary comparison retains 28 evaluation null searches and the
+same 18 positive images at six sites and three brightness levels. The three earlier development positives and
+newly supported radius-20 nulls remain separate. No reduction, new injection, or ROC job was run.
+
+**Nine PSD settings gain one faint recovery with the same observed null count as Gaussian/SNR.**
+
+| Filter/statistic | 0.5× recovery | 1× recovery | 2× recovery | Evaluation null exceedances |
+| --- | --- | --- | --- | --- |
+| Nine PSD settings using same-radius or ±5-pixel training | 4/6 | 6/6 | 6/6 | 2/28 |
+| Gaussian 3.6 px + application SNR | 3/6 | 6/6 | 6/6 | 2/28 |
+| Identity matched filter, original conditional score | 3/6 | 6/6 | 6/6 | 2/28 |
+| Gaussian 3.6 px, smoothed intensity | 3/6 | 5/6 | 6/6 | 2/28 |
+| Identity matched filter + application SNR | 4/6 | 6/6 | 6/6 | 3/28 |
+
+All nine settings gain `evaluation_r50_b0_l0`, whose baseline is below threshold. The injected score is only
+1.7–8.9% above threshold. Their null exceedances are the same two sites as Gaussian/SNR, at radius 34/block 2
+and radius 50/block 3. The latter already exceeds threshold before injection and remains in the preassigned
+sample. The full report lists every setting, including the other 23 PSD settings. All ±10/±20-pixel PSD settings
+recover three faint sources, and normalized ±20 pixels produces three null exceedances. Wider pooling and radial
+normalization do not show a consistent recovery advantage.
+
+**Conditional uncertainty improves substantially over PCA; raw photometry remains comparable to identity.**
+PSD includes 9–15/18 positive-center estimates and 15–18/28 native null centers within one reported sigma, versus
+0–6/18 and 6–8/28 for the three-mode/floor-1 controls. Median positive sigma is 1.31–1.89 times its matching PCA
+sigma across policies. Native null-center standardized scores have pooled variance 1.42–1.86 and mean 0.26–0.35;
+PCA variances span 4.30–6.82. These separately fitted, correlated native sites differ from the earlier rotated-patch
+diagnostic, so the comparison does not isolate interpolation or establish complete uncertainty calibration.
+
+Median absolute raw fractional contrast error across the 18 injections is 0.214–0.280 for PSD, 0.231 for identity,
+and 0.226–0.425 for PCA. PSD RMS errors are 0.580–0.630, versus 0.583 for identity. These single-image errors use
+the known positive injection contrast and do not subtract the baseline or invoke a negative-injection fit.
+Adaptive paired increments have median errors +1.26% to +1.88%; frozen baseline-weight increments give +1.26%
+to +1.73%. They support the response approximation here but do not remove background error from raw photometry.
+Training-matrix and physical-covariance changes have policy medians 0.87–1.30% and 0.12–0.52%, respectively.
+
+The Gaussian/SNR reference retains ordinary annular normalization, including trial neighborhoods. Its smoothed
+intensity is not a contrast estimator. Identity uses `C=I`; its algebraic conditional sigma is not a fitted noise
+scale. These distinctions remain explicit in the report. Inner support is still limited: only 16/32 PSD settings
+give a valid five-pixel search for the radius-12 development injection, with raw contrast errors +54% to +99%.
+
+The recovery difference comes from six reused sites and 32 inspected PSD settings; equal observed null counts
+do not establish equal underlying false-positive rates or a general advantage. **Next: freeze a small comparison
+set for fresh ROC validation**, retaining same-radius/±5-pixel PSD candidates and Gaussian/identity references.
+Fix exact settings, support, source masks, and calibration rules before inspecting new results. The existing
+30-site, three-brightness proposal still requires a ROC numerical-consistency and throughput check before launch.
+No production setting is selected at this checkpoint.
+
+Verification reproduces 8,036 archived PCA/profile scalars and checks all 20,424 valid candidate fits for unit
+response, conditional variance, and physical-unit equivalence. Independent calculations reconstruct 4,080 searches,
+1,008 positive photometry records, all 48 thresholds, and 296 reference searches. Direct linear-lag sums and generic
+solves reproduce all 2,720 valid PSD center fits, with maximum absolute amplitude difference 1.74e-18 and relative
+sigma difference 6.67e-16. The report preserves every search pixel, decision, source-effect diagnostic, profile,
+threshold, input fingerprint, and the comparison figure.
 
 ## 8. Notation
 

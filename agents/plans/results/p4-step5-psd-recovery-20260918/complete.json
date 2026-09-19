@@ -1,0 +1,19 @@
+{
+  "new_reductions": 0,
+  "positive_images": 21,
+  "psd_policies": 32,
+  "control_policies": 16,
+  "purpose": "development reuse",
+  "verification": {
+    "archived_pca_control_and_profile_scalars": 8036,
+    "valid_candidate_fits": 20424,
+    "baseline_search_pixels": 335,
+    "positive_images": 21,
+    "source_and_candidate_native_exclusions_checked": true,
+    "physical_unit_solves_unit_response_and_variance_identities": true,
+    "eligibility_same_for_all_estimators_at_fixed_sampling": true,
+    "references_recomputed_from_archived_trials": true,
+    "thresholds_frozen_before_positive_filtering": true,
+    "source_script_threshold_fingerprints_unchanged": true
+  }
+}

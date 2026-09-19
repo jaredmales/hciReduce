@@ -1,0 +1,356 @@
+{
+  "counts": {
+    "native_searches": 4080,
+    "positive_photometry": 1008,
+    "thresholds": 48,
+    "direct_psd_fits": 2720,
+    "reference_map_searches": 296
+  },
+  "maximum_errors": {
+    "direct_amplitude_absolute": 1.734723475976807e-18,
+    "direct_sigma_relative": 6.661338147750939e-16,
+    "frozen_increment_absolute": 4.440892098500626e-16
+  },
+  "method": "All saved searches, thresholds, coverage, photometry and summaries independently recomputed; direct linear-lag sums and generic physical-unit solves on all PSD null/positive centers; references remeasured from FITS and identity equations.",
+  "native_candidate_only_injection_check": "All 48 variants retain identical covariance and recover exact 1e-5 template-amplitude increment with fixed profile.",
+  "source_and_script_fingerprints_unchanged": true,
+  "reference_map_fingerprints": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/baseline/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "6bd9347c018f5bf58e438c9f4cdc7404802073268e2eecc683680a2a2a033015"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/baseline/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "2b24e3d14d3de6ca73c531e5a05b39e258abfe45d1d46f7ad7afa373edf9ac70"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/baseline/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "05619923157f76c480930f54dc8da725e8b82caee397dfffeefb4254285ae603"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b0_l0/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "7b4799c579d434798a7e703dd3d92542696ef1ba43134f92c2aa20442b2ee49d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b0_l0/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "4319bd08cff526248912ade82843c85e958645854b9119d7951faf6d39abd604"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b0_l0/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "146283a9c89925a48ecec25c74929a45ce06d8e9a8e0027f295a43c1ad1d00d1"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b0_l1/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "b71c178fd9609ae2c1c8c3188a9440d269990295a4ffee714e53a62634367a0b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b0_l1/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "6ee5642a8cf1e39dc492cbb7e6a96fc37710238a1872ae909ad79a0844be4a0b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b0_l1/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "6580c1de56e4e12a048bbcb9b757dd8390f00706783fd21ac9f9a75a73666020"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b0_l2/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "292bda2879225c484c8c4802a7c2d106e5ec03cb5c29beb446b83d1dddebbf5f"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b0_l2/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "e5292a9ed3bf102ff4b60bdcd8a339543d181d930b7dc4ecb4d738e040b498d1"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b0_l2/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "6f42578a90ad89cd54df81a4fc56d2b78c09f7e84058125e38a4185e0579c6d9"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b3_l0/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "33711ad704b1a516e18d4b2a6f6a0793f5189f0955638d42ce1e7e466d79e7d4"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b3_l0/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "cf4ad1bc5ed21803384575a8d9657cdd6759dd2b8d4f57e8f86ec98c1e2d2fee"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b3_l0/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "d245bb3873751a44da4334703c8362f2ac12ec50c3e200d0e97964ce25370fa6"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b3_l1/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "d0672ec9d8e409f38a479302224aecbfd099180d528a47d5fee826e0fc2a5b5b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b3_l1/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "365a39234b1cbd5a7adf8910cf16abd9af58a0f5d58d528df1f7d498732bf28e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b3_l1/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "79bfdc0797de014a35feb95f6590022f7c70a2de20fd1be66699c35c1f87be0c"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b3_l2/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "bd49f95368e2b99ef936fc2df994f978a6377ccd008feba8ebd47bc36d4f58ce"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b3_l2/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "c387c7b40e43afb622bc835554360b529d59a7ec0ac9c7c3856f0813139e2821"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r26_b3_l2/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "6524739c6b39eec989e5b8000f6329151e83d6684f45a41dc693fe8b40e621c9"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b1_l0/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "f9e6a5c70503236c232ccb0f2a44dfed087fa2ee5b1f252637cf8d895c578809"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b1_l0/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "a224b40909ae6b36a9c56111065624a6e1454be16915b3caffc4d18607f816d3"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b1_l0/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "477236c67fd8ee2cd14a429e78fdff1d2a8fea9924bf6bbd96160784347db9d8"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b1_l1/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "50f85128f8287e20decdca3c7728f587d8c913fd23b89ab9fea4a6256130f517"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b1_l1/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "9b7fd03026868623c541711a16691fe365683a90a75204c1b32035c5bb501ad4"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b1_l1/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "d604530ac5d929adbc9795af898ec4839268838bdc9916776e7c724d9b76e08b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b1_l2/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "1b9d7fd127153463e07612c2dd9dc08c6db4614292fd2910883ac44a1ea001cd"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b1_l2/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "c1ca84dcea41735a36c73f2e10452c61cbad989794f4c52eafa0e21602ccb6cd"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b1_l2/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "7dcac9dd5a8a7b7c5b78966ebf906c9e160a80ab5f9bccc6b682c106731345a5"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b2_l0/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "c68012a5f61bbdf8f0940d4cafbc5d4c84ae72e66344b139276e2cc3fdf330f1"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b2_l0/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "497f4700657d302e5ce27ef2c5cb0ff5e9e1836f574a03f6e07e3d49e03dc2ec"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b2_l0/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "14ad796322ce4fa85d2637d6cac6bc68d7e5965f01fb803a7259835782b25ddb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b2_l1/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "5effb12cfc2a7e21a0326fdc33f8936eda28ca9418b5198912e810889043beb6"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b2_l1/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "560ed6d81e353b685bc00225036f080ec0cbc49a121eea979a64078d3aa594cb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b2_l1/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "8fade7884162cb0362a1e30a9601df74d549d6a0e93749dd8389a7e1520b94aa"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b2_l2/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "e0a6afa66563f49dc104275c289b2a0f3e9e684b3283a6c448ebdd5b334f351b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b2_l2/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "e5ad5ebece926592d138c1e86ac30b72245c89058d33d97941a6aa81d0ee7643"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r38_b2_l2/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "0b0af1d59fcfada357dc09e8247aa49b28f7c5f3614d1a955cfd60aa7926b946"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b0_l0/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "06cf77af1c512771a2121626f5898f1c53692a5287c56a7b67c7497eb5065ace"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b0_l0/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "d584bcbfeb621b28c5c2a1b1b072ab61fac627eaaba00e8294487b12c7c50510"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b0_l0/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "b50b1ddc619b2c4a3288b2518ae4955c79be1e7d112c3cabb3890b0d00b6feb2"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b0_l1/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "71c0be302a12a788094c9d81772c489c4576cc3905e0b5546998c590d163b8a5"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b0_l1/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "b58352b46b7169372649edd75b70eb953c30e55f9d4b6f1979b0b42f020e1d57"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b0_l1/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "fcc37e01ad89d223bccb1bb846fbbc91a93bb3d4468ed1b2dce463bb8887705f"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b0_l2/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "93e2ccb964566fcce72d16ac96df37a013a2da56715e0daa9737ea1978b63ad3"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b0_l2/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "e11e483ab321e412b3afe97cf6902e94a4f962793b0e36f861f435596589f4fc"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b0_l2/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "ab0fa4fd269a9093c46eb80f879eb93ac1a073a81195fd76f19d2e213e8f6586"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b3_l0/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "674f07681c8238ee212e8cde5585b964633b801910af4e0e22e169d0a02fb2b7"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b3_l0/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "ffb2edd7ccc13cc2b62d55c0f8db8d75c165315a8635ea6124e69affcc7f73c3"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b3_l0/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "1d73a8773a64b325f7765143bbbfa2964a7decee7ca6defe2456d59cb9901402"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b3_l1/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "071cce57dd821e012f16e6f80f9fcb234da18570e76258e4c3deb0aa3f42e6a1"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b3_l1/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "0ab99114bec3cf894dd186e1cd3cea63c33536785cdff4d9ebaac7214aca8f17"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b3_l1/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "e2c15bcde20b51b235df4fff6c1a146a4ffddc9c36c695a8e21a1df2d7b5816e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b3_l2/gaussian.fits",
+      "bytes": 290880,
+      "sha256": "2ba38bfafa3c3708e565d2c952f0cd46ca999ab66c2a8e42eea6fab0d26d0f47"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b3_l2/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "668969790d1802c096f42fc30d5d0dbbe27da4846eca66dad8d260a486e7ac86"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_noise_step5_gaussian_20260918/evaluation_r50_b3_l2/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "99702df588736096309b99c1b61c3b4e5d63c93d6f82f8cfb9cd0338c56c0422"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-psd-recovery-20260918/manifest.json",
+      "bytes": 31868,
+      "sha256": "7ba2997e062e6dcd900b2ceb7b87ecceadcba963b4624b518218fc08a3f5b64d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-psd-recovery-20260918/thresholds.json",
+      "bytes": 2251,
+      "sha256": "316a673bcd15cf0440dd96dee3b11f93494d74bf1ed5dc37081192e192ac3ad0"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-psd-recovery-20260918/nulls.json",
+      "bytes": 1092047,
+      "sha256": "1138dceddf77d8048c7c41296deb35a70e2f57633529494169e4cb983319a298"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-psd-recovery-20260918/baseline_pixels.json",
+      "bytes": 3335304,
+      "sha256": "35fcc7e53e42138214146d8dcccad2c5f617e5cd1d6e6055509d63493c480280"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-psd-recovery-20260918/injections.json",
+      "bytes": 1934306,
+      "sha256": "e78ae3606633a51278d1d9e9866c7c12957695d7cd60b14f6aa68f6a7a7bbe2d"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-psd-recovery-20260918/summary.json",
+      "bytes": 204133,
+      "sha256": "876bf95e77315b76d0089487bd11217939b38d1c4b39260768933ffea15842ed"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-psd-recovery-20260918/variance_profiles.json",
+      "bytes": 44404,
+      "sha256": "c22b3030144ab64a343728b5ca96674b0eb8934b9eb8576ba87821292c6c7a1f"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-psd-recovery-20260918/verification.json",
+      "bytes": 506,
+      "sha256": "5f67fb004f22bf405b9c613460468a82ff5bda86d07912eb69295118e4fd7f4b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-psd-recovery-20260918/complete.json",
+      "bytes": 680,
+      "sha256": "af0581b00bd6f19d7215a79c377254dd392bd3f0070b8205a307520810288678"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-psd-recovery-20260918/comparison.png",
+      "bytes": 274279,
+      "sha256": "a069e5e61bca9182ce8fe603ff479f5b8171cfe8ecb89aa770887f25fdba600c"
+    }
+  ]
+}
