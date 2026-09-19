@@ -1,0 +1,282 @@
+{
+  "new_reductions": 0,
+  "filters": 7,
+  "inputs_unchanged": true,
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/direct_gaussian/run.log",
+      "bytes": 92,
+      "sha256": "d6fde32e6aaa558fd0be7ac665b66acfb5323e3b8b428c4f7db7d68df99db47a"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/direct_gaussian/science.fits",
+      "bytes": 293760,
+      "sha256": "93f64c71fc05f78eea418776ebad68fdb32983c18dd8210a63de3e7a93d50c79"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/direct_gaussian/science_snr.fits",
+      "bytes": 293760,
+      "sha256": "eb93a3d90b15dbd557a70c814f2085c3194f5db28daa82e27353b74e5aea8ffd"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/direct_identity/run.log",
+      "bytes": 93,
+      "sha256": "5d3396349c2d03b7eb428806f62cad343bb9f8be0400358c1c4a76426b3f4816"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/direct_identity/science.fits",
+      "bytes": 293760,
+      "sha256": "93f64c71fc05f78eea418776ebad68fdb32983c18dd8210a63de3e7a93d50c79"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/direct_identity/science_snr.fits",
+      "bytes": 293760,
+      "sha256": "17475d9891fa507c5cf17b01857917f356d91c032919e6f1006c00073adfdfc4"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/gaussian.log",
+      "bytes": 2448,
+      "sha256": "ca5fd6e2a7cff4e5ff7d2f3c3258f684e13aa9e395e67e6cc1e387066677d435"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/gaussian_command.json",
+      "bytes": 550,
+      "sha256": "3eb25c5863b7272b8185b5b81ae08b2b4f693a2b84c9f8b6af0bb9dfc73bf13e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/identity.log",
+      "bytes": 692,
+      "sha256": "daf79490e2eda0479859086fcaf96b12384202e54a2aa64e00ca54156effe597"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/identity_command.json",
+      "bytes": 550,
+      "sha256": "89af01e3a364390f080a58c14c7ea46579c1e75edb29e5d7af6977cde060e6f0"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/isotropic_b5.log",
+      "bytes": 700,
+      "sha256": "95ec7bd8704ac748204330185770c66d89fca8c76bdf0dc1be79b24a28876d41"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/isotropic_b5_command.json",
+      "bytes": 554,
+      "sha256": "0bf3db655c6c4f81ef3bba4c76d9ef5bd878821ddd5549e64d5af01afc43e673"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/pca_b5_f1.log",
+      "bytes": 694,
+      "sha256": "94c28005abe514d0c8d313511b22bc7b30b37aa9bec297a69faf500f10b031ab"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/pca_b5_f1_command.json",
+      "bytes": 551,
+      "sha256": "f04a8d18329596550b3fdc5c7daa03fba4b89f834640aa132716d6ed4846fdf3"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/psd_hann_b0_m0.1.log",
+      "bytes": 708,
+      "sha256": "e0f032cae5f20f0851d29602378b3e8218bb04411ddfd26c303022a09d67d2ad"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/psd_hann_b0_m0.1_command.json",
+      "bytes": 558,
+      "sha256": "b6ad5e42718d3df91aba1d9a303b3dde442940a8d32e9b1bf32bb1cf4e6309fb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/psd_rectangular_b5_m0.3.log",
+      "bytes": 722,
+      "sha256": "e7a52376858c2db3ef6ae7b084c6d7af643cd45e249eefa8e6c602b96570f2af"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/psd_rectangular_b5_m0.3_command.json",
+      "bytes": 565,
+      "sha256": "a8cf6e18e90ef1928b8f4da4ea5992f658edbbfe97ecf5c9d9bba945b7fcc4ce"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/unfiltered.log",
+      "bytes": 696,
+      "sha256": "8ff0831139147380d475550b9fe7d7c18579d8c010a8e8803fecc440e62f84d1"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analysis/unfiltered_command.json",
+      "bytes": 552,
+      "sha256": "e4b007dd79b10b8f985241f388dcc399570ba845c17ddf2f8d011863ee1a7986"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/analyze.conf",
+      "bytes": 157,
+      "sha256": "3a755052d1976a37121174340c95ac6d1d6efcecb8e00f6e5968cd3f0576ab42"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/annular_profiles.json",
+      "bytes": 133572,
+      "sha256": "6d61f895407c4ffaf851bd2fec577d1f20f04c2f83b99a14a9c73904feb1d2dd"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/comparison.png",
+      "bytes": 193088,
+      "sha256": "cd05c41475528cb1f964680cb578227293daf46cf908cf70956c85c3d00ca709"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/manifest.json",
+      "bytes": 7407,
+      "sha256": "92d0e843c001bc5d802044d4a330ac91f61964cf55d29e2ef3249938bc952954"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/gaussian.fits",
+      "bytes": 293760,
+      "sha256": "ba41d3c3bfa89cd6acc80ba98efaae0e00cb4cde3836bd7041366d87830107bb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/gaussian_snr.fits",
+      "bytes": 293760,
+      "sha256": "e1e6e7e0affc5049c4e6314e7c9ee161b7bf46a0015ef367e2f5ca68b31cccb9"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/identity.fits",
+      "bytes": 293760,
+      "sha256": "e62b49b154eacc2d5a1353d53954c0b631e58df379760325b62b31250e9ea394"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/identity_conditional.fits",
+      "bytes": 293760,
+      "sha256": "997dd6bc0d22c57d0bc3315d2b37d6e2adb0c9ca0d2ead17fdb486642a665409"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/identity_sigma.fits",
+      "bytes": 293760,
+      "sha256": "b28a89b3eb75199383640086bcbdbb748d8421da54da79966951d4c938e0994c"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/identity_snr.fits",
+      "bytes": 293760,
+      "sha256": "7e2494aab965887cd1072b6753beb30ab026bb586167511d8841de7a732ffa00"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/isotropic_b5.fits",
+      "bytes": 293760,
+      "sha256": "c0c94a7da23fca2d2b1dc1d3ae7f2f6f3755fee8b1d812e6d990df7abdb30792"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/isotropic_b5_conditional.fits",
+      "bytes": 293760,
+      "sha256": "4cbdaa609d5a13a86247fc5a8c6332aa51ceae2e95aeb006bd42b4797277e7ff"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/isotropic_b5_samples.fits",
+      "bytes": 293760,
+      "sha256": "f70612c8db15c14ecb1f02acae2ca852ff1bfd505972e1a5406fec3e7b576de1"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/isotropic_b5_sigma.fits",
+      "bytes": 293760,
+      "sha256": "e246bd3fc4c25df6bb00573cdd91468a3ce15271831354e89212cd946f1af67e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/isotropic_b5_snr.fits",
+      "bytes": 293760,
+      "sha256": "21ab4b2fe945a29b8d07f75255955e9ab2683da9e8ae3fa63994e82938f84a41"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/pca_b5_f1.fits",
+      "bytes": 293760,
+      "sha256": "daee9c45bdc8f1ded53245d9fb50565565de0998588f823c5e01bcb01a6f907b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/pca_b5_f1_conditional.fits",
+      "bytes": 293760,
+      "sha256": "98c172e50c524d9f1e1765ed3e45d08146575f4e35e221bfd8360bd2b9539e44"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/pca_b5_f1_samples.fits",
+      "bytes": 293760,
+      "sha256": "f70612c8db15c14ecb1f02acae2ca852ff1bfd505972e1a5406fec3e7b576de1"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/pca_b5_f1_sigma.fits",
+      "bytes": 293760,
+      "sha256": "b023b7890cec6bdcf1561f9860feab62e90362c424ca940d761ae73d789ae720"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/pca_b5_f1_snr.fits",
+      "bytes": 293760,
+      "sha256": "21d4415ff655c3b2fab0ca99c605b69ae2e64b0cf1912a279c2b1bff6cd59073"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/psd_hann_b0_m0.1.fits",
+      "bytes": 293760,
+      "sha256": "d68e2542cf45f9f94cb3273093fdd61df42388ee62c4d1f091de38d80b878e28"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/psd_hann_b0_m0.1_conditional.fits",
+      "bytes": 293760,
+      "sha256": "cdf3f32355b71f4624ddb7826185de912021b3f224aedce618a721ad33a64bd1"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/psd_hann_b0_m0.1_samples.fits",
+      "bytes": 293760,
+      "sha256": "2d004bbf9bc8ae0e3a9e50d344a2a330c89c8750e07c07e0ec0060adba74e810"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/psd_hann_b0_m0.1_sigma.fits",
+      "bytes": 293760,
+      "sha256": "52555dc9073565949f80a8cfa86712104002a2e4d5da46d358fa4ce23f17926a"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/psd_hann_b0_m0.1_snr.fits",
+      "bytes": 293760,
+      "sha256": "75c67351d08b831cb6809325514e5f4eb208e1a7a46ade6a7851e23ed393e293"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/psd_rectangular_b5_m0.3.fits",
+      "bytes": 293760,
+      "sha256": "e9ccc8c2212f3f6464af38aec7b82024c751fd702ae6c3f20eced2114a9d9f81"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/psd_rectangular_b5_m0.3_conditional.fits",
+      "bytes": 293760,
+      "sha256": "0d477d4c5a139e7f6b2e6cd72a91b1876a7e4f8f97dbd1e6cabaf68285e57ef5"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/psd_rectangular_b5_m0.3_samples.fits",
+      "bytes": 293760,
+      "sha256": "f70612c8db15c14ecb1f02acae2ca852ff1bfd505972e1a5406fec3e7b576de1"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/psd_rectangular_b5_m0.3_sigma.fits",
+      "bytes": 293760,
+      "sha256": "af258d866be375298fe9b8f88aa8b61664d55b447c8ccb428e8a58ba4ccb5d2b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/psd_rectangular_b5_m0.3_snr.fits",
+      "bytes": 293760,
+      "sha256": "7c6c2c43d2138131f0162e17a8a617ddb251b91d81365480e84d50207eecb510"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/unfiltered.fits",
+      "bytes": 293760,
+      "sha256": "93f64c71fc05f78eea418776ebad68fdb32983c18dd8210a63de3e7a93d50c79"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/maps/unfiltered_snr.fits",
+      "bytes": 293760,
+      "sha256": "6e50a1a506579966c1020b011c90a15a7cd6d811ed0e4f9219249b3ea27383da"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/results.json",
+      "bytes": 48518,
+      "sha256": "bf138124ae746abcb1f7403722fe6c015094e90176f3acdec079dc460494d591"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/settings.json",
+      "bytes": 987,
+      "sha256": "b1d6e750b469cd97fac79875c9f481f6de8c892f367ae4227cf0969e6e874124"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_planet_step5_20260919/training_exclusion.fits",
+      "bytes": 95040,
+      "sha256": "c64e6fb4e440e41f731db009af70cae222c1ad3478b99111c22ecc64a608258e"
+    }
+  ]
+}

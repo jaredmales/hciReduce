@@ -1,0 +1,19 @@
+{
+  "all_passed": true,
+  "completed_product_hashes_verified": 55,
+  "input_and_software_hashes_verified": 31,
+  "source_config_unchanged": true,
+  "covariance_generic_solves": 125,
+  "annular_aperture_pixels_verified": 242,
+  "maximum_annular_oracle_difference": 0.0,
+  "production_filter_replay_max_absolute_errors": {
+    "gaussian": 0.0,
+    "identity": 0.0
+  },
+  "planet_center_training_by_offset": {
+    "-5": 1,
+    "0": 5,
+    "5": 11
+  },
+  "comparison_figure_visually_inspected": true
+}

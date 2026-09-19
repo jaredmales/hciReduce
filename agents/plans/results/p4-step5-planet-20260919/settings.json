@@ -1,0 +1,29 @@
+{
+  "lambda_d": 3.6,
+  "source_x": 139.16879272460938,
+  "source_y": 125.87065124511719,
+  "source_radius": 7.0,
+  "aperture_radius": 3.0,
+  "pixel_buffer": 0.5,
+  "min_radius": 6.0,
+  "max_radius": 60.0,
+  "nearest_pixel": [
+    139,
+    126
+  ],
+  "models": [
+    "unfiltered",
+    "gaussian",
+    "identity",
+    "psd_hann_b0_m0.1",
+    "psd_rectangular_b5_m0.3",
+    "pca_b5_f1",
+    "isotropic_b5"
+  ],
+  "minimum_training_patches": 8,
+  "covariance_holdout": "original 28 calibration footprints plus every 15x15 Gaussian footprint in the configured planet aperture and the source circle",
+  "annular_noise_mask": "finite filtered pixels outside planet.R plus the production half-pixel buffer; original calibration pixels may enter annular normalization",
+  "statistic": "production annular SNR of filtered amplitude; conditional scores are separate diagnostics",
+  "parent_study": "/home/jrmales/Source/mxApps/hciReduce/working/roc/p4_psd_full_20260918",
+  "aperture_pixels": 39
+}

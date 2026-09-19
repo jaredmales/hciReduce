@@ -1879,6 +1879,46 @@ partly overlapping in a reused field; the results do not establish a production 
 confidence intervals. Radii below 26 pixels remain a follow-up. No further reductions, production C++, or
 mxlib-calling functions changed during this review.
 
+### Step 5 development: known-planet SNR with user analysis settings (2026-09-19)
+
+At the user's request, the [AF Lep b comparison](results/p4-step5-planet-20260919/README.md) measures the
+uninjected ROC baseline with `working/analyze.conf`: lambda/D 3.6, separation 11.782, PA 262.051, source
+exclusion radius 7, SNR inner radius 6, and aperture radius 3. Production circle masks include a 0.5-pixel
+buffer, so the search contains 39 native pixels within radius 3.5 and the noise exclusion has radius 7.5.
+Every filter's amplitude image receives the same production annular mean/stddev normalization and existing
+small-sample multiplier. Aperture maxima are distinct from measurements at the fixed nearest planet pixel.
+
+| Filter | Annular SNR at (139,126) | Aperture maximum | Valid aperture pixels |
+| --- | --- | --- | --- |
+| Unfiltered | 4.27 | 4.53 | 39/39 |
+| Gaussian FWHM 3.6 | 5.61 | 5.61 | 39/39 |
+| Identity matched filter | 4.31 | 4.31 | 39/39 |
+| Same-radius Hann PSD | Invalid | 4.03, partial aperture only | 8/39 |
+| ±5-pixel rectangular PSD | 5.04 | 5.04 | 39/39 |
+| ±5-pixel PCA | 4.55 | 4.55 | 39/39 |
+| ±5-pixel fitted-mean isotropic | 4.93 | 5.78 | 39/39 |
+
+The isotropic maximum is at (138,126), one pixel left of the nominal center. Its amplitude differs from
+identity because it subtracts a fitted training mean; scalar covariance weighting cancels from amplitude
+normalization. Gaussian remains strongest at the fixed center. The original Gaussian raw/SNR statistics
+share one filtered image, as do original identity and identity/SNR, so each pair shares one annular-SNR row.
+
+Covariance masks retain the 28 calibration footprints and expand the planet holdout to protect the full
+configured search/kernel footprint. At the center, accepted patches at offsets −5, 0, +5 number 1, 5, 11:
+Hann is below the fixed eight-patch minimum, while pooled methods have 17. Hann's partial-aperture peak
+does not supply a valid center measurement. The minimum and covariance settings remain unchanged.
+
+Conditional center scores are separately 6.40 for rectangular PSD, 14.49 for PCA, and 10.71 for isotropic;
+they use different noise estimates from the annular SNRs. The actual planet at 11.8 pixels lies inside the
+26–50-pixel injection sample, so outer-site thresholds are not applied and these values are not calibrated
+false-alarm significances. This is a known-source diagnostic, with no new reductions or policy tuning.
+
+Independent annular calculations reproduce all 242 valid aperture-pixel SNRs exactly. All seven CLI maxima
+agree with saved maps, Gaussian/identity direct production replays are bitwise equal, and generic solves
+verify 125 valid aperture covariance fits. Source/configuration/software fingerprints remain unchanged.
+The report archives maps/plot provenance, radial profiles, every aperture measurement, and support failures.
+No production C++ or mxlib-calling function changes.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

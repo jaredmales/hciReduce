@@ -1,0 +1,7618 @@
+{
+  "unfiltered": [
+    {
+      "radius": 0.5,
+      "pixels": 4,
+      "mean": 0.07039740215986967,
+      "stddev": 0.3691047265475599
+    },
+    {
+      "radius": 1.5,
+      "pixels": 8,
+      "mean": 0.7905628010630608,
+      "stddev": 2.687751061490473
+    },
+    {
+      "radius": 2.5,
+      "pixels": 20,
+      "mean": 1.3794674903154374,
+      "stddev": 3.980706645720061
+    },
+    {
+      "radius": 3.5,
+      "pixels": 20,
+      "mean": -0.22931976318359376,
+      "stddev": 2.264062503102247
+    },
+    {
+      "radius": 4.5,
+      "pixels": 25,
+      "mean": 0.13365320198237896,
+      "stddev": 1.3861891767690266
+    },
+    {
+      "radius": 5.5,
+      "pixels": 26,
+      "mean": 0.034052675733199485,
+      "stddev": 1.1287274074758362
+    },
+    {
+      "radius": 6.5,
+      "pixels": 35,
+      "mean": -0.11296781642096383,
+      "stddev": 1.010022717685358
+    },
+    {
+      "radius": 7.5,
+      "pixels": 41,
+      "mean": -0.03873578436309245,
+      "stddev": 0.7867043126571133
+    },
+    {
+      "radius": 8.5,
+      "pixels": 37,
+      "mean": -0.046232715711576514,
+      "stddev": 0.36943842545906436
+    },
+    {
+      "radius": 9.5,
+      "pixels": 47,
+      "mean": -0.02524347278348943,
+      "stddev": 0.3453654207295211
+    },
+    {
+      "radius": 10.5,
+      "pixels": 53,
+      "mean": -0.012086032503196653,
+      "stddev": 0.28702067435959366
+    },
+    {
+      "radius": 11.5,
+      "pixels": 50,
+      "mean": -0.013652586761163548,
+      "stddev": 0.2565015117871832
+    },
+    {
+      "radius": 12.5,
+      "pixels": 74,
+      "mean": -0.016955091152340174,
+      "stddev": 0.3395249141598598
+    },
+    {
+      "radius": 13.5,
+      "pixels": 61,
+      "mean": -0.027079101796949008,
+      "stddev": 0.3480968695840864
+    },
+    {
+      "radius": 14.5,
+      "pixels": 84,
+      "mean": 0.029230456192245974,
+      "stddev": 0.23967870488745488
+    },
+    {
+      "radius": 15.5,
+      "pixels": 81,
+      "mean": -0.002757081736086143,
+      "stddev": 0.19551695971645938
+    },
+    {
+      "radius": 16.5,
+      "pixels": 86,
+      "mean": 0.00043247468487987684,
+      "stddev": 0.17500752977060904
+    },
+    {
+      "radius": 17.5,
+      "pixels": 97,
+      "mean": 0.00011575738563365543,
+      "stddev": 0.15669060018440198
+    },
+    {
+      "radius": 18.5,
+      "pixels": 97,
+      "mean": -0.0003960488889769641,
+      "stddev": 0.14022366103390513
+    },
+    {
+      "radius": 19.5,
+      "pixels": 139,
+      "mean": 0.013415692960374433,
+      "stddev": 0.14370889394852146
+    },
+    {
+      "radius": 20.5,
+      "pixels": 132,
+      "mean": 0.0044722791322838575,
+      "stddev": 0.14060729386226908
+    },
+    {
+      "radius": 21.5,
+      "pixels": 132,
+      "mean": 0.00786683800326886,
+      "stddev": 0.14910775822104164
+    },
+    {
+      "radius": 22.5,
+      "pixels": 136,
+      "mean": 0.0033893894185038176,
+      "stddev": 0.14988927359328405
+    },
+    {
+      "radius": 23.5,
+      "pixels": 140,
+      "mean": -0.003360857239957633,
+      "stddev": 0.16047773088215223
+    },
+    {
+      "radius": 24.5,
+      "pixels": 172,
+      "mean": 0.0002302660318808955,
+      "stddev": 0.17864718296858667
+    },
+    {
+      "radius": 25.5,
+      "pixels": 152,
+      "mean": 0.0020154191947767686,
+      "stddev": 0.15883917289249003
+    },
+    {
+      "radius": 26.5,
+      "pixels": 164,
+      "mean": -0.00879118593534591,
+      "stddev": 0.14293493909510294
+    },
+    {
+      "radius": 27.5,
+      "pixels": 180,
+      "mean": 0.004259262204949563,
+      "stddev": 0.1709165312507672
+    },
+    {
+      "radius": 28.5,
+      "pixels": 172,
+      "mean": -0.0019290317022539459,
+      "stddev": 0.14738381485559784
+    },
+    {
+      "radius": 29.5,
+      "pixels": 184,
+      "mean": 0.0016991330004479412,
+      "stddev": 0.1563103785092289
+    },
+    {
+      "radius": 30.5,
+      "pixels": 196,
+      "mean": 0.008093468819944454,
+      "stddev": 0.1606869425616987
+    },
+    {
+      "radius": 31.5,
+      "pixels": 204,
+      "mean": 0.0007370203201585979,
+      "stddev": 0.16751621329646693
+    },
+    {
+      "radius": 32.5,
+      "pixels": 208,
+      "mean": 0.004355398968283015,
+      "stddev": 0.15520281130661628
+    },
+    {
+      "radius": 33.5,
+      "pixels": 204,
+      "mean": -0.0011389640684344568,
+      "stddev": 0.13330871535994387
+    },
+    {
+      "radius": 34.5,
+      "pixels": 212,
+      "mean": -0.0014073299220021822,
+      "stddev": 0.135857962011848
+    },
+    {
+      "radius": 35.5,
+      "pixels": 208,
+      "mean": 0.004399120354299577,
+      "stddev": 0.13818521042533322
+    },
+    {
+      "radius": 36.5,
+      "pixels": 244,
+      "mean": -0.0007522187658994015,
+      "stddev": 0.16201091059351758
+    },
+    {
+      "radius": 37.5,
+      "pixels": 244,
+      "mean": 0.008222260591612181,
+      "stddev": 0.13848648814191206
+    },
+    {
+      "radius": 38.5,
+      "pixels": 244,
+      "mean": 0.002510594620229104,
+      "stddev": 0.12950802967861827
+    },
+    {
+      "radius": 39.5,
+      "pixels": 232,
+      "mean": 0.0028241928594070487,
+      "stddev": 0.15910615227357433
+    },
+    {
+      "radius": 40.5,
+      "pixels": 260,
+      "mean": 0.0051217012828251775,
+      "stddev": 0.15115055943792655
+    },
+    {
+      "radius": 41.5,
+      "pixels": 260,
+      "mean": 0.0002705268998957203,
+      "stddev": 0.1308866044309835
+    },
+    {
+      "radius": 42.5,
+      "pixels": 264,
+      "mean": -0.004798960857497701,
+      "stddev": 0.13741247898254436
+    },
+    {
+      "radius": 43.5,
+      "pixels": 284,
+      "mean": 0.001151944544456545,
+      "stddev": 0.13269675871359668
+    },
+    {
+      "radius": 44.5,
+      "pixels": 284,
+      "mean": -0.0016802048592478352,
+      "stddev": 0.12911929879740003
+    },
+    {
+      "radius": 45.5,
+      "pixels": 292,
+      "mean": 0.0030773117205794673,
+      "stddev": 0.13094314422494205
+    },
+    {
+      "radius": 46.5,
+      "pixels": 280,
+      "mean": 0.0047225572619936425,
+      "stddev": 0.13543683632762113
+    },
+    {
+      "radius": 47.5,
+      "pixels": 284,
+      "mean": -0.002036518777612413,
+      "stddev": 0.14236493348030327
+    },
+    {
+      "radius": 48.5,
+      "pixels": 324,
+      "mean": -0.0006072757579529957,
+      "stddev": 0.13777489780545712
+    },
+    {
+      "radius": 49.5,
+      "pixels": 304,
+      "mean": -0.003049292243208344,
+      "stddev": 0.13773206167797317
+    },
+    {
+      "radius": 50.5,
+      "pixels": 324,
+      "mean": 0.0009163472602750393,
+      "stddev": 0.1434050580680392
+    },
+    {
+      "radius": 51.5,
+      "pixels": 308,
+      "mean": -0.0003879716684671373,
+      "stddev": 0.14485387301104724
+    },
+    {
+      "radius": 52.5,
+      "pixels": 328,
+      "mean": 0.0010112647136471735,
+      "stddev": 0.1347166190457382
+    },
+    {
+      "radius": 53.5,
+      "pixels": 356,
+      "mean": 0.006126334370257221,
+      "stddev": 0.1373567220444979
+    },
+    {
+      "radius": 54.5,
+      "pixels": 324,
+      "mean": 0.001114914395500055,
+      "stddev": 0.13378189254586073
+    },
+    {
+      "radius": 55.5,
+      "pixels": 356,
+      "mean": -0.0007040295918312531,
+      "stddev": 0.13342421137924773
+    },
+    {
+      "radius": 56.5,
+      "pixels": 360,
+      "mean": -0.004715742702925733,
+      "stddev": 0.1327835996247789
+    },
+    {
+      "radius": 57.5,
+      "pixels": 364,
+      "mean": 0.009804237665046277,
+      "stddev": 0.1513705181020066
+    },
+    {
+      "radius": 58.5,
+      "pixels": 296,
+      "mean": -0.064978740627339,
+      "stddev": 0.9999967515029948
+    },
+    {
+      "radius": 59.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 60.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 61.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 62.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 63.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 64.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 65.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 66.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 67.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 68.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 69.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 70.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 71.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 72.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 73.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 74.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 75.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 76.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 77.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 78.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 79.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 80.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 81.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 82.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 83.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 84.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 85.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 86.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 87.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 88.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 89.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 90.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 91.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 92.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 93.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 94.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 95.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 96.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 97.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 98.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 99.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 100.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 101.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 102.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 103.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 104.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 105.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 106.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 107.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 108.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 109.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 110.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 111.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 112.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 113.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 114.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 115.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 116.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 117.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 118.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 119.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 120.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 121.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 122.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 123.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 124.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 125.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 126.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 127.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 128.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 129.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 130.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 131.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 132.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 133.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 134.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 135.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 136.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 137.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 138.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 139.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 140.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 141.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 142.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 143.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 144.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 145.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 146.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 147.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 148.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 149.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 150.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 151.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 152.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 153.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 154.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 155.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 156.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 157.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 158.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 159.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 160.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 161.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 162.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 163.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 164.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 165.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 166.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 167.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 168.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 169.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 170.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 171.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 172.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 173.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 174.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 175.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 176.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 177.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 178.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 179.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 180.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    }
+  ],
+  "gaussian": [
+    {
+      "radius": 0.5,
+      "pixels": 4,
+      "mean": 0.7072476446628571,
+      "stddev": 0.158309823612171
+    },
+    {
+      "radius": 1.5,
+      "pixels": 8,
+      "mean": 0.6678651049733162,
+      "stddev": 0.2889444397635894
+    },
+    {
+      "radius": 2.5,
+      "pixels": 20,
+      "mean": 0.5511596024036407,
+      "stddev": 0.3952931483922259
+    },
+    {
+      "radius": 3.5,
+      "pixels": 20,
+      "mean": 0.29368753004819154,
+      "stddev": 0.33245831568754686
+    },
+    {
+      "radius": 4.5,
+      "pixels": 25,
+      "mean": 0.18441359095275403,
+      "stddev": 0.2933239124611596
+    },
+    {
+      "radius": 5.5,
+      "pixels": 26,
+      "mean": 0.03928242380229326,
+      "stddev": 0.21986830621866565
+    },
+    {
+      "radius": 6.5,
+      "pixels": 35,
+      "mean": -0.01950700828539474,
+      "stddev": 0.18593177303557384
+    },
+    {
+      "radius": 7.5,
+      "pixels": 41,
+      "mean": -0.02050258984743822,
+      "stddev": 0.16924576341490588
+    },
+    {
+      "radius": 8.5,
+      "pixels": 37,
+      "mean": -0.022477868047693896,
+      "stddev": 0.12233584628170274
+    },
+    {
+      "radius": 9.5,
+      "pixels": 47,
+      "mean": -0.02110811877757945,
+      "stddev": 0.10515254535246528
+    },
+    {
+      "radius": 10.5,
+      "pixels": 53,
+      "mean": -0.02384926538633288,
+      "stddev": 0.10419421017018089
+    },
+    {
+      "radius": 11.5,
+      "pixels": 50,
+      "mean": -0.0174363090301631,
+      "stddev": 0.1034501387815326
+    },
+    {
+      "radius": 12.5,
+      "pixels": 74,
+      "mean": -0.005580519772814335,
+      "stddev": 0.10741917457358326
+    },
+    {
+      "radius": 13.5,
+      "pixels": 61,
+      "mean": -0.0087332158395615,
+      "stddev": 0.10436934026949753
+    },
+    {
+      "radius": 14.5,
+      "pixels": 84,
+      "mean": 0.005981584315166055,
+      "stddev": 0.08337874569831423
+    },
+    {
+      "radius": 15.5,
+      "pixels": 81,
+      "mean": 0.0025726031328057067,
+      "stddev": 0.07094754641034447
+    },
+    {
+      "radius": 16.5,
+      "pixels": 86,
+      "mean": 0.008703162746103265,
+      "stddev": 0.06580023804899371
+    },
+    {
+      "radius": 17.5,
+      "pixels": 97,
+      "mean": 0.004660802379672982,
+      "stddev": 0.05751277560348606
+    },
+    {
+      "radius": 18.5,
+      "pixels": 97,
+      "mean": 0.0035745571715488414,
+      "stddev": 0.049891889849924355
+    },
+    {
+      "radius": 19.5,
+      "pixels": 139,
+      "mean": 0.005019727200652865,
+      "stddev": 0.045022629432896345
+    },
+    {
+      "radius": 20.5,
+      "pixels": 132,
+      "mean": 0.004158143588221829,
+      "stddev": 0.051659507523477505
+    },
+    {
+      "radius": 21.5,
+      "pixels": 132,
+      "mean": 0.005844249259429158,
+      "stddev": 0.05848424137243157
+    },
+    {
+      "radius": 22.5,
+      "pixels": 136,
+      "mean": 0.002523888254098197,
+      "stddev": 0.06431075682502152
+    },
+    {
+      "radius": 23.5,
+      "pixels": 140,
+      "mean": -0.00036578284894598517,
+      "stddev": 0.07073089037383501
+    },
+    {
+      "radius": 24.5,
+      "pixels": 172,
+      "mean": -4.992066128262343e-05,
+      "stddev": 0.06790046040656775
+    },
+    {
+      "radius": 25.5,
+      "pixels": 152,
+      "mean": 0.0013471220958500023,
+      "stddev": 0.06124111182392278
+    },
+    {
+      "radius": 26.5,
+      "pixels": 164,
+      "mean": -0.0023231006041497474,
+      "stddev": 0.053173996237234046
+    },
+    {
+      "radius": 27.5,
+      "pixels": 180,
+      "mean": 0.0006560523444527968,
+      "stddev": 0.05337231994461832
+    },
+    {
+      "radius": 28.5,
+      "pixels": 172,
+      "mean": 0.0002621980864543814,
+      "stddev": 0.05594420192211387
+    },
+    {
+      "radius": 29.5,
+      "pixels": 184,
+      "mean": 0.0013517980649181561,
+      "stddev": 0.05668726893352659
+    },
+    {
+      "radius": 30.5,
+      "pixels": 196,
+      "mean": 0.00233634754870448,
+      "stddev": 0.056677264615368046
+    },
+    {
+      "radius": 31.5,
+      "pixels": 204,
+      "mean": 0.002599863847945908,
+      "stddev": 0.0555458672586954
+    },
+    {
+      "radius": 32.5,
+      "pixels": 208,
+      "mean": 0.0035242649258949454,
+      "stddev": 0.05095238312070611
+    },
+    {
+      "radius": 33.5,
+      "pixels": 204,
+      "mean": 0.0012377310053945584,
+      "stddev": 0.046979448232080764
+    },
+    {
+      "radius": 34.5,
+      "pixels": 212,
+      "mean": 0.0008381397969540832,
+      "stddev": 0.04891518116176468
+    },
+    {
+      "radius": 35.5,
+      "pixels": 208,
+      "mean": 0.003905042524330873,
+      "stddev": 0.04952483466279588
+    },
+    {
+      "radius": 36.5,
+      "pixels": 244,
+      "mean": 0.0009414838082118907,
+      "stddev": 0.04870194881069891
+    },
+    {
+      "radius": 37.5,
+      "pixels": 244,
+      "mean": 0.00508585983632537,
+      "stddev": 0.04559465667554809
+    },
+    {
+      "radius": 38.5,
+      "pixels": 244,
+      "mean": 0.002844960310510226,
+      "stddev": 0.04654691811519425
+    },
+    {
+      "radius": 39.5,
+      "pixels": 232,
+      "mean": 0.003564006757720751,
+      "stddev": 0.050088292665849
+    },
+    {
+      "radius": 40.5,
+      "pixels": 260,
+      "mean": 0.003702921334927221,
+      "stddev": 0.04913605648342134
+    },
+    {
+      "radius": 41.5,
+      "pixels": 260,
+      "mean": -0.0003412221549437023,
+      "stddev": 0.04463763349206697
+    },
+    {
+      "radius": 42.5,
+      "pixels": 264,
+      "mean": 0.00039187851562570415,
+      "stddev": 0.04047598016860839
+    },
+    {
+      "radius": 43.5,
+      "pixels": 284,
+      "mean": -6.580224951801323e-05,
+      "stddev": 0.038016061715356056
+    },
+    {
+      "radius": 44.5,
+      "pixels": 284,
+      "mean": -0.0009802464829449554,
+      "stddev": 0.040377404681714885
+    },
+    {
+      "radius": 45.5,
+      "pixels": 292,
+      "mean": 0.0007393668480439723,
+      "stddev": 0.04380257020682237
+    },
+    {
+      "radius": 46.5,
+      "pixels": 280,
+      "mean": 0.0006641883145286036,
+      "stddev": 0.046899788950830495
+    },
+    {
+      "radius": 47.5,
+      "pixels": 284,
+      "mean": -0.0011911223865725743,
+      "stddev": 0.048051828421302324
+    },
+    {
+      "radius": 48.5,
+      "pixels": 324,
+      "mean": 0.0011309275029176475,
+      "stddev": 0.04738038209862861
+    },
+    {
+      "radius": 49.5,
+      "pixels": 304,
+      "mean": -0.0010014997741994815,
+      "stddev": 0.044224057638924195
+    },
+    {
+      "radius": 50.5,
+      "pixels": 324,
+      "mean": -3.388850683099188e-05,
+      "stddev": 0.04185326498315106
+    },
+    {
+      "radius": 51.5,
+      "pixels": 308,
+      "mean": 0.0005282633527795869,
+      "stddev": 0.04012661006141753
+    },
+    {
+      "radius": 52.5,
+      "pixels": 328,
+      "mean": 0.0013462088417904076,
+      "stddev": 0.03774801021689073
+    },
+    {
+      "radius": 53.5,
+      "pixels": 356,
+      "mean": 0.0012447848586019604,
+      "stddev": 0.03411255600378152
+    },
+    {
+      "radius": 54.5,
+      "pixels": 324,
+      "mean": 0.0012021408528209892,
+      "stddev": 0.034147864278444275
+    },
+    {
+      "radius": 55.5,
+      "pixels": 356,
+      "mean": 0.00013458884647017961,
+      "stddev": 0.03914247552826776
+    },
+    {
+      "radius": 56.5,
+      "pixels": 360,
+      "mean": -0.002619776227988445,
+      "stddev": 0.058209542519059854
+    },
+    {
+      "radius": 57.5,
+      "pixels": 364,
+      "mean": -0.013044723668497103,
+      "stddev": 0.11056321362426193
+    },
+    {
+      "radius": 58.5,
+      "pixels": 296,
+      "mean": -0.01929245425315064,
+      "stddev": 0.19596667127875309
+    },
+    {
+      "radius": 59.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 60.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 61.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 62.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 63.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 64.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 65.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 66.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 67.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 68.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 69.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 70.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 71.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 72.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 73.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 74.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 75.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 76.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 77.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 78.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 79.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 80.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 81.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 82.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 83.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 84.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 85.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 86.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 87.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 88.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 89.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 90.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 91.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 92.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 93.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 94.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 95.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 96.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 97.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 98.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 99.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 100.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 101.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 102.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 103.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 104.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 105.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 106.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 107.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 108.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 109.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 110.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 111.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 112.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 113.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 114.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 115.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 116.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 117.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 118.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 119.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 120.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 121.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 122.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 123.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 124.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 125.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 126.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 127.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 128.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 129.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 130.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 131.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 132.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 133.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 134.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 135.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 136.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 137.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 138.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 139.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 140.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 141.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 142.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 143.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 144.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 145.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 146.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 147.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 148.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 149.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 150.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 151.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 152.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 153.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 154.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 155.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 156.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 157.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 158.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 159.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 160.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 161.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 162.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 163.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 164.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 165.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 166.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 167.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 168.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 169.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 170.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 171.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 172.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 173.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 174.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 175.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 176.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 177.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 178.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 179.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 180.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    }
+  ],
+  "identity": [
+    {
+      "radius": 0.5,
+      "pixels": 4,
+      "mean": 0.0039797527133487165,
+      "stddev": 0.07423039796470457
+    },
+    {
+      "radius": 1.5,
+      "pixels": 8,
+      "mean": -0.007248198497109115,
+      "stddev": 0.07194077787092248
+    },
+    {
+      "radius": 2.5,
+      "pixels": 20,
+      "mean": 0.008053337410092353,
+      "stddev": 0.05616536611356227
+    },
+    {
+      "radius": 3.5,
+      "pixels": 20,
+      "mean": -0.002174927604937693,
+      "stddev": 0.017257817448068737
+    },
+    {
+      "radius": 4.5,
+      "pixels": 25,
+      "mean": 0.0029005615040659906,
+      "stddev": 0.012167913496246643
+    },
+    {
+      "radius": 5.5,
+      "pixels": 26,
+      "mean": -0.00018927133910787792,
+      "stddev": 0.008574597474922561
+    },
+    {
+      "radius": 6.5,
+      "pixels": 35,
+      "mean": -0.0009986415688347603,
+      "stddev": 0.005739175296905668
+    },
+    {
+      "radius": 7.5,
+      "pixels": 41,
+      "mean": -0.00045623096993062417,
+      "stddev": 0.00447888670782161
+    },
+    {
+      "radius": 8.5,
+      "pixels": 37,
+      "mean": -0.00014011474205118075,
+      "stddev": 0.002469573807100856
+    },
+    {
+      "radius": 9.5,
+      "pixels": 47,
+      "mean": 4.60578729813433e-05,
+      "stddev": 0.001506932322762989
+    },
+    {
+      "radius": 10.5,
+      "pixels": 53,
+      "mean": -0.00010032578050087531,
+      "stddev": 0.0011058411371789357
+    },
+    {
+      "radius": 11.5,
+      "pixels": 50,
+      "mean": -4.538190114544704e-06,
+      "stddev": 0.0011025109515611828
+    },
+    {
+      "radius": 12.5,
+      "pixels": 74,
+      "mean": 3.330541611188818e-05,
+      "stddev": 0.0012038196087469112
+    },
+    {
+      "radius": 13.5,
+      "pixels": 61,
+      "mean": -1.8360177684789066e-05,
+      "stddev": 0.0011406005115335365
+    },
+    {
+      "radius": 14.5,
+      "pixels": 84,
+      "mean": 4.6871024767911184e-05,
+      "stddev": 0.0007712043993810652
+    },
+    {
+      "radius": 15.5,
+      "pixels": 81,
+      "mean": 2.8546908730658972e-06,
+      "stddev": 0.0005758481100373874
+    },
+    {
+      "radius": 16.5,
+      "pixels": 86,
+      "mean": 5.618098348773052e-05,
+      "stddev": 0.0004391120597464458
+    },
+    {
+      "radius": 17.5,
+      "pixels": 97,
+      "mean": 1.496706210811737e-05,
+      "stddev": 0.0003270435385306464
+    },
+    {
+      "radius": 18.5,
+      "pixels": 97,
+      "mean": -1.17587233785109e-05,
+      "stddev": 0.00029113196303264124
+    },
+    {
+      "radius": 19.5,
+      "pixels": 139,
+      "mean": 7.510837997169998e-06,
+      "stddev": 0.00026770422006248956
+    },
+    {
+      "radius": 20.5,
+      "pixels": 132,
+      "mean": -2.6372281380107863e-06,
+      "stddev": 0.00027509714444752753
+    },
+    {
+      "radius": 21.5,
+      "pixels": 132,
+      "mean": 1.0479758330031032e-05,
+      "stddev": 0.0002763502254644832
+    },
+    {
+      "radius": 22.5,
+      "pixels": 136,
+      "mean": 3.8499134455057224e-06,
+      "stddev": 0.00026369857107326526
+    },
+    {
+      "radius": 23.5,
+      "pixels": 140,
+      "mean": -9.265609475862999e-06,
+      "stddev": 0.00028287642735783764
+    },
+    {
+      "radius": 24.5,
+      "pixels": 172,
+      "mean": -4.475203589203544e-07,
+      "stddev": 0.0002857795629358553
+    },
+    {
+      "radius": 25.5,
+      "pixels": 152,
+      "mean": 8.191381808549187e-06,
+      "stddev": 0.0002657075695103558
+    },
+    {
+      "radius": 26.5,
+      "pixels": 164,
+      "mean": -1.0383475995467961e-05,
+      "stddev": 0.0002314522241958801
+    },
+    {
+      "radius": 27.5,
+      "pixels": 180,
+      "mean": 2.1659908464341825e-06,
+      "stddev": 0.00021825740158695216
+    },
+    {
+      "radius": 28.5,
+      "pixels": 172,
+      "mean": 7.504716762035292e-07,
+      "stddev": 0.00022227351932740832
+    },
+    {
+      "radius": 29.5,
+      "pixels": 184,
+      "mean": 1.8480884971539957e-06,
+      "stddev": 0.0002321427398882101
+    },
+    {
+      "radius": 30.5,
+      "pixels": 196,
+      "mean": 6.6911937701243746e-06,
+      "stddev": 0.00024200612661328473
+    },
+    {
+      "radius": 31.5,
+      "pixels": 204,
+      "mean": 1.8366367149576045e-06,
+      "stddev": 0.0002377887272377012
+    },
+    {
+      "radius": 32.5,
+      "pixels": 208,
+      "mean": 6.185859796495117e-06,
+      "stddev": 0.00019970477842186544
+    },
+    {
+      "radius": 33.5,
+      "pixels": 204,
+      "mean": -9.844413435022194e-07,
+      "stddev": 0.0001644675117745491
+    },
+    {
+      "radius": 34.5,
+      "pixels": 212,
+      "mean": -3.9337843922335454e-07,
+      "stddev": 0.00015838062103713517
+    },
+    {
+      "radius": 35.5,
+      "pixels": 208,
+      "mean": 7.428206163677504e-06,
+      "stddev": 0.00015448742962689369
+    },
+    {
+      "radius": 36.5,
+      "pixels": 244,
+      "mean": -1.6404389338068079e-06,
+      "stddev": 0.00014705511604613892
+    },
+    {
+      "radius": 37.5,
+      "pixels": 244,
+      "mean": 9.377144330591043e-06,
+      "stddev": 0.00014105582437581808
+    },
+    {
+      "radius": 38.5,
+      "pixels": 244,
+      "mean": 4.98310201011286e-06,
+      "stddev": 0.00013610962697738457
+    },
+    {
+      "radius": 39.5,
+      "pixels": 232,
+      "mean": 5.564727671455707e-06,
+      "stddev": 0.00013940491160756082
+    },
+    {
+      "radius": 40.5,
+      "pixels": 260,
+      "mean": 5.905017750452456e-06,
+      "stddev": 0.0001312950570742928
+    },
+    {
+      "radius": 41.5,
+      "pixels": 260,
+      "mean": -1.2515287468116955e-06,
+      "stddev": 0.00011697104168551824
+    },
+    {
+      "radius": 42.5,
+      "pixels": 264,
+      "mean": 7.721470365183767e-07,
+      "stddev": 0.0001078821700419685
+    },
+    {
+      "radius": 43.5,
+      "pixels": 284,
+      "mean": 6.73776330052999e-07,
+      "stddev": 9.882698414865763e-05
+    },
+    {
+      "radius": 44.5,
+      "pixels": 284,
+      "mean": -3.080618903809641e-06,
+      "stddev": 9.768177008451634e-05
+    },
+    {
+      "radius": 45.5,
+      "pixels": 292,
+      "mean": 1.435384269002626e-06,
+      "stddev": 0.00010255463029828627
+    },
+    {
+      "radius": 46.5,
+      "pixels": 280,
+      "mean": 1.8241765433556013e-06,
+      "stddev": 0.00010786841020934276
+    },
+    {
+      "radius": 47.5,
+      "pixels": 284,
+      "mean": -2.534450689004941e-06,
+      "stddev": 0.00010831699546689302
+    },
+    {
+      "radius": 48.5,
+      "pixels": 324,
+      "mean": 2.3774552979802963e-06,
+      "stddev": 0.00010649472761239755
+    },
+    {
+      "radius": 49.5,
+      "pixels": 304,
+      "mean": -1.9894626152799035e-06,
+      "stddev": 0.00010074993958223594
+    },
+    {
+      "radius": 50.5,
+      "pixels": 324,
+      "mean": 2.7897613547113984e-09,
+      "stddev": 9.826116310040921e-05
+    },
+    {
+      "radius": 51.5,
+      "pixels": 280,
+      "mean": 2.6832451051664716e-06,
+      "stddev": 9.991536517735218e-05
+    },
+    {
+      "radius": 52.5,
+      "pixels": 136,
+      "mean": 5.849895711996985e-06,
+      "stddev": 0.00010406771582988334
+    },
+    {
+      "radius": 53.5,
+      "pixels": 16,
+      "mean": -2.42661112110909e-05,
+      "stddev": 9.509161939186335e-05
+    },
+    {
+      "radius": 54.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 55.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 56.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 57.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 58.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 59.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 60.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 61.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 62.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 63.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 64.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 65.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 66.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 67.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 68.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 69.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 70.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 71.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 72.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 73.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 74.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 75.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 76.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 77.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 78.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 79.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 80.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 81.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 82.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 83.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 84.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 85.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 86.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 87.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 88.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 89.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 90.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 91.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 92.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 93.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 94.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 95.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 96.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 97.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 98.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 99.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 100.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 101.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 102.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 103.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 104.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 105.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 106.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 107.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 108.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 109.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 110.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 111.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 112.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 113.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 114.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 115.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 116.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 117.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 118.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 119.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 120.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 121.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 122.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 123.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 124.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 125.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 126.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 127.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 128.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 129.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 130.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 131.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 132.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 133.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 134.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 135.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 136.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 137.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 138.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 139.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 140.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 141.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 142.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 143.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 144.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 145.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 146.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 147.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 148.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 149.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 150.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 151.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 152.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 153.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 154.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 155.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 156.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 157.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 158.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 159.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 160.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 161.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 162.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 163.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 164.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 165.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 166.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 167.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 168.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 169.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 170.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 171.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 172.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 173.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 174.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 175.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 176.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 177.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 178.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 179.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 180.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    }
+  ],
+  "psd_hann_b0_m0.1": [
+    {
+      "radius": 0.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 1.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 2.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 3.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 4.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 5.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 6.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 7.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 8.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 9.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 10.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 11.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 12.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 13.5,
+      "pixels": 3,
+      "mean": 3.101910018206885e-05,
+      "stddev": 0.0006790401327717642
+    },
+    {
+      "radius": 14.5,
+      "pixels": 17,
+      "mean": 0.0001315295830328764,
+      "stddev": 0.0003948554457366095
+    },
+    {
+      "radius": 15.5,
+      "pixels": 31,
+      "mean": 6.957167663072582e-05,
+      "stddev": 0.00047865853024426806
+    },
+    {
+      "radius": 16.5,
+      "pixels": 43,
+      "mean": 0.00012101901750632583,
+      "stddev": 0.0004458248849795261
+    },
+    {
+      "radius": 17.5,
+      "pixels": 58,
+      "mean": 5.388648028672143e-05,
+      "stddev": 0.00038454236925564606
+    },
+    {
+      "radius": 18.5,
+      "pixels": 81,
+      "mean": 1.3944318905285198e-05,
+      "stddev": 0.00031283877349635986
+    },
+    {
+      "radius": 19.5,
+      "pixels": 137,
+      "mean": -1.3864191246649588e-05,
+      "stddev": 0.00028427591640521675
+    },
+    {
+      "radius": 20.5,
+      "pixels": 132,
+      "mean": -1.1014165829347997e-05,
+      "stddev": 0.00027289059609895717
+    },
+    {
+      "radius": 21.5,
+      "pixels": 132,
+      "mean": 5.084077681624077e-05,
+      "stddev": 0.00026059149647214504
+    },
+    {
+      "radius": 22.5,
+      "pixels": 136,
+      "mean": 1.6016110563174044e-05,
+      "stddev": 0.00024863369630723605
+    },
+    {
+      "radius": 23.5,
+      "pixels": 140,
+      "mean": -6.873121792543608e-06,
+      "stddev": 0.0002779298743619599
+    },
+    {
+      "radius": 24.5,
+      "pixels": 172,
+      "mean": 2.973626249124822e-05,
+      "stddev": 0.00029342083257502316
+    },
+    {
+      "radius": 25.5,
+      "pixels": 152,
+      "mean": -6.272827506548813e-07,
+      "stddev": 0.0002565578819811299
+    },
+    {
+      "radius": 26.5,
+      "pixels": 164,
+      "mean": -2.7414404056256605e-05,
+      "stddev": 0.00022369652009055776
+    },
+    {
+      "radius": 27.5,
+      "pixels": 180,
+      "mean": 2.9147012584316043e-05,
+      "stddev": 0.0002175807022598924
+    },
+    {
+      "radius": 28.5,
+      "pixels": 172,
+      "mean": 1.1783367123963364e-05,
+      "stddev": 0.00022027611307089882
+    },
+    {
+      "radius": 29.5,
+      "pixels": 184,
+      "mean": 1.8032102389042848e-06,
+      "stddev": 0.00023061828087092489
+    },
+    {
+      "radius": 30.5,
+      "pixels": 196,
+      "mean": -2.5284367237019274e-06,
+      "stddev": 0.00024305592736618303
+    },
+    {
+      "radius": 31.5,
+      "pixels": 204,
+      "mean": -2.4317413173472837e-06,
+      "stddev": 0.0002339170467287422
+    },
+    {
+      "radius": 32.5,
+      "pixels": 208,
+      "mean": 5.950366501613539e-06,
+      "stddev": 0.00019738394704526033
+    },
+    {
+      "radius": 33.5,
+      "pixels": 204,
+      "mean": -3.9931268264247e-06,
+      "stddev": 0.00015726130838171986
+    },
+    {
+      "radius": 34.5,
+      "pixels": 212,
+      "mean": 4.415387873253184e-06,
+      "stddev": 0.00016061496735327214
+    },
+    {
+      "radius": 35.5,
+      "pixels": 208,
+      "mean": -1.2746989663871598e-05,
+      "stddev": 0.0001581834802007086
+    },
+    {
+      "radius": 36.5,
+      "pixels": 244,
+      "mean": -2.891542720817597e-06,
+      "stddev": 0.00014662672515080994
+    },
+    {
+      "radius": 37.5,
+      "pixels": 244,
+      "mean": -1.8519137452105336e-06,
+      "stddev": 0.00014094037374203072
+    },
+    {
+      "radius": 38.5,
+      "pixels": 244,
+      "mean": 5.6704514494911475e-06,
+      "stddev": 0.00013540109682729038
+    },
+    {
+      "radius": 39.5,
+      "pixels": 232,
+      "mean": -6.903189970189636e-06,
+      "stddev": 0.00014319060939738392
+    },
+    {
+      "radius": 40.5,
+      "pixels": 260,
+      "mean": 3.414705184376579e-06,
+      "stddev": 0.0001324393238348652
+    },
+    {
+      "radius": 41.5,
+      "pixels": 260,
+      "mean": 5.170268595232021e-06,
+      "stddev": 0.00011357846518764935
+    },
+    {
+      "radius": 42.5,
+      "pixels": 264,
+      "mean": -1.1623040582792346e-06,
+      "stddev": 0.00010648372481139392
+    },
+    {
+      "radius": 43.5,
+      "pixels": 284,
+      "mean": 2.7056042411308687e-06,
+      "stddev": 9.926111270354251e-05
+    },
+    {
+      "radius": 44.5,
+      "pixels": 284,
+      "mean": 4.575353030154026e-06,
+      "stddev": 9.66057603871627e-05
+    },
+    {
+      "radius": 45.5,
+      "pixels": 292,
+      "mean": 9.920432234495932e-06,
+      "stddev": 9.902405641452365e-05
+    },
+    {
+      "radius": 46.5,
+      "pixels": 280,
+      "mean": 7.538246397206397e-06,
+      "stddev": 0.00010211948606925456
+    },
+    {
+      "radius": 47.5,
+      "pixels": 284,
+      "mean": -5.00233386842082e-06,
+      "stddev": 0.0001007504726842208
+    },
+    {
+      "radius": 48.5,
+      "pixels": 324,
+      "mean": 4.582818713115024e-06,
+      "stddev": 0.00010101209786129225
+    },
+    {
+      "radius": 49.5,
+      "pixels": 304,
+      "mean": -3.3837247205526528e-06,
+      "stddev": 9.765065338484185e-05
+    },
+    {
+      "radius": 50.5,
+      "pixels": 324,
+      "mean": -4.175998984395844e-06,
+      "stddev": 9.7313466352713e-05
+    },
+    {
+      "radius": 51.5,
+      "pixels": 256,
+      "mean": 2.889954613394252e-06,
+      "stddev": 0.00010412480692762843
+    },
+    {
+      "radius": 52.5,
+      "pixels": 74,
+      "mean": -3.5975740625085685e-06,
+      "stddev": 0.00010797420256857889
+    },
+    {
+      "radius": 53.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 54.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 55.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 56.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 57.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 58.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 59.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 60.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 61.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 62.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 63.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 64.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 65.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 66.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 67.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 68.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 69.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 70.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 71.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 72.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 73.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 74.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 75.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 76.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 77.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 78.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 79.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 80.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 81.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 82.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 83.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 84.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 85.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 86.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 87.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 88.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 89.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 90.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 91.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 92.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 93.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 94.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 95.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 96.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 97.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 98.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 99.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 100.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 101.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 102.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 103.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 104.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 105.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 106.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 107.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 108.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 109.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 110.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 111.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 112.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 113.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 114.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 115.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 116.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 117.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 118.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 119.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 120.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 121.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 122.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 123.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 124.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 125.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 126.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 127.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 128.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 129.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 130.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 131.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 132.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 133.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 134.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 135.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 136.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 137.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 138.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 139.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 140.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 141.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 142.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 143.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 144.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 145.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 146.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 147.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 148.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 149.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 150.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 151.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 152.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 153.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 154.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 155.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 156.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 157.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 158.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 159.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 160.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 161.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 162.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 163.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 164.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 165.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 166.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 167.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 168.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 169.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 170.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 171.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 172.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 173.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 174.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 175.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 176.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 177.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 178.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 179.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 180.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    }
+  ],
+  "psd_rectangular_b5_m0.3": [
+    {
+      "radius": 0.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 1.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 2.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 3.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 4.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 5.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 6.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 7.5,
+      "pixels": 4,
+      "mean": -0.004678646510001272,
+      "stddev": 0.005216909636114984
+    },
+    {
+      "radius": 8.5,
+      "pixels": 7,
+      "mean": -0.00016057047261191265,
+      "stddev": 0.003979198409910561
+    },
+    {
+      "radius": 9.5,
+      "pixels": 17,
+      "mean": -0.0007751781325650346,
+      "stddev": 0.0013859235687513824
+    },
+    {
+      "radius": 10.5,
+      "pixels": 28,
+      "mean": 2.1820621896040393e-05,
+      "stddev": 0.0010704620677678134
+    },
+    {
+      "radius": 11.5,
+      "pixels": 33,
+      "mean": -9.374800356454216e-06,
+      "stddev": 0.0009345363442725486
+    },
+    {
+      "radius": 12.5,
+      "pixels": 60,
+      "mean": 0.00019391555923521745,
+      "stddev": 0.0010847275788956957
+    },
+    {
+      "radius": 13.5,
+      "pixels": 58,
+      "mean": -3.1216989433577795e-05,
+      "stddev": 0.0010824679007853356
+    },
+    {
+      "radius": 14.5,
+      "pixels": 84,
+      "mean": 1.0905175031439285e-05,
+      "stddev": 0.0007986773814566189
+    },
+    {
+      "radius": 15.5,
+      "pixels": 81,
+      "mean": 5.55816674011707e-06,
+      "stddev": 0.0006546269871516177
+    },
+    {
+      "radius": 16.5,
+      "pixels": 86,
+      "mean": 6.921846934981363e-05,
+      "stddev": 0.00048042213778773634
+    },
+    {
+      "radius": 17.5,
+      "pixels": 97,
+      "mean": 5.3507574090506695e-05,
+      "stddev": 0.0003468725387147934
+    },
+    {
+      "radius": 18.5,
+      "pixels": 97,
+      "mean": 3.0255051457323734e-05,
+      "stddev": 0.00028602643649986527
+    },
+    {
+      "radius": 19.5,
+      "pixels": 139,
+      "mean": 2.877567311502422e-05,
+      "stddev": 0.0002699277987252548
+    },
+    {
+      "radius": 20.5,
+      "pixels": 132,
+      "mean": -5.944424070879574e-06,
+      "stddev": 0.0002726520263311845
+    },
+    {
+      "radius": 21.5,
+      "pixels": 132,
+      "mean": 6.035767745860347e-06,
+      "stddev": 0.00026100598297969853
+    },
+    {
+      "radius": 22.5,
+      "pixels": 136,
+      "mean": 3.006344772666794e-05,
+      "stddev": 0.0002515321667107758
+    },
+    {
+      "radius": 23.5,
+      "pixels": 140,
+      "mean": -3.998707684006929e-06,
+      "stddev": 0.0002757579566223991
+    },
+    {
+      "radius": 24.5,
+      "pixels": 172,
+      "mean": -8.640643835369066e-07,
+      "stddev": 0.00028463745511239847
+    },
+    {
+      "radius": 25.5,
+      "pixels": 152,
+      "mean": -6.772259875506997e-06,
+      "stddev": 0.00025624112948895606
+    },
+    {
+      "radius": 26.5,
+      "pixels": 164,
+      "mean": -1.9847516898191938e-05,
+      "stddev": 0.00022510149818254067
+    },
+    {
+      "radius": 27.5,
+      "pixels": 180,
+      "mean": 1.1599659195048338e-05,
+      "stddev": 0.00021676456064679276
+    },
+    {
+      "radius": 28.5,
+      "pixels": 172,
+      "mean": 3.3166801269444054e-06,
+      "stddev": 0.00021528755329650878
+    },
+    {
+      "radius": 29.5,
+      "pixels": 184,
+      "mean": 1.4405527287447947e-05,
+      "stddev": 0.0002245883462027255
+    },
+    {
+      "radius": 30.5,
+      "pixels": 196,
+      "mean": -7.73255240750475e-06,
+      "stddev": 0.00023895100152641349
+    },
+    {
+      "radius": 31.5,
+      "pixels": 204,
+      "mean": -4.517956222785228e-06,
+      "stddev": 0.00023750941714319773
+    },
+    {
+      "radius": 32.5,
+      "pixels": 208,
+      "mean": 3.4792752736998104e-06,
+      "stddev": 0.00019468267602485781
+    },
+    {
+      "radius": 33.5,
+      "pixels": 204,
+      "mean": 2.22929887339727e-06,
+      "stddev": 0.00015418948483911
+    },
+    {
+      "radius": 34.5,
+      "pixels": 212,
+      "mean": -7.931013335178679e-06,
+      "stddev": 0.00015596239049870653
+    },
+    {
+      "radius": 35.5,
+      "pixels": 208,
+      "mean": -1.7617096712722987e-06,
+      "stddev": 0.00015381321267233833
+    },
+    {
+      "radius": 36.5,
+      "pixels": 244,
+      "mean": -1.2706159751019186e-06,
+      "stddev": 0.00014609007357803633
+    },
+    {
+      "radius": 37.5,
+      "pixels": 244,
+      "mean": 5.045061025846914e-06,
+      "stddev": 0.00013763283145480973
+    },
+    {
+      "radius": 38.5,
+      "pixels": 244,
+      "mean": 5.150767376972744e-06,
+      "stddev": 0.00013199231596323452
+    },
+    {
+      "radius": 39.5,
+      "pixels": 232,
+      "mean": 6.748039841544721e-06,
+      "stddev": 0.0001418937801355794
+    },
+    {
+      "radius": 40.5,
+      "pixels": 260,
+      "mean": 3.984772778901166e-06,
+      "stddev": 0.00013158105704757426
+    },
+    {
+      "radius": 41.5,
+      "pixels": 260,
+      "mean": 2.0699567274872467e-06,
+      "stddev": 0.00011157966989493261
+    },
+    {
+      "radius": 42.5,
+      "pixels": 264,
+      "mean": -4.685259455395784e-06,
+      "stddev": 0.0001064240468204188
+    },
+    {
+      "radius": 43.5,
+      "pixels": 284,
+      "mean": 1.4342431958199777e-06,
+      "stddev": 9.976146074370734e-05
+    },
+    {
+      "radius": 44.5,
+      "pixels": 284,
+      "mean": -4.006784287268992e-06,
+      "stddev": 9.510882196520891e-05
+    },
+    {
+      "radius": 45.5,
+      "pixels": 292,
+      "mean": 3.244371400551525e-06,
+      "stddev": 9.849286214061651e-05
+    },
+    {
+      "radius": 46.5,
+      "pixels": 280,
+      "mean": 7.81283078095742e-06,
+      "stddev": 0.00010511000789432097
+    },
+    {
+      "radius": 47.5,
+      "pixels": 284,
+      "mean": -3.450896636816741e-06,
+      "stddev": 0.0001029414072562538
+    },
+    {
+      "radius": 48.5,
+      "pixels": 324,
+      "mean": 4.687040880669695e-06,
+      "stddev": 0.00010135596339354627
+    },
+    {
+      "radius": 49.5,
+      "pixels": 304,
+      "mean": 2.303374060375063e-07,
+      "stddev": 9.65492842154797e-05
+    },
+    {
+      "radius": 50.5,
+      "pixels": 324,
+      "mean": 7.485881920160162e-07,
+      "stddev": 9.59136199533899e-05
+    },
+    {
+      "radius": 51.5,
+      "pixels": 280,
+      "mean": 5.586893872841107e-06,
+      "stddev": 0.00010210447483437994
+    },
+    {
+      "radius": 52.5,
+      "pixels": 136,
+      "mean": 2.1605455194329647e-06,
+      "stddev": 0.00011071736262703078
+    },
+    {
+      "radius": 53.5,
+      "pixels": 16,
+      "mean": -4.250941721295476e-05,
+      "stddev": 9.331452971195855e-05
+    },
+    {
+      "radius": 54.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 55.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 56.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 57.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 58.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 59.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 60.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 61.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 62.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 63.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 64.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 65.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 66.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 67.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 68.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 69.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 70.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 71.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 72.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 73.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 74.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 75.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 76.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 77.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 78.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 79.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 80.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 81.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 82.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 83.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 84.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 85.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 86.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 87.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 88.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 89.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 90.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 91.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 92.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 93.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 94.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 95.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 96.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 97.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 98.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 99.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 100.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 101.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 102.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 103.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 104.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 105.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 106.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 107.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 108.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 109.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 110.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 111.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 112.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 113.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 114.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 115.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 116.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 117.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 118.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 119.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 120.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 121.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 122.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 123.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 124.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 125.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 126.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 127.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 128.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 129.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 130.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 131.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 132.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 133.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 134.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 135.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 136.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 137.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 138.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 139.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 140.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 141.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 142.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 143.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 144.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 145.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 146.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 147.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 148.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 149.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 150.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 151.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 152.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 153.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 154.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 155.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 156.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 157.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 158.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 159.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 160.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 161.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 162.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 163.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 164.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 165.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 166.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 167.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 168.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 169.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 170.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 171.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 172.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 173.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 174.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 175.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 176.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 177.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 178.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 179.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 180.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    }
+  ],
+  "pca_b5_f1": [
+    {
+      "radius": 0.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 1.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 2.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 3.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 4.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 5.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 6.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 7.5,
+      "pixels": 4,
+      "mean": -0.0009395304514328018,
+      "stddev": 0.005034217270304699
+    },
+    {
+      "radius": 8.5,
+      "pixels": 7,
+      "mean": -0.0009533155576458999,
+      "stddev": 0.002586607040858074
+    },
+    {
+      "radius": 9.5,
+      "pixels": 17,
+      "mean": -0.0006010625393708538,
+      "stddev": 0.0014450959786647742
+    },
+    {
+      "radius": 10.5,
+      "pixels": 28,
+      "mean": -4.548480319499504e-06,
+      "stddev": 0.0009583052522980302
+    },
+    {
+      "radius": 11.5,
+      "pixels": 33,
+      "mean": -7.230130899133104e-05,
+      "stddev": 0.0009387850236826493
+    },
+    {
+      "radius": 12.5,
+      "pixels": 60,
+      "mean": 0.00016808506864739078,
+      "stddev": 0.001336127004071264
+    },
+    {
+      "radius": 13.5,
+      "pixels": 58,
+      "mean": 0.00011178056800041492,
+      "stddev": 0.0011956808003931007
+    },
+    {
+      "radius": 14.5,
+      "pixels": 84,
+      "mean": 2.405048951459321e-05,
+      "stddev": 0.0007050806863591045
+    },
+    {
+      "radius": 15.5,
+      "pixels": 81,
+      "mean": 4.4675738154407474e-06,
+      "stddev": 0.000579123440359233
+    },
+    {
+      "radius": 16.5,
+      "pixels": 86,
+      "mean": 6.756924322385309e-05,
+      "stddev": 0.0004583692535839106
+    },
+    {
+      "radius": 17.5,
+      "pixels": 97,
+      "mean": 9.506108963189349e-05,
+      "stddev": 0.0004453557370092279
+    },
+    {
+      "radius": 18.5,
+      "pixels": 97,
+      "mean": 6.235574243508326e-05,
+      "stddev": 0.00039563567626690996
+    },
+    {
+      "radius": 19.5,
+      "pixels": 139,
+      "mean": 3.809741791729662e-05,
+      "stddev": 0.0003027347471768952
+    },
+    {
+      "radius": 20.5,
+      "pixels": 132,
+      "mean": -3.874587002538839e-06,
+      "stddev": 0.0003193837163438082
+    },
+    {
+      "radius": 21.5,
+      "pixels": 132,
+      "mean": 7.1532815978213024e-06,
+      "stddev": 0.00030153757837458433
+    },
+    {
+      "radius": 22.5,
+      "pixels": 136,
+      "mean": 2.0040218332690744e-05,
+      "stddev": 0.00026110730724808776
+    },
+    {
+      "radius": 23.5,
+      "pixels": 140,
+      "mean": -5.467454490469338e-06,
+      "stddev": 0.00029687852666529686
+    },
+    {
+      "radius": 24.5,
+      "pixels": 172,
+      "mean": -2.1184080328884044e-06,
+      "stddev": 0.00030770737254789336
+    },
+    {
+      "radius": 25.5,
+      "pixels": 152,
+      "mean": -1.0830003396066737e-05,
+      "stddev": 0.00030998082345726305
+    },
+    {
+      "radius": 26.5,
+      "pixels": 164,
+      "mean": -3.716442260706868e-05,
+      "stddev": 0.0002677350932479429
+    },
+    {
+      "radius": 27.5,
+      "pixels": 180,
+      "mean": 4.271157856944936e-06,
+      "stddev": 0.00025612870168460197
+    },
+    {
+      "radius": 28.5,
+      "pixels": 172,
+      "mean": -6.487166047008941e-06,
+      "stddev": 0.0002576206280912257
+    },
+    {
+      "radius": 29.5,
+      "pixels": 184,
+      "mean": 1.0816813954761528e-05,
+      "stddev": 0.00024988359321810724
+    },
+    {
+      "radius": 30.5,
+      "pixels": 196,
+      "mean": -6.460299275380637e-06,
+      "stddev": 0.0002571289838578944
+    },
+    {
+      "radius": 31.5,
+      "pixels": 204,
+      "mean": 2.6684837055155166e-06,
+      "stddev": 0.00025761487441835053
+    },
+    {
+      "radius": 32.5,
+      "pixels": 208,
+      "mean": 6.3449035897415e-06,
+      "stddev": 0.00018799467466463742
+    },
+    {
+      "radius": 33.5,
+      "pixels": 204,
+      "mean": 1.8114354035930649e-06,
+      "stddev": 0.00016917282155795902
+    },
+    {
+      "radius": 34.5,
+      "pixels": 212,
+      "mean": -9.134206696641723e-06,
+      "stddev": 0.0001809827256525863
+    },
+    {
+      "radius": 35.5,
+      "pixels": 208,
+      "mean": -9.824991638450998e-06,
+      "stddev": 0.0001967158129955725
+    },
+    {
+      "radius": 36.5,
+      "pixels": 244,
+      "mean": -1.2175563316848967e-05,
+      "stddev": 0.000171659099848978
+    },
+    {
+      "radius": 37.5,
+      "pixels": 244,
+      "mean": -1.2433994453361408e-07,
+      "stddev": 0.00015347828518661678
+    },
+    {
+      "radius": 38.5,
+      "pixels": 244,
+      "mean": 5.082992649270219e-06,
+      "stddev": 0.0001463613231158606
+    },
+    {
+      "radius": 39.5,
+      "pixels": 232,
+      "mean": 9.735305611037613e-06,
+      "stddev": 0.00016091829234561602
+    },
+    {
+      "radius": 40.5,
+      "pixels": 260,
+      "mean": 5.775710094833532e-06,
+      "stddev": 0.00015493419159781885
+    },
+    {
+      "radius": 41.5,
+      "pixels": 260,
+      "mean": 3.3154960612172054e-06,
+      "stddev": 0.00013127090146885967
+    },
+    {
+      "radius": 42.5,
+      "pixels": 264,
+      "mean": -7.610888254496538e-06,
+      "stddev": 0.00011868315945343745
+    },
+    {
+      "radius": 43.5,
+      "pixels": 284,
+      "mean": -2.229944431825304e-06,
+      "stddev": 0.00011256903663311554
+    },
+    {
+      "radius": 44.5,
+      "pixels": 284,
+      "mean": -6.076438160812413e-06,
+      "stddev": 0.00011432275292807866
+    },
+    {
+      "radius": 45.5,
+      "pixels": 292,
+      "mean": 2.427646393633115e-06,
+      "stddev": 0.00011460734610701749
+    },
+    {
+      "radius": 46.5,
+      "pixels": 280,
+      "mean": 7.351488473591619e-06,
+      "stddev": 0.0001192627336251347
+    },
+    {
+      "radius": 47.5,
+      "pixels": 284,
+      "mean": -3.210673558179467e-06,
+      "stddev": 0.0001054827203534769
+    },
+    {
+      "radius": 48.5,
+      "pixels": 324,
+      "mean": 3.1770157851985494e-06,
+      "stddev": 0.00010555943363760804
+    },
+    {
+      "radius": 49.5,
+      "pixels": 304,
+      "mean": 3.1781360855301513e-07,
+      "stddev": 0.00010485762271491391
+    },
+    {
+      "radius": 50.5,
+      "pixels": 324,
+      "mean": 1.4454195426294996e-08,
+      "stddev": 0.00011506278804269543
+    },
+    {
+      "radius": 51.5,
+      "pixels": 280,
+      "mean": 9.033036667460692e-06,
+      "stddev": 0.00011901146098638313
+    },
+    {
+      "radius": 52.5,
+      "pixels": 136,
+      "mean": -3.86869678567002e-06,
+      "stddev": 0.00013249249651423002
+    },
+    {
+      "radius": 53.5,
+      "pixels": 16,
+      "mean": -6.345485527958772e-05,
+      "stddev": 0.00014808199605296918
+    },
+    {
+      "radius": 54.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 55.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 56.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 57.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 58.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 59.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 60.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 61.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 62.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 63.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 64.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 65.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 66.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 67.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 68.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 69.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 70.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 71.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 72.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 73.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 74.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 75.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 76.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 77.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 78.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 79.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 80.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 81.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 82.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 83.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 84.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 85.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 86.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 87.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 88.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 89.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 90.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 91.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 92.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 93.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 94.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 95.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 96.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 97.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 98.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 99.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 100.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 101.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 102.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 103.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 104.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 105.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 106.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 107.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 108.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 109.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 110.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 111.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 112.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 113.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 114.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 115.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 116.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 117.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 118.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 119.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 120.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 121.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 122.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 123.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 124.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 125.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 126.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 127.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 128.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 129.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 130.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 131.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 132.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 133.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 134.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 135.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 136.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 137.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 138.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 139.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 140.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 141.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 142.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 143.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 144.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 145.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 146.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 147.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 148.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 149.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 150.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 151.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 152.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 153.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 154.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 155.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 156.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 157.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 158.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 159.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 160.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 161.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 162.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 163.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 164.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 165.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 166.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 167.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 168.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 169.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 170.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 171.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 172.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 173.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 174.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 175.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 176.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 177.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 178.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 179.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 180.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    }
+  ],
+  "isotropic_b5": [
+    {
+      "radius": 0.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 1.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 2.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 3.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 4.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 5.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 6.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 7.5,
+      "pixels": 4,
+      "mean": -0.0028333193040452898,
+      "stddev": 0.005044460893481916
+    },
+    {
+      "radius": 8.5,
+      "pixels": 7,
+      "mean": -0.0006649605929851532,
+      "stddev": 0.002846488485480129
+    },
+    {
+      "radius": 9.5,
+      "pixels": 17,
+      "mean": -0.0005628137116539566,
+      "stddev": 0.0009854290386838121
+    },
+    {
+      "radius": 10.5,
+      "pixels": 28,
+      "mean": -1.9375465301761453e-05,
+      "stddev": 0.0007888470749068242
+    },
+    {
+      "radius": 11.5,
+      "pixels": 33,
+      "mean": -6.484338414200906e-05,
+      "stddev": 0.0009220703730227241
+    },
+    {
+      "radius": 12.5,
+      "pixels": 60,
+      "mean": 0.00014026118484859276,
+      "stddev": 0.0010850666057548575
+    },
+    {
+      "radius": 13.5,
+      "pixels": 58,
+      "mean": 6.505881362405992e-05,
+      "stddev": 0.0011193115084562261
+    },
+    {
+      "radius": 14.5,
+      "pixels": 84,
+      "mean": 1.901082964506613e-05,
+      "stddev": 0.0007857477234009444
+    },
+    {
+      "radius": 15.5,
+      "pixels": 81,
+      "mean": 1.316007914294774e-05,
+      "stddev": 0.0005937972628995573
+    },
+    {
+      "radius": 16.5,
+      "pixels": 86,
+      "mean": 4.5745507503492854e-05,
+      "stddev": 0.00043911698949705566
+    },
+    {
+      "radius": 17.5,
+      "pixels": 97,
+      "mean": 3.5483644516960376e-05,
+      "stddev": 0.000336438846446084
+    },
+    {
+      "radius": 18.5,
+      "pixels": 97,
+      "mean": 8.307880663553602e-06,
+      "stddev": 0.0002989488208923587
+    },
+    {
+      "radius": 19.5,
+      "pixels": 139,
+      "mean": 2.2008737507799653e-05,
+      "stddev": 0.0002757406637023185
+    },
+    {
+      "radius": 20.5,
+      "pixels": 132,
+      "mean": -9.491489021487807e-06,
+      "stddev": 0.0002767780712224336
+    },
+    {
+      "radius": 21.5,
+      "pixels": 132,
+      "mean": 5.121170883023407e-06,
+      "stddev": 0.00027680269791334185
+    },
+    {
+      "radius": 22.5,
+      "pixels": 136,
+      "mean": 2.5064779125012353e-05,
+      "stddev": 0.0002638085504502029
+    },
+    {
+      "radius": 23.5,
+      "pixels": 140,
+      "mean": -2.4674050231559316e-06,
+      "stddev": 0.00028289939577257875
+    },
+    {
+      "radius": 24.5,
+      "pixels": 172,
+      "mean": 3.0061089777846487e-06,
+      "stddev": 0.00028681253313345373
+    },
+    {
+      "radius": 25.5,
+      "pixels": 152,
+      "mean": -3.4305449204159803e-07,
+      "stddev": 0.0002649831312894852
+    },
+    {
+      "radius": 26.5,
+      "pixels": 164,
+      "mean": -1.851404493059241e-05,
+      "stddev": 0.00023136206523610386
+    },
+    {
+      "radius": 27.5,
+      "pixels": 180,
+      "mean": 8.320505181400349e-06,
+      "stddev": 0.00021757641683013872
+    },
+    {
+      "radius": 28.5,
+      "pixels": 172,
+      "mean": 5.014596772552131e-07,
+      "stddev": 0.00022218165388915976
+    },
+    {
+      "radius": 29.5,
+      "pixels": 184,
+      "mean": 6.946441236328096e-06,
+      "stddev": 0.00023173287821199562
+    },
+    {
+      "radius": 30.5,
+      "pixels": 196,
+      "mean": -2.13601613639333e-06,
+      "stddev": 0.00024168257920799657
+    },
+    {
+      "radius": 31.5,
+      "pixels": 204,
+      "mean": -5.84162149227366e-06,
+      "stddev": 0.00023733292564833094
+    },
+    {
+      "radius": 32.5,
+      "pixels": 208,
+      "mean": 3.7016721224657745e-06,
+      "stddev": 0.00019965517261444243
+    },
+    {
+      "radius": 33.5,
+      "pixels": 204,
+      "mean": -2.2706261782348312e-07,
+      "stddev": 0.0001641765149192297
+    },
+    {
+      "radius": 34.5,
+      "pixels": 212,
+      "mean": -4.770503516978489e-06,
+      "stddev": 0.00015887850820469425
+    },
+    {
+      "radius": 35.5,
+      "pixels": 208,
+      "mean": 3.757186494915196e-07,
+      "stddev": 0.00015457550433403688
+    },
+    {
+      "radius": 36.5,
+      "pixels": 244,
+      "mean": -3.021889836709008e-06,
+      "stddev": 0.00014719043799294492
+    },
+    {
+      "radius": 37.5,
+      "pixels": 244,
+      "mean": 5.536059423779169e-06,
+      "stddev": 0.00014151003723116977
+    },
+    {
+      "radius": 38.5,
+      "pixels": 244,
+      "mean": 3.498038422856657e-06,
+      "stddev": 0.00013661356963389596
+    },
+    {
+      "radius": 39.5,
+      "pixels": 232,
+      "mean": 4.420444258420471e-06,
+      "stddev": 0.00013992892659447635
+    },
+    {
+      "radius": 40.5,
+      "pixels": 260,
+      "mean": 4.617216532446596e-06,
+      "stddev": 0.00013188339571620103
+    },
+    {
+      "radius": 41.5,
+      "pixels": 260,
+      "mean": 6.915099901378269e-07,
+      "stddev": 0.00011729826682740175
+    },
+    {
+      "radius": 42.5,
+      "pixels": 264,
+      "mean": -2.2311517307633206e-06,
+      "stddev": 0.00010830443277009108
+    },
+    {
+      "radius": 43.5,
+      "pixels": 284,
+      "mean": 1.0667387158891998e-06,
+      "stddev": 9.965623517134893e-05
+    },
+    {
+      "radius": 44.5,
+      "pixels": 284,
+      "mean": -3.893519995001402e-06,
+      "stddev": 9.854122756056286e-05
+    },
+    {
+      "radius": 45.5,
+      "pixels": 292,
+      "mean": 1.8565509581187817e-06,
+      "stddev": 0.00010312379621887116
+    },
+    {
+      "radius": 46.5,
+      "pixels": 280,
+      "mean": 5.152394578874667e-06,
+      "stddev": 0.00010905193648721058
+    },
+    {
+      "radius": 47.5,
+      "pixels": 284,
+      "mean": -2.820665146998135e-06,
+      "stddev": 0.0001094375883709723
+    },
+    {
+      "radius": 48.5,
+      "pixels": 324,
+      "mean": 4.7958220149812855e-06,
+      "stddev": 0.00010765494264872642
+    },
+    {
+      "radius": 49.5,
+      "pixels": 304,
+      "mean": 1.2928466967864732e-06,
+      "stddev": 0.00010172985314272833
+    },
+    {
+      "radius": 50.5,
+      "pixels": 324,
+      "mean": 2.325330717991953e-06,
+      "stddev": 9.893777611904263e-05
+    },
+    {
+      "radius": 51.5,
+      "pixels": 280,
+      "mean": 5.872461561904986e-06,
+      "stddev": 0.0001003136813814013
+    },
+    {
+      "radius": 52.5,
+      "pixels": 136,
+      "mean": 3.700062446863312e-06,
+      "stddev": 0.00010449921330361886
+    },
+    {
+      "radius": 53.5,
+      "pixels": 16,
+      "mean": -2.6626875296642538e-05,
+      "stddev": 9.667356634907734e-05
+    },
+    {
+      "radius": 54.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 55.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 56.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 57.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 58.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 59.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 60.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 61.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 62.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 63.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 64.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 65.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 66.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 67.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 68.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 69.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 70.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 71.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 72.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 73.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 74.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 75.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 76.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 77.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 78.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 79.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 80.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 81.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 82.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 83.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 84.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 85.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 86.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 87.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 88.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 89.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 90.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 91.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 92.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 93.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 94.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 95.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 96.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 97.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 98.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 99.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 100.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 101.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 102.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 103.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 104.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 105.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 106.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 107.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 108.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 109.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 110.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 111.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 112.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 113.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 114.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 115.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 116.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 117.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 118.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 119.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 120.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 121.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 122.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 123.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 124.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 125.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 126.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 127.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 128.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 129.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 130.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 131.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 132.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 133.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 134.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 135.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 136.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 137.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 138.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 139.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 140.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 141.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 142.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 143.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 144.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 145.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 146.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 147.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 148.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 149.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 150.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 151.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 152.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 153.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 154.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 155.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 156.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 157.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 158.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 159.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 160.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 161.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 162.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 163.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 164.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 165.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 166.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 167.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 168.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 169.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 170.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 171.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 172.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 173.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 174.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 175.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 176.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 177.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 178.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 179.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    },
+    {
+      "radius": 180.5,
+      "pixels": 0,
+      "mean": null,
+      "stddev": null
+    }
+  ]
+}

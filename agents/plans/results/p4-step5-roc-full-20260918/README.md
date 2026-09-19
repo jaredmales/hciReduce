@@ -88,6 +88,10 @@ the unpaired positive measurements.
 
 ## What this establishes
 
+The later [known-planet comparison using `working/analyze.conf`](../p4-step5-planet-20260919/README.md)
+measures AF Lep b separately at 11.8 pixels. It uses common application annular SNR and documents the
+same-radius Hann support failure at that inner position; the injection results here remain unchanged.
+
 The frozen comparison supports **same-radius Hann PSD as the leading PSD candidate here** and confirms
 a recovery gain over Gaussian smoothing with application SNR in this sample. Ordinary annular SNR
 normalization also improves identity recovery substantially, leaving a much smaller gap to Hann.
