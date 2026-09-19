@@ -2233,7 +2233,16 @@ PSD, identity, and Gaussian maps, thresholds, pools, decisions, and summaries
 must reproduce the parent results. Every method still requires finite
 amplitude and annular normalization at all five search pixels; invalid searches
 remain nondetections. The driver reports per-radius and aggregate recovery and
-the individual decisions changed by normalization.
+the individual decisions changed by normalization. It also reports, for each
+radius and brightness, the arithmetic mean of the valid five-pixel maximum
+search SNRs for every method, together with the valid count. Invalid searches
+are omitted rather than treated as zero. Mean center-pixel SNR is retained in
+the JSON output to distinguish weighting changes from one-pixel peak shifts.
+Each per-injection value comes directly from the frozen production
+`hciAnalyze` SNR map, including its annular mean subtraction, interpolated
+annular standard deviation, known-source exclusion, and small-sample
+correction. The independent Python annular calculation only verifies the
+production result.
 
 ## 8. Notation
 

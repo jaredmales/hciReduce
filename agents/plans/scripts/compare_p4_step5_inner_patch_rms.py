@@ -126,6 +126,7 @@ def prepare(args: argparse.Namespace) -> None:
         'candidate_units': 'candidate stamp, fitted raw mean patch, and response remain in raw contrast units',
         'invalid_normalization': 'nonfinite or roundoff-scale patch RMS invalidates the normalized fit; no samples are removed and no fallback is used',
         'search': 'native center plus four axial one-pixel neighbors; all five covariance fits and annular normalizations required; invalid search is a nondetection',
+        'snr_summary': 'use the frozen production hciAnalyze SNR maps; at each radius, brightness, and method report the arithmetic mean of the valid five-pixel maximum search SNRs; invalid searches are omitted and counted; also retain mean center-pixel SNR',
         'thresholds': '20 valid geometry-selected baseline searches in the parent radial band; score-free validity replacements only; all thresholds frozen before positives',
         'controls': 'raw PSD, identity, and Gaussian amplitude/SNR maps and decisions must reproduce the completed parent study',
         'workers': len(args.cpus), 'cpu_ids': args.cpus, 'threads_per_worker': 1,
@@ -517,6 +518,16 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
                 parent = next(group for group in parent_results['groups'] if
                               group['radius'] == nominal and group['method'] == method)
                 inner.full.radial.require(one == parent, 'parent summary changed for '+method)
+            for level_row in one['levels']:
+                selected = [record for record in measurements if
+                            record['task']['job']['nominal_radius'] == nominal and
+                            record['task']['job']['brightness_multiplier'] ==
+                            level_row['brightness_multiplier']]
+                values = [record['models'][method] for record in selected]
+                valid = [value for value in values if value['valid']]
+                level_row.update(valid_searches=len(valid),
+                    mean_search_snr=float(np.mean([value['search_score'] for value in valid])) if valid else None,
+                    mean_center_snr=float(np.mean([value['snr_pixels'][0] for value in valid])) if valid else None)
     paired = []
     for nominal in RADII:
         for width in WIDTHS:
@@ -536,13 +547,20 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
                             for index in range(len(LEVELS))]
         inner.full.radial.require(len(set(invalid_by_level)) == 1,
                                   'method support changed with injected brightness for '+method)
+        aggregate_levels = []
+        for level in LEVELS:
+            selected = [record['models'][method] for record in measurements if
+                        record['task']['job']['brightness_multiplier'] == level]
+            valid = [value for value in selected if value['valid']]
+            aggregate_levels.append({'brightness_multiplier': level,
+                'detections': sum(value['detected'] for value in selected), 'trials': len(selected),
+                'valid_searches': len(valid),
+                'mean_search_snr': float(np.mean([value['search_score'] for value in valid])) if valid else None,
+                'mean_center_snr': float(np.mean([value['snr_pixels'][0] for value in valid])) if valid else None})
         aggregate.append({'method': method, 'valid_sites': len(RADII)*6-invalid_by_level[0],
             'null_exceedances': sum(group['null_exceedances'] for group in method_groups),
             'invalid_nulls': sum(group['invalid_nulls'] for group in method_groups),
-            'levels': [{'brightness_multiplier': level,
-                        'detections': sum(group['levels'][index]['detections'] for group in method_groups),
-                        'trials': sum(group['levels'][index]['trials'] for group in method_groups)}
-                       for index, level in enumerate(LEVELS)]})
+            'levels': aggregate_levels})
     verification = {'new_reductions': 0,
         'maximum_parent_control_snr_difference': max(value for record in [*baseline, *measurements]
             for value in record['parent_control_max_errors'].values() if value is not None),
@@ -563,6 +581,21 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
             f' | {group["null_exceedances"]}/6 | {group["invalid_nulls"]}/6 |')
     lines += ['', 'All thresholds were frozen before positive analysis. Invalid searches are nondetections. '
               'Raw controls reproduce the parent study; no P4 reductions were run.', '',
+        '## Mean five-pixel search SNR by radius', '',
+        'Each per-injection value comes from the frozen production hciAnalyze SNR map. The table gives the arithmetic '
+        'mean over valid injections at that radius and shows the valid count. The reported SNR is the maximum over '
+        'the same fixed five-pixel search used for detection.', '',
+        '| Radius | Method | Valid sites | 0.5× mean SNR | 0.75× mean SNR | 1× mean SNR |',
+        '| ---: | --- | ---: | ---: | ---: | ---: |']
+    for group in groups:
+        valid_counts = [row['valid_searches'] for row in group['levels']]
+        inner.full.radial.require(len(set(valid_counts)) == 1,
+                                  'method support changed with brightness within one radius')
+        formatted = [('—' if row['mean_search_snr'] is None else f'{row["mean_search_snr"]:.4f}')
+                     for row in group['levels']]
+        lines.append(f'| {group["radius"]} | {LABELS[group["method"]]} | {valid_counts[0]}/6 | '+
+                     ' | '.join(formatted)+' |')
+    lines += ['',
         '## Aggregate across radii', '',
         '| Method | Valid sites | 0.5× | 0.75× | 1× | Nulls | Invalid nulls |',
         '| --- | ---: | ---: | ---: | ---: | ---: | ---: |']

@@ -108,7 +108,16 @@ receipt. It then analyzes the 108 saved positive images. A task with a verified
 completion receipt is reused; an interrupted unreceipted task is preserved
 under `interrupted/` before recomputation. Final products are `results.json`,
 `results.md`, and `comparison.png`, with aggregate and per-radius recovery plus
-the individual raw-only and normalized-only decisions.
+the individual raw-only and normalized-only decisions. For every radius,
+brightness, and method, the report also gives the arithmetic mean of the valid
+five-pixel maximum search SNRs and the number of valid searches. Each
+per-injection SNR is read directly from the frozen production `hciAnalyze`
+output map, with its annular mean subtraction, interpolated annular standard
+deviation, known-source exclusion, and small-sample correction. The independent
+Python annular calculation only verifies that output. Invalid searches are
+omitted from the mean rather than assigned zero. The JSON output additionally
+preserves the mean center-pixel SNR, allowing a separate check of small
+search-position shifts.
 
 ## Prelaunch validation
 
@@ -119,8 +128,9 @@ and strict JSON handling of unavailable search pixels. A mock completed parent
 with 164 baseline and 108 positive analysis receipts passes preparation and
 input-fingerprint verification. A synthetic full summary reproduces all raw
 parent controls and writes the expected 48 per-radius groups, eight aggregate
-rows, and 54 paired comparisons. Python syntax compilation and repository
-whitespace checks also pass.
+rows, and 54 paired comparisons. It also verifies the per-radius and aggregate
+means of supplied production-map search and center SNR values. Python syntax
+compilation and repository whitespace checks also pass.
 
 ## Scope
 
