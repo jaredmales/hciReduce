@@ -1,0 +1,517 @@
+{
+  "schema": 1,
+  "purpose": "30 new injection sites on the existing field; sitewise held-out calibration",
+  "source_cpp_commit": "882cb15",
+  "pilot": "separate ROC numerical/throughput pilot waived by user",
+  "models": [
+    "psd_hann_b0_m0.1",
+    "psd_rectangular_b5_m0.3",
+    "pca_b5_f1",
+    "isotropic_b5",
+    "identity",
+    "gaussian_snr",
+    "gaussian_raw",
+    "identity_snr"
+  ],
+  "brightness_multipliers": [
+    0.5,
+    0.75,
+    1.0
+  ],
+  "nominal_radii": [
+    26,
+    32,
+    38,
+    44,
+    50
+  ],
+  "sites_per_radius": 6,
+  "full_positive_reductions": 90,
+  "baseline_reductions": 1,
+  "calibration_trials": [
+    {
+      "name": "calibration_r26_b0",
+      "row": 140,
+      "column": 105,
+      "nominal_radius": 26,
+      "angular_block": 0
+    },
+    {
+      "name": "calibration_r26_b1",
+      "row": 144,
+      "column": 108,
+      "nominal_radius": 26,
+      "angular_block": 1
+    },
+    {
+      "name": "calibration_r26_b2",
+      "row": 147,
+      "column": 111,
+      "nominal_radius": 26,
+      "angular_block": 2
+    },
+    {
+      "name": "calibration_r26_b3",
+      "row": 150,
+      "column": 114,
+      "nominal_radius": 26,
+      "angular_block": 3
+    },
+    {
+      "name": "calibration_r30_b0",
+      "row": 142,
+      "column": 102,
+      "nominal_radius": 30,
+      "angular_block": 0
+    },
+    {
+      "name": "calibration_r30_b1",
+      "row": 147,
+      "column": 105,
+      "nominal_radius": 30,
+      "angular_block": 1
+    },
+    {
+      "name": "calibration_r30_b2",
+      "row": 150,
+      "column": 108,
+      "nominal_radius": 30,
+      "angular_block": 2
+    },
+    {
+      "name": "calibration_r30_b3",
+      "row": 153,
+      "column": 112,
+      "nominal_radius": 30,
+      "angular_block": 3
+    },
+    {
+      "name": "calibration_r34_b0",
+      "row": 144,
+      "column": 98,
+      "nominal_radius": 34,
+      "angular_block": 0
+    },
+    {
+      "name": "calibration_r34_b1",
+      "row": 149,
+      "column": 101,
+      "nominal_radius": 34,
+      "angular_block": 1
+    },
+    {
+      "name": "calibration_r34_b2",
+      "row": 154,
+      "column": 106,
+      "nominal_radius": 34,
+      "angular_block": 2
+    },
+    {
+      "name": "calibration_r34_b3",
+      "row": 157,
+      "column": 110,
+      "nominal_radius": 34,
+      "angular_block": 3
+    },
+    {
+      "name": "calibration_r38_b0",
+      "row": 146,
+      "column": 95,
+      "nominal_radius": 38,
+      "angular_block": 0
+    },
+    {
+      "name": "calibration_r38_b1",
+      "row": 152,
+      "column": 98,
+      "nominal_radius": 38,
+      "angular_block": 1
+    },
+    {
+      "name": "calibration_r38_b2",
+      "row": 157,
+      "column": 103,
+      "nominal_radius": 38,
+      "angular_block": 2
+    },
+    {
+      "name": "calibration_r38_b3",
+      "row": 160,
+      "column": 108,
+      "nominal_radius": 38,
+      "angular_block": 3
+    },
+    {
+      "name": "calibration_r42_b0",
+      "row": 148,
+      "column": 91,
+      "nominal_radius": 42,
+      "angular_block": 0
+    },
+    {
+      "name": "calibration_r42_b1",
+      "row": 154,
+      "column": 95,
+      "nominal_radius": 42,
+      "angular_block": 1
+    },
+    {
+      "name": "calibration_r42_b2",
+      "row": 160,
+      "column": 101,
+      "nominal_radius": 42,
+      "angular_block": 2
+    },
+    {
+      "name": "calibration_r42_b3",
+      "row": 164,
+      "column": 106,
+      "nominal_radius": 42,
+      "angular_block": 3
+    },
+    {
+      "name": "calibration_r46_b0",
+      "row": 150,
+      "column": 88,
+      "nominal_radius": 46,
+      "angular_block": 0
+    },
+    {
+      "name": "calibration_r46_b1",
+      "row": 157,
+      "column": 92,
+      "nominal_radius": 46,
+      "angular_block": 1
+    },
+    {
+      "name": "calibration_r46_b2",
+      "row": 163,
+      "column": 98,
+      "nominal_radius": 46,
+      "angular_block": 2
+    },
+    {
+      "name": "calibration_r46_b3",
+      "row": 167,
+      "column": 104,
+      "nominal_radius": 46,
+      "angular_block": 3
+    },
+    {
+      "name": "calibration_r50_b0",
+      "row": 152,
+      "column": 84,
+      "nominal_radius": 50,
+      "angular_block": 0
+    },
+    {
+      "name": "calibration_r50_b1",
+      "row": 160,
+      "column": 89,
+      "nominal_radius": 50,
+      "angular_block": 1
+    },
+    {
+      "name": "calibration_r50_b2",
+      "row": 166,
+      "column": 95,
+      "nominal_radius": 50,
+      "angular_block": 2
+    },
+    {
+      "name": "calibration_r50_b3",
+      "row": 171,
+      "column": 102,
+      "nominal_radius": 50,
+      "angular_block": 3
+    }
+  ],
+  "known_source_circle": [
+    139.16879272460938,
+    125.87065124511719,
+    7.300000190734863
+  ],
+  "holdout": "per site: known source plus exact 15x15 Gaussian/five-pixel search footprints of all 28 calibration trials and this site; other new sites and historical development pixels may train",
+  "threshold_rule": "per site and model, ceil((28+1)*0.95) calibration order statistic; maximum; strict exceedance",
+  "reference_contrast": "site-specific isotropic_b5 calibration threshold times its candidate sigma; target stamp values are not used",
+  "selection": "radii within 0.65 pixel, azimuth 90..270 degrees, no overlap with prior Gaussian/development measurement footprints; six evenly spaced angular ranks with minimum four-pixel same-ring center spacing; finite response and >=8 training patches",
+  "dependence": "sites, their calibration sets, and training pixels overlap; these are not independent trials or a new residual field",
+  "covariance": "raw pixels, 11x11 untapered candidates, radial/angular step 5, minimum 8; same-radius Hann/mix .1 and band5 rectangular/mix .3; matching band5 PCA floor1 and mean-variance isotropic controls",
+  "gaussian": "production FWHM3.6, plus ordinary application SNR; legacy annular normalization includes trial neighborhoods",
+  "source": "same 621 frames, P4-M32D64 mode fraction .15, full image, mean combine, existing cropped 12x12 injection PSF without renormalization",
+  "reduction_cpu_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "reduction_openmp_threads": 24,
+  "blas_threads": 1,
+  "analysis_cpu_ids": [
+    12,
+    13
+  ],
+  "analysis_openmp_threads": 2,
+  "sites": [
+    {
+      "name": "fresh_r26_b0",
+      "row": 102,
+      "column": 128,
+      "nominal_radius": 26,
+      "azimuth_rank": 0,
+      "azimuth_degrees": 178.87669728592456
+    },
+    {
+      "name": "fresh_r26_b1",
+      "row": 102,
+      "column": 124,
+      "nominal_radius": 26,
+      "azimuth_rank": 1,
+      "azimuth_degrees": 187.81529354676687
+    },
+    {
+      "name": "fresh_r26_b2",
+      "row": 103,
+      "column": 119,
+      "nominal_radius": 26,
+      "azimuth_rank": 2,
+      "azimuth_degrees": 199.13364320590549
+    },
+    {
+      "name": "fresh_r26_b3",
+      "row": 105,
+      "column": 114,
+      "nominal_radius": 26,
+      "azimuth_rank": 3,
+      "azimuth_degrees": 210.96375653207352
+    },
+    {
+      "name": "fresh_r26_b4",
+      "row": 115,
+      "column": 104,
+      "nominal_radius": 26,
+      "azimuth_rank": 4,
+      "azimuth_degrees": 241.99082329198615
+    },
+    {
+      "name": "fresh_r26_b5",
+      "row": 121,
+      "column": 102,
+      "nominal_radius": 26,
+      "azimuth_rank": 5,
+      "azimuth_degrees": 255.6997225508144
+    },
+    {
+      "name": "fresh_r32_b0",
+      "row": 121,
+      "column": 159,
+      "nominal_radius": 32,
+      "azimuth_rank": 0,
+      "azimuth_degrees": 101.659292653523
+    },
+    {
+      "name": "fresh_r32_b1",
+      "row": 96,
+      "column": 129,
+      "nominal_radius": 32,
+      "azimuth_rank": 1,
+      "azimuth_degrees": 177.27368900609375
+    },
+    {
+      "name": "fresh_r32_b2",
+      "row": 96,
+      "column": 124,
+      "nominal_radius": 32,
+      "azimuth_rank": 2,
+      "azimuth_degrees": 186.3401917459099
+    },
+    {
+      "name": "fresh_r32_b3",
+      "row": 97,
+      "column": 117,
+      "nominal_radius": 32,
+      "azimuth_rank": 3,
+      "azimuth_degrees": 198.99665415548856
+    },
+    {
+      "name": "fresh_r32_b4",
+      "row": 115,
+      "column": 98,
+      "nominal_radius": 32,
+      "azimuth_rank": 4,
+      "azimuth_degrees": 247.03622694014544
+    },
+    {
+      "name": "fresh_r32_b5",
+      "row": 121,
+      "column": 96,
+      "nominal_radius": 32,
+      "azimuth_rank": 5,
+      "azimuth_degrees": 258.340707346477
+    },
+    {
+      "name": "fresh_r38_b0",
+      "row": 125,
+      "column": 166,
+      "nominal_radius": 38,
+      "azimuth_rank": 0,
+      "azimuth_degrees": 93.71528910542877
+    },
+    {
+      "name": "fresh_r38_b1",
+      "row": 110,
+      "column": 161,
+      "nominal_radius": 38,
+      "azimuth_rank": 1,
+      "azimuth_degrees": 117.58202920779716
+    },
+    {
+      "name": "fresh_r38_b2",
+      "row": 91,
+      "column": 140,
+      "nominal_radius": 38,
+      "azimuth_rank": 2,
+      "azimuth_degrees": 161.09542415738835
+    },
+    {
+      "name": "fresh_r38_b3",
+      "row": 90,
+      "column": 127,
+      "nominal_radius": 38,
+      "azimuth_rank": 3,
+      "azimuth_degrees": 180.76389846092997
+    },
+    {
+      "name": "fresh_r38_b4",
+      "row": 92,
+      "column": 114,
+      "nominal_radius": 38,
+      "azimuth_rank": 4,
+      "azimuth_degrees": 200.8208928533108
+    },
+    {
+      "name": "fresh_r38_b5",
+      "row": 125,
+      "column": 89,
+      "nominal_radius": 38,
+      "azimuth_rank": 5,
+      "azimuth_degrees": 266.2847108945712
+    },
+    {
+      "name": "fresh_r44_b0",
+      "row": 127,
+      "column": 172,
+      "nominal_radius": 44,
+      "azimuth_rank": 0,
+      "azimuth_degrees": 90.64374571417538
+    },
+    {
+      "name": "fresh_r44_b1",
+      "row": 108,
+      "column": 167,
+      "nominal_radius": 44,
+      "azimuth_rank": 1,
+      "azimuth_degrees": 116.27421215472745
+    },
+    {
+      "name": "fresh_r44_b2",
+      "row": 92,
+      "column": 154,
+      "nominal_radius": 44,
+      "azimuth_rank": 2,
+      "azimuth_degrees": 143.2594379798788
+    },
+    {
+      "name": "fresh_r44_b3",
+      "row": 84,
+      "column": 136,
+      "nominal_radius": 44,
+      "azimuth_rank": 3,
+      "azimuth_degrees": 168.94358701975182
+    },
+    {
+      "name": "fresh_r44_b4",
+      "row": 85,
+      "column": 118,
+      "nominal_radius": 44,
+      "azimuth_rank": 4,
+      "azimuth_degrees": 192.60015982608067
+    },
+    {
+      "name": "fresh_r44_b5",
+      "row": 127,
+      "column": 83,
+      "nominal_radius": 44,
+      "azimuth_rank": 5,
+      "azimuth_degrees": 269.3562542858246
+    },
+    {
+      "name": "fresh_r50_b0",
+      "row": 127,
+      "column": 178,
+      "nominal_radius": 50,
+      "azimuth_rank": 0,
+      "azimuth_degrees": 90.56726640985794
+    },
+    {
+      "name": "fresh_r50_b1",
+      "row": 103,
+      "column": 171,
+      "nominal_radius": 50,
+      "azimuth_rank": 1,
+      "azimuth_degrees": 119.38901146632034
+    },
+    {
+      "name": "fresh_r50_b2",
+      "row": 84,
+      "column": 153,
+      "nominal_radius": 50,
+      "azimuth_rank": 2,
+      "azimuth_degrees": 149.62087398863164
+    },
+    {
+      "name": "fresh_r50_b3",
+      "row": 78,
+      "column": 128,
+      "nominal_radius": 50,
+      "azimuth_rank": 3,
+      "azimuth_degrees": 179.42127443439225
+    },
+    {
+      "name": "fresh_r50_b4",
+      "row": 83,
+      "column": 105,
+      "nominal_radius": 50,
+      "azimuth_rank": 4,
+      "azimuth_degrees": 206.8219812015815
+    },
+    {
+      "name": "fresh_r50_b5",
+      "row": 127,
+      "column": 77,
+      "nominal_radius": 50,
+      "azimuth_rank": 5,
+      "azimuth_degrees": 269.43273359014205
+    }
+  ]
+}

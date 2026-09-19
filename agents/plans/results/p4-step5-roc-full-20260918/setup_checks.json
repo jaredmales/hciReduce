@@ -1,0 +1,14 @@
+{
+  "checks": {
+    "independent_site_masks": 30,
+    "protected_covariance_fits": 360,
+    "candidate_search_stencils": 150,
+    "calibration_search_stencils": 4200,
+    "unit_response_increments": 5
+  },
+  "all_passed": true,
+  "new_site_values_masked_with_nan_leave_candidate_and_calibration_covariances_unchanged": true,
+  "independent_geometry_prototype_matches_all_sites": true,
+  "source_psf_and_script_hashes_unchanged": true,
+  "checks_do_not_run_a_roc_reduction": true
+}

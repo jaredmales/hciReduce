@@ -1789,7 +1789,8 @@ The recovery difference comes from six reused sites and 32 inspected PSD setting
 do not establish equal underlying false-positive rates or a general advantage. **Next: freeze a small comparison
 set for fresh ROC validation**, retaining same-radius/±5-pixel PSD candidates and Gaussian/identity references.
 Fix exact settings, support, source masks, and calibration rules before inspecting new results. The existing
-30-site, three-brightness proposal still requires a ROC numerical-consistency and throughput check before launch.
+30-site, three-brightness proposal initially called for a ROC numerical-consistency and throughput check;
+the user subsequently waived that separate pilot, as recorded in the full-study setup below.
 No production setting is selected at this checkpoint.
 
 Verification reproduces 8,036 archived PCA/profile scalars and checks all 20,424 valid candidate fits for unit
@@ -1798,6 +1799,39 @@ response, conditional variance, and physical-unit equivalence. Independent calcu
 solves reproduce all 2,720 valid PSD center fits, with maximum absolute amplitude difference 1.74e-18 and relative
 sigma difference 6.67e-16. The report preserves every search pixel, decision, source-effect diagnostic, profile,
 threshold, input fingerprint, and the comparison figure.
+
+### Step 5 development: full PSD study on ROC (2026-09-18)
+
+The user requested the full ROC study and explicitly waived the separate small ROC pilot. The
+[fixed protocol and setup report](results/p4-step5-roc-full-20260918/README.md) specifies **one baseline and
+90 full-image positive reductions: 30 new sites at 0.5×, 0.75×, and 1× a calibration-based contrast scale**.
+Six geometry-selected sites lie at each nominal radius 26, 32, 38, 44, and 50 pixels. The reduced brightness
+range concentrates on the earlier detection transition. All filters share the reductions.
+
+Freeze two raw-pixel PSD candidates: same-radius Hann with spectral mixture 0.1, and ±5-pixel rectangular
+with mixture 0.3. Retain matching ±5-pixel three-mode/floor-1 PCA and fitted-mean isotropic controls, original
+identity, production Gaussian FWHM 3.6 with and without application SNR, and identity with application SNR.
+The PSD estimator, response field, reduction configuration, and injection-PSF normalization are unchanged.
+
+The enlarged sample requires **per-site holdouts and recalibration**. Simultaneously masking all 30 new sites
+leaves almost no same-radius training patches. For each site, exclude the known source, all 28 calibration
+Gaussian/search footprints, and that site's full footprint from every covariance fit used to assess it.
+Other new sites and historical non-calibration regions may supply training noise. All 28 calibration searches
+remain valid; every new candidate search has at least 15 same-radius patches. New measurement footprints
+are disjoint from previous measurement footprints, but may overlap each other. This is a reused, correlated
+field; these are not independent trials or a blind new-field validation.
+
+Each site's/model's threshold is the maximum of its 28 recalibrated baseline search scores, with strict
+exceedance. Source contrasts use the site's isotropic calibration threshold times its candidate sigma,
+without target-stamp values. The driver freezes all thresholds and all 90 contrasts before measuring any
+new-site baseline scores or positives. Positive images refit mean and covariance with the same holdouts.
+
+ROC's original checkout remains intact. An isolated native build of source commit `882cb15` passed, as did
+library loading and all 621 input-frame hashes. Local checks cover 30 independent masks, 4,350 search
+stencils, 360 protected covariance fits, and five exact template increments. The unattended driver uses
+24 physical cores per reduction and produces reference maps, filter measurements, progress/completion
+records, and final summary/plots. No production C++ or mxlib-calling function changes in this checkpoint.
+See the setup report for execution status and provenance; scientific results remain pending.
 
 ## 8. Notation
 
