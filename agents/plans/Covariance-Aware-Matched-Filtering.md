@@ -2149,6 +2149,60 @@ no score value, and is recorded in `effective_calibration_pools.json`. Thus ever
 five-pixel searches selected before positive reductions. In this case the frozen radius-8 ±10 pool has one valid
 reserve, `null_x121_y121`.
 
+### Step 5 development result: completed inner-radius full study (2026-09-19)
+
+The repaired ROC study completed all **164 baseline searches and 108 positive reductions**. Its completion
+receipt records unchanged frozen inputs. A final audit found 108 job records, 108 measurement records, 108
+reduction receipts, and 272 analysis receipts (164 baseline plus 108 positive); all names are unique and agree.
+It reverified 49 frozen records, four cumulative repair records, four calibration products, and six final
+products. The only effective-pool adjustment is the planned radius-8 ±10 replacement of
+`null_x123_y122` by `null_x121_y121`; no score value entered that choice. The final thresholds and injection
+contrasts were frozen before any positive reduction.
+
+Recovery counts use all six sites as the denominator, with unsupported searches retained as nondetections:
+
+| Radius | Method | Valid sites | 0.5× | 0.75× | 1× | Held-out nulls |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 6 | Rectangular ±5 | 0/6 | 0/6 | 0/6 | 0/6 | 0/6 |
+| 6 | Rectangular ±10 | 0/6 | 0/6 | 0/6 | 0/6 | 0/6 |
+| 6 | Rectangular ±20 | 6/6 | 2/6 | 2/6 | 2/6 | 0/6 |
+| 6 | Identity | 6/6 | 2/6 | 2/6 | 3/6 | 0/6 |
+| 6 | Gaussian FWHM 3.6 | 6/6 | 1/6 | 3/6 | 3/6 | 0/6 |
+| 8 | Rectangular ±5 | 0/6 | 0/6 | 0/6 | 0/6 | 0/6 |
+| 8 | Rectangular ±10 | 3/6 | 1/6 | 2/6 | 2/6 | 0/6 |
+| 8 | Rectangular ±20 | 6/6 | 1/6 | 2/6 | 3/6 | 0/6 |
+| 8 | Identity | 6/6 | 1/6 | 3/6 | 3/6 | 0/6 |
+| 8 | Gaussian FWHM 3.6 | 6/6 | 5/6 | 5/6 | 6/6 | 0/6 |
+| 12 | Rectangular ±5 | 4/6 | 3/6 | 4/6 | 4/6 | 0/6 |
+| 12 | Rectangular ±10 | 6/6 | 4/6 | 6/6 | 6/6 | 0/6 |
+| 12 | Rectangular ±20 | 6/6 | 4/6 | 5/6 | 6/6 | 1/6 |
+| 12 | Identity | 6/6 | 4/6 | 5/6 | 6/6 | 0/6 |
+| 12 | Gaussian FWHM 3.6 | 6/6 | 2/6 | 3/6 | 5/6 | 0/6 |
+| 16 | Rectangular ±5 | 6/6 | 0/6 | 0/6 | 1/6 | 0/6 |
+| 16 | Rectangular ±10 | 6/6 | 0/6 | 0/6 | 2/6 | 0/6 |
+| 16 | Rectangular ±20 | 6/6 | 0/6 | 0/6 | 1/6 | 0/6 |
+| 16 | Identity | 6/6 | 0/6 | 1/6 | 3/6 | 0/6 |
+| 16 | Gaussian FWHM 3.6 | 6/6 | 0/6 | 1/6 | 1/6 | 0/6 |
+| 20 | Rectangular ±5 | 6/6 | 1/6 | 3/6 | 3/6 | 0/6 |
+| 20 | Rectangular ±10 | 6/6 | 1/6 | 2/6 | 3/6 | 0/6 |
+| 20 | Rectangular ±20 | 6/6 | 0/6 | 1/6 | 3/6 | 0/6 |
+| 20 | Identity | 6/6 | 1/6 | 1/6 | 4/6 | 0/6 |
+| 20 | Gaussian FWHM 3.6 | 6/6 | 1/6 | 2/6 | 3/6 | 0/6 |
+| 24 | Rectangular ±5 | 6/6 | 0/6 | 1/6 | 3/6 | 0/6 |
+| 24 | Rectangular ±10 | 6/6 | 0/6 | 0/6 | 3/6 | 0/6 |
+| 24 | Rectangular ±20 | 6/6 | 0/6 | 1/6 | 3/6 | 0/6 |
+| 24 | Identity | 6/6 | 0/6 | 1/6 | 3/6 | 0/6 |
+| 24 | Gaussian FWHM 3.6 | 6/6 | 0/6 | 2/6 | 2/6 | 0/6 |
+
+Wider pooling solves coverage but does not produce a general recovery gain. Across all 36 sites, ±5 is valid
+at 22 sites and recovers 4/8/11, ±10 is valid at 27 and recovers 6/10/16, and ±20 is valid at all 36 and
+recovers 7/11/18. The fully supported references recover 8/13/22 for identity and 9/16/20 for Gaussian.
+At the key radius 8, Gaussian is markedly stronger at 5/5/6 versus ±20's 1/2/3. Radius-12 ±10 is the one
+localized covariance result that leads or ties, with 4/6, 6/6, and 6/6, but six correlated sites do not
+support promotion to a general policy. The single held-out exceedance is radius-12 ±20; all other 29
+radius/method groups have zero. These results support retaining Gaussian and identity references and do not
+justify pooled rectangular PSD as the production default for small separations.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

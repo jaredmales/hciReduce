@@ -174,6 +174,81 @@ replacements are frozen in `effective_calibration_pools.json` before positive
 reductions. The available replacement for this pool is `null_x121_y121`,
 which already has a verified analysis receipt.
 
+## Completed ROC result
+
+The study completed all 164 baseline searches and 108 positive reductions.
+The completion receipt records unchanged frozen inputs. A final audit found
+108 jobs, 108 measurement records, 108 reduction receipts, and 272 analysis
+receipts (164 baseline plus 108 positive), with identical unique job-name
+sets. It reverified 49 frozen records, four repair records, four calibration
+products, and six final products. The radius-8 ±10 replacement described
+above was the only calibration-pool adjustment.
+
+Recovery uses all six sites as the denominator. Invalid searches are
+nondetections.
+
+| Radius | Method | Valid sites | 0.5× | 0.75× | 1× | Held-out nulls |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 6 | Rectangular ±5 | 0/6 | 0/6 | 0/6 | 0/6 | 0/6 |
+| 6 | Rectangular ±10 | 0/6 | 0/6 | 0/6 | 0/6 | 0/6 |
+| 6 | Rectangular ±20 | 6/6 | 2/6 | 2/6 | 2/6 | 0/6 |
+| 6 | Identity | 6/6 | 2/6 | 2/6 | 3/6 | 0/6 |
+| 6 | Gaussian FWHM 3.6 | 6/6 | 1/6 | 3/6 | 3/6 | 0/6 |
+| 8 | Rectangular ±5 | 0/6 | 0/6 | 0/6 | 0/6 | 0/6 |
+| 8 | Rectangular ±10 | 3/6 | 1/6 | 2/6 | 2/6 | 0/6 |
+| 8 | Rectangular ±20 | 6/6 | 1/6 | 2/6 | 3/6 | 0/6 |
+| 8 | Identity | 6/6 | 1/6 | 3/6 | 3/6 | 0/6 |
+| 8 | Gaussian FWHM 3.6 | 6/6 | 5/6 | 5/6 | 6/6 | 0/6 |
+| 12 | Rectangular ±5 | 4/6 | 3/6 | 4/6 | 4/6 | 0/6 |
+| 12 | Rectangular ±10 | 6/6 | 4/6 | 6/6 | 6/6 | 0/6 |
+| 12 | Rectangular ±20 | 6/6 | 4/6 | 5/6 | 6/6 | 1/6 |
+| 12 | Identity | 6/6 | 4/6 | 5/6 | 6/6 | 0/6 |
+| 12 | Gaussian FWHM 3.6 | 6/6 | 2/6 | 3/6 | 5/6 | 0/6 |
+| 16 | Rectangular ±5 | 6/6 | 0/6 | 0/6 | 1/6 | 0/6 |
+| 16 | Rectangular ±10 | 6/6 | 0/6 | 0/6 | 2/6 | 0/6 |
+| 16 | Rectangular ±20 | 6/6 | 0/6 | 0/6 | 1/6 | 0/6 |
+| 16 | Identity | 6/6 | 0/6 | 1/6 | 3/6 | 0/6 |
+| 16 | Gaussian FWHM 3.6 | 6/6 | 0/6 | 1/6 | 1/6 | 0/6 |
+| 20 | Rectangular ±5 | 6/6 | 1/6 | 3/6 | 3/6 | 0/6 |
+| 20 | Rectangular ±10 | 6/6 | 1/6 | 2/6 | 3/6 | 0/6 |
+| 20 | Rectangular ±20 | 6/6 | 0/6 | 1/6 | 3/6 | 0/6 |
+| 20 | Identity | 6/6 | 1/6 | 1/6 | 4/6 | 0/6 |
+| 20 | Gaussian FWHM 3.6 | 6/6 | 1/6 | 2/6 | 3/6 | 0/6 |
+| 24 | Rectangular ±5 | 6/6 | 0/6 | 1/6 | 3/6 | 0/6 |
+| 24 | Rectangular ±10 | 6/6 | 0/6 | 0/6 | 3/6 | 0/6 |
+| 24 | Rectangular ±20 | 6/6 | 0/6 | 1/6 | 3/6 | 0/6 |
+| 24 | Identity | 6/6 | 0/6 | 1/6 | 3/6 | 0/6 |
+| 24 | Gaussian FWHM 3.6 | 6/6 | 0/6 | 2/6 | 2/6 | 0/6 |
+
+Across all 36 sites, the aggregate 0.5×/0.75×/1× recoveries are:
+
+| Method | Valid sites | 0.5× | 0.75× | 1× | Held-out nulls /36 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Rectangular ±5 | 22/36 | 4 | 8 | 11 | 0 |
+| Rectangular ±10 | 27/36 | 6 | 10 | 16 | 0 |
+| Rectangular ±20 | 36/36 | 7 | 11 | 18 | 1 |
+| Identity | 36/36 | 8 | 13 | 22 | 0 |
+| Gaussian FWHM 3.6 | 36/36 | 9 | 16 | 20 | 0 |
+
+Wider pooling achieves the intended coverage improvement, but ±20 does not
+beat the fully supported references overall. Gaussian is strongest at radius
+8, recovering 5/6, 5/6, and 6/6 versus ±20's 1/6, 2/6, and 3/6. Radius-12
+±10 is the strongest localized covariance result at 4/6, 6/6, and 6/6, but
+the six sites are correlated. The evidence does not justify pooled rectangular
+PSD as the production small-separation default.
+
+Final product fingerprints include:
+
+| Product | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `results.json` | 527308 | `26d0dc578cb7f3e73f00e9d5906a455151d4bcee710e9bf7b80f519571b10340` |
+| `results.md` | 2054 | `1c7441298ede21ab6b8325950a370bbfee0d08d12b4b533a5a08bc12d91f17b2` |
+| `comparison.png` | 221604 | `a1f2a026924d37cf797c6e4bc13b09b7bb87952dd8bfa98c77bda7b0d3f1687e` |
+| `effective_calibration_pools.json` | 38137 | `595898481855463edd091f76debca8742512e91923aa8f5b4ac1d521a72ab1a6` |
+| `thresholds.json` | 1393 | `8a96f48dfbb4a1920fe93bba9012b860270b320ca0b28c4b8e20b23aa330b645` |
+| `jobs.json` | 32448 | `7f6a564ea83dbb95c94c0f5ae2314ebed576ab23ffe648a0035e2913baf9e1dc` |
+| `baseline.json` | 459757 | `b44ab2401d74fca81a90d2a83b507bfc91c97ccb81b5b72b4cef9b9268ba20df` |
+
 ## Preparation validation
 
 The local `audit` action completed against the saved parent baseline and exact
