@@ -2042,6 +2042,40 @@ RMS normalization; wider pooling, inner radii, and independent-noise threshold t
 tests. Normalization after subtraction of a spatial scalar mean or by an external radial profile was not
 part of this experiment.
 
+### Step 5 development: extending rectangular-PSD coverage inward (2026-09-19)
+
+The user selected pooled rectangular PSD as the method to pursue and emphasized P4's intended value at
+small separations. The [inner-radius coverage audit](results/p4-step5-inner-coverage-20260919/README.md)
+therefore tests training-center half-widths 0, 5, 10, and 20 pixels over candidate radii 6–26. It retains
+the current 11×11 patches, five-pixel radial/angular step, exact interpolation/exclusions, fixed minimum
+of eight patches, rectangular spectral estimator, and 0.3 flat-spectrum mixture. Every result requires
+the complete center-plus-four-neighbor search. No score or positive image enters the audit.
+
+| Candidate radius | Candidate centers | Same radius valid | ±5 valid | ±10 valid | ±20 valid |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 6 | 36 | 0 | 0 | 12 | 36 |
+| 8 | 44 | 0 | 2 | 29 | 44 |
+| 10 | 56 | 0 | 25 | 55 | 56 |
+| 12 | 76 | 3 | 58 | 76 | 76 |
+| 16 | 108 | 43 | 108 | 108 | 108 |
+| 20 | 120 | 109 | 120 | 120 | 120 |
+| 24 | 160 | 160 | 160 | 160 | 160 |
+
+Thus ±20 supplies complete geometric coverage at every tested radius down to 6 pixels. ±10 is complete
+from radius 11 outward and retains 29/44 searches at radius 8. ±5 first becomes complete at radius 16;
+same-radius training does so at radius 21. The accepted patches overlap and are not independent samples.
+Wider radial transfer can still degrade covariance relevance even while increasing counts.
+
+A geometry-only recovery grid is frozen at radii 8, 12, 16, 20, and 24, with six sites per radius.
+The 30 sites exclude the known-source angular sector, retain at least four-pixel separation from each other
+and previously inspected centers, and have complete ±10/±20 support. All selected center PSD fits are valid;
+condition numbers span 8.30–16.36 for ±10 and 7.44–14.77 for ±20. The ±5 control has a complete search at
+22/30 sites, naturally exposing the coverage transition. A recovery comparison should retain ±5, ±10,
+and ±20 rectangular PSD, identity and Gaussian references, common annular SNR, and invalid searches as
+nondetections. Calibration thresholds must be frozen before positives and their transfer from the existing
+26–50-pixel calibration locations to 8–24 pixels must be treated as a measured assumption, not guaranteed
+by annular normalization. This audit performs no new reductions or production/mxlib-calling changes.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

@@ -1,0 +1,16 @@
+{
+  "all_selected_b10_b20_fits_valid": true,
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-inner-coverage-20260919/coverage.json",
+      "bytes": 62892,
+      "sha256": "082f8dd9c8f5dd229ff0d23611dca10512f6999a18068a36b3e6b1a9b31792cb"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/agents/plans/results/p4-step5-inner-coverage-20260919/coverage.png",
+      "bytes": 159980,
+      "sha256": "c2ecc56f78e510989403053b564ee040335902a54746083952bfcd88750c3a19"
+    }
+  ],
+  "new_reductions": 0
+}
