@@ -2257,6 +2257,20 @@ the driver fingerprint, records both versions, retains the 119 completed
 baseline receipts, and leaves the estimator, thresholds, and saved images
 unchanged.
 
+The resumed launch retained 160 baseline receipts and isolated a second legacy
+case in four radius-12 calibration searches. Their rectangular ±5 amplitude
+and independent-oracle support is incomplete, while the earliest parent
+production run recorded finite SNR output after nonfinite-pixel handling. The
+four searches are not in any rectangular ±5 calibration pool or evaluation
+set; they enter radius-12 pools only for methods with complete support. The raw
+branches now replay the frozen parent production support so their full SNR maps
+remain exact controls. New normalized branches still require five finite
+amplitudes and five finite oracle values, and scoring still requires five
+finite amplitude and SNR pixels. Thus the four rectangular ±5 searches remain
+invalid rather than converting production zeros into measurements. A second
+guarded repair retains all 160 completed analyses and recomputes only these
+four unreceipted tasks.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

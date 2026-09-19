@@ -141,12 +141,17 @@ def prepare(args: argparse.Namespace) -> None:
 
 
 def repair(root: Path) -> None:
-    """Update only the frozen runner after the legacy parent-metadata failure."""
+    """Update only the frozen runner after a recognized pre-calibration compatibility failure."""
     manifest_path = root/'manifest.json'
     manifest = inner.full.read(manifest_path)
     state = inner.full.read(root/'state.json')
-    inner.full.radial.require(state['status'] == 'failed' and state.get('error') == "'active_methods'",
-                              'repair applies only to the legacy active_methods failure')
+    reasons = {
+        "'active_methods'":
+            'derive raw-control support from frozen parent SNR maps for legacy receipts without active_methods',
+        'raw/reference annular validity changed for psd_rectangular_b5_m0.3':
+            'replay raw controls with frozen parent production support while retaining strict normalized support'}
+    inner.full.radial.require(state['status'] == 'failed' and state.get('error') in reasons,
+                              'repair applies only to a recognized pre-calibration compatibility failure')
     inner.full.radial.require(not (root/'calibration_complete.json').exists() and
                               not (root/'complete.json').exists(), 'repair must precede calibration')
     positive_receipts = list((root/'positive').glob('*/complete.json')) if (root/'positive').exists() else []
@@ -164,7 +169,7 @@ def repair(root: Path) -> None:
     inner.full.radial.require(not repair_path.exists(), 'repair receipt already exists')
     baseline_receipts = sorted((root/'baseline').glob('*/complete.json'))
     record = {'schema': 1, 'repair_number': repair_number,
-        'reason': 'derive raw-control support from frozen parent SNR maps for legacy receipts without active_methods',
+        'reason': reasons[state['error']], 'failure': state['error'],
         'pre_calibration': True, 'positive_analyses_before_repair': 0,
         'completed_baseline_analyses_retained': len(baseline_receipts),
         'previous_runner': previous, 'updated_runner': updated, 'previous_state': state}
@@ -327,15 +332,17 @@ def analyze(task: dict) -> str:
                               'missing fixed search-pixel covariance diagnostics')
     settings = {'source_x': parent['known_source_circle'][0], 'source_y': parent['known_source_circle'][1],
         'source_radius': parent['known_source_circle'][2], 'lambda_d': 3.6, 'min_radius': 0, 'max_radius': 60}
-    enabled, expected, profiles, annular_support = select_methods(maps, trial, settings)
-    inner.full.radial.require('identity' in enabled and 'gaussian' in enabled,
-                              'reference method lacks complete five-pixel normalization')
+    oracle_enabled, expected, profiles, annular_support = select_methods(maps, trial, settings)
     search_positions = [(trial['row']+dx, trial['column']+dy) for dx, dy in inner.SEARCH_OFFSETS]
     parent_active = {name for name in inner.METHODS if all(np.isfinite(
         parent_snr[PARENT_INDEX[name], y, x]) for x, y in search_positions)}
-    for name in (*RAW.values(), 'identity', 'gaussian'):
-        inner.full.radial.require((name in enabled) == (name in parent_active),
-                                  'raw/reference annular validity changed for '+name)
+    controls = {*RAW.values(), 'identity', 'gaussian'}
+    enabled = [name for name in METHODS if
+               (name in controls and name in parent_active) or (name not in controls and name in oracle_enabled)]
+    for name in controls:
+        annular_support[name]['parent_production_replay'] = name in parent_active
+    inner.full.radial.require('identity' in enabled and 'gaussian' in enabled,
+                              'parent reference method lacks complete five-pixel production support')
     enabled_indices = [METHODS.index(name) for name in enabled]
     header['HCI FILTER LABELS'] = ','.join(METHODS)
     header['HCI RADIAL BINS'] = ','.join(map(str, bins))

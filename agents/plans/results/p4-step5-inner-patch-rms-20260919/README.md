@@ -152,6 +152,30 @@ retains the 119 completed baseline receipts. Restart the same `tmux` run command
 with a new log such as `driver-repaired.log`. Each of the 45 unreceipted task
 directories is preserved under `interrupted/baseline/` before recomputation.
 
+The resumed launch retained 160 baseline receipts and isolated a second legacy
+difference in four radius-12 calibration searches: `null_x116_y125`,
+`null_x116_y127`, `null_x116_y129`, and `null_x116_y131`. Their rectangular ±5
+amplitude/oracle searches are incomplete, while the earliest production run
+recorded finite SNR output after its nonfinite-pixel handling. Their ±10, ±20,
+identity, and Gaussian support is complete. None of the four is in a rectangular
+±5 calibration pool or an evaluation site; they enter radius-12 calibration
+pools only for methods whose support is complete.
+
+Raw/reference planes must replay the frozen parent production support so the
+complete raw SNR maps remain exact controls. New normalized planes retain the
+stricter requirement for five finite amplitudes and five finite oracle values.
+Trial scoring independently requires all five amplitude and SNR pixels, so the
+four rectangular ±5 searches remain invalid rather than treating production
+zeros as measurements. This separation preserves the raw map replay without
+weakening the normalized estimator or changing any rectangular ±5 calibration
+location.
+
+After pulling the second repair commit, run the same `repair` command. It
+requires the exact rectangular ±5 validity failure, verifies the prior repair
+and every unchanged input, writes `repair_0002.json`, and retains all 160
+completed baseline analyses. Restart with a new log such as
+`driver-repaired-2.log`; only the four unreceipted tasks are recomputed.
+
 ## Prelaunch validation
 
 Local synthetic checks verify equal-RMS equivalence with the raw rectangular
@@ -163,9 +187,10 @@ input-fingerprint verification. A synthetic full summary reproduces all raw
 parent controls and writes the expected 48 per-radius groups, eight aggregate
 rows, and 54 paired comparisons. It also verifies the per-radius and aggregate
 means of supplied production-map search and center SNR values. A synthetic
-failure-root check verifies the repair guards, runner-fingerprint replacement,
-repair receipt, retained-baseline count, and complete post-repair fingerprint
-set. Python syntax compilation and repository whitespace checks also pass.
+two-stage failure-root check verifies both exact failure guards, cumulative
+repair receipts, successive runner-fingerprint replacement, retained-baseline
+counts, and the complete post-repair fingerprint set. Python syntax compilation
+and repository whitespace checks also pass.
 
 ## Scope
 
