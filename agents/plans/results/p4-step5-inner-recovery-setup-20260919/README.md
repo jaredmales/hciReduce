@@ -135,8 +135,8 @@ verified before each update. It refuses to run after calibration or any
 positive reduction. Restart the same frozen run command, using a new log name
 such as `driver-repaired.log`.
 
-An interrupted analysis may have output files but no `complete.json` receipt.
-On resume, the runner preserves such a directory under
+An analysis stopped before serialization completes may have output files but
+no `complete.json` receipt. On resume, the runner preserves such a directory under
 `interrupted_analysis/<analysis>/attempt_NNNN/` and recomputes only that
 analysis. Directories with verified completion receipts are reused. This
 allows calibration and later positive analysis to resume after a process
@@ -144,10 +144,16 @@ interruption without overwriting diagnostic artifacts or repeating completed
 work.
 
 For the existing 2026-09-19 root, the first repair remains recorded in the
-legacy `repair.json`. The resume correction writes `repair_0002.json`, archives
-the unreceipted `baseline__null_x119_y124` attempt under
-`pre_repair_failures/repair_0002/`, and retains the 45 baseline analyses that
-already have verified receipts.
+legacy `repair.json`, and the resume correction remains in
+`repair_0002.json`. The underlying failure at `baseline__null_x119_y124` was
+then isolated to its unsupported ±5 method: validity, search score, and
+nondetection handling were correct, but the five unavailable per-pixel
+diagnostics were still represented as floating-point `NaN`. The strict JSON
+writer rejected them. They are now recorded as JSON `null`, while the method
+remains invalid with no score. Applying the next repair writes
+`repair_0003.json`, archives only that unreceipted search under
+`pre_repair_failures/repair_0003/`, and retains the 45 baseline analyses with
+verified receipts.
 
 ## Preparation validation
 

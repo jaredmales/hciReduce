@@ -262,7 +262,9 @@ def repair(args: argparse.Namespace) -> None:
     error = state.get('error', '')
     unsupported_layer = 'hciAnalyze' in error and 'SIGABRT' in error
     incomplete_collision = 'File exists' in error and '/analysis/' in error
-    full.radial.require(state['status'] == 'failed' and (unsupported_layer or incomplete_collision) and
+    nonfinite_json = 'Out of range float values are not JSON compliant' in error
+    full.radial.require(state['status'] == 'failed' and
+                        (unsupported_layer or incomplete_collision or nonfinite_json) and
                         not (root/'calibration_complete.json').exists() and
                         not (root/'thresholds.json').exists() and not (root/'jobs.json').exists(),
                         'repair is allowed only after a recognized pre-calibration runner failure')
@@ -295,8 +297,12 @@ def repair(args: argparse.Namespace) -> None:
     shutil.copy2(Path(__file__).resolve(), target)
     updated = fingerprint(target)
     manifest['frozen_records'] = [updated if record == old else record for record in manifest['frozen_records']]
-    reason = ('omit geometrically unsupported covariance layers from production SNR interpolation'
-              if unsupported_layer else 'resume incomplete analysis directories without overwriting artifacts')
+    if unsupported_layer:
+        reason = 'omit geometrically unsupported covariance layers from production SNR interpolation'
+    elif incomplete_collision:
+        reason = 'resume incomplete analysis directories without overwriting artifacts'
+    else:
+        reason = 'serialize unavailable per-pixel diagnostics for unsupported methods as JSON null'
     record = {'schema': 1, 'repair_number': repair_number, 'reason': reason,
         'pre_calibration': True, 'positive_reductions_before_repair': 0, 'previous_runner': old,
         'updated_runner': updated, 'previous_state': previous_state, 'archived_partial_analysis': archived}
@@ -368,7 +374,8 @@ def score_trial(trial: dict, maps: np.ndarray, amplitudes: np.ndarray,
         values = [float(maps[index, trial['column']+dy, trial['row']+dx]) for dx, dy in SEARCH_OFFSETS]
         valid = all(np.isfinite(values))
         one = {'valid': valid, 'search_score': max(values) if valid else None,
-               'pixels': values, 'center_amplitude': float(amplitudes[index, trial['column'], trial['row']])
+               'pixels': [value if np.isfinite(value) else None for value in values],
+               'center_amplitude': float(amplitudes[index, trial['column'], trial['row']])
                     if np.isfinite(amplitudes[index, trial['column'], trial['row']]) else None}
         if name == 'identity' and valid:
             r = float(radius[trial['column'], trial['row']])

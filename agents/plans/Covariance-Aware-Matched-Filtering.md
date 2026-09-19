@@ -2124,13 +2124,17 @@ when calibration has not completed and no positive reduction exists; it archives
 records the old and new script fingerprints. The injection geometry, null pools, thresholds, and source-scale
 rules are unchanged.
 
-The repaired launch completed 45 baseline searches, then an interruption left the next analysis after
-`hciAnalyze` had written its SNR products but before the runner wrote `complete.json`. The original resume path
-treated that preserved directory as a collision. An analysis without a valid completion receipt is now moved to
-a unique `interrupted_analysis/<name>/attempt_NNNN/` archive and recomputed; analyses with verified receipts are
-still reused. Repair records are versioned and cumulative, so a later pre-calibration runner correction preserves
-and verifies every earlier repair record. The second repair keeps all 45 completed searches and archives only the
-unreceipted search. This changes restart bookkeeping only; the frozen design and numerical analysis are unchanged.
+The repaired launch completed 45 baseline searches, then the first search with an unsupported ±5 method reached
+measurement serialization. The method was correctly omitted from `hciAnalyze`, marked invalid, assigned no search
+score, and treated as a nondetection, but its five unavailable per-pixel diagnostics remained floating-point
+`NaN`; the strict JSON writer rejected them before writing `complete.json`. A subsequent launch therefore treated
+the preserved directory as a collision. Unavailable pixel diagnostics are now serialized as JSON `null`, without
+changing validity, score, or detection semantics. An analysis without a valid completion receipt is moved to a
+unique `interrupted_analysis/<name>/attempt_NNNN/` archive and recomputed; analyses with verified receipts are
+still reused. Repair records are versioned and cumulative, so each pre-calibration runner correction preserves and
+verifies every earlier repair record. The repairs keep all 45 completed searches and archive only the unreceipted
+search. These changes affect recording and restart bookkeeping only; the frozen design and numerical analysis are
+unchanged.
 
 ## 8. Notation
 
