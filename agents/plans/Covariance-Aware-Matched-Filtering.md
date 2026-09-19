@@ -2203,6 +2203,38 @@ support promotion to a general policy. The single held-out exceedance is radius-
 radius/method groups have zero. These results support retaining Gaussian and identity references and do not
 justify pooled rectangular PSD as the production default for small separations.
 
+### Step 5 development: post-mean patch normalization with wider pooling (2026-09-19)
+
+The first per-patch RMS comparison used same-ring Hann and rectangular ±5
+training only, and found no changed detection decision. That result does not
+answer whether equalizing residual-patch power helps when ±10 or ±20 radial
+pooling supplies the sample count required at small separations. The user
+therefore requested the [paired wider-pool comparison](results/p4-step5-inner-patch-rms-20260919/README.md).
+
+The new analysis reuses the completed inner-radius study's 164 baseline
+searches and 108 saved positive images, with no new P4 reductions. At radii 6,
+8, 12, 16, 20, and 24 pixels it interleaves raw and post-mean patch-RMS
+rectangular PSD estimates for half-widths ±5, ±10, and ±20. Identity and
+Gaussian FWHM 3.6 remain references. The injections, response, masks, current
+trial holdout, five-pixel search, and production annular SNR are unchanged.
+
+For the normalized arm, subtract the raw ensemble mean patch, divide each
+residual patch by its own RMS, average its rectangular padded Fourier power
+without a second centering, restore the original raw mean pixel variance, and
+apply the same 0.3 spectral mixture. Candidate data, response, and fitted mean
+remain in raw contrast units. This tests patch contribution weighting alone;
+it does not remove a spatial scalar mean from each patch or normalize the
+candidate.
+
+Each raw/normalized pair must use identical 20-search calibration locations,
+selected by the completed geometry and validity-only replacement rule. Each
+method receives its own maximum-null threshold, frozen before positives. Raw
+PSD, identity, and Gaussian maps, thresholds, pools, decisions, and summaries
+must reproduce the parent results. Every method still requires finite
+amplitude and annular normalization at all five search pixels; invalid searches
+remain nondetections. The driver reports per-radius and aggregate recovery and
+the individual decisions changed by normalization.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
