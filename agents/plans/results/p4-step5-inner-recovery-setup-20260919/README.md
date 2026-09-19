@@ -107,6 +107,32 @@ The run first performs all per-search baseline analyses and freezes
 order and can resume completed jobs. Final products are `results.json`,
 `results.md`, and `comparison.png`.
 
+## Pre-calibration runner repair
+
+The first launch stopped on the first baseline search before creating
+thresholds, jobs, or positive reductions. Its sparse cube contained an
+unsupported ±5 plane with too few finite radial-profile points for the
+production GSL interpolator. The valid ±10, ±20, identity, and Gaussian planes
+from that same saved cube completed successfully when replayed alone.
+
+The runner now sends only methods with complete five-pixel support through
+`hciAnalyze` and restores unsupported methods as `NaN` nondetections. Each
+active plane is still checked against the independent annular-SNR oracle. To
+repair the existing pre-calibration setup after pulling the fix, run:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
+  /opt/conda/envs/xpy3_13/bin/python3 \
+  agents/plans/scripts/run_p4_step5_inner_rectangular.py repair \
+  --root working/roc/p4_inner_rectangular_20260919
+```
+
+The repair verifies every unchanged frozen file and raw input, archives the
+partial failed analysis under `pre_repair_failures/`, replaces and rehashes
+only the frozen runner, and writes `repair.json`. It refuses to run after
+calibration or any positive reduction. Restart the same frozen run command,
+using a new log name such as `driver-repaired.log`.
+
 ## Preparation validation
 
 The local `audit` action completed against the saved parent baseline and exact

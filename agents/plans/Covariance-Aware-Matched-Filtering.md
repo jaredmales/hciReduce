@@ -2114,6 +2114,16 @@ already verified parent baseline, completes every per-search calibration first, 
 contrasts, and only then starts the full reductions. No new reduction was run while preparing this checkpoint,
 and no production or mxlib-calling function changed.
 
+The first ROC launch stopped during its first baseline search, before thresholds, jobs, or positive reductions
+existed. The sparse five-plane cube included a geometrically invalid ±5 layer; that plane had too few finite
+radial-profile points, so the production GSL interpolator aborted the whole process. Replaying the same saved
+map with only the four valid layers completed successfully. The runner now passes only methods with complete
+five-pixel support to `hciAnalyze`, restores unsupported methods as `NaN`, and independently checks every active
+plane against the annular-SNR oracle. A restricted `repair` action updates and rehashes the frozen runner only
+when calibration has not completed and no positive reduction exists; it archives the partial analysis and
+records the old and new script fingerprints. The injection geometry, null pools, thresholds, and source-scale
+rules are unchanged.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

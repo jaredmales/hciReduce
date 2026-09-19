@@ -52,6 +52,12 @@ def search_is_planet_clean(clean_centers: np.ndarray, x: int, y: int) -> bool:
     return all(clean_centers[y+dy, x+dx] for dx, dy in SEARCH_OFFSETS)
 
 
+def active_methods(trial: dict) -> list[str]:
+    """Return references and covariance models with a complete five-pixel search."""
+    return [name for name in METHODS if name not in METHOD_WIDTH or
+            trial['support'][str(METHOD_WIDTH[name])]['valid']]
+
+
 def support(science: np.ndarray, position: tuple, source_mask: np.ndarray) -> dict:
     """Count accepted patches for each width across the complete five-pixel search."""
     x, y = position
@@ -248,6 +254,51 @@ def setup(args: argparse.Namespace) -> None:
     print(f'prepared {len(protocol["sites"])} sites and {len(protocol["sites"])*len(LEVELS)} injections in {root}', flush=True)
 
 
+def repair(args: argparse.Namespace) -> None:
+    """Update a pre-calibration frozen runner after the unsupported-layer abort."""
+    root = args.root.resolve()
+    manifest = full.read(root/'manifest.json')
+    state = full.read(root/'state.json')
+    full.radial.require(state['status'] == 'failed' and 'hciAnalyze' in state.get('error', '') and
+                        'SIGABRT' in state.get('error', '') and not (root/'calibration_complete.json').exists() and
+                        not (root/'thresholds.json').exists() and not (root/'jobs.json').exists(),
+                        'repair is allowed only after the pre-calibration unsupported-layer failure')
+    reductions = root/'reductions'
+    full.radial.require(not reductions.exists() or not any(reductions.iterdir()),
+                        'positive reductions already exist; do not repair this study in place')
+    target = (root/'software'/Path(__file__).name).resolve()
+    old = next((record for record in manifest['frozen_records'] if Path(record['path']).resolve() == target), None)
+    full.radial.require(old is not None and fingerprint(target) == old, 'frozen runner changed before repair')
+    full.radial.require(fingerprint(Path(__file__).resolve())['sha256'] != old['sha256'],
+                        'repair source is not a newer runner')
+    full.verify([record for record in manifest['frozen_records'] if record != old])
+    full.verify([*manifest['input_records'], *manifest.get('repair_records', [])])
+    archived = []
+    analysis = root/'analysis'
+    if analysis.exists():
+        archive = root/'pre_repair_failures'
+        for directory in sorted(path for path in analysis.iterdir() if path.is_dir() and
+                                not (path/'complete.json').exists()):
+            archive.mkdir(exist_ok=True)
+            destination = archive/directory.name
+            full.radial.require(not destination.exists(), 'pre-repair archive already exists: '+str(destination))
+            shutil.move(directory, destination)
+            archived.append(str(destination))
+    previous_state = fingerprint(root/'state.json')
+    shutil.copy2(Path(__file__).resolve(), target)
+    updated = fingerprint(target)
+    manifest['frozen_records'] = [updated if record == old else record for record in manifest['frozen_records']]
+    record = {'schema': 1, 'reason': 'omit geometrically unsupported covariance layers from production SNR interpolation',
+        'pre_calibration': True, 'positive_reductions_before_repair': 0, 'previous_runner': old,
+        'updated_runner': updated, 'previous_state': previous_state, 'archived_partial_analysis': archived}
+    write_json(root/'repair.json', record)
+    manifest.setdefault('repair_records', []).append(fingerprint(root/'repair.json'))
+    write_json(root/'manifest.json', manifest)
+    write_json(root/'state.json', {'status': 'repaired', 'positive_reductions': 0, 'finished': [],
+        'repair': str(root/'repair.json')})
+    print(f'repaired frozen runner and archived {len(archived)} partial analysis directories', flush=True)
+
+
 def required_bins(trials: list, radius: np.ndarray) -> tuple[list, set, np.ndarray]:
     """Select complete one-pixel annuli bracketing every search-pixel radius."""
     bins, positions = set(), set()
@@ -327,6 +378,8 @@ def analyze_image(root: Path, source: Path, analysis_name: str, trial: dict,
     radius = np.hypot(xx-127.5, yy-127.5).astype('f4')
     bins, positions, selected = required_bins([trial], radius)
     maps = np.full((len(METHODS), *science.shape), np.nan, dtype='f4')
+    enabled = active_methods(trial)
+    enabled_indices = [METHODS.index(name) for name in enabled]
     references = full.reference_maps(root, source, reference_name)
     maps[METHODS.index('gaussian')][selected & clean_centers] = references['gaussian_raw'][selected & clean_centers]
     details = {}
@@ -346,7 +399,10 @@ def analyze_image(root: Path, source: Path, analysis_name: str, trial: dict,
     header['HCI FILTER LABELS'] = ','.join(METHODS)
     header['HCI RADIAL BINS'] = ','.join(map(str, bins))
     fits.writeto(directory/'amplitudes.fits', maps, header)
-    command = [str(root/'software/hciAnalyze'), '--file='+str(directory/'amplitudes.fits'), '--lambdaD=3.6',
+    active_header = header.copy()
+    active_header['HCI FILTER LABELS'] = ','.join(enabled)
+    fits.writeto(directory/'active_amplitudes.fits', maps[enabled_indices], active_header)
+    command = [str(root/'software/hciAnalyze'), '--file='+str(directory/'active_amplitudes.fits'), '--lambdaD=3.6',
         '--planet.sep=11.782', '--planet.PA=262.051', '--planet.R=7.3', '--snr.apertureR=60',
         '--snr.minRad=0', '--snr.maxRad=60', '--filter.psfResponse=', '--filter.lpfGaussFW=0',
         '--filter.hpfGaussFW=0', '--noise.model=identity', '--noise.only=false', '--noise.outputDiagnostics=false']
@@ -355,13 +411,21 @@ def analyze_image(root: Path, source: Path, analysis_name: str, trial: dict,
     environment.update(OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='1')
     with (directory/'analysis.log').open('w') as log:
         subprocess.run(command, cwd=directory, env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)
-    snr, snr_header = fits.getdata(directory/'amplitudes_snr.fits', header=True)
-    full.radial.require(snr.shape == maps.shape and snr_header['SNRMEAN'] == 1 and snr_header['SNRSMALL'] == 1,
+    active_snr, snr_header = fits.getdata(directory/'active_amplitudes_snr.fits', header=True)
+    active_snr = active_snr.reshape((len(enabled), *science.shape))
+    full.radial.require(active_snr.shape == maps[enabled_indices].shape and
+                        snr_header['SNRMEAN'] == 1 and snr_header['SNRSMALL'] == 1,
                         'changed production annular SNR contract')
+    snr = np.full(maps.shape, np.nan, dtype='f4')
+    snr[enabled_indices] = active_snr
+    fits.writeto(directory/'amplitudes_snr.fits', snr, snr_header)
     settings = {'source_x': protocol['known_source_circle'][0], 'source_y': protocol['known_source_circle'][1],
         'source_radius': protocol['known_source_circle'][2], 'lambda_d': 3.6, 'min_radius': 0, 'max_radius': 60}
     profiles, errors = {}, {}
     for index, name in enumerate(METHODS):
+        if name not in enabled:
+            profiles[name], errors[name] = [], None
+            continue
         expected, profiles[name] = annular_oracle(maps[index], settings)
         checked = np.array([[y, x] for x, y in positions if np.isfinite(maps[index, y, x])])
         if len(checked):
@@ -375,9 +439,10 @@ def analyze_image(root: Path, source: Path, analysis_name: str, trial: dict,
     rows = [{'trial': trial, 'models': score_trial(trial, snr, maps, profiles, radius)}]
     write_json(directory/'measurements.json', {'image': reference_name, 'analysis': analysis_name,
         'source': fingerprint(source), 'rows': rows,
-        'required_bins': bins, 'search_details': details, 'annular_oracle_max_errors': errors})
-    products = [fingerprint(directory/name) for name in ('amplitudes.fits', 'amplitudes_snr.fits',
-        'measurements.json', 'command.json')]
+        'required_bins': bins, 'active_methods': enabled, 'search_details': details,
+        'annular_oracle_max_errors': errors})
+    products = [fingerprint(directory/name) for name in ('amplitudes.fits', 'active_amplitudes.fits',
+        'active_amplitudes_snr.fits', 'amplitudes_snr.fits', 'measurements.json', 'command.json')]
     write_json(complete, {'products': products})
     return full.read(directory/'measurements.json')
 
@@ -495,7 +560,7 @@ def summarize(root: Path, thresholds: dict, baseline: dict, measurements: list) 
 def run(root: Path) -> None:
     """Calibrate once, then resume the unattended queue of 108 full reductions."""
     manifest = full.read(root/'manifest.json')
-    full.verify([*manifest['frozen_records'], *manifest['input_records']])
+    full.verify([*manifest['frozen_records'], *manifest['input_records'], *manifest.get('repair_records', [])])
     with (root/'run.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if (root/'complete.json').exists():
@@ -531,7 +596,8 @@ def run(root: Path) -> None:
                     'total': len(jobs)})
                 print(f'completed {len(finished)}/{len(jobs)}: {job["name"]}', flush=True)
             summarize(root, thresholds, baseline, measurements)
-            full.verify([*manifest['frozen_records'], *manifest['input_records'], *calibration_record['products']])
+            full.verify([*manifest['frozen_records'], *manifest['input_records'],
+                         *manifest.get('repair_records', []), *calibration_record['products']])
             products = [fingerprint(root/name) for name in ('results.json', 'results.md', 'comparison.png',
                 'thresholds.json', 'jobs.json', 'baseline.json')]
             write_json(root/'complete.json', {'positive_reductions': len(finished), 'finished': finished,
@@ -547,7 +613,7 @@ def run(root: Path) -> None:
 def main() -> None:
     """Expose score-free audit, immutable setup, and resumable execution actions."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('audit', 'setup', 'run'))
+    parser.add_argument('action', choices=('audit', 'setup', 'repair', 'run'))
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--parent', type=Path, default=Path('working/roc/p4_psd_full_20260918'))
     parser.add_argument('--cpus', type=int, nargs='+', default=list(range(24)))
@@ -556,6 +622,8 @@ def main() -> None:
         audit(args)
     elif args.action == 'setup':
         setup(args)
+    elif args.action == 'repair':
+        repair(args)
     else:
         run(args.root.resolve())
 
