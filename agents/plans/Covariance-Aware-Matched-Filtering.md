@@ -2076,6 +2076,44 @@ nondetections. Calibration thresholds must be frozen before positives and their 
 26–50-pixel calibration locations to 8–24 pixels must be treated as a measured assumption, not guaranteed
 by annular normalization. This audit performs no new reductions or production/mxlib-calling changes.
 
+### Step 5 development: inner-radius full-study setup (2026-09-19)
+
+The executable follow-on now adds radius 6 and replaces the audit's angular shortcut with an exact known-planet
+guard. The fixed evaluation radii are 6, 8, 12, 16, 20, and 24 pixels, with six full P4 injections at each
+radius and the existing brightness multipliers 0.5, 0.75, and 1.0. This gives 36 sites and 108 positive
+reductions. Selection requires complete ±20 support and uses no score or positive image. The ±5 and ±10
+variants remain invalid when their complete five-pixel searches have fewer than eight training patches;
+invalid searches are nondetections. On the selected grid, ±5 is valid at 0/6, 0/6, 5/6, 6/6, 6/6, and 6/6
+sites from radius 6 outward. ±10 is valid at 0/6, 4/6, and 6/6 thereafter. ±20 is valid at every site.
+
+The stored AF Lep b exclusion is centered at native coordinates (139.169, 125.871). The study uses its
+7.3-pixel radius plus the production half-pixel boundary. A site is eligible only when the complete 15×15
+Gaussian kernel at all five search pixels is disjoint from that buffered circle. The same guard limits the
+annular-noise maps, and every covariance fit additionally excludes the trial's full five-search 15×15 kernel
+union. Thus no pixel inside the configured known-planet exclusion enters a candidate kernel, covariance
+training patch, or annular noise sample. Residual planet wings beyond that configured guard are not modeled.
+This strict rule leaves ten candidate centers at radius 6. Selecting six necessarily gives a minimum
+one-pixel separation there, so the six recovery outcomes are strongly correlated.
+
+Thresholds are frozen from 20 geometry-selected baseline searches per active radius and method before any
+positive reduction. The null locations use the narrowest planet-clean radial band that supplies 20 valid
+searches: radii 5–7 for the radius-6 ±20, identity, and Gaussian methods; radii 7–9 at radius 8; and the same
+nominal ring at radii 12–24. Radius-6 ±5/±10 and radius-8 ±5 have no threshold because all selected searches
+are invalid. The injection reference contrast is the identity matched-filter annular-SNR threshold multiplied
+by the interpolated identity-amplitude radial standard deviation and divided by the small-sample correction;
+no target-site value enters the scale. Calibration locations, injection sites, and training patches remain
+correlated within one residual field. As in the existing production annular-SNR path, injected-source
+neighborhoods remain in the positive image's radial mean and standard-deviation estimate.
+
+The [setup and run record](results/p4-step5-inner-recovery-setup-20260919/README.md) gives the exact ROC
+commands. The maintained
+[runner](scripts/run_p4_step5_inner_rectangular.py) has separate score-free `audit`, immutable `setup`, and
+resumable `run` actions. Setup copies the parent study's native binaries and dependencies, hashes all 621
+input frames, freezes the response templates and geometry, and writes a 108-job contract. Run reuses the
+already verified parent baseline, completes every per-search calibration first, freezes thresholds and
+contrasts, and only then starts the full reductions. No new reduction was run while preparing this checkpoint,
+and no production or mxlib-calling function changed.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

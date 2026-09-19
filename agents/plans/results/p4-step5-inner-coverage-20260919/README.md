@@ -80,6 +80,12 @@ analysis. The inner thresholds need explicit validation because the existing
 28 calibration sites lie at radii 26–50; output annular normalization does not
 by itself prove threshold transfer to 8–24 pixels.
 
+The subsequent full-study setup strengthens the planet exclusion and adds
+radius 6. It therefore creates a new 36-site grid rather than executing this
+earlier 30-site grid. See the
+[inner recovery setup](../p4-step5-inner-recovery-setup-20260919/README.md)
+for the final injection and calibration contract.
+
 ## Reproducibility
 
 The maintained [audit script](../../scripts/audit_p4_step5_inner_rectangular.py)
