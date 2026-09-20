@@ -77,6 +77,10 @@ respectively. The accepted AF Lep b negative-injection coefficient is
 `4.7639e-3`; at its 11.8-pixel separation, the radius-12 `1×` injections are
 therefore about half its brightness rather than planet-matched injections.
 
+This completed study is retained as a low-SNR exploratory result. The
+[confirmatory SNR 3/5/7 setup](../p4-step5-inner-snr357-setup-20260919/README.md)
+defines `1×` as nominal identity source SNR 5 and repeats the inner comparison.
+
 ## ROC execution
 
 After pulling this commit on ROC, run setup from the repository root:

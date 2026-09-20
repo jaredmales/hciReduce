@@ -31,7 +31,6 @@ from run_p4_step5_full_injections import fingerprint, write_json
 
 WIDTHS = inner.WIDTHS
 RADII = inner.RADII
-LEVELS = inner.LEVELS
 RAW = {width: inner.RECTANGULAR[width] for width in WIDTHS}
 RMS = {width: RAW[width]+'_patch_rms' for width in WIDTHS}
 METHODS = tuple(name for width in WIDTHS for name in (RAW[width], RMS[width])) + ('identity', 'gaussian')
@@ -98,6 +97,7 @@ def prepare(args: argparse.Namespace) -> None:
     parent = inner.full.read(study/'protocol.json')
     jobs = inner.full.read(study/'jobs.json')
     completion = inner.full.read(study/'complete.json')
+    levels = parent['brightness_multipliers']
     inner.full.radial.require(len(parent['calibration_trials']) == 128 and len(parent['sites']) == 36 and
                               len(jobs) == 108 and completion['positive_reductions'] == 108,
                               'changed or incomplete inner-radius parent design')
@@ -117,7 +117,7 @@ def prepare(args: argparse.Namespace) -> None:
     protocol = {'schema': 1,
         'purpose': 'paired raw versus post-mean patch-RMS rectangular PSD at inner radii',
         'parent_study': str(study), 'methods': list(METHODS), 'labels': LABELS,
-        'widths': list(WIDTHS), 'radii': list(RADII), 'brightnesses': list(LEVELS),
+        'widths': list(WIDTHS), 'radii': list(RADII), 'brightnesses': levels,
         'baseline_tasks': baseline_tasks, 'positive_tasks': positive_tasks,
         'new_reductions': 0, 'saved_positive_images': len(positive_tasks),
         'training': 'raw aligned 11x11 patches; five-pixel angular/radial center step; per-trial five-search holdout and buffered known planet excluded; minimum8',
@@ -131,6 +131,9 @@ def prepare(args: argparse.Namespace) -> None:
         'controls': 'raw PSD, identity, and Gaussian amplitude/SNR maps and decisions must reproduce the completed parent study',
         'workers': len(args.cpus), 'cpu_ids': args.cpus, 'threads_per_worker': 1,
         'dependence': 'reuses the same correlated residual field and inspected injections; paired development comparison, not independent validation'}
+    for key in ('target_source_snrs', 'reference_snr', 'level_labels', 'measured_snr_expectation'):
+        if key in parent:
+            protocol[key] = parent[key]
     root.mkdir(parents=True)
     write_json(root/'protocol.json', protocol)
     write_json(root/'manifest.json', {'schema': 1, 'inputs': records,
@@ -511,7 +514,11 @@ def calibrate(root: Path, baseline: list[dict]) -> tuple[dict, dict]:
 
 def summarize(root: Path, baseline: list[dict], positives: list[dict], thresholds: dict, pools: dict) -> None:
     """Record per-radius recovery and every paired raw/normalized decision change."""
-    study = Path(inner.full.read(root/'protocol.json')['parent_study'])
+    protocol = inner.full.read(root/'protocol.json')
+    study = Path(protocol['parent_study'])
+    levels = tuple(protocol['brightnesses'])
+    target_snrs = protocol.get('target_source_snrs')
+    level_labels = protocol.get('level_labels', [f'{level:g}×' for level in levels])
     parent_results = inner.full.read(study/'results.json')
     baseline_rows = {record['trial']['name']: record for record in baseline}
     jobs = {record['task']['job']['name']: record for record in positives}
@@ -549,7 +556,7 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
             one = {'radius': nominal, 'method': method,
                 'null_exceedances': sum(record['models'][method]['detected'] for record in site_rows),
                 'invalid_nulls': sum(not record['models'][method]['valid'] for record in site_rows), 'levels': []}
-            for level in LEVELS:
+            for level in levels:
                 selected = [record for record in measurements if record['task']['job']['nominal_radius'] == nominal and
                             record['task']['job']['brightness_multiplier'] == level]
                 values = [record['models'][method] for record in selected]
@@ -577,7 +584,7 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
     for nominal in RADII:
         for width in WIDTHS:
             raw, normalized = RAW[width], RMS[width]
-            for level in LEVELS:
+            for level in levels:
                 selected = [record for record in measurements if record['task']['job']['nominal_radius'] == nominal and
                             record['task']['job']['brightness_multiplier'] == level]
                 paired.append({'radius': nominal, 'width': width, 'brightness_multiplier': level,
@@ -589,11 +596,11 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
     for method in METHODS:
         method_groups = [group for group in groups if group['method'] == method]
         invalid_by_level = [sum(group['levels'][index]['invalid_searches'] for group in method_groups)
-                            for index in range(len(LEVELS))]
+                            for index in range(len(levels))]
         inner.full.radial.require(len(set(invalid_by_level)) == 1,
                                   'method support changed with injected brightness for '+method)
         aggregate_levels = []
-        for level in LEVELS:
+        for level in levels:
             selected = [record['models'][method] for record in measurements if
                         record['task']['job']['brightness_multiplier'] == level]
             valid = [value for value in selected if value['valid']]
@@ -618,51 +625,55 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
         'verification': verification, 'caveats': [inner.full.read(study/'protocol.json')['dependence'],
         'This reuses inspected images and does not provide independent validation.']})
     lines = ['# Inner-radius post-mean patch-RMS comparison', '',
-        '| Radius | Method | 0.5× | 0.75× | 1× | Nulls | Invalid nulls |',
-        '| ---: | --- | ---: | ---: | ---: | ---: | ---: |']
+        '| Radius | Method | '+' | '.join(level_labels)+' | Nulls | Invalid nulls |',
+        '| ---: | --- | '+' | '.join('---:' for _ in levels)+' | ---: | ---: |']
     for group in groups:
         lines.append(f'| {group["radius"]} | {LABELS[group["method"]]} | '+
             ' | '.join(f'{row["detections"]}/{row["trials"]}' for row in group['levels'])+
             f' | {group["null_exceedances"]}/6 | {group["invalid_nulls"]}/6 |')
     lines += ['', 'All thresholds were frozen before positive analysis. Invalid searches are nondetections. '
               'Raw controls reproduce the parent study; no P4 reductions were run.', '',
-        '## Mean five-pixel search SNR by radius', '',
+        '## Mean five-pixel search / fixed-center SNR by radius', '',
         'Each per-injection value comes from the frozen production hciAnalyze SNR map. The table gives the arithmetic '
-        'mean over valid injections at that radius and shows the valid count. The reported SNR is the maximum over '
-        'the same fixed five-pixel search used for detection.', '',
-        '| Radius | Method | Valid sites | 0.5× mean SNR | 0.75× mean SNR | 1× mean SNR |',
-        '| ---: | --- | ---: | ---: | ---: | ---: |']
+        'mean over valid injections at that radius and shows the valid count. Each cell is the mean maximum over '
+        'the fixed five-pixel detection search / the mean at the injected center.', '',
+        '| Radius | Method | Valid sites | '+' | '.join(label+' mean SNR' for label in level_labels)+' |',
+        '| ---: | --- | ---: | '+' | '.join('---:' for _ in levels)+' |']
     for group in groups:
         valid_counts = [row['valid_searches'] for row in group['levels']]
         inner.full.radial.require(len(set(valid_counts)) == 1,
                                   'method support changed with brightness within one radius')
-        formatted = [('—' if row['mean_search_snr'] is None else f'{row["mean_search_snr"]:.4f}')
+        formatted = [('—' if row['mean_search_snr'] is None else
+                      f'{row["mean_search_snr"]:.4f} / {row["mean_center_snr"]:.4f}')
                      for row in group['levels']]
         lines.append(f'| {group["radius"]} | {LABELS[group["method"]]} | {valid_counts[0]}/6 | '+
                      ' | '.join(formatted)+' |')
     lines += ['',
         '## Aggregate across radii', '',
-        '| Method | Valid sites | 0.5× | 0.75× | 1× | Nulls | Invalid nulls |',
-        '| --- | ---: | ---: | ---: | ---: | ---: | ---: |']
+        '| Method | Valid sites | '+' | '.join(level_labels)+' | Nulls | Invalid nulls |',
+        '| --- | ---: | '+' | '.join('---:' for _ in levels)+' | ---: | ---: |']
     for row in aggregate:
         lines.append(f'| {LABELS[row["method"]]} | {row["valid_sites"]}/36 | '+
             ' | '.join(str(level['detections']) for level in row['levels'])+
             f' | {row["null_exceedances"]}/36 | {row["invalid_nulls"]}/36 |')
     lines += ['', '## Paired decision changes', '']
     for width in WIDTHS:
-        for level in LEVELS:
+        for index, level in enumerate(levels):
             selected = [row for row in paired if row['width'] == width and row['brightness_multiplier'] == level]
             normalized_only = sum(len(row['normalized_only']) for row in selected)
             raw_only = sum(len(row['raw_only']) for row in selected)
-            lines.append(f'- ±{width}, {level:g}×: patch RMS only {normalized_only}; raw only {raw_only}.')
+            lines.append(f'- ±{width}, {level_labels[index]}: patch RMS only {normalized_only}; '
+                         f'raw only {raw_only}.')
     lines.append('')
     (root/'results.md').write_text('\n'.join(lines))
     fig, axes = plt.subplots(2, 3, figsize=(15, 8), sharex=True, sharey=True, layout='constrained')
     for axis, nominal in zip(axes.flat, RADII):
         for method in METHODS:
             group = next(row for row in groups if row['radius'] == nominal and row['method'] == method)
-            axis.plot(LEVELS, [row['detections']/6 for row in group['levels']], 'o-', label=LABELS[method])
-        axis.set(title=f'r = {nominal} px', xlabel='Brightness / identity threshold scale',
+            x_values = target_snrs if target_snrs else levels
+            axis.plot(x_values, [row['detections']/6 for row in group['levels']], 'o-', label=LABELS[method])
+        axis.set(title=f'r = {nominal} px',
+                 xlabel='Nominal identity source SNR' if target_snrs else 'Brightness / identity threshold scale',
                  ylabel='Recovery fraction', ylim=(-.03, 1.03))
     axes[0, 0].legend(fontsize=6)
     fig.suptitle('Inner-radius P4: post-mean patch-RMS PSD weighting')

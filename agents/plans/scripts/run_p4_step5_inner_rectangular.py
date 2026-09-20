@@ -30,6 +30,7 @@ from run_p4_step5_full_injections import fingerprint, replacement, write_json
 RADII = (6, 8, 12, 16, 20, 24)
 WIDTHS = (5, 10, 20)
 LEVELS = (.5, .75, 1.)
+REFERENCE_SNR = 5.
 RECTANGULAR = {width: f'psd_rectangular_b{width}_m0.3' for width in WIDTHS}
 METHODS = (*RECTANGULAR.values(), 'identity', 'gaussian')
 METHOD_WIDTH = {RECTANGULAR[width]: width for width in WIDTHS}
@@ -132,10 +133,16 @@ def calibration_pool(candidates: dict, sites: list, nominal: int, method: str) -
     raise RuntimeError(f'cannot calibrate {method} at radius {nominal}')
 
 
-def design(parent: Path, cpu_ids: list[int]) -> tuple[dict, dict]:
+def design(parent: Path, cpu_ids: list[int], target_snrs: list[float] | None = None) -> tuple[dict, dict]:
     """Build the complete geometry-only protocol without reading any detection score."""
     full.radial.require(bool(cpu_ids) and len(cpu_ids) == len(set(cpu_ids)) and min(cpu_ids) >= 0,
                         'reduction CPU IDs must be nonnegative and distinct')
+    target_snrs = [] if target_snrs is None else list(target_snrs)
+    full.radial.require(not target_snrs or (len(target_snrs) == 3 and
+                        all(np.isfinite(value) and value > 0 for value in target_snrs) and
+                        target_snrs == sorted(set(target_snrs)) and REFERENCE_SNR in target_snrs),
+                        'target SNRs must be three increasing positive values including 5')
+    brightnesses = [value/REFERENCE_SNR for value in target_snrs] if target_snrs else list(LEVELS)
     parent_protocol = full.read(parent/'protocol.json')
     science_path = parent/'reductions/baseline/finim.fits'
     science = fits.getdata(science_path).squeeze().astype(float)
@@ -173,10 +180,11 @@ def design(parent: Path, cpu_ids: list[int]) -> tuple[dict, dict]:
     spacing = {str(radius): min(math.dist((a['row'], a['column']), (b['row'], b['column']))
         for index, a in enumerate([s for s in sites if s['nominal_radius'] == radius])
         for b in [s for s in sites if s['nominal_radius'] == radius][index+1:]) for radius in RADII}
-    protocol = {'schema': 1, 'purpose': 'inner-radius recovery comparison for pooled rectangular PSD widths',
+    protocol = {'schema': 2 if target_snrs else 1,
+        'purpose': 'inner-radius recovery comparison for pooled rectangular PSD widths',
         'parent_study': str(parent.resolve()), 'models': list(METHODS), 'nominal_radii': list(RADII),
-        'sites_per_radius': 6, 'sites': sites, 'brightness_multipliers': list(LEVELS),
-        'full_positive_reductions': len(sites)*len(LEVELS), 'baseline_reductions': 0,
+        'sites_per_radius': 6, 'sites': sites, 'brightness_multipliers': brightnesses,
+        'full_positive_reductions': len(sites)*len(brightnesses), 'baseline_reductions': 0,
         'known_source_circle': parent_protocol['known_source_circle'], 'lambda_d_pixels': 3.6,
         'planet_guard': 'production planet circle plus 0.5-pixel boundary; the 15x15 kernel at every one of the five search pixels must be disjoint',
         'annular_noise': 'complete required one-pixel annuli, but only filter centers whose 15x15 kernel is disjoint from the buffered known-planet circle; production mean/stddev interpolation and small-sample correction; injection neighborhoods remain in normalization',
@@ -186,12 +194,18 @@ def design(parent: Path, cpu_ids: list[int]) -> tuple[dict, dict]:
         'calibration_searches_per_active_radius_method': CALIBRATION_SEARCHES,
         'calibration_pools': pools, 'calibration_trials': sorted(unique_nulls.values(), key=lambda r: r['name']),
         'threshold_rule': 'maximum of 20 geometry-selected planet-clean baseline search scores; strict exceedance',
-        'reference_contrast': 'identity matched-filter annular-SNR threshold times interpolated identity-amplitude radial sigma divided by the small-sample correction; target pixels unused',
+        'reference_contrast': ('nominal identity source-only annular SNR 5 times interpolated identity-amplitude radial sigma divided by the production small-sample correction; target pixels unused'
+            if target_snrs else
+            'identity matched-filter annular-SNR threshold times interpolated identity-amplitude radial sigma divided by the small-sample correction; target pixels unused'),
         'selection': 'six deterministic maximin sites per requested radius from planet-clean candidates with complete band20 support; scores and positive images unused; narrower bands may be invalid',
         'dependence': 'same residual field, overlapping training patches, radial null pools, and close inner sites are correlated; counts are descriptive',
         'reduction_cpu_ids': cpu_ids, 'reduction_openmp_threads': len(cpu_ids), 'blas_threads': 1,
         'analysis_cpu_ids': [12, 13], 'analysis_openmp_threads': 2,
         'source_cpp_commit': parent_protocol['source_cpp_commit']}
+    if target_snrs:
+        protocol.update(target_source_snrs=target_snrs, reference_snr=REFERENCE_SNR,
+            level_labels=[f'SNR {value:g}' for value in target_snrs],
+            measured_snr_expectation='source-only nominal SNR; positive-image SNR may differ because of the local background, five-pixel peak selection, annular-profile changes, and reduction nonlinearity')
     geometry = {'scores_or_recovery_used': False, 'candidate_radii': [5, 30],
         'planet_clean_candidates': {str(radius): len(rows) for radius, rows in candidates.items()},
         'minimum_site_spacing_by_radius': spacing, 'sites': sites, 'calibration_pools': pools,
@@ -203,7 +217,7 @@ def audit(args: argparse.Namespace) -> None:
     """Write only the score-free design for local review."""
     root = args.root.resolve()
     root.mkdir(parents=True, exist_ok=False)
-    protocol, geometry = design(args.parent.resolve(), args.cpus)
+    protocol, geometry = design(args.parent.resolve(), args.cpus, args.target_snrs)
     write_json(root/'protocol.json', protocol)
     write_json(root/'geometry.json', geometry)
     print(f'audited {len(protocol["sites"])} sites and {len(protocol["calibration_trials"])} unique null centers', flush=True)
@@ -218,7 +232,7 @@ def setup(args: argparse.Namespace) -> None:
     full.radial.require(set(args.cpus).issubset(os.sched_getaffinity(0)), 'requested reduction CPUs unavailable')
     full.verify([*parent_manifest['frozen_records'], *parent_manifest['input_records'],
                  *full.read(parent/'complete.json')['products'], *baseline_complete['products']])
-    protocol, geometry = design(parent, args.cpus)
+    protocol, geometry = design(parent, args.cpus, args.target_snrs)
     root.mkdir(parents=True, exist_ok=False)
     (root/'payload/response').mkdir(parents=True)
     (root/'software').mkdir()
@@ -249,9 +263,10 @@ def setup(args: argparse.Namespace) -> None:
         'parent_complete': fingerprint(parent/'complete.json'), 'frozen_records': records,
         'parent_baseline_complete': fingerprint(parent/'reductions/baseline/complete.json'),
         'input_records': parent_manifest['input_records'], 'host': os.uname().nodename})
-    write_json(root/'state.json', {'status': 'prepared', 'positive_reductions': len(protocol['sites'])*len(LEVELS),
+    reductions = len(protocol['sites'])*len(protocol['brightness_multipliers'])
+    write_json(root/'state.json', {'status': 'prepared', 'positive_reductions': reductions,
         'finished': []})
-    print(f'prepared {len(protocol["sites"])} sites and {len(protocol["sites"])*len(LEVELS)} injections in {root}', flush=True)
+    print(f'prepared {len(protocol["sites"])} sites and {reductions} injections in {root}', flush=True)
 
 
 def repair(args: argparse.Namespace) -> None:
@@ -577,17 +592,23 @@ def calibrate(root: Path) -> tuple[dict, list, dict]:
             full.radial.require(len(values) == CALIBRATION_SEARCHES and all(value['valid'] for value in values),
                                 f'invalid calibration pool for radius {nominal} {method}')
             thresholds[str(nominal)][method] = max(value['search_score'] for value in values)
+    target_snrs = protocol.get('target_source_snrs')
+    levels = protocol['brightness_multipliers']
     jobs = []
     for site in protocol['sites']:
         identity = rows[site['name']]['models']['identity']
         threshold = thresholds[str(site['nominal_radius'])]['identity']
-        reference = threshold*identity['center_noise_sigma']/identity['small_sample_correction']
+        scale = identity['center_noise_sigma']/identity['small_sample_correction']
+        reference = (protocol.get('reference_snr', REFERENCE_SNR)*scale if target_snrs else threshold*scale)
         full.radial.require(np.isfinite(reference) and reference > 0, 'invalid identity-based contrast scale')
-        for index, level in enumerate(LEVELS):
-            jobs.append({**{key: site[key] for key in ('name', 'row', 'column', 'nominal_radius')},
+        for index, level in enumerate(levels):
+            job = {**{key: site[key] for key in ('name', 'row', 'column', 'nominal_radius')},
                 'site': site['name'], 'name': site['name']+f'_l{index}', 'brightness_multiplier': level,
                 'reference_contrast_scale': reference, 'contrast': level*reference,
-                'target_values_used_for_contrast': False})
+                'target_values_used_for_contrast': False}
+            if target_snrs:
+                job['target_source_snr'] = target_snrs[index]
+            jobs.append(job)
     write_json(root/'baseline.json', baseline)
     write_json(root/'thresholds.json', thresholds)
     write_json(root/'jobs.json', jobs)
@@ -601,6 +622,9 @@ def calibrate(root: Path) -> tuple[dict, list, dict]:
 def summarize(root: Path, thresholds: dict, baseline: dict, measurements: list) -> None:
     """Write per-radius recovery, null exceedances, invalid counts, and a compact plot."""
     protocol = full.read(root/'protocol.json')
+    levels = tuple(protocol['brightness_multipliers'])
+    target_snrs = protocol.get('target_source_snrs')
+    labels = protocol.get('level_labels', [f'{level:g}×' for level in levels])
     effective_pools = full.read(root/'effective_calibration_pools.json')['pools']
     baseline_rows = {row['trial']['name']: row for row in baseline['rows']}
     nulls, groups = [], []
@@ -624,7 +648,7 @@ def summarize(root: Path, thresholds: dict, baseline: dict, measurements: list) 
                                         if row['site']['nominal_radius'] == nominal),
                 'invalid_nulls': sum(not row['models'][method]['valid'] for row in nulls
                                      if row['site']['nominal_radius'] == nominal), 'levels': []}
-            for level in LEVELS:
+            for level in levels:
                 selected = [row for row in measurements if row['trial']['nominal_radius'] == nominal and
                             row['trial']['brightness_multiplier'] == level]
                 values = [row['models'][method] for row in selected]
@@ -634,19 +658,45 @@ def summarize(root: Path, thresholds: dict, baseline: dict, measurements: list) 
                     'invalid_searches': sum(not value['valid'] for value in values),
                     'median_raw_contrast_error': float(np.median(errors)) if errors else None})
             groups.append(one)
-    write_json(root/'results.json', {'groups': groups, 'nulls': nulls, 'measurements': measurements,
+    snr_groups = []
+    for nominal in RADII:
+        for method in METHODS:
+            one = {'radius': nominal, 'method': method, 'levels': []}
+            for level in levels:
+                selected = [row['models'][method] for row in measurements
+                    if row['trial']['nominal_radius'] == nominal and
+                    row['trial']['brightness_multiplier'] == level]
+                valid = [value for value in selected if value['valid']]
+                one['levels'].append({'brightness_multiplier': level,
+                    'valid_searches': len(valid),
+                    'mean_search_snr': float(np.mean([value['search_score'] for value in valid])) if valid else None,
+                    'mean_center_snr': float(np.mean([value['snr_pixels'][0] for value in valid])) if valid else None})
+            snr_groups.append(one)
+    write_json(root/'results.json', {'groups': groups, 'snr_groups': snr_groups,
+        'nulls': nulls, 'measurements': measurements,
         'thresholds': thresholds, 'calibration_pools': effective_pools,
         'original_calibration_pools': protocol['calibration_pools'],
         'caveats': [protocol['dependence'], 'Radius-6 planet-clean sites are necessarily close together.',
                     'Method-specific calibration bands are recorded and can span adjacent radii.',
                     'Invalid frozen nulls are replaced before thresholding by validity and spatial geometry only.']})
     lines = ['# Inner-radius rectangular-PSD recovery', '',
-        '| Radius | Method | 0.5× | 0.75× | 1× | Nulls | Invalid nulls |',
-        '| ---: | --- | ---: | ---: | ---: | ---: | ---: |']
+        '| Radius | Method | '+' | '.join(labels)+' | Nulls | Invalid nulls |',
+        '| ---: | --- | '+' | '.join('---:' for _ in levels)+' | ---: | ---: |']
     for group in groups:
         lines.append(f'| {group["radius"]} | {group["method"]} | '+
             ' | '.join(f'{row["detections"]}/{row["trials"]}' for row in group['levels'])+
             f' | {group["null_exceedances"]}/6 | {group["invalid_nulls"]}/6 |')
+    lines += ['', '## Mean production `hciAnalyze` SNR', '',
+        'Each entry is the arithmetic mean five-pixel search maximum / arithmetic mean fixed-center SNR; the '
+        'parenthetical value is the number of valid searches out of six. The fixed-center value is the direct '
+        'check of the nominal source-only SNR scale, while the search maximum is the detection statistic.', '',
+        '| Radius | Method | '+' | '.join(labels)+' |',
+        '| ---: | --- | '+' | '.join('---:' for _ in levels)+' |']
+    for group in snr_groups:
+        formatted = [('—' if row['mean_search_snr'] is None else
+                      f'{row["mean_search_snr"]:.4f} / {row["mean_center_snr"]:.4f} '
+                      f'({row["valid_searches"]}/6)') for row in group['levels']]
+        lines.append(f'| {group["radius"]} | {group["method"]} | '+' | '.join(formatted)+' |')
     lines += ['', 'Thresholds and injection contrasts were frozen from the baseline before positive reductions. '
               'Invalid searches are nondetections. Counts are correlated within this one residual field.', '']
     (root/'results.md').write_text('\n'.join(lines))
@@ -654,8 +704,11 @@ def summarize(root: Path, thresholds: dict, baseline: dict, measurements: list) 
     for axis, nominal in zip(axes.flat, RADII):
         for method in METHODS:
             group = next(row for row in groups if row['radius'] == nominal and row['method'] == method)
-            axis.plot(LEVELS, [row['detections']/6 for row in group['levels']], 'o-', label=method)
-        axis.set(title=f'r = {nominal} px', xlabel='Brightness / identity threshold scale', ylabel='Recovery fraction',
+            x_values = target_snrs if target_snrs else levels
+            axis.plot(x_values, [row['detections']/6 for row in group['levels']], 'o-', label=method)
+        axis.set(title=f'r = {nominal} px',
+                 xlabel='Nominal identity source SNR' if target_snrs else 'Brightness / identity threshold scale',
+                 ylabel='Recovery fraction',
                  ylim=(-.03, 1.03))
     axes[0, 0].legend(fontsize=6)
     fig.suptitle('Inner-radius full P4 injections: pooled rectangular PSD widths')
@@ -723,6 +776,8 @@ def main() -> None:
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--parent', type=Path, default=Path('working/roc/p4_psd_full_20260918'))
     parser.add_argument('--cpus', type=int, nargs='+', default=list(range(24)))
+    parser.add_argument('--target-snrs', type=float, nargs='+',
+                        help='three increasing nominal identity source SNRs including 5; use 3 5 7 for the confirmatory study')
     args = parser.parse_args()
     if args.action == 'audit':
         audit(args)

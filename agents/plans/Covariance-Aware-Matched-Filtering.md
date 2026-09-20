@@ -2328,6 +2328,35 @@ radii. Identity and Gaussian remain stronger aggregate references, and
 Gaussian remains strongest at radius 8. This study does not support promoting
 patch RMS or pooled rectangular PSD to a production default.
 
+### Step 5 development: confirmatory SNR 3/5/7 inner study (prepared 2026-09-19)
+
+The threshold-scaled inner studies do not use a common detection-strength interpretation: their `1×` injections
+have mean production SNR generally near 2, and the absolute contrast changes sharply with radius. They remain
+useful low-SNR development comparisons, but they are not the confirmatory test of behavior near the known
+planet's SNR.
+
+The [confirmatory setup](results/p4-step5-inner-snr357-setup-20260919/README.md) defines one explicit scale. For
+each site, a nominal source SNR \(S\) receives contrast
+\(c(S)=S\sigma_\alpha/f_{\rm small}\), where \(\sigma_\alpha\) is the interpolated baseline radial standard
+deviation of the identity amplitude map and \(f_{\rm small}\) is the production `hciAnalyze` small-sample
+multiplier. Target-pixel amplitudes and positive images do not enter this calculation. The three levels are SNR
+3, 5, and 7; SNR 5 is `1×`, so the stored multipliers are 0.6, 1, and 1.4. Identity supplies the common
+contrast-calibrated reference, and every method receives the same source.
+
+The fixed geometry still has six sites at radii 6, 8, 12, 16, 20, and 24 pixels. The first ROC stage performs
+108 new full P4 reductions and compares raw rectangular ±5/±10/±20, identity, and Gaussian FWHM 3.6. The second
+stage reuses those saved images to repeat the raw-versus-post-mean-patch-RMS comparison without further
+reductions. Both stages report the actual mean production five-pixel search maximum and fixed-center SNR at every
+radius and level. The center mean checks the nominal scale, while the search maximum is the detection statistic;
+local backgrounds, peak selection, annular-profile changes, and reduction nonlinearity can move either value away
+from the nominal source-only targets.
+
+The maintained inner runner now accepts `--target-snrs 3 5 7` and records each target in the immutable protocol
+and job. With no option, it retains the historical threshold-scaled behavior so the completed study remains
+reproducible. The patch-RMS runner reads levels from its completed parent rather than assuming the historical
+0.5/0.75/1 values. A local score-free audit reproduced the unchanged 36 sites, 128 unique null centers, and 108
+positive jobs and recorded the new 0.6/1/1.4 scale.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

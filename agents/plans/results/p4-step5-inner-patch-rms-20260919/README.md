@@ -52,6 +52,12 @@ The much larger inner `1×` contrasts at radii 6 and 8 encode the rapidly worse
 local threshold contrast there. The protocol chose threshold-level sources,
 not sources with the planet's fixed contrast or SNR.
 
+These results are therefore retained as a low-SNR exploratory comparison. The
+[confirmatory setup](../p4-step5-inner-snr357-setup-20260919/README.md) replaces
+the ambiguous scale with nominal identity source SNRs 3, 5, and 7, reserving
+`1×` for SNR 5, and repeats both the full reductions and this saved-image
+raw/patch-RMS comparison.
+
 ## Paired estimator
 
 For each radial width and candidate pixel, extract the same raw aligned 11×11
