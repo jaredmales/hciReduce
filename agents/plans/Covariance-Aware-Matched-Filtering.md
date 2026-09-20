@@ -2271,6 +2271,51 @@ invalid rather than converting production zeros into measurements. A second
 guarded repair retains all 160 completed analyses and recomputes only these
 four unreceipted tasks.
 
+### Step 5 development result: wider-pool post-mean patch normalization (2026-09-19)
+
+The repaired comparison completed all 164 baseline and 108 saved-positive
+analyses with zero new P4 reductions. Calibration precedes every positive
+output. The [completed report](results/p4-step5-inner-patch-rms-20260919/README.md)
+and [remote verification](results/p4-step5-inner-patch-rms-20260919/remote_review.json)
+verify 3,415 distinct paths, both repair receipts, unchanged frozen inputs, all
+task products, and all final products. Raw/reference SNR maps reproduce the
+parent exactly; the largest independent-oracle difference is
+$5.96\times10^{-8}$.
+
+| Method | Valid sites | 0.5× | 0.75× | 1× | Held-out nulls |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Raw rectangular ±5 | 22/36 | 4 | 8 | 11 | 0/36 |
+| Patch-RMS rectangular ±5 | 22/36 | 3 | 7 | 11 | 0/36 |
+| Raw rectangular ±10 | 27/36 | 6 | 10 | 16 | 0/36 |
+| Patch-RMS rectangular ±10 | 27/36 | 6 | 11 | 16 | 0/36 |
+| Raw rectangular ±20 | 36/36 | 7 | 11 | 18 | 1/36 |
+| Patch-RMS rectangular ±20 | 36/36 | 6 | 11 | 18 | 0/36 |
+| Identity | 36/36 | 8 | 13 | 22 | 0/36 |
+| Gaussian FWHM 3.6 | 36/36 | 9 | 16 | 20 | 0/36 |
+
+Patch normalization raises aggregate five-pixel maximum `hciAnalyze` SNR by
+0.016/0.015/0.013 for ±5, 0.040/0.026/0.014 for ±10, and
+0.063/0.056/0.044 for ±20 at the three brightnesses. Fixed-center changes are
+smaller: −0.018/−0.017/−0.016, −0.003/+0.001/+0.005, and
++0.024/+0.029/+0.033. The ±20 gain therefore includes a modest center-SNR
+improvement but is amplified by changes in which one-pixel neighbor is the
+search maximum.
+
+The strongest local result is radius-20 ±20, where mean search SNR increases
+by about 0.23 at all brightnesses and recovery changes from 0/1/3 to 1/2/3.
+Radius-24 ±20 gains roughly 0.10/0.096/0.073 in mean SNR without changing
+recovery. At radius 12, normalized thresholds increase by 0.106/0.086/0.120
+for ±5/±10/±20 and offset the SNR changes; ±20 recovery falls from 4/5/6 to
+2/3/6. Across all widths and levels, patch normalization gains seven individual
+detections and loses nine. Its removal of the one raw ±20 held-out exceedance
+is favorable but not decisive in one correlated field.
+
+Thus post-mean patch RMS changes the statistic and can improve wide-pool SNR
+locally, but it does not deliver a stable calibrated recovery gain across
+radii. Identity and Gaussian remain stronger aggregate references, and
+Gaussian remains strongest at radius 8. This study does not support promoting
+patch RMS or pooled rectangular PSD to a production default.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

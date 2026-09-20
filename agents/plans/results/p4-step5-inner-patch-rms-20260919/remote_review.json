@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "host": "exao5",
+  "completed_local_time": "2026-09-19 17:23:44 -0700",
+  "state": "complete",
+  "receipt_counts": {
+    "baseline": 164,
+    "positive": 108
+  },
+  "incomplete_task_directories": {
+    "baseline": 0,
+    "positive": 0
+  },
+  "new_reductions": 0,
+  "verified_distinct_paths": 3415,
+  "calibration_precedes_all_positives": true,
+  "repairs": [
+    {
+      "number": 1,
+      "completed_baseline_analyses_retained": 119,
+      "failure": "'active_methods'"
+    },
+    {
+      "number": 2,
+      "completed_baseline_analyses_retained": 160,
+      "failure": "raw/reference annular validity changed for psd_rectangular_b5_m0.3"
+    }
+  ],
+  "result_dimensions": {
+    "radius_method_groups": 48,
+    "aggregate_methods": 8,
+    "paired_comparisons": 54,
+    "held_out_nulls": 36,
+    "positive_measurements": 108
+  },
+  "verification": {
+    "frozen_inputs_unchanged": true,
+    "maximum_parent_control_snr_difference": 0.0,
+    "maximum_annular_oracle_difference": 5.960464477539063e-08,
+    "raw_reference_decisions_reproduced": true,
+    "paired_calibration_locations": true
+  },
+  "aggregate_recovery": {
+    "raw_5": {"valid_sites": 22, "detections": [4, 8, 11], "held_out_nulls": 0},
+    "patch_rms_5": {"valid_sites": 22, "detections": [3, 7, 11], "held_out_nulls": 0},
+    "raw_10": {"valid_sites": 27, "detections": [6, 10, 16], "held_out_nulls": 0},
+    "patch_rms_10": {"valid_sites": 27, "detections": [6, 11, 16], "held_out_nulls": 0},
+    "raw_20": {"valid_sites": 36, "detections": [7, 11, 18], "held_out_nulls": 1},
+    "patch_rms_20": {"valid_sites": 36, "detections": [6, 11, 18], "held_out_nulls": 0},
+    "identity": {"valid_sites": 36, "detections": [8, 13, 22], "held_out_nulls": 0},
+    "gaussian": {"valid_sites": 36, "detections": [9, 16, 20], "held_out_nulls": 0}
+  },
+  "aggregate_search_snr_patch_minus_raw": {
+    "5": [0.01642775129188201, 0.015168544921007943, 0.012768301096829138],
+    "10": [0.03985903881214292, 0.026293021661263793, 0.014146610542579818],
+    "20": [0.06279831048515128, 0.05556798643536043, 0.04376628498236368]
+  },
+  "aggregate_center_snr_patch_minus_raw": {
+    "5": [-0.018043, -0.017029, -0.015931],
+    "10": [-0.002626, 0.000581, 0.004972],
+    "20": [0.024126, 0.029116, 0.033472]
+  },
+  "threshold_delta_patch_minus_raw": {
+    "6": {"5": null, "10": null, "20": -0.01237189769744873},
+    "8": {"5": null, "10": 0.0004743337631225586, "20": -0.0002084970474243164},
+    "12": {"5": 0.10589873790740967, "10": 0.0857313871383667, "20": 0.11981511116027832},
+    "16": {"5": 0.0235593318939209, "10": 0.11903953552246094, "20": 0.09363079071044922},
+    "20": {"5": -0.034323930740356445, "10": -0.11618375778198242, "20": 0.007456541061401367},
+    "24": {"5": 0.02147984504699707, "10": 0.04598832130432129, "20": 0.04061293601989746}
+  },
+  "completion_products": {
+    "results.json": "af9d7523426e06e95c92873a9795ce1e0880954657e07ee27a2a274f604aa1a0",
+    "results.md": "f7490688d526946db0bb3d4477a98cb17de0c641fac43acb07c4ce559f6430bd",
+    "comparison.png": "ca6ec9d88be71b455f3714ece37f9ee136b389888fb415e4a2dcfefd83b38ad4",
+    "thresholds.json": "e05b63d3a4a6e939c96fb9922f1d33574b1c3fb7ae74c55bc5aed69b88073e94",
+    "effective_calibration_pools.json": "cec2a41e2ce2387cf0c821735884f0c0cbe4003fcc3ec52e0406249f777e5271",
+    "baseline.json": "9bf6fd41040a19763b363335c810671f67e1e8e0937fbe7b69503cddc180378c"
+  }
+}
