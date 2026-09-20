@@ -69,6 +69,14 @@ small-sample correction. Target-site pixel values do not set the contrast.
 Injected-source neighborhoods remain in each positive image's annular mean and
 standard-deviation estimate, matching the existing production path.
 
+The multiplier is specific to this protocol and site. It does not preserve the
+preceding full ROC study's roughly `4e-4` scale. The inner-study median `1×`
+contrasts at radii 6, 8, 12, 16, 20, and 24 pixels are `1.2937e-2`,
+`6.4241e-3`, `2.4259e-3`, `1.5371e-3`, `7.7270e-4`, and `8.8063e-4`,
+respectively. The accepted AF Lep b negative-injection coefficient is
+`4.7639e-3`; at its 11.8-pixel separation, the radius-12 `1×` injections are
+therefore about half its brightness rather than planet-matched injections.
+
 ## ROC execution
 
 After pulling this commit on ROC, run setup from the repository root:

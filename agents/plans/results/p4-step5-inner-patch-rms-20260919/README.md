@@ -17,6 +17,41 @@ P4 images. It performs **zero new P4 reductions**. This keeps the reductions,
 injection sites and brightnesses, known-planet guard, trial holdouts, response
 templates, five-pixel searches, and production annular SNR fixed.
 
+## Absolute source scale
+
+The `0.5×`, `0.75×`, and `1×` labels are local to this inner-radius protocol.
+They do not retain the absolute scale of the preceding full ROC study. In that
+outer study, `1×` ranged from `2.4339e-4` to `5.2017e-4` over radii 26–50
+pixels and had a median of `4.0930e-4` at radius 32. The inner study
+recalibrated `1×` independently at every site from the local identity threshold
+and amplitude-map noise:
+
+| Radius (pixels) | Minimum `1×` contrast | Median `1×` contrast | Maximum `1×` contrast |
+| ---: | ---: | ---: | ---: |
+| 6 | `1.0803e-2` | `1.2937e-2` | `1.4462e-2` |
+| 8 | `6.4241e-3` | `6.4241e-3` | `7.3233e-3` |
+| 12 | `2.2973e-3` | `2.4259e-3` | `2.4881e-3` |
+| 16 | `1.2971e-3` | `1.5371e-3` | `1.6674e-3` |
+| 20 | `7.4906e-4` | `7.7270e-4` | `7.9301e-4` |
+| 24 | `8.7232e-4` | `8.8063e-4` | `8.8517e-4` |
+
+AF Lep b is at radius 11.8 pixels. Its accepted negative-injection coefficient
+is `4.7639e-3`, and the identity amplitude at the nearest native pixel is
+`4.9215e-3`. Thus the radius-12 median `1×` injection is about 0.51 times the
+planet's fitted brightness. At radius 12, the `1×` mean search SNR is 2.19 for
+identity and 2.24 for Gaussian, versus 4.31 and 5.61 on the actual planet. The
+identity SNR ratio, 0.51, equals the contrast ratio; Gaussian's ratio is 0.40.
+The matching ±5 rectangular configuration gives mean injection SNR 1.79 at
+four valid sites versus 5.04 on the planet. The wider ±10/±20 variants give
+2.25–2.29 but have no same-width planet measurement. These comparisons are not
+exact linear-throughput tests because the injection sites have different
+background realizations, rectangular support differs, and the statistic takes
+a five-pixel maximum.
+
+The much larger inner `1×` contrasts at radii 6 and 8 encode the rapidly worse
+local threshold contrast there. The protocol chose threshold-level sources,
+not sources with the planet's fixed contrast or SNR.
+
 ## Paired estimator
 
 For each radial width and candidate pixel, extract the same raw aligned 11×11

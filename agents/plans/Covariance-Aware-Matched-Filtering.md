@@ -2159,6 +2159,18 @@ products. The only effective-pool adjustment is the planned radius-8 ±10 replac
 `null_x123_y122` by `null_x121_y121`; no score value entered that choice. The final thresholds and injection
 contrasts were frozen before any positive reduction.
 
+The `1×` label is local to this inner-radius calibration. It is not the approximately `4e-4` source used near
+radius 32 in the preceding full ROC study. Median inner-study `1×` contrasts from radius 6 through 24 are
+`1.2937e-2`, `6.4241e-3`, `2.4259e-3`, `1.5371e-3`, `7.7270e-4`, and `8.8063e-4`. At the planet's 11.8-pixel
+separation, the radius-12 median is 0.51 times the accepted negative-injection coefficient `4.7639e-3`.
+Correspondingly, radius-12 `1×` mean search SNR is 2.19 for identity and 2.24 for Gaussian, while AF Lep b
+measures 4.31 and 5.61. Identity's 0.51 SNR ratio matches the contrast ratio; Gaussian's ratio is 0.40. The
+matching ±5 rectangular filter gives 1.79 over four valid injection sites versus 5.04 on the planet; the wider
+±10/±20 variants give 2.25–2.29 but have no same-width planet measurement. Different background realizations,
+support, and five-pixel peak selection prevent this from being an exact linear-throughput test. The low values
+are threshold-level source measurements rather than planet-brightness measurements. The much larger `1×`
+contrasts at radii 6 and 8 represent their worse local threshold contrast.
+
 Recovery counts use all six sites as the denominator, with unsupported searches retained as nondetections:
 
 | Radius | Method | Valid sites | 0.5× | 0.75× | 1× | Held-out nulls |
