@@ -114,3 +114,58 @@ reports measured SNR and sample support rather than treating 3/5/7 as achieved
 values. At the most constrained supported radius-6 site, the production SNR
 map and independent oracle agreed exactly on their common finite pixels. The
 comparison reuses all 108 positive images and performs no new P4 reduction.
+
+## Completed lambda/D comparison
+
+The replacement comparison completed all **164 baseline analyses and 108
+positive analyses** with no new P4 reductions. Its completion receipt verifies
+that every frozen input is unchanged. Production annular SNR and the independent
+oracle agree exactly on every common finite pixel.
+
+The score-free pool reselection found 20 valid nulls for every active method,
+but the smallest separations require wider calibration ranges. Radius-6 ±20
+and the references use a ±2-pixel band with five replacements. Radius-8 ±10
+uses ±4 with 13 replacements, while radius-8 ±20 and the references use ±1.
+Radius-12 ±5 uses ±4 with 14 replacements. All raw/patch-RMS pairs use exactly
+the same locations, so their paired comparison remains controlled; thresholds
+between different widths can reflect these different radial null populations.
+
+The methods with complete support at all 36 sites gave these aggregate recovery
+counts:
+
+| Method | Valid sites | Nominal 3 | Nominal 5 | Nominal 7 | Held-out nulls |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Raw rectangular ±20 | 36/36 | 19 | 33 | 34 | 0/36 |
+| Patch-RMS rectangular ±20 | 36/36 | 20 | 33 | 34 | 0/36 |
+| Identity matched filter | 36/36 | 23 | 35 | 35 | 0/36 |
+| Gaussian FWHM 3.6 | 36/36 | 20 | 34 | 36 | 1/36 |
+
+Post-mean patch-RMS normalization has no consistent recovery advantage. Across
+all widths, radii, and levels it changes only four paired decisions: patch RMS
+alone recovers one radius-6, nominal-3 injection at ±20 and one radius-16,
+nominal-5 injection at ±10; raw alone recovers two radius-12, nominal-3
+injections at ±5. At ±20 the mean patch-RMS-minus-raw search-SNR difference is
+slightly negative at radii 6--12 and positive at radii 16--24, reaching about
+`+0.30` at radius 20. The sign reversal and unchanged medium/high recovery do
+not support adopting the normalization.
+
+The amplitude response does not explain the recovery result. Mean paired
+positive-minus-baseline throughput for raw and patch-RMS ±20 differs by less
+than 0.01 at every radius and level. Both are near unity outside the innermost
+sites. At radius 6, raw throughput declines from 0.984 to 0.908 over nominal
+3--7, while patch RMS declines from 0.985 to 0.909; this common trend is
+finite-source P4 behavior rather than covariance normalization.
+
+Identity gives the best aggregate recovery at nominal 3 and 5 without a held-
+out null exceedance. Gaussian reaches 36/36 at nominal 7 but has one null
+exceedance. The raw ±20 covariance filter trails identity by four detections at
+nominal 3 and two at nominal 5. With six correlated sites per radius, this is
+development evidence rather than an independent filter ranking, but it gives
+no evidence that the tested covariance weighting improves on identity.
+
+Annular support limits the innermost result. At radius 6 the required profiles
+contain as few as **2 native pixels** and have a median minimum of 3.5; at
+radius 8 the corresponding values are 7 and 8. The nominal SNR sequence also
+compresses most strongly at radius 8: identity's mean five-pixel search SNR is
+3.208, 3.775, and 4.065. Radius-6 recovery and thresholds should therefore be
+treated as sparse-sample diagnostics rather than stable completeness estimates.

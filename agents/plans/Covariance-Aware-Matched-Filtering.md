@@ -2406,6 +2406,38 @@ post-mean patch-RMS pairs require common support and use identical calibration t
 uses a new root, reuses all 108 positive images, and performs no P4 reduction. At the most constrained supported
 radius-6 site, the production SNR map and independent two-mask oracle agreed exactly on their common finite pixels.
 
+### Step 5 result: lambda/D-masked raw versus patch-RMS comparison (2026-09-19)
+
+The replacement comparison completed all 164 baseline and 108 positive saved-image analyses, ran no new P4
+reduction, verified unchanged frozen inputs, and matched the independent annular oracle exactly. The
+[completed result](results/p4-step5-inner-snr357-20260919/README.md) records recovery, measured SNR, annular-pixel
+support, calibration-pool changes, and paired throughput.
+
+All active methods obtain 20 score-free valid nulls with raw/patch-RMS locations paired. The necessary radial
+half-width is ±2 at radius 6 for ±20 and the references, ±4 at radius 8 for the ±10 filter, and ±4 at radius 12
+for the ±5 filter. These different null populations can affect comparisons between widths, while each raw versus
+patch-RMS comparison remains directly paired.
+
+Among the methods with all 36 sites valid, aggregate recovery at nominal SNR 3/5/7 is 19/33/34 for raw ±20,
+20/33/34 for patch-RMS ±20, 23/35/35 for identity, and 20/34/36 for Gaussian. Raw ±20, patch-RMS ±20, and identity
+have no held-out null exceedance; Gaussian has one. Post-mean patch-RMS normalization changes only four paired
+decisions across every width and level: two in its favor and two in raw's favor. Its mean search-SNR change is
+slightly negative at radii 6--12 and positive at 16--24. Mean paired amplitude throughput differs from raw by less
+than 0.01 everywhere, so response scaling does not hide a normalization benefit. **Do not promote per-patch RMS
+normalization.**
+
+This comparison also does not show a recovery advantage for the tested pooled rectangular covariance filter over
+identity. Identity leads raw ±20 by four detections at nominal 3 and two at nominal 5, with the same zero held-out
+null count. Gaussian is competitive but its one null exceedance and the small correlated sample prevent a firm
+ranking. Retain raw pooled rectangular as the covariance-development branch and identity/Gaussian as mandatory
+references rather than selecting covariance weighting from this study.
+
+The innermost annular statistic is the dominant limitation. Radius-6 required profiles have a minimum of two and
+a median minimum of 3.5 native pixels after both exclusions; radius 8 has seven and eight. Identity's radius-8
+mean five-pixel SNR rises only 3.208/3.775/4.065 across nominal 3/5/7. Radius-6 and radius-8 recovery therefore do
+not provide stable completeness estimates even though all reference searches are formally finite. Further
+small-separation work should change the noise-estimation design rather than continue tuning patch normalization.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

@@ -3,7 +3,8 @@
 **Completion note:** all 108 reductions completed, but the initial annular SNR
 included each injection in its own noise sample. The
 [completion and diagnosis](../p4-step5-inner-snr357-20260919/README.md) retain
-that result and define a corrected saved-image analysis with no new reductions.
+that result and the subsequently completed lambda/D-masked saved-image analysis
+with no new reductions.
 
 ## Fixed source scale
 
