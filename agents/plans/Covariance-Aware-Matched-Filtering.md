@@ -2536,6 +2536,39 @@ references. The full inverse is also recomputed through the covariance eigensyst
 agree with the copied Cholesky-solve map. Results at radii 6 and 8 are the main diagnostic, while 12–24 remain
 controls; these repeatedly inspected sites remain development data.
 
+### Step 5 result: rectangular-PSD precision regularization (2026-09-20)
+
+The comparison completed all 164 baseline and 108 positive saved-image analyses with no new P4 reductions. A
+separate audit verified all 3,154 frozen inputs and all six result products. Copied control maps and thresholds
+reproduce the parent exactly, the independent annular oracle agrees exactly, and the eigensystem full inverse
+agrees with the parent Cholesky solve to a maximum amplitude difference of $1.85\times10^{-9}$.
+
+Regularization improves the inner development result. The full inverse recovers 19/33/34 sources at nominal SNR
+3/5/7 with zero held-out nulls. Clipping eigenvalues at the mean variance changes this to **23/34/34**, also with
+zero nulls. Hard truncation at half the mean variance gives 21/33/34 with zero nulls and raises aggregate mean
+maximum SNR from 3.216/4.447/5.532 to **3.273/4.549/5.788**. A 0.75 hard cutoff reaches **25/34/35** but produces
+one held-out radius-6 null; truncation at the mean reaches 23/34/35 with four nulls and is too aggressive. No
+regularized arm loses a positive decision made by the full inverse.
+
+The effect is concentrated at radius 6. Half-mean hard truncation raises its mean maximum SNR by
+0.323/0.647/1.563 at nominal 3/5/7 while retaining about 73 of 121 modes. Its expected efficiency is 0.990 if the
+fitted covariance were exact. At radii 12--24, the same arm changes mean SNR by at most 0.031 and adds no null.
+The 0.75 hard cutoff retains about 43 modes at radius 6 with exact-PSD efficiency 0.977. Its radius-8 recovery
+gains partly reflect a much lower 20-sample maximum-null threshold rather than a uniform increase in mean maximum
+SNR, so threshold noise remains important.
+
+Paired amplitude throughput stays within about one percent of the full inverse. The signal response is therefore
+stable; the improvement comes from noise weighting. Every regularized arm has lower SNR than the full inverse
+under the fitted covariance by construction, yet some improve measured SNR substantially. This is direct evidence
+that the low-eigenvalue PSD precision modes are affected by covariance mismatch or finite-sample error at small
+separation. The complete tables and figure are in the
+[precision-regularization report](results/p4-step5-psd-precision-setup-20260920/README.md).
+
+This repeatedly inspected development set does not select a production policy. Clipping at the mean variance and
+hard truncation at half the mean variance are the conservative zero-null candidates for fresh validation; the
+0.75 hard cutoff is an aggressive diagnostic. Identity with a 1.8-pixel response low pass still has the strongest
+zero-null aggregate recovery at SNR 3 and 5, and the sparse radius-6/8 annular statistic remains a limitation.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
