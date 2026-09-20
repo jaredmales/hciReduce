@@ -2550,6 +2550,12 @@ maximum SNR from 3.216/4.447/5.532 to **3.273/4.549/5.788**. A 0.75 hard cutoff 
 one held-out radius-6 null; truncation at the mean reaches 23/34/35 with four nulls and is too aggressive. No
 regularized arm loses a positive decision made by the full inverse.
 
+Compared directly with production Gaussian FWHM 3.6, half-mean hard truncation is the only tested method whose
+aggregate mean maximum SNR is at least as high at all three levels: 3.273/4.549/5.788 versus
+3.212/4.549/5.704. The differences are +0.061/+0.0003/+0.084. The report includes the corresponding side-by-side
+table for every precision and response reference; null counts and method-specific thresholds must still accompany
+this SNR-only comparison.
+
 The effect is concentrated at radius 6. Half-mean hard truncation raises its mean maximum SNR by
 0.323/0.647/1.563 at nominal 3/5/7 while retaining about 73 of 121 modes. Its expected efficiency is 0.990 if the
 fitted covariance were exact. At radii 12--24, the same arm changes mean SNR by at most 0.031 and adds no null.

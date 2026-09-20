@@ -154,6 +154,31 @@ Aggregate results over all 36 sites are:
 | Rectangular ±20, response LPF 2.7 px | 22 | 34 | 35 | 0 | 3.197 / 4.497 / 5.704 |
 | Production Gaussian | 20 | 34 | **36** | 1 | 3.212 / 4.549 / 5.704 |
 
+The following table places the measured SNR values directly beside the
+production Gaussian reference. Each parenthesized value is the method minus
+Gaussian; positive values favor the listed method. These are means of the
+five-pixel maximum over all 36 sites.
+
+| Method | Nominal SNR 3 | Nominal SNR 5 | Nominal SNR 7 |
+| --- | ---: | ---: | ---: |
+| Full inverse | 3.2157 (**+0.0036**) | 4.4467 (−0.1024) | 5.5316 (−0.1722) |
+| Clipped, 0.5 mean variance | 3.2204 (**+0.0083**) | 4.4579 (−0.0911) | 5.5619 (−0.1420) |
+| Clipped, 0.75 mean variance | 3.2241 (**+0.0120**) | 4.4789 (−0.0702) | 5.6115 (−0.0924) |
+| Clipped, 1.0 mean variance | 3.2101 (−0.0020) | 4.4779 (−0.0712) | 5.6547 (−0.0492) |
+| Hard truncated, 0.5 mean variance | **3.2730 (+0.0609)** | **4.5493 (+0.0003)** | **5.7877 (+0.0838)** |
+| Hard truncated, 0.75 mean variance | 3.1975 (−0.0146) | 4.5191 (−0.0299) | **5.8214 (+0.1175)** |
+| Hard truncated, 1.0 mean variance | 3.1820 (−0.0301) | 4.4882 (−0.0608) | 5.6746 (−0.0292) |
+| Identity | 3.1751 (−0.0370) | 4.4538 (−0.0952) | 5.6644 (−0.0394) |
+| Identity, response LPF 1.8 px | 3.1563 (−0.0559) | 4.4607 (−0.0884) | **5.7627 (+0.0588)** |
+| Rectangular ±20, response LPF 2.7 px | 3.1974 (−0.0147) | 4.4965 (−0.0526) | **5.7042 (+0.0003)** |
+| Production Gaussian FWHM 3.6 | 3.2121 | 4.5490 | 5.7038 |
+
+Half-mean hard truncation is the only tested method with aggregate mean SNR at
+least as high as Gaussian at all three source levels. Its advantage is small at
+nominal SNR 5 and larger at SNR 3 and 7. This comparison does not include the
+different null counts or threshold distributions; those remain necessary when
+interpreting recovery.
+
 No regularized method loses a positive decision that the full inverse made.
 Clipping at the mean variance adds four SNR-3 and one SNR-5 recoveries with no
 held-out null exceedance. Hard truncation at 0.5 adds two faint recoveries and
