@@ -142,6 +142,22 @@ cat working/roc/p4_inner_snr357_patch_rms_excluded_20260919/state.json
 tail -n 30 working/roc/p4_inner_snr357_patch_rms_excluded_20260919/driver.log
 ```
 
+If the initial corrected launch has the exact strict-JSON NaN failure recorded
+in the [completed-run diagnosis](../p4-step5-inner-snr357-20260919/README.md),
+pull the repair and update only the frozen runner record:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
+  /opt/conda/envs/xpy3_13/bin/python3 \
+  agents/plans/scripts/compare_p4_step5_inner_patch_rms.py repair \
+  --root working/roc/p4_inner_snr357_patch_rms_excluded_20260919
+```
+
+Restart the same `tmux` run command. The repair requires the exact failure,
+checks that calibration and positive analysis never started, retains the 97
+completed baseline receipts, and preserves the 67 incomplete directories under
+`interrupted/` before recomputing them.
+
 The corrected comparison root is new. The completed SNR-3/5/7 study remains
 immutable.
 

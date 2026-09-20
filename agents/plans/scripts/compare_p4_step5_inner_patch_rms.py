@@ -164,7 +164,9 @@ def repair(root: Path) -> None:
         "'active_methods'":
             'derive raw-control support from frozen parent SNR maps for legacy receipts without active_methods',
         'raw/reference annular validity changed for psd_rectangular_b5_m0.3':
-            'replay raw controls with frozen parent production support while retaining strict normalized support'}
+            'replay raw controls with frozen parent production support while retaining strict normalized support',
+        'Out of range float values are not JSON compliant: nan':
+            'record unavailable parent-control SNR differences as null when the maps have no finite overlap'}
     inner.full.radial.require(state['status'] == 'failed' and state.get('error') in reasons,
                               'repair applies only to a recognized pre-calibration compatibility failure')
     inner.full.radial.require(not (root/'calibration_complete.json').exists() and
@@ -292,6 +294,12 @@ def score_trial(trial: dict, snr: np.ndarray, amplitudes: np.ndarray) -> dict:
     return result
 
 
+def maximum_finite_difference(current: np.ndarray, prior: np.ndarray) -> float | None:
+    """Return the largest difference on common finite support, or null when there is none."""
+    overlap = np.isfinite(current) & np.isfinite(prior)
+    return float(np.max(np.abs(current[overlap]-prior[overlap]))) if overlap.any() else None
+
+
 def analyze(task: dict) -> str:
     """Build normalized maps for one frozen image/trial and reproduce all raw controls."""
     root, study, parent, trials, templates = _CONTEXT
@@ -413,7 +421,7 @@ def analyze(task: dict) -> str:
     for name in (*RAW.values(), 'identity', 'gaussian'):
         current = snr[METHODS.index(name)]
         prior = parent_snr[PARENT_INDEX[name]]
-        control_errors[name] = float(np.nanmax(np.abs(current-prior))) if np.isfinite(prior).any() else None
+        control_errors[name] = maximum_finite_difference(current, prior)
         if trial_exclusion is None:
             inner.full.radial.require(np.allclose(current, prior, rtol=2e-6, atol=2e-6, equal_nan=True),
                                       'parent SNR map changed for '+name)

@@ -67,3 +67,13 @@ production code. An isolated radius-12 replay resolved both radii in the FITS
 header and matched an independent two-circle annular oracle to `2.72e-7`; its
 SNR-5 center measurement was 4.126. The complete reanalysis reports the mean
 fixed-center and five-pixel-maximum SNR at every radius and target level.
+
+## Corrected-analysis launch repair
+
+The first corrected launch stopped before calibration with 97 of 164 baseline
+receipts complete and no positive analysis started. A verification-only raw
+control diagnostic attempted a maximum difference even when the masked and
+parent SNR maps had no common finite pixels, producing a NaN that strict JSON
+rejected. The maintained runner now records that unavailable diagnostic as
+JSON `null`. The exact-error repair retains all 97 completed receipts; restart
+archives and recomputes the 67 unreceipted task directories.

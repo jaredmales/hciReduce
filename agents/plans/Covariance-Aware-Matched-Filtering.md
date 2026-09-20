@@ -2389,6 +2389,14 @@ parent controls, while SNR maps, thresholds, and decisions are intentionally rec
 replay resolved both circles and matched the independent oracle to `2.72e-7`; the tested nominal-SNR-5 center rose
 to 4.126. The full masked comparison will reuse all 108 saved positives and add no reduction.
 
+The first masked launch stopped before calibration after writing 97 of 164 baseline receipts. For a raw method
+without common finite support between the masked and parent SNR maps, a verification-only maximum-difference
+diagnostic applied `nanmax` to an all-NaN array and then strict JSON correctly rejected the resulting NaN. The
+scientific amplitude and SNR products were unaffected. The runner now calculates this diagnostic only on the
+maps' common finite support and records JSON `null` when that support is empty. Its exact-error, pre-calibration
+repair retains the 97 completed receipts, verifies that positive analysis never started, archives the 67
+unreceipted task directories on restart, and recomputes only those tasks.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
