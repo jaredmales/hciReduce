@@ -2475,6 +2475,42 @@ measured injection SNR despite a predicted exact-template loss, the removed resp
 useful signal in this study. A PSD-precision truncation test remains separate until this template-only comparison is
 complete.
 
+### Step 5 result: measured-response smoothing (2026-09-20)
+
+The comparison completed all 164 baseline and 108 positive saved-image analyses with no new P4 reductions. Frozen
+inputs were unchanged. Zero-width identity, zero-width rectangular ±20, and production Gaussian amplitude/SNR maps
+reproduce the parent exactly, as does the independent annular oracle.
+
+Moderate smoothing improves recovery on this development sample. Identity with a 1.8-pixel response blur changes
+aggregate SNR-3/5/7 recovery from 23/35/35 to **25/35/35**, with zero held-out null exceedances in both cases.
+Rectangular ±20 with a 2.7-pixel response blur changes 19/33/34 to **22/34/35**, also with zero null exceedances.
+Production Gaussian gives 20/34/36 with one null exceedance. A 3.6-pixel response blur is too broad: identity loses
+one SNR-5 recovery, while rectangular drops to 20/32/35 and acquires one null exceedance. Smoothed rectangular does
+not surpass 1.8-pixel-smoothed identity in aggregate at the two lower levels.
+
+The effect is strongly separation dependent. At radius 8, a 1.8-pixel response blur raises identity's mean maximum
+SNR by 0.229/0.277/0.296 at nominal 3/5/7 and changes faint recovery from 4/6 to 6/6. For rectangular ±20, the same
+blur raises radius-6 SNR by 0.123/0.378/1.040 and radius-8 SNR by 0.088/0.279/0.361. It is neutral near radius 12 and
+generally lowers mean SNR at radii 16, 20, and 24. This does not support a single global response-smoothing width.
+
+Paired positive-minus-baseline amplitude increments follow the overlap predicted from the original response within a
+few percent. Identity with a 1.8-pixel blur measures throughput 1.377/1.361/1.340 versus predicted 1.347; rectangular
+1.8 measures 1.424/1.408/1.387 versus predicted 1.404. Values above one reflect normalization by the broadened
+template's smaller energy and are not extra P4 throughput. Their corresponding exact-template SNR efficiencies are
+0.987 and 0.979; rectangular 2.7 has efficiency 0.929. Thus smoothing improves some measured detections even though
+it would lose SNR if the unsmoothed response and covariance model were both exact.
+
+The close amplitude-overlap agreement argues against the simple hypothesis that the measured fine response is
+globally spurious. The radial pattern is more consistent with those modes carrying disproportionate residual noise,
+or with the PSD covariance failing to downweight them at small separations. Scalar overlap cannot exclude smaller
+template errors, and the sparse annular support at radii 6 and 8 remains a confounder. The complete tables and figure
+are in the [response-smoothing report](results/p4-step5-response-smoothing-setup-20260920/README.md).
+
+**Next:** hold the measured response fixed and regularize the PSD precision. Compare a hard or tapered
+spatial-frequency cutoff with clipped inverse-PSD gain, using the current 0.3 spectral mixture as the zero-truncation
+control. Emphasize radii 6 and 8 while retaining 12–24 as controls, and do not select a radius-dependent production
+policy from these six correlated, repeatedly inspected sites.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
