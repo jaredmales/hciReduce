@@ -98,6 +98,10 @@ def prepare(args: argparse.Namespace) -> None:
     jobs = inner.full.read(study/'jobs.json')
     completion = inner.full.read(study/'complete.json')
     levels = parent['brightness_multipliers']
+    exclusion_radius = 7.3 if args.exclude_trial_from_annular else None
+    if exclusion_radius is not None:
+        inner.full.radial.require(parent.get('target_source_snrs') == [3.0, 5.0, 7.0],
+                                  'trial-excluded analysis requires the SNR 3/5/7 parent')
     inner.full.radial.require(len(parent['calibration_trials']) == 128 and len(parent['sites']) == 36 and
                               len(jobs) == 108 and completion['positive_reductions'] == 108,
                               'changed or incomplete inner-radius parent design')
@@ -126,11 +130,19 @@ def prepare(args: argparse.Namespace) -> None:
         'candidate_units': 'candidate stamp, fitted raw mean patch, and response remain in raw contrast units',
         'invalid_normalization': 'nonfinite or roundoff-scale patch RMS invalidates the normalized fit; no samples are removed and no fallback is used',
         'search': 'native center plus four axial one-pixel neighbors; all five covariance fits and annular normalizations required; invalid search is a nondetection',
-        'snr_summary': 'use the frozen production hciAnalyze SNR maps; at each radius, brightness, and method report the arithmetic mean of the valid five-pixel maximum search SNRs; invalid searches are omitted and counted; also retain mean center-pixel SNR',
+        'snr_summary': ('rerun production hciAnalyze with both the known planet and current trial excluded from each annular profile; at each radius, brightness, and method report mean five-pixel maximum and center SNR'
+            if exclusion_radius is not None else
+            'use the frozen production hciAnalyze SNR maps; at each radius, brightness, and method report the arithmetic mean of the valid five-pixel maximum search SNRs; invalid searches are omitted and counted; also retain mean center-pixel SNR'),
         'thresholds': '20 valid geometry-selected baseline searches in the parent radial band; score-free validity replacements only; all thresholds frozen before positives',
-        'controls': 'raw PSD, identity, and Gaussian amplitude/SNR maps and decisions must reproduce the completed parent study',
+        'controls': ('raw PSD, identity, and Gaussian amplitude maps must reproduce the parent; SNR maps and thresholds are intentionally recalculated with the current trial excluded'
+            if exclusion_radius is not None else
+            'raw PSD, identity, and Gaussian amplitude/SNR maps and decisions must reproduce the completed parent study'),
         'workers': len(args.cpus), 'cpu_ids': args.cpus, 'threads_per_worker': 1,
         'dependence': 'reuses the same correlated residual field and inspected injections; paired development comparison, not independent validation'}
+    if exclusion_radius is not None:
+        protocol.update(annular_trial_exclusion_radius=exclusion_radius,
+            annular_exclusions='known planet radius 7.3 pixels plus the current baseline/positive trial radius 7.3 pixels; production half-pixel mask boundary',
+            parent_snr_replay=False)
     for key in ('target_source_snrs', 'reference_snr', 'level_labels', 'measured_snr_expectation'):
         if key in parent:
             protocol[key] = parent[key]
@@ -283,6 +295,7 @@ def score_trial(trial: dict, snr: np.ndarray, amplitudes: np.ndarray) -> dict:
 def analyze(task: dict) -> str:
     """Build normalized maps for one frozen image/trial and reproduce all raw controls."""
     root, study, parent, trials, templates = _CONTEXT
+    protocol = inner.full.read(root/'protocol.json')
     trial = trials[task['trial_name']]
     directory = root/task['phase']/task['name']
     complete = directory/'complete.json'
@@ -335,15 +348,20 @@ def analyze(task: dict) -> str:
                               'missing fixed search-pixel covariance diagnostics')
     settings = {'source_x': parent['known_source_circle'][0], 'source_y': parent['known_source_circle'][1],
         'source_radius': parent['known_source_circle'][2], 'lambda_d': 3.6, 'min_radius': 0, 'max_radius': 60}
+    trial_exclusion = protocol.get('annular_trial_exclusion_radius')
+    if trial_exclusion is not None:
+        settings['source_exclusions'] = [parent['known_source_circle'],
+            [trial['row'], trial['column'], trial_exclusion]]
     oracle_enabled, expected, profiles, annular_support = select_methods(maps, trial, settings)
     search_positions = [(trial['row']+dx, trial['column']+dy) for dx, dy in inner.SEARCH_OFFSETS]
     parent_active = {name for name in inner.METHODS if all(np.isfinite(
         parent_snr[PARENT_INDEX[name], y, x]) for x, y in search_positions)}
     controls = {*RAW.values(), 'identity', 'gaussian'}
-    enabled = [name for name in METHODS if
-               (name in controls and name in parent_active) or (name not in controls and name in oracle_enabled)]
+    enabled = [name for name in METHODS if name in oracle_enabled and
+               (name not in controls or name in parent_active)]
     for name in controls:
-        annular_support[name]['parent_production_replay'] = name in parent_active
+        annular_support[name]['parent_filter_support'] = name in parent_active
+        annular_support[name]['parent_production_replay'] = trial_exclusion is None and name in parent_active
     inner.full.radial.require('identity' in enabled and 'gaussian' in enabled,
                               'parent reference method lacks complete five-pixel production support')
     enabled_indices = [METHODS.index(name) for name in enabled]
@@ -353,8 +371,18 @@ def analyze(task: dict) -> str:
     active_header = header.copy()
     active_header['HCI FILTER LABELS'] = ','.join(enabled)
     fits.writeto(directory/'active_amplitudes.fits', maps[enabled_indices], active_header)
+    planet_separations = [11.782]
+    planet_angles = [262.051]
+    planet_radii = [7.3]
+    if trial_exclusion is not None:
+        delta_x, delta_y = trial['row']-127.5, trial['column']-127.5
+        planet_separations.append(math.hypot(delta_x, delta_y))
+        planet_angles.append(math.degrees(-math.atan2(delta_x, delta_y)) % 360)
+        planet_radii.append(trial_exclusion)
     command = [str(study/'software/hciAnalyze'), '--file='+str(directory/'active_amplitudes.fits'), '--lambdaD=3.6',
-        '--planet.sep=11.782', '--planet.PA=262.051', '--planet.R=7.3', '--snr.apertureR=60',
+        '--planet.sep='+','.join(map(str, planet_separations)),
+        '--planet.PA='+','.join(map(str, planet_angles)),
+        '--planet.R='+','.join(map(str, planet_radii)), '--snr.apertureR=60',
         '--snr.minRad=0', '--snr.maxRad=60', '--filter.psfResponse=', '--filter.lpfGaussFW=0',
         '--filter.hpfGaussFW=0', '--noise.model=identity', '--noise.only=false', '--noise.outputDiagnostics=false']
     write_json(directory/'command.json', command)
@@ -386,8 +414,9 @@ def analyze(task: dict) -> str:
         current = snr[METHODS.index(name)]
         prior = parent_snr[PARENT_INDEX[name]]
         control_errors[name] = float(np.nanmax(np.abs(current-prior))) if np.isfinite(prior).any() else None
-        inner.full.radial.require(np.allclose(current, prior, rtol=2e-6, atol=2e-6, equal_nan=True),
-                                  'parent SNR map changed for '+name)
+        if trial_exclusion is None:
+            inner.full.radial.require(np.allclose(current, prior, rtol=2e-6, atol=2e-6, equal_nan=True),
+                                      'parent SNR map changed for '+name)
     measurement = {'task': task, 'trial': trial, 'source': fingerprint(source),
         'models': score_trial(trial, snr, maps), 'active_methods': enabled,
         'annular_support': annular_support, 'required_bins': bins, 'fit_details': details,
@@ -497,11 +526,14 @@ def calibrate(root: Path, baseline: list[dict]) -> tuple[dict, dict]:
             thresholds[str(nominal)][method] = max(value['search_score'] for value in values)
     parent_thresholds = inner.full.read(study/'thresholds.json')
     parent_pools = inner.full.read(study/'effective_calibration_pools.json')['pools']
+    replay_parent_snr = inner.full.read(root/'protocol.json').get('parent_snr_replay', True)
     for nominal in RADII:
         for method in (*RAW.values(), 'identity', 'gaussian'):
-            inner.full.radial.require(pools[str(nominal)][method] == parent_pools[str(nominal)][method] and
-                                      thresholds[str(nominal)][method] == parent_thresholds[str(nominal)][method],
-                                      'raw calibration control changed for '+method)
+            if replay_parent_snr:
+                inner.full.radial.require(pools[str(nominal)][method] == parent_pools[str(nominal)][method] and
+                                          thresholds[str(nominal)][method] ==
+                                          parent_thresholds[str(nominal)][method],
+                                          'raw calibration control changed for '+method)
     write_json(root/'baseline.json', {'rows': baseline, 'parent_baseline_reused': True})
     write_json(root/'effective_calibration_pools.json', {'schema': 1, 'score_values_used_for_selection': False,
         'paired_raw_normalized_locations': True, 'pools': pools})
@@ -519,6 +551,7 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
     levels = tuple(protocol['brightnesses'])
     target_snrs = protocol.get('target_source_snrs')
     level_labels = protocol.get('level_labels', [f'{level:g}×' for level in levels])
+    replay_parent_snr = protocol.get('parent_snr_replay', True)
     parent_results = inner.full.read(study/'results.json')
     baseline_rows = {record['trial']['name']: record for record in baseline}
     jobs = {record['task']['job']['name']: record for record in positives}
@@ -538,17 +571,19 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
             if value['center_amplitude'] is not None and method != 'gaussian':
                 value['raw_contrast_error'] = value['center_amplitude']/job['contrast']-1
         measurements.append(record)
-        for method in (*RAW.values(), 'identity', 'gaussian'):
-            inner.full.radial.require(record['models'][method]['detected'] ==
-                                      parent_jobs[name]['models'][method]['detected'],
-                                      'parent positive decision changed for '+method)
+        if replay_parent_snr:
+            for method in (*RAW.values(), 'identity', 'gaussian'):
+                inner.full.radial.require(record['models'][method]['detected'] ==
+                                          parent_jobs[name]['models'][method]['detected'],
+                                          'parent positive decision changed for '+method)
     parent_nulls = {record['site']['name']: record for record in parent_results['nulls']}
     for record in nulls:
         name = record['trial']['name']
-        for method in (*RAW.values(), 'identity', 'gaussian'):
-            inner.full.radial.require(record['models'][method]['detected'] ==
-                                      parent_nulls[name]['models'][method]['detected'],
-                                      'parent held-out null decision changed for '+method)
+        if replay_parent_snr:
+            for method in (*RAW.values(), 'identity', 'gaussian'):
+                inner.full.radial.require(record['models'][method]['detected'] ==
+                                          parent_nulls[name]['models'][method]['detected'],
+                                          'parent held-out null decision changed for '+method)
     groups = []
     for nominal in RADII:
         for method in METHODS:
@@ -566,7 +601,7 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
                     'invalid_searches': sum(not value['valid'] for value in values),
                     'median_raw_contrast_error': float(np.median(errors)) if errors else None})
             groups.append(one)
-            if method in (*RAW.values(), 'identity', 'gaussian'):
+            if replay_parent_snr and method in (*RAW.values(), 'identity', 'gaussian'):
                 parent = next(group for group in parent_results['groups'] if
                               group['radius'] == nominal and group['method'] == method)
                 inner.full.radial.require(one == parent, 'parent summary changed for '+method)
@@ -618,23 +653,33 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
             for value in record['parent_control_max_errors'].values() if value is not None),
         'maximum_annular_oracle_difference': max(value for record in [*baseline, *measurements]
             for value in record['annular_oracle_max_errors'].values() if value is not None),
-        'raw_reference_decisions_reproduced': True, 'paired_calibration_locations': True}
+        'raw_reference_decisions_reproduced': replay_parent_snr,
+        'raw_reference_amplitude_maps_reused': True,
+        'trial_excluded_from_annular_noise': not replay_parent_snr,
+        'paired_calibration_locations': True}
     write_json(root/'results.json', {'groups': groups, 'aggregate': aggregate,
         'paired_decisions': paired, 'nulls': nulls,
         'measurements': measurements, 'thresholds': thresholds, 'calibration_pools': pools,
         'verification': verification, 'caveats': [inner.full.read(study/'protocol.json')['dependence'],
-        'This reuses inspected images and does not provide independent validation.']})
+        'This reuses inspected images and does not provide independent validation.',
+        'The current trial is excluded from annular noise in both baseline and positive analyses.'
+            if not replay_parent_snr else 'Parent annular normalization is replayed unchanged.']})
     lines = ['# Inner-radius post-mean patch-RMS comparison', '',
+        ('The known planet and current trial are both excluded from every production annular-noise profile.'
+         if not replay_parent_snr else 'The parent production annular-noise profiles are replayed unchanged.'), '',
         '| Radius | Method | '+' | '.join(level_labels)+' | Nulls | Invalid nulls |',
         '| ---: | --- | '+' | '.join('---:' for _ in levels)+' | ---: | ---: |']
     for group in groups:
         lines.append(f'| {group["radius"]} | {LABELS[group["method"]]} | '+
             ' | '.join(f'{row["detections"]}/{row["trials"]}' for row in group['levels'])+
             f' | {group["null_exceedances"]}/6 | {group["invalid_nulls"]}/6 |')
+    control_summary = ('Raw amplitude maps reproduce the parent study; annular SNR maps and thresholds were '
+        'recalculated with the current trial excluded.' if not replay_parent_snr else
+        'Raw controls reproduce the parent study.')
     lines += ['', 'All thresholds were frozen before positive analysis. Invalid searches are nondetections. '
-              'Raw controls reproduce the parent study; no P4 reductions were run.', '',
+              +control_summary+' No P4 reductions were run.', '',
         '## Mean five-pixel search / fixed-center SNR by radius', '',
-        'Each per-injection value comes from the frozen production hciAnalyze SNR map. The table gives the arithmetic '
+        'Each per-injection value comes from a production hciAnalyze SNR map. The table gives the arithmetic '
         'mean over valid injections at that radius and shows the valid count. Each cell is the mean maximum over '
         'the fixed five-pixel detection search / the mean at the injected center.', '',
         '| Radius | Method | Valid sites | '+' | '.join(label+' mean SNR' for label in level_labels)+' |',
@@ -722,6 +767,8 @@ def main() -> None:
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--study', type=Path, default=Path('working/roc/p4_inner_rectangular_20260919'))
     parser.add_argument('--cpus', type=int, nargs='+', default=list(range(12)))
+    parser.add_argument('--exclude-trial-from-annular', action='store_true',
+                        help='exclude the current baseline/positive trial with radius 7.3 from production annular noise')
     args = parser.parse_args()
     if args.action == 'prepare':
         prepare(args)

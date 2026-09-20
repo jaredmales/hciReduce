@@ -2364,6 +2364,31 @@ completed calibration and all 108 job names in frozen order, verifies every meas
 inputs, refuses any existing unreceipted final result, and updates only the frozen runner plus a repair receipt. A
 restart reuses every reduction and analysis and reruns final summarization only.
 
+### Step 5 result: source contamination of the annular-noise estimate (2026-09-19)
+
+The repaired run completed with all 108 reductions, measurements, and frozen inputs verified. The intended SNR
+scale did not appear in the original production maps: identity's mean fixed-center SNR at nominal 3/5/7 was
+1.71/1.84/1.88 at radius 6, 1.91/2.15/2.22 at radius 8, 2.37/2.73/2.90 at radius 12,
+2.27/3.23/3.70 at radius 16, 2.55/3.71/4.39 at radius 20, and 2.51/3.83/4.66 at radius 24.
+
+The [completed-run diagnosis](results/p4-step5-inner-snr357-20260919/README.md) separates response throughput from
+noise normalization. Mean paired identity amplitude increments remain 0.91–1.05 times the injected contrast, but
+the positive-image annular standard deviation increases with source brightness. At nominal SNR 5 its mean ratio to
+the paired baseline is 2.78, 2.35, 2.11, 1.46, 1.32, and 1.25 from radius 6 through 24. The known planet was
+excluded from these profiles, while the injected source was not. At small separations a bright injected PSF then
+occupies enough of its own one-pixel annulus to make reported SNR saturate even though the fitted response remains
+near unit throughput. The unmasked recovery counts therefore do not answer the intended SNR-3/5/7 question.
+
+No P4 rerun is needed. The saved-image raw/patch-RMS runner now has an explicit trial-excluded mode. It passes the
+known planet and current trial as two vector-valued production `hciAnalyze` signals, each with a 7.3-pixel exclusion
+radius, and reconstructs the same two-circle mask in its independent oracle. This radius matches the established
+planet exclusion and, with production's half-pixel boundary, encloses the full 11x11 response support. Every
+baseline search uses its own
+trial exclusion before thresholds are frozen; positives use the matching exclusion. Raw amplitude maps remain the
+parent controls, while SNR maps, thresholds, and decisions are intentionally recalculated. A radius-12 production
+replay resolved both circles and matched the independent oracle to `2.72e-7`; the tested nominal-SNR-5 center rose
+to 4.126. The full masked comparison will reuse all 108 saved positives and add no reduction.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

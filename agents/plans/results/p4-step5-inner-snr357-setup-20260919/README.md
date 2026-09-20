@@ -1,5 +1,10 @@
 # Step 5: inner-radius SNR 3/5/7 confirmation setup
 
+**Completion note:** all 108 reductions completed, but the initial annular SNR
+included each injection in its own noise sample. The
+[completion and diagnosis](../p4-step5-inner-snr357-20260919/README.md) retain
+that result and define a corrected saved-image analysis with no new reductions.
+
 ## Fixed source scale
 
 This confirmatory study repeats the inner-radius comparison with nominal
@@ -105,14 +110,16 @@ cat working/roc/p4_inner_snr357_20260919/state.json
 tail -n 30 working/roc/p4_inner_snr357_20260919/driver.log
 ```
 
-After that state is `complete`, prepare the saved-image patch-RMS comparison:
+After that state is `complete`, prepare the saved-image patch-RMS comparison
+with the current trial excluded from annular noise:
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
   /opt/conda/envs/xpy3_13/bin/python3 \
   agents/plans/scripts/compare_p4_step5_inner_patch_rms.py prepare \
   --study working/roc/p4_inner_snr357_20260919 \
-  --root working/roc/p4_inner_snr357_patch_rms_20260919 \
+  --root working/roc/p4_inner_snr357_patch_rms_excluded_20260919 \
+  --exclude-trial-from-annular \
   --cpus 0 1 2 3 4 5 6 7 8 9 10 11
 ```
 
@@ -124,11 +131,19 @@ tmux new-session -d -s p4-inner-snr357-rms \
    OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
    /opt/conda/envs/xpy3_13/bin/python3 \
    agents/plans/scripts/compare_p4_step5_inner_patch_rms.py run \
-   --root working/roc/p4_inner_snr357_patch_rms_20260919 \
-   > working/roc/p4_inner_snr357_patch_rms_20260919/driver.log 2>&1"
+   --root working/roc/p4_inner_snr357_patch_rms_excluded_20260919 \
+   > working/roc/p4_inner_snr357_patch_rms_excluded_20260919/driver.log 2>&1"
 ```
 
-Both roots are new. The completed threshold-scaled study remains immutable.
+Monitor the saved-image analysis:
+
+```sh
+cat working/roc/p4_inner_snr357_patch_rms_excluded_20260919/state.json
+tail -n 30 working/roc/p4_inner_snr357_patch_rms_excluded_20260919/driver.log
+```
+
+The corrected comparison root is new. The completed SNR-3/5/7 study remains
+immutable.
 
 ## Post-summary runner repair
 

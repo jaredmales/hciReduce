@@ -32,8 +32,12 @@ def annular_oracle(amplitude: np.ndarray, settings: dict) -> tuple[np.ndarray, l
     """Reconstruct production one-pixel annular means/stddevs and the small-sample multiplier."""
     yy, xx = np.indices(amplitude.shape)
     radius = np.hypot(xx-127.5, yy-127.5).astype('f4')
-    source_radius = np.hypot(xx-settings['source_x'], yy-settings['source_y']).astype('f4')
-    noise = np.isfinite(amplitude) & (source_radius > settings['source_radius']+.5)
+    exclusions = settings.get('source_exclusions',
+        [(settings['source_x'], settings['source_y'], settings['source_radius'])])
+    noise = np.isfinite(amplitude)
+    for source_x, source_y, source_radius in exclusions:
+        distance = np.hypot(xx-source_x, yy-source_y).astype('f4')
+        noise &= distance > source_radius+.5
     profile = []
     for lower in range(181):
         # The image center is half-integral: no native radius lies exactly on an integer boundary.
