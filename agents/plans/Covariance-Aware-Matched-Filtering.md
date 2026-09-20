@@ -2438,6 +2438,43 @@ mean five-pixel SNR rises only 3.208/3.775/4.065 across nominal 3/5/7. Radius-6 
 not provide stable completeness estimates even though all reference searches are formally finite. Further
 small-separation work should change the noise-estimation design rather than continue tuning patch normalization.
 
+### Step 5 development: regularize the measured response (prepared 2026-09-20)
+
+The user observed that Gaussian FWHM-3.6 smoothing has consistently higher mean injection SNR than the identity
+matched filter and proposed that fine structure in the independently estimated response may be noise. The response
+was estimated independently of the source-recovery injections, including the established averaging procedure for
+sparse response measurements. Independence prevents injection leakage but does not guarantee that low-amplitude
+response structure is measured precisely or remains representative across candidate positions.
+
+Smoothing the response and regularizing the covariance inverse are related through the final weight vector but test
+different estimates. With a stationary covariance, the matched-filter spectrum is proportional to
+$\widetilde t(k)/P_n(k)$, whereas response smoothing changes it to $H(k)\widetilde t(k)$. They are equivalent only
+when the precision spectrum is proportional to the smoothing transfer function. The completed PSD tests used soft
+spectral mixing, $P_\beta=(1-\beta)P+\beta\bar v$, followed by a full finite-covariance solve. They did not truncate
+the PSD covariance inverse. The earlier three-mode PCA model truncated an empirical patch-covariance representation,
+not the structured PSD model. Response smoothing addresses uncertain template structure; inverse truncation addresses
+uncertain noise-covariance modes.
+
+The approved [template-only comparison](results/p4-step5-response-smoothing-setup-20260920/README.md) therefore starts
+with two controls on the completed SNR-3/5/7 saved images: identity weighting and raw rectangular-PSD weighting with
+±20-pixel pooling. The ±20 branch is the rectangular model with complete support at all 36 inner sites. Both receive
+the same measured-response Gaussian low-pass grid: FWHM 0, 0.9, 1.8, 2.7, and 3.6 pixels, corresponding to 0, 0.25,
+0.5, 0.75, and 1.0 lambda/D. Production Gaussian FWHM-3.6 smoothing remains a reference but is not equivalent to
+smoothing the already processed response by that width.
+
+Only the native 11-by-11 response changes. Candidate images, covariance samples, fitted means, source masks, the
+one-lambda/D trial exclusion, five-pixel search, and production annular SNR remain fixed. Every width in a weighting
+family uses the same previously selected 20 null locations and receives its own frozen maximum-null threshold. The
+zero-width identity and rectangular maps, plus the Gaussian reference, must reproduce the completed parent analysis.
+No new P4 reductions are required.
+
+The runner reports mean maximum and center SNR, recovery and null counts, paired amplitude throughput, and the
+predicted matched-SNR efficiency if the unsmoothed response were exact. The last quantity is the ordinary template
+cosine for identity weighting and its covariance-inner-product analogue for PSD weighting. If smoothing raises the
+measured injection SNR despite a predicted exact-template loss, the removed response structure is not reproducing as
+useful signal in this study. A PSD-precision truncation test remains separate until this template-only comparison is
+complete.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
