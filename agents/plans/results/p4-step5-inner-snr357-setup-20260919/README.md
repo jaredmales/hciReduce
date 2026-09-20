@@ -111,14 +111,15 @@ tail -n 30 working/roc/p4_inner_snr357_20260919/driver.log
 ```
 
 After that state is `complete`, prepare the saved-image patch-RMS comparison
-with the current trial excluded from annular noise:
+with the current trial excluded through one effective lambda/D. This uses a new
+root; the earlier 7.3-pixel-mask root is a retained failed design:
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
   /opt/conda/envs/xpy3_13/bin/python3 \
   agents/plans/scripts/compare_p4_step5_inner_patch_rms.py prepare \
   --study working/roc/p4_inner_snr357_20260919 \
-  --root working/roc/p4_inner_snr357_patch_rms_excluded_20260919 \
+  --root working/roc/p4_inner_snr357_patch_rms_lambdad_20260919 \
   --exclude-trial-from-annular \
   --cpus 0 1 2 3 4 5 6 7 8 9 10 11
 ```
@@ -126,40 +127,28 @@ OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
 Run that analysis in a second resumable session:
 
 ```sh
-tmux new-session -d -s p4-inner-snr357-rms \
+tmux new-session -d -s p4-inner-snr357-rms-lambdad \
   "cd /home/jrmales/Source/mxApps/hciReduce && \
    OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
    /opt/conda/envs/xpy3_13/bin/python3 \
    agents/plans/scripts/compare_p4_step5_inner_patch_rms.py run \
-   --root working/roc/p4_inner_snr357_patch_rms_excluded_20260919 \
-   > working/roc/p4_inner_snr357_patch_rms_excluded_20260919/driver.log 2>&1"
+   --root working/roc/p4_inner_snr357_patch_rms_lambdad_20260919 \
+   > working/roc/p4_inner_snr357_patch_rms_lambdad_20260919/driver.log 2>&1"
 ```
 
 Monitor the saved-image analysis:
 
 ```sh
-cat working/roc/p4_inner_snr357_patch_rms_excluded_20260919/state.json
-tail -n 30 working/roc/p4_inner_snr357_patch_rms_excluded_20260919/driver.log
+cat working/roc/p4_inner_snr357_patch_rms_lambdad_20260919/state.json
+tail -n 30 working/roc/p4_inner_snr357_patch_rms_lambdad_20260919/driver.log
 ```
 
-If the initial corrected launch has the exact strict-JSON NaN failure recorded
-in the [completed-run diagnosis](../p4-step5-inner-snr357-20260919/README.md),
-pull the repair and update only the frozen runner record:
-
-```sh
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
-  /opt/conda/envs/xpy3_13/bin/python3 \
-  agents/plans/scripts/compare_p4_step5_inner_patch_rms.py repair \
-  --root working/roc/p4_inner_snr357_patch_rms_excluded_20260919
-```
-
-Restart the same `tmux` run command. The repair requires the exact failure,
-checks that calibration and positive analysis never started, retains the 97
-completed baseline receipts, and preserves the 67 incomplete directories under
-`interrupted/` before recomputing them.
-
-The corrected comparison root is new. The completed SNR-3/5/7 study remains
-immutable.
+The failed `p4_inner_snr357_patch_rms_excluded_20260919` root records both the
+strict-JSON diagnostic repair and the subsequent geometry failure at 140 of
+164 baseline receipts. Its 7.3-pixel trial mask cannot support six injection
+sites and is not reused. The replacement configures `planet.R=3.1`; production's
+half-pixel boundary gives an effective 3.6-pixel or one-lambda/D trial mask.
+The completed SNR-3/5/7 parent remains immutable.
 
 ## Post-summary runner repair
 

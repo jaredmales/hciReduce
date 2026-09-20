@@ -2379,23 +2379,32 @@ excluded from these profiles, while the injected source was not. At small separa
 occupies enough of its own one-pixel annulus to make reported SNR saturate even though the fitted response remains
 near unit throughput. The unmasked recovery counts therefore do not answer the intended SNR-3/5/7 question.
 
-No P4 rerun is needed. The saved-image raw/patch-RMS runner now has an explicit trial-excluded mode. It passes the
-known planet and current trial as two vector-valued production `hciAnalyze` signals, each with a 7.3-pixel exclusion
-radius, and reconstructs the same two-circle mask in its independent oracle. This radius matches the established
-planet exclusion and, with production's half-pixel boundary, encloses the full 11x11 response support. Every
-baseline search uses its own
-trial exclusion before thresholds are frozen; positives use the matching exclusion. Raw amplitude maps remain the
-parent controls, while SNR maps, thresholds, and decisions are intentionally recalculated. A radius-12 production
-replay resolved both circles and matched the independent oracle to `2.72e-7`; the tested nominal-SNR-5 center rose
-to 4.126. The full masked comparison will reuse all 108 saved positives and add no reduction.
+No P4 rerun is needed. The saved-image raw/patch-RMS runner has an explicit trial-excluded mode that passes the
+known planet and current trial as two vector-valued production `hciAnalyze` signals and reconstructs the same mask
+in its independent oracle. Raw amplitude maps remain the parent controls, while SNR maps, thresholds, and
+decisions are recalculated. An initial radius-12 replay with 7.3-pixel radii resolved both circles and matched the
+independent oracle to `2.72e-7`; the tested nominal-SNR-5 center rose to 4.126.
 
-The first masked launch stopped before calibration after writing 97 of 164 baseline receipts. For a raw method
+The first full launch with that 7.3-pixel trial radius stopped before calibration after writing 97 of 164 baseline
+receipts. For a raw method
 without common finite support between the masked and parent SNR maps, a verification-only maximum-difference
 diagnostic applied `nanmax` to an all-NaN array and then strict JSON correctly rejected the resulting NaN. The
 scientific amplitude and SNR products were unaffected. The runner now calculates this diagnostic only on the
-maps' common finite support and records JSON `null` when that support is empty. Its exact-error, pre-calibration
-repair retains the 97 completed receipts, verifies that positive analysis never started, archives the 67
-unreceipted task directories on restart, and recomputes only those tasks.
+maps' common finite support and records JSON `null` when that support is empty. After that repair retained the 97
+completed receipts, the resumed analysis reached 140 of 164 baselines and exposed the underlying geometry limit:
+the 7.3-pixel trial mask and 7.3-pixel known-planet mask jointly leave no complete five-pixel annular profile at
+four radius-6 sites, two radius-8 sites, and 18 central calibration candidates.
+
+A score-free sweep of the saved amplitude maps found that a configured trial radius of **3.1 pixels** is the
+largest fixed radius that preserves complete five-pixel identity and Gaussian support at all 36 injection sites.
+Production's half-pixel boundary makes the effective mask radius 3.6 pixels, exactly one lambda/D as proposed in
+the sampling discussion. At radius 6 this still leaves only 3--6 native annular pixels after the known-planet and
+trial masks, so the innermost SNR remains a sparse-sample diagnostic. Five of 128 calibration candidates have no
+active method under this mask. They are retained as explicit invalid candidates; each active method instead uses
+20 valid trials chosen by deterministic maximin geometry from the narrowest available radial band. Raw and
+post-mean patch-RMS pairs require common support and use identical calibration trials. The replacement comparison
+uses a new root, reuses all 108 positive images, and performs no P4 reduction. At the most constrained supported
+radius-6 site, the production SNR map and independent two-mask oracle agreed exactly on their common finite pixels.
 
 ## 8. Notation
 

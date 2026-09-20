@@ -39,6 +39,7 @@ LABELS = {**{RAW[width]: f'Raw ±{width}' for width in WIDTHS},
           'identity': 'Identity', 'gaussian': 'Gaussian FWHM 3.6'}
 PARENT_INDEX = {name: inner.METHODS.index(name) for name in inner.METHODS}
 CALIBRATION_SEARCHES = inner.CALIBRATION_SEARCHES
+TRIAL_EXCLUSION_RADIUS = 3.1
 _CONTEXT = None
 
 
@@ -98,7 +99,7 @@ def prepare(args: argparse.Namespace) -> None:
     jobs = inner.full.read(study/'jobs.json')
     completion = inner.full.read(study/'complete.json')
     levels = parent['brightness_multipliers']
-    exclusion_radius = 7.3 if args.exclude_trial_from_annular else None
+    exclusion_radius = TRIAL_EXCLUSION_RADIUS if args.exclude_trial_from_annular else None
     if exclusion_radius is not None:
         inner.full.radial.require(parent.get('target_source_snrs') == [3.0, 5.0, 7.0],
                                   'trial-excluded analysis requires the SNR 3/5/7 parent')
@@ -118,7 +119,7 @@ def prepare(args: argparse.Namespace) -> None:
                       for trial in [*parent['calibration_trials'], *parent['sites']]]
     positive_tasks = [{'name': job['name'], 'phase': 'positive', 'trial_name': job['site'],
                        'source_name': job['name'], 'job': job} for job in jobs]
-    protocol = {'schema': 1,
+    protocol = {'schema': 2 if exclusion_radius is not None else 1,
         'purpose': 'paired raw versus post-mean patch-RMS rectangular PSD at inner radii',
         'parent_study': str(study), 'methods': list(METHODS), 'labels': LABELS,
         'widths': list(WIDTHS), 'radii': list(RADII), 'brightnesses': levels,
@@ -130,10 +131,12 @@ def prepare(args: argparse.Namespace) -> None:
         'candidate_units': 'candidate stamp, fitted raw mean patch, and response remain in raw contrast units',
         'invalid_normalization': 'nonfinite or roundoff-scale patch RMS invalidates the normalized fit; no samples are removed and no fallback is used',
         'search': 'native center plus four axial one-pixel neighbors; all five covariance fits and annular normalizations required; invalid search is a nondetection',
-        'snr_summary': ('rerun production hciAnalyze with both the known planet and current trial excluded from each annular profile; at each radius, brightness, and method report mean five-pixel maximum and center SNR'
+        'snr_summary': ('rerun production hciAnalyze with both the known planet and current trial excluded from each annular profile; at each radius, brightness, and method report mean five-pixel maximum and center SNR plus minimum/median native annular-pixel support'
             if exclusion_radius is not None else
             'use the frozen production hciAnalyze SNR maps; at each radius, brightness, and method report the arithmetic mean of the valid five-pixel maximum search SNRs; invalid searches are omitted and counted; also retain mean center-pixel SNR'),
-        'thresholds': '20 valid geometry-selected baseline searches in the parent radial band; score-free validity replacements only; all thresholds frozen before positives',
+        'thresholds': ('20 valid geometry-selected baseline searches from the narrowest available radial band; raw and normalized methods use common support; all thresholds frozen before positives'
+            if exclusion_radius is not None else
+            '20 valid geometry-selected baseline searches in the parent radial band; score-free validity replacements only; all thresholds frozen before positives'),
         'controls': ('raw PSD, identity, and Gaussian amplitude maps must reproduce the parent; SNR maps and thresholds are intentionally recalculated with the current trial excluded'
             if exclusion_radius is not None else
             'raw PSD, identity, and Gaussian amplitude/SNR maps and decisions must reproduce the completed parent study'),
@@ -141,7 +144,9 @@ def prepare(args: argparse.Namespace) -> None:
         'dependence': 'reuses the same correlated residual field and inspected injections; paired development comparison, not independent validation'}
     if exclusion_radius is not None:
         protocol.update(annular_trial_exclusion_radius=exclusion_radius,
-            annular_exclusions='known planet radius 7.3 pixels plus the current baseline/positive trial radius 7.3 pixels; production half-pixel mask boundary',
+            annular_trial_effective_radius=exclusion_radius+.5,
+            annular_exclusions='known planet radius 7.3 pixels plus the current baseline/positive trial radius 3.1 pixels; production half-pixel boundary makes the trial mask one lambda/D (3.6 pixels)',
+            calibration_pool_policy='for every active method, choose 20 valid trials by deterministic maximin geometry from the narrowest radial half-width; raw and patch-RMS pairs require common support and use identical trials',
             parent_snr_replay=False)
     for key in ('target_source_snrs', 'reference_snr', 'level_labels', 'measured_snr_expectation'):
         if key in parent:
@@ -370,8 +375,10 @@ def analyze(task: dict) -> str:
     for name in controls:
         annular_support[name]['parent_filter_support'] = name in parent_active
         annular_support[name]['parent_production_replay'] = trial_exclusion is None and name in parent_active
-    inner.full.radial.require('identity' in enabled and 'gaussian' in enabled,
-                              'parent reference method lacks complete five-pixel production support')
+    site_names = {site['name'] for site in parent['sites']}
+    if task['phase'] == 'positive' or trial['name'] in site_names:
+        inner.full.radial.require('identity' in enabled and 'gaussian' in enabled,
+                                  'reference method lacks complete five-pixel support at an injection site')
     enabled_indices = [METHODS.index(name) for name in enabled]
     header['HCI FILTER LABELS'] = ','.join(METHODS)
     header['HCI RADIAL BINS'] = ','.join(map(str, bins))
@@ -379,31 +386,42 @@ def analyze(task: dict) -> str:
     active_header = header.copy()
     active_header['HCI FILTER LABELS'] = ','.join(enabled)
     fits.writeto(directory/'active_amplitudes.fits', maps[enabled_indices], active_header)
-    planet_separations = [11.782]
-    planet_angles = [262.051]
-    planet_radii = [7.3]
-    if trial_exclusion is not None:
-        delta_x, delta_y = trial['row']-127.5, trial['column']-127.5
-        planet_separations.append(math.hypot(delta_x, delta_y))
-        planet_angles.append(math.degrees(-math.atan2(delta_x, delta_y)) % 360)
-        planet_radii.append(trial_exclusion)
-    command = [str(study/'software/hciAnalyze'), '--file='+str(directory/'active_amplitudes.fits'), '--lambdaD=3.6',
-        '--planet.sep='+','.join(map(str, planet_separations)),
-        '--planet.PA='+','.join(map(str, planet_angles)),
-        '--planet.R='+','.join(map(str, planet_radii)), '--snr.apertureR=60',
-        '--snr.minRad=0', '--snr.maxRad=60', '--filter.psfResponse=', '--filter.lpfGaussFW=0',
-        '--filter.hpfGaussFW=0', '--noise.model=identity', '--noise.only=false', '--noise.outputDiagnostics=false']
+    command = []
+    if enabled:
+        planet_separations = [11.782]
+        planet_angles = [262.051]
+        planet_radii = [7.3]
+        if trial_exclusion is not None:
+            delta_x, delta_y = trial['row']-127.5, trial['column']-127.5
+            planet_separations.append(math.hypot(delta_x, delta_y))
+            planet_angles.append(math.degrees(-math.atan2(delta_x, delta_y)) % 360)
+            planet_radii.append(trial_exclusion)
+        command = [str(study/'software/hciAnalyze'), '--file='+str(directory/'active_amplitudes.fits'),
+            '--lambdaD=3.6', '--planet.sep='+','.join(map(str, planet_separations)),
+            '--planet.PA='+','.join(map(str, planet_angles)),
+            '--planet.R='+','.join(map(str, planet_radii)), '--snr.apertureR=60',
+            '--snr.minRad=0', '--snr.maxRad=60', '--filter.psfResponse=', '--filter.lpfGaussFW=0',
+            '--filter.hpfGaussFW=0', '--noise.model=identity', '--noise.only=false',
+            '--noise.outputDiagnostics=false']
+        environment = inner.full.binary_environment(study, reduction=False)
+        environment.update(OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='1')
+        with (directory/'analysis.log').open('w') as log:
+            subprocess.run(command, cwd=directory, env=environment, stdout=log,
+                           stderr=subprocess.STDOUT, check=True)
+        active_snr, snr_header = fits.getdata(directory/'active_amplitudes_snr.fits', header=True)
+        active_snr = active_snr.reshape((len(enabled), *science.shape))
+        inner.full.radial.require(active_snr.shape == maps[enabled_indices].shape and
+                                  snr_header['SNRMEAN'] == snr_header['SNRSMALL'] == 1,
+                                  'changed production annular SNR contract')
+    else:
+        (directory/'analysis.log').write_text(
+            'No method has complete five-pixel support; production annular analysis skipped.\n')
+        active_snr = np.empty((0, *science.shape), dtype='f4')
+        snr_header = active_header.copy()
+        snr_header['SNRMEAN'] = 1
+        snr_header['SNRSMALL'] = 1
+        fits.writeto(directory/'active_amplitudes_snr.fits', active_snr, snr_header)
     write_json(directory/'command.json', command)
-    environment = inner.full.binary_environment(study, reduction=False)
-    environment.update(OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='1')
-    with (directory/'analysis.log').open('w') as log:
-        subprocess.run(command, cwd=directory, env=environment, stdout=log,
-                       stderr=subprocess.STDOUT, check=True)
-    active_snr, snr_header = fits.getdata(directory/'active_amplitudes_snr.fits', header=True)
-    active_snr = active_snr.reshape((len(enabled), *science.shape))
-    inner.full.radial.require(active_snr.shape == maps[enabled_indices].shape and
-                              snr_header['SNRMEAN'] == snr_header['SNRSMALL'] == 1,
-                              'changed production annular SNR contract')
     snr = np.full(maps.shape, np.nan, dtype='f4')
     snr[enabled_indices] = active_snr
     fits.writeto(directory/'amplitudes_snr.fits', snr, snr_header)
@@ -428,6 +446,8 @@ def analyze(task: dict) -> str:
     measurement = {'task': task, 'trial': trial, 'source': fingerprint(source),
         'models': score_trial(trial, snr, maps), 'active_methods': enabled,
         'annular_support': annular_support, 'required_bins': bins, 'fit_details': details,
+        'annular_profile_min_pixels': {name: min(row['pixels'] for row in profile
+            if int(row['radius']-.5) in bins) for name, profile in profiles.items()},
         'fitted_pixels': fitted_pixels, 'elapsed_seconds': time.monotonic()-start,
         'annular_oracle_max_errors': oracle_errors, 'parent_control_max_errors': control_errors}
     write_json(directory/'profiles.json', {name: [row for row in profile if int(row['radius']-.5) in bins]
@@ -467,13 +487,50 @@ def base_method(method: str) -> str:
     return method
 
 
-def effective_pools(parent: dict, baseline: list[dict]) -> dict:
+def masked_pool(parent: dict, rows: dict, nominal: int, methods: tuple[str, ...], template: dict) -> dict:
+    """Choose a maximin pool on common method support from the narrowest radial band."""
+    trials = parent['calibration_trials']
+    for half_width in range(26):
+        available = [trial for trial in trials if abs(trial['nominal_radius']-nominal) <= half_width and
+                     all(rows[trial['name']]['models'][method]['valid'] for method in methods)]
+        if len(available) >= CALIBRATION_SEARCHES:
+            selected = inner.maximin(available, CALIBRATION_SEARCHES)
+            break
+    else:
+        raise RuntimeError(f'insufficient valid calibration searches for radius {nominal} {methods}')
+    chosen = [trial['name'] for trial in selected]
+    original = list(template['trials'])
+    return {**template, 'trials': chosen, 'radial_half_width': half_width,
+        'radius_range': [nominal-half_width, nominal+half_width], 'original_trials': original,
+        'invalid_original_trials': [name for name in original if not all(
+            rows[name]['models'][method]['valid'] for method in methods)],
+        'replacement_trials': [name for name in chosen if name not in original],
+        'retained_trials': [name for name in chosen if name in original],
+        'paired_methods': list(methods), 'selection': 'narrowest valid radial band, then deterministic maximin geometry'}
+
+
+def effective_pools(parent: dict, baseline: list[dict], expand_radial_range: bool = False) -> dict:
     """Choose fixed-size valid null pools by geometry without reading score values."""
     rows = {record['trial']['name']: record for record in baseline}
     trials = {trial['name']: trial for trial in parent['calibration_trials']}
     result = {}
     for nominal in RADII:
         result[str(nominal)] = {}
+        if expand_radial_range:
+            for width in WIDTHS:
+                raw, normalized = RAW[width], RMS[width]
+                template = parent['calibration_pools'][str(nominal)][raw]
+                if template is None:
+                    result[str(nominal)][raw] = result[str(nominal)][normalized] = None
+                    continue
+                pool = masked_pool(parent, rows, nominal, (raw, normalized), template)
+                result[str(nominal)][raw] = dict(pool)
+                result[str(nominal)][normalized] = dict(pool)
+            for method in ('identity', 'gaussian'):
+                template = parent['calibration_pools'][str(nominal)][method]
+                result[str(nominal)][method] = (None if template is None else
+                    masked_pool(parent, rows, nominal, (method,), template))
+            continue
         for method in METHODS:
             pool = parent['calibration_pools'][str(nominal)][base_method(method)]
             if pool is None:
@@ -518,7 +575,8 @@ def calibrate(root: Path, baseline: list[dict]) -> tuple[dict, dict]:
         return inner.full.read(root/'thresholds.json'), inner.full.read(root/'effective_calibration_pools.json')['pools']
     study = Path(inner.full.read(root/'protocol.json')['parent_study'])
     parent = inner.full.read(study/'protocol.json')
-    pools = effective_pools(parent, baseline)
+    replay_parent_snr = inner.full.read(root/'protocol.json').get('parent_snr_replay', True)
+    pools = effective_pools(parent, baseline, expand_radial_range=not replay_parent_snr)
     rows = {record['trial']['name']: record for record in baseline}
     thresholds = {}
     for nominal in RADII:
@@ -534,7 +592,6 @@ def calibrate(root: Path, baseline: list[dict]) -> tuple[dict, dict]:
             thresholds[str(nominal)][method] = max(value['search_score'] for value in values)
     parent_thresholds = inner.full.read(study/'thresholds.json')
     parent_pools = inner.full.read(study/'effective_calibration_pools.json')['pools']
-    replay_parent_snr = inner.full.read(root/'protocol.json').get('parent_snr_replay', True)
     for nominal in RADII:
         for method in (*RAW.values(), 'identity', 'gaussian'):
             if replay_parent_snr:
@@ -544,7 +601,8 @@ def calibrate(root: Path, baseline: list[dict]) -> tuple[dict, dict]:
                                           'raw calibration control changed for '+method)
     write_json(root/'baseline.json', {'rows': baseline, 'parent_baseline_reused': True})
     write_json(root/'effective_calibration_pools.json', {'schema': 1, 'score_values_used_for_selection': False,
-        'paired_raw_normalized_locations': True, 'pools': pools})
+        'paired_raw_normalized_locations': True,
+        'radial_ranges_reselected_for_masked_support': not replay_parent_snr, 'pools': pools})
     write_json(root/'thresholds.json', thresholds)
     products = [fingerprint(root/name) for name in
                 ('baseline.json', 'effective_calibration_pools.json', 'thresholds.json')]
@@ -620,9 +678,14 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
                             level_row['brightness_multiplier']]
                 values = [record['models'][method] for record in selected]
                 valid = [value for value in values if value['valid']]
+                support = [record.get('annular_profile_min_pixels', {}).get(method) for record in selected
+                           if record['models'][method]['valid'] and
+                           record.get('annular_profile_min_pixels', {}).get(method) is not None]
                 level_row.update(valid_searches=len(valid),
                     mean_search_snr=float(np.mean([value['search_score'] for value in valid])) if valid else None,
-                    mean_center_snr=float(np.mean([value['snr_pixels'][0] for value in valid])) if valid else None)
+                    mean_center_snr=float(np.mean([value['snr_pixels'][0] for value in valid])) if valid else None,
+                    minimum_annular_pixels=min(support) if support else None,
+                    median_minimum_annular_pixels=float(np.median(support)) if support else None)
     paired = []
     for nominal in RADII:
         for width in WIDTHS:
@@ -702,6 +765,17 @@ def summarize(root: Path, baseline: list[dict], positives: list[dict], threshold
         lines.append(f'| {group["radius"]} | {LABELS[group["method"]]} | {valid_counts[0]}/6 | '+
                      ' | '.join(formatted)+' |')
     lines += ['',
+        '## Minimum native pixels in required annular profiles', '',
+        'Each cell is the minimum / median, across valid injections, of the smallest native-pixel count in any '
+        'one-pixel annulus required by that injection\'s five-pixel search.', '',
+        '| Radius | Method | '+' | '.join(label for label in level_labels)+' |',
+        '| ---: | --- | '+' | '.join('---:' for _ in levels)+' |']
+    for group in groups:
+        formatted = [('—' if row['minimum_annular_pixels'] is None else
+                      f'{row["minimum_annular_pixels"]} / {row["median_minimum_annular_pixels"]:.1f}')
+                     for row in group['levels']]
+        lines.append(f'| {group["radius"]} | {LABELS[group["method"]]} | '+' | '.join(formatted)+' |')
+    lines += ['',
         '## Aggregate across radii', '',
         '| Method | Valid sites | '+' | '.join(level_labels)+' | Nulls | Invalid nulls |',
         '| --- | ---: | '+' | '.join('---:' for _ in levels)+' | ---: | ---: |']
@@ -776,7 +850,7 @@ def main() -> None:
     parser.add_argument('--study', type=Path, default=Path('working/roc/p4_inner_rectangular_20260919'))
     parser.add_argument('--cpus', type=int, nargs='+', default=list(range(12)))
     parser.add_argument('--exclude-trial-from-annular', action='store_true',
-                        help='exclude the current baseline/positive trial with radius 7.3 from production annular noise')
+                        help='exclude the current trial to an effective radius of one lambda/D from annular noise')
     args = parser.parse_args()
     if args.action == 'prepare':
         prepare(args)
