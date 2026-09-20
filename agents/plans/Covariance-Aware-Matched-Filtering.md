@@ -2511,6 +2511,31 @@ spatial-frequency cutoff with clipped inverse-PSD gain, using the current 0.3 sp
 control. Emphasize radii 6 and 8 while retaining 12–24 as controls, and do not select a radius-dependent production
 policy from these six correlated, repeatedly inspected sites.
 
+### Step 5 development: regularize the rectangular-PSD precision (prepared 2026-09-20)
+
+The next [fixed comparison](results/p4-step5-psd-precision-setup-20260920/README.md) keeps the independently
+measured response, raw rectangular ±20 PSD estimate, 0.3 flat-spectrum mixture, fitted mean, training samples,
+candidate data, exclusions, and annular SNR unchanged. It changes only the eigenvalues used by the finite
+covariance precision. If $C=Q\operatorname{diag}(\nu_i)Q^T$ and $\bar v=\operatorname{tr}(C)/121$, the full
+control uses precision eigenvalues $1/\nu_i$. Clipped variants use
+$1/\max(\nu_i,c\bar v)$, while hard-truncated variants use $1/\nu_i$ above the cutoff and zero below it. The
+fixed cutoff grid is $c=0.5,0.75,1.0$.
+
+This directly tests whether the small covariance eigenvalues receive excessive inverse gain. Clipping preserves
+all template modes while bounding that gain. Hard truncation removes the same low-variance modes entirely. Each
+weight is renormalized to unit response to the unchanged measured template. Under the fitted covariance itself,
+the full inverse is optimal; the runner therefore reports each regularized weight's exact-PSD SNR efficiency as
+an algebraic diagnostic. A measured gain despite efficiency below one points to covariance-model or finite-sample
+error rather than better performance under the fitted model.
+
+The comparison reuses all 164 baseline and 108 positive analyses from the completed response-smoothing study and
+runs no new P4 reduction. Every new method uses the frozen raw rectangular ±20 calibration locations and receives
+its own maximum-null threshold. The copied full rectangular inverse, unsmoothed identity, identity with 1.8-pixel
+response smoothing, rectangular ±20 with 2.7-pixel response smoothing, and production Gaussian are retained as
+references. The full inverse is also recomputed through the covariance eigensystem at every fitted pixel and must
+agree with the copied Cholesky-solve map. Results at radii 6 and 8 are the main diagnostic, while 12–24 remain
+controls; these repeatedly inspected sites remain development data.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
@@ -2562,6 +2587,7 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $Q$ | Complete orthonormal noise eigenbasis | $p\times p$; $C=Q\operatorname{diag}(\nu_i)Q^T$. Distinct from P4's temporal basis $U$. |
 | $q_i$ (noise eigenvector) | Column $i$ of $Q$ | Length $p$; used in the complete covariance-eigenbasis formulation. Distinct from scalar excess variance $q_i$ below. |
 | $\nu_i$ | Noise variance along eigenvector $q_i$ | Positive eigenvalue of $C$; modal matched-filter weights use $1/\nu_i$. |
+| $c$ (precision cutoff) | Covariance-eigenvalue cutoff as a fraction of mean variance | The precision test uses $c=0.5,0.75,1.0$ relative to $\bar v$: clipping replaces $\nu_i<c\bar v$ by $c\bar v$ before inversion, while hard truncation gives those modes zero precision. |
 | $t_i,z_i$ | Template and data coefficients in the noise eigenbasis | $t_i=q_i^Tt$, $z_i=q_i^Tz$; retain their signs for coherent template detection. |
 | $R$ | Mean-centered matrix of noise-training stamps | $n\times p$; each row is a stamp, and the sample covariance is $R^TR/(n-1)$. |
 | $n$ (training count) | Number of covariance-training stamps | Scalar; the centered sample covariance has rank at most $n-1$. Overlap can reduce effective independence. |
