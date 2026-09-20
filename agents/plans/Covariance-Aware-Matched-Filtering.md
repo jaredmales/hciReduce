@@ -2357,6 +2357,13 @@ reproducible. The patch-RMS runner reads levels from its completed parent rather
 0.5/0.75/1 values. A local score-free audit reproduced the unchanged 36 sites, 128 unique null centers, and 108
 positive jobs and recorded the new 0.6/1/1.4 scale.
 
+The first ROC launch completed all 108 reductions and measurements, then the new fixed-center SNR summary read
+`snr_pixels`, which is the later patch-RMS record name, instead of the base runner's existing `pixels` field. The
+maintained runner now uses `pixels[0]`. Its repair action recognizes only the exact post-summary `KeyError`, requires
+completed calibration and all 108 job names in frozen order, verifies every measurement product and all unchanged
+inputs, refuses any existing unreceipted final result, and updates only the frozen runner plus a repair receipt. A
+restart reuses every reduction and analysis and reruns final summarization only.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

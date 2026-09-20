@@ -270,23 +270,16 @@ def setup(args: argparse.Namespace) -> None:
 
 
 def repair(args: argparse.Namespace) -> None:
-    """Update a failed pre-calibration runner while preserving prior repair records."""
+    """Update a recognized failed runner while preserving completed products."""
     root = args.root.resolve()
     manifest = full.read(root/'manifest.json')
     state = full.read(root/'state.json')
     error = state.get('error', '')
+    summary_schema = error == "'snr_pixels'"
     unsupported_layer = 'hciAnalyze' in error and 'SIGABRT' in error
     incomplete_collision = 'File exists' in error and '/analysis/' in error
     nonfinite_json = 'Out of range float values are not JSON compliant' in error
     oracle_mismatch = 'annular oracle mismatch' in error
-    full.radial.require(state['status'] == 'failed' and
-                        (unsupported_layer or incomplete_collision or nonfinite_json or oracle_mismatch) and
-                        not (root/'calibration_complete.json').exists() and
-                        not (root/'thresholds.json').exists() and not (root/'jobs.json').exists(),
-                        'repair is allowed only after a recognized pre-calibration runner failure')
-    reductions = root/'reductions'
-    full.radial.require(not reductions.exists() or not any(reductions.iterdir()),
-                        'positive reductions already exist; do not repair this study in place')
     target = (root/'software'/Path(__file__).name).resolve()
     old = next((record for record in manifest['frozen_records'] if Path(record['path']).resolve() == target), None)
     full.radial.require(old is not None and fingerprint(target) == old, 'frozen runner changed before repair')
@@ -298,6 +291,53 @@ def repair(args: argparse.Namespace) -> None:
     repair_name = f'repair_{repair_number:04d}'
     repair_path = root/(repair_name+'.json')
     full.radial.require(not repair_path.exists(), 'repair record already exists: '+str(repair_path))
+    previous_state = fingerprint(root/'state.json')
+    if summary_schema:
+        full.radial.require(state['status'] == 'failed' and (root/'calibration_complete.json').exists() and
+                            (root/'thresholds.json').exists() and (root/'jobs.json').exists() and
+                            not (root/'complete.json').exists(),
+                            'summary repair requires completed calibration and no completion receipt')
+        full.radial.require(not any((root/name).exists() for name in
+                            ('results.json', 'results.md', 'comparison.png')),
+                            'summary repair refuses existing unreceipted final products')
+        full.verify(full.read(root/'calibration_complete.json')['products'])
+        jobs = full.read(root/'jobs.json')
+        names = [job['name'] for job in jobs]
+        full.radial.require(len(jobs) == 108 and state.get('finished') == names,
+                            'summary repair requires all 108 jobs in frozen order')
+        measurement_records = []
+        for job in jobs:
+            path = root/'measurements'/(job['name']+'.json')
+            full.radial.require(path.exists(), 'missing completed measurement: '+job['name'])
+            measurement = full.read(path)
+            full.radial.require(measurement['trial']['name'] == job['name'],
+                                'measurement/job mismatch: '+job['name'])
+            full.verify(measurement['products'])
+            measurement_records.append(fingerprint(path))
+        shutil.copy2(Path(__file__).resolve(), target)
+        updated = fingerprint(target)
+        manifest['frozen_records'] = [updated if record == old else record for record in manifest['frozen_records']]
+        record = {'schema': 1, 'repair_number': repair_number,
+            'reason': 'read fixed-center SNR from the recorded five-pixel field during final summary',
+            'stage': 'post_measurement_summary', 'positive_reductions_before_repair': len(jobs),
+            'measurements_verified': measurement_records, 'previous_runner': old,
+            'updated_runner': updated, 'previous_state': previous_state,
+            'archived_partial_analysis': []}
+        write_json(repair_path, record)
+        manifest.setdefault('repair_records', []).append(fingerprint(repair_path))
+        write_json(root/'manifest.json', manifest)
+        write_json(root/'state.json', {'status': 'repaired', 'positive_reductions': len(jobs),
+            'finished': names, 'repair': str(repair_path)})
+        print('repaired frozen runner after verifying all 108 completed measurements', flush=True)
+        return
+    full.radial.require(state['status'] == 'failed' and
+                        (unsupported_layer or incomplete_collision or nonfinite_json or oracle_mismatch) and
+                        not (root/'calibration_complete.json').exists() and
+                        not (root/'thresholds.json').exists() and not (root/'jobs.json').exists(),
+                        'repair is allowed only after a recognized pre-calibration runner failure')
+    reductions = root/'reductions'
+    full.radial.require(not reductions.exists() or not any(reductions.iterdir()),
+                        'positive reductions already exist; do not repair this study in place')
     archived = []
     analysis = root/'analysis'
     if analysis.exists():
@@ -309,7 +349,6 @@ def repair(args: argparse.Namespace) -> None:
             full.radial.require(not destination.exists(), 'pre-repair archive already exists: '+str(destination))
             shutil.move(directory, destination)
             archived.append(str(destination))
-    previous_state = fingerprint(root/'state.json')
     shutil.copy2(Path(__file__).resolve(), target)
     updated = fingerprint(target)
     manifest['frozen_records'] = [updated if record == old else record for record in manifest['frozen_records']]
@@ -670,7 +709,7 @@ def summarize(root: Path, thresholds: dict, baseline: dict, measurements: list) 
                 one['levels'].append({'brightness_multiplier': level,
                     'valid_searches': len(valid),
                     'mean_search_snr': float(np.mean([value['search_score'] for value in valid])) if valid else None,
-                    'mean_center_snr': float(np.mean([value['snr_pixels'][0] for value in valid])) if valid else None})
+                    'mean_center_snr': float(np.mean([value['pixels'][0] for value in valid])) if valid else None})
             snr_groups.append(one)
     write_json(root/'results.json', {'groups': groups, 'snr_groups': snr_groups,
         'nulls': nulls, 'measurements': measurements,

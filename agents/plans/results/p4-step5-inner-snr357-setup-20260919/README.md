@@ -130,6 +130,30 @@ tmux new-session -d -s p4-inner-snr357-rms \
 
 Both roots are new. The completed threshold-scaled study remains immutable.
 
+## Post-summary runner repair
+
+The first SNR-3/5/7 launch completed and preserved all 108 reductions and
+measurements, then stopped while constructing the new fixed-center SNR summary.
+The base runner records the five SNR values as `pixels`; the summary used the
+`snr_pixels` name from the later patch-RMS schema. No final result product was
+written.
+
+After pulling the repair commit, update only the frozen runner:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/p4-step5-matplotlib \
+  /opt/conda/envs/xpy3_13/bin/python3 \
+  agents/plans/scripts/run_p4_step5_inner_rectangular.py repair \
+  --root working/roc/p4_inner_snr357_20260919
+```
+
+This repair requires the exact `KeyError`, completed calibration, all 108 jobs
+in frozen order, verified products for every measurement, unchanged inputs,
+and no final result files. It replaces and rehashes only the frozen runner and
+records every verified measurement in the repair receipt. Restart the same run
+command; it reuses all completed reductions and analyses and regenerates only
+the summaries.
+
 ## Local validation
 
 The SNR-target mode passed Python syntax checks and a complete score-free audit
