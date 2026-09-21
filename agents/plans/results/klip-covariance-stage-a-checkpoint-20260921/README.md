@@ -1,4 +1,4 @@
-# KLIP covariance Stage-A implementation checkpoint
+# KLIP covariance Stage-A result
 
 ## Scope
 
@@ -9,14 +9,14 @@ The maintained runner is
 It fingerprints all 621 raw inputs, both response product sets, the science
 cubes, configuration, PSF, and executables before calculating any new score.
 
-The local end-to-end validation used 16 pinned CPUs and current build-tree
-executables. It is an implementation check rather than the canonical ROC
-receipt because both executable hashes differ from the archived response run:
+The canonical ROC run used CPUs 12--27. Its `klipReduce` executable is the
+archived response-run binary; the newer `hciAnalyze` executable independently
+reproduces the archived analysis results:
 
-| Executable | Archived SHA-256 | Validation SHA-256 |
-| --- | --- | --- |
-| `klipReduce` | `6abd73a8a9e9e64df979923da3e16f2275e93f089df181e2b7e9dd042ec3a6e5` | `5b50bde7af147f3eda9f6be349c3e381487c17ce54898dc06335d2aed040b695` |
-| `hciAnalyze` | `f077812bf9390e05629d2af6b1993b7395fb1f48dd9766fb57600b3c6136d747` | `3ab9a69c5798512f9a35f7c96dda0c503d7e4274e819df11eb811779ed1d96e6` |
+| Executable | Archived SHA-256 | ROC SHA-256 | Match |
+| --- | --- | --- | --- |
+| `klipReduce` | `6abd73a8a9e9e64df979923da3e16f2275e93f089df181e2b7e9dd042ec3a6e5` | `6abd73a8a9e9e64df979923da3e16f2275e93f089df181e2b7e9dd042ec3a6e5` | Yes |
+| `hciAnalyze` | `f077812bf9390e05629d2af6b1993b7395fb1f48dd9766fb57600b3c6136d747` | `fb25e3123dd6f59c190ce7151a04e9d030368efeda9fb4d68adbfe043609dfec` | No |
 
 ## Audit results
 
@@ -26,16 +26,16 @@ receipt because both executable hashes differ from the archived response run:
 | Five-pixel common-support geometry | Pass | Counts reproduce 42, 44, 60, 91, 113, and 160 at radii 7.5, 10, 12, 16, 20, and 24 pixels |
 | Independent exact identity-filter reconstruction | Pass | Maximum difference from direct `hciAnalyze` annular SNR: $4.77\times10^{-7}$ |
 | Archived planet controls | Pass | All 32 SNR values reproduce at the printed precision |
-| Current versus archived signal-free baseline | Fail | Same finite mask; maximum absolute difference 0.03318 and RMS difference $1.23\times10^{-4}$ |
+| Current versus archived signal-free baseline | Pass | Bitwise identical; maximum and RMS differences are zero |
 | Preregistered 11-by-11 border-energy trigger | Triggered | Every primary mode-200 radial bin exceeds the one-percent median threshold |
 
-The baseline failure is a deliberate blocking gate. The validation build has
-broad floating-point differences at the strict `rtol=2e-6`, `atol=5e-7`
-tolerance and isolated larger differences, led by 0.03318 at mode 125 and
-0.01846 at mode 200. Injection reductions cannot be mixed with the archived
-response until the canonical ROC run either reproduces the archived baseline
-or freezes a compatible historical reduction binary. Regenerating the exact
-response with the selected current build is the remaining fallback.
+The baseline compatibility gate passes exactly: the new signal-free cube and
+the archived exact-response baseline have identical finite masks and identical
+pixel values. The archived response may therefore be used with new ROC
+reductions made by this frozen `klipReduce` binary. The different `hciAnalyze`
+hash is acceptable for this stage because its independent identity-filter
+replay agrees within $4.77\times10^{-7}$ in SNR and all 32 archived planet
+values reproduce at their printed precision.
 
 ## Response footprint
 
@@ -77,18 +77,16 @@ These are mode-200 values on common valid support. Sampling is deterministic:
 up to 64 complete exact locations per radial bin, evenly indexed after sorting
 by position angle.
 
-## ROC command
+## ROC receipt
 
-Run preparation and analysis under the same affinity. The copied runner in the
-experiment directory is the frozen analysis entry point:
+The complete run is
+`working/roc/klip_covariance_stage_a_20260921`. Its completion receipt records:
 
-```bash
-root=working/roc/klip_covariance_stage_a_20260921
-taskset -c 12-27 python3 agents/plans/scripts/run_klip_covariance_stage_a.py check
-taskset -c 12-27 python3 agents/plans/scripts/run_klip_covariance_stage_a.py prepare "$root"
-taskset -c 12-27 python3 "$root/software/run_klip_covariance_stage_a.py" run "$root"
-```
+- `results.json`: `7c2708e6758bc42e156229b7765c1f50e5fe1a2cf5c30d659873120b0f4dac52`;
+- `results.md`: `721568bfda8cde1559675b9231b80a2577693b2af9c8ee8bc5d9c50f50c40058`.
 
-The runner writes strict `protocol.json`, `manifest.json`, `state.json`,
-`results.json`, `results.md`, and completion receipts. It keeps a failed task
-directory intact and verifies completed products before reusing them.
+The receipt status is complete and lists the baseline, response audit, sparse
+response audit, identity replay, planet controls, and report as completed. The
+only activated follow-up is the larger-stamp response experiment.
+That follow-up is frozen in the
+[response-stamp convergence setup](../klip-response-stamp-convergence-setup-20260921/README.md).

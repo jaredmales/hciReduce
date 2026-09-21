@@ -220,6 +220,23 @@ their hashes alongside the hashes from the archived exact-response run. The
 runner stops on changed frozen inputs or CPU affinity, preserves failed task
 directories for diagnosis, and reuses verified completed tasks on restart.
 
+The canonical ROC run completed on 2026-09-21. Its `klipReduce` hash matches
+the archived exact-response run and the freshly reduced signal-free cube is
+bitwise identical to the archived baseline. Geometry, the independent exact
+identity-filter replay, and all four planet controls pass. The response-edge
+trigger fires in every primary mode-200 radial bin, so the next checkpoint is
+a fixed-site larger-stamp convergence test before covariance screening chooses
+a final template footprint. See the [Stage-A result](../klip-covariance-stage-a-checkpoint-20260921/README.md).
+
+The [convergence setup](../klip-response-stamp-convergence-setup-20260921/README.md)
+uses 12 geometry-only sites per primary radius and 144 paired perturbation
+reductions total. Full-image differences provide 11--31-pixel candidate
+footprints and 39--63-pixel nonlocal-tail diagnostics from the same trials. The
+smallest candidate footprint that has
+complete selected-site support and satisfies the original one-percent median
+and five-percent individual edge-energy thresholds becomes the full-field
+response size used by the covariance stages.
+
 ### Stage B: noise-only covariance screening
 
 Use only the signal-free baseline and deterministic angular block splits. Fit

@@ -2682,24 +2682,35 @@ baseline, audits response geometry and energy, compares exact and sparse
 responses, independently reconstructs the exact identity-filter amplitude and
 annular-SNR cubes, and reruns all four archived planet controls.
 
-A pinned-CPU workstation validation passes the geometry, exact-filter replay,
-and planet-control checks. The replay agrees with direct `hciAnalyze` to
+A pinned-CPU canonical ROC run passes the baseline, geometry, exact-filter
+replay, and planet-control checks. The `klipReduce` executable exactly matches
+the archived response-run hash, and the new signal-free baseline is bitwise
+identical to the archived cube. The replay agrees with direct `hciAnalyze` to
 $4.77\times10^{-7}$ in annular SNR, all archived planet values reproduce at
 printed precision, and the primary five-pixel geometry reproduces the planned
 42, 44, 60, 91, 113, and 160 eligible centers. The exact-versus-sparse median
 mode-200 cosine is 0.975 at radius 7.5, 0.948 at radius 10, and at least 0.986
 from radius 12 outward; it falls to 0.853 in the radius-6 boundary diagnostic.
 
-Two gates fire. First, the validation `klipReduce` hash differs from the
-archived response-run binary, and its signal-free cube fails the strict reuse
-tolerance, with maximum absolute difference 0.03318. The canonical ROC run
-must establish whether the archived binary is still available or a new exact
-response is required. Second, the mode-200 median fraction of squared response
-energy on the 11-by-11 border is 3.63, 1.35, 1.54, 1.50, 1.57, and 1.85 percent
+The baseline compatibility gate therefore permits reuse of the exact response
+for new reductions made with the frozen ROC binary. One follow-up trigger
+fires: the mode-200 median fraction of squared response energy on the 11-by-11
+border is 3.63, 1.35, 1.54, 1.50, 1.57, and 1.85 percent
 across the six primary radii. This exceeds the preregistered one-percent trigger
 in every bin and requires a larger-stamp response experiment before an optimal
 matched-filter claim. Full tables and the ROC commands are in the
 [Stage-A checkpoint](results/klip-covariance-stage-a-checkpoint-20260921/README.md).
+
+The next [response-stamp convergence test](results/klip-response-stamp-convergence-setup-20260921/README.md)
+uses 12 geometry-only sites at each primary radius. A positive and negative
+signal-free perturbation at each site produces a full-image central difference,
+from which 11-, 15-, 19-, 23-, and 31-pixel candidate stamps are extracted;
+39--63-pixel diagnostic stamps measure nonlocal tails. Thus all sizes share 144
+KLIP reductions. The archived 11-pixel exact response is an
+independent replay gate, and the smallest larger stamp with complete support,
+median border energy at most one percent in every primary mode-200 radial bin,
+and no site above five percent becomes the target of one full-field response
+campaign.
 
 ## 8. Notation
 
