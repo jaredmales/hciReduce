@@ -2605,6 +2605,38 @@ The prepared runner passed its algebra and deterministic-sampling checks, verifi
 completed a three-level radius-6 replay, and exercised all 39 planet-aperture pixels end to end. The fresh run is
 therefore limited to the baseline-frozen replay, threshold resampling, and planet endpoint.
 
+### Step 5 result: precision closure (2026-09-20)
+
+The closure study completed all 36 sites and 108 positive analyses without a new P4 reduction. Copied parent SNR
+maps and the independent annular oracle agree exactly, and recomputed frozen-baseline amplitudes agree with the
+parent maps to $4.64\times10^{-10}$.
+
+Freezing the PSD covariance, fitted mean, and unit-response weight on the uninjected baseline has negligible effect.
+The full inverse, mean-variance clipping, and half-mean truncation retain exactly the same 19/33/34, 23/34/34, and
+21/33/34 recovery counts at nominal SNR 3/5/7. The aggressive 0.75 truncation changes from 25/34/35 to 25/35/35.
+Across every policy, radius, and level, the largest absolute change in mean five-pixel maximum SNR is 0.051 and the
+largest throughput change is about 0.2 percent. Only one aggressive-policy detection changes. Covariance or mean
+adaptation to the positive injection is therefore not the source of the regularization gains.
+
+The 10,000-draw threshold audit confirms substantial uncertainty in individual radius-8 maxima but modest changes
+in aggregate recovery. Mean-variance clipping has 23/23/23 faint detections at the 5th percentile, median, and 95th
+percentile for both refit and frozen positives. Half-mean truncation has 21/21/22; the full refit inverse has
+19/19/20. Their held-out-null distributions are all 0/0/1, so the observed zero-null result is not stable through
+the upper 5 percent of calibration subsets. The aggressive 0.75 cutoff has 25/25/25 faint detections but 1/1/2
+held-out nulls. At radius 8, the central 90 percent of thresholds span 2.812--3.344 for the full inverse,
+2.523--2.970 for clipping, 2.677--3.268 for half-mean truncation, and 2.050--2.227 for 0.75 truncation. The maximum
+of 20 correlated samples remains a material calibration limitation.
+
+On the known planet, all methods peak at the same native pixel. Gaussian FWHM 3.6 reaches SNR 5.6147, identity with
+the 1.8-pixel response low pass reaches 4.4876, and the four PSD precision policies span 4.2803--4.3341. This
+single-source endpoint favors Gaussian but does not select the method over the multi-location injection study.
+
+The complete tables and figure are in the
+[precision-closure report](results/p4-step5-precision-closure-setup-20260920/README.md). The closure removes
+positive-image covariance adaptation as a loose end and quantifies threshold instability. Clipping at the mean
+variance remains the most stable conservative candidate by recovery count, while half-mean truncation retains the
+best mean injection SNR relative to Gaussian. Neither is promoted from this repeatedly inspected development set.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

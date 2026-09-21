@@ -144,5 +144,107 @@ cat working/roc/p4_precision_closure_20260920/state.json
 tail -n 30 working/roc/p4_precision_closure_20260920/driver.log
 ```
 
-Final products will include `results.json`, `results.md`, and `comparison.png`,
-plus the planet amplitude/SNR maps and their independent-oracle diagnostics.
+The final ROC products include `results.json`, `results.md`, and
+`comparison.png`, plus the planet amplitude/SNR maps and their
+independent-oracle diagnostics.
+
+## Completed ROC result (2026-09-20)
+
+The run completed all 36 baseline-frozen sites and 108 positive analyses with
+no new P4 reductions. All frozen inputs remained unchanged. Copied parent SNR
+maps and the independent annular oracle agree exactly with their references;
+the largest difference between a recomputed frozen-baseline amplitude and its
+parent map is $4.64\times10^{-10}$.
+
+### Covariance adaptation
+
+The refit and baseline-frozen results are nearly identical:
+
+| Precision policy | Refit recovery at SNR 3/5/7 | Frozen recovery at SNR 3/5/7 | Refit mean max SNR at 3/5/7 | Frozen mean max SNR at 3/5/7 | Nulls |
+| --- | --- | --- | --- | --- | ---: |
+| Full inverse | 19/33/34 | 19/33/34 | 3.216/4.447/5.532 | 3.216/4.448/5.537 | 0 |
+| Clipped at 1.0 | 23/34/34 | 23/34/34 | 3.210/4.478/5.655 | 3.210/4.480/5.666 | 0 |
+| Hard truncated at 0.5 | 21/33/34 | 21/33/34 | 3.273/4.549/5.788 | 3.269/4.551/5.800 | 0 |
+| Hard truncated at 0.75 | 25/34/35 | 25/35/35 | 3.198/4.519/5.821 | 3.198/4.522/5.829 | 1 |
+
+The largest absolute radius-and-level mean maximum-SNR change is 0.051. The
+largest throughput change is 0.00194, or about 0.2 percent for a unit response.
+No conservative-policy detection changes. The only changed decision is one
+additional middle-level detection for the aggressive 0.75 truncation at
+radius 8. The previously measured precision gains therefore do not come from
+allowing the injected source to alter the covariance estimate or fitted mean.
+
+The unchanged references recover 25/35/35 for identity with the 1.8-pixel
+response low pass and 20/34/36 for Gaussian FWHM 3.6. Their held-out-null
+counts are zero and one, respectively.
+
+### Threshold sensitivity
+
+The following entries are the 5th percentile / median / 95th percentile over
+10,000 paired common-support draws. Detection counts are aggregated over all
+36 sites. Only the radius-8 and radius-12 thresholds vary between draws.
+
+| Policy and image fitting | SNR-3 detections | SNR-5 detections | SNR-7 detections | Held-out nulls |
+| --- | --- | --- | --- | --- |
+| Full, refit | 19/19/20 | 33/33/34 | 34/34/34 | 0/0/1 |
+| Full, frozen | 18/18/20 | 33/33/34 | 34/34/34 | 0/0/1 |
+| Clipped 1.0, refit | 23/23/23 | 34/34/34 | 34/34/34 | 0/0/1 |
+| Clipped 1.0, frozen | 23/23/23 | 34/34/34 | 34/34/34 | 0/0/1 |
+| Hard 0.5, refit | 21/21/22 | 33/33/34 | 34/34/34 | 0/0/1 |
+| Hard 0.5, frozen | 21/21/22 | 33/33/34 | 34/34/34 | 0/0/1 |
+| Hard 0.75, refit | 25/25/25 | 34/34/35 | 35/35/35 | 1/1/2 |
+| Hard 0.75, frozen | 25/25/25 | 34/34/35 | 35/35/35 | 1/1/2 |
+
+The aggregate recovery conclusion is fairly stable, particularly the clipped
+policy's 23 faint detections. A zero held-out-null count is not stable at the
+95th percentile for any conservative policy, however. The aggressive 0.75
+truncation retains a median of one null and is not a conservative candidate.
+
+Individual maximum-null thresholds remain noisy at radius 8. The table gives
+the completed threshold followed by the resampled 5th percentile / median /
+95th percentile:
+
+| Radius | Policy | Completed threshold | Resampled threshold 5%/median/95% |
+| ---: | --- | ---: | --- |
+| 8 | Full | 3.215 | 2.812/3.344/3.344 |
+| 8 | Clipped 1.0 | 2.811 | 2.523/2.970/2.970 |
+| 8 | Hard 0.5 | 3.051 | 2.677/3.268/3.268 |
+| 8 | Hard 0.75 | 2.178 | 2.050/2.227/2.227 |
+| 12 | Full | 2.072 | 1.955/2.072/2.072 |
+| 12 | Clipped 1.0 | 2.055 | 1.974/2.055/2.055 |
+| 12 | Hard 0.5 | 2.157 | 2.015/2.157/2.157 |
+| 12 | Hard 0.75 | 2.108 | 2.044/2.108/2.108 |
+
+At radius 8, a 20-of-36 draw includes the single largest score often enough
+that the median equals the full-pool maximum, while draws omitting several tail
+values can be much lower. This confirms that a raw maximum from 20 correlated
+locations is a material source of threshold uncertainty even when aggregate
+recovery changes little.
+
+### Known planet
+
+All methods peak at native pixel $(139,126)$, the nearest pixel to the expected
+planet position:
+
+| Method | Aperture maximum SNR |
+| --- | ---: |
+| Full inverse | 4.3341 |
+| Clipped at 1.0 | 4.2971 |
+| Hard truncated at 0.5 | 4.2819 |
+| Hard truncated at 0.75 | 4.2803 |
+| Identity, response LPF 1.8 px | 4.4876 |
+| Gaussian FWHM 3.6 | **5.6147** |
+
+The real planet favors the Gaussian filter by 1.13 SNR over smoothed identity
+and by 1.28--1.33 over the PSD precision methods. This one planet remains a
+descriptive cross-check and does not override the multi-location injection
+study.
+
+The closure tests rule out positive-image covariance adaptation as the source
+of the regularization result and quantify the remaining maximum-null
+uncertainty. Clipping at the mean variance remains the most stable conservative
+precision candidate by recovery count; half-mean truncation retains the best
+mean injection SNR relative to Gaussian. Neither is selected for production
+from this repeatedly inspected data set.
+
+![Baseline-frozen precision comparison](comparison.png)
