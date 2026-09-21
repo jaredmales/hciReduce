@@ -2701,16 +2701,30 @@ in every bin and requires a larger-stamp response experiment before an optimal
 matched-filter claim. Full tables and the ROC commands are in the
 [Stage-A checkpoint](results/klip-covariance-stage-a-checkpoint-20260921/README.md).
 
-The next [response-stamp convergence test](results/klip-response-stamp-convergence-setup-20260921/README.md)
-uses 12 geometry-only sites at each primary radius. A positive and negative
-signal-free perturbation at each site produces a full-image central difference,
-from which 11-, 15-, 19-, 23-, and 31-pixel candidate stamps are extracted;
-39--63-pixel diagnostic stamps measure nonlocal tails. Thus all sizes share 144
-KLIP reductions. The archived 11-pixel exact response is an
-independent replay gate, and the smallest larger stamp with complete support,
-median border energy at most one percent in every primary mode-200 radial bin,
-and no site above five percent becomes the target of one full-field response
-campaign.
+The completed
+[response-stamp convergence test](results/klip-response-stamp-convergence-setup-20260921/README.md)
+used 12 geometry-only sites at each primary radius and 144 paired perturbation
+reductions. Its 11-pixel response reproduces the archive with minimum cosine
+0.999999 and maximum projection error $4.40\times10^{-5}$. No footprint through
+31 pixels satisfies the edge rule in every primary mode-200 radial bin. The
+39-pixel diagnostic still intersects a strong ring at radius 10; 47 pixels is
+the first complete-support footprint whose median border energy is at most one
+percent and whose individual border energy is at most five percent at all six
+radii in all eight modes.
+
+The extended structure is large enough to matter. The 31-to-47-pixel square
+shell contains median 4.79%, 7.87%, and 4.53% of the 63-pixel mode-200 response
+energy at radii 7.5, 10, and 12, and individual sites reach 11.18%. A 47-pixel
+stamp is about 13 $\lambda/D$ wide and was designated as a diagnostic rather
+than an automatic promotion candidate. The next
+[contrast-linearity test](results/klip-response-tail-linearity-setup-20260921/README.md)
+therefore repeats six geometry-only sites per inner radius at perturbation
+scales 0.5 and 2, using the completed scale-1 responses as the reference. The
+31-to-47 shell must retain median cosine at least 0.95 and projection within
+0.10 of unity at both scales, while a Richardson-extrapolated 47-pixel response
+must clear the original edge thresholds. A pass promotes 47 pixels for one
+full-field response campaign; a failure prevents an expensive response run
+from encoding a contrast-dependent or incoherent tail.
 
 ## 8. Notation
 

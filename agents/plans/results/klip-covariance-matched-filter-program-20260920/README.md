@@ -228,14 +228,28 @@ trigger fires in every primary mode-200 radial bin, so the next checkpoint is
 a fixed-site larger-stamp convergence test before covariance screening chooses
 a final template footprint. See the [Stage-A result](../klip-covariance-stage-a-checkpoint-20260921/README.md).
 
-The [convergence setup](../klip-response-stamp-convergence-setup-20260921/README.md)
-uses 12 geometry-only sites per primary radius and 144 paired perturbation
-reductions total. Full-image differences provide 11--31-pixel candidate
-footprints and 39--63-pixel nonlocal-tail diagnostics from the same trials. The
-smallest candidate footprint that has
-complete selected-site support and satisfies the original one-percent median
-and five-percent individual edge-energy thresholds becomes the full-field
-response size used by the covariance stages.
+The completed
+[convergence experiment](../klip-response-stamp-convergence-setup-20260921/README.md)
+used 12 geometry-only sites per primary radius and 144 paired perturbation
+reductions. Its external 11-pixel derivative reproduces the archive with
+minimum cosine 0.999999 and maximum projection error $4.40\times10^{-5}$.
+No candidate through 31 pixels clears the edge rule at every primary mode-200
+radius. A 39-pixel extraction still fails at radius 10, while 47 pixels is the
+first complete-support size that clears the one-percent median and five-percent
+individual thresholds in all six radii and all eight modes.
+
+The newly exposed tail is material at small separation. The square shell from
+31 through 47 pixels contains median 4.79%, 7.87%, and 4.53% of the 63-pixel
+mode-200 response energy at radii 7.5, 10, and 12, with individual values as
+large as 11.18%. Because sizes above 31 were preregistered as diagnostics and a
+47-pixel template spans about 13 $\lambda/D$, it is not promoted directly. The
+[contrast-linearity checkpoint](../klip-response-tail-linearity-setup-20260921/README.md)
+repeats six geometry-only sites per inner radius at half and twice the original
+perturbation. Stable cosine and projection in the 31-to-47 shell, together with
+a passing Richardson-extrapolated edge test, will promote 47 pixels for one
+full-field response campaign. A failure will identify the outer energy as
+contrast dependent, incoherent, or still footprint limited before that costly
+campaign begins.
 
 ### Stage B: noise-only covariance screening
 
