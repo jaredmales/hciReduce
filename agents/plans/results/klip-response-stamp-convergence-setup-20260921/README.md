@@ -78,7 +78,9 @@ much smaller: median 2.15%, 1.48%, and 1.78% at the same radii.
 
 All 47-pixel selected-site stamps have complete finite support. The table's
 39-pixel worst medians occur at radius 10; the 47-pixel worst medians occur at
-radius 12.
+radius 12. The 63-pixel reference begins to intersect nonfinite reduction
+support at radii 20 and 24, so its outer-radius energy ratios remain diagnostic;
+this does not enter the 47-pixel support or border decision.
 
 ## Interpretation and next checkpoint
 
