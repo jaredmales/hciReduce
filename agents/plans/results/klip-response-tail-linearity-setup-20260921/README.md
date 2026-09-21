@@ -75,3 +75,28 @@ The run is resumable. It verifies the complete parent, all selected scale-1
 response products, frozen inputs, executable, CPU contract, FITS headers, and
 completed products before reuse. On completion it writes `results.json`,
 `results.md`, and a fingerprinted receipt.
+
+## Initial-run metadata repair
+
+The first prepared run stopped after its first two completed tasks because the
+six-significant-digit `FAKECONT` header rounded the doubled contrast to
+`0.00914873`, only $7.17\times10^{-12}$ beyond the original absolute-tolerance
+boundary. This is a metadata serialization effect; the configured reduction
+contrast and product are correct. The corrected validation uses a
+one-part-per-million relative comparison.
+
+The repair action verifies the original frozen experiment and failed state,
+validates the already-produced double-contrast FITS file, records the old and
+new runner hashes, installs the corrected runner in the frozen software
+directory, creates the missing product receipt, and updates the manifest. No
+reduction is discarded or silently accepted.
+
+After pulling the fix, resume with:
+
+```bash
+taskset -c 12-27 python3 \
+  agents/plans/scripts/run_klip_response_tail_linearity.py repair "$root"
+
+taskset -c 12-27 python3 \
+  "$root/software/run_klip_response_tail_linearity.py" run "$root"
+```

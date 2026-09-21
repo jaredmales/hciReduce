@@ -186,7 +186,76 @@ def task_command(root: Path, protocol: dict[str, object], task: dict[str, object
 def validate_reduction(path: Path, task: dict[str, object], site: dict[str, object],
                        protocol: dict[str, object]) -> None:
     """Validate one new perturbation cube and its source metadata."""
-    convergence.validate_reduction(path, task, site, protocol)
+    header = fits.getheader(path)
+    recorded_contrast = convergence.vector(header, "FAKECONT")
+    stage.require(len(recorded_contrast) == 1 and
+                  math.isclose(recorded_contrast[0], float(task["contrast"]), rel_tol=1e-6, abs_tol=1e-12),
+                  f"perturbation contrast metadata changed: {path}")
+    serialized_task = dict(task)
+    serialized_task["contrast"] = recorded_contrast[0]
+    convergence.validate_reduction(path, serialized_task, site, protocol)
+
+
+def repair(args: argparse.Namespace) -> None:
+    """Repair the initial metadata-tolerance failure without discarding products."""
+    root = args.root.resolve()
+    protocol = read(root / "protocol.json")
+    manifest = read(root / "manifest.json")
+    repair_path = root / "metadata_validation_repair.json"
+    runner_path = root / "software" / Path(__file__).name
+    if repair_path.is_file():
+        stage.verify(manifest["frozen_records"] + manifest["parent_records"] + manifest["external_records"])
+        print(repair_path, flush=True)
+        return
+
+    stage.verify(manifest["frozen_records"] + manifest["parent_records"] + manifest["external_records"])
+    state = read(root / "state.json")
+    stage.require(state["status"] == "failed" and
+                  state.get("error") == f"perturbation source metadata changed: "
+                  f"{root / 'reductions/r7p5_s00_h2_plus/finim.fits'}",
+                  "experiment is not at the recognized initial metadata-tolerance failure")
+    tasks = {task["name"]: task for task in protocol["tasks"]}
+    sites = {site["name"]: site for site in protocol["sites"]}
+    incomplete = [directory for directory in (root / "reductions").iterdir()
+                  if directory.is_dir() and not (directory / "complete.json").is_file()]
+    stage.require([directory.name for directory in incomplete] == ["r7p5_s00_h2_plus"],
+                  "unexpected incomplete reduction set; preserve it and inspect before repair")
+    task = tasks[incomplete[0].name]
+    product = incomplete[0] / "finim.fits"
+    validate_reduction(product, task, sites[task["site"]], protocol)
+
+    old_runner = stage.fingerprint(runner_path)
+    temporary_runner = runner_path.with_suffix(".py.repair")
+    shutil.copy2(Path(__file__).resolve(), temporary_runner)
+    temporary_runner.replace(runner_path)
+    new_runner = stage.fingerprint(runner_path)
+    stage.write_json(incomplete[0] / "complete.json",
+                     {"task": task, "elapsed_seconds": None,
+                      "recovered_after_metadata_validation_fix": True,
+                      "products": [stage.fingerprint(product)]})
+    repair_record = {"schema": 1,
+                     "reason": "FAKECONT uses six-significant-digit stream serialization; the original "
+                               "5e-9 absolute tolerance missed the doubled contrast by 7.17e-12",
+                     "validation": {"relative_tolerance": 1e-6, "absolute_tolerance": 1e-12},
+                     "old_runner": old_runner, "new_runner": new_runner,
+                     "recovered_task": task,
+                     "recovered_product": stage.fingerprint(product)}
+    stage.write_json(repair_path, repair_record)
+    replaced = False
+    for index, record in enumerate(manifest["frozen_records"]):
+        if Path(str(record["path"])).resolve() == runner_path.resolve():
+            manifest["frozen_records"][index] = new_runner
+            replaced = True
+            break
+    stage.require(replaced, "frozen runner record is missing")
+    manifest["frozen_records"].append(stage.fingerprint(repair_path))
+    stage.write_json(root / "manifest.json", manifest)
+    completed = [task["name"] for task in protocol["tasks"]
+                 if (root / "reductions" / task["name"] / "complete.json").is_file()]
+    stage.write_json(root / "state.json", {"status": "repaired", "completed_tasks": completed,
+                                           "repair": stage.fingerprint(repair_path)})
+    stage.verify(manifest["frozen_records"] + manifest["parent_records"] + manifest["external_records"])
+    print(repair_path, flush=True)
 
 
 def run(args: argparse.Namespace) -> None:
@@ -402,14 +471,17 @@ def analyze(root: Path, protocol: dict[str, object]) -> None:
                        protocol["edge_thresholds"]["individual_fraction"] for group in edge_groups))
     tail_linearity_passed = cosine_passed and projection_passed
     promote_47 = tail_linearity_passed and edge_passed
-    elapsed = [float(read(root / "reductions" / task["name"] / "complete.json")["elapsed_seconds"])
-               for task in protocol["tasks"]]
+    recorded_elapsed = [read(root / "reductions" / task["name"] / "complete.json").get("elapsed_seconds")
+                        for task in protocol["tasks"]]
+    elapsed = [float(value) for value in recorded_elapsed if value is not None]
+    stage.require(elapsed, "no reduction durations were recorded")
     result = {"tail_linearity_passed": tail_linearity_passed,
               "cosine_gate_passed": cosine_passed,
               "projection_gate_passed": projection_passed,
               "richardson_edge_gate_passed": edge_passed,
               "promote_47_pixel_response": promote_47,
-              "elapsed_seconds": {"total": float(sum(elapsed)), "median_per_reduction": float(np.median(elapsed)),
+              "elapsed_seconds": {"recorded_reductions": len(elapsed), "total": float(sum(elapsed)),
+                                  "median_per_reduction": float(np.median(elapsed)),
                                   "maximum_per_reduction": float(max(elapsed))},
               "summaries": summaries, "measurements": measurements}
     stage.write_json(root / "results.json", result)
@@ -452,7 +524,7 @@ def write_report(root: Path, protocol: dict[str, object], result: dict[str, obje
                          f"{comparison['best_scaled_relative_residual']['median']:.4f} | "
                          f"{tail_energy:.4f} |")
     lines.extend(["", "## Runtime", "",
-                  f"The {len(protocol['tasks'])} new reductions used "
+                  f"The {result['elapsed_seconds']['recorded_reductions']} reductions with recorded durations used "
                   f"{result['elapsed_seconds']['total'] / 60:.2f} summed task-minutes; median task time was "
                   f"{result['elapsed_seconds']['median_per_reduction']:.2f} seconds.", ""])
     if result["promote_47_pixel_response"]:
@@ -486,6 +558,10 @@ def check() -> None:
     offset = np.arange(18, dtype=np.float64).reshape(2, 3, 3)
     calculated = derivative(offset + half_contrast * signal, offset - half_contrast * signal, half_contrast)
     stage.require(np.allclose(calculated, signal), "central-difference arithmetic failed")
+    serialized_double_contrast = 0.00914873
+    stage.require(math.isclose(serialized_double_contrast, 2 * stage.PLANET_CONTRAST,
+                               rel_tol=1e-6, abs_tol=1e-12),
+                  "serialized contrast tolerance does not cover production FITS precision")
     print("KLIP response-tail linearity checks passed", flush=True)
 
 
@@ -499,6 +575,8 @@ def parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("root", type=Path)
     prepare_parser.add_argument("--convergence", type=Path,
                                 default=repo / "working/roc/klip_response_stamp_convergence_20260921")
+    repair_parser = subparsers.add_parser("repair")
+    repair_parser.add_argument("root", type=Path)
     run_parser = subparsers.add_parser("run")
     run_parser.add_argument("root", type=Path)
     run_parser.add_argument("--maximum-tasks", type=int, default=0,
@@ -513,6 +591,8 @@ def main() -> None:
         check()
     elif args.action == "prepare":
         prepare(args)
+    elif args.action == "repair":
+        repair(args)
     else:
         run(args)
 
