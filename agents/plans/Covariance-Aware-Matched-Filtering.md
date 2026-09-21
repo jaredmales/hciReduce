@@ -2637,6 +2637,38 @@ positive-image covariance adaptation as a loose end and quantifies threshold ins
 variance remains the most stable conservative candidate by recovery count, while half-mean truncation retains the
 best mean injection SNR relative to Gaussian. Neither is promoted from this repeatedly inspected development set.
 
+### Step 6: transfer the covariance suite to KLIP (planned 2026-09-20)
+
+The next [comprehensive test program](results/klip-covariance-matched-filter-program-20260920/README.md) applies the
+same response, covariance, and calibration questions to KLIP. Earlier work already provides an unusually strong
+starting point: a signal-free, exact 11-by-11 response at every native pixel from radius 6 to 60 for eight KL mode
+counts. That oracle showed that exact and sparse response filters have nearly identical SNR and are both worse than
+Gaussian FWHM 3.6 under identity weighting. The program therefore reuses the exact field and tests whether final-image
+covariance weighting repairs the detection loss; it does not repeat the 16.6-hour response calculation.
+
+Mode 200 is the fixed primary endpoint because the independent KLIP negative-companion fit was performed at that
+mode. All eight modes remain required secondary outputs and cannot be maximized without a separate joint null
+calibration. Positive trials subtract the optimized known planet and inject a new source in the same KLIP reduction,
+so their baseline matches the signal-free response oracle. Six development and six validation sites are fixed at
+each of radii 7.5, 10, 12, 16, 20, and 24, with target Gaussian SNR 3, 5, and 7 at mode 200. Twenty calibration nulls
+and six held-out nulls per radius are partitioned before scores are read. The exact-response geometry has only 12
+fully supported centers near radius 6 and none with a complete five-pixel search, so radius 6 is retained only as an
+inner-boundary support diagnostic.
+
+The staged suite includes unfiltered and Gaussian controls, exact and sparse identity matched filters, response
+smoothing, raw and radial-standardized annular patches, diagonal and regularized PCA covariance, rectangular and
+Hann PSD covariance, radial pooling, post-mean patch-RMS normalization, fitted-mean controls, and the complete
+clipped/hard-truncated precision grid. Noise-only angular-block splits screen the large covariance grid before
+development injections. At most two covariance families advance, while the successful P4 rectangular-PSD priors
+advance regardless of the screen. Covariance refit versus baseline-frozen replay remains an explicit contamination
+check.
+
+After development, an immutable policy receipt fixes methods and maximum-null thresholds before validation images
+or held-out nulls are opened. A KLIP covariance method must beat Gaussian FWHM 3.6 on paired mode-200 validation
+without increasing held-out nulls, losing a source level, rejecting common support, or relying on the known planet.
+The planet is measured only after validation as a descriptive endpoint. Because all positions still share one
+observing sequence, success would establish a within-sequence validation result and motivate a second epoch or target.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

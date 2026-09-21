@@ -424,6 +424,34 @@ regularized covariance-aware estimator `h^T C^-1 i / h^T C^-1 h` or an equivalen
 It should train covariance away from the candidate, cross-validate the regularization, and compare exact and sparse
 whitened filters against the 3.6-pixel Gaussian baseline.
 
+## Covariance-aware matched-filter program (planned 2026-09-20)
+
+The [fixed program](results/klip-covariance-matched-filter-program-20260920/README.md) now defines that next analysis.
+It reuses the exact signal-free pixel-response field and sparse radial response above. A current signal-free baseline
+must first reproduce the archived eight-plane reduction; otherwise the injection reductions will use a build of the
+archived response commit or the response will be regenerated. Mixing a response and science reduction from different
+operators is a blocking compatibility failure.
+
+Mode 200 is the primary endpoint, with all eight mode planes reported separately. At radii 7.5, 10, 12, 16, 20, and
+24, deterministic native locations are partitioned into 20 calibration nulls, six development injections, six
+validation injections, and six held-out nulls before any scores are inspected. The archived exact field has only 12
+fully supported centers near radius 6 and none with a complete five-pixel search, so radius 6 is an inner-boundary
+diagnostic rather than a recovery bin. Positive reductions subtract the fitted planet and inject one new source at
+contrasts targeting Gaussian-FWHM-3.6 SNR 3, 5, and 7 at mode 200. The 216 planned positive reductions should take
+about 10--12 minutes at the archived rate and require no new response trials.
+
+Noise-only angular-block splits first screen the complete P4-derived covariance suite: radial pooling, raw and radial
+standardization, diagonal and regularized PCA models, rectangular and Hann PSDs, patch-RMS normalization, fitted-mean
+controls, and precision clipping or hard truncation. Permanent references are the unfiltered image, Gaussian FWHM
+3.6, exact and sparse identity matched filters, and two response-smoothing controls. At most two data-selected
+covariance families advance, while the successful P4 rectangular-PSD priors advance automatically.
+
+Development positives may select the final two covariance candidates. A separate immutable receipt must then freeze
+their parameters and null thresholds before the validation positives and held-out nulls are opened. Acceptance is a
+paired comparison with Gaussian at mode 200: no additional held-out nulls, no loss at any source level, larger total
+recovery, positive paired mean-SNR evidence at SNR 3 or 5, and common support. The actual planet is inspected only
+after this decision and cannot select the filter.
+
 ## Implementation sequence
 
 ### 1. Align response semantics and provenance
