@@ -202,6 +202,24 @@ matched filter. The fixed trigger is more than one percent median squared
 response energy on the outermost stamp border in any primary mode-200 radial
 bin, or more than five percent for any selected injection location.
 
+The maintained Stage-A runner is
+[`run_klip_covariance_stage_a.py`](../../scripts/run_klip_covariance_stage_a.py).
+Run both phases under the same CPU affinity so the recorded OpenMP resource
+contract is replayed exactly:
+
+```bash
+root=working/roc/klip_covariance_stage_a_20260921
+taskset -c 12-27 python3 agents/plans/scripts/run_klip_covariance_stage_a.py check
+taskset -c 12-27 python3 agents/plans/scripts/run_klip_covariance_stage_a.py prepare "$root"
+taskset -c 12-27 python3 "$root/software/run_klip_covariance_stage_a.py" run "$root"
+```
+
+If the installed executables are not the intended ROC builds, pass their
+paths to `prepare` with `--klipreduce` and `--hcianalyze`. Preparation records
+their hashes alongside the hashes from the archived exact-response run. The
+runner stops on changed frozen inputs or CPU affinity, preserves failed task
+directories for diagnosis, and reuses verified completed tasks on restart.
+
 ### Stage B: noise-only covariance screening
 
 Use only the signal-free baseline and deterministic angular block splits. Fit

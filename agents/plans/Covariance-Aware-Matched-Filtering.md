@@ -2669,6 +2669,38 @@ without increasing held-out nulls, losing a source level, rejecting common suppo
 The planet is measured only after validation as a descriptive endpoint. Because all positions still share one
 observing sequence, success would establish a within-sequence validation result and motivate a second epoch or target.
 
+### Step 6 checkpoint: Stage-A audit runner (2026-09-21)
+
+The maintained
+[`run_klip_covariance_stage_a.py`](scripts/run_klip_covariance_stage_a.py)
+now implements the frozen Stage-A audit. Preparation fingerprints all 621 raw
+inputs, exact and sparse response products, science cubes, the reduction
+configuration, PSF, and both executables. It records CPU affinity and refuses
+to run under a different resource contract. The resumable analysis makes one
+current signal-free baseline, checks it against the archived exact-response
+baseline, audits response geometry and energy, compares exact and sparse
+responses, independently reconstructs the exact identity-filter amplitude and
+annular-SNR cubes, and reruns all four archived planet controls.
+
+A pinned-CPU workstation validation passes the geometry, exact-filter replay,
+and planet-control checks. The replay agrees with direct `hciAnalyze` to
+$4.77\times10^{-7}$ in annular SNR, all archived planet values reproduce at
+printed precision, and the primary five-pixel geometry reproduces the planned
+42, 44, 60, 91, 113, and 160 eligible centers. The exact-versus-sparse median
+mode-200 cosine is 0.975 at radius 7.5, 0.948 at radius 10, and at least 0.986
+from radius 12 outward; it falls to 0.853 in the radius-6 boundary diagnostic.
+
+Two gates fire. First, the validation `klipReduce` hash differs from the
+archived response-run binary, and its signal-free cube fails the strict reuse
+tolerance, with maximum absolute difference 0.03318. The canonical ROC run
+must establish whether the archived binary is still available or a new exact
+response is required. Second, the mode-200 median fraction of squared response
+energy on the 11-by-11 border is 3.63, 1.35, 1.54, 1.50, 1.57, and 1.85 percent
+across the six primary radii. This exceeds the preregistered one-percent trigger
+in every bin and requires a larger-stamp response experiment before an optimal
+matched-filter claim. Full tables and the ROC commands are in the
+[Stage-A checkpoint](results/klip-covariance-stage-a-checkpoint-20260921/README.md).
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
