@@ -2575,6 +2575,36 @@ hard truncation at half the mean variance are the conservative zero-null candida
 0.75 hard cutoff is an aggressive diagnostic. Identity with a 1.8-pixel response low pass still has the strongest
 zero-null aggregate recovery at SNR 3 and 5, and the sparse radius-6/8 annular statistic remains a limitation.
 
+### Step 5 development: precision-closure tests (prepared 2026-09-20)
+
+Before changing the P4 reduction or moving to KLIP, the next
+[fixed closure study](results/p4-step5-precision-closure-setup-20260920/README.md) addresses three remaining
+questions using the completed saved images. It compares the full inverse, clipping at the mean variance, hard
+truncation below half the mean variance, and the aggressive 0.75 hard cutoff. It performs no new P4 reductions.
+
+First, the study separates covariance adaptation from the fixed response. For each injection site and every map
+pixel needed by its five-pixel search and annular normalization, it estimates the PSD covariance, fitted mean, and
+unit-response weight once from the uninjected baseline. It then applies those quantities unchanged to all three
+positive images. The paired controls are the completed maps that refit the same quantities on each positive image.
+Each frozen/refit pair shares the completed baseline map and maximum-null threshold, and recomputed frozen
+baseline amplitudes must reproduce that map.
+
+Second, a common-support threshold audit quantifies how the finite calibration pool affects the maximum-null
+threshold and recovery count. The common valid pools contain 20, 36, 24, 20, 20, and 20 locations at radii
+6, 8, 12, 16, 20, and 24 pixels. Ten thousand deterministic paired draws select 20 locations without replacement.
+Only radii 8 and 12 can vary in this audit; the remaining radii explicitly retain one possible set. These draws
+diagnose threshold sensitivity and do not constitute independent null trials or a false-alarm calibration.
+
+Third, the known planet is measured with the four precision policies, identity with a 1.8-pixel response low pass,
+and Gaussian FWHM 3.6 using `working/analyze.conf`. Precision maps cover all 39 native pixels in the three-pixel
+planet aperture. Covariance training excludes the known-source circle and the response footprints of every
+aperture pixel. The production annular SNR maps must agree with an independent oracle. This single-source result is
+descriptive and cannot select the policy; injection recovery remains the primary comparison.
+
+The prepared runner passed its algebra and deterministic-sampling checks, verified 3,597 immutable parent inputs,
+completed a three-level radius-6 replay, and exercised all 39 planet-aperture pixels end to end. The fresh run is
+therefore limited to the baseline-frozen replay, threshold resampling, and planet endpoint.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
