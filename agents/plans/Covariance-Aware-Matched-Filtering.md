@@ -2644,7 +2644,8 @@ same response, covariance, and calibration questions to KLIP. Earlier work alrea
 starting point: a signal-free, exact 11-by-11 response at every native pixel from radius 6 to 60 for eight KL mode
 counts. That oracle showed that exact and sparse response filters have nearly identical SNR and are both worse than
 Gaussian FWHM 3.6 under identity weighting. The program therefore reuses the exact field and tests whether final-image
-covariance weighting repairs the detection loss; it does not repeat the 16.6-hour response calculation.
+covariance weighting repairs the detection loss. The response-edge audit later required a promoted 47-pixel exact
+field, so that calculation is now repeated once with the frozen archived binary before covariance screening.
 
 Mode 200 is the fixed primary endpoint because the independent KLIP negative-companion fit was performed at that
 mode. All eight modes remain required secondary outputs and cannot be maximized without a separate joint null
@@ -2716,15 +2717,39 @@ The extended structure is large enough to matter. The 31-to-47-pixel square
 shell contains median 4.79%, 7.87%, and 4.53% of the 63-pixel mode-200 response
 energy at radii 7.5, 10, and 12, and individual sites reach 11.18%. A 47-pixel
 stamp is about 13 $\lambda/D$ wide and was designated as a diagnostic rather
-than an automatic promotion candidate. The next
+than an automatic promotion candidate.
+
+The completed
 [contrast-linearity test](results/klip-response-tail-linearity-setup-20260921/README.md)
-therefore repeats six geometry-only sites per inner radius at perturbation
-scales 0.5 and 2, using the completed scale-1 responses as the reference. The
-31-to-47 shell must retain median cosine at least 0.95 and projection within
-0.10 of unity at both scales, while a Richardson-extrapolated 47-pixel response
-must clear the original edge thresholds. A pass promotes 47 pixels for one
-full-field response campaign; a failure prevents an expensive response run
-from encoding a contrast-dependent or incoherent tail.
+repeated six geometry-only sites per inner radius at perturbation scales 0.5
+and 2, using the completed scale-1 responses as the reference. All promotion
+gates pass. In mode 200, median tail cosine spans 0.9676--0.9982 and projection
+spans 0.9463--1.0189. Across all eight modes the worst median cosine is 0.9673,
+the worst median projection error is 5.37%, and the Richardson 47-pixel border
+contains at most 0.60% median and 1.45% individual energy with complete
+support. The outer structure is therefore a repeatable response rather than a
+single-contrast numerical floor, and 47 pixels is promoted.
+
+The next [exact-response campaign](results/klip-response-47-setup-20260921/README.md)
+uses the archived reduction binary to regenerate all 11,192 integer search
+locations with 47-by-47 stamps. Its gates require a bitwise-identical
+signal-free baseline, unchanged coordinates, agreement of every central
+11-pixel response with the archive, and full-stamp agreement with the 18
+independent contrast-linearity derivatives. Only that validated product enters
+the covariance screening.
+
+The larger response also changes the covariance problem. Stage B will screen
+fixed central 11-, 31-, and 47-pixel supports, always using the same support for
+the response, candidate data, fitted mean, covariance coordinates, and source
+exclusions. Training-center half-overlap steps become 5, 15, and 23 pixels.
+For a support width $s$, the PSD calculation uses a $(2s-1)$-pixel padded FFT
+and lags $-(s-1)$ through $s-1$, giving grids of 21, 61, and 93 pixels. PCA on
+the 961- and 2,209-component supports must use the sample Gram matrix or a thin
+SVD, report its attainable rank, and floor the unsupported subspace explicitly.
+The footprint preflight will freeze any wider radial pools required for sample
+coverage before reading baseline scores. This makes the central crops controls
+for whether whitening uses the nonlocal tail rather than silently applying the
+old 11-pixel covariance geometry to a 47-pixel template.
 
 ## 8. Notation
 
@@ -2782,10 +2807,11 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $R$ | Mean-centered matrix of noise-training stamps | $n\times p$; each row is a stamp, and the sample covariance is $R^TR/(n-1)$. |
 | $n$ (training count) | Number of covariance-training stamps | Scalar; the centered sample covariance has rank at most $n-1$. Overlap can reduce effective independence. |
 | $\ell$ | Diffraction scale used in the annular sampling geometry | $\ell=\lambda/D$, expressed in image pixels. |
-| $a$ | Radius of a covariance-training patch | A footprint of diameter $2a$ has half-width center spacing $\Delta s=a$. |
+| $a$ | Half-width of a covariance-training patch | An odd footprint has width $s_{\rm pix}=2a+1$ and half-overlap center spacing $\Delta s=a$. |
+| $s_{\rm pix}$ | Pixel width of a square response/covariance support | The KLIP footprint screen uses 11, 31, and 47, with $a=5$, 15, and 23 pixels. |
 | $R_{\mathrm{ann}}$ | Radius of the annulus of patch centers | Measured from the star in image pixels; distinct from the training matrix $R$. |
 | $\Delta s$ | Azimuthal arc spacing between patch centers | The half-overlap starting geometry uses $\Delta s=a$, giving approximately $2\pi R_{\mathrm{ann}}/a$ patches. |
-| $b,\Delta R$ | Radial pooling half-width and center-ring spacing | Development grid: $b=0,5,10,20$ pixels and $\Delta R=5$ pixels; independent of the response footprint and P4 OR/SR dimensions. |
+| $b,\Delta R$ | Radial pooling half-width and center-ring spacing | P4 uses $b=0,5,10,20$ pixels and $\Delta R=5$ pixels. KLIP starts from those half-widths, adds geometry-only wider bands when required, and uses $\Delta R=a$ for each support. These are independent of P4 OR/SR dimensions. |
 | $\rho$ | Stellar radius of an individual native image pixel | Used to normalize pixels within a patch, not just its center. |
 | $\widehat v_{\mathrm{rad}}(\rho),\widehat\sigma_{\mathrm{rad}}(\rho)$ | Estimated radial variance and its square-root standard deviation | Estimated outside all declared source/held-out footprints; normalize by standard deviation. |
 | $D_{\sigma,q}$ | Diagonal matrix of radial standard deviations at candidate $q$ | Positive scale factors at native stamp pixels; distinct from covariance-floor matrix $D$. |
@@ -2794,11 +2820,11 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $x_j,\bar x$ | Vectorized training patch and mean training patch | Length $p$ in a common radial/tangential coordinate system; $\bar x$ is the mean over retained training patches. |
 | $\widehat C$ | Empirical centered patch covariance | $p\times p$; regularize before inversion, and calibrate the effect of overlap on its estimation. |
 | $\gamma_{\rm shrink}, C_\gamma$ | Shrinkage fraction and covariance that continuously reduces all empirical modes toward isotropy | $C_\gamma=(1-\gamma_{\rm shrink})\widehat C+\gamma_{\rm shrink}\operatorname{tr}(\widehat C)I/p$; tested grid 0.1, 0.3, 1.0. The endpoint 1.0 is isotropic. Distinct from Gram eigenvalues $\gamma_i$. |
-| $W,U_W$ | Spectral estimation window and its squared energy | $U_W=\sum_a W_a^2$; tested windows are rectangular and separable symmetric Hann on 11×11 patches. Used inside the covariance estimator, not applied to candidate data or templates. |
+| $W,U_W$ | Spectral estimation window and its squared energy | $U_W=\sum_a W_a^2$; tested windows are rectangular and separable symmetric Hann. P4 uses 11×11 patches; KLIP applies each window to the matched 11-, 31-, or 47-pixel support. Used inside the covariance estimator, not applied to candidate data or templates. |
 | $\bar v$ | Mean unwindowed empirical pixel variance | $\sum_j\lVert x_j-\bar x\rVert^2/[(n-1)p]$; the PSD model preserves covariance trace $p\bar v$. Distinct from the radial variance profile. |
-| $\widehat P_{\rm raw}(k),\widehat P(k)$ | Averaged windowed patch power before and after rescaling | Forward FFT is unnormalized on a 21×21 padded grid. Divide summed powers by $(n-1)U_W$, then rescale their spectral mean to $\bar v$; $k$ here indexes spatial frequency, not retained P4 modes. |
+| $\widehat P_{\rm raw}(k),\widehat P(k)$ | Averaged windowed patch power before and after rescaling | Forward FFT is unnormalized on a $(2s_{\rm pix}-1)$-square padded grid: 21 for P4 and 21, 61, or 93 for the KLIP footprint screen. Divide summed powers by $(n-1)U_W$, then rescale their spectral mean to $\bar v$; $k$ here indexes spatial frequency, not retained P4 modes. |
 | $\beta_{\rm PSD},\widehat P_\beta$ | Isotropic spectral mixing fraction and regularized power | $\widehat P_\beta=(1-\beta_{\rm PSD})\widehat P+\beta_{\rm PSD}\bar v$; tested mixtures 0.1 and 0.3, with 1.0 checked as the isotropic endpoint. Distinct from P4 regression coefficients $\beta_k$. |
-| $\widehat c(u_a-u_b),C_{\rm PSD}$ | Inverse-transform lag kernel and reconstructed finite stamp covariance | $u_a$ is the two-dimensional coordinate of stamp pixel $a$; $(C_{\rm PSD})_{ab}=\widehat c(u_a-u_b)$. The inverse FFT divides by $21^2$; all lags −10 through +10 remain distinct and long-lag window bias is retained. |
+| $\widehat c(u_a-u_b),C_{\rm PSD}$ | Inverse-transform lag kernel and reconstructed finite stamp covariance | $u_a$ is the two-dimensional coordinate of stamp pixel $a$; $(C_{\rm PSD})_{ab}=\widehat c(u_a-u_b)$. For $N=2s_{\rm pix}-1$, the inverse FFT divides by $N^2$ and retains all lags $-(s_{\rm pix}-1)$ through $s_{\rm pix}-1$, including long-lag window bias. |
 | $v_i,\gamma_i$ | Eigenvector and eigenvalue of the training Gram matrix | $RR^Tv_i=\gamma_i v_i$; for $\gamma_i>0$, $q_i=R^Tv_i/\sqrt{\gamma_i}$ and $\nu_i=\gamma_i/(n-1)$. |
 | $C_s,C_n$ | Signal and noise covariance matrices in Wiener estimation | Defined for zero-mean, uncorrelated random signal and noise. $C_n$ is $C$ when referring to the same filtered stamp space. |
 | $\widehat s$ | Wiener estimate of the random signal image | $\widehat s=C_s(C_s+C_n)^{-1}d$ for zero-mean data; distinct from the unit-source input $s_q$. |

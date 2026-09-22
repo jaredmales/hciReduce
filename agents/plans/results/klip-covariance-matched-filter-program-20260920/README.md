@@ -29,8 +29,8 @@ The program separates four questions:
 
 ## Existing products to reuse
 
-The expensive response calculation is already complete at
-`working/roc/klip_signal_free_pixel_response_20260914T232006Z`. It supplies:
+The archived response calculation at
+`working/roc/klip_signal_free_pixel_response_20260914T232006Z` supplies:
 
 - an optimized KLIP negative companion at separation 12.3877505 pixels,
   position angle 260.643152 degrees, and contrast 0.0045743625;
@@ -40,6 +40,13 @@ The expensive response calculation is already complete at
   native pixels in the 6-to-60-pixel search annulus;
 - the production sparse radial response for a response-model control; and
 - the original planet-bearing science cube for the final descriptive endpoint.
+
+The 11-pixel field remains the replay oracle. Response-convergence and
+contrast-linearity tests subsequently promoted a 47-pixel footprint, so a
+[new exact-response campaign](../klip-response-47-setup-20260921/README.md)
+must pass before covariance screening. Its central 11 pixels must reproduce
+this archive at every location and its complete stamps must reproduce 18
+independent finite-difference derivatives.
 
 The archived exact response used hciReduce commit `9bfe31e`. Before reuse, a
 current no-response signal-free KLIP reduction must reproduce the archived
@@ -61,10 +68,13 @@ permitting a visible change in the residual operator.
 - Use the 621 AF Lep/NACO coadd5 frames and
   `agents/plans/scripts/klipReduce_afLepNaco_psf_response.conf`.
 - Preserve the eight archived KL mode counts and their plane ordering.
-- Use the exact signal-free per-pixel response as the primary template.
+- Use the validated 47-pixel exact signal-free per-pixel response as the
+  primary template.
 - Use the sparse candidate-avoiding radial response only as a response-model
   control.
-- Keep the 11-by-11 response stamp and audit edge energy before inference.
+- Retain central 11- and 31-pixel crops as fixed footprint controls. They test
+  whether covariance weighting uses the nonlocal response tail or suppresses
+  it; they are not substitutes for measuring that tail.
 - Mode 200 is the preregistered primary endpoint because the independent
   negative-companion fit was optimized at that mode. Report every method at
   all eight modes, but do not select the best mode after seeing an injection.
@@ -110,11 +120,15 @@ response support and center-pixel behavior; it does not enter recovery or
 threshold comparisons unless a new partial-support protocol is designed and
 validated first.
 
-The same preflight confirms that the fixed partition is feasible. Requiring
-all five search centers to have complete exact responses and to lie outside the
-seven-pixel fitted-planet exclusion leaves 42, 44, 60, 91, 113, and 160 centers
-in the six primary bins, respectively. Site selection uses only this geometry
-and validity metadata, never baseline or positive scores.
+For the archived 11-pixel field, the same preflight found 42, 44, 60, 91, 113,
+and 160 eligible centers in the six primary bins after requiring all five
+search centers to have complete responses and to lie outside the seven-pixel
+fitted-planet exclusion. The 47-pixel campaign must repeat this geometry-only
+count before the site partition is frozen. Site selection uses only coordinates
+and validity metadata, never baseline or positive scores. If a bin cannot
+support the fixed partition on the promoted footprint, the report must retain
+the smaller-footprint result as a diagnostic and revise or drop that bin before
+any scores are read.
 
 Each injection is reduced separately. Its five-pixel detection search is the
 center plus the four cardinal neighbors, matching the P4 study. Training for
@@ -132,7 +146,8 @@ tests of mode dependence.
 This creates 36 development sites and 36 validation sites, with three levels
 at each site: 216 short KLIP reductions. At the archived 2.7--3.0 seconds per
 reduction, the reduction stage should take roughly 10--12 minutes on ROC. It
-does not repeat the 16.6-hour exact-response calculation.
+does not repeat the promoted exact-response calculation after that field has
+passed its separate campaign.
 
 ### Common estimator and reporting rules
 
@@ -242,14 +257,24 @@ The newly exposed tail is material at small separation. The square shell from
 31 through 47 pixels contains median 4.79%, 7.87%, and 4.53% of the 63-pixel
 mode-200 response energy at radii 7.5, 10, and 12, with individual values as
 large as 11.18%. Because sizes above 31 were preregistered as diagnostics and a
-47-pixel template spans about 13 $\lambda/D$, it is not promoted directly. The
+47-pixel template spans about 13 $\lambda/D$, it was not promoted directly.
+
+The completed
 [contrast-linearity checkpoint](../klip-response-tail-linearity-setup-20260921/README.md)
-repeats six geometry-only sites per inner radius at half and twice the original
-perturbation. Stable cosine and projection in the 31-to-47 shell, together with
-a passing Richardson-extrapolated edge test, will promote 47 pixels for one
-full-field response campaign. A failure will identify the outer energy as
-contrast dependent, incoherent, or still footprint limited before that costly
-campaign begins.
+repeated six geometry-only sites per inner radius at half and twice the
+original perturbation. All gates pass. Mode-200 median tail cosine is
+0.9676--0.9982 and projection is 0.9463--1.0189. Across all eight modes the
+worst median cosine is 0.9673 and the worst median projection error is 5.37%.
+The Richardson 47-pixel response has complete support and remains below 0.60%
+median and 1.45% individual border energy. This promotes the 47-pixel
+footprint.
+
+The [47-pixel exact-response campaign](../klip-response-47-setup-20260921/README.md)
+now regenerates all 11,192 integer search locations with the frozen archived
+binary. It must reproduce the signal-free baseline bitwise, preserve the
+archived coordinates, reproduce the central 11-pixel response at every
+location, and reproduce the full independent fixed-site derivatives before
+Stage B consumes the larger templates.
 
 ### Stage B: noise-only covariance screening
 
@@ -258,24 +283,48 @@ on one set of patches and project weights onto disjoint held-out patches. Swap
 the blocks and repeat. Evaluate every mode and radius, with mode 200 and radii
 7.5, 10, and 12 controlling promotion.
 
+Stage B starts with a footprint-adaptation preflight. For an odd response width
+$s$, the template, candidate data, fitted mean, covariance coordinates, and
+source exclusions all use the same central $s$-by-$s$ support. Screen
+$s=11$, 31, and 47. The 47-pixel result is primary; the smaller crops reveal
+whether the estimator assigns useful weight to the measured nonlocal tail.
+They may also expose a sample-limited full-footprint covariance model.
+
+Use half-overlap training-center steps $(s-1)/2=5$, 15, and 23 pixels in both
+arc length and radial-center spacing. The preflight reports nominal and
+effective patch counts, overlap, fitted rank, and coverage by contributing
+radius. It may add wider radial bands for the 31- and 47-pixel supports before
+scores are read, but it must freeze those bands and block assignments in the
+Stage-B protocol. A covariance result is not comparable across footprints if
+it silently reuses the 11-pixel sampling geometry.
+
 Test these axes without positive injections:
 
 | Axis | Fixed grid |
 | --- | --- |
-| Training radial half-width | 0, 5, 10, and 20 pixels; five-pixel ring spacing |
+| Response/covariance support | Central 11, 31, and 47 pixels of the exact field |
+| Training radial half-width | 0, 5, 10, and 20 pixels, plus geometry-only wider bands required by the 31- and 47-pixel sample-count audit |
 | Patch coordinates | Raw; pixelwise radial-variance standardized |
 | Empirical PCA | Retain 0, 3, 8, and every estimable mode; floor fractions 0.1, 0.3, and 1.0 |
 | Diagonal covariance | Individual fitted pixel variances with the same fitted mean |
-| PSD window | Rectangular and separable Hann on 11-by-11 patches |
+| PSD window | Rectangular and separable Hann on each support |
 | PSD isotropic mixing | 0.1 and 0.3 of the unwindowed mean pixel variance |
 | Patch-amplitude control | Post-ensemble-mean per-patch RMS normalization for the selected PSD geometries |
 | Fitted mean | On and off for the identity and selected PSD arms |
 
-The PSD estimator uses the P4 contract: a 21-by-21 zero-padded FFT, all finite
-lags from -10 through +10, trace rescaling to the unwindowed sample variance,
-and untapered candidate data and templates. Radial bands are clipped at the
-6-to-60-pixel supported range, and the contribution of each center ring is
-recorded.
+The PSD estimator generalizes the P4 contract by support. An $s$-pixel patch
+uses a $(2s-1)$-by-$(2s-1)$ zero-padded FFT and all finite lags from
+$-(s-1)$ through $s-1$: 21, 61, and 93 pixels for the three supports. Preserve
+trace rescaling to the unwindowed sample variance and apply the fitted
+precision to untapered candidate data and templates. Radial bands are clipped
+at the 6-to-60-pixel supported range, and the contribution of every center ring
+is recorded.
+
+For empirical PCA, form the covariance through the sample Gram matrix or an
+equivalent thin SVD. Report its rank explicitly and apply the declared
+isotropic floor outside the sample-supported subspace. Do not construct an
+apparently full-rank inverse of a 961- or 2,209-component template from fewer
+independent training vectors.
 
 For every fit report:
 
@@ -399,12 +448,14 @@ whitening, or neither tested model being adequate.
 1. **Inventory and compatibility checker.** Freeze and verify the archived
    exact/sparse products, current binaries, configuration, PSF, input list, and
    baseline equivalence.
-2. **KLIP template adapter.** Load schema-2 `PIXEL_EXACT` response stamps for
-   all eight modes, transform templates consistently with rotated training
-   patches, and reproduce `hciAnalyze` identity filtering exactly.
-3. **Noise-only suite.** Reuse the tested P4 samplers and covariance algebra
-   behind a KLIP mode/template interface; write strict JSON diagnostics and a
-   promotion report.
+2. **KLIP template adapter.** Load schema-2 47-pixel `PIXEL_EXACT` response
+   stamps for all eight modes, expose fixed central 11/31/47 supports,
+   transform templates consistently with rotated training patches, and
+   reproduce `hciAnalyze` identity filtering exactly.
+3. **Noise-only suite.** Freeze support-aware half-overlap sampling, lag grids,
+   and effective-rank diagnostics before fitting. Reuse the tested P4
+   covariance algebra behind a KLIP mode/template interface; write strict JSON
+   diagnostics and a promotion report.
 4. **Immutable injection preparer.** Partition sites, calibrate mode-200
    Gaussian SNR 3/5/7 contrasts, write commands, and freeze all fingerprints.
 5. **Resumable development runner.** Launch the 108 development reductions,
