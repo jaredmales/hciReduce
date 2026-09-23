@@ -2730,13 +2730,15 @@ contains at most 0.60% median and 1.45% individual energy with complete
 support. The outer structure is therefore a repeatable response rather than a
 single-contrast numerical floor, and 47 pixels is promoted.
 
-The next [exact-response campaign](results/klip-response-47-setup-20260921/README.md)
-uses the archived reduction binary to regenerate all 11,192 integer search
-locations with 47-by-47 stamps. Its gates require a bitwise-identical
-signal-free baseline, unchanged coordinates, agreement of every central
-11-pixel response with the archive, and full-stamp agreement with the 18
-independent contrast-linearity derivatives. Only that validated product enters
-the covariance screening.
+The completed
+[exact-response campaign](results/klip-response-47-setup-20260921/README.md)
+used the archived reduction binary to regenerate all 11,192 integer search
+locations with 47-by-47 stamps. The 29.87-hour run passes every gate: its
+signal-free baseline is bitwise identical, coordinates are unchanged, every
+central 11-pixel response is exactly equal to the archive, and the complete
+stamps reproduce the 18 independent derivatives with minimum cosine 0.999932
+and maximum projection error $6.45\times10^{-5}$. The resulting 1.6-GB field
+is the accepted exact-response oracle for covariance screening.
 
 The larger response also changes the covariance problem. Stage B will screen
 fixed central 11-, 31-, and 47-pixel supports, always using the same support for
@@ -2750,6 +2752,19 @@ The footprint preflight will freeze any wider radial pools required for sample
 coverage before reading baseline scores. This makes the central crops controls
 for whether whitening uses the nonlocal tail rather than silently applying the
 old 11-pixel covariance geometry to a 47-pixel template.
+
+The maintained
+[`run_klip_stage_b_footprint_preflight.py`](scripts/run_klip_stage_b_footprint_preflight.py)
+implements that geometry-only checkpoint. At every planned radius it measures
+captured response energy, common eight-mode five-pixel search support, and
+half-overlap training counts for all three footprints. The training audit uses
+up to 12 deterministic angular sites, all five search pixels, the known-planet
+mask, and the union of the five candidate footprints. It tests support-scaled
+radial bands through the complete 6-to-60-pixel center range and reports the
+narrowest band containing at least eight patches in each disjoint detector
+half. It does not calculate baseline scores or covariance values. The frozen
+design and ROC commands are in the
+[Stage-B preflight setup](results/klip-stage-b-footprint-preflight-setup-20260923/README.md).
 
 ## 8. Notation
 

@@ -269,12 +269,14 @@ The Richardson 47-pixel response has complete support and remains below 0.60%
 median and 1.45% individual border energy. This promotes the 47-pixel
 footprint.
 
-The [47-pixel exact-response campaign](../klip-response-47-setup-20260921/README.md)
-now regenerates all 11,192 integer search locations with the frozen archived
-binary. It must reproduce the signal-free baseline bitwise, preserve the
-archived coordinates, reproduce the central 11-pixel response at every
-location, and reproduce the full independent fixed-site derivatives before
-Stage B consumes the larger templates.
+The completed
+[47-pixel exact-response campaign](../klip-response-47-setup-20260921/README.md)
+regenerated all 11,192 integer search locations with the frozen archived
+binary. Its baseline is bitwise identical, coordinates are unchanged, and
+every central 11-pixel response exactly equals the archive. The full responses
+reproduce the independent fixed-site derivatives with minimum cosine 0.999932
+and maximum projection error $6.45\times10^{-5}$. This validates the larger
+templates for Stage B.
 
 ### Stage B: noise-only covariance screening
 
@@ -297,6 +299,14 @@ radius. It may add wider radial bands for the 31- and 47-pixel supports before
 scores are read, but it must freeze those bands and block assignments in the
 Stage-B protocol. A covariance result is not comparable across footprints if
 it silently reuses the 11-pixel sampling geometry.
+
+The
+[footprint-preflight runner](../klip-stage-b-footprint-preflight-setup-20260923/README.md)
+freezes this audit before covariance values or baseline scores are read. It
+measures response-energy capture, common eight-mode five-pixel search support,
+and half-overlap training coverage through the complete permitted radial range.
+For each selected query it also reports centered-rank ceilings and the
+narrowest band with at least eight patches in each disjoint detector half.
 
 Test these axes without positive injections:
 

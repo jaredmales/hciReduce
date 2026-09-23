@@ -1,17 +1,16 @@
-# KLIP 47-pixel exact-response campaign setup
+# KLIP 47-pixel exact-response campaign result
 
 ## Purpose
 
-The stamp-convergence and contrast-linearity experiments show that KLIP's
+The stamp-convergence and contrast-linearity experiments showed that KLIP's
 small-separation response is nonlocal and that 47 pixels is the first common
-footprint satisfying the response-edge criteria. This campaign regenerates the
+footprint satisfying the response-edge criteria. This campaign regenerated the
 native exact response field with that promoted footprint before covariance
-screening begins.
+screening.
 
 ## Frozen calculation
 
-The campaign uses the complete response-tail experiment, response-convergence
-experiment, and Stage-A audit as a verified lineage. It preserves:
+The campaign preserved:
 
 - the archived `klipReduce` executable and all 621 input frames;
 - the bitwise-reproduced signal-free baseline;
@@ -22,46 +21,69 @@ experiment, and Stage-A audit as a verified lineage. It preserves:
 - KL modes 125, 150, 175, 200, 225, 250, 300, and 350; and
 - the complete `6 <= r < 60` search annulus.
 
-One native `refitDifference` calculation measures all 11,192 integer search
-locations, or 22,384 signed KLIP trials. It publishes a schema-2 `PIXEL_EXACT`
-product with 47-by-47 response and validity stamps. The response accumulator is
-expected to retain 988,925,120 bytes. The response and validity FITS products
-will occupy about 1.6 GB before logs and receipts.
+One native `refitDifference` calculation measured all 11,192 integer search
+locations, or 22,384 signed KLIP trials. It produced schema-2 `PIXEL_EXACT`
+response and validity stamps with 47-by-47 support in every mode.
 
-The earlier 11-pixel campaign took 16.63 hours while averaging the equivalent
-of 42.45 CPU cores. The current reproducibility contract uses CPUs 12--27 and
-recent eight-mode reductions take about 5 seconds each. Allow roughly 24--32
-hours for this run; the single-process implementation can be faster because it
-loads the 621 inputs only once.
+## Result
 
-The native response loop is not resumable within a partially completed run. A
-failed response directory is preserved for diagnosis and must be moved aside
-before a fresh prepared campaign is started. A completed native product is
-recoverable if the wrapper stops during validation or hashing.
+All preregistered gates pass.
 
-## Acceptance checks
+| Check | Result | Diagnostic |
+| --- | --- | --- |
+| Signal-free baseline replay | Pass | Bitwise identical; maximum difference 0 |
+| Search coordinates | Pass | Identical to all 11,192 archived locations |
+| Central 11 pixels versus archive | Pass | Minimum cosine 1; maximum projection error 0 across every location and mode |
+| Full 47 pixels versus independent derivatives | Pass | Minimum cosine 0.999932; maximum projection error $6.45\times10^{-5}$ |
 
-After the native calculation, the runner requires:
+The full-stamp comparison used the 18 independently reduced sites from the
+contrast-linearity experiment. Per-mode worst cases were:
 
-1. schema-2 `PIXEL_EXACT`, `refitDifference`, and
-   `PAIRED_FINAL_DIFFERENCE` metadata;
-2. exactly 11,192 response locations, 22,384 signed trials, eight fixed modes,
-   47-pixel stamps, and 988,925,120 retained bytes;
-3. coordinates identical to the archived 11-pixel response field;
-4. binary validity and finite supported values with a valid anchor everywhere;
-5. a final signal-free image bitwise identical to the Stage-A baseline;
-6. minimum cosine 0.999 and projection within 0.01 for the central 11 pixels at
-   every archived location and mode; and
-7. the same replay thresholds for the full 47-pixel response at the 18
-   independent contrast-linearity sites.
+| Mode | Minimum cosine | Maximum projection error |
+| ---: | ---: | ---: |
+| 125 | 1.000000 | $1.31\times10^{-5}$ |
+| 150 | 1.000000 | $1.51\times10^{-5}$ |
+| 175 | 1.000000 | $1.86\times10^{-5}$ |
+| 200 | 1.000000 | $1.38\times10^{-5}$ |
+| 225 | 0.999932 | $6.45\times10^{-5}$ |
+| 250 | 1.000000 | $1.75\times10^{-5}$ |
+| 300 | 1.000000 | $2.02\times10^{-5}$ |
+| 350 | 0.999999 | $2.26\times10^{-5}$ |
 
-The central replay detects any change caused by enlarging the extraction. The
-external full-stamp replay verifies the newly stored tail against separately
-executed positive/negative reductions.
+The native run took 107,517 seconds, or 29.87 hours, on CPUs 12--27. The
+complete campaign occupies 1.6 GB. It finished without wrapper interruption or
+product recovery.
 
-## ROC commands
+## Interpretation
 
-Run from the repository root in a durable ROC shell or tmux session:
+Increasing the stored footprint does not change the reduction or the response
+core: every central 11-pixel stamp is exactly equal to its archived value. The
+newly retained tail also agrees with external positive/negative reductions far
+more closely than the promotion thresholds require. The 47-pixel field is
+therefore the accepted exact-response oracle for covariance development.
+
+The next
+[Stage-B footprint preflight](../klip-stage-b-footprint-preflight-setup-20260923/README.md)
+compares central 11-, 31-, and 47-pixel support. It measures response-energy
+capture, common five-pixel search coverage, and half-overlap covariance-training
+coverage before reading a baseline score or fitting a covariance.
+
+## ROC receipt
+
+The canonical campaign is
+`working/roc/klip_response_47_20260921`. Its completion receipt records:
+
+- `response/complete.json`:
+  `6e532e909155ebd4f83435e5649c8f1ed047bb1d99d7821762e8d737252b5d95`;
+- `results.json`:
+  `0408bdf91866e589a932f58d8c60234ff4c9dae97b6bd3c82b8832ea5a6e52e2`;
+- `results.md`:
+  `ce692cb69cbeec1262fc8e019737d10d80b37ead7f2f8a230b86e82542e9bc76`.
+
+The response receipt fingerprints the final image, manifest, coordinates, and
+all 16 mode-specific response and validity products.
+
+## Reproduction
 
 ```bash
 git pull
@@ -78,12 +100,6 @@ taskset -c 12-27 python3 \
   "$root/software/run_klip_response_47.py" run "$root"
 ```
 
-The long command writes progress to `response/run.log`. Monitor it from another
-shell with:
-
-```bash
-tail -f "$root/response/run.log"
-```
-
-On success the runner hashes all 19 response products, performs both replay
-checks, and writes `results.json`, `results.md`, and `complete.json`.
+The native response loop is not resumable within a partially completed run. A
+completed native product remains recoverable if only the validation wrapper
+stops.
