@@ -285,56 +285,46 @@ on one set of patches and project weights onto disjoint held-out patches. Swap
 the blocks and repeat. Evaluate every mode and radius, with mode 200 and radii
 7.5, 10, and 12 controlling promotion.
 
-Stage B starts with a footprint-adaptation preflight. For an odd response width
-$s$, the template, candidate data, fitted mean, covariance coordinates, and
-source exclusions all use the same central $s$-by-$s$ support. Screen
-$s=11$, 31, and 47. The 47-pixel result is primary; the smaller crops reveal
-whether the estimator assigns useful weight to the measured nonlocal tail.
-They may also expose a sample-limited full-footprint covariance model.
+The completed
+[footprint preflight](../klip-stage-b-footprint-preflight-setup-20260923/README.md)
+rejects a coupled support rule. Eleven-pixel training is viable, but 31-pixel
+training yields only 0--16 accepted patches over the full radial range and
+leaves at least one split empty. Forty-seven-pixel training yields no accepted
+patches at any selected query. This is a geometric limit of the image and
+source exclusion, not only a rank problem.
 
-Use half-overlap training-center steps $(s-1)/2=5$, 15, and 23 pixels in both
-arc length and radial-center spacing. The preflight reports nominal and
-effective patch counts, overlap, fitted rank, and coverage by contributing
-radius. It may add wider radial bands for the 31- and 47-pixel supports before
-scores are read, but it must freeze those bands and block assignments in the
-Stage-B protocol. A covariance result is not comparable across footprints if
-it silently reuses the 11-pixel sampling geometry.
-
-The
-[footprint-preflight runner](../klip-stage-b-footprint-preflight-setup-20260923/README.md)
-freezes this audit before covariance values or baseline scores are read. It
-measures response-energy capture, common eight-mode five-pixel search support,
-and half-overlap training coverage through the complete permitted radial range.
-For each selected query it also reports centered-rank ceilings and the
-narrowest band with at least eight patches in each disjoint detector half.
+Response support and covariance-estimation support are therefore separate
+axes. Screen central 11-, 31-, and 47-pixel exact responses. Direct empirical
+PCA and diagonal covariance remain on 11-pixel data. The stationary PSD path
+uses 11-by-11 Welch training patches with five-pixel angular and radial center
+spacing, while the candidate data, response, and five-source exclusion retain
+the chosen response support. The score-blind
+[decoupled-footprint preflight](../klip-stage-b-decoupled-preflight-setup-20260923/README.md)
+must show adequate training coverage before the larger PSD-filter arms begin.
 
 Test these axes without positive injections:
 
 | Axis | Fixed grid |
 | --- | --- |
-| Response/covariance support | Central 11, 31, and 47 pixels of the exact field |
-| Training radial half-width | 0, 5, 10, and 20 pixels, plus geometry-only wider bands required by the 31- and 47-pixel sample-count audit |
+| Response support | Central 11, 31, and 47 pixels of the exact field |
+| Covariance-estimation support | Direct PCA/diagonal: 11 pixels; stationary PSD: 11-pixel Welch patches applied behind each response support |
+| Training radial half-width | 0, 5, 10, 20, 40, and 60 pixels; promote the narrowest split-supported band and retain the next wider band as a stability control |
 | Patch coordinates | Raw; pixelwise radial-variance standardized |
-| Empirical PCA | Retain 0, 3, 8, and every estimable mode; floor fractions 0.1, 0.3, and 1.0 |
-| Diagonal covariance | Individual fitted pixel variances with the same fitted mean |
-| PSD window | Rectangular and separable Hann on each support |
+| Empirical PCA | Eleven-pixel response only; retain 0, 3, 8, and every estimable mode; floor fractions 0.1, 0.3, and 1.0 |
+| Diagonal covariance | Eleven-pixel response only; individual fitted pixel variances with the same fitted mean |
+| PSD window | Rectangular and separable Hann on 11-by-11 training patches |
 | PSD isotropic mixing | 0.1 and 0.3 of the unwindowed mean pixel variance |
-| Patch-amplitude control | Post-ensemble-mean per-patch RMS normalization for the selected PSD geometries |
-| Fitted mean | On and off for the identity and selected PSD arms |
+| Patch-amplitude control | Post-ensemble-mean per-patch RMS normalization for selected PSD geometries |
+| Fitted mean | On and off for the 11-pixel arms; a support-independent radial-mean control for larger responses |
 
-The PSD estimator generalizes the P4 contract by support. An $s$-pixel patch
-uses a $(2s-1)$-by-$(2s-1)$ zero-padded FFT and all finite lags from
-$-(s-1)$ through $s-1$: 21, 61, and 93 pixels for the three supports. Preserve
-trace rescaling to the unwindowed sample variance and apply the fitted
-precision to untapered candidate data and templates. Radial bands are clipped
-at the 6-to-60-pixel supported range, and the contribution of every center ring
-is recorded.
-
-For empirical PCA, form the covariance through the sample Gram matrix or an
-equivalent thin SVD. Report its rank explicitly and apply the declared
-isotropic floor outside the sample-supported subspace. Do not construct an
-apparently full-rank inverse of a 961- or 2,209-component template from fewer
-independent training vectors.
+The native 11-pixel PSD contract remains a 21-by-21 zero-padded FFT with all
+finite lags from -10 through +10, trace rescaling to unwindowed sample variance,
+and untapered candidate data and templates. Before applying that estimate to a
+31- or 47-pixel response, freeze a separate spectral-extension contract. It
+must preserve a positive isotropic endpoint, reproduce the existing 11-pixel
+solution, state the boundary convention, and report the assumed treatment of
+correlations beyond lag 10. No dense 961- or 2,209-component empirical inverse
+is permitted.
 
 For every fit report:
 

@@ -2740,31 +2740,33 @@ stamps reproduce the 18 independent derivatives with minimum cosine 0.999932
 and maximum projection error $6.45\times10^{-5}$. The resulting 1.6-GB field
 is the accepted exact-response oracle for covariance screening.
 
-The larger response also changes the covariance problem. Stage B will screen
-fixed central 11-, 31-, and 47-pixel supports, always using the same support for
-the response, candidate data, fitted mean, covariance coordinates, and source
-exclusions. Training-center half-overlap steps become 5, 15, and 23 pixels.
-For a support width $s$, the PSD calculation uses a $(2s-1)$-pixel padded FFT
-and lags $-(s-1)$ through $s-1$, giving grids of 21, 61, and 93 pixels. PCA on
-the 961- and 2,209-component supports must use the sample Gram matrix or a thin
-SVD, report its attainable rank, and floor the unsupported subspace explicitly.
-The footprint preflight will freeze any wider radial pools required for sample
-coverage before reading baseline scores. This makes the central crops controls
-for whether whitening uses the nonlocal tail rather than silently applying the
-old 11-pixel covariance geometry to a 47-pixel template.
+The completed
+[Stage-B footprint preflight](results/klip-stage-b-footprint-preflight-setup-20260923/README.md)
+shows that response support and covariance-estimation support cannot remain
+coupled. The 11-pixel template retains only 78.8%, 86.8%, and 90.6% median
+mode-200 response energy at radii 7.5, 10, and 12; the 31-pixel crop retains
+94.8%, 92.0%, and 95.3%. All three footprints preserve the same five-pixel
+search counts at the six primary radii.
 
-The maintained
-[`run_klip_stage_b_footprint_preflight.py`](scripts/run_klip_stage_b_footprint_preflight.py)
-implements that geometry-only checkpoint. At every planned radius it measures
-captured response energy, common eight-mode five-pixel search support, and
-half-overlap training counts for all three footprints. The training audit uses
-up to 12 deterministic angular sites, all five search pixels, the known-planet
-mask, and the union of the five candidate footprints. It tests support-scaled
-radial bands through the complete 6-to-60-pixel center range and reports the
-narrowest band containing at least eight patches in each disjoint detector
-half. It does not calculate baseline scores or covariance values. The frozen
-design and ROC commands are in the
-[Stage-B preflight setup](results/klip-stage-b-footprint-preflight-setup-20260923/README.md).
+The covariance geometry differs sharply. Eleven-pixel training patches pass
+the split-sample gate with radial half-width 20 at the three inner radii, 10 at
+radii 16 and 20, and 5 at radius 24. Even over the complete radial range,
+31-pixel training supplies only 0--16 patches depending on query and leaves at
+least one detector half empty. Forty-seven-pixel training supplies exactly zero
+accepted patches everywhere. Direct 31- or 47-pixel empirical covariance is
+therefore geometrically unsupported, rather than merely rank deficient.
+
+Stage B now decouples the two footprints. Direct PCA and finite covariance stay
+on 11 pixels. The stationary PSD path estimates noise from 11-by-11 Welch
+patches while retaining fixed 11-, 31-, and 47-pixel response controls for the
+candidate data. The larger response footprint still sets the exclusion around
+each search so PSD training cannot reuse pixels touched by the modeled source.
+The next
++[decoupled-footprint preflight](results/klip-stage-b-decoupled-preflight-setup-20260923/README.md)
+audits that cross-geometry before any PSD or baseline score is calculated. A
+separate numerical checkpoint will then freeze how the 21-pixel estimated
+spectrum is evaluated on the larger response grids and verify its isotropic and
+11-pixel endpoints.
 
 ## 8. Notation
 
@@ -2823,10 +2825,10 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $n$ (training count) | Number of covariance-training stamps | Scalar; the centered sample covariance has rank at most $n-1$. Overlap can reduce effective independence. |
 | $\ell$ | Diffraction scale used in the annular sampling geometry | $\ell=\lambda/D$, expressed in image pixels. |
 | $a$ | Half-width of a covariance-training patch | An odd footprint has width $s_{\rm pix}=2a+1$ and half-overlap center spacing $\Delta s=a$. |
-| $s_{\rm pix}$ | Pixel width of a square response/covariance support | The KLIP footprint screen uses 11, 31, and 47, with $a=5$, 15, and 23 pixels. |
+| $s_{\rm resp},s_{\rm train}$ | Pixel widths of the response/candidate support and covariance-training patch | The KLIP response controls use $s_{\rm resp}=11,31,47$. Direct covariance uses $s_{\rm train}=s_{\rm resp}=11$; the decoupled PSD path tests $s_{\rm train}=11$ behind all three responses. |
 | $R_{\mathrm{ann}}$ | Radius of the annulus of patch centers | Measured from the star in image pixels; distinct from the training matrix $R$. |
 | $\Delta s$ | Azimuthal arc spacing between patch centers | The half-overlap starting geometry uses $\Delta s=a$, giving approximately $2\pi R_{\mathrm{ann}}/a$ patches. |
-| $b,\Delta R$ | Radial pooling half-width and center-ring spacing | P4 uses $b=0,5,10,20$ pixels and $\Delta R=5$ pixels. KLIP starts from those half-widths, adds geometry-only wider bands when required, and uses $\Delta R=a$ for each support. These are independent of P4 OR/SR dimensions. |
+| $b,\Delta R$ | Radial pooling half-width and center-ring spacing | P4 uses $b=0,5,10,20$ pixels and $\Delta R=5$ pixels. KLIP tests $b=0,5,10,20,40,60$ with $\Delta R=5$ for its supported 11-pixel training patches. These are independent of the response footprint and P4 OR/SR dimensions. |
 | $\rho$ | Stellar radius of an individual native image pixel | Used to normalize pixels within a patch, not just its center. |
 | $\widehat v_{\mathrm{rad}}(\rho),\widehat\sigma_{\mathrm{rad}}(\rho)$ | Estimated radial variance and its square-root standard deviation | Estimated outside all declared source/held-out footprints; normalize by standard deviation. |
 | $D_{\sigma,q}$ | Diagonal matrix of radial standard deviations at candidate $q$ | Positive scale factors at native stamp pixels; distinct from covariance-floor matrix $D$. |
@@ -2835,11 +2837,11 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $x_j,\bar x$ | Vectorized training patch and mean training patch | Length $p$ in a common radial/tangential coordinate system; $\bar x$ is the mean over retained training patches. |
 | $\widehat C$ | Empirical centered patch covariance | $p\times p$; regularize before inversion, and calibrate the effect of overlap on its estimation. |
 | $\gamma_{\rm shrink}, C_\gamma$ | Shrinkage fraction and covariance that continuously reduces all empirical modes toward isotropy | $C_\gamma=(1-\gamma_{\rm shrink})\widehat C+\gamma_{\rm shrink}\operatorname{tr}(\widehat C)I/p$; tested grid 0.1, 0.3, 1.0. The endpoint 1.0 is isotropic. Distinct from Gram eigenvalues $\gamma_i$. |
-| $W,U_W$ | Spectral estimation window and its squared energy | $U_W=\sum_a W_a^2$; tested windows are rectangular and separable symmetric Hann. P4 uses 11×11 patches; KLIP applies each window to the matched 11-, 31-, or 47-pixel support. Used inside the covariance estimator, not applied to candidate data or templates. |
+| $W,U_W$ | Spectral estimation window and its squared energy | $U_W=\sum_a W_a^2$; tested windows are rectangular and separable symmetric Hann on 11×11 training patches. Used inside the covariance estimator, not applied to candidate data or response templates. |
 | $\bar v$ | Mean unwindowed empirical pixel variance | $\sum_j\lVert x_j-\bar x\rVert^2/[(n-1)p]$; the PSD model preserves covariance trace $p\bar v$. Distinct from the radial variance profile. |
-| $\widehat P_{\rm raw}(k),\widehat P(k)$ | Averaged windowed patch power before and after rescaling | Forward FFT is unnormalized on a $(2s_{\rm pix}-1)$-square padded grid: 21 for P4 and 21, 61, or 93 for the KLIP footprint screen. Divide summed powers by $(n-1)U_W$, then rescale their spectral mean to $\bar v$; $k$ here indexes spatial frequency, not retained P4 modes. |
+| $\widehat P_{\rm raw}(k),\widehat P(k)$ | Averaged windowed patch power before and after rescaling | The native 11-pixel contract uses an unnormalized 21×21 FFT. Divide summed powers by $(n-1)U_W$, then rescale their spectral mean to $\bar v$; $k$ here indexes spatial frequency, not retained P4 modes. Evaluating this estimate behind larger KLIP responses requires a separately frozen spectral-extension rule. |
 | $\beta_{\rm PSD},\widehat P_\beta$ | Isotropic spectral mixing fraction and regularized power | $\widehat P_\beta=(1-\beta_{\rm PSD})\widehat P+\beta_{\rm PSD}\bar v$; tested mixtures 0.1 and 0.3, with 1.0 checked as the isotropic endpoint. Distinct from P4 regression coefficients $\beta_k$. |
-| $\widehat c(u_a-u_b),C_{\rm PSD}$ | Inverse-transform lag kernel and reconstructed finite stamp covariance | $u_a$ is the two-dimensional coordinate of stamp pixel $a$; $(C_{\rm PSD})_{ab}=\widehat c(u_a-u_b)$. For $N=2s_{\rm pix}-1$, the inverse FFT divides by $N^2$ and retains all lags $-(s_{\rm pix}-1)$ through $s_{\rm pix}-1$, including long-lag window bias. |
+| $\widehat c(u_a-u_b),C_{\rm PSD}$ | Inverse-transform lag kernel and reconstructed finite stamp covariance | $u_a$ is the two-dimensional coordinate of stamp pixel $a$; $(C_{\rm PSD})_{ab}=\widehat c(u_a-u_b)$. The native 11-pixel model divides the inverse FFT by $21^2$ and retains lags −10 through +10, including long-lag window bias. |
 | $v_i,\gamma_i$ | Eigenvector and eigenvalue of the training Gram matrix | $RR^Tv_i=\gamma_i v_i$; for $\gamma_i>0$, $q_i=R^Tv_i/\sqrt{\gamma_i}$ and $\nu_i=\gamma_i/(n-1)$. |
 | $C_s,C_n$ | Signal and noise covariance matrices in Wiener estimation | Defined for zero-mean, uncorrelated random signal and noise. $C_n$ is $C$ when referring to the same filtered stamp space. |
 | $\widehat s$ | Wiener estimate of the random signal image | $\widehat s=C_s(C_s+C_n)^{-1}d$ for zero-mean data; distinct from the unit-source input $s_q$. |

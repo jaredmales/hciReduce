@@ -214,7 +214,8 @@ def select_sites(centers: list[dict[str, object]]) -> list[dict[str, object]]:
 
 
 def training_rings(finite: np.ndarray, query: tuple[int, int], searches: list[tuple[int, int]],
-                   support: int, planet: tuple[float, float]) -> dict[int, dict[str, int]]:
+                   support: int, planet: tuple[float, float],
+                   exclusion_support: int | None = None) -> dict[int, dict[str, int]]:
     """Count accepted radial/tangential patches on half-overlap rings."""
     row_query, column_query = query
     center_row = 0.5 * (finite.shape[1] - 1)
@@ -222,6 +223,7 @@ def training_rings(finite: np.ndarray, query: tuple[int, int], searches: list[tu
     radius = math.hypot(row_query - center_row, column_query - center_column)
     angle = math.atan2(column_query - center_column, row_query - center_row)
     half = support // 2
+    exclusion_half = (support if exclusion_support is None else exclusion_support) // 2
     delta_column, delta_row = np.mgrid[-half:half + 1, -half:half + 1]
     minimum_k = math.ceil((6.0 - radius) / half)
     maximum_k = math.floor((np.nextafter(60.0, 0.0) - radius) / half)
@@ -261,8 +263,8 @@ def training_rings(finite: np.ndarray, query: tuple[int, int], searches: list[tu
                 bad |= (np.hypot(native_row - planet[0], native_column - planet[1]) <=
                         stage.PLANET_EXCLUSION_RADIUS)
                 for search_row, search_column in searches:
-                    bad |= ((np.abs(native_row - search_row) <= half) &
-                            (np.abs(native_column - search_column) <= half))
+                    bad |= ((np.abs(native_row - search_row) <= exclusion_half) &
+                            (np.abs(native_column - search_column) <= exclusion_half))
                 excluded |= np.any(used & bad & ~outside, axis=1)
                 incomplete |= np.any(used & (outside | ~finite[safe_column, safe_row]), axis=1)
                 used_columns.append(np.where(used, native_column, np.nan))
