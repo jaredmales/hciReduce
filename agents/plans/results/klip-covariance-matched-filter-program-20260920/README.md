@@ -334,6 +334,26 @@ exactly reproduces the existing 11-pixel P4 estimator and passes symmetry,
 positivity, isotropic-endpoint, and residual checks at all three supports.
 Candidate data and templates remain untapered.
 
+The completed
+[local mode-200 raw PSD screen](../klip-stage-b-local-noise-screen-20260923/README.md)
+verified that this calculation can run from a 2.8-MB response/baseline bundle
+instead of transferring the 1.6-GB field. All 1,080 frozen geometries replayed
+exactly and 10,800 policy/query records completed locally in 285.8 seconds.
+Hann/mixing-0.1 is the leading raw PSD family: over the controlling radii its
+narrow-band candidate score variance is 2.23, 2.56, and 2.22 for response
+supports 11, 31, and 47, compared with 6.16, 6.83, and 6.00 for identity.
+Rectangular/mixing-0.3 gives 2.63, 3.04, and 2.80 and remains the mandatory P4
+prior.
+
+These candidates are not promoted yet. For the 11-pixel Hann/mixing-0.1 arm,
+opposite-half generic patches have median measured/predicted variance 1.13,
+while the fixed candidate nulls have variance 2.23. The mismatch peaks at
+radius 12 and remains in center-only scores. Fitted-mean subtraction does not
+remove it, and the 47-pixel response is not uniformly better than 11 pixels.
+The next focused arm is the preregistered radial-variance standardization,
+followed by patch-RMS normalization and the remaining direct-covariance and
+mean controls.
+
 For every fit report:
 
 - training and held-out amplitude variance divided by conditional prediction;

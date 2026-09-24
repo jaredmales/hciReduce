@@ -2783,6 +2783,44 @@ symmetry, positivity, isotropic-endpoint, and residual checks. Thus the larger
 template path makes an explicit zero-long-lag assumption without inventing
 unmeasured covariance.
 
+### Step 6 checkpoint: local mode-200 raw PSD screen (2026-09-23)
+
+A compact exporter reduced the accepted ROC products to a 2.8-MB local bundle:
+the mode-200 baseline, 348 exact 47-pixel response stamps and validity masks,
+and the complete fixed preflight geometry. Its SHA-256 is
+`ffc66934b7b8f535ac7e6bc45ec3430abb95eaad844e7b9fb5938d22688dc7b4`.
+The local runner verified the source receipts, replayed all 1,080 query
+geometries exactly, and evaluated 10,800 combinations of response support,
+training band, PSD family, detector-half fit, and fixed candidate query in
+285.8 seconds.
+
+The first raw-pixel arm materially improves on isotropic weighting but does not
+yet give calibrated conditional candidate scores. Across radii 7.5, 10, and 12,
+the median candidate score variance for the narrow bands is 6.16, 6.83, and
+6.00 for identity at response supports 11, 31, and 47. Hann/mixing-0.1 reduces
+those values to 2.23, 2.56, and 2.22; rectangular/mixing-0.3 gives 2.63, 3.04,
+and 2.80. Split weights are stable: the corresponding Hann/mixing-0.1 median
+cosines are 0.991--0.994, and split-score correlations are 0.984--0.990.
+
+The 11-pixel opposite-half projection exposes a location-transfer problem.
+Hann/mixing-0.1 predicts disjoint generic patches well, with median measured
+variance divided by prediction 1.13 for the narrow bands and 1.05 for the full
+bands. The same fitted filters have fixed candidate-null variances 2.23 and
+2.82. Radius 12 is the largest mismatch, and center-only statistics retain it,
+so the excess does not arise from pooling the four neighboring search pixels.
+Fitted 11-pixel mean subtraction changes candidate variance by less than 0.05
+at every radius and does not repair the mismatch. A 47-pixel response helps at
+radius 7.5 but hurts at radius 12, so this baseline does not select a response
+footprint.
+
+Hann/mixing-0.1 is the leading raw PSD family, while
+rectangular/mixing-0.3 remains the mandatory P4 prior. Neither is promoted yet.
+The radius dependence makes the prespecified radial-variance-standardized arm
+the next focused test, followed by the patch-RMS control, direct 11-pixel
+PCA/diagonal grid, and larger-support radial-mean control. No positive injection
+or known-planet result entered this screen. See the
+[local noise-screen report](results/klip-stage-b-local-noise-screen-20260923/README.md).
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
