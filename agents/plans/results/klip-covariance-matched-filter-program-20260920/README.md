@@ -362,6 +362,24 @@ or extrapolating through an unsupported annulus. The next focused arm is
 post-ensemble-mean patch-RMS normalization on the supported 11-pixel geometry,
 followed by the remaining direct-covariance and mean controls.
 
+The subsequent
+[known-planet footprint audit and correction](../klip-stage-b-planet-mask-correction-20260924/README.md)
+found that these first candidate screens excluded the fitted planet from
+training and radial-profile estimation but did not mask outer candidate and
+response pixels that entered its seven-pixel disk. At radius 12, complete
+planet-clear five-query sites number 9 of 12 for the 11-pixel response, 2 of 12
+for 31 pixels, and 0 of 12 for 47 pixels. The earlier 31- and 47-pixel
+candidate-score comparisons are therefore superseded.
+
+The corrected screen preserves the frozen sites, masks planet-disk coordinates
+in both candidate data and exact responses, and solves the matching covariance
+principal submatrix. Corrected raw narrow-band Hann/mixing-0.1 primary variance
+is 2.477, 2.875, and 2.698 for supports 11, 31, and 47; 11 pixels is the best of
+the three. Consistent radial normalization lowers the 11-pixel result to 2.092,
+while radius 12 remains high at 3.153. A geometry-only planet-clear subset is
+worse at radius 12, so the known planet does not account for that mismatch.
+Only the corrected masked values enter subsequent Stage-B decisions.
+
 For every fit report:
 
 - training and held-out amplitude variance divided by conditional prediction;

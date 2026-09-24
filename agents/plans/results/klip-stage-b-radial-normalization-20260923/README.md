@@ -1,5 +1,13 @@
 # KLIP Stage-B strict radial-normalization screen
 
+> **Correction (2026-09-24):** The radial profile itself excluded the known
+> planet, but the candidate stamps and exact responses did not mask planet-disk
+> pixels. The corrected
+> [planet-masked screen](../klip-stage-b-planet-mask-correction-20260924/README.md)
+> applies both exclusions consistently. Its 11-pixel Hann/mixing-0.1 primary
+> variance is 2.092 after normalization, and radius 12 remains high at 3.153.
+> Values below are retained as provenance for the original diagnostic.
+
 This mode-200 test changes only the input coordinates of the 11-pixel narrow-band PSD arm. For each fixed site, a 3.6-pixel-bin radial variance profile excludes the known planet and the union of all five complete candidate footprints. The same leave-site-out profile scales native training pixels, candidate data, and exact responses by standard deviation before interpolation and filtering.
 
 ## Controlling radii

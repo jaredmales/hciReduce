@@ -1,5 +1,15 @@
 # KLIP Stage-B local mode-200 noise screen
 
+> **Correction (2026-09-24):** This first screen excluded the fitted planet
+> from covariance training and rejected candidate centers inside its seven-pixel
+> disk, but it did not mask planet-disk pixels in candidate stamps or exact
+> responses. The 31- and 47-pixel candidate comparisons below therefore do not
+> satisfy the intended planet-exclusion contract. The corrected
+> [planet-masked screen](../klip-stage-b-planet-mask-correction-20260924/README.md)
+> retains the frozen sites, masks the candidate and response coordinates, and
+> solves the corresponding covariance principal submatrix. Values below are
+> retained as provenance for the original diagnostic.
+
 This baseline-only screen uses exact response templates, raw 11-by-11 Welch training patches, candidate-specific five-footprint exclusions, and independent detector-half fits. Scores do not subtract a fitted candidate mean in the common 11/31/47 comparison.
 
 ## Controlling radii: 7.5, 10, and 12 pixels

@@ -2852,6 +2852,44 @@ raw rectangular/mixing-0.3 as the mandatory P4 prior, without promoting either
 yet. The next discriminator is post-ensemble-mean patch-RMS normalization on
 the supported 11-pixel geometry.
 
+### Step 6 correction: candidate known-planet footprint (2026-09-24)
+
+The first Stage-B screens handled the fitted planet in the covariance-training
+and radial-profile masks and rejected candidate centers within seven pixels of
+it. They did not mask outer candidate or exact-response pixels that entered
+that disk. This distinction is material near the planet radius of 11.8 pixels.
+At radius 12, 9 of 12 complete five-query sites are planet-clear for the
+11-pixel response, only 2 of 12 are clear for 31 pixels, and none are clear for
+47 pixels. Across all inner radii, no 31-pixel site is completely clear at
+radii 7.5 or 10, and no 47-pixel site is clear through radius 16. The original
+31- and 47-pixel candidate-score comparisons therefore do not meet the intended
+conservative exclusion contract.
+
+The [planet-footprint correction](results/klip-stage-b-planet-mask-correction-20260924/README.md)
+keeps every frozen, score-blind site and assigns zero weight to native
+candidate and response coordinates inside the fixed planet disk. For each
+query, it restricts the finite PSD covariance to the same valid rows and
+columns and solves that positive principal submatrix. Dense 11- and 31-pixel
+checks, a masked isotropic endpoint, solver residuals, and product receipts all
+pass. This avoids selecting replacement angles from the baseline while
+enforcing the planet mask over the complete candidate footprint.
+
+The corrected raw narrow-band primary variances for response supports 11, 31,
+and 47 are 6.512, 7.131, and 6.879 for identity; 2.867, 3.324, and 3.306 for
+rectangular/mixing-0.3; and 2.477, 2.875, and 2.698 for Hann/mixing-0.1. Thus
+11 pixels is now the best of these response supports for the leading Hann
+family. Applying the strict radial normalization with the same candidate mask
+reduces the 11-pixel Hann primary variance from 2.477 to 2.092. At radius 12 it
+falls from 3.897 to 3.153 but remains the largest radial mismatch.
+
+A separate geometry-only check using the nine fully clear 11-pixel sites at
+radius 12 gives still larger Hann variances of 4.806 raw and 3.898 normalized.
+The planet overlap therefore does not explain away the radius-12 behavior,
+although it invalidated the earlier larger-support comparison. Use only the
+planet-masked values for subsequent Stage-B decisions. The next discriminator
+remains post-ensemble-mean patch-RMS normalization on the corrected 11-pixel
+geometry.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

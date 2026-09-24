@@ -1,0 +1,77 @@
+{
+  "status": "complete",
+  "audit": {
+    "status": "complete",
+    "results": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_planet_footprint_audit_20260924/results.json",
+      "bytes": 231893,
+      "sha256": "940f2014d1882b28583abba9f99e77a89c2082fa07ff16bf2ee4d14fee9ecf83"
+    },
+    "report": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_planet_footprint_audit_20260924/README.md",
+      "bytes": 2295,
+      "sha256": "9e2b1d0eebcde38a875aad5f999b019cf36bc932fa367cb66794544bf814aef1"
+    },
+    "figure": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_planet_footprint_audit_20260924/comparison.png",
+      "bytes": 82369,
+      "sha256": "9827f8ed99780a4494be24da14c280c867188b36d9b518e42779ea995a4415a6"
+    }
+  },
+  "masked_raw": {
+    "status": "complete",
+    "protocol": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_planet_masked_screen_20260924/protocol.json",
+      "bytes": 3236,
+      "sha256": "266ac713f590d8f7c4abd766df84dde548ad7e2190bf0616ba74a9bd1904b15f"
+    },
+    "records": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_planet_masked_screen_20260924/records.json",
+      "bytes": 17548516,
+      "sha256": "a72f518459c401f5f93a8db15f7e3fddcaacc49ca714bf202f4176d86bb32e69"
+    },
+    "results": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_planet_masked_screen_20260924/results.json",
+      "bytes": 515841,
+      "sha256": "877a7f80e9dc022d1c435e913444d453c61684e6f0e0a8b0f639aab3e9aba316"
+    },
+    "report": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_planet_masked_screen_20260924/results.md",
+      "bytes": 3149,
+      "sha256": "354c039e05215e602a25c381591f91c273d6b7ba04c4e1e66d3e1bf7aa837cab"
+    },
+    "figure": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_planet_masked_screen_20260924/comparison.png",
+      "bytes": 87175,
+      "sha256": "67cac6d392152eef0bf8b45f0b520099ed90fb5518fb563f8c71658c48951253"
+    }
+  },
+  "masked_normalized": {
+    "status": "complete",
+    "protocol": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_planet_masked_normalization_20260924/protocol.json",
+      "bytes": 3418,
+      "sha256": "b6ed19d21a1e0278bbe33c8617fd6dcd1efe5a29020af276d5b3fb33a3c5aa56"
+    },
+    "records": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_planet_masked_normalization_20260924/records.json",
+      "bytes": 4497558,
+      "sha256": "947b6b84b34894c417c38641245f9a4aeb369ebd49d0aef18afa47e37b634f8f"
+    },
+    "results": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_planet_masked_normalization_20260924/results.json",
+      "bytes": 80892,
+      "sha256": "cb5ee2cbb43fa32234d422ea200601bbc75c4442d72c95d2641b1a4167bda6f1"
+    },
+    "report": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_planet_masked_normalization_20260924/results.md",
+      "bytes": 1038,
+      "sha256": "85d09f7614d9a94bcd0e2b48b0706622bbc623dc7edebeb04d3380fad642b29a"
+    },
+    "figure": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_planet_masked_normalization_20260924/comparison.png",
+      "bytes": 60448,
+      "sha256": "295cf06d5d0f231c38adebf505eb38fbabdcb6db2992915d641ac14818e9825f"
+    }
+  }
+}
