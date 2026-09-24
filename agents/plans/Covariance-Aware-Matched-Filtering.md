@@ -2761,12 +2761,27 @@ on 11 pixels. The stationary PSD path estimates noise from 11-by-11 Welch
 patches while retaining fixed 11-, 31-, and 47-pixel response controls for the
 candidate data. The larger response footprint still sets the exclusion around
 each search so PSD training cannot reuse pixels touched by the modeled source.
-The next
-+[decoupled-footprint preflight](results/klip-stage-b-decoupled-preflight-setup-20260923/README.md)
-audits that cross-geometry before any PSD or baseline score is calculated. A
-separate numerical checkpoint will then freeze how the 21-pixel estimated
-spectrum is evaluated on the larger response grids and verify its isotropic and
-11-pixel endpoints.
+
+The completed
+[decoupled-footprint preflight](results/klip-stage-b-decoupled-preflight-setup-20260923/README.md)
+passes this cross-geometry. At radii 7.5, 10, and 12, the 31- and 47-pixel
+response exclusions require a 40-pixel radial training half-width. Even the
+47-pixel exclusion retains at least 183--206 full-range patches and 58--76 in
+each detector half there. Required bands narrow to 20 pixels for the 47-pixel
+response at radii 20 and 24.
+
+The completed
+[PSD extension check](results/klip-stage-b-psd-extension-check-20260923/README.md)
+then freezes the finite solve. Eleven-pixel periodograms are calculated directly
+on the 21-, 61-, or 93-pixel linear-lag grid of the selected response support.
+Their inverse transforms are zero beyond measured lags -10 through +10. The
+resulting positive block-Toeplitz covariance is applied by zero-padded FFT
+convolution and solved with preconditioned conjugate gradients. It exactly
+reproduces the existing P4 spectrum, covariance, and dense 11-pixel weights for
+both windows and all three isotropic mixtures; the 31- and 47-pixel solves pass
+symmetry, positivity, isotropic-endpoint, and residual checks. Thus the larger
+template path makes an explicit zero-long-lag assumption without inventing
+unmeasured covariance.
 
 ## 8. Notation
 
@@ -2839,9 +2854,9 @@ separately by context; the P4 regression eigensystem and the residual-noise eige
 | $\gamma_{\rm shrink}, C_\gamma$ | Shrinkage fraction and covariance that continuously reduces all empirical modes toward isotropy | $C_\gamma=(1-\gamma_{\rm shrink})\widehat C+\gamma_{\rm shrink}\operatorname{tr}(\widehat C)I/p$; tested grid 0.1, 0.3, 1.0. The endpoint 1.0 is isotropic. Distinct from Gram eigenvalues $\gamma_i$. |
 | $W,U_W$ | Spectral estimation window and its squared energy | $U_W=\sum_a W_a^2$; tested windows are rectangular and separable symmetric Hann on 11×11 training patches. Used inside the covariance estimator, not applied to candidate data or response templates. |
 | $\bar v$ | Mean unwindowed empirical pixel variance | $\sum_j\lVert x_j-\bar x\rVert^2/[(n-1)p]$; the PSD model preserves covariance trace $p\bar v$. Distinct from the radial variance profile. |
-| $\widehat P_{\rm raw}(k),\widehat P(k)$ | Averaged windowed patch power before and after rescaling | The native 11-pixel contract uses an unnormalized 21×21 FFT. Divide summed powers by $(n-1)U_W$, then rescale their spectral mean to $\bar v$; $k$ here indexes spatial frequency, not retained P4 modes. Evaluating this estimate behind larger KLIP responses requires a separately frozen spectral-extension rule. |
+| $\widehat P_{\rm raw}(k),\widehat P(k)$ | Averaged windowed patch power before and after rescaling | Eleven-pixel training patches use an unnormalized FFT on the response linear-lag grid: 21×21, 61×61, or 93×93. Divide summed powers by $(n-1)U_W$, then rescale their spectral mean to $\bar v$; $k$ here indexes spatial frequency, not retained P4 modes. |
 | $\beta_{\rm PSD},\widehat P_\beta$ | Isotropic spectral mixing fraction and regularized power | $\widehat P_\beta=(1-\beta_{\rm PSD})\widehat P+\beta_{\rm PSD}\bar v$; tested mixtures 0.1 and 0.3, with 1.0 checked as the isotropic endpoint. Distinct from P4 regression coefficients $\beta_k$. |
-| $\widehat c(u_a-u_b),C_{\rm PSD}$ | Inverse-transform lag kernel and reconstructed finite stamp covariance | $u_a$ is the two-dimensional coordinate of stamp pixel $a$; $(C_{\rm PSD})_{ab}=\widehat c(u_a-u_b)$. The native 11-pixel model divides the inverse FFT by $21^2$ and retains lags −10 through +10, including long-lag window bias. |
+| $\widehat c(u_a-u_b),C_{\rm PSD}$ | Inverse-transform lag kernel and reconstructed finite stamp covariance | $u_a$ is the two-dimensional coordinate of response pixel $a$; $(C_{\rm PSD})_{ab}=\widehat c(u_a-u_b)$. The inverse FFT retains measured lags −10 through +10 and gives zero covariance at longer lags on larger response grids. |
 | $v_i,\gamma_i$ | Eigenvector and eigenvalue of the training Gram matrix | $RR^Tv_i=\gamma_i v_i$; for $\gamma_i>0$, $q_i=R^Tv_i/\sqrt{\gamma_i}$ and $\nu_i=\gamma_i/(n-1)$. |
 | $C_s,C_n$ | Signal and noise covariance matrices in Wiener estimation | Defined for zero-mean, uncorrelated random signal and noise. $C_n$ is $C$ when referring to the same filtered stamp space. |
 | $\widehat s$ | Wiener estimate of the random signal image | $\widehat s=C_s(C_s+C_n)^{-1}d$ for zero-mean data; distinct from the unit-source input $s_q$. |

@@ -298,9 +298,14 @@ axes. Screen central 11-, 31-, and 47-pixel exact responses. Direct empirical
 PCA and diagonal covariance remain on 11-pixel data. The stationary PSD path
 uses 11-by-11 Welch training patches with five-pixel angular and radial center
 spacing, while the candidate data, response, and five-source exclusion retain
-the chosen response support. The score-blind
+the chosen response support.
+
+The completed
 [decoupled-footprint preflight](../klip-stage-b-decoupled-preflight-setup-20260923/README.md)
-must show adequate training coverage before the larger PSD-filter arms begin.
+passes. The 31- and 47-pixel response exclusions require a 40-pixel training
+half-width at radii 7.5, 10, and 12. With the 47-pixel exclusion, the full range
+still supplies at least 183--206 patches and 58--76 in each detector half at
+those radii. The full-range band remains the fixed wider stability control.
 
 Test these axes without positive injections:
 
@@ -317,14 +322,17 @@ Test these axes without positive injections:
 | Patch-amplitude control | Post-ensemble-mean per-patch RMS normalization for selected PSD geometries |
 | Fitted mean | On and off for the 11-pixel arms; a support-independent radial-mean control for larger responses |
 
-The native 11-pixel PSD contract remains a 21-by-21 zero-padded FFT with all
-finite lags from -10 through +10, trace rescaling to unwindowed sample variance,
-and untapered candidate data and templates. Before applying that estimate to a
-31- or 47-pixel response, freeze a separate spectral-extension contract. It
-must preserve a positive isotropic endpoint, reproduce the existing 11-pixel
-solution, state the boundary convention, and report the assumed treatment of
-correlations beyond lag 10. No dense 961- or 2,209-component empirical inverse
-is permitted.
+The
+[PSD extension contract](../klip-stage-b-psd-extension-check-20260923/README.md)
+calculates each 11-pixel periodogram directly on the 21-, 61-, or 93-pixel
+linear-lag grid of the selected response. It retains measured lags -10 through
++10 and sets longer lags to zero. Trace rescaling and isotropic mixing preserve
+a positive spectrum. Zero-padded FFT convolution applies the resulting finite
+block-Toeplitz covariance, and preconditioned conjugate gradients solve its
+weights without a dense 961- or 2,209-component inverse. The implementation
+exactly reproduces the existing 11-pixel P4 estimator and passes symmetry,
+positivity, isotropic-endpoint, and residual checks at all three supports.
+Candidate data and templates remain untapered.
 
 For every fit report:
 
