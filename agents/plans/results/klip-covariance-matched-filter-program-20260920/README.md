@@ -350,9 +350,17 @@ opposite-half generic patches have median measured/predicted variance 1.13,
 while the fixed candidate nulls have variance 2.23. The mismatch peaks at
 radius 12 and remains in center-only scores. Fitted-mean subtraction does not
 remove it, and the 47-pixel response is not uniformly better than 11 pixels.
-The next focused arm is the preregistered radial-variance standardization,
-followed by patch-RMS normalization and the remaining direct-covariance and
-mean controls.
+The completed
+[strict radial-normalization arm](../klip-stage-b-radial-normalization-20260923/README.md)
+reduces the 11-pixel Hann/mixing-0.1 primary candidate variance from 2.23 to
+1.86 while leaving opposite-half variance near unity and split physical-weight
+cosine at 0.990. Radius 12 remains high at 3.10, so radial scale is only a
+partial explanation. The leave-site-out 3.6-pixel profile is supported at all
+72 11-pixel sites, only 22 of 72 31-pixel sites, and no 47-pixel site. Larger
+supports therefore cannot use this strict rule without reading the candidate
+or extrapolating through an unsupported annulus. The next focused arm is
+post-ensemble-mean patch-RMS normalization on the supported 11-pixel geometry,
+followed by the remaining direct-covariance and mean controls.
 
 For every fit report:
 

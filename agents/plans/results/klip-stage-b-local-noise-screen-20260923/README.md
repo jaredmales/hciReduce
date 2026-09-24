@@ -108,3 +108,13 @@ saved-product receipt pass. Compact machine-readable values are in
 [`verification.json`](verification.json), and the comparison figure is
 [`comparison.png`](comparison.png). The complete 16.8-MB record table remains
 under ignored `working/local` data.
+
+
+## Follow-up: radial normalization
+
+The subsequent
+[strict radial-normalization screen](../klip-stage-b-radial-normalization-20260923/README.md)
+reduces 11-pixel Hann/mixing-0.1 candidate score variance from 2.23 to 1.86 but
+leaves radius 12 at 3.10. Its leave-site-out profile is unsupported on common
+31- or 47-pixel response geometry. Radial scaling is therefore retained as the
+leading 11-pixel coordinate choice, without promoting a final filter.

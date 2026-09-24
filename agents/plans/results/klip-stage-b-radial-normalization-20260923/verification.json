@@ -1,0 +1,48 @@
+{
+  "status": "complete",
+  "policy_records": 1800,
+  "elapsed_seconds": 8.837598135000007,
+  "bundle": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_bundle_20260923/input.npz",
+    "bytes": 2897949,
+    "sha256": "ffc66934b7b8f535ac7e6bc45ec3430abb95eaad844e7b9fb5938d22688dc7b4"
+  },
+  "raw_parent": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_noise_screen_20260923/complete.json",
+    "bytes": 1250,
+    "sha256": "5753b7a493e0c4d483ba6158623e53e3d01c0a563dba9afb88c4b138ace6ef2e"
+  },
+  "local_run_products": {
+    "status": "complete",
+    "protocol": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_normalization_20260923/protocol.json",
+      "bytes": 3387,
+      "sha256": "b32bc0606e2ad48eddc154e00fde26c6dba4db618d74b9d852add734990040d3"
+    },
+    "profiles": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_normalization_20260923/profiles.json",
+      "bytes": 267102,
+      "sha256": "eed1f555eef4f1a500ed3c288b9425ebf6f0e6a7c18c2a187664c0b6f94fffc9"
+    },
+    "records": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_normalization_20260923/records.json",
+      "bytes": 4452261,
+      "sha256": "d5cc4dac9e8878944c3789b9ccc93e561726a75a920467051b1d4e0ebb268ef5"
+    },
+    "results": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_normalization_20260923/results.json",
+      "bytes": 183005,
+      "sha256": "fcef8526893f6a587362daecf602f461960204e482f75ede9c89802ef1e50c8b"
+    },
+    "report": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_normalization_20260923/results.md",
+      "bytes": 1917,
+      "sha256": "0ed4c3396ee073cf4bf7e66d258022aa3c4bb7523459c70cca26b230a1180510"
+    },
+    "figure": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_normalization_20260923/comparison.png",
+      "bytes": 89239,
+      "sha256": "15f9891c977459c539ec42dcc88398f7b084d246886fe72484e24e8b77e0099f"
+    }
+  }
+}

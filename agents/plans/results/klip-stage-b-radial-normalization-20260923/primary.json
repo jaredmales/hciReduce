@@ -1,0 +1,145 @@
+{
+  "purpose": "strict candidate-excluded radial normalization of the local KLIP screen",
+  "mode": 200,
+  "support": 11,
+  "primary": [
+    {
+      "method": "identity",
+      "normalized_score_variance_median": 5.023700851666813,
+      "raw_score_variance_median": 6.164338949792532,
+      "normalized_over_raw_variance_median": 0.8179531138453019,
+      "normalized_center_variance_median": 5.13458317514218,
+      "normalized_heldout_variance_median": 3.922674045585906,
+      "raw_heldout_variance_median": 3.9683149192618563,
+      "normalized_split_weight_cosine_median": 1.0,
+      "raw_split_weight_cosine_median": 1.0,
+      "normalized_within_one_fraction_median": 0.26666666666666666
+    },
+    {
+      "method": "rectangular_m0.1",
+      "normalized_score_variance_median": 1.9557417752172397,
+      "raw_score_variance_median": 2.3398318849021904,
+      "normalized_over_raw_variance_median": 0.8358471340768969,
+      "normalized_center_variance_median": 2.345080495632469,
+      "normalized_heldout_variance_median": 1.130663342223482,
+      "raw_heldout_variance_median": 1.1459416616715612,
+      "normalized_split_weight_cosine_median": 0.985488889053735,
+      "raw_split_weight_cosine_median": 0.986160042498046,
+      "normalized_within_one_fraction_median": 0.4666666666666667
+    },
+    {
+      "method": "rectangular_m0.3",
+      "normalized_score_variance_median": 2.19099295420023,
+      "raw_score_variance_median": 2.632873299035033,
+      "normalized_over_raw_variance_median": 0.8321680177330388,
+      "normalized_center_variance_median": 2.610660909988898,
+      "normalized_heldout_variance_median": 1.3043540924402888,
+      "raw_heldout_variance_median": 1.3348600074448362,
+      "normalized_split_weight_cosine_median": 0.988769560455681,
+      "raw_split_weight_cosine_median": 0.989430040833984,
+      "normalized_within_one_fraction_median": 0.425
+    },
+    {
+      "method": "hann_m0.1",
+      "normalized_score_variance_median": 1.8560618639750697,
+      "raw_score_variance_median": 2.2320103646676857,
+      "normalized_over_raw_variance_median": 0.8315650739603132,
+      "normalized_center_variance_median": 2.147601393335486,
+      "normalized_heldout_variance_median": 1.0901709050969206,
+      "raw_heldout_variance_median": 1.1332056436160816,
+      "normalized_split_weight_cosine_median": 0.9900330296723933,
+      "raw_split_weight_cosine_median": 0.9908548227712722,
+      "normalized_within_one_fraction_median": 0.4666666666666667
+    },
+    {
+      "method": "hann_m0.3",
+      "normalized_score_variance_median": 2.072094219572138,
+      "raw_score_variance_median": 2.508020396559769,
+      "normalized_over_raw_variance_median": 0.8261871484037421,
+      "normalized_center_variance_median": 2.4097299412580493,
+      "normalized_heldout_variance_median": 1.274636529361494,
+      "raw_heldout_variance_median": 1.3062845543571093,
+      "normalized_split_weight_cosine_median": 0.9925764562473322,
+      "raw_split_weight_cosine_median": 0.9931531712546571,
+      "normalized_within_one_fraction_median": 0.44166666666666665
+    }
+  ],
+  "profile_geometry": {
+    "11": {
+      "sites": 72,
+      "supported_sites": 72,
+      "minimum_bin_counts": [
+        21,
+        61,
+        109,
+        168,
+        266,
+        383,
+        471,
+        565,
+        650,
+        776,
+        860,
+        940,
+        1024,
+        1092,
+        1200,
+        1252,
+        876
+      ]
+    },
+    "31": {
+      "sites": 72,
+      "supported_sites": 22,
+      "minimum_bin_counts": [
+        0,
+        0,
+        0,
+        21,
+        107,
+        242,
+        348,
+        442,
+        510,
+        630,
+        734,
+        881,
+        1007,
+        1092,
+        1200,
+        1252,
+        876
+      ]
+    },
+    "47": {
+      "sites": 72,
+      "supported_sites": 0,
+      "minimum_bin_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        54,
+        138,
+        298,
+        389,
+        492,
+        591,
+        703,
+        834,
+        953,
+        1150,
+        1232,
+        876
+      ]
+    }
+  },
+  "structural_zero_core": {
+    "radius_limit": 3.6,
+    "baseline_pixels": 44,
+    "selected_response_pixel_occurrences": 672,
+    "all_values_bitwise_zero": true,
+    "assigned_scale": "first positive radial bin"
+  }
+}

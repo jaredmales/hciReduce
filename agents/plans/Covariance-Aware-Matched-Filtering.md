@@ -2821,6 +2821,37 @@ PCA/diagonal grid, and larger-support radial-mean control. No positive injection
 or known-planet result entered this screen. See the
 [local noise-screen report](results/klip-stage-b-local-noise-screen-20260923/README.md).
 
+### Step 6 checkpoint: strict radial normalization (2026-09-23)
+
+The completed
+[radial-normalization screen](results/klip-stage-b-radial-normalization-20260923/README.md)
+uses a separate leave-site-out 3.6-pixel variance profile for each 11-pixel
+site. Each profile excludes the known planet and the union of that site's five
+complete candidate footprints. Native training pixels, candidate data, and the
+exact response are all divided by the same interpolated standard deviation
+before patch extraction and filtering, so amplitude remains in physical
+contrast units.
+
+This is a useful but incomplete correction. For Hann/mixing-0.1, the median
+candidate score variance over radii 7.5, 10, and 12 falls from 2.23 to 1.86;
+rectangular/mixing-0.3 falls from 2.63 to 2.19. The opposite-half Hann variance
+moves only from 1.13 to 1.09, split physical-weight cosine remains 0.990, and
+radius 12 still has candidate variance 3.10. Radial scale therefore explains
+part of the candidate mismatch without accounting for most of it.
+
+The strict profile has a second footprint limit. All 72 selected 11-pixel sites
+retain at least 20 pixels per radial bin, but only 22 of 72 31-pixel sites and
+none of the 72 47-pixel sites do. Larger footprints cover complete inner
+annuli, so they cannot use this profile without reading held-out candidate
+pixels or extrapolating across unsupported radii. The 0--3.6-pixel KLIP core is
+separately verified to be bitwise zero in the baseline and every selected exact
+response; assigning it the first positive-bin scale is algebraically inert.
+
+Retain radial-standardized Hann/mixing-0.1 as the leading 11-pixel PSD arm and
+raw rectangular/mixing-0.3 as the mandatory P4 prior, without promoting either
+yet. The next discriminator is post-ensemble-mean patch-RMS normalization on
+the supported 11-pixel geometry.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
