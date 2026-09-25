@@ -390,6 +390,17 @@ scores correlate above 0.9997, while radius-12 radial Hann slightly worsens from
 3.153 to 3.168. Per-patch RMS is therefore removed from the shortlist. The
 direct 11-pixel diagonal/PCA grid is the next discriminator.
 
+The completed
+[direct diagonal/PCA screen](../klip-stage-b-direct-covariance-20260925/README.md)
+also fails to displace the PSD models. Direct diagonal variance is 6.786 raw and
+5.636 after radial standardization. The best direct model, every estimable PCA
+mode with floor 1.0, reaches 3.439 raw and 2.886 radial, compared with 2.477 and
+2.092 for Hann/mixing-0.1. Its radial split-weight cosine is only 0.730 and its
+opposite-half variance is 1.820. A wider band improves those diagnostics but
+leaves candidate variance at 2.909. Direct covariance is removed from the
+shortlist, and the larger-response radial-mean control is the remaining Stage-B
+arm.
+
 For every fit report:
 
 - training and held-out amplitude variance divided by conditional prediction;

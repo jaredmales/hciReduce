@@ -1,0 +1,28 @@
+{
+  "status": "complete",
+  "protocol": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_direct_covariance_finite_20260925/protocol.json",
+    "bytes": 4046,
+    "sha256": "ffd3be869e16673eac853cc8cab00953ea75c00e009d4f8c0339298236bc76cd"
+  },
+  "records": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_direct_covariance_finite_20260925/records.json",
+    "bytes": 58746624,
+    "sha256": "9ac72a3c7666ea58bd2db8af5e9a2d98046f53eea531a41dba4ea870718c994e"
+  },
+  "results": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_direct_covariance_finite_20260925/results.json",
+    "bytes": 1244381,
+    "sha256": "711be4ec9a0f6ff447f9e1ea32228e0e6e6dde6fd07717a1082a0de0455dda12"
+  },
+  "report": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_direct_covariance_finite_20260925/results.md",
+    "bytes": 3246,
+    "sha256": "58762d26675838f279fa38a217ed234ebab62777075013916732821c9e06b05e"
+  },
+  "figure": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_direct_covariance_finite_20260925/comparison.png",
+    "bytes": 173265,
+    "sha256": "ccafdfa657803dabe769f1042d3e31eedb336b41958305e85d0b27234c59b7c1"
+  }
+}

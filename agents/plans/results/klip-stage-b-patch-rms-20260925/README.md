@@ -83,3 +83,11 @@ are in [`verification.json`](verification.json), and the figures show the
 [raw-coordinate](raw-coordinate-comparison.png) and
 [radial-coordinate](radial-coordinate-comparison.png) comparisons. Full record
 tables remain under ignored `working/local` data.
+
+## Follow-up: direct diagonal/PCA covariance
+
+The completed [direct-covariance screen](../klip-stage-b-direct-covariance-20260925/README.md)
+finds no replacement for the PSD shortlist. The best direct model uses every
+estimable PCA mode and floor 1.0, but its radial primary variance is 2.886 and
+split-weight cosine is 0.730, versus 2.092 and 0.990 for radial Hann/mixing-0.1.
+The remaining Stage-B arm is the larger-response radial-mean control.

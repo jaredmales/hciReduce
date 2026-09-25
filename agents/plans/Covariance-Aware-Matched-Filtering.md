@@ -2920,6 +2920,40 @@ rectangular/mixing-0.3 as the mandatory P4 prior. The next Stage-B discriminator
 is the direct 11-pixel diagonal/PCA covariance grid; the larger-support
 radial-mean control remains open.
 
+### Step 6 checkpoint: direct diagonal/PCA covariance (2026-09-25)
+
+The completed [direct-covariance screen](results/klip-stage-b-direct-covariance-20260925/README.md)
+evaluates the corrected 11-pixel geometry in raw and strict radial-standardized
+coordinates. Diagonal covariance uses per-pixel variances clipped at the
+production 0.1 median-variance floor. PCA retains at most 0, 3, 8, or every
+estimable centered sample mode over floor fractions 0.1, 0.3, and 1.0. Every
+fit uses independent detector halves, the narrowest supported radial band, and
+the next wider fixed band. Candidate mean subtraction is reported both off and
+on.
+
+The local diagonal-plus-low-rank solver reproduces dense covariance
+principal-submatrix solves while enforcing the fixed candidate planet mask.
+The complete run evaluates 18,720 policy/query records. The strict radial
+profile remains undefined at native radii 60 and beyond; wider-band patches
+that touch that domain are rejected geometrically rather than filled by
+extrapolation. This affects only the radius-12 wider control, where 110--160
+training patches remain per fit, and does not affect any primary narrow band.
+
+Direct covariance does not beat the PSD models. Raw diagonal variance is 6.786,
+slightly worse than raw identity at 6.512. The best direct policy is all
+estimable PCA modes with floor 1.0: its primary variance is 3.439 raw and 2.886
+radially standardized, versus 2.477 for raw Hann/mixing-0.1 and 2.092 for radial
+Hann/mixing-0.1. Its radial opposite-half variance is 1.820 and split physical-
+weight cosine is only 0.730, compared with 1.091 and 0.990 for radial Hann.
+At radius 12, direct radial PCA has variance 5.004 versus 3.153 for radial Hann.
+
+The wider band improves all-mode radial PCA held-out variance from 1.820 to
+1.359 and split cosine from 0.730 to 0.804, but candidate variance remains 2.909.
+Lower floors are strongly undercalibrated, and fitted-mean subtraction is
+neutral. Do not advance direct diagonal or PCA covariance. Keep the two PSD
+arms unchanged; the remaining Stage-B loose end is the larger-response support
+radial-mean control.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
