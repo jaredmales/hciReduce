@@ -577,16 +577,19 @@ def production_snr(root: Path, analyzer: Path, protocol: dict[str, object], maps
     planet_position = raw.planet_position(maps.shape[-2:], {"known_planet": planet})
     exclusions = [(planet_position[0], planet_position[1], float(planet["exclusion_radius"])),
                   (float(site["row"]), float(site["column"]), float(planet["exclusion_radius"]))]
+    checked = [(int(site["row"]) + delta_row, int(site["column"]) + delta_column)
+               for delta_row, delta_column in footprint.SEARCH_OFFSETS]
     maximum_error = 0.0
     for mode_index in range(len(stage.MODES)):
         for method_index in range(len(METHODS)):
             expected = annular_oracle(maps[mode_index, method_index], exclusions)
-            finite = np.isfinite(expected) & np.isfinite(snr[mode_index, method_index])
-            stage.require(np.any(finite) and np.allclose(snr[mode_index, method_index][finite],
-                          expected[finite], rtol=2e-6, atol=2e-6),
+            observed_values = np.asarray([snr[mode_index, method_index, column, row]
+                                          for row, column in checked])
+            expected_values = np.asarray([expected[column, row] for row, column in checked])
+            stage.require(np.all(np.isfinite(observed_values)) and np.all(np.isfinite(expected_values)) and
+                          np.allclose(observed_values, expected_values, rtol=2e-6, atol=2e-6),
                           f"annular oracle mismatch for {METHODS[method_index]}")
-            maximum_error = max(maximum_error, float(np.max(np.abs(
-                snr[mode_index, method_index][finite] - expected[finite]))))
+            maximum_error = max(maximum_error, float(np.max(np.abs(observed_values - expected_values))))
     stage.write_json(directory / "command.json", command)
     return snr, maximum_error, command
 
