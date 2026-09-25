@@ -3052,6 +3052,15 @@ mean and median search SNR, center SNR, localization, contrast error,
 positive-minus-baseline throughput, response fidelity, and solve diagnostics.
 It performs no method selection and cannot open validation products.
 
+An isolated ROC pilot completed all eight radius-7.5 calibration units, one
+real fixed-null production-SNR calculation, and one synthetic exact-response
+positive through both covariance arms. The null-site hciAnalyze/oracle maximum
+difference was $2.38\times10^{-7}$. The synthetic mode-200 response had
+cosine 0.999999999999998, projection 0.9999999924, and best-scaled relative
+residual $6.03\times10^{-8}$; its maximum SNR-oracle difference was
+$9.54\times10^{-7}$. The canonical prepared directory remains untouched and
+is ready for the full runner.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

@@ -175,3 +175,20 @@ The phases can instead be resumed separately with calibrate, reduce, and
 analyze. The four analysis workers share the frozen 16-core affinity while
 BLAS and hciAnalyze remain single threaded. The KLIP reductions run one at a
 time with all 16 OpenMP threads.
+
+## ROC runner pilot
+
+The committed runner passed two isolated pilots in /tmp without modifying the
+canonical prepared directory. First, all eight radius-7.5 calibration units
+completed against the real baseline, exact field, sparse field, and strict
+radial profiles. A real fixed null site then passed production hciAnalyze
+normalization with a maximum independent-oracle difference of 2.38e-7.
+
+Second, a synthetic positive made by adding the exact 11-pixel response at one
+frozen development site traversed the complete analysis path. At mode 200 its
+unweighted response-fidelity cosine was 0.999999999999998, its projection was
+0.9999999924, and its best-scaled relative residual was 6.03e-8. Frozen and
+per-image-refit covariance both completed, and the largest hciAnalyze/oracle
+SNR difference across the two arms was 9.54e-7. These pilots validate the FITS
+orientation, 47-to-11 support crop, site-specific training exclusions,
+precision replay, response-fidelity calculation, and production SNR bridge.
