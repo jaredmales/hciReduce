@@ -378,7 +378,9 @@ def calculate_unit(root_value: str, radius_value: float, mode_index: int) -> str
     for source, (row_value, column_value, _, _) in enumerate(coordinates):
         row, column = int(row_value), int(column_value)
         central_validity = raw.crop(np.asarray(validities[source], dtype=bool).T, SUPPORT)
-        if selected_pixels[column, row] and np.all(central_validity):
+        query = (row, column)
+        if (selected_pixels[column, row] and np.all(central_validity) and
+                candidate_mask(query, planet)[HALF, HALF]):
             selected_sources.append(source)
     stage.require(selected_sources, "calibration unit has no exact-response positions")
 
