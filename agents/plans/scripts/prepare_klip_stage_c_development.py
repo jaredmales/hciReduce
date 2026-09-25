@@ -385,6 +385,7 @@ def prepare(args: argparse.Namespace) -> None:
     (root / "software").mkdir()
     runner = Path(__file__).resolve()
     dependencies = [runner, runner.with_name("run_klip_covariance_stage_a.py"),
+                    runner.with_name("check_klip_stage_b_psd_extension.py"),
                     runner.with_name("run_klip_response_47.py"),
                     runner.with_name("run_klip_response_tail_linearity.py"),
                     runner.with_name("run_klip_response_stamp_convergence.py"),

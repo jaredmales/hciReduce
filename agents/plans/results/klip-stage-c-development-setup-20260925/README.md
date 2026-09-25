@@ -89,3 +89,10 @@ Preparation writes `protocol.json`, `geometry.json`, `contrasts.json`, all 108
 development commands, copied software/configuration, and a strict manifest.
 The development reduction and analysis command will be added only after the
 prepared geometry and contrast receipt pass review.
+
+The first materialization exposed a packaging-only omission before any
+reduction directory was created: the copied PSD helper imported the
+check_klip_stage_b_psd_extension.py module, but that dependency was not copied
+into the frozen software directory. The corrected preparer includes it explicitly;
+the untouched first directory is archived and replaced rather than repaired
+in place.
