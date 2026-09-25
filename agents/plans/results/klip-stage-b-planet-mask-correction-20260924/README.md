@@ -101,3 +101,11 @@ figures show the [clear-site audit](clear-site-audit.png),
 [masked raw comparison](masked-raw-comparison.png), and
 [masked normalized comparison](masked-normalized-comparison.png). Full record
 tables remain under ignored `working/local` data.
+
+## Follow-up: patch-RMS control
+
+The completed [post-mean patch-RMS test](../klip-stage-b-patch-rms-20260925/README.md)
+is neutral on this corrected geometry. Hann/mixing-0.1 changes from 2.477 to
+2.482 in raw coordinates and from 2.092 to 2.089 after radial standardization;
+radius 12 changes from 3.153 to 3.168 in the latter comparison. Patch RMS is
+not retained, and the next discriminator is direct diagonal/PCA covariance.

@@ -1,0 +1,59 @@
+{
+  "status": "complete",
+  "raw_coordinates": {
+    "status": "complete",
+    "protocol": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_patch_rms_paired_20260925/protocol.json",
+      "bytes": 3476,
+      "sha256": "9066e34a9e200c9b4b87884278e495fb9830a09b21524a86ebd087d58b4fec44"
+    },
+    "records": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_patch_rms_paired_20260925/records.json",
+      "bytes": 4501605,
+      "sha256": "826b9dc5eae1954b004a7dc846e8a9528df7e3e65438139461a93b840c04851a"
+    },
+    "results": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_patch_rms_paired_20260925/results.json",
+      "bytes": 103601,
+      "sha256": "d830ee322d73c1a07a6d184ef0ac82a7b33f59a93e3c217e722326c065346576"
+    },
+    "report": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_patch_rms_paired_20260925/results.md",
+      "bytes": 1438,
+      "sha256": "1f6de8da93c6a72908ab94765ba3739ad286f363d4f63e0784ec214f3b308b51"
+    },
+    "figure": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_patch_rms_paired_20260925/comparison.png",
+      "bytes": 71687,
+      "sha256": "27f1e0577133bf01525f9fda8ebcc317fd8d6a8da58f7b81470f06a3a0fd530b"
+    }
+  },
+  "radial_standardized_coordinates": {
+    "status": "complete",
+    "protocol": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_patch_rms_20260925/protocol.json",
+      "bytes": 3497,
+      "sha256": "beeff9df3e8a254efd267ef80339942873435bc0e1043a92eb405c862abdc062"
+    },
+    "records": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_patch_rms_20260925/records.json",
+      "bytes": 2098473,
+      "sha256": "8837fe209c28612c9d87593793df2be6e75db57aaba871fe10f161bbf4770eb3"
+    },
+    "results": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_patch_rms_20260925/results.json",
+      "bytes": 55256,
+      "sha256": "f8f8f7a084362e43224c503af4862b93cb9c85898f13f5a79256b3461334af9d"
+    },
+    "report": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_patch_rms_20260925/results.md",
+      "bytes": 927,
+      "sha256": "c915ee2fe97d7bb888e40bc15284ab675f6bef049d221e78008750ebee0812e2"
+    },
+    "figure": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_patch_rms_20260925/comparison.png",
+      "bytes": 73604,
+      "sha256": "6e592678be766334e53ff3a4b66f27ebc3f3a18d40b268da568ff9449a0592b1"
+    }
+  }
+}

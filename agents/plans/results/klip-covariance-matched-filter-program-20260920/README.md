@@ -380,6 +380,16 @@ while radius 12 remains high at 3.153. A geometry-only planet-clear subset is
 worse at radius 12, so the known planet does not account for that mismatch.
 Only the corrected masked values enter subsequent Stage-B decisions.
 
+The subsequent
+[post-mean patch-RMS control](../klip-stage-b-patch-rms-20260925/README.md)
+changes neither coordinate system materially. In raw narrow-band coordinates,
+rectangular/mixing-0.3 changes from variance 2.867 to 2.865 and
+Hann/mixing-0.1 from 2.477 to 2.482. After strict radial standardization, those
+changes are 2.412 to 2.403 and 2.092 to 2.089. Paired parent and patch-RMS
+scores correlate above 0.9997, while radius-12 radial Hann slightly worsens from
+3.153 to 3.168. Per-patch RMS is therefore removed from the shortlist. The
+direct 11-pixel diagonal/PCA grid is the next discriminator.
+
 For every fit report:
 
 - training and held-out amplitude variance divided by conditional prediction;

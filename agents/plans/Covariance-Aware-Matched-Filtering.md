@@ -2890,6 +2890,36 @@ planet-masked values for subsequent Stage-B decisions. The next discriminator
 remains post-ensemble-mean patch-RMS normalization on the corrected 11-pixel
 geometry.
 
+### Step 6 checkpoint: post-mean patch-RMS control (2026-09-25)
+
+The completed [patch-RMS control](results/klip-stage-b-patch-rms-20260925/README.md)
+tests the two frozen PSD families on the corrected 11-pixel geometry. Each
+training patch first has the ensemble pixelwise mean removed and is then divided
+by its own RMS. The equal-RMS residuals enter the periodogram without a second
+centering, and the spectrum is rescaled to the original post-mean variance.
+Candidate data and exact responses remain in their parent physical or radial
+coordinates and use the fixed planet mask.
+
+Patch RMS is neutral in raw coordinates. Over radii 7.5, 10, and 12, narrow-band
+rectangular/mixing-0.3 changes from variance 2.867 to 2.865 and
+Hann/mixing-0.1 changes from 2.477 to 2.482. Full-band results worsen by 0.7--0.9%.
+Paired raw and patch-RMS scores correlate at 0.9997--0.9999, with median absolute
+changes of 0.018--0.024 conditional sigma. Fitted-mean subtraction does not
+change this conclusion.
+
+The same control after strict radial standardization is also neutral.
+Rectangular/mixing-0.3 changes from 2.412 to 2.403 and Hann/mixing-0.1 from
+2.092 to 2.089. At radius 12, radial Hann worsens from 3.153 to 3.168. Median
+maximum-to-minimum training-patch RMS ratios are only 1.49 in the raw narrow
+bands and 1.46 after radial standardization, which explains why equal weighting
+barely changes the fitted spectral shape.
+
+Do not retain per-patch RMS normalization for KLIP. Keep radial-standardized
+11-pixel Hann/mixing-0.1 as the leading PSD arm and raw 11-pixel
+rectangular/mixing-0.3 as the mandatory P4 prior. The next Stage-B discriminator
+is the direct 11-pixel diagonal/PCA covariance grid; the larger-support
+radial-mean control remains open.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
