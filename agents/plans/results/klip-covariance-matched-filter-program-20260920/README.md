@@ -564,6 +564,16 @@ supports identity, diagonal, and same-radius PCA but not the pooled PSD or
 precision-regularization grid. Promote only a validated final estimator into
 C++ and add its configuration surface after the scientific comparison.
 
+Checkpoint 4 is implemented by the
+[immutable Stage-C preparer](../klip-stage-c-development-setup-20260925/README.md).
+It re-audits the full all-mode candidate pool, chooses the smallest fixed
+training band that supports all 38 roles at each radius, partitions the sites
+by deterministic angular maximin selection, and freezes site-specific
+Gaussian-SNR 3/5/7 contrasts for both development and validation. It also
+writes the 108 development commands and freezes the complete 18-method
+analysis receipt. The prepared ROC geometry and contrasts are reviewed before
+the resumable runner is enabled; validation positive products remain unopened.
+
 ## Required provenance and failure behavior
 
 - Every stage writes `protocol.json`, `manifest.json`, `state.json`, and a

@@ -2987,6 +2987,41 @@ response-smoothed references. The next work is the frozen Stage-C development
 injection campaign. No positive injection or known-planet detection statistic
 entered the Stage-B selections.
 
+### Step 6 checkpoint: Stage-C immutable preparer (prepared 2026-09-25)
+
+The
+[Stage-C development preparer](results/klip-stage-c-development-setup-20260925/README.md)
+now freezes the first post-Stage-B experiment. At every planned radius it
+re-audits the complete candidate pool against all-mode 47-pixel response
+support, all-mode finite 11-pixel data, strict leave-site-out radial-profile
+coverage, split 11-pixel Welch coverage, and the known-planet exclusion. It
+chooses the smallest predeclared 5/10/20/40/60-pixel training half-width with
+at least 38 common locations before assigning 20 calibration, six development,
+six validation, and six held-out-null sites by deterministic angular maximin
+selection.
+
+For all development and validation sites, the preparer freezes physical
+contrasts targeting Gaussian-FWHM-3.6 source-only SNR 3, 5, and 7 at mode 200.
+The calibration uses the exact 47-pixel unit response, the five-pixel source
+maximum, the signal-free Gaussian annular deviation, and the production
+small-sample correction. Both the trial disk and known planet are excluded
+from the annular profile. It writes 108 development commands and separately
+freezes the 108 future validation tasks without opening a validation positive.
+
+The method receipt contains all permanent references, the 2.4/3.0/3.6/4.2
+Gaussian development sweep, raw 11-pixel rectangular/mixing-0.3, and
+strict-radial 11-pixel Hann/mixing-0.1 with the full, clipped, and
+hard-truncated precision grid. Per-image covariance refits and baseline-frozen
+weights are paired analysis arms. Each method will receive its own
+maximum-of-20 null threshold at each radius; the calibration receipt must exist
+before any positive image is analyzed.
+
+The preparer passes deterministic tests for angular partitioning, the
+mask-normalized Gaussian, source-only contrast algebra, the 18-method manifest,
+and exact reduction-command controls. The score-blind geometry and contrasts
+must now be materialized on ROC from the completed 47-pixel response campaign
+before the resumable development runner is enabled.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
