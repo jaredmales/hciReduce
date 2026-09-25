@@ -1,0 +1,33 @@
+{
+  "status": "complete",
+  "protocol": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_mean_20260925/protocol.json",
+    "bytes": 3440,
+    "sha256": "227f67c8211074bf41d8024f0b27a1084ec9863365be3e68b2369373e3f95116"
+  },
+  "radial_profile": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_mean_20260925/radial_profile.json",
+    "bytes": 9516,
+    "sha256": "5457b2d80aff1b2babe9191d46a5ebe52306dae8c019682790bee56e95538444"
+  },
+  "records": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_mean_20260925/records.json",
+    "bytes": 8931866,
+    "sha256": "02cacb1acfd075a422d8441a3de34166deb9d174451afc55b469bf8304eebc51"
+  },
+  "results": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_mean_20260925/results.json",
+    "bytes": 404871,
+    "sha256": "412c3cd6a3cedf7e56827050f9a953c0c352ba78714a4ebe32a0a6c83da5813d"
+  },
+  "report": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_mean_20260925/results.md",
+    "bytes": 3267,
+    "sha256": "ce68a8defae2c334545072a72995d8d6bfd13c6854f9f32cdeebcba48f2006e2"
+  },
+  "figure": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/local/klip_stage_b_mode200_radial_mean_20260925/comparison.png",
+    "bytes": 73829,
+    "sha256": "69cfcafdb0d3f1c6dfedc9ddf94e21338a074dfabfa6a39940976ef4eb34d341"
+  }
+}

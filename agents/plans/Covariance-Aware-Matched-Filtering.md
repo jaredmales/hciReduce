@@ -2954,6 +2954,39 @@ neutral. Do not advance direct diagonal or PCA covariance. Keep the two PSD
 arms unchanged; the remaining Stage-B loose end is the larger-response support
 radial-mean control.
 
+### Step 6 checkpoint: support-independent radial mean (2026-09-25)
+
+The completed
+[support-independent radial-mean control](results/klip-stage-b-radial-mean-20260925/README.md)
+fits one one-pixel annular mean profile to the signal-free mode-200 final
+image. It excludes native pixels within 7.5 pixels of the known planet,
+matching the `R + 0.5` convention in `hciAnalyze`, and evaluates the same
+interpolated profile across the retained pixels of every 11-, 31-, and
+47-pixel candidate stamp. Only the candidate mean changes. The corrected
+planet mask, exact response, raw 11-pixel Welch PSD estimate, regularization,
+unit-response weights, and conditional uncertainty remain fixed.
+
+All 6,480 policy/query records pass an exact raw-parent replay check. For
+narrow-band Hann/mixing-0.1, the median controlling-radius score variance
+changes from 2.477 to 2.446 at 11 pixels, 2.875 to 2.831 at 31 pixels, and
+2.698 to 2.654 at 47 pixels. Raw and mean-subtracted scores correlate above
+0.9998. The corresponding rectangular/mixing-0.3 changes are 2.867 to 2.832,
+3.324 to 3.276, and 3.306 to 3.256. Full-band ratios are similarly small.
+
+The correction does not repair radius 12. Narrow-band Hann variance changes
+from 3.897 to 3.885, 5.083 to 5.057, and 4.755 to 4.730 for the three response
+supports. The radial-mean projection has only about 0.001--0.002
+conditional-sigma squared of variance at the controlling radii. Do not add
+radial-mean subtraction to the shortlist or promote a larger response support.
+
+Stage B is closed. Advance radial-standardized 11-pixel Hann/mixing-0.1 as the
+leading data-selected covariance arm and raw 11-pixel
+rectangular/mixing-0.3 as the mandatory P4-prior arm, together with the
+permanent Gaussian, native-image, identity-response, sparse-response, and
+response-smoothed references. The next work is the frozen Stage-C development
+injection campaign. No positive injection or known-planet detection statistic
+entered the Stage-B selections.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

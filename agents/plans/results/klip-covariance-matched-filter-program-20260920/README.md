@@ -401,6 +401,22 @@ leaves candidate variance at 2.909. Direct covariance is removed from the
 shortlist, and the larger-response radial-mean control is the remaining Stage-B
 arm.
 
+The completed
+[support-independent radial-mean control](../klip-stage-b-radial-mean-20260925/README.md)
+closes the final Stage-B arm. One one-pixel annular profile from the
+signal-free image is applied to all three response supports while every
+covariance and response quantity remains fixed. For narrow-band
+Hann/mixing-0.1, primary variance changes from 2.477 to 2.446 at 11 pixels,
+2.875 to 2.831 at 31 pixels, and 2.698 to 2.654 at 47 pixels. Score
+correlations exceed 0.9998, and radius 12 remains strongly undercalibrated.
+The mean model is therefore neutral and no larger response is promoted.
+
+Stage B is closed. Carry radial-standardized 11-pixel Hann/mixing-0.1 as the
+leading data-selected arm and raw 11-pixel rectangular/mixing-0.3 as the
+mandatory P4-prior arm into development. Do not carry patch-RMS, direct
+diagonal/PCA covariance, or radial-mean subtraction. The frozen Stage-C
+development injections are next.
+
 For every fit report:
 
 - training and held-out amplitude variance divided by conditional prediction;
