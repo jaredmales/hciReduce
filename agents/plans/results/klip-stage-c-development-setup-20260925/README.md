@@ -90,9 +90,9 @@ development commands, copied software/configuration, and a strict manifest.
 The development reduction and analysis command will be added only after the
 prepared geometry and contrast receipt pass review.
 
-The first materialization exposed a packaging-only omission before any
-reduction directory was created: the copied PSD helper imported the
-check_klip_stage_b_psd_extension.py module, but that dependency was not copied
-into the frozen software directory. The corrected preparer includes it explicitly;
-the untouched first directory is archived and replaced rather than repaired
-in place.
+The first two verification attempts exposed packaging-only imports before any
+reduction directory was created. The preparer initially omitted the KLIP PSD
+extension module, and that module eagerly imported a P4 comparison chain used
+only by its standalone self-check. The corrected package copies the extension
+module and defers the P4 import to that self-check. Both untouched preparation
+directories are archived and replaced rather than repaired in place.

@@ -12,7 +12,6 @@ from scipy.linalg import cho_solve
 from scipy.sparse.linalg import LinearOperator, cg
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import compare_p4_step5_welch_psd as p4_psd  # noqa: E402
 import run_klip_covariance_stage_a as stage  # noqa: E402
 
 
@@ -121,6 +120,8 @@ def solve_template(model: dict[str, object], template: np.ndarray,
 
 def check() -> None:
     """Verify legacy equivalence, positivity, lag support, and iterative solves."""
+    import compare_p4_step5_welch_psd as p4_psd
+
     generator = np.random.default_rng(67381)
     samples = generator.normal(size=(64, TRAINING_SIZE * TRAINING_SIZE))
     samples += 0.35 * np.roll(samples, 1, axis=1)
