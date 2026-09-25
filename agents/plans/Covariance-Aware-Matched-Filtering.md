@@ -3018,9 +3018,39 @@ before any positive image is analyzed.
 
 The preparer passes deterministic tests for angular partitioning, the
 mask-normalized Gaussian, source-only contrast algebra, the 18-method manifest,
-and exact reduction-command controls. The score-blind geometry and contrasts
-must now be materialized on ROC from the completed 47-pixel response campaign
-before the resumable development runner is enabled.
+and exact reduction-command controls. The final ROC materialization passed all
+frozen loader, lineage, resource, and hash checks with 228 disjoint sites, 108
+development commands, and 108 unopened validation tasks. The selected training
+half-widths are 20 pixels at radii 7.5, 10, and 12; 10 pixels at radius 16; and
+five pixels at radii 20 and 24.
+
+### Step 6 checkpoint: Stage-C development runner (prepared 2026-09-25)
+
+The maintained
+[calibration-first runner](scripts/run_klip_stage_c_development.py) now
+implements the next experiment gate. It constructs the native, Gaussian,
+identity-response, sparse-response, response-smoothed, fitted-mean isotropic,
+raw rectangular PSD, and complete radial-Hann precision maps at all one-pixel
+annuli needed by the fixed sites. The exact 47-pixel oracle supplies the
+centrally cropped 11-pixel template selected by Stage B. Candidate data and
+responses retain the fixed planet mask.
+
+All 20 calibration-site five-pixel maxima are evaluated for every radius,
+method, and KL mode before a development reduction is allowed. The amplitude
+maps are passed through `hciAnalyze` only for production annular normalization,
+and an independent reconstruction of its mean subtraction, sample deviation,
+and small-sample correction must agree. The receipt also freezes the
+baseline-trained weights for every development search pixel.
+
+Only after that receipt exists does the runner launch the 108 resumable KLIP
+reductions. Positive analysis applies the frozen weights across the surrounding
+annulus and separately refits covariance at the five source-search pixels with
+the complete trial exclusion. Because the trial disk is excluded from the
+annular profile, the refit-versus-frozen comparison uses a common noise
+normalization. The report will include all eight modes, maximum-null recovery,
+mean and median search SNR, center SNR, localization, contrast error,
+positive-minus-baseline throughput, response fidelity, and solve diagnostics.
+It performs no method selection and cannot open validation products.
 
 ## 8. Notation
 

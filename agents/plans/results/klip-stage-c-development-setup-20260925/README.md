@@ -87,8 +87,8 @@ taskset -c 12-27 python3 \
 
 Preparation writes `protocol.json`, `geometry.json`, `contrasts.json`, all 108
 development commands, copied software/configuration, and a strict manifest.
-The development reduction and analysis command will be added only after the
-prepared geometry and contrast receipt pass review.
+The verified receipt below enabled the separate calibration-first development
+runner.
 
 The first two verification attempts exposed packaging-only imports before any
 reduction directory was created. The preparer initially omitted the KLIP PSD
@@ -128,3 +128,50 @@ small-separation behavior: the training band expands only where the fixed
 | commands.json | 139733 | 403a05503e08e7bc557cc6b8b6e01a5c21a2ac4bdd8f24219f9bc37abc545655 |
 | manifest.json | 23627 | 833679e372c7b5d1bc28a6825fbbe7baca89d7e297a604e709a17846c60a6893 |
 | state.json | 135 | 950fc3a06cc635f78baf893ec3e5819e05f49067e6f111366f674914257f922b |
+
+
+## Calibration-first development runner
+
+The maintained runner is
+[run_klip_stage_c_development.py](../../scripts/run_klip_stage_c_development.py).
+Its run action enforces this order:
+
+1. fit and receipt all baseline maps, development-site frozen weights, and the
+   20-site maximum-null threshold for every radius, mode, and method;
+2. run or verify all 108 development reductions; and
+3. analyze the positive images with paired baseline-frozen and per-image-refit
+   covariance at the five search pixels.
+
+The calibration builds only the one-pixel annuli needed to bracket the frozen
+searches. It passes each arbitrary amplitude cube through hciAnalyze for the
+production mean-subtracted, small-sample-corrected annular SNR and requires an
+independent oracle to agree. The radial Hann arm fits in strict leave-site-out
+standardized coordinates. Its full, clipped, and hard-truncated weights are
+all renormalized to unit physical response. The raw rectangular arm and every
+permanent reference are retained alongside it.
+
+The runner copies itself into the already prepared software directory on its
+first invocation and freezes that copy plus hciAnalyze in a separate
+development manifest. It never reads or runs a validation command. Interrupted
+calibration units, reductions, and analysis tasks are archived; completed
+receipts are recursively verified and reused.
+
+Run the complete development stage on ROC with:
+
+```bash
+git pull
+
+root=working/roc/klip_stage_c_development_20260925
+
+taskset -c 12-27 python3 \
+  agents/plans/scripts/run_klip_stage_c_development.py check
+
+taskset -c 12-27 python3 \
+  agents/plans/scripts/run_klip_stage_c_development.py run "$root" --workers 4 \
+  2>&1 | tee "$root/driver.log"
+```
+
+The phases can instead be resumed separately with calibrate, reduce, and
+analyze. The four analysis workers share the frozen 16-core affinity while
+BLAS and hciAnalyze remain single threaded. The KLIP reductions run one at a
+time with all 16 OpenMP threads.
