@@ -96,3 +96,35 @@ extension module, and that module eagerly imported a P4 comparison chain used
 only by its standalone self-check. The corrected package copies the extension
 module and defers the P4 import to that self-check. Both untouched preparation
 directories are archived and replaced rather than repaired in place.
+
+## Verified ROC preparation
+
+The final materialization from source commit 6b63d1a passed the frozen loader
+and all hash, lineage, resource-affinity, and parent-completion checks. It
+contains 18 methods, 228 disjoint sites, 108 development commands, and 108
+unopened validation tasks. The state remains prepared with zero development
+reductions; positive analysis has not started and no validation product has
+been opened.
+
+| Radius (px) | Selected half-width (px) | Eligible candidates | Minimum profile pixels | SNR 3 contrast min--mean--max | SNR 5 contrast min--mean--max | SNR 7 contrast min--mean--max |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 7.5 | 20 | 42 | 21 | 0.005266--0.008031--0.011586 | 0.008776--0.013385--0.019309 | 0.012286--0.018739--0.027033 |
+| 10 | 20 | 44 | 38 | 0.002759--0.003817--0.004716 | 0.004598--0.006362--0.007859 | 0.006437--0.008906--0.011003 |
+| 12 | 20 | 60 | 44 | 0.002183--0.003122--0.003893 | 0.003639--0.005204--0.006489 | 0.005095--0.007286--0.009084 |
+| 16 | 10 | 85 | 44 | 0.001313--0.001467--0.001583 | 0.002188--0.002446--0.002639 | 0.003063--0.003424--0.003695 |
+| 20 | 5 | 92 | 44 | 0.000950--0.001014--0.001094 | 0.001583--0.001691--0.001824 | 0.002216--0.002367--0.002554 |
+| 24 | 5 | 160 | 44 | 0.000866--0.000949--0.001017 | 0.001444--0.001581--0.001695 | 0.002022--0.002214--0.002373 |
+
+The inner three radii require a 20-pixel training half-width. Radius 16 narrows
+to 10 pixels, and radii 20 and 24 support five pixels. This is the intended
+small-separation behavior: the training band expands only where the fixed
+38-site partition requires it.
+
+| Prepared file | Bytes | SHA-256 |
+| :--- | ---: | :--- |
+| protocol.json | 156560 | ffbec258b9e1109217363f6cc4a6f9889f1cd09fc6fe1fa1e9ea94d3e3908c86 |
+| geometry.json | 111804 | b86f53a2eddd41a440046636ef819d7ea7d732a9cd3e44637808c84e75fad50e |
+| contrasts.json | 43372 | a8013cccef8f281c29a6510071175ac70424d507b9f3990356c7023ae755d58a |
+| commands.json | 139733 | 403a05503e08e7bc557cc6b8b6e01a5c21a2ac4bdd8f24219f9bc37abc545655 |
+| manifest.json | 23627 | 833679e372c7b5d1bc28a6825fbbe7baca89d7e297a604e709a17846c60a6893 |
+| state.json | 135 | 950fc3a06cc635f78baf893ec3e5819e05f49067e6f111366f674914257f922b |
