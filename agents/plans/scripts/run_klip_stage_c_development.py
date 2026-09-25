@@ -469,8 +469,8 @@ def calculate_unit(root_value: str, radius_value: float, mode_index: int) -> str
             stage.require(query in lookup, f"site query is outside required annular maps: {site['name']}")
             local = lookup[query]
             source = int(source_indices[local])
-            template = np.asarray(responses[source], dtype=np.float64).T
-            validity = np.asarray(validities[source], dtype=bool).T
+            template = raw.crop(np.asarray(responses[source], dtype=np.float64).T, SUPPORT)
+            validity = raw.crop(np.asarray(validities[source], dtype=bool).T, SUPPORT)
             fitted = fit_query(image, query, searches, template, validity, planet, width)
             data = stamp(image, query).ravel()
             site_positions[site_index, search_index] = query
