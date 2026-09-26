@@ -593,6 +593,16 @@ response filtering: sparse identity has the best recovery total and fewer
 held-out exceedances. The known planet remains unopened, so checkpoint 8 is
 now the only outstanding experiment.
 
+Checkpoint 8 is implemented by the
+[Stage-F known-planet closure setup](../klip-stage-f-planet-setup-20260926/README.md).
+It freezes and verifies the completed Stage-E boundary before opening the
+Stage-A-inventoried original science cube. Generic frozen maps provide common
+annular support; source-safe weights are rebuilt from the signal-free baseline
+only within the configured planet aperture, with the entire aperture excluded
+from training. The report includes every Stage-E method and the predeclared
+response-smoothed and fitted-mean identity controls at all eight modes, plus an
+independent reproduction of the production annular SNR.
+
 ## Required provenance and failure behavior
 
 - Every stage writes `protocol.json`, `manifest.json`, `state.json`, and a

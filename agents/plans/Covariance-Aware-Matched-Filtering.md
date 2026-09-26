@@ -3232,6 +3232,32 @@ validated improvement over both Gaussian controls. Stage F is now the
 descriptive known-planet endpoint and cannot change the frozen injection
 conclusion.
 
+### Step 6 checkpoint: Stage-F known-planet closure prepared (2026-09-26)
+
+The [Stage-F setup](results/klip-stage-f-planet-setup-20260926/README.md)
+implements the remaining descriptive endpoint. It recursively verifies the
+unopened Stage-E completion state, follows the promoted-response provenance to
+the Stage-A-fingerprinted original science cube, and freezes the runner,
+`working/analyze.conf`, hciAnalyze binary, validation summaries, and all 48
+calibration-unit receipts before opening the planet.
+
+The generic Stage-C maps cannot be sampled directly at the planet because their
+candidate support deliberately masks the known-planet disk. Stage F instead
+uses those unchanged generic weights for annular normalization, stitched by the
+nearest frozen nominal-radius policy, and rebuilds only the analysis-aperture
+weights from the signal-free baseline. Training excludes the optimized-planet
+disk and the union of all 11-by-11 aperture footprints; candidate support keeps
+the exact or sparse response pixels so it measures rather than removes the
+source.
+
+The runner reports all seven Stage-E methods plus the predeclared response-LPF
+1.8, response-LPF 2.7, and fitted-mean identity controls. For all eight modes it
+records nearest-pixel and aperture-maximum SNR, peak position and offset,
+amplitude, response scale, contrast estimate, and support. Production
+`hciAnalyze` SNR must match the independent annular oracle. The generated
+closure table places the immutable faint-injection recovery and held-out counts
+beside the planet values, while marking controls that did not enter Stage E.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
