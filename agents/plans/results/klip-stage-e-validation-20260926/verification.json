@@ -1,0 +1,220 @@
+{
+  "schema": 1,
+  "purpose": "Integrity and provenance record for the compact KLIP Stage-E validation archive.",
+  "source": {
+    "host": "roc",
+    "root": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925",
+    "git_head": "8f654f4e8e83940011192b8602922bac84d09a60",
+    "final_state": "validation_complete",
+    "known_planet_opened": false
+  },
+  "recursive_source_verification": {
+    "performed_on_source": true,
+    "policy_receipt_and_nested_products": true,
+    "validation_model_units": 48,
+    "heldout_analyses": 36,
+    "validation_reductions": 108,
+    "validation_analyses": 108,
+    "repair_receipts": 2,
+    "analysis_archive_manifest_verified": true
+  },
+  "completion_receipts": {
+    "policy": {
+      "status": "complete",
+      "products": 9,
+      "heldout_nulls_opened": false,
+      "validation_products_opened": false
+    },
+    "validation_models": {
+      "status": "complete",
+      "products": 48,
+      "baseline_only": true,
+      "heldout_scores_read": false,
+      "validation_products_opened": false
+    },
+    "heldout": {
+      "status": "complete",
+      "products": 37,
+      "policy_unchanged": true
+    },
+    "validation": {
+      "status": "complete",
+      "products": 111,
+      "policy_unchanged": true,
+      "known_planet_opened": false
+    }
+  },
+  "local_validation": {
+    "strict_json_files": [
+      "derived_comparisons.json",
+      "experiment/contrasts.json",
+      "experiment/geometry.json",
+      "experiment/protocol.json",
+      "heldout_complete.json",
+      "heldout_results.json",
+      "measurements.json",
+      "policy/policy.json",
+      "policy/selection_sensitivity.json",
+      "policy/threshold_audit.json",
+      "policy/validation_commands.json",
+      "policy_complete.json",
+      "policy_manifest.json",
+      "repairs/analysis_archive_manifest.json",
+      "repairs/entry_unpack_repair.json",
+      "repairs/masked_fidelity_repair.json",
+      "validation_complete.json",
+      "validation_models_complete.json",
+      "validation_results.json"
+    ],
+    "npz_arrays": {
+      "bootstrap_indices": {
+        "shape": [
+          6,
+          4096,
+          20
+        ],
+        "dtype": "int16"
+      },
+      "block_retained_indices": {
+        "shape": [
+          6,
+          20,
+          16
+        ],
+        "dtype": "int16"
+      },
+      "radii": {
+        "shape": [
+          6
+        ],
+        "dtype": "float64"
+      }
+    },
+    "compact_measurement_records": 108,
+    "files_hashed": 24,
+    "bytes_hashed": 14192291
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 11034,
+      "sha256": "5a1cd813f72c63008dc5b99f979c1bef1c21fca7315aa1cbc376a8c47e75fdc2"
+    },
+    {
+      "path": "derived_comparisons.json",
+      "bytes": 49828,
+      "sha256": "4c68139c59177f0d80a64e4044416236d9f2645c4c9964c5d43cfc790c808d6a"
+    },
+    {
+      "path": "experiment/contrasts.json",
+      "bytes": 43372,
+      "sha256": "a8013cccef8f281c29a6510071175ac70424d507b9f3990356c7023ae755d58a"
+    },
+    {
+      "path": "experiment/geometry.json",
+      "bytes": 111804,
+      "sha256": "b86f53a2eddd41a440046636ef819d7ea7d732a9cd3e44637808c84e75fad50e"
+    },
+    {
+      "path": "experiment/protocol.json",
+      "bytes": 156560,
+      "sha256": "ffbec258b9e1109217363f6cc4a6f9889f1cd09fc6fe1fa1e9ea94d3e3908c86"
+    },
+    {
+      "path": "heldout_complete.json",
+      "bytes": 9683,
+      "sha256": "81c2c9468df62c61bfc1f4bdc47f0cb39f07d50ca4ed21749d368241e826100d"
+    },
+    {
+      "path": "heldout_results.json",
+      "bytes": 1419897,
+      "sha256": "877264927cea755f498c69051cbc0084f8c9930b0e0eb4bf6893ac6c2e238055"
+    },
+    {
+      "path": "measurements.json",
+      "bytes": 6198696,
+      "sha256": "a7f09bba4944d9f1f61b763d0e866a950edcffd1947f4010d23fc3cb2877f830"
+    },
+    {
+      "path": "policy/README.md",
+      "bytes": 5209,
+      "sha256": "b511f96661f8780b71a9897fa28d69772cd824bd57ea2bf2eeb905c2cf387faa"
+    },
+    {
+      "path": "policy/policy.json",
+      "bytes": 160924,
+      "sha256": "47223c0dbf1bfb30378c7f75413813324ca146662311c1c42eb667f28b86479f"
+    },
+    {
+      "path": "policy/resamples.npz",
+      "bytes": 343429,
+      "sha256": "9eda785664205b9c9e215bb15aff835339527beab05498aef436b7697b62a117"
+    },
+    {
+      "path": "policy/selection_sensitivity.json",
+      "bytes": 878387,
+      "sha256": "97ec6cdd2ab893fcbc7f97f0d76e59d026c7e475cc6e2aabcbf02114b459dbad"
+    },
+    {
+      "path": "policy/threshold_audit.json",
+      "bytes": 3148750,
+      "sha256": "56b4914720fd368b29992d389d9f6092d34a1306cc279e136930fd89c6fd83ce"
+    },
+    {
+      "path": "policy/validation_commands.json",
+      "bytes": 140964,
+      "sha256": "b239556897c089842f59b7d377d814f8ed39c35a386cfc56d93ba0f8d92a7826"
+    },
+    {
+      "path": "policy_complete.json",
+      "bytes": 2383,
+      "sha256": "1d0800cb25277747bde6f2498f5a7f48da4a9c4ffc3d59e03187c5e87fb58c9c"
+    },
+    {
+      "path": "policy_manifest.json",
+      "bytes": 562855,
+      "sha256": "3ee0eb6531cf70b480ceb31908ef588509ccaab62b41b8a710bd63bd92da7364"
+    },
+    {
+      "path": "repairs/analysis_archive_manifest.json",
+      "bytes": 125992,
+      "sha256": "28c204fd77db94d207cbbb55080125a892265f51e0616165b644e317be169653"
+    },
+    {
+      "path": "repairs/entry_unpack_repair.json",
+      "bytes": 1419,
+      "sha256": "422fd2664fde1049eb91ab522d19c71605c7b2f234305b74c99fa142813d9255"
+    },
+    {
+      "path": "repairs/masked_fidelity_repair.json",
+      "bytes": 1885,
+      "sha256": "91813bb3bad4729fff5de36d4bad63d7b260a23ab17ecc2bf118a77449516696"
+    },
+    {
+      "path": "validation_complete.json",
+      "bytes": 29688,
+      "sha256": "4ae6feca00b6449b212716fc7f368f6d5cc2cf0a64a6ad18f569bcb1c6031f43"
+    },
+    {
+      "path": "validation_models_complete.json",
+      "bytes": 12967,
+      "sha256": "673842f07bee2efab508419e3dc71a3215eb6723de59e3b8cedff1103da5fd94"
+    },
+    {
+      "path": "validation_results.csv",
+      "bytes": 182513,
+      "sha256": "4c1278eddf70d3af59367cb067b0269ebe0612c13a567a87cbbf2ba719c65e99"
+    },
+    {
+      "path": "validation_results.json",
+      "bytes": 592175,
+      "sha256": "3b8c109fa3ae36d24d05afe73bfa1ed84bbc259e81ea783b0680d04df74ebbc0"
+    },
+    {
+      "path": "validation_results.md",
+      "bytes": 1877,
+      "sha256": "e91e5b9f5f2235828d045ccce336a0cbc836707742e0c730022d52d8e8cf4dad"
+    }
+  ],
+  "note": "Completion receipts retain absolute ROC paths. This compact archive verifies its copied files locally; nested FITS products remain verified in place on ROC."
+}

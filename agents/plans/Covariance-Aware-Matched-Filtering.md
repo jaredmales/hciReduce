@@ -3191,6 +3191,47 @@ retains the models, held-out results, and reductions, archives all 108 partial
 analysis directories, applies the recorded full-space fidelity convention,
 and reruns every analysis under one corrected runner.
 
+### Step 6 checkpoint: Stage-E fresh validation complete (2026-09-26)
+
+The [completed Stage-E report](results/klip-stage-e-validation-20260926/README.md)
+preserves the immutable policy, held-out nulls, all 108 compact validation
+measurements, generated summaries, repair provenance, and a recursive
+verification record. The final state is `validation_complete`; the known
+planet remains unopened.
+
+Both covariance candidates pass the preregistered mode-200 gate against
+Gaussian FWHM 3.6. Raw rectangular PSD recovers 26/36, 35/36, and 36/36 sources
+at target SNR 3, 5, and 7, versus 23/36, 35/36, and 36/36 for Gaussian 3.6.
+Radial-standardized Hann with 0.75-mean-variance hard truncation recovers
+27/36, 36/36, and 36/36. Each covariance candidate has three held-out
+threshold exceedances, equal to Gaussian 3.6. The radius-stratified paired-SNR
+bootstrap lower bound is positive at every source level for both candidates.
+
+The stronger Gaussian-2.4 control separates the candidates. Radial covariance
+retains one additional recovery at SNR 3 and SNR 5, and its paired mean-SNR
+differences are +0.3011 [0.0080, 0.5776], +0.3830 [0.0292, 0.7099], and +0.5004
+[0.0781, 0.8919]. Raw rectangular has the same 97/108 recovery total as
+Gaussian 2.4 and its three paired intervals include zero.
+
+Covariance weighting does not improve on identity response filtering. Exact
+identity recovers 99/108 and sparse identity 101/108, compared with 99/108 for
+radial covariance. Radial-minus-exact mean-SNR differences are consistent with
+zero at all three levels; radial-minus-sparse differences are also consistent
+with zero. Exact and sparse identity each have one held-out exceedance, versus
+three for radial covariance. Sparse identity recovers 29/36 faint sources in
+every one of the eight KL modes, making it the strongest frozen method by
+recovery and held-out behavior.
+
+The measured response itself is accurate: across the 108 mode-200 trials its
+unweighted finite-response cosine has minimum 0.998292 and median 0.999850,
+with median projection scale 1.00691. The original observation that KLIP
+response filtering was worse than Gaussian smoothing therefore does not
+reproduce under this validated response and injection protocol. Covariance
+mismatch does not explain that old deficit, although radial covariance is a
+validated improvement over both Gaussian controls. Stage F is now the
+descriptive known-planet endpoint and cannot change the frozen injection
+conclusion.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

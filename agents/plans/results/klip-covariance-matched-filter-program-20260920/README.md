@@ -582,25 +582,16 @@ identity response filters over covariance weighting, retains raw rectangular
 as the mandatory prior, and selects radial-Hann truncation at 0.75 as the one
 radial covariance policy for the policy-freeze step.
 
-Checkpoints 6 and 7 are implemented by the
-[Stage-D policy and Stage-E validation setup](../klip-stage-d-e-validation-setup-20260926/README.md).
-The policy runner copies the unchanged selected-method thresholds, full signed
-calibration distributions, deterministic paired bootstrap and angular-block
-sensitivity, exact validation tasks, software, and all transitive input
-fingerprints into a receipt before a held-out score can be read. The validation
-runner requires that receipt, freezes baseline-only weights for the unopened
-sites, exposes the preassigned held-out nulls, runs the 108 validation
-reductions, and evaluates the preregistered mode-200 gate without method or
-mode maximization. A read-only ROC preflight found complete generic annular
-coverage for every validation and held-out search pixel. A guarded repair
-corrected a driver-only two-versus-three-value unpacking error before any
-Stage-E product opened. The resumed run completed all 48 model units, 36
-held-out nulls, and 108 validation reductions. Analysis then stopped in the
-response-fidelity diagnostic because it imported the original masked-support
-helper instead of the recorded Stage-C repair. The filter results are
-unaffected and no final validation summary exists. A guarded analysis-only
-repair retains all upstream products, archives all 108 partial analysis
-directories, and reruns analysis with the repaired full-space convention.
+Checkpoints 6 and 7 are complete. The
+[Stage-E fresh validation result](../klip-stage-e-validation-20260926/README.md)
+preserves the immutable policy, all held-out nulls and validation measurements,
+generated summaries, guarded repair provenance, and recursive verification.
+Both covariance finalists pass the preregistered gate against Gaussian FWHM
+3.6, and radial Hann with 0.75-mean-variance truncation also beats the stronger
+Gaussian-2.4 control. Covariance weighting does not improve on identity
+response filtering: sparse identity has the best recovery total and fewer
+held-out exceedances. The known planet remains unopened, so checkpoint 8 is
+now the only outstanding experiment.
 
 ## Required provenance and failure behavior
 

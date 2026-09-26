@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "reason": "use the recorded Stage-C masked-support fidelity repair; detection maps, held-out scores, models, and reductions are unchanged",
+  "scientific_policy_changed": false,
+  "heldout_nulls_opened": true,
+  "validation_products_opened": true,
+  "previous_runner": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/policy_repairs/stage_e_masked_fidelity_20260926/previous_run_klip_stage_e_validation.py",
+    "bytes": 60239,
+    "sha256": "7064fef8f6f0b8bf1cedbfec7c28dc38bc8b7adbab95339604c65e9e83288384"
+  },
+  "replacement_runner": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/software/run_klip_stage_e_validation.py",
+    "bytes": 66964,
+    "sha256": "be11a2e2b9feff80af2c3fdbe5400f592e7b0978a43cea4fd850f0f06697abfa"
+  },
+  "previous_policy_manifest": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/policy_repairs/stage_e_masked_fidelity_20260926/previous_policy_manifest.json",
+    "bytes": 562577,
+    "sha256": "ead3189574367612e49f390662f3435462d270ca80c5ed21882f61b85f762576"
+  },
+  "previous_policy_completion": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/policy_repairs/stage_e_masked_fidelity_20260926/previous_policy_complete.json",
+    "bytes": 2105,
+    "sha256": "5f4931357573bd2176b844a7f7bcbdf01f5f81985cbe046b79bfcc82b41cccc7"
+  },
+  "repair_detail": {
+    "completed_analyses": 84,
+    "incomplete_analyses": 24,
+    "archive_manifest": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/interrupted/stage_e_analysis_repairs/attempt_0001/archive_manifest.json",
+      "bytes": 125992,
+      "sha256": "28c204fd77db94d207cbbb55080125a892265f51e0616165b644e317be169653"
+    }
+  }
+}

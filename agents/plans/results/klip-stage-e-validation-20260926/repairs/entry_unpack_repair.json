@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "reason": "correct Stage-E main() to unpack the two-value preparation loader",
+  "scientific_policy_changed": false,
+  "heldout_nulls_opened": false,
+  "validation_products_opened": false,
+  "previous_runner": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/policy_repairs/stage_e_entry_unpack_20260926/previous_run_klip_stage_e_validation.py",
+    "bytes": 55285,
+    "sha256": "205806b462630b50307e7964b0ce021abf52d4c9e3b16874fb51eb0b9acde245"
+  },
+  "replacement_runner": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/software/run_klip_stage_e_validation.py",
+    "bytes": 60239,
+    "sha256": "7064fef8f6f0b8bf1cedbfec7c28dc38bc8b7adbab95339604c65e9e83288384"
+  },
+  "previous_policy_manifest": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/policy_repairs/stage_e_entry_unpack_20260926/previous_policy_manifest.json",
+    "bytes": 562276,
+    "sha256": "885e3fae5a0f09ab9806f581f1f785acec2cb3591d677e8e2d3dbcc1ef58f140"
+  },
+  "previous_policy_completion": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/policy_repairs/stage_e_entry_unpack_20260926/previous_policy_complete.json",
+    "bytes": 1830,
+    "sha256": "ebaf5e429d9c44a17684b983b820f8f164dd655356f5cdb7afe16833a78f5762"
+  }
+}
