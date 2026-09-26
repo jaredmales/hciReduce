@@ -3147,8 +3147,35 @@ The development-selected validation shortlist is mode 200 with native,
 Gaussian 3.6, Gaussian 2.4, exact identity, sparse identity, mandatory raw
 rectangular/mixing-0.3, and radial-standardized Hann/mixing-0.1 truncated at
 0.75 mean variance. The existing method-specific thresholds and five-pixel
-search remain fixed. This recommendation is not yet an immutable policy
-receipt, and no validation selection has occurred.
+search remain fixed.
+
+### Step 6 checkpoint: Stage-D policy and Stage-E validation runners prepared (2026-09-26)
+
+The
+[Stage-D/E setup](results/klip-stage-d-e-validation-setup-20260926/README.md)
+turns that recommendation into an executable immutable gate. Before held-out
+or validation scores are read, the policy runner copies every selected
+method/radius/mode threshold, all signed calibration scores, angular geometry,
+4,096 shared paired threshold resamples, and every four-site circular angular
+block deletion. It fingerprints the complete calibration, development,
+response, software, command, site, and contrast inputs. Mode 200 and
+baseline-derived weights are primary; the other modes are reported separately.
+
+The frozen Stage-E runner first builds candidate-specific validation and
+held-out weights from the signal-free baseline. It then measures the 36
+preassigned held-out nulls, runs the 108 unopened validation reductions, and
+analyzes only the seven frozen methods. Covariance acceptance requires no more
+held-out exceedances than Gaussian 3.6, at least its recovery at every source
+level with a strictly larger total, a positive radius-stratified paired-SNR
+bootstrap result at SNR 3 or 5 without a significant loss elsewhere,
+predeclared throughput ranges, and complete common support. Gaussian 2.4 is
+reported as the stronger smoothing control. Exact and sparse identity are
+retained as possible non-covariance outcomes.
+
+A read-only ROC preflight found all validation and held-out search pixels in
+the existing Stage-C generic annular maps and confirmed that no held-out or
+validation directory exists. The policy and validation products remain
+unopened pending execution.
 
 ## 8. Notation
 

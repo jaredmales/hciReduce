@@ -582,6 +582,19 @@ identity response filters over covariance weighting, retains raw rectangular
 as the mandatory prior, and selects radial-Hann truncation at 0.75 as the one
 radial covariance policy for the policy-freeze step.
 
+Checkpoints 6 and 7 are implemented by the
+[Stage-D policy and Stage-E validation setup](../klip-stage-d-e-validation-setup-20260926/README.md).
+The policy runner copies the unchanged selected-method thresholds, full signed
+calibration distributions, deterministic paired bootstrap and angular-block
+sensitivity, exact validation tasks, software, and all transitive input
+fingerprints into a receipt before a held-out score can be read. The validation
+runner requires that receipt, freezes baseline-only weights for the unopened
+sites, exposes the preassigned held-out nulls, runs the 108 validation
+reductions, and evaluates the preregistered mode-200 gate without method or
+mode maximization. A read-only ROC preflight found complete generic annular
+coverage for every validation and held-out search pixel; the products remain
+unopened pending execution.
+
 ## Required provenance and failure behavior
 
 - Every stage writes `protocol.json`, `manifest.json`, `state.json`, and a
