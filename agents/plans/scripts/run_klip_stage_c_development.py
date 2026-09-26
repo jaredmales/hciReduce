@@ -96,17 +96,44 @@ def environment(protocol: dict[str, object], reduction: bool) -> dict[str, str]:
 
 
 def ensure_frozen_runner(root: Path, arguments: list[str]) -> None:
-    """Copy this runner into the prepared package and re-execute the frozen copy."""
-    destination = root / "software" / Path(__file__).name
-    if Path(__file__).resolve() == destination.resolve():
-        return
+    """Freeze this runner, with guarded repairs before calibration or during analysis."""
+    source = Path(__file__).resolve()
     stage.require(root.is_dir() and (root / "manifest.json").is_file(),
                   "Stage-C preparation does not exist")
-    if destination.exists() and destination.read_bytes() != Path(__file__).read_bytes():
+    analysis_manifest_path = root / "analysis_runner_manifest.json"
+    if analysis_manifest_path.exists():
+        analysis_manifest = read(analysis_manifest_path)
+        stage.require(analysis_manifest["schema"] == 1 and
+                      analysis_manifest["purpose"] == "freeze repaired Stage-C development analysis software",
+                      "analysis runner manifest schema changed")
+        stage.verify([analysis_manifest["base_development_manifest"],
+                      analysis_manifest["runner"], analysis_manifest["repair"]])
+        frozen = Path(str(analysis_manifest["runner"]["path"]))
+        stage.require(source.read_bytes() == frozen.read_bytes(),
+                      "repository runner differs from frozen analysis repair")
+        if source == frozen.resolve():
+            return
+        os.execv(sys.executable, [sys.executable, str(frozen), *arguments])
+
+    destination = root / "software" / source.name
+    if source == destination.resolve():
+        return
+    if destination.exists() and destination.read_bytes() != source.read_bytes():
         state = read(root / "state.json")
-        stage.require(state["status"] == "prepared" and not (root / "reductions").exists() and
-                      not (root / "calibration" / "complete.json").exists(),
-                      "development runner can change only before calibration and reductions complete")
+        before_calibration = (state["status"] == "prepared" and
+                              not (root / "reductions").exists() and
+                              not (root / "calibration" / "complete.json").exists())
+        protocol = read(root / "protocol.json")
+        task_count = int(protocol["expected_development_reductions"])
+        reduction_receipts = list((root / "reductions").glob("*/complete.json"))
+        during_analysis = (state["status"] == "analyzing" and
+                           state["development_reductions"] == task_count and
+                           not state["validation_products_opened"] and
+                           (root / "calibration" / "complete.json").is_file() and
+                           len(reduction_receipts) == task_count and
+                           not (root / "development_complete.json").exists())
+        stage.require(before_calibration or during_analysis,
+                      "development runner can change only before calibration or during incomplete analysis")
         archive = root / "interrupted" / "runner_repairs"
         archive.mkdir(parents=True, exist_ok=True)
         attempt = 1
@@ -114,6 +141,38 @@ def ensure_frozen_runner(root: Path, arguments: list[str]) -> None:
             attempt += 1
         repair = archive / f"attempt_{attempt:04d}"
         repair.mkdir()
+        if during_analysis:
+            analysis_root = root / "development_analysis"
+            completed = len(list(analysis_root.glob("*/complete.json"))) if analysis_root.exists() else 0
+            total = len(list(analysis_root.glob("*"))) if analysis_root.exists() else 0
+            if analysis_root.exists():
+                analysis_root.replace(repair / analysis_root.name)
+            archived_outputs = []
+            for name in ("development_results.json", "development_results.csv",
+                         "development_results.md", "development_mode200.png"):
+                product = root / name
+                if product.exists():
+                    product.replace(repair / name)
+                    archived_outputs.append(name)
+            frozen = root / "software" / f"{source.stem}_analysis_repair_{attempt:04d}{source.suffix}"
+            shutil.copy2(source, frozen)
+            repair_path = repair / "repair.json"
+            stage.write_json(repair_path, {
+                "reason": "analysis-only response-fidelity support correction",
+                "base_runner": stage.fingerprint(destination),
+                "analysis_runner": stage.fingerprint(frozen),
+                "calibration_receipt": stage.fingerprint(root / "calibration" / "complete.json"),
+                "reduction_receipts_retained": len(reduction_receipts),
+                "completed_analyses_archived": completed,
+                "incomplete_analyses_archived": total - completed,
+                "summary_products_archived": archived_outputs})
+            stage.write_json(analysis_manifest_path, {
+                "schema": 1,
+                "purpose": "freeze repaired Stage-C development analysis software",
+                "base_development_manifest": stage.fingerprint(root / "development_manifest.json"),
+                "runner": stage.fingerprint(frozen),
+                "repair": stage.fingerprint(repair_path)})
+            os.execv(sys.executable, [sys.executable, str(frozen), *arguments])
         destination.replace(repair / destination.name)
         previous_runner = stage.fingerprint(repair / destination.name)
         manifest = root / "development_manifest.json"
@@ -125,29 +184,49 @@ def ensure_frozen_runner(root: Path, arguments: list[str]) -> None:
             "reason": "pre-calibration runner correction",
             "previous_runner": previous_runner,
             "previous_development_manifest": previous_manifest,
-            "replacement": stage.fingerprint(Path(__file__)),
+            "replacement": stage.fingerprint(source),
             "calibration_units_retained": len(list((root / "calibration" / "units").glob("*/complete.json")))
             if (root / "calibration" / "units").exists() else 0,
             "completed_null_sites_retained": len(list((root / "calibration" / "sites").glob("*/complete.json")))
             if (root / "calibration" / "sites").exists() else 0})
     if not destination.exists():
-        shutil.copy2(Path(__file__), destination)
+        shutil.copy2(source, destination)
     os.execv(sys.executable, [sys.executable, str(destination), *arguments])
 
 
 def enable(root: Path) -> tuple[dict[str, object], dict[str, object], Path]:
-    """Verify preparation and freeze the runner plus production analyzer."""
+    """Verify preparation and the frozen base or repaired analysis runner."""
     protocol, manifest = preparation.load_experiment(root)
     stage_a_protocol, _ = stage.load_protocol(Path(str(protocol["parent_stage_a"])))
     analyzer = Path(str(stage_a_protocol["paths"]["hcianalyze"]))
     stage.require(analyzer.is_file(), "frozen hciAnalyze executable is missing")
     path = root / "development_manifest.json"
+    preparation_record = stage.fingerprint(root / "manifest.json")
+    analyzer_record = stage.fingerprint(analyzer)
+    analysis_manifest_path = root / "analysis_runner_manifest.json"
+    if analysis_manifest_path.exists():
+        analysis_manifest = read(analysis_manifest_path)
+        base = read(path)
+        stage.require(base["schema"] == 1 and
+                      base["purpose"] == "freeze Stage-C calibration, reduction, and development-analysis software" and
+                      base["preparation"] == preparation_record and
+                      base["hcianalyze"] == analyzer_record,
+                      "base development runner manifest changed")
+        stage.require(analysis_manifest["schema"] == 1 and
+                      analysis_manifest["purpose"] == "freeze repaired Stage-C development analysis software" and
+                      analysis_manifest["base_development_manifest"] == stage.fingerprint(path) and
+                      analysis_manifest["runner"] == stage.fingerprint(Path(__file__)),
+                      "analysis runner manifest changed")
+        stage.verify([base["preparation"], base["runner"], base["hcianalyze"],
+                      analysis_manifest["base_development_manifest"],
+                      analysis_manifest["runner"], analysis_manifest["repair"]])
+        return protocol, manifest, analyzer
     expected = {
         "schema": 1,
         "purpose": "freeze Stage-C calibration, reduction, and development-analysis software",
-        "preparation": stage.fingerprint(root / "manifest.json"),
+        "preparation": preparation_record,
         "runner": stage.fingerprint(Path(__file__)),
-        "hcianalyze": stage.fingerprint(analyzer),
+        "hcianalyze": analyzer_record,
     }
     if path.exists():
         stage.require(read(path) == expected, "development runner manifest changed")
@@ -882,6 +961,9 @@ def fidelity(delta: np.ndarray, template: np.ndarray, fitted: dict[str, object])
     raw_template = np.asarray(template, dtype=np.float64).ravel()[mask]
 
     def metric(data: np.ndarray, model_template: np.ndarray, covariance: np.ndarray) -> dict[str, float]:
+        covariance = np.asarray(covariance, dtype=np.float64)
+        stage.require(covariance.shape == (mask.size, mask.size),
+                      "fidelity covariance and response support differ")
         submatrix = covariance[np.ix_(mask, mask)]
         inverse_data = np.linalg.solve(submatrix, data)
         inverse_template = np.linalg.solve(submatrix, model_template)
@@ -895,7 +977,7 @@ def fidelity(delta: np.ndarray, template: np.ndarray, fitted: dict[str, object])
         return {"cosine": cosine, "projection_scale": projection,
                 "best_scaled_relative_residual": math.sqrt(residual_energy / data_energy)}
 
-    identity = np.eye(len(raw_delta), dtype=np.float64)
+    identity = np.eye(mask.size, dtype=np.float64)
     result = {"unweighted": metric(raw_delta, raw_template, identity)}
     raw_covariance = fitted["raw_detail"]["covariance"]
     result["raw_rectangular_m0p3"] = metric(raw_delta, raw_template, raw_covariance)
@@ -1177,6 +1259,9 @@ def analyze(root: Path, workers: int) -> None:
     products = [stage.fingerprint(root / name) for name in
                 ("development_results.json", "development_results.csv",
                  "development_results.md", "development_mode200.png")]
+    analysis_manifest = root / "analysis_runner_manifest.json"
+    if analysis_manifest.exists():
+        products.append(stage.fingerprint(analysis_manifest))
     products.extend(stage.fingerprint(root / "development_analysis" /
                     str(task["name"]) / "complete.json") for task in protocol["development_tasks"])
     stage.write_json(root / "development_complete.json", {"status": "complete",
@@ -1211,6 +1296,16 @@ def check() -> None:
                       for weight in weights.values()), "precision-grid check failed")
     identity = normalized_weight(template, mask)
     stage.require(np.isclose(identity @ template.ravel(), 1), "identity check failed")
+    covariance = extension.dense_covariance(model, SUPPORT)
+    fitted = {"support": mask, "scale": scale,
+              "raw_detail": {"covariance": covariance},
+              "radial_detail": {"covariance": detail["covariance"]}}
+    fidelity_check = fidelity(template, template, fitted)
+    stage.require(all(np.isclose(record["cosine"], 1, rtol=2e-13, atol=2e-13) and
+                      np.isclose(record["projection_scale"], 1, rtol=2e-13, atol=2e-13) and
+                      record["best_scaled_relative_residual"] <= 2e-13
+                      for record in fidelity_check.values()),
+                  "masked response-fidelity check failed")
     image = generator.normal(size=(128, 128))
     image[:5] = np.nan
     score = annular_oracle(image, [(70.0, 70.0, 7.0)])

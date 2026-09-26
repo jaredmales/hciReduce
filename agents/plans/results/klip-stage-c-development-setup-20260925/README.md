@@ -167,12 +167,17 @@ The runner copies itself into the already prepared software directory on its
 first invocation and freezes that copy plus hciAnalyze in a separate
 development manifest. It never reads or runs a validation command. Interrupted
 calibration units, reductions, and analysis tasks are archived; completed
-receipts are recursively verified and reused. A runner correction is permitted
-only while the state is still prepared, calibration is incomplete, and no
-positive reduction directory exists. The previous runner and development
-manifest are then fingerprinted and archived before the corrected runner is
-frozen. Completed calibration units are retained, while site records predating
-the boundary-audit schema are regenerated.
+receipts are recursively verified and reused. A pre-calibration runner
+correction is permitted only while the state is still prepared, calibration is
+incomplete, and no positive reduction directory exists. The previous runner
+and development manifest are then fingerprinted and archived before the
+corrected runner is frozen. Completed calibration units are retained, while
+site records predating the boundary-audit schema are regenerated. An
+analysis-only repair is separately permitted after calibration and all 108
+reductions are complete, provided validation remains unopened and no final
+development receipt exists. It preserves the base runner, development manifest,
+calibration receipt, and reductions; archives all partial analysis products;
+and freezes the corrected runner in a separate analysis manifest.
 
 Run the complete development stage on ROC with:
 
@@ -218,5 +223,25 @@ of all five affected calibration sites and the affected development site each
 completed all 8 modes and 13 methods. Each recorded the expected 104
 substitutions at its single affected search pixel; the largest
 production/oracle difference on supported pixels was 4.77e-7. The resumable
-correction therefore preserves the expensive 48 unit products and regenerates the inexpensive site records under one audited
-schema.
+correction therefore preserves the expensive 48 unit products and regenerates
+the inexpensive site records under one audited schema.
+
+The resumed canonical run then completed all 120 calibration sites, froze the
+thresholds, and completed all 108 KLIP reductions. Parallel positive analysis
+wrote 81 complete and 27 incomplete task directories before reporting a
+response-fidelity diagnostic error. Its unweighted branch constructed an
+identity covariance after masking the 121-pixel stamp, then applied the
+original mask a second time; real response supports as small as 93 pixels
+therefore indexed beyond that reduced matrix. Filter amplitudes, SNRs,
+thresholds, and reductions were not involved in the failure.
+
+The correction keeps the identity covariance in the full 121-pixel space and
+applies the response-support mask once, matching the two PSD-metric branches.
+A deterministic masked-support check now covers this case. An isolated replay
+of the previously failing `r7p5_dev02_snr3` real reduction completed all eight
+modes and both covariance arms. At mode 200 its unweighted fidelity cosine was
+0.9999021, its projection was 0.9944667, and its relative residual was
+0.0139931; both SNR arms agreed with the annular oracle within 4.77e-7. The
+analysis-only repair will archive all 108 partial analysis directories and
+regenerate them while retaining calibration and reductions. Validation remains
+unopened.

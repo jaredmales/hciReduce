@@ -3083,6 +3083,32 @@ pre-calibration repair fingerprints and archives the previous runner and
 development manifest, preserves the 48 completed unit products, and regenerates
 site records predating the boundary-audit schema.
 
+The resumed canonical run completed all 120 calibration sites, froze every
+threshold, and completed all 108 KLIP reductions. Parallel analysis produced
+81 complete and 27 incomplete task directories before exposing a separate
+response-fidelity diagnostic defect. The unweighted metric constructed an
+identity covariance after reducing the 121-pixel stamp to its valid response
+support and then applied the original mask again. A 93-pixel real support thus
+indexed beyond the already reduced covariance. This path does not enter filter
+amplitudes, annular SNR, threshold calibration, or KLIP reduction.
+
+The repaired diagnostic constructs the identity covariance in the original
+121-pixel space and applies the support mask exactly once, consistent with the
+raw-rectangular and radial-Hann covariance metrics. A masked-support regression
+check reproduces the nontrivial geometry. An isolated replay of the previously
+failing real task `r7p5_dev02_snr3` completed all eight modes and both
+covariance arms. Its mode-200 unweighted fidelity had cosine 0.9999021,
+projection 0.9944667, and best-scaled relative residual 0.0139931; the two SNR
+arms agreed with the independent oracle within $4.77\times10^{-7}$.
+
+A guarded analysis-only repair is allowed only with completed calibration, all
+108 reduction receipts, unopened validation, and no final development receipt.
+It leaves the original development runner and manifest in place so the frozen
+calibration receipt remains verifiable, archives all partial analysis products,
+and freezes the corrected runner in a separate analysis manifest included in
+the eventual completion receipt. Calibration and reductions are retained; all
+108 analysis tasks are regenerated under the corrected runner.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
