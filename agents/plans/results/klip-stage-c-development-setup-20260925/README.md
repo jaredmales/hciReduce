@@ -150,11 +150,29 @@ standardized coordinates. Its full, clipped, and hard-truncated weights are
 all renormalized to unit physical response. The raw rectangular arm and every
 permanent reference are retained alongside it.
 
+The exact-response amplitude fields start at radius 6 pixels. Seven of the 38
+radius-7.5 sites have one inward search pixel below radius 6.5, where production
+interpolation requests the empty 5--6-pixel annulus and hciAnalyze converts the
+undefined result to zero. They are `r7p5_cal02`, `r7p5_cal03`, `r7p5_cal08`,
+`r7p5_cal15`, `r7p5_cal16`, `r7p5_dev03`, and `r7p5_hold02`; all six frozen
+validation sites have complete bracketing. At only this inner boundary, the
+runner requires the production value to be zero and substitutes the nearest
+supported one-pixel annular mean and sample deviation while evaluating the
+small-sample factor at the candidate pixel radius. It records every substitution
+by mode and method in `annular_verification.json`. The policy does not
+extrapolate a response template or an amplitude. Everywhere else, production
+and oracle SNR must still agree within the strict tolerance.
+
 The runner copies itself into the already prepared software directory on its
 first invocation and freezes that copy plus hciAnalyze in a separate
 development manifest. It never reads or runs a validation command. Interrupted
 calibration units, reductions, and analysis tasks are archived; completed
-receipts are recursively verified and reused.
+receipts are recursively verified and reused. A runner correction is permitted
+only while the state is still prepared, calibration is incomplete, and no
+positive reduction directory exists. The previous runner and development
+manifest are then fingerprinted and archived before the corrected runner is
+frozen. Completed calibration units are retained, while site records predating
+the boundary-audit schema are regenerated.
 
 Run the complete development stage on ROC with:
 
@@ -192,3 +210,13 @@ per-image-refit covariance both completed, and the largest hciAnalyze/oracle
 SNR difference across the two arms was 9.54e-7. These pilots validate the FITS
 orientation, 47-to-11 support crop, site-specific training exclusions,
 precision replay, response-fidelity calculation, and production SNR bridge.
+
+The first canonical launch then completed all 48 calibration units and two
+null sites before `r7p5_cal02` exposed the unsupported inner annular bin. It
+stopped before thresholds, reductions, or positive analysis. Isolated reruns
+of all five affected calibration sites and the affected development site each
+completed all 8 modes and 13 methods. Each recorded the expected 104
+substitutions at its single affected search pixel; the largest
+production/oracle difference on supported pixels was 4.77e-7. The resumable
+correction therefore preserves the expensive 48 unit products and regenerates the inexpensive site records under one audited
+schema.

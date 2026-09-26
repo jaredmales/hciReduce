@@ -3042,6 +3042,18 @@ and an independent reconstruction of its mean subtraction, sample deviation,
 and small-sample correction must agree. The receipt also freezes the
 baseline-trained weights for every development search pixel.
 
+The exact-response amplitude fields begin at radius 6 pixels. Seven frozen
+radius-7.5 sites have one inward search pixel below radius 6.5; production
+interpolation then requests the empty 5--6-pixel annulus and `hciAnalyze` turns
+the undefined result into zero. The runner accepts this case only at the inner
+boundary and only when the production value is exactly zero. It substitutes
+the nearest supported one-pixel annular mean and sample deviation, retains the
+small-sample correction at the candidate radius, and records each mode/method
+substitution. The affected sites comprise five calibration, one development,
+and one held-out null; all six validation sites at radius 7.5 are fully
+bracketed. No response template or amplitude is extrapolated, and the strict
+production/oracle agreement remains mandatory at supported pixels.
+
 Only after that receipt exists does the runner launch the 108 resumable KLIP
 reductions. Positive analysis applies the frozen weights across the surrounding
 annulus and separately refits covariance at the five source-search pixels with
@@ -3058,8 +3070,18 @@ positive through both covariance arms. The null-site hciAnalyze/oracle maximum
 difference was $2.38\times10^{-7}$. The synthetic mode-200 response had
 cosine 0.999999999999998, projection 0.9999999924, and best-scaled relative
 residual $6.03\times10^{-8}$; its maximum SNR-oracle difference was
-$9.54\times10^{-7}$. The canonical prepared directory remains untouched and
-is ready for the full runner.
+$9.54\times10^{-7}$.
+
+The first canonical launch completed all 48 calibration units and two null
+sites, then exposed the inner-boundary case at `r7p5_cal02`. It stopped before
+thresholds, reductions, or positive analysis. The corrected runner completed
+isolated replays of all five affected calibration sites and the affected
+development site across all 8 modes and 13 methods. Each recorded the expected
+104 substitutions at its one affected search pixel. Supported pixels still
+agreed with the production calculation to $4.77\times10^{-7}$. A guarded
+pre-calibration repair fingerprints and archives the previous runner and
+development manifest, preserves the 48 completed unit products, and regenerates
+site records predating the boundary-audit schema.
 
 ## 8. Notation
 

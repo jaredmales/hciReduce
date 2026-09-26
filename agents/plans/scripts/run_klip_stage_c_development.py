@@ -102,10 +102,35 @@ def ensure_frozen_runner(root: Path, arguments: list[str]) -> None:
         return
     stage.require(root.is_dir() and (root / "manifest.json").is_file(),
                   "Stage-C preparation does not exist")
-    if destination.exists():
-        stage.require(destination.read_bytes() == Path(__file__).read_bytes(),
-                      "prepared package contains a different development runner")
-    else:
+    if destination.exists() and destination.read_bytes() != Path(__file__).read_bytes():
+        state = read(root / "state.json")
+        stage.require(state["status"] == "prepared" and not (root / "reductions").exists() and
+                      not (root / "calibration" / "complete.json").exists(),
+                      "development runner can change only before calibration and reductions complete")
+        archive = root / "interrupted" / "runner_repairs"
+        archive.mkdir(parents=True, exist_ok=True)
+        attempt = 1
+        while (archive / f"attempt_{attempt:04d}").exists():
+            attempt += 1
+        repair = archive / f"attempt_{attempt:04d}"
+        repair.mkdir()
+        destination.replace(repair / destination.name)
+        previous_runner = stage.fingerprint(repair / destination.name)
+        manifest = root / "development_manifest.json"
+        previous_manifest = None
+        if manifest.exists():
+            manifest.replace(repair / manifest.name)
+            previous_manifest = stage.fingerprint(repair / manifest.name)
+        stage.write_json(repair / "repair.json", {
+            "reason": "pre-calibration runner correction",
+            "previous_runner": previous_runner,
+            "previous_development_manifest": previous_manifest,
+            "replacement": stage.fingerprint(Path(__file__)),
+            "calibration_units_retained": len(list((root / "calibration" / "units").glob("*/complete.json")))
+            if (root / "calibration" / "units").exists() else 0,
+            "completed_null_sites_retained": len(list((root / "calibration" / "sites").glob("*/complete.json")))
+            if (root / "calibration" / "sites").exists() else 0})
+    if not destination.exists():
         shutil.copy2(Path(__file__), destination)
     os.execv(sys.executable, [sys.executable, str(destination), *arguments])
 
@@ -519,8 +544,9 @@ def calculate_unit(root_value: str, radius_value: float, mode_index: int) -> str
     return str(directory / "complete.json")
 
 
-def annular_oracle(amplitudes: np.ndarray, exclusions: list[tuple[float, float, float]]) -> np.ndarray:
-    """Reconstruct production annular mean, sample deviation, and small-sample factor."""
+def annular_oracle(amplitudes: np.ndarray, exclusions: list[tuple[float, float, float]],
+                    supported_edge: bool = False) -> np.ndarray:
+    """Reconstruct production annular SNR, optionally extending the nearest supported edge bin."""
     column, row = np.indices(amplitudes.shape)
     center_row = 0.5 * (amplitudes.shape[1] - 1)
     center_column = 0.5 * (amplitudes.shape[0] - 1)
@@ -536,8 +562,15 @@ def annular_oracle(amplitudes: np.ndarray, exclusions: list[tuple[float, float, 
         centers.append(lower + 0.5)
         means.append(float(np.mean(values)) if len(values) else np.nan)
         deviations.append(float(np.std(values, ddof=1)) if len(values) > 1 else np.nan)
-    mean = np.interp(radii, centers, means)
-    deviation = np.interp(radii, centers, deviations).astype(np.float32)
+    if supported_edge:
+        valid = np.isfinite(means) & np.isfinite(deviations)
+        stage.require(np.count_nonzero(valid) >= 2, "annular profile lacks supported interpolation bins")
+        mean = np.interp(radii, np.asarray(centers)[valid], np.asarray(means)[valid])
+        deviation = np.interp(radii, np.asarray(centers)[valid],
+                              np.asarray(deviations)[valid]).astype(np.float32)
+    else:
+        mean = np.interp(radii, centers, means)
+        deviation = np.interp(radii, centers, deviations).astype(np.float32)
     with np.errstate(divide="ignore", invalid="ignore"):
         score = ((amplitudes - mean) / deviation).astype(np.float32)
         count = 2 * np.pi * radii / stage.LAMBDA_D - 1
@@ -579,19 +612,38 @@ def production_snr(root: Path, analyzer: Path, protocol: dict[str, object], maps
                   (float(site["row"]), float(site["column"]), float(planet["exclusion_radius"]))]
     checked = [(int(site["row"]) + delta_row, int(site["column"]) + delta_column)
                for delta_row, delta_column in footprint.SEARCH_OFFSETS]
+    radii = image_radius(maps.shape[-2:])
     maximum_error = 0.0
-    for mode_index in range(len(stage.MODES)):
-        for method_index in range(len(METHODS)):
+    boundary_fallbacks = []
+    for mode_index, mode in enumerate(stage.MODES):
+        for method_index, method in enumerate(METHODS):
             expected = annular_oracle(maps[mode_index, method_index], exclusions)
-            observed_values = np.asarray([snr[mode_index, method_index, column, row]
-                                          for row, column in checked])
-            expected_values = np.asarray([expected[column, row] for row, column in checked])
-            stage.require(np.all(np.isfinite(observed_values)) and np.all(np.isfinite(expected_values)) and
-                          np.allclose(observed_values, expected_values, rtol=2e-6, atol=2e-6),
-                          f"annular oracle mismatch for {METHODS[method_index]}")
-            maximum_error = max(maximum_error, float(np.max(np.abs(observed_values - expected_values))))
+            supported = annular_oracle(maps[mode_index, method_index], exclusions, supported_edge=True)
+            for row, column in checked:
+                observed_value = float(snr[mode_index, method_index, column, row])
+                expected_value = float(expected[column, row])
+                if np.isfinite(expected_value):
+                    stage.require(np.isfinite(observed_value) and np.isclose(
+                                  observed_value, expected_value, rtol=2e-6, atol=2e-6),
+                                  f"annular oracle mismatch for {method}")
+                    maximum_error = max(maximum_error, abs(observed_value - expected_value))
+                    continue
+                radius_value = float(radii[column, row])
+                replacement = float(supported[column, row])
+                stage.require(radius_value < stage.SNR_MIN_RADIUS + 0.5 and
+                              observed_value == 0 and np.isfinite(replacement),
+                              f"unsupported non-boundary annular SNR for {method}")
+                snr[mode_index, method_index, column, row] = replacement
+                boundary_fallbacks.append({
+                    "mode": mode, "method": method, "row": row, "column": column,
+                    "radius": radius_value, "production_value": observed_value,
+                    "replacement": replacement,
+                    "policy": "nearest supported one-pixel annular mean and sample deviation; exact small-sample correction at the candidate radius"})
     stage.write_json(directory / "command.json", command)
-    return snr, maximum_error, command
+    stage.write_json(directory / "annular_verification.json", {
+        "maximum_production_oracle_error": maximum_error,
+        "boundary_fallbacks": boundary_fallbacks})
+    return snr, maximum_error, command, boundary_fallbacks
 
 
 def calibration_site(root: Path, protocol: dict[str, object], analyzer: Path,
@@ -601,7 +653,10 @@ def calibration_site(root: Path, protocol: dict[str, object], analyzer: Path,
     complete = directory / "complete.json"
     if complete.exists():
         stage.verify(read(complete)["products"])
-        return read(directory / "scores.json")
+        existing = read(directory / "scores.json")
+        if "annular_boundary_fallbacks" in existing:
+            return existing
+        archive_incomplete(root, directory, "calibration_sites")
     if directory.exists():
         archive_incomplete(root, directory, "calibration_sites")
     directory.mkdir(parents=True)
@@ -620,8 +675,8 @@ def calibration_site(root: Path, protocol: dict[str, object], analyzer: Path,
         for search_index, (row, column) in enumerate(unit["site_positions"][site_index]):
             maps[-1][:, int(column), int(row)] = site_amplitude[search_index]
     maps_array = np.stack(maps)
-    snr, oracle_error, command = production_snr(root, analyzer, protocol, maps_array, header,
-                                                site, directory)
+    snr, oracle_error, command, boundary_fallbacks = production_snr(
+        root, analyzer, protocol, maps_array, header, site, directory)
     records = {}
     searches = [(int(site["row"]) + delta_row, int(site["column"]) + delta_column)
                 for delta_row, delta_column in footprint.SEARCH_OFFSETS]
@@ -644,10 +699,12 @@ def calibration_site(root: Path, protocol: dict[str, object], analyzer: Path,
             methods[name] = entry
         records[str(mode)] = methods
     result = {"site": str(site["name"]), "radius": radius_value,
-              "annular_oracle_maximum_error": oracle_error, "methods_by_mode": records}
+              "annular_oracle_maximum_error": oracle_error,
+              "annular_boundary_fallbacks": boundary_fallbacks,
+              "methods_by_mode": records}
     stage.write_json(directory / "scores.json", result)
     products = [stage.fingerprint(directory / name)
-                for name in ("analysis.log", "command.json", "scores.json")]
+                for name in ("analysis.log", "command.json", "annular_verification.json", "scores.json")]
     stage.write_json(complete, {"status": "complete", "products": products})
     return result
 
@@ -935,10 +992,10 @@ def analyze_task(root_value: str, task_name: str) -> str:
         fit_records[str(mode)] = mode_fits
     frozen_array = np.stack(frozen_maps)
     refit_array = np.stack(refit_maps)
-    frozen_snr, frozen_error, _ = production_snr(root, analyzer, protocol, frozen_array,
-                                                  header, site, directory / "frozen")
-    refit_snr, refit_error, _ = production_snr(root, analyzer, protocol, refit_array,
-                                                header, site, directory / "refit")
+    frozen_snr, frozen_error, _, frozen_fallbacks = production_snr(
+        root, analyzer, protocol, frozen_array, header, site, directory / "frozen")
+    refit_snr, refit_error, _, refit_fallbacks = production_snr(
+        root, analyzer, protocol, refit_array, header, site, directory / "refit")
     baseline_amplitudes_array = np.stack(baseline_amplitudes)
     source_responses_array = np.stack(source_responses)
     arms = {}
@@ -976,6 +1033,7 @@ def analyze_task(root_value: str, task_name: str) -> str:
         arms[arm] = mode_records
     result = {"task": task, "site": site, "source": stage.fingerprint(source),
               "annular_oracle_maximum_error": {"frozen": frozen_error, "refit": refit_error},
+              "annular_boundary_fallbacks": {"frozen": frozen_fallbacks, "refit": refit_fallbacks},
               "arms": arms, "fit_diagnostics": fit_records,
               "response_fidelity": fidelity_records,
               "elapsed_seconds": time.monotonic() - started}
@@ -983,8 +1041,10 @@ def analyze_task(root_value: str, task_name: str) -> str:
     products = [stage.fingerprint(directory / "measurements.json"),
                 stage.fingerprint(directory / "frozen" / "analysis.log"),
                 stage.fingerprint(directory / "frozen" / "command.json"),
+                stage.fingerprint(directory / "frozen" / "annular_verification.json"),
                 stage.fingerprint(directory / "refit" / "analysis.log"),
-                stage.fingerprint(directory / "refit" / "command.json")]
+                stage.fingerprint(directory / "refit" / "command.json"),
+                stage.fingerprint(directory / "refit" / "annular_verification.json")]
     stage.write_json(complete, {"status": "complete", "products": products})
     return str(directory / "measurements.json")
 
@@ -1155,6 +1215,14 @@ def check() -> None:
     image[:5] = np.nan
     score = annular_oracle(image, [(70.0, 70.0, 7.0)])
     stage.require(np.any(np.isfinite(score)), "annular oracle check failed")
+    radii = image_radius(image.shape)
+    boundary_image = generator.normal(size=image.shape)
+    boundary_image[(radii > stage.SNR_MIN_RADIUS - 1) &
+                   (radii <= stage.SNR_MIN_RADIUS)] = np.nan
+    unsupported = annular_oracle(boundary_image, [])
+    supported = annular_oracle(boundary_image, [], supported_edge=True)
+    stage.require(not np.isfinite(unsupported[59, 59]) and np.isfinite(supported[59, 59]),
+                  "annular supported-edge check failed")
     stage.require(tuple(METHODS) == tuple(preparation.METHODS) and
                   set(COVARIANCE_METHODS).issubset(METHODS) and
                   set(detail["policies"]) == {name for name, _, _ in RADIAL_POLICIES},
