@@ -1,0 +1,90 @@
+{
+  "status": "verified",
+  "source_root": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925",
+  "source_state": "development_complete",
+  "nested_fingerprints_verified": true,
+  "counts": {
+    "calibration_units": 48,
+    "calibration_sites": 120,
+    "reductions": 108,
+    "analyses": 108,
+    "final_receipt_products": 113,
+    "summary_rows_json": 3744,
+    "summary_rows_csv": 3744
+  },
+  "expected_summary_rows": "8 modes * 6 radii * 3 levels * (18 frozen + 8 refit methods) = 3744",
+  "maximum_annular_oracle_error": 2.86102294921875e-06,
+  "annular_boundary_fallback": {
+    "tasks": 3,
+    "records_across_frozen_and_refit_arms": 624
+  },
+  "analysis_repair": {
+    "reduction_receipts_retained": 108,
+    "completed_analyses_archived": 81,
+    "incomplete_analyses_archived": 27
+  },
+  "selection_performed": false,
+  "validation_products_opened": false,
+  "preserved_artifacts": [
+    {
+      "local": {
+        "path": "agents/plans/results/klip-stage-c-development-20260926/results.json",
+        "bytes": 2277456,
+        "sha256": "60abeb9982bac121df7f6b094bb52e5f8636532e61d269e93891f0b77b415a7b"
+      },
+      "source": {
+        "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/development_results.json",
+        "bytes": 2277456,
+        "sha256": "60abeb9982bac121df7f6b094bb52e5f8636532e61d269e93891f0b77b415a7b"
+      }
+    },
+    {
+      "local": {
+        "path": "agents/plans/results/klip-stage-c-development-20260926/results.csv",
+        "bytes": 716225,
+        "sha256": "f1b9584045776cf1772d14cb702ce7dd0e59922320bd1ac078f19d37cba16102"
+      },
+      "source": {
+        "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/development_results.csv",
+        "bytes": 716225,
+        "sha256": "f1b9584045776cf1772d14cb702ce7dd0e59922320bd1ac078f19d37cba16102"
+      }
+    },
+    {
+      "local": {
+        "path": "agents/plans/results/klip-stage-c-development-20260926/results.md",
+        "bytes": 35351,
+        "sha256": "cccb516b5c8bf0be3c5a70692c9addaa202746d7987ef0501bef9d75bc82779a"
+      },
+      "source": {
+        "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/development_results.md",
+        "bytes": 35351,
+        "sha256": "cccb516b5c8bf0be3c5a70692c9addaa202746d7987ef0501bef9d75bc82779a"
+      }
+    },
+    {
+      "local": {
+        "path": "agents/plans/results/klip-stage-c-development-20260926/mode200.png",
+        "bytes": 201331,
+        "sha256": "b89e51600e3e0a98c46c0a3e9261d1cf151abac1e1bccf711536bd1ed4d8c4f9"
+      },
+      "source": {
+        "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/development_mode200.png",
+        "bytes": 201331,
+        "sha256": "b89e51600e3e0a98c46c0a3e9261d1cf151abac1e1bccf711536bd1ed4d8c4f9"
+      }
+    },
+    {
+      "local": {
+        "path": "agents/plans/results/klip-stage-c-development-20260926/analysis_runner_manifest.json",
+        "bytes": 901,
+        "sha256": "bbd1bbb35f8c1f82e2870ed1f985e6f421b2bdc438cf07443fa6932591b523dc"
+      },
+      "source": {
+        "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/analysis_runner_manifest.json",
+        "bytes": 901,
+        "sha256": "bbd1bbb35f8c1f82e2870ed1f985e6f421b2bdc438cf07443fa6932591b523dc"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "reason": "analysis-only response-fidelity support correction",
+  "base_runner": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/software/run_klip_stage_c_development.py",
+    "bytes": 73270,
+    "sha256": "6ae59ba7ae2a077ed603254f9ee61d84c396982a7eb2e62affeee2cb982ba75e"
+  },
+  "analysis_runner": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/software/run_klip_stage_c_development_analysis_repair_0002.py",
+    "bytes": 79265,
+    "sha256": "22f3676b969e53f749a6aa6e583e9b8725389562153c57a64fec118de16adee3"
+  },
+  "calibration_receipt": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/calibration/complete.json",
+    "bytes": 44607,
+    "sha256": "49b1e0de539120d5d49d4159c29f38543570a4d63a60b4eb42679e1d5b0f0311"
+  },
+  "reduction_receipts_retained": 108,
+  "completed_analyses_archived": 81,
+  "incomplete_analyses_archived": 27,
+  "summary_products_archived": []
+}

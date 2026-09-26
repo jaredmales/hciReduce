@@ -245,3 +245,12 @@ modes and both covariance arms. At mode 200 its unweighted fidelity cosine was
 analysis-only repair will archive all 108 partial analysis directories and
 regenerate them while retaining calibration and reductions. Validation remains
 unopened.
+
+
+## Completed development campaign
+
+The repaired run completed all 108 analyses and wrote a final receipt with
+validation still unopened. The full products and interpretation are preserved
+in the [Stage-C development result](../klip-stage-c-development-20260926/README.md).
+A recursive audit verified all 48 calibration units, 120 calibration sites,
+108 reductions, 108 analyses, and 113 final-receipt products.

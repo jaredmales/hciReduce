@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "purpose": "freeze repaired Stage-C development analysis software",
+  "base_development_manifest": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/development_manifest.json",
+    "bytes": 771,
+    "sha256": "0afa0c6cd2fc1ed4922fa3e06b5531e9fa36e432b7fe80430cb97986436879ee"
+  },
+  "runner": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/software/run_klip_stage_c_development_analysis_repair_0002.py",
+    "bytes": 79265,
+    "sha256": "22f3676b969e53f749a6aa6e583e9b8725389562153c57a64fec118de16adee3"
+  },
+  "repair": {
+    "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/interrupted/runner_repairs/attempt_0002/repair.json",
+    "bytes": 1030,
+    "sha256": "86231ba61b7d960a20fec1ee822cf6d920d1988205a9c37d983a1805cda7522e"
+  }
+}

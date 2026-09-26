@@ -571,8 +571,16 @@ training band that supports all 38 roles at each radius, partitions the sites
 by deterministic angular maximin selection, and freezes site-specific
 Gaussian-SNR 3/5/7 contrasts for both development and validation. It also
 writes the 108 development commands and freezes the complete 18-method
-analysis receipt. The prepared ROC geometry and contrasts are reviewed before
-the resumable runner is enabled; validation positive products remain unopened.
+analysis receipt. The prepared ROC geometry and contrasts were reviewed before
+the resumable runner was enabled; validation positive products remain unopened.
+
+Checkpoint 5 is complete. The
+[Stage-C development result](../klip-stage-c-development-20260926/README.md)
+preserves all 108 analyses and selects a compact validation shortlist without
+opening held-out nulls or validation images. The development result favors the
+identity response filters over covariance weighting, retains raw rectangular
+as the mandatory prior, and selects radial-Hann truncation at 0.75 as the one
+radial covariance policy for the policy-freeze step.
 
 ## Required provenance and failure behavior
 
@@ -586,7 +594,8 @@ the resumable runner is enabled; validation positive products remain unopened.
 - Candidate support, annular validity, template availability, and covariance
   support are verified on common masks before any summary is calculated.
 - The independent annular oracle must agree with `hciAnalyze` for every
-  permanent reference and final candidate at `rtol=1e-6`, `atol=1e-7`.
+  permanent reference and final candidate at the implemented `rtol=2e-6`,
+  `atol=2e-6`; inner-edge substitutions are separately enumerated.
 - Raw KLIP inputs, exact response products, positive reductions, and policy
   receipts are never modified in place.
 

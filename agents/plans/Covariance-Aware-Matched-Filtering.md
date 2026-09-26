@@ -3109,6 +3109,47 @@ and freezes the corrected runner in a separate analysis manifest included in
 the eventual completion receipt. Calibration and reductions are retained; all
 108 analysis tasks are regenerated under the corrected runner.
 
+### Step 6 checkpoint: Stage-C development complete (2026-09-26)
+
+The [completed Stage-C development report](results/klip-stage-c-development-20260926/README.md)
+preserves the full 3,744-row result, generated tables and plot, completion
+receipt, and runner-repair provenance. A recursive ROC audit verified all 48
+calibration units, 120 calibration sites, 108 reductions, 108 analyses, and 113
+final-receipt products. The state is `development_complete`; validation and
+held-out null products remain unopened.
+
+At the prespecified mode 200 and target SNR 3, sparse-response identity recovers
+32/36 sources, exact-response identity 29/36, the best covariance policy 28/36,
+Gaussian FWHM 2.4 27/36, Gaussian FWHM 3.6 27/36, and the native pixel 23/36.
+Mean maximum SNR is 3.6216 for sparse identity, 3.6764 for exact identity,
+3.6519 for radial-Hann truncation at 0.75 mean variance, 3.5249 for Gaussian
+2.4, and 3.2012 for Gaussian 3.6. Exact identity beats Gaussian 3.6 in 26/36
+paired sites with mean difference +0.4752; radial truncation 0.75 wins 24/36
+with mean difference +0.4507.
+
+The gain is concentrated at the intended small separations. At radius 7.5,
+exact identity and both covariance families recover 6/6 faint sources versus
+4/6 for Gaussian 3.6; at radius 10 they recover 4/6 versus 2/6, while sparse
+identity recovers 5/6. Results are mixed at radii 20 and 24 because the
+maximum-of-20 calibration thresholds have large outer-radius largest-to-second
+null gaps. Held-out nulls must assess those thresholds without retuning them.
+
+Covariance weighting does not beat the identity response filters on development
+data. Radial truncation at 0.75 is the strongest covariance option, but gains
+only one recovery over the stronger Gaussian-2.4 control and loses four to
+sparse identity. Per-image covariance refitting changes only one recovery over
+the complete eight-mode grid, adversely, and changes mean SNR by at most 0.0492
+in any cell. Retain baseline-frozen weights. The exact response itself is not
+the limiting factor: mode-200 unweighted fidelity has median cosine 0.999844,
+minimum cosine 0.998312, and maximum best-scaled residual 0.0581.
+
+The development-selected validation shortlist is mode 200 with native,
+Gaussian 3.6, Gaussian 2.4, exact identity, sparse identity, mandatory raw
+rectangular/mixing-0.3, and radial-standardized Hann/mixing-0.1 truncated at
+0.75 mean variance. The existing method-specific thresholds and five-pixel
+search remain fixed. This recommendation is not yet an immutable policy
+receipt, and no validation selection has occurred.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
