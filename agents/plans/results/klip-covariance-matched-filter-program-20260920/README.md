@@ -592,11 +592,15 @@ runner requires that receipt, freezes baseline-only weights for the unopened
 sites, exposes the preassigned held-out nulls, runs the 108 validation
 reductions, and evaluates the preregistered mode-200 gate without method or
 mode maximization. A read-only ROC preflight found complete generic annular
-coverage for every validation and held-out search pixel; the products remain
-unopened pending execution. The first launch stopped before model construction on
-a driver-only two-versus-three-value unpacking error. A guarded repair now
-updates only the frozen runner and its provenance while the unopened policy
-state is still intact.
+coverage for every validation and held-out search pixel. A guarded repair
+corrected a driver-only two-versus-three-value unpacking error before any
+Stage-E product opened. The resumed run completed all 48 model units, 36
+held-out nulls, and 108 validation reductions. Analysis then stopped in the
+response-fidelity diagnostic because it imported the original masked-support
+helper instead of the recorded Stage-C repair. The filter results are
+unaffected and no final validation summary exists. A guarded analysis-only
+repair retains all upstream products, archives all 108 partial analysis
+directories, and reruns analysis with the repaired full-space convention.
 
 ## Required provenance and failure behavior
 

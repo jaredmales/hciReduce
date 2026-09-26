@@ -121,5 +121,25 @@ an incomplete task directory before retry.
 - ROC still had no `heldout_analysis`, `validation_reductions`, or
   `validation_analysis` directory at the time of the preflight.
 
-The full numerical policy generation and real estimator replay require the ROC
-experiment tree and remain the next execution checkpoint.
+## Analysis-only fidelity repair
+
+The resumed ROC run completed all 48 baseline-only model units, all 36
+held-out-null analyses, and all 108 validation reductions. During parallel
+validation analysis, 84 task directories completed before one task exposed the
+same masked-support response-fidelity defect already repaired during Stage C.
+Stage E had imported the original Stage-C helper instead of the recorded
+analysis-repair helper. The defect is confined to a diagnostic calculated
+after the detection maps and annular SNR values; it does not affect reductions,
+weights, held-out scores, thresholds, or filter amplitudes. No final validation
+summary was written.
+
+The Stage-E runner now carries the repaired full-121-pixel covariance
+convention directly and has a nontrivial masked-support regression check. A
+second guarded repair is allowed only in the observed `validation_analyzing`
+state with complete model, held-out, and reduction receipts and no final
+validation result. It verifies those retained products, archives all 108
+partial analysis directories with direct file fingerprints, updates only the
+runner and repair provenance, and reruns all 108 analyses under one software
+version.
+
+After pulling the repair, resume with the repository entry point shown above.

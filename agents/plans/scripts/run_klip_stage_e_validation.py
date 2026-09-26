@@ -59,8 +59,61 @@ def record_at(path: Path, content: dict[str, object]) -> dict[str, object]:
             "sha256": str(content["sha256"])}
 
 
+def verify_repair_records(records: list[dict[str, object]]) -> None:
+    """Verify repair receipts and their preserved prior-state artifacts."""
+    stage.verify(records)
+    for record in records:
+        repair = read(Path(str(record["path"])))
+        stage.verify([repair["previous_runner"], repair["previous_policy_manifest"],
+                      repair["previous_policy_completion"]])
+        archive = repair.get("repair_detail", {}).get("archive_manifest")
+        if archive is not None:
+            stage.verify([archive])
+
+
+def archive_validation_analysis(root: Path) -> dict[str, object]:
+    """Archive every partial Stage-E analysis after verifying retained upstream products."""
+    protocol = read(root / "protocol.json")
+    verify_models(root)
+    verify_heldout(root)
+    for task in protocol["validation_tasks_unopened"]:
+        receipt = read(root / "validation_reductions" / str(task["name"]) / "complete.json")
+        stage.verify(receipt["products"])
+    stage.require(not (root / "validation_complete.json").exists() and
+                  not any((root / name).exists() for name in
+                          ("validation_results.json", "validation_results.csv",
+                           "validation_results.md")),
+                  "final validation products exist; refusing analysis-only repair")
+    analysis = root / "validation_analysis"
+    stage.require(analysis.is_dir(), "partial validation analysis is missing")
+    receipts = sorted(analysis.glob("*/complete.json"))
+    for receipt_path in receipts:
+        stage.verify(read(receipt_path)["products"])
+    directories = [path for path in analysis.iterdir() if path.is_dir()]
+    archive_root = root / "interrupted" / "stage_e_analysis_repairs"
+    archive_root.mkdir(parents=True, exist_ok=True)
+    attempt = 1
+    while (archive_root / f"attempt_{attempt:04d}").exists():
+        attempt += 1
+    destination = archive_root / f"attempt_{attempt:04d}"
+    shutil.move(analysis, destination)
+    records = [stage.fingerprint(path) for path in sorted(destination.rglob("*"))
+               if path.is_file()]
+    archive_manifest = destination / "archive_manifest.json"
+    stage.write_json(archive_manifest, {
+        "schema": 1,
+        "reason": "replace the original Stage-C masked-fidelity helper with its recorded repair",
+        "completed_analyses": len(receipts),
+        "incomplete_analyses": len(directories) - len(receipts),
+        "files": records,
+    })
+    return {"completed_analyses": len(receipts),
+            "incomplete_analyses": len(directories) - len(receipts),
+            "archive_manifest": stage.fingerprint(archive_manifest)}
+
+
 def repair_frozen_runner(root: Path, frozen: Path) -> None:
-    """Repair the pre-exposure entry-point unpacking defect and update provenance."""
+    """Apply a provenance-preserving Stage-E runner repair when its guard permits."""
     source = Path(__file__).resolve()
     stage.require(frozen.is_file(), "frozen Stage-E validation runner is missing")
     manifest_path = root / "policy_manifest.json"
@@ -74,30 +127,51 @@ def repair_frozen_runner(root: Path, frozen: Path) -> None:
     if same_content(observed, expected[0]) and same_content(source_record, observed):
         return
 
-    state = read(root / "state.json")
-    completion = read(completion_path)
-    stage.require(state["status"] == "policy_frozen" and
-                  not state["heldout_nulls_opened"] and
-                  not state["validation_products_opened"] and
-                  completion["status"] == "complete" and
-                  not completion["heldout_nulls_opened"] and
-                  not completion["validation_products_opened"],
-                  "validation runner repair is allowed only before models, held-out nulls, or positives")
-    stage.require(not (root / "validation_models").exists() and
-                  not (root / "heldout_analysis").exists() and
-                  not (root / "validation_reductions").exists() and
-                  not (root / "validation_analysis").exists(),
-                  "validation products exist; refusing runner repair")
-    stage.verify(manifest["input_records"] + manifest["policy_records"] +
-                 manifest.get("repair_records", []))
+    stage.verify(manifest["input_records"] + manifest["policy_records"])
+    verify_repair_records(manifest.get("repair_records", []))
     for record in manifest["software_records"]:
         if record != expected[0]:
             stage.verify([record])
     stage.require(same_content(observed, expected[0]),
-                  "frozen validation runner changed outside the guarded repair")
+                  "frozen validation runner changed outside a guarded repair")
+    state = read(root / "state.json")
+    completion = read(completion_path)
+    stage.require(completion["status"] == "complete",
+                  "policy completion receipt is invalid")
 
-    repair_directory = root / "policy_repairs" / "stage_e_entry_unpack_20260926"
-    stage.require(not repair_directory.exists(), "Stage-E runner repair directory already exists")
+    if state["status"] == "policy_frozen":
+        stage.require(not state["heldout_nulls_opened"] and
+                      not state["validation_products_opened"] and
+                      not completion["heldout_nulls_opened"] and
+                      not completion["validation_products_opened"] and
+                      not (root / "validation_models").exists() and
+                      not (root / "heldout_analysis").exists() and
+                      not (root / "validation_reductions").exists() and
+                      not (root / "validation_analysis").exists(),
+                      "entry-point repair requires an unopened policy")
+        repair_name = "stage_e_entry_unpack_20260926"
+        reason = "correct Stage-E main() to unpack the two-value preparation loader"
+        repair_detail = {"retained_products": "no Stage-E products existed"}
+    elif state["status"] == "validation_analyzing":
+        stage.require(state["heldout_nulls_opened"] and
+                      state["validation_products_opened"],
+                      "analysis repair requires opened Stage-E products")
+        repair_name = "stage_e_masked_fidelity_20260926"
+        reason = ("use the recorded Stage-C masked-support fidelity repair; detection "
+                  "maps, held-out scores, models, and reductions are unchanged")
+        repair_detail = archive_validation_analysis(root)
+        stage.write_json(root / "state.json", {
+            "status": "validation_reductions_complete",
+            "development_reductions": len(read(root / "protocol.json")["development_tasks"]),
+            "validation_reductions": len(read(root / "protocol.json")[
+                "validation_tasks_unopened"]),
+            "heldout_nulls_opened": True, "validation_products_opened": True,
+            "positive_analysis_started": True})
+    else:
+        raise RuntimeError("Stage-E runner differs outside a supported repair state")
+
+    repair_directory = root / "policy_repairs" / repair_name
+    stage.require(not repair_directory.exists(), f"repair directory already exists: {repair_name}")
     repair_directory.mkdir(parents=True)
     previous_runner = repair_directory / "previous_run_klip_stage_e_validation.py"
     previous_manifest = repair_directory / "previous_policy_manifest.json"
@@ -108,15 +182,14 @@ def repair_frozen_runner(root: Path, frozen: Path) -> None:
     replacement = record_at(frozen, source_record)
     repair_path = repair_directory / "repair.json"
     stage.write_json(repair_path, {
-        "schema": 1,
-        "reason": "correct Stage-E main() to unpack the two-value preparation loader",
-        "scientific_policy_changed": False,
-        "heldout_nulls_opened": False,
-        "validation_products_opened": False,
+        "schema": 1, "reason": reason, "scientific_policy_changed": False,
+        "heldout_nulls_opened": bool(state["heldout_nulls_opened"]),
+        "validation_products_opened": bool(state["validation_products_opened"]),
         "previous_runner": stage.fingerprint(previous_runner),
         "replacement_runner": replacement,
         "previous_policy_manifest": stage.fingerprint(previous_manifest),
         "previous_policy_completion": stage.fingerprint(previous_completion),
+        "repair_detail": repair_detail,
     })
 
     temporary = frozen.with_suffix(frozen.suffix + ".replacement")
@@ -132,8 +205,10 @@ def repair_frozen_runner(root: Path, frozen: Path) -> None:
     products = [*manifest["policy_records"], *manifest["repair_records"],
                 stage.fingerprint(manifest_path)]
     stage.write_json(completion_path, {
-        "status": "complete", "heldout_nulls_opened": False,
-        "validation_products_opened": False, "products": products})
+        "status": "complete",
+        "heldout_nulls_opened": bool(completion["heldout_nulls_opened"]),
+        "validation_products_opened": bool(completion["validation_products_opened"]),
+        "products": products})
     stage.verify(products + manifest["input_records"] + manifest["software_records"])
 
 
@@ -154,7 +229,8 @@ def enable(root: Path) -> tuple[dict[str, object], dict[str, object], Path]:
     stage.verify(completion["products"])
     manifest = read(root / "policy_manifest.json")
     stage.verify(manifest["input_records"] + manifest["software_records"] +
-                 manifest["policy_records"] + manifest.get("repair_records", []))
+                 manifest["policy_records"])
+    verify_repair_records(manifest.get("repair_records", []))
     own = stage.fingerprint(Path(__file__))
     stage.require(own in manifest["software_records"],
                   "validation runner is outside the frozen policy")
@@ -682,6 +758,41 @@ def reduce(root: Path) -> None:
         "positive_analysis_started": True})
 
 
+def response_fidelity(delta: np.ndarray, template: np.ndarray,
+                      fitted: dict[str, object]) -> dict[str, object]:
+    """Compare a finite response using the repaired full-space support convention."""
+    mask = np.asarray(fitted["support"], dtype=bool).ravel()
+    raw_delta = np.asarray(delta, dtype=np.float64).ravel()[mask]
+    raw_template = np.asarray(template, dtype=np.float64).ravel()[mask]
+
+    def metric(data: np.ndarray, model_template: np.ndarray,
+               covariance: np.ndarray) -> dict[str, float]:
+        covariance = np.asarray(covariance, dtype=np.float64)
+        stage.require(covariance.shape == (mask.size, mask.size),
+                      "fidelity covariance and response support differ")
+        submatrix = covariance[np.ix_(mask, mask)]
+        inverse_data = np.linalg.solve(submatrix, data)
+        inverse_template = np.linalg.solve(submatrix, model_template)
+        cross = float(model_template @ inverse_data)
+        template_energy = float(model_template @ inverse_template)
+        data_energy = float(data @ inverse_data)
+        projection = cross / template_energy
+        cosine = cross / math.sqrt(template_energy * data_energy)
+        residual = data - projection * model_template
+        residual_energy = float(residual @ np.linalg.solve(submatrix, residual))
+        return {"cosine": cosine, "projection_scale": projection,
+                "best_scaled_relative_residual": math.sqrt(residual_energy / data_energy)}
+
+    result = {"unweighted": metric(raw_delta, raw_template,
+                                     np.eye(mask.size, dtype=np.float64))}
+    result["raw_rectangular_m0p3"] = metric(
+        raw_delta, raw_template, fitted["raw_detail"]["covariance"])
+    scale = np.asarray(fitted["scale"], dtype=np.float64).ravel()[mask]
+    result["radial_hann_m0p1"] = metric(
+        raw_delta / scale, raw_template / scale, fitted["radial_detail"]["covariance"])
+    return result
+
+
 def analyze_task(root_value: str, task_name: str) -> str:
     """Analyze one unopened validation positive using baseline-frozen selected filters."""
     root = Path(root_value)
@@ -750,7 +861,7 @@ def analyze_task(root_value: str, task_name: str) -> str:
                           f"recomputed baseline weight changed for {method}")
         delta = ((development.stamp(positive, query) - development.stamp(baseline, query)) /
                  float(task["contrast"]))
-        fidelity_records[str(mode)] = development.fidelity(delta, template, fitted)
+        fidelity_records[str(mode)] = response_fidelity(delta, template, fitted)
         diagnostics[str(mode)] = {
             "profile_minimum_pixels": fitted["profile_minimum_pixels"],
             "raw": fitted["raw_detail"]["policies"]["raw_rectangular_m0p3"],
@@ -1041,6 +1152,18 @@ def check() -> None:
                   np.all(np.isfinite(np.mean(sampled, axis=(1, 2)))),
                   "radius-stratified bootstrap changed")
     stage.require(not (2 > 2) and (3 > 2), "strict threshold comparison changed")
+    template = np.arange(SUPPORT * SUPPORT, dtype=np.float64).reshape(SUPPORT, SUPPORT) + 1
+    mask = np.ones(template.shape, dtype=bool)
+    mask[0, 0] = False
+    fitted = {"support": mask, "scale": np.ones(template.shape),
+              "raw_detail": {"covariance": np.eye(mask.size)},
+              "radial_detail": {"covariance": np.eye(mask.size)}}
+    fidelity = response_fidelity(template, template, fitted)
+    stage.require(all(np.isclose(value["cosine"], 1) and
+                      np.isclose(value["projection_scale"], 1) and
+                      value["best_scaled_relative_residual"] <= 1e-14
+                      for value in fidelity.values()),
+                  "masked-support response fidelity changed")
     print("KLIP Stage-E validation checks passed", flush=True)
 
 

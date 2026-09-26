@@ -3173,13 +3173,23 @@ reported as the stronger smoothing control. Exact and sparse identity are
 retained as possible non-covariance outcomes.
 
 A read-only ROC preflight found all validation and held-out search pixels in
-the existing Stage-C generic annular maps and confirmed that no held-out or
-validation directory exists. The policy and validation products remain
-unopened pending execution. The first launch then stopped in the driver before
-model construction because the entry point unpacked the two-value preparation
-loader as three values. A guarded pre-exposure repair now archives the original
-runner and receipts and updates only the runner software fingerprint; no
-scientific policy artifact or score is changed.
+the existing Stage-C generic annular maps. The first launch stopped in the
+driver before model construction because the entry point unpacked the
+two-value preparation loader as three values. A guarded pre-exposure repair
+archived the original runner and receipts and updated only the runner software
+fingerprint.
+
+The resumed run completed all 48 baseline-only model units, all 36 held-out
+nulls, and all 108 validation reductions. Parallel analysis then exposed the
+same masked-support response-fidelity diagnostic defect already repaired in
+Stage C: Stage E imported the original Stage-C helper, which formed an identity
+matrix after applying the support mask and then applied the original mask
+again. This does not enter filtering, annular SNR, thresholds, or recovery.
+Eighty-four analysis directories completed before shutdown, but no final
+validation summary was written. The guarded analysis-only repair verifies and
+retains the models, held-out results, and reductions, archives all 108 partial
+analysis directories, applies the recorded full-space fidelity convention,
+and reruns every analysis under one corrected runner.
 
 ## 8. Notation
 
