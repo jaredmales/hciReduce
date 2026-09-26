@@ -493,7 +493,7 @@ def existing_complete(root: Path) -> bool:
     stage.verify(receipt["products"])
     manifest = read(root / "policy_manifest.json")
     stage.verify(manifest["input_records"] + manifest["software_records"] +
-                 manifest["policy_records"])
+                 manifest["policy_records"] + manifest.get("repair_records", []))
     print(root / "policy" / "README.md", flush=True)
     return True
 

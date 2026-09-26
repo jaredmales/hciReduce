@@ -593,7 +593,10 @@ sites, exposes the preassigned held-out nulls, runs the 108 validation
 reductions, and evaluates the preregistered mode-200 gate without method or
 mode maximization. A read-only ROC preflight found complete generic annular
 coverage for every validation and held-out search pixel; the products remain
-unopened pending execution.
+unopened pending execution. The first launch stopped before model construction on
+a driver-only two-versus-three-value unpacking error. A guarded repair now
+updates only the frozen runner and its provenance while the unopened policy
+state is still intact.
 
 ## Required provenance and failure behavior
 

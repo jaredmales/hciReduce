@@ -3175,7 +3175,11 @@ retained as possible non-covariance outcomes.
 A read-only ROC preflight found all validation and held-out search pixels in
 the existing Stage-C generic annular maps and confirmed that no held-out or
 validation directory exists. The policy and validation products remain
-unopened pending execution.
+unopened pending execution. The first launch then stopped in the driver before
+model construction because the entry point unpacked the two-value preparation
+loader as three values. A guarded pre-exposure repair now archives the original
+runner and receipts and updates only the runner software fingerprint; no
+scientific policy artifact or score is changed.
 
 ## 8. Notation
 

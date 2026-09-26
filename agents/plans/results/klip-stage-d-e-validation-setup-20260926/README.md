@@ -85,17 +85,26 @@ The freeze command reads development and calibration products only. After the
 receipt has been reviewed, Stage E can be run as one resumable command:
 
 ```bash
-taskset -c 12-27 python3 "$root/software/run_klip_stage_e_validation.py" run "$root" --workers 4
+taskset -c 12-27 python3 agents/plans/scripts/run_klip_stage_e_validation.py run "$root" --workers 4
 ```
 
 For checkpoints, use the same frozen runner in this order:
 
 ```bash
-taskset -c 12-27 python3 "$root/software/run_klip_stage_e_validation.py" models "$root" --workers 4
-taskset -c 12-27 python3 "$root/software/run_klip_stage_e_validation.py" heldout "$root" --workers 4
-taskset -c 12-27 python3 "$root/software/run_klip_stage_e_validation.py" reduce "$root"
-taskset -c 12-27 python3 "$root/software/run_klip_stage_e_validation.py" analyze "$root" --workers 4
+taskset -c 12-27 python3 agents/plans/scripts/run_klip_stage_e_validation.py models "$root" --workers 4
+taskset -c 12-27 python3 agents/plans/scripts/run_klip_stage_e_validation.py heldout "$root" --workers 4
+taskset -c 12-27 python3 agents/plans/scripts/run_klip_stage_e_validation.py reduce "$root"
+taskset -c 12-27 python3 agents/plans/scripts/run_klip_stage_e_validation.py analyze "$root" --workers 4
 ```
+
+The repository entry point verifies and then executes the copy frozen in the
+experiment. The first Stage-E launch exposed a driver-only unpacking error
+before `models` began. The guarded repair is permitted only while the state is
+`policy_frozen` and no model, held-out, or validation directory exists. It
+archives the original runner and policy receipts under
+`policy_repairs/stage_e_entry_unpack_20260926`, replaces only the runner,
+updates its software fingerprint and repair receipt, and leaves every policy
+artifact byte-for-byte unchanged.
 
 `models` uses only the signal-free baseline and can run before any score is
 opened. `heldout` exposes the 36 preassigned null sites. `reduce` then creates

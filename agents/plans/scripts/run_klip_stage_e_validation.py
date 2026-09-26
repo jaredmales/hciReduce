@@ -9,6 +9,7 @@ import json
 import math
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -46,6 +47,105 @@ def radius_key(radius: float) -> str:
     return str(float(radius))
 
 
+def same_content(first: dict[str, object], second: dict[str, object]) -> bool:
+    """Return whether two fingerprints describe identical bytes."""
+    return (int(first["bytes"]) == int(second["bytes"]) and
+            str(first["sha256"]) == str(second["sha256"]))
+
+
+def record_at(path: Path, content: dict[str, object]) -> dict[str, object]:
+    """Describe known fingerprint content at a different resolved path."""
+    return {"path": str(path.resolve()), "bytes": int(content["bytes"]),
+            "sha256": str(content["sha256"])}
+
+
+def repair_frozen_runner(root: Path, frozen: Path) -> None:
+    """Repair the pre-exposure entry-point unpacking defect and update provenance."""
+    source = Path(__file__).resolve()
+    stage.require(frozen.is_file(), "frozen Stage-E validation runner is missing")
+    manifest_path = root / "policy_manifest.json"
+    completion_path = root / "policy_complete.json"
+    manifest = read(manifest_path)
+    expected = [record for record in manifest["software_records"]
+                if Path(str(record["path"])).resolve() == frozen.resolve()]
+    stage.require(len(expected) == 1, "policy manifest lacks one frozen validation runner")
+    source_record = stage.fingerprint(source)
+    observed = stage.fingerprint(frozen)
+    if same_content(observed, expected[0]) and same_content(source_record, observed):
+        return
+
+    state = read(root / "state.json")
+    completion = read(completion_path)
+    stage.require(state["status"] == "policy_frozen" and
+                  not state["heldout_nulls_opened"] and
+                  not state["validation_products_opened"] and
+                  completion["status"] == "complete" and
+                  not completion["heldout_nulls_opened"] and
+                  not completion["validation_products_opened"],
+                  "validation runner repair is allowed only before models, held-out nulls, or positives")
+    stage.require(not (root / "validation_models").exists() and
+                  not (root / "heldout_analysis").exists() and
+                  not (root / "validation_reductions").exists() and
+                  not (root / "validation_analysis").exists(),
+                  "validation products exist; refusing runner repair")
+    stage.verify(manifest["input_records"] + manifest["policy_records"] +
+                 manifest.get("repair_records", []))
+    for record in manifest["software_records"]:
+        if record != expected[0]:
+            stage.verify([record])
+    stage.require(same_content(observed, expected[0]),
+                  "frozen validation runner changed outside the guarded repair")
+
+    repair_directory = root / "policy_repairs" / "stage_e_entry_unpack_20260926"
+    stage.require(not repair_directory.exists(), "Stage-E runner repair directory already exists")
+    repair_directory.mkdir(parents=True)
+    previous_runner = repair_directory / "previous_run_klip_stage_e_validation.py"
+    previous_manifest = repair_directory / "previous_policy_manifest.json"
+    previous_completion = repair_directory / "previous_policy_complete.json"
+    shutil.copy2(frozen, previous_runner)
+    shutil.copy2(manifest_path, previous_manifest)
+    shutil.copy2(completion_path, previous_completion)
+    replacement = record_at(frozen, source_record)
+    repair_path = repair_directory / "repair.json"
+    stage.write_json(repair_path, {
+        "schema": 1,
+        "reason": "correct Stage-E main() to unpack the two-value preparation loader",
+        "scientific_policy_changed": False,
+        "heldout_nulls_opened": False,
+        "validation_products_opened": False,
+        "previous_runner": stage.fingerprint(previous_runner),
+        "replacement_runner": replacement,
+        "previous_policy_manifest": stage.fingerprint(previous_manifest),
+        "previous_policy_completion": stage.fingerprint(previous_completion),
+    })
+
+    temporary = frozen.with_suffix(frozen.suffix + ".replacement")
+    shutil.copy2(source, temporary)
+    temporary.replace(frozen)
+    stage.require(stage.fingerprint(frozen) == replacement,
+                  "replacement validation runner fingerprint changed")
+    manifest["software_records"] = [replacement if record == expected[0] else record
+                                    for record in manifest["software_records"]]
+    repair_record = stage.fingerprint(repair_path)
+    manifest["repair_records"] = [*manifest.get("repair_records", []), repair_record]
+    stage.write_json(manifest_path, manifest)
+    products = [*manifest["policy_records"], *manifest["repair_records"],
+                stage.fingerprint(manifest_path)]
+    stage.write_json(completion_path, {
+        "status": "complete", "heldout_nulls_opened": False,
+        "validation_products_opened": False, "products": products})
+    stage.verify(products + manifest["input_records"] + manifest["software_records"])
+
+
+def ensure_frozen_runner(root: Path) -> None:
+    """Execute the policy-frozen runner, applying the guarded pre-exposure repair once."""
+    source = Path(__file__).resolve()
+    frozen = root / "software" / source.name
+    repair_frozen_runner(root, frozen)
+    if source != frozen.resolve():
+        os.execv(sys.executable, [sys.executable, str(frozen), *sys.argv[1:]])
+
+
 def enable(root: Path) -> tuple[dict[str, object], dict[str, object], Path]:
     """Verify the immutable policy and return its protocol, policy, and analyzer."""
     protocol, _ = preparation.load_experiment(root)
@@ -54,9 +154,10 @@ def enable(root: Path) -> tuple[dict[str, object], dict[str, object], Path]:
     stage.verify(completion["products"])
     manifest = read(root / "policy_manifest.json")
     stage.verify(manifest["input_records"] + manifest["software_records"] +
-                 manifest["policy_records"])
+                 manifest["policy_records"] + manifest.get("repair_records", []))
     own = stage.fingerprint(Path(__file__))
-    stage.require(own in manifest["software_records"], "validation runner is outside the frozen policy")
+    stage.require(own in manifest["software_records"],
+                  "validation runner is outside the frozen policy")
     policy = read(root / "policy" / "policy.json")
     stage.require(policy["frozen_before_heldout_or_validation"] and
                   policy["primary_mode"] == policy_module.PRIMARY_MODE and
@@ -963,12 +1064,8 @@ def main() -> None:
         check()
         return
     root = arguments.root.resolve()
-    protocol, _, _ = preparation.load_experiment(root)
-    frozen = root / "software" / Path(__file__).name
-    if Path(__file__).resolve() != frozen.resolve():
-        stage.require(frozen.is_file() and frozen.read_bytes() == Path(__file__).read_bytes(),
-                      "validation must execute the runner frozen by Stage D")
-        os.execv(sys.executable, [sys.executable, str(frozen), *sys.argv[1:]])
+    ensure_frozen_runner(root)
+    preparation.load_experiment(root)
     workers = int(getattr(arguments, "workers", 1))
     stage.require(workers >= 1, "worker count must be positive")
     if arguments.action == "models":
