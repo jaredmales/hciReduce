@@ -61,8 +61,8 @@ radius-24 units.
 
 ## Frozen and verified behavior
 
-`prepare` requires the unopened `validation_complete` state and recursively
-verifies the immutable policy, 48 validation model units, 36 held-out analyses,
+`prepare` requires the response campaign's frozen CPU affinity (CPUs 12--27),
+the unopened `validation_complete` state, and recursively verifies the immutable policy, 48 validation model units, 36 held-out analyses,
 108 validation reductions, and 108 validation analyses. It follows the
 promoted exact-response provenance to the original science cube and requires
 that cube to match its Stage-A frozen inventory. It then copies this runner and
@@ -86,7 +86,8 @@ From the repository root on ROC after pulling the commit that contains this setu
 ```bash
 root=working/roc/klip_stage_c_development_20260925
 python3 agents/plans/scripts/run_klip_stage_f_planet.py check
-python3 agents/plans/scripts/run_klip_stage_f_planet.py prepare "$root" \
+taskset -c 12-27 python3 \
+  agents/plans/scripts/run_klip_stage_f_planet.py prepare "$root" \
   --config working/analyze.conf
 ```
 

@@ -247,7 +247,8 @@ def prepare(root: Path, config: Path) -> None:
         "stage_e_policy_changed": False, "method_selection_performed": False,
     })
     print(output / "manifest.json", flush=True)
-    print(f"python3 {frozen_runner} run {root}", flush=True)
+    print(f"taskset -c 12-27 env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 "
+          f"MKL_NUM_THREADS=1 python3 {frozen_runner} run {root}", flush=True)
 
 
 def enable(root: Path) -> tuple[dict[str, object], Path, dict[str, float], Path]:
