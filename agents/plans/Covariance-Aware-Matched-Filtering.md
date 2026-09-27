@@ -3295,6 +3295,44 @@ between the planet and the exact injected-source response. This single planet
 does not replace the injection ranking; another real companion, epoch, or
 target is the appropriate generalization test.
 
+### Step 6 checkpoint: planet/injection consistency and PSF-model concern (2026-09-26)
+
+The [consistency analysis](results/klip-stage-f-consistency-20260926/README.md)
+compares the mode-200 planet with the six held-out radius-12 validation sites at
+the optimized planet contrast. Each site's SNR is interpolated within its
+bracketing SNR-3/5/7 injections. On an absolute basis, every planet
+nearest-pixel SNR lies within 1.55 sample standard deviations of the comparable
+injection center-SNR distribution. The current experiment therefore does not
+show a gross absolute-SNR outlier.
+
+The paired method behavior is more specific. Raw covariance minus exact
+identity is $+0.052\pm0.180$ SNR for the comparable injections but $-0.952$ for
+the planet; radial covariance minus exact identity is $+0.044\pm0.144$ for the
+injections but $-1.004$ for the planet. The planet covariance penalties are
+5.57 and 7.27 injection sample standard deviations below the paired means and
+below all six comparable injection values. Gaussian 3.6 minus exact identity
+is only 1.15 sample standard deviations above its injection mean, while
+Gaussian 3.6 minus Gaussian 2.4 reverses sign and is 2.65 sample standard
+deviations above its injection mean.
+
+Only six held-out angles exist at this radius, all from one correlated residual
+field. Exact-contrast values are interpolated, and the Stage-E maximum covers
+five pixels rather than the Stage-F 39-pixel aperture. Thus the data identify a
+localized covariance-versus-identity anomaly but do not support a strong
+nonparametric population claim; the smallest one-sided exchangeable rank
+probability is 1/7.
+
+A direct closure campaign will inject the optimized contrast at additional
+radius-12 position angles and use the same radius-three aperture statistic as
+the planet. Its primary endpoint is the paired covariance-minus-exact-identity
+SNR difference. The campaign must also test the concern that the adopted
+injection PSF does not model the real planet. Candidate causes include subpixel
+registration, temporal or rotational smearing, static versus time-dependent AO
+quality, chromatic effective-PSF differences, and off-axis or
+reduction-dependent morphology. Exact-PSF controls and predeclared broadened
+or perturbed PSF controls will be compared without tuning their parameters on
+the planet SNR.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
