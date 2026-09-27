@@ -79,3 +79,9 @@ planet SNR.
 
 - `analysis.json` contains the six site values, summary statistics, paired
   differences, input hashes, and stated limitations.
+
+## Direct follow-up
+
+The [Stage-G setup](../klip-stage-g-planet-consistency-setup-20260926/README.md)
+implements the exact-contrast, matched-aperture follow-up with additional
+radius-12 positions, subpixel-phase controls, and predeclared PSF broadening.

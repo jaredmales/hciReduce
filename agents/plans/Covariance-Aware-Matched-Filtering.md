@@ -3333,6 +3333,33 @@ reduction-dependent morphology. Exact-PSF controls and predeclared broadened
 or perturbed PSF controls will be compared without tuning their parameters on
 the planet SNR.
 
+### Step 6 checkpoint: Stage-G direct consistency injections prepared (2026-09-26)
+
+The [Stage-G setup](results/klip-stage-g-planet-consistency-setup-20260926/README.md)
+freezes 60 optimized-contrast injections at 12 score-blind radius-12 centers.
+Every source is analyzed with the Stage-F radius-three aperture, baseline-only
+weights, full aperture training exclusion, and independent production-SNR
+oracle. Mode 200 and the paired covariance-minus-exact-identity differences are
+the primary endpoints.
+
+Five predeclared arms separate source registration and PSF shape: the nominal
+PSF at integer centers, the nominal PSF at the Stage-F analysis phase, the
+nominal PSF at the optimized negative-fit phase, and flux-preserving additional
+Gaussian broadening of 0.9 and 1.8 pixels at the optimized phase. These widths
+are 0.25 and 0.5 $\lambda/D$. They provide controlled proxies for subpixel
+registration, temporal or rotational smearing, AO variability, and chromatic
+or off-axis morphology; they do not select a physical PSF model from the
+planet result.
+
+The positive reductions retain all eight KL modes for audit, while the
+registered comparison remains fixed at mode 200. Both the optimized planet and
+each trial source are excluded from annular noise. The runner also measures the
+finite positive response against the nominal exact template with identity,
+raw-covariance, and radial-covariance metrics. The broadened arms necessarily
+use their broadened PSF for optimized-planet subtraction under the current
+single-PSF `klipReduce` interface; the planet region is excluded from training
+and noise, and this coupling is recorded as an interpretation limit.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

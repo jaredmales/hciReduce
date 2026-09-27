@@ -612,6 +612,17 @@ the frozen injection selection: exact and sparse identity remain the best
 validated response filters, and covariance does not improve on them. A second
 real companion, epoch, or target is the next generalization test.
 
+The post-closure [planet/injection consistency analysis](../klip-stage-f-consistency-20260926/README.md)
+shows that absolute planet SNR remains within the six radius-12 injection
+distributions, while its covariance penalty relative to exact identity lies
+below every comparable injection. The
+[Stage-G direct-injection setup](../klip-stage-g-planet-consistency-setup-20260926/README.md)
+therefore freezes an exact-contrast, matched-aperture follow-up at 12
+score-blind position angles. Its five arms separate integer, configured, and
+optimized subpixel phase and add fixed 0.25- and 0.5-$\lambda/D$ Gaussian PSF
+broadening controls. The paired covariance-minus-exact-identity difference at
+mode 200 is primary; PSF and phase effects are reported controls.
+
 ## Required provenance and failure behavior
 
 - Every stage writes `protocol.json`, `manifest.json`, `state.json`, and a
