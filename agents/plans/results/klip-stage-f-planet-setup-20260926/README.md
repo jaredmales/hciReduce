@@ -112,3 +112,11 @@ The primary report will be
 The same directory contains strict JSON and CSV tables, amplitude, response,
 policy-radius, and SNR FITS products, the independent annular audit, and
 candidate-fit diagnostics.
+
+## Completed result
+
+Stage F completed on ROC. The compact result, verification record, comparisons,
+and scientific interpretation are preserved in the
+[Stage-F known-planet closure result](../klip-stage-f-planet-20260926/README.md).
+The large FITS products remain in the ROC run directory and are covered by the
+preserved completion receipt.

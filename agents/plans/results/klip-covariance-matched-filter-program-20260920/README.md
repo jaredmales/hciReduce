@@ -590,18 +590,27 @@ Both covariance finalists pass the preregistered gate against Gaussian FWHM
 3.6, and radial Hann with 0.75-mean-variance truncation also beats the stronger
 Gaussian-2.4 control. Covariance weighting does not improve on identity
 response filtering: sparse identity has the best recovery total and fewer
-held-out exceedances. The known planet remains unopened, so checkpoint 8 is
-now the only outstanding experiment.
+held-out exceedances.
 
-Checkpoint 8 is implemented by the
-[Stage-F known-planet closure setup](../klip-stage-f-planet-setup-20260926/README.md).
-It freezes and verifies the completed Stage-E boundary before opening the
+Checkpoint 8 is complete. The
+[Stage-F known-planet closure setup](../klip-stage-f-planet-setup-20260926/README.md)
+freezes and verifies the completed Stage-E boundary before opening the
 Stage-A-inventoried original science cube. Generic frozen maps provide common
 annular support; source-safe weights are rebuilt from the signal-free baseline
 only within the configured planet aperture, with the entire aperture excluded
 from training. The report includes every Stage-E method and the predeclared
 response-smoothed and fitted-mean identity controls at all eight modes, plus an
 independent reproduction of the production annular SNR.
+
+The [completed Stage-F result](../klip-stage-f-planet-20260926/README.md) finds
+that Gaussian FWHM 3.6 has the largest aperture-maximum planet SNR in all eight
+modes. Smoothing the exact response progressively improves real-planet SNR,
+while both selected covariance filters reduce it below identity. At mode 200,
+the response-LPF 2.7 control gives the contrast closest to the optimized
+negative-companion fit. These descriptive planet measurements do not change
+the frozen injection selection: exact and sparse identity remain the best
+validated response filters, and covariance does not improve on them. A second
+real companion, epoch, or target is the next generalization test.
 
 ## Required provenance and failure behavior
 

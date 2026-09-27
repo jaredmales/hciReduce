@@ -1,0 +1,3 @@
+WARNING: VerifyWarning: Keyword name 'HCI RADIAL BINS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+WARNING: VerifyWarning: Keyword name 'HCI FILTER LABELS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_f_planet/planet/results.md

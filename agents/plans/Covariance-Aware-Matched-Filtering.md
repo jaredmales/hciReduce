@@ -3258,6 +3258,43 @@ amplitude, response scale, contrast estimate, and support. Production
 closure table places the immutable faint-injection recovery and held-out counts
 beside the planet values, while marking controls that did not enter Stage E.
 
+### Step 6 checkpoint: Stage-F known-planet closure complete (2026-09-26)
+
+The [Stage-F result](results/klip-stage-f-planet-20260926/README.md) preserves
+the compact output, complete provenance receipts, independent annular-SNR
+verification, and derived comparisons. It records the final state as
+`closure_complete`, with the known planet opened only after the Stage-E policy
+and validation result were frozen. All 11 direct products passed their ROC
+size and SHA-256 checks, and the production SNR maps agree with the independent
+annular calculation to a maximum absolute error of $9.54\times10^{-7}$.
+
+At KL mode 200, Gaussian FWHM 3.6 has the largest aperture-maximum planet SNR,
+5.650, while exact and sparse identity give 4.238 and 4.246. Raw rectangular
+and radial-Hann covariance weighting reduce it further to 3.694 and 3.646.
+This ordering is stable across all eight modes: Gaussian 3.6 is highest in
+each, with mean SNR 5.708, followed by Gaussian 2.4 at 5.467, the native image
+at 5.101, the response-LPF 2.7 control at 4.974, and the identity and covariance
+methods below those values. Progressively smoothing the exact response from
+identity through LPF 1.8 and LPF 2.7 improves real-planet SNR, but it does not
+reach Gaussian 3.6.
+
+The amplitude comparison gives a different ordering. Against the independent
+optimized negative-companion contrast, the response-LPF 2.7 estimate differs
+by +2.0% at mode 200, exact and sparse identity by -6.4% and -8.8%, Gaussian
+3.6 by +25.1%, and the covariance candidates by about -17%. The covariance
+fits have complete response support and adequate training and retained-mode
+counts, so support rejection or a failed fit does not explain their result.
+
+The immutable Stage-E injections still favor exact and sparse identity over
+both Gaussian controls, with covariance no better than identity. The one real
+planet instead favors broad smoothing and is degraded by covariance. Thus
+covariance mismatch does not explain the original real-planet response-filter
+deficit. For this companion, fine and negative-lobe response structure lowers
+detection SNR, and the tested covariance models amplify the local mismatch
+between the planet and the exact injected-source response. This single planet
+does not replace the injection ranking; another real companion, epoch, or
+target is the appropriate generalization test.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

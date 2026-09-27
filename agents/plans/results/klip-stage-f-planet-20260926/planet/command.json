@@ -1,0 +1,12 @@
+[
+  "/usr/local/bin/hciAnalyze",
+  "--config",
+  "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_f_planet/analyze.conf",
+  "--file=amplitudes.fits",
+  "--filter.psfResponse=",
+  "--filter.lpfGaussFW=0",
+  "--filter.hpfGaussFW=0",
+  "--noise.model=identity",
+  "--noise.only=false",
+  "--noise.outputDiagnostics=false"
+]

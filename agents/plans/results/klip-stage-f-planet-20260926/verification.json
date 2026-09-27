@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "purpose": "Integrity and provenance record for the compact KLIP Stage-F known-planet closure archive.",
+  "source": {
+    "host": "roc",
+    "root": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_f_planet",
+    "runner_git_head": "50fb08e",
+    "state": "closure_complete",
+    "known_planet_opened": true,
+    "stage_e_policy_changed": false,
+    "method_selection_performed": false
+  },
+  "source_receipt_verification": {
+    "performed_on_source": true,
+    "direct_products": 11,
+    "all_direct_sizes_and_sha256_verified": true,
+    "copied_receipt_products": [
+      "analysis.log",
+      "annular_verification.json",
+      "command.json",
+      "diagnostics.json",
+      "results.csv",
+      "results.json",
+      "results.md"
+    ],
+    "large_fits_products_retained_on_source": [
+      "amplitudes.fits",
+      "amplitudes_snr.fits",
+      "policy_radius.fits",
+      "responses.fits"
+    ]
+  },
+  "scientific_checks": {
+    "aperture_pixels": 39,
+    "maximum_production_oracle_error": 9.5367431640625e-07,
+    "common_aperture_support": true,
+    "primary_mode": 200
+  },
+  "local_validation": {
+    "strict_json_files": [
+      "complete.json",
+      "derived_comparisons.json",
+      "manifest.json",
+      "planet/annular_verification.json",
+      "planet/command.json",
+      "planet/diagnostics.json",
+      "planet/results.json",
+      "state.json"
+    ],
+    "files_hashed": 14,
+    "bytes_hashed": 332553
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 6781,
+      "sha256": "ed6bf78009730e9f4062d5e5b780b93cf2fcdfea8a5028d58718c2c7228f63e8"
+    },
+    {
+      "path": "analyze.conf",
+      "bytes": 157,
+      "sha256": "3a755052d1976a37121174340c95ac6d1d6efcecb8e00f6e5968cd3f0576ab42"
+    },
+    {
+      "path": "complete.json",
+      "bytes": 2981,
+      "sha256": "d420dab3e2ae12db3807a6bff87d0d3e8f4b71884d1c8f371762591c10405933"
+    },
+    {
+      "path": "derived_comparisons.json",
+      "bytes": 12820,
+      "sha256": "49cf198f5924ff20286f87893d347aaa404813a104b037abd8cf8d24991233b1"
+    },
+    {
+      "path": "driver.log",
+      "bytes": 513,
+      "sha256": "0574cba8aee30e734a492dcca0247b4f1407e4a2dc2b463087d9732f075d15bf"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 17297,
+      "sha256": "e5336bc0c088d3be1a54d2d5dabd0d1038f1d9e057a347a2d321924275abc60b"
+    },
+    {
+      "path": "planet/analysis.log",
+      "bytes": 2920,
+      "sha256": "96f54701276d8191b84988cab25d43754739038b4171d39fd478e7e301b76393"
+    },
+    {
+      "path": "planet/annular_verification.json",
+      "bytes": 9664,
+      "sha256": "837f6bd5d9e6b70cee2e4ddc0850bc32d6db2ab4fb3848420b883b40b945cdf8"
+    },
+    {
+      "path": "planet/command.json",
+      "bytes": 363,
+      "sha256": "372edd79d696acf48faf0daf59c496f710008f96d29c219206a783a7a01f71f3"
+    },
+    {
+      "path": "planet/diagnostics.json",
+      "bytes": 189955,
+      "sha256": "49e4fb95625dad9f6d6c96c32beb6c19cfbf8d34757876517797e62abe7626b1"
+    },
+    {
+      "path": "planet/results.csv",
+      "bytes": 12603,
+      "sha256": "4c7340ce679a6a15ee71d3547eac1b3cd5517f81a03f9f7c2b8846dba66a9809"
+    },
+    {
+      "path": "planet/results.json",
+      "bytes": 73207,
+      "sha256": "02dca158712dd81b4d01c7f209b7c61ee01f5827ca7a015c9da15112bcebe429"
+    },
+    {
+      "path": "planet/results.md",
+      "bytes": 3152,
+      "sha256": "cd904238b66a3b0388dd703c1aa0b21986636384fb0489d7be46216919947d7e"
+    },
+    {
+      "path": "state.json",
+      "bytes": 140,
+      "sha256": "bf13055929e216121c95de1149af190b5051e2d4fe56a1c95914ac488b42051b"
+    }
+  ],
+  "note": "The copied completion receipt retains absolute ROC paths. Its 11 direct products were verified on ROC; this compact archive copies the textual products and records local hashes for every preserved file."
+}

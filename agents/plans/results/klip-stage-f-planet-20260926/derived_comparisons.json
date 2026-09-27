@@ -1,0 +1,377 @@
+{
+  "schema": 1,
+  "purpose": "Descriptive comparisons for one known planet; these values do not select a method.",
+  "modes": [
+    125,
+    150,
+    175,
+    200,
+    225,
+    250,
+    300,
+    350
+  ],
+  "optimized_negative_planet_contrast": 0.004574362496414845,
+  "methods": {
+    "native": {
+      "all_mode_mean_aperture_maximum_snr": 5.100984513759613,
+      "all_mode_minimum_aperture_maximum_snr": 4.930377960205078,
+      "all_mode_maximum_aperture_maximum_snr": 5.2918701171875,
+      "mode_200_nearest_pixel_snr": 3.466177463531494,
+      "mode_200_aperture_maximum_snr": 5.153568744659424,
+      "mode_200_peak_row_column": [
+        76,
+        62
+      ],
+      "mode_200_peak_offset_pixels": 0.8412112428583018,
+      "mode_200_peak_contrast_estimate": 0.005656357003762485,
+      "mode_200_contrast_fractional_difference_from_negative_fit": 0.2365344915702794
+    },
+    "gaussian_fwhm2p4": {
+      "all_mode_mean_aperture_maximum_snr": 5.466588139533997,
+      "all_mode_minimum_aperture_maximum_snr": 5.342287063598633,
+      "all_mode_maximum_aperture_maximum_snr": 5.607146739959717,
+      "mode_200_nearest_pixel_snr": 5.064146041870117,
+      "mode_200_aperture_maximum_snr": 5.418603897094727,
+      "mode_200_peak_row_column": [
+        76,
+        62
+      ],
+      "mode_200_peak_offset_pixels": 0.8412112428583018,
+      "mode_200_peak_contrast_estimate": 0.005324352232557605,
+      "mode_200_contrast_fractional_difference_from_negative_fit": 0.163955029084504
+    },
+    "gaussian_fwhm3p6": {
+      "all_mode_mean_aperture_maximum_snr": 5.707587838172913,
+      "all_mode_minimum_aperture_maximum_snr": 5.550652503967285,
+      "all_mode_maximum_aperture_maximum_snr": 5.831273078918457,
+      "mode_200_nearest_pixel_snr": 5.649588108062744,
+      "mode_200_aperture_maximum_snr": 5.649588108062744,
+      "mode_200_peak_row_column": [
+        75,
+        62
+      ],
+      "mode_200_peak_offset_pixels": 0.21265700510946392,
+      "mode_200_peak_contrast_estimate": 0.005723268903439626,
+      "mode_200_contrast_fractional_difference_from_negative_fit": 0.2511620816944953
+    },
+    "exact_identity": {
+      "all_mode_mean_aperture_maximum_snr": 4.354910612106323,
+      "all_mode_minimum_aperture_maximum_snr": 4.2374701499938965,
+      "all_mode_maximum_aperture_maximum_snr": 4.521842956542969,
+      "mode_200_nearest_pixel_snr": 4.181295871734619,
+      "mode_200_aperture_maximum_snr": 4.2374701499938965,
+      "mode_200_peak_row_column": [
+        76,
+        61
+      ],
+      "mode_200_peak_offset_pixels": 1.203716459322122,
+      "mode_200_peak_contrast_estimate": 0.00428321033202017,
+      "mode_200_contrast_fractional_difference_from_negative_fit": -0.06364868648316913
+    },
+    "sparse_identity": {
+      "all_mode_mean_aperture_maximum_snr": 4.341351568698883,
+      "all_mode_minimum_aperture_maximum_snr": 4.239491939544678,
+      "all_mode_maximum_aperture_maximum_snr": 4.461130619049072,
+      "mode_200_nearest_pixel_snr": 4.246087551116943,
+      "mode_200_aperture_maximum_snr": 4.246087551116943,
+      "mode_200_peak_row_column": [
+        75,
+        62
+      ],
+      "mode_200_peak_offset_pixels": 0.21265700510946392,
+      "mode_200_peak_contrast_estimate": 0.004171200998701948,
+      "mode_200_contrast_fractional_difference_from_negative_fit": -0.08813501291794745
+    },
+    "exact_identity_lpf1p8": {
+      "all_mode_mean_aperture_maximum_snr": 4.653705298900604,
+      "all_mode_minimum_aperture_maximum_snr": 4.5357747077941895,
+      "all_mode_maximum_aperture_maximum_snr": 4.77365779876709,
+      "mode_200_nearest_pixel_snr": 4.5357747077941895,
+      "mode_200_aperture_maximum_snr": 4.5357747077941895,
+      "mode_200_peak_row_column": [
+        75,
+        62
+      ],
+      "mode_200_peak_offset_pixels": 0.21265700510946392,
+      "mode_200_peak_contrast_estimate": 0.004342822264403761,
+      "mode_200_contrast_fractional_difference_from_negative_fit": -0.050616939998208266
+    },
+    "exact_identity_lpf2p7": {
+      "all_mode_mean_aperture_maximum_snr": 4.973862051963806,
+      "all_mode_minimum_aperture_maximum_snr": 4.866249084472656,
+      "all_mode_maximum_aperture_maximum_snr": 5.065617084503174,
+      "mode_200_nearest_pixel_snr": 4.866249084472656,
+      "mode_200_aperture_maximum_snr": 4.866249084472656,
+      "mode_200_peak_row_column": [
+        75,
+        62
+      ],
+      "mode_200_peak_offset_pixels": 0.21265700510946392,
+      "mode_200_peak_contrast_estimate": 0.004667873143414917,
+      "mode_200_contrast_fractional_difference_from_negative_fit": 0.020442334221076885
+    },
+    "exact_isotropic_fitted_mean": {
+      "all_mode_mean_aperture_maximum_snr": 4.391456723213196,
+      "all_mode_minimum_aperture_maximum_snr": 4.279425144195557,
+      "all_mode_maximum_aperture_maximum_snr": 4.559183120727539,
+      "mode_200_nearest_pixel_snr": 4.192998886108398,
+      "mode_200_aperture_maximum_snr": 4.279425144195557,
+      "mode_200_peak_row_column": [
+        76,
+        61
+      ],
+      "mode_200_peak_offset_pixels": 1.203716459322122,
+      "mode_200_peak_contrast_estimate": 0.0043297766146193324,
+      "mode_200_contrast_fractional_difference_from_negative_fit": -0.05346884554671971
+    },
+    "raw_rectangular_m0p3": {
+      "all_mode_mean_aperture_maximum_snr": 3.797639101743698,
+      "all_mode_minimum_aperture_maximum_snr": 3.6937150955200195,
+      "all_mode_maximum_aperture_maximum_snr": 3.8713316917419434,
+      "mode_200_nearest_pixel_snr": 3.2291462421417236,
+      "mode_200_aperture_maximum_snr": 3.6937150955200195,
+      "mode_200_peak_row_column": [
+        76,
+        61
+      ],
+      "mode_200_peak_offset_pixels": 1.203716459322122,
+      "mode_200_peak_contrast_estimate": 0.003803132487277694,
+      "mode_200_contrast_fractional_difference_from_negative_fit": -0.16859835873121165
+    },
+    "radial_hann_m0p1_trunc0p75": {
+      "all_mode_mean_aperture_maximum_snr": 3.7337377071380615,
+      "all_mode_minimum_aperture_maximum_snr": 3.6461498737335205,
+      "all_mode_maximum_aperture_maximum_snr": 3.811699390411377,
+      "mode_200_nearest_pixel_snr": 3.1773314476013184,
+      "mode_200_aperture_maximum_snr": 3.6461498737335205,
+      "mode_200_peak_row_column": [
+        76,
+        61
+      ],
+      "mode_200_peak_offset_pixels": 1.203716459322122,
+      "mode_200_peak_contrast_estimate": 0.0037808334798721944,
+      "mode_200_contrast_fractional_difference_from_negative_fit": -0.17347313798689523
+    }
+  },
+  "paired_mode_differences": {
+    "exact_identity__minus__gaussian_fwhm3p6": {
+      "by_mode": {
+        "125": -1.0288095474243164,
+        "150": -1.2022104263305664,
+        "175": -1.356271743774414,
+        "200": -1.4121179580688477,
+        "225": -1.3689022064208984,
+        "250": -1.4717950820922852,
+        "300": -1.5147075653076172,
+        "350": -1.4666032791137695
+      },
+      "mean": -1.3526772260665894,
+      "minimum": -1.5147075653076172,
+      "maximum": -1.0288095474243164
+    },
+    "sparse_identity__minus__gaussian_fwhm3p6": {
+      "by_mode": {
+        "125": -1.089521884918213,
+        "150": -1.3229670524597168,
+        "175": -1.4161133766174316,
+        "200": -1.4035005569458008,
+        "225": -1.3646955490112305,
+        "250": -1.43048095703125,
+        "300": -1.4731793403625488,
+        "350": -1.429431438446045
+      },
+      "mean": -1.3662362694740295,
+      "minimum": -1.4731793403625488,
+      "maximum": -1.089521884918213
+    },
+    "exact_identity_lpf1p8__minus__exact_identity": {
+      "by_mode": {
+        "125": 0.2518148422241211,
+        "150": 0.22187519073486328,
+        "175": 0.2606163024902344,
+        "200": 0.29830455780029297,
+        "225": 0.32598304748535156,
+        "250": 0.3585805892944336,
+        "300": 0.3391900062561035,
+        "350": 0.33399295806884766
+      },
+      "mean": 0.298794686794281,
+      "minimum": 0.22187519073486328,
+      "maximum": 0.3585805892944336
+    },
+    "exact_identity_lpf2p7__minus__exact_identity": {
+      "by_mode": {
+        "125": 0.5437741279602051,
+        "150": 0.5071554183959961,
+        "175": 0.6052999496459961,
+        "200": 0.6287789344787598,
+        "225": 0.6441855430603027,
+        "250": 0.697761058807373,
+        "300": 0.6739296913146973,
+        "350": 0.6507267951965332
+      },
+      "mean": 0.6189514398574829,
+      "minimum": 0.5071554183959961,
+      "maximum": 0.697761058807373
+    },
+    "exact_isotropic_fitted_mean__minus__exact_identity": {
+      "by_mode": {
+        "125": 0.03734016418457031,
+        "150": 0.03879880905151367,
+        "175": 0.04175376892089844,
+        "200": 0.041954994201660156,
+        "225": 0.04239654541015625,
+        "250": 0.037534236907958984,
+        "300": 0.04031085968017578,
+        "350": 0.012279510498046875
+      },
+      "mean": 0.03654611110687256,
+      "minimum": 0.012279510498046875,
+      "maximum": 0.04239654541015625
+    },
+    "raw_rectangular_m0p3__minus__exact_identity": {
+      "by_mode": {
+        "125": -0.6865940093994141,
+        "150": -0.5943863391876221,
+        "175": -0.558387041091919,
+        "200": -0.543755054473877,
+        "225": -0.5212574005126953,
+        "250": -0.4934866428375244,
+        "300": -0.5099654197692871,
+        "350": -0.5503401756286621
+      },
+      "mean": -0.5572715103626251,
+      "minimum": -0.6865940093994141,
+      "maximum": -0.4934866428375244
+    },
+    "radial_hann_m0p1_trunc0p75__minus__exact_identity": {
+      "by_mode": {
+        "125": -0.7460954189300537,
+        "150": -0.6646730899810791,
+        "175": -0.6202616691589355,
+        "200": -0.591320276260376,
+        "225": -0.5808897018432617,
+        "250": -0.5587718486785889,
+        "300": -0.567711591720581,
+        "350": -0.6396596431732178
+      },
+      "mean": -0.6211729049682617,
+      "minimum": -0.7460954189300537,
+      "maximum": -0.5587718486785889
+    },
+    "radial_hann_m0p1_trunc0p75__minus__gaussian_fwhm3p6": {
+      "by_mode": {
+        "125": -1.7749049663543701,
+        "150": -1.8668835163116455,
+        "175": -1.9765334129333496,
+        "200": -2.0034382343292236,
+        "225": -1.9497919082641602,
+        "250": -2.030566930770874,
+        "300": -2.0824191570281982,
+        "350": -2.1062629222869873
+      },
+      "mean": -1.973850131034851,
+      "minimum": -2.1062629222869873,
+      "maximum": -1.7749049663543701
+    }
+  },
+  "mode_rankings": {
+    "125": [
+      "gaussian_fwhm3p6",
+      "gaussian_fwhm2p4",
+      "exact_identity_lpf2p7",
+      "native",
+      "exact_identity_lpf1p8",
+      "exact_isotropic_fitted_mean",
+      "exact_identity",
+      "sparse_identity",
+      "raw_rectangular_m0p3",
+      "radial_hann_m0p1_trunc0p75"
+    ],
+    "150": [
+      "gaussian_fwhm3p6",
+      "gaussian_fwhm2p4",
+      "native",
+      "exact_identity_lpf2p7",
+      "exact_identity_lpf1p8",
+      "exact_isotropic_fitted_mean",
+      "exact_identity",
+      "sparse_identity",
+      "raw_rectangular_m0p3",
+      "radial_hann_m0p1_trunc0p75"
+    ],
+    "175": [
+      "gaussian_fwhm3p6",
+      "gaussian_fwhm2p4",
+      "native",
+      "exact_identity_lpf2p7",
+      "exact_identity_lpf1p8",
+      "exact_isotropic_fitted_mean",
+      "exact_identity",
+      "sparse_identity",
+      "raw_rectangular_m0p3",
+      "radial_hann_m0p1_trunc0p75"
+    ],
+    "200": [
+      "gaussian_fwhm3p6",
+      "gaussian_fwhm2p4",
+      "native",
+      "exact_identity_lpf2p7",
+      "exact_identity_lpf1p8",
+      "exact_isotropic_fitted_mean",
+      "sparse_identity",
+      "exact_identity",
+      "raw_rectangular_m0p3",
+      "radial_hann_m0p1_trunc0p75"
+    ],
+    "225": [
+      "gaussian_fwhm3p6",
+      "gaussian_fwhm2p4",
+      "native",
+      "exact_identity_lpf2p7",
+      "exact_identity_lpf1p8",
+      "exact_isotropic_fitted_mean",
+      "sparse_identity",
+      "exact_identity",
+      "raw_rectangular_m0p3",
+      "radial_hann_m0p1_trunc0p75"
+    ],
+    "250": [
+      "gaussian_fwhm3p6",
+      "gaussian_fwhm2p4",
+      "native",
+      "exact_identity_lpf2p7",
+      "exact_identity_lpf1p8",
+      "sparse_identity",
+      "exact_isotropic_fitted_mean",
+      "exact_identity",
+      "raw_rectangular_m0p3",
+      "radial_hann_m0p1_trunc0p75"
+    ],
+    "300": [
+      "gaussian_fwhm3p6",
+      "gaussian_fwhm2p4",
+      "native",
+      "exact_identity_lpf2p7",
+      "exact_identity_lpf1p8",
+      "sparse_identity",
+      "exact_isotropic_fitted_mean",
+      "exact_identity",
+      "raw_rectangular_m0p3",
+      "radial_hann_m0p1_trunc0p75"
+    ],
+    "350": [
+      "gaussian_fwhm3p6",
+      "gaussian_fwhm2p4",
+      "native",
+      "exact_identity_lpf2p7",
+      "exact_identity_lpf1p8",
+      "sparse_identity",
+      "exact_isotropic_fitted_mean",
+      "exact_identity",
+      "raw_rectangular_m0p3",
+      "radial_hann_m0p1_trunc0p75"
+    ]
+  }
+}
