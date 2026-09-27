@@ -1,0 +1,2020 @@
+{
+  "purpose": "Stage-G exact-contrast injection analyzed with the Stage-F aperture",
+  "stage_e_policy_changed": false,
+  "method_selection_performed": false,
+  "known_planet_opened": true,
+  "settings": {
+    "lambda_d": 3.6,
+    "separation": 11.795852406061426,
+    "position_angle": 200.97749743466966,
+    "source_radius": 7.0,
+    "minimum_radius": 6.0,
+    "maximum_radius": 60.0,
+    "aperture_radius": 3.0
+  },
+  "source_row_column": [
+    67.72293007062204,
+    52.48596370061269
+  ],
+  "aperture_pixels": 37,
+  "methods_by_mode": {
+    "125": {
+      "native": {
+        "label": "Native",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 2.8622560501098633,
+        "nearest_pixel_amplitude": 0.5221664309501648,
+        "nearest_pixel_response_to_exact": 171.38125610351562,
+        "nearest_pixel_contrast_estimate": 0.003046811785734446,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 3.8322649002075195,
+        "aperture_peak_amplitude": 0.7206630110740662,
+        "aperture_peak_response_to_exact": 112.48845672607422,
+        "aperture_peak_contrast_estimate": 0.006406550787953164,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 1,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm2p4": {
+        "label": "Gaussian 2.4",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.926696538925171,
+        "nearest_pixel_amplitude": 0.3963505564984832,
+        "nearest_pixel_response_to_exact": 97.5233382752576,
+        "nearest_pixel_contrast_estimate": 0.00406416108705992,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 3.936392068862915,
+        "aperture_peak_amplitude": 0.41770601765198023,
+        "aperture_peak_response_to_exact": 98.282629540552,
+        "aperture_peak_contrast_estimate": 0.00425004926714575,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm3p6": {
+        "label": "Gaussian 3.6",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.9444737434387207,
+        "nearest_pixel_amplitude": 0.2463542855410259,
+        "nearest_pixel_response_to_exact": 54.567455762734625,
+        "nearest_pixel_contrast_estimate": 0.004514674215565442,
+        "aperture_peak_row_column": [
+          68,
+          52
+        ],
+        "aperture_maximum_snr": 3.9444737434387207,
+        "aperture_peak_amplitude": 0.2463542855410259,
+        "aperture_peak_response_to_exact": 54.567455762734625,
+        "aperture_peak_contrast_estimate": 0.004514674215565442,
+        "peak_offset_from_nominal_pixels": 0.5594000930270661,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity": {
+        "label": "Exact identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.339367389678955,
+        "nearest_pixel_amplitude": 0.004696550065945171,
+        "nearest_pixel_response_to_exact": 0.9999999999999998,
+        "nearest_pixel_contrast_estimate": 0.004696550065945172,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.569998741149902,
+        "aperture_peak_amplitude": 0.005633681546434265,
+        "aperture_peak_response_to_exact": 1.0000000000000002,
+        "aperture_peak_contrast_estimate": 0.005633681546434264,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "sparse_identity": {
+        "label": "Sparse identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.019896030426025,
+        "nearest_pixel_amplitude": 0.00399731555404212,
+        "nearest_pixel_response_to_exact": 0.9111327075688318,
+        "nearest_pixel_contrast_estimate": 0.004387193567782377,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.2369160652160645,
+        "aperture_peak_amplitude": 0.0047987122340369115,
+        "aperture_peak_response_to_exact": 1.0316256847585221,
+        "aperture_peak_contrast_estimate": 0.0046516021314069655,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf1p8": {
+        "label": "Exact response LPF 1.8",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.377817630767822,
+        "nearest_pixel_amplitude": 0.006424659004431087,
+        "nearest_pixel_response_to_exact": 1.3327944481979375,
+        "nearest_pixel_contrast_estimate": 0.004820442501931056,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.562002658843994,
+        "aperture_peak_amplitude": 0.007858078465086354,
+        "aperture_peak_response_to_exact": 1.3429217226372585,
+        "aperture_peak_contrast_estimate": 0.005851479153717531,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf2p7": {
+        "label": "Exact response LPF 2.7",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.386287212371826,
+        "nearest_pixel_amplitude": 0.008730184352397854,
+        "nearest_pixel_response_to_exact": 1.7631073152304981,
+        "nearest_pixel_contrast_estimate": 0.0049515898873441645,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.5181565284729,
+        "aperture_peak_amplitude": 0.010947982775006259,
+        "aperture_peak_response_to_exact": 1.8015128801612035,
+        "aperture_peak_contrast_estimate": 0.006077104913080948,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_isotropic_fitted_mean": {
+        "label": "Exact identity, fitted mean",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.335317611694336,
+        "nearest_pixel_amplitude": 0.004690683659491688,
+        "nearest_pixel_response_to_exact": 0.9999999999999998,
+        "nearest_pixel_contrast_estimate": 0.004690683659491689,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.575009822845459,
+        "aperture_peak_amplitude": 0.005639138566069792,
+        "aperture_peak_response_to_exact": 1.0000000000000002,
+        "aperture_peak_contrast_estimate": 0.005639138566069791,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "raw_rectangular_m0p3": {
+        "label": "Raw rectangular PSD",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.16627836227417,
+        "nearest_pixel_amplitude": 0.004443285244961762,
+        "nearest_pixel_response_to_exact": 1.0,
+        "nearest_pixel_contrast_estimate": 0.004443285244961762,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.402249813079834,
+        "aperture_peak_amplitude": 0.004404331364287428,
+        "aperture_peak_response_to_exact": 1.0,
+        "aperture_peak_contrast_estimate": 0.004404331364287428,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "label": "Radial Hann, truncation 0.75",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.323678016662598,
+        "nearest_pixel_amplitude": 0.004617789778855745,
+        "nearest_pixel_response_to_exact": 0.9999999999999999,
+        "nearest_pixel_contrast_estimate": 0.004617789778855746,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.639171123504639,
+        "aperture_peak_amplitude": 0.004606070233302816,
+        "aperture_peak_response_to_exact": 0.9999999999999998,
+        "aperture_peak_contrast_estimate": 0.004606070233302817,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      }
+    },
+    "150": {
+      "native": {
+        "label": "Native",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 2.88793683052063,
+        "nearest_pixel_amplitude": 0.5051044821739197,
+        "nearest_pixel_response_to_exact": 156.67237854003906,
+        "nearest_pixel_contrast_estimate": 0.0032239536214409077,
+        "aperture_peak_row_column": [
+          67,
+          53
+        ],
+        "aperture_maximum_snr": 3.8301756381988525,
+        "aperture_peak_amplitude": 0.7053276896476746,
+        "aperture_peak_response_to_exact": 147.5541534423828,
+        "aperture_peak_contrast_estimate": 0.004780127656136037,
+        "peak_offset_from_nominal_pixels": 0.8870519737294916,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 1,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm2p4": {
+        "label": "Gaussian 2.4",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.960078477859497,
+        "nearest_pixel_amplitude": 0.3737071170049624,
+        "nearest_pixel_response_to_exact": 90.52399165215917,
+        "nearest_pixel_contrast_estimate": 0.004128266000917656,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.108602046966553,
+        "aperture_peak_amplitude": 0.3945738041324295,
+        "aperture_peak_response_to_exact": 91.14756628863988,
+        "aperture_peak_contrast_estimate": 0.004328956001775408,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm3p6": {
+        "label": "Gaussian 3.6",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.9717373847961426,
+        "nearest_pixel_amplitude": 0.22920022287362476,
+        "nearest_pixel_response_to_exact": 50.502415171277654,
+        "nearest_pixel_contrast_estimate": 0.00453840122489782,
+        "aperture_peak_row_column": [
+          68,
+          52
+        ],
+        "aperture_maximum_snr": 3.9717373847961426,
+        "aperture_peak_amplitude": 0.22920022287362476,
+        "aperture_peak_response_to_exact": 50.502415171277654,
+        "aperture_peak_contrast_estimate": 0.00453840122489782,
+        "peak_offset_from_nominal_pixels": 0.5594000930270661,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity": {
+        "label": "Exact identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.232045650482178,
+        "nearest_pixel_amplitude": 0.004674514305152576,
+        "nearest_pixel_response_to_exact": 1.0000000000000004,
+        "nearest_pixel_contrast_estimate": 0.0046745143051525745,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.616771697998047,
+        "aperture_peak_amplitude": 0.005551194917265492,
+        "aperture_peak_response_to_exact": 1.0000000000000002,
+        "aperture_peak_contrast_estimate": 0.005551194917265491,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "sparse_identity": {
+        "label": "Sparse identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.9215664863586426,
+        "nearest_pixel_amplitude": 0.003945540895303728,
+        "nearest_pixel_response_to_exact": 0.8986170874752798,
+        "nearest_pixel_contrast_estimate": 0.004390680914369177,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.249426364898682,
+        "aperture_peak_amplitude": 0.0047520533288840355,
+        "aperture_peak_response_to_exact": 1.0171016225624474,
+        "aperture_peak_contrast_estimate": 0.004672151949686101,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf1p8": {
+        "label": "Exact response LPF 1.8",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.315668106079102,
+        "nearest_pixel_amplitude": 0.006409354458440342,
+        "nearest_pixel_response_to_exact": 1.3381128550072878,
+        "nearest_pixel_contrast_estimate": 0.004789845964379017,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.667464256286621,
+        "aperture_peak_amplitude": 0.007746065709600907,
+        "aperture_peak_response_to_exact": 1.3458807283089367,
+        "aperture_peak_contrast_estimate": 0.005755387937929412,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf2p7": {
+        "label": "Exact response LPF 2.7",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.3810577392578125,
+        "nearest_pixel_amplitude": 0.008724659143631462,
+        "nearest_pixel_response_to_exact": 1.7764415139785121,
+        "nearest_pixel_contrast_estimate": 0.004911312348297775,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.690314292907715,
+        "aperture_peak_amplitude": 0.010797050782824684,
+        "aperture_peak_response_to_exact": 1.8085467978423921,
+        "aperture_peak_contrast_estimate": 0.005970014597192417,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_isotropic_fitted_mean": {
+        "label": "Exact identity, fitted mean",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.231724739074707,
+        "nearest_pixel_amplitude": 0.004666778855183052,
+        "nearest_pixel_response_to_exact": 1.0000000000000004,
+        "nearest_pixel_contrast_estimate": 0.00466677885518305,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.61944055557251,
+        "aperture_peak_amplitude": 0.005558579587272496,
+        "aperture_peak_response_to_exact": 1.0000000000000002,
+        "aperture_peak_contrast_estimate": 0.0055585795872724955,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "raw_rectangular_m0p3": {
+        "label": "Raw rectangular PSD",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.09849739074707,
+        "nearest_pixel_amplitude": 0.004478970760367444,
+        "nearest_pixel_response_to_exact": 0.9999999999999999,
+        "nearest_pixel_contrast_estimate": 0.004478970760367445,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.34420919418335,
+        "aperture_peak_amplitude": 0.004408410017688304,
+        "aperture_peak_response_to_exact": 1.0000000000000004,
+        "aperture_peak_contrast_estimate": 0.004408410017688302,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "label": "Radial Hann, truncation 0.75",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.265122890472412,
+        "nearest_pixel_amplitude": 0.004647705157130094,
+        "nearest_pixel_response_to_exact": 0.9999999999999997,
+        "nearest_pixel_contrast_estimate": 0.004647705157130096,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.5791401863098145,
+        "aperture_peak_amplitude": 0.0045916300466739505,
+        "aperture_peak_response_to_exact": 1.0000000000000002,
+        "aperture_peak_contrast_estimate": 0.00459163004667395,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      }
+    },
+    "175": {
+      "native": {
+        "label": "Native",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 2.7709546089172363,
+        "nearest_pixel_amplitude": 0.47027918696403503,
+        "nearest_pixel_response_to_exact": 155.47808837890625,
+        "nearest_pixel_contrast_estimate": 0.0030247296700609415,
+        "aperture_peak_row_column": [
+          67,
+          53
+        ],
+        "aperture_maximum_snr": 3.834841012954712,
+        "aperture_peak_amplitude": 0.6894833445549011,
+        "aperture_peak_response_to_exact": 142.2824249267578,
+        "aperture_peak_contrast_estimate": 0.0048458785047402995,
+        "peak_offset_from_nominal_pixels": 0.8870519737294916,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 1,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm2p4": {
+        "label": "Gaussian 2.4",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.9403574466705322,
+        "nearest_pixel_amplitude": 0.3618393135438425,
+        "nearest_pixel_response_to_exact": 88.54745735484435,
+        "nearest_pixel_contrast_estimate": 0.004086388523769921,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.027993679046631,
+        "aperture_peak_amplitude": 0.3805993602210137,
+        "aperture_peak_response_to_exact": 88.59071396661639,
+        "aperture_peak_contrast_estimate": 0.004296154113448446,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm3p6": {
+        "label": "Gaussian 3.6",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.94150447845459,
+        "nearest_pixel_amplitude": 0.2238060987537201,
+        "nearest_pixel_response_to_exact": 49.54535492866586,
+        "nearest_pixel_contrast_estimate": 0.004517196396633961,
+        "aperture_peak_row_column": [
+          68,
+          52
+        ],
+        "aperture_maximum_snr": 3.94150447845459,
+        "aperture_peak_amplitude": 0.2238060987537201,
+        "aperture_peak_response_to_exact": 49.54535492866586,
+        "aperture_peak_contrast_estimate": 0.004517196396633961,
+        "peak_offset_from_nominal_pixels": 0.5594000930270661,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity": {
+        "label": "Exact identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.114221096038818,
+        "nearest_pixel_amplitude": 0.004655257558225078,
+        "nearest_pixel_response_to_exact": 1.0000000000000004,
+        "nearest_pixel_contrast_estimate": 0.004655257558225076,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.524007320404053,
+        "aperture_peak_amplitude": 0.005470183114694329,
+        "aperture_peak_response_to_exact": 1.0,
+        "aperture_peak_contrast_estimate": 0.005470183114694329,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "sparse_identity": {
+        "label": "Sparse identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.83634614944458,
+        "nearest_pixel_amplitude": 0.003919396724111871,
+        "nearest_pixel_response_to_exact": 0.8977065425563524,
+        "nearest_pixel_contrast_estimate": 0.0043660110941720525,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.067022323608398,
+        "aperture_peak_amplitude": 0.004646263066112347,
+        "aperture_peak_response_to_exact": 1.014638044685304,
+        "aperture_peak_contrast_estimate": 0.004579232062556271,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf1p8": {
+        "label": "Exact response LPF 1.8",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.165945529937744,
+        "nearest_pixel_amplitude": 0.006360471443823875,
+        "nearest_pixel_response_to_exact": 1.3352162751679602,
+        "nearest_pixel_contrast_estimate": 0.004763626359350492,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.521403789520264,
+        "aperture_peak_amplitude": 0.0075943069481168085,
+        "aperture_peak_response_to_exact": 1.3414479301980806,
+        "aperture_peak_contrast_estimate": 0.005661275981838087,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf2p7": {
+        "label": "Exact response LPF 2.7",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.201560974121094,
+        "nearest_pixel_amplitude": 0.00861591966641905,
+        "nearest_pixel_response_to_exact": 1.7660990151008775,
+        "nearest_pixel_contrast_estimate": 0.004878503182861986,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.504945755004883,
+        "aperture_peak_amplitude": 0.010533329437385457,
+        "aperture_peak_response_to_exact": 1.7960193535095017,
+        "aperture_peak_contrast_estimate": 0.005864819561550305,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_isotropic_fitted_mean": {
+        "label": "Exact identity, fitted mean",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.11968469619751,
+        "nearest_pixel_amplitude": 0.00465317275847892,
+        "nearest_pixel_response_to_exact": 1.0000000000000004,
+        "nearest_pixel_contrast_estimate": 0.004653172758478918,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.536215305328369,
+        "aperture_peak_amplitude": 0.005476490587685185,
+        "aperture_peak_response_to_exact": 1.0,
+        "aperture_peak_contrast_estimate": 0.005476490587685185,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "raw_rectangular_m0p3": {
+        "label": "Raw rectangular PSD",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.023301601409912,
+        "nearest_pixel_amplitude": 0.00445715900447585,
+        "nearest_pixel_response_to_exact": 1.0000000000000002,
+        "nearest_pixel_contrast_estimate": 0.004457159004475849,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.2209038734436035,
+        "aperture_peak_amplitude": 0.004340410596913158,
+        "aperture_peak_response_to_exact": 1.0000000000000004,
+        "aperture_peak_contrast_estimate": 0.004340410596913156,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "label": "Radial Hann, truncation 0.75",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.158988952636719,
+        "nearest_pixel_amplitude": 0.004601594788083771,
+        "nearest_pixel_response_to_exact": 0.9999999999999999,
+        "nearest_pixel_contrast_estimate": 0.0046015947880837715,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.410843849182129,
+        "aperture_peak_amplitude": 0.0045228234622514425,
+        "aperture_peak_response_to_exact": 1.0000000000000004,
+        "aperture_peak_contrast_estimate": 0.004522823462251441,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      }
+    },
+    "200": {
+      "native": {
+        "label": "Native",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 2.948051691055298,
+        "nearest_pixel_amplitude": 0.47924745082855225,
+        "nearest_pixel_response_to_exact": 151.59078979492188,
+        "nearest_pixel_contrast_estimate": 0.0031614549371825128,
+        "aperture_peak_row_column": [
+          67,
+          53
+        ],
+        "aperture_maximum_snr": 3.8637523651123047,
+        "aperture_peak_amplitude": 0.6791188716888428,
+        "aperture_peak_response_to_exact": 138.9661865234375,
+        "aperture_peak_contrast_estimate": 0.004886936086242139,
+        "peak_offset_from_nominal_pixels": 0.8870519737294916,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 1,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm2p4": {
+        "label": "Gaussian 2.4",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.109062194824219,
+        "nearest_pixel_amplitude": 0.3622897849948669,
+        "nearest_pixel_response_to_exact": 86.1692837247326,
+        "nearest_pixel_contrast_estimate": 0.004204395920850405,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.142014980316162,
+        "aperture_peak_amplitude": 0.3773819303579704,
+        "aperture_peak_response_to_exact": 86.02233395757554,
+        "aperture_peak_contrast_estimate": 0.004387022683482263,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm3p6": {
+        "label": "Gaussian 3.6",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.037342548370361,
+        "nearest_pixel_amplitude": 0.2224518041345682,
+        "nearest_pixel_response_to_exact": 48.07272151828151,
+        "nearest_pixel_contrast_estimate": 0.004627401925850449,
+        "aperture_peak_row_column": [
+          68,
+          52
+        ],
+        "aperture_maximum_snr": 4.037342548370361,
+        "aperture_peak_amplitude": 0.2224518041345682,
+        "aperture_peak_response_to_exact": 48.07272151828151,
+        "aperture_peak_contrast_estimate": 0.004627401925850449,
+        "peak_offset_from_nominal_pixels": 0.5594000930270661,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity": {
+        "label": "Exact identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.2746195793151855,
+        "nearest_pixel_amplitude": 0.004788926793396501,
+        "nearest_pixel_response_to_exact": 0.9999999999999997,
+        "nearest_pixel_contrast_estimate": 0.004788926793396503,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.623106002807617,
+        "aperture_peak_amplitude": 0.00559753463613364,
+        "aperture_peak_response_to_exact": 0.9999999999999998,
+        "aperture_peak_contrast_estimate": 0.005597534636133641,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "sparse_identity": {
+        "label": "Sparse identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.9805774688720703,
+        "nearest_pixel_amplitude": 0.004042210175236521,
+        "nearest_pixel_response_to_exact": 0.896861777339415,
+        "nearest_pixel_contrast_estimate": 0.00450706037136284,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.192358016967773,
+        "aperture_peak_amplitude": 0.004765251592499904,
+        "aperture_peak_response_to_exact": 1.0115350667593936,
+        "aperture_peak_contrast_estimate": 0.004710910920533988,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf1p8": {
+        "label": "Exact response LPF 1.8",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.338092803955078,
+        "nearest_pixel_amplitude": 0.006566233068475498,
+        "nearest_pixel_response_to_exact": 1.3373739869982997,
+        "nearest_pixel_contrast_estimate": 0.004909795713324164,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.632537364959717,
+        "aperture_peak_amplitude": 0.007771615708529095,
+        "aperture_peak_response_to_exact": 1.3413388671492121,
+        "aperture_peak_contrast_estimate": 0.0057939241893782915,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf2p7": {
+        "label": "Exact response LPF 2.7",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.374213218688965,
+        "nearest_pixel_amplitude": 0.00891473365243367,
+        "nearest_pixel_response_to_exact": 1.771113662840969,
+        "nearest_pixel_contrast_estimate": 0.0050334057262784145,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.617522716522217,
+        "aperture_peak_amplitude": 0.010772519418593527,
+        "aperture_peak_response_to_exact": 1.7950763275211326,
+        "aperture_peak_contrast_estimate": 0.006001148393210432,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_isotropic_fitted_mean": {
+        "label": "Exact identity, fitted mean",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.275609493255615,
+        "nearest_pixel_amplitude": 0.004786187361595973,
+        "nearest_pixel_response_to_exact": 0.9999999999999997,
+        "nearest_pixel_contrast_estimate": 0.004786187361595974,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.633260250091553,
+        "aperture_peak_amplitude": 0.00560288056170706,
+        "aperture_peak_response_to_exact": 0.9999999999999998,
+        "aperture_peak_contrast_estimate": 0.005602880561707061,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "raw_rectangular_m0p3": {
+        "label": "Raw rectangular PSD",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.176095485687256,
+        "nearest_pixel_amplitude": 0.004593102524744792,
+        "nearest_pixel_response_to_exact": 1.0000000000000002,
+        "nearest_pixel_contrast_estimate": 0.004593102524744791,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.391421318054199,
+        "aperture_peak_amplitude": 0.004521563973248152,
+        "aperture_peak_response_to_exact": 1.0000000000000004,
+        "aperture_peak_contrast_estimate": 0.004521563973248151,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "label": "Radial Hann, truncation 0.75",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.330106258392334,
+        "nearest_pixel_amplitude": 0.004755525390943063,
+        "nearest_pixel_response_to_exact": 0.9999999999999998,
+        "nearest_pixel_contrast_estimate": 0.0047555253909430635,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.652144432067871,
+        "aperture_peak_amplitude": 0.0047424586926967565,
+        "aperture_peak_response_to_exact": 0.9999999999999999,
+        "aperture_peak_contrast_estimate": 0.004742458692696757,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      }
+    },
+    "225": {
+      "native": {
+        "label": "Native",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 2.9611220359802246,
+        "nearest_pixel_amplitude": 0.46736833453178406,
+        "nearest_pixel_response_to_exact": 149.62586975097656,
+        "nearest_pixel_contrast_estimate": 0.003123579734638326,
+        "aperture_peak_row_column": [
+          67,
+          53
+        ],
+        "aperture_maximum_snr": 3.89306640625,
+        "aperture_peak_amplitude": 0.6823092699050903,
+        "aperture_peak_response_to_exact": 137.09475708007812,
+        "aperture_peak_contrast_estimate": 0.004976917312064298,
+        "peak_offset_from_nominal_pixels": 0.8870519737294916,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 1,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm2p4": {
+        "label": "Gaussian 2.4",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.130990028381348,
+        "nearest_pixel_amplitude": 0.35650980313458575,
+        "nearest_pixel_response_to_exact": 85.21200562569852,
+        "nearest_pixel_contrast_estimate": 0.0041837978171830326,
+        "aperture_peak_row_column": [
+          68,
+          52
+        ],
+        "aperture_maximum_snr": 4.130990028381348,
+        "aperture_peak_amplitude": 0.35650980313458575,
+        "aperture_peak_response_to_exact": 85.21200562569852,
+        "aperture_peak_contrast_estimate": 0.0041837978171830326,
+        "peak_offset_from_nominal_pixels": 0.5594000930270661,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm3p6": {
+        "label": "Gaussian 3.6",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.0276198387146,
+        "nearest_pixel_amplitude": 0.2198895152467755,
+        "nearest_pixel_response_to_exact": 47.72177191684756,
+        "nearest_pixel_contrast_estimate": 0.004607739956301714,
+        "aperture_peak_row_column": [
+          68,
+          52
+        ],
+        "aperture_maximum_snr": 4.0276198387146,
+        "aperture_peak_amplitude": 0.2198895152467755,
+        "aperture_peak_response_to_exact": 47.72177191684756,
+        "aperture_peak_contrast_estimate": 0.004607739956301714,
+        "peak_offset_from_nominal_pixels": 0.5594000930270661,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity": {
+        "label": "Exact identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.3272271156311035,
+        "nearest_pixel_amplitude": 0.004804755000325145,
+        "nearest_pixel_response_to_exact": 0.9999999999999998,
+        "nearest_pixel_contrast_estimate": 0.004804755000325146,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.643067836761475,
+        "aperture_peak_amplitude": 0.0056322106768295745,
+        "aperture_peak_response_to_exact": 1.0000000000000002,
+        "aperture_peak_contrast_estimate": 0.005632210676829574,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "sparse_identity": {
+        "label": "Sparse identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.0385260581970215,
+        "nearest_pixel_amplitude": 0.0040575342120963385,
+        "nearest_pixel_response_to_exact": 0.9001640856549035,
+        "nearest_pixel_contrast_estimate": 0.00450754954208635,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.179410457611084,
+        "aperture_peak_amplitude": 0.004776939377265682,
+        "aperture_peak_response_to_exact": 1.0176325328990754,
+        "aperture_peak_contrast_estimate": 0.004694169282950233,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf1p8": {
+        "label": "Exact response LPF 1.8",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.350331783294678,
+        "nearest_pixel_amplitude": 0.0065558070936810285,
+        "nearest_pixel_response_to_exact": 1.3346004360390764,
+        "nearest_pixel_contrast_estimate": 0.004912187136052365,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.626936912536621,
+        "aperture_peak_amplitude": 0.007813253629529475,
+        "aperture_peak_response_to_exact": 1.3401870986813602,
+        "aperture_peak_contrast_estimate": 0.005829972275674873,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf2p7": {
+        "label": "Exact response LPF 2.7",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.347412109375,
+        "nearest_pixel_amplitude": 0.008864711706712028,
+        "nearest_pixel_response_to_exact": 1.7645027121833396,
+        "nearest_pixel_contrast_estimate": 0.0050239150359497695,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.5841064453125,
+        "aperture_peak_amplitude": 0.010812142210265694,
+        "aperture_peak_response_to_exact": 1.7921950769392676,
+        "aperture_peak_contrast_estimate": 0.006032904759860629,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_isotropic_fitted_mean": {
+        "label": "Exact identity, fitted mean",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.324309349060059,
+        "nearest_pixel_amplitude": 0.004801242518324326,
+        "nearest_pixel_response_to_exact": 0.9999999999999998,
+        "nearest_pixel_contrast_estimate": 0.004801242518324327,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.654270648956299,
+        "aperture_peak_amplitude": 0.005637948749985748,
+        "aperture_peak_response_to_exact": 1.0000000000000002,
+        "aperture_peak_contrast_estimate": 0.005637948749985747,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "raw_rectangular_m0p3": {
+        "label": "Raw rectangular PSD",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.279264450073242,
+        "nearest_pixel_amplitude": 0.004635207114744425,
+        "nearest_pixel_response_to_exact": 0.9999999999999999,
+        "nearest_pixel_contrast_estimate": 0.0046352071147444255,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.397488117218018,
+        "aperture_peak_amplitude": 0.0045331202380086725,
+        "aperture_peak_response_to_exact": 0.9999999999999999,
+        "aperture_peak_contrast_estimate": 0.004533120238008673,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "label": "Radial Hann, truncation 0.75",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.439669132232666,
+        "nearest_pixel_amplitude": 0.004795215805229381,
+        "nearest_pixel_response_to_exact": 1.0,
+        "nearest_pixel_contrast_estimate": 0.004795215805229381,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.618200302124023,
+        "aperture_peak_amplitude": 0.004715396981461989,
+        "aperture_peak_response_to_exact": 0.9999999999999999,
+        "aperture_peak_contrast_estimate": 0.00471539698146199,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      }
+    },
+    "250": {
+      "native": {
+        "label": "Native",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.0409414768218994,
+        "nearest_pixel_amplitude": 0.46798503398895264,
+        "nearest_pixel_response_to_exact": 147.62799072265625,
+        "nearest_pixel_contrast_estimate": 0.0031700291502858723,
+        "aperture_peak_row_column": [
+          67,
+          53
+        ],
+        "aperture_maximum_snr": 3.816892385482788,
+        "aperture_peak_amplitude": 0.6670651435852051,
+        "aperture_peak_response_to_exact": 134.84925842285156,
+        "aperture_peak_contrast_estimate": 0.004946746844491094,
+        "peak_offset_from_nominal_pixels": 0.8870519737294916,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 1,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm2p4": {
+        "label": "Gaussian 2.4",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.204728126525879,
+        "nearest_pixel_amplitude": 0.3562579508938629,
+        "nearest_pixel_response_to_exact": 84.00474883689357,
+        "nearest_pixel_contrast_estimate": 0.004240926326505485,
+        "aperture_peak_row_column": [
+          68,
+          52
+        ],
+        "aperture_maximum_snr": 4.204728126525879,
+        "aperture_peak_amplitude": 0.3562579508938629,
+        "aperture_peak_response_to_exact": 84.00474883689357,
+        "aperture_peak_contrast_estimate": 0.004240926326505485,
+        "peak_offset_from_nominal_pixels": 0.5594000930270661,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm3p6": {
+        "label": "Gaussian 3.6",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.113316059112549,
+        "nearest_pixel_amplitude": 0.21911729622667284,
+        "nearest_pixel_response_to_exact": 47.008623732933316,
+        "nearest_pixel_contrast_estimate": 0.004661214875626396,
+        "aperture_peak_row_column": [
+          68,
+          52
+        ],
+        "aperture_maximum_snr": 4.113316059112549,
+        "aperture_peak_amplitude": 0.21911729622667284,
+        "aperture_peak_response_to_exact": 47.008623732933316,
+        "aperture_peak_contrast_estimate": 0.004661214875626396,
+        "peak_offset_from_nominal_pixels": 0.5594000930270661,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity": {
+        "label": "Exact identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.3294196128845215,
+        "nearest_pixel_amplitude": 0.004848163323341582,
+        "nearest_pixel_response_to_exact": 0.9999999999999998,
+        "nearest_pixel_contrast_estimate": 0.004848163323341583,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.643063545227051,
+        "aperture_peak_amplitude": 0.005649071332186298,
+        "aperture_peak_response_to_exact": 1.0,
+        "aperture_peak_contrast_estimate": 0.005649071332186298,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "sparse_identity": {
+        "label": "Sparse identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.0443501472473145,
+        "nearest_pixel_amplitude": 0.004098781932541766,
+        "nearest_pixel_response_to_exact": 0.9012070032801758,
+        "nearest_pixel_contrast_estimate": 0.0045481026197346335,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.192250728607178,
+        "aperture_peak_amplitude": 0.004797739962554376,
+        "aperture_peak_response_to_exact": 1.0162316516809466,
+        "aperture_peak_contrast_estimate": 0.004721108572655107,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf1p8": {
+        "label": "Exact response LPF 1.8",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.362139701843262,
+        "nearest_pixel_amplitude": 0.006621113375667956,
+        "nearest_pixel_response_to_exact": 1.3349014850419503,
+        "nearest_pixel_contrast_estimate": 0.004960001505624126,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.644451141357422,
+        "aperture_peak_amplitude": 0.007832369657926165,
+        "aperture_peak_response_to_exact": 1.3397818325435147,
+        "aperture_peak_contrast_estimate": 0.005846003780374279,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf2p7": {
+        "label": "Exact response LPF 2.7",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.370545387268066,
+        "nearest_pixel_amplitude": 0.008961295680688253,
+        "nearest_pixel_response_to_exact": 1.7647615138513424,
+        "nearest_pixel_contrast_estimate": 0.00507790747381582,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.621112823486328,
+        "aperture_peak_amplitude": 0.01084057244677546,
+        "aperture_peak_response_to_exact": 1.7908912301487856,
+        "aperture_peak_contrast_estimate": 0.006053171886868213,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_isotropic_fitted_mean": {
+        "label": "Exact identity, fitted mean",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.328563213348389,
+        "nearest_pixel_amplitude": 0.004846652101172359,
+        "nearest_pixel_response_to_exact": 0.9999999999999998,
+        "nearest_pixel_contrast_estimate": 0.0048466521011723595,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.654277801513672,
+        "aperture_peak_amplitude": 0.005654312463369847,
+        "aperture_peak_response_to_exact": 1.0,
+        "aperture_peak_contrast_estimate": 0.005654312463369847,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "raw_rectangular_m0p3": {
+        "label": "Raw rectangular PSD",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.287288188934326,
+        "nearest_pixel_amplitude": 0.004674367545102815,
+        "nearest_pixel_response_to_exact": 0.9999999999999997,
+        "nearest_pixel_contrast_estimate": 0.004674367545102817,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.407708168029785,
+        "aperture_peak_amplitude": 0.004575366302556866,
+        "aperture_peak_response_to_exact": 1.0,
+        "aperture_peak_contrast_estimate": 0.004575366302556866,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "label": "Radial Hann, truncation 0.75",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.453381061553955,
+        "nearest_pixel_amplitude": 0.004843184021863282,
+        "nearest_pixel_response_to_exact": 1.0000000000000002,
+        "nearest_pixel_contrast_estimate": 0.0048431840218632815,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.644089221954346,
+        "aperture_peak_amplitude": 0.00475997099035059,
+        "aperture_peak_response_to_exact": 1.0000000000000002,
+        "aperture_peak_contrast_estimate": 0.004759970990350589,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      }
+    },
+    "300": {
+      "native": {
+        "label": "Native",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.0370936393737793,
+        "nearest_pixel_amplitude": 0.4627779722213745,
+        "nearest_pixel_response_to_exact": 143.13717651367188,
+        "nearest_pixel_contrast_estimate": 0.0032331081518655767,
+        "aperture_peak_row_column": [
+          67,
+          53
+        ],
+        "aperture_maximum_snr": 3.7649433612823486,
+        "aperture_peak_amplitude": 0.6391529440879822,
+        "aperture_peak_response_to_exact": 130.97238159179688,
+        "aperture_peak_contrast_estimate": 0.004880058958384352,
+        "peak_offset_from_nominal_pixels": 0.8870519737294916,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 1,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm2p4": {
+        "label": "Gaussian 2.4",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.160552024841309,
+        "nearest_pixel_amplitude": 0.3482227051158064,
+        "nearest_pixel_response_to_exact": 81.67737805489674,
+        "nearest_pixel_contrast_estimate": 0.004263392305293641,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.166874408721924,
+        "aperture_peak_amplitude": 0.36152729578800025,
+        "aperture_peak_response_to_exact": 81.25690473605383,
+        "aperture_peak_contrast_estimate": 0.004449188619260684,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm3p6": {
+        "label": "Gaussian 3.6",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.0492844581604,
+        "nearest_pixel_amplitude": 0.21273800589238007,
+        "nearest_pixel_response_to_exact": 45.789486362152,
+        "nearest_pixel_contrast_estimate": 0.004646001141175105,
+        "aperture_peak_row_column": [
+          68,
+          52
+        ],
+        "aperture_maximum_snr": 4.0492844581604,
+        "aperture_peak_amplitude": 0.21273800589238007,
+        "aperture_peak_response_to_exact": 45.789486362152,
+        "aperture_peak_contrast_estimate": 0.004646001141175105,
+        "peak_offset_from_nominal_pixels": 0.5594000930270661,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity": {
+        "label": "Exact identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.326890468597412,
+        "nearest_pixel_amplitude": 0.004872153993990763,
+        "nearest_pixel_response_to_exact": 0.9999999999999997,
+        "nearest_pixel_contrast_estimate": 0.004872153993990764,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.614980220794678,
+        "aperture_peak_amplitude": 0.0056488818058364615,
+        "aperture_peak_response_to_exact": 0.9999999999999999,
+        "aperture_peak_contrast_estimate": 0.005648881805836462,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "sparse_identity": {
+        "label": "Sparse identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.045807361602783,
+        "nearest_pixel_amplitude": 0.004148436316524753,
+        "nearest_pixel_response_to_exact": 0.9027196558668659,
+        "nearest_pixel_contrast_estimate": 0.004595486859695197,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.230728626251221,
+        "aperture_peak_amplitude": 0.004867092825221736,
+        "aperture_peak_response_to_exact": 1.0169184090552226,
+        "aperture_peak_contrast_estimate": 0.004786119301098653,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf1p8": {
+        "label": "Exact response LPF 1.8",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.356019973754883,
+        "nearest_pixel_amplitude": 0.0066557309736439306,
+        "nearest_pixel_response_to_exact": 1.3344341670922353,
+        "nearest_pixel_contrast_estimate": 0.004987680275113857,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.637285232543945,
+        "aperture_peak_amplitude": 0.00783027809645696,
+        "aperture_peak_response_to_exact": 1.3384913462924801,
+        "aperture_peak_contrast_estimate": 0.005850077490710895,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf2p7": {
+        "label": "Exact response LPF 2.7",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.358331203460693,
+        "nearest_pixel_amplitude": 0.008994459421421954,
+        "nearest_pixel_response_to_exact": 1.7626098691403087,
+        "nearest_pixel_contrast_estimate": 0.0051029212867217694,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.6241278648376465,
+        "aperture_peak_amplitude": 0.010824812300820212,
+        "aperture_peak_response_to_exact": 1.7871434456043858,
+        "aperture_peak_contrast_estimate": 0.006057047254625618,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_isotropic_fitted_mean": {
+        "label": "Exact identity, fitted mean",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.323436737060547,
+        "nearest_pixel_amplitude": 0.004864905917322216,
+        "nearest_pixel_response_to_exact": 0.9999999999999997,
+        "nearest_pixel_contrast_estimate": 0.004864905917322217,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.627320766448975,
+        "aperture_peak_amplitude": 0.005655124349408039,
+        "aperture_peak_response_to_exact": 0.9999999999999999,
+        "aperture_peak_contrast_estimate": 0.00565512434940804,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "raw_rectangular_m0p3": {
+        "label": "Raw rectangular PSD",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.261560440063477,
+        "nearest_pixel_amplitude": 0.004659407618624853,
+        "nearest_pixel_response_to_exact": 1.0000000000000002,
+        "nearest_pixel_contrast_estimate": 0.004659407618624852,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.4051313400268555,
+        "aperture_peak_amplitude": 0.004626557698364046,
+        "aperture_peak_response_to_exact": 0.9999999999999999,
+        "aperture_peak_contrast_estimate": 0.004626557698364047,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "label": "Radial Hann, truncation 0.75",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.4476141929626465,
+        "nearest_pixel_amplitude": 0.004854983160835183,
+        "nearest_pixel_response_to_exact": 0.9999999999999998,
+        "nearest_pixel_contrast_estimate": 0.004854983160835184,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.642484664916992,
+        "aperture_peak_amplitude": 0.004824407175881297,
+        "aperture_peak_response_to_exact": 1.0,
+        "aperture_peak_contrast_estimate": 0.004824407175881297,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      }
+    },
+    "350": {
+      "native": {
+        "label": "Native",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 3.036374092102051,
+        "nearest_pixel_amplitude": 0.46165385842323303,
+        "nearest_pixel_response_to_exact": 140.6516876220703,
+        "nearest_pixel_contrast_estimate": 0.003282248981353799,
+        "aperture_peak_row_column": [
+          67,
+          53
+        ],
+        "aperture_maximum_snr": 3.8519978523254395,
+        "aperture_peak_amplitude": 0.6478325128555298,
+        "aperture_peak_response_to_exact": 128.05722045898438,
+        "aperture_peak_contrast_estimate": 0.005058929988746905,
+        "peak_offset_from_nominal_pixels": 0.8870519737294916,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 1,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm2p4": {
+        "label": "Gaussian 2.4",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.184181213378906,
+        "nearest_pixel_amplitude": 0.3479038280609699,
+        "nearest_pixel_response_to_exact": 80.14382148887134,
+        "nearest_pixel_contrast_estimate": 0.0043409937484610635,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.186834335327148,
+        "aperture_peak_amplitude": 0.3604170781014069,
+        "aperture_peak_response_to_exact": 79.5328580241965,
+        "aperture_peak_contrast_estimate": 0.004531675172439499,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "gaussian_fwhm3p6": {
+        "label": "Gaussian 3.6",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.0651936531066895,
+        "nearest_pixel_amplitude": 0.21189468733191733,
+        "nearest_pixel_response_to_exact": 44.88289421407133,
+        "nearest_pixel_contrast_estimate": 0.004721056675206248,
+        "aperture_peak_row_column": [
+          68,
+          52
+        ],
+        "aperture_maximum_snr": 4.0651936531066895,
+        "aperture_peak_amplitude": 0.21189468733191733,
+        "aperture_peak_response_to_exact": 44.88289421407133,
+        "aperture_peak_contrast_estimate": 0.004721056675206248,
+        "peak_offset_from_nominal_pixels": 0.5594000930270661,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": null,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity": {
+        "label": "Exact identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.299342155456543,
+        "nearest_pixel_amplitude": 0.004922574078975183,
+        "nearest_pixel_response_to_exact": 1.0,
+        "nearest_pixel_contrast_estimate": 0.004922574078975183,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.5794596672058105,
+        "aperture_peak_amplitude": 0.005762332317084503,
+        "aperture_peak_response_to_exact": 0.9999999999999999,
+        "aperture_peak_contrast_estimate": 0.005762332317084504,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "sparse_identity": {
+        "label": "Sparse identity",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.034084320068359,
+        "nearest_pixel_amplitude": 0.004209449408944868,
+        "nearest_pixel_response_to_exact": 0.9023794422728892,
+        "nearest_pixel_contrast_estimate": 0.0046648330089859085,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.1682634353637695,
+        "aperture_peak_amplitude": 0.004892736869764809,
+        "aperture_peak_response_to_exact": 1.0148211408408858,
+        "aperture_peak_contrast_estimate": 0.0048212799998536325,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf1p8": {
+        "label": "Exact response LPF 1.8",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.337990760803223,
+        "nearest_pixel_amplitude": 0.006728423647775665,
+        "nearest_pixel_response_to_exact": 1.334854827288407,
+        "nearest_pixel_contrast_estimate": 0.005040565842986557,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.609783172607422,
+        "aperture_peak_amplitude": 0.007976229257100936,
+        "aperture_peak_response_to_exact": 1.3380554172922032,
+        "aperture_peak_contrast_estimate": 0.00596106047180189,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_identity_lpf2p7": {
+        "label": "Exact response LPF 2.7",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.350168228149414,
+        "nearest_pixel_amplitude": 0.009092152185721031,
+        "nearest_pixel_response_to_exact": 1.762857090507183,
+        "nearest_pixel_contrast_estimate": 0.00515762294895111,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.61239767074585,
+        "aperture_peak_amplitude": 0.01101094223016821,
+        "aperture_peak_response_to_exact": 1.7859155002956926,
+        "aperture_peak_contrast_estimate": 0.0061654329268910745,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "exact_isotropic_fitted_mean": {
+        "label": "Exact identity, fitted mean",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.29496431350708,
+        "nearest_pixel_amplitude": 0.004913089553184464,
+        "nearest_pixel_response_to_exact": 1.0,
+        "nearest_pixel_contrast_estimate": 0.004913089553184464,
+        "aperture_peak_row_column": [
+          67,
+          54
+        ],
+        "aperture_maximum_snr": 4.58921480178833,
+        "aperture_peak_amplitude": 0.005766726862071265,
+        "aperture_peak_response_to_exact": 0.9999999999999999,
+        "aperture_peak_contrast_estimate": 0.005766726862071266,
+        "peak_offset_from_nominal_pixels": 1.6777764460356452,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 10.0,
+        "peak_training_half_width": 20
+      },
+      "raw_rectangular_m0p3": {
+        "label": "Raw rectangular PSD",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.2375054359436035,
+        "nearest_pixel_amplitude": 0.004714421998986424,
+        "nearest_pixel_response_to_exact": 0.9999999999999997,
+        "nearest_pixel_contrast_estimate": 0.004714421998986426,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.349619388580322,
+        "aperture_peak_amplitude": 0.004651250691625319,
+        "aperture_peak_response_to_exact": 0.9999999999999999,
+        "aperture_peak_contrast_estimate": 0.0046512506916253195,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "label": "Radial Hann, truncation 0.75",
+        "nearest_pixel_row_column": [
+          68,
+          52
+        ],
+        "nearest_pixel_snr": 4.428136825561523,
+        "nearest_pixel_amplitude": 0.004926893730981118,
+        "nearest_pixel_response_to_exact": 1.0000000000000002,
+        "nearest_pixel_contrast_estimate": 0.0049268937309811175,
+        "aperture_peak_row_column": [
+          68,
+          53
+        ],
+        "aperture_maximum_snr": 4.588499069213867,
+        "aperture_peak_amplitude": 0.00486543970101253,
+        "aperture_peak_response_to_exact": 0.9999999999999999,
+        "aperture_peak_contrast_estimate": 0.004865439701012531,
+        "peak_offset_from_nominal_pixels": 0.5839529628774084,
+        "valid_aperture_pixels": 37,
+        "peak_support_pixels": 121,
+        "peak_policy_radius": 12.0,
+        "peak_training_half_width": 20
+      }
+    }
+  },
+  "injection_task": {
+    "name": "site02__nominal_optimized_phase",
+    "site_index": 2,
+    "base_site": "r12_hold02",
+    "base_row_column": [
+      68,
+      52
+    ],
+    "arm": "nominal_optimized_phase",
+    "psf_control": "nominal",
+    "phase": "optimized",
+    "phase_offset_row_column": [
+      -0.2770699293779586,
+      0.4859637006126931
+    ],
+    "source": {
+      "row": 67.72293007062204,
+      "column": 52.48596370061269,
+      "separation": 11.795852406061426,
+      "position_angle": 200.97749743466966
+    },
+    "contrast": 0.004574362496414845,
+    "settings": {
+      "lambda_d": 3.6,
+      "separation": 11.795852406061426,
+      "position_angle": 200.97749743466966,
+      "source_radius": 7.0,
+      "minimum_radius": 6.0,
+      "maximum_radius": 60.0,
+      "aperture_radius": 3.0
+    }
+  },
+  "response_fidelity": {
+    "mode": 200,
+    "query_row_column": [
+      68,
+      52
+    ],
+    "source_offset_from_query_pixels": [
+      -0.2770699293779586,
+      0.4859637006126931
+    ],
+    "metrics": {
+      "unweighted": {
+        "cosine": 0.9692444292844999,
+        "projection_scale": 0.9624943676964655,
+        "best_scaled_relative_residual": 0.24610005343551647
+      },
+      "raw_rectangular_m0p3": {
+        "cosine": 0.9614892309413804,
+        "projection_scale": 0.9640235573720621,
+        "best_scaled_relative_residual": 0.27484260729325305
+      },
+      "radial_hann_m0p1": {
+        "cosine": 0.9582808888427012,
+        "projection_scale": 0.9618062380254782,
+        "best_scaled_relative_residual": 0.2858281618015314
+      }
+    }
+  },
+  "annular_oracle_maximum_error": 9.5367431640625e-07,
+  "elapsed_seconds": 8.292074336030055
+}

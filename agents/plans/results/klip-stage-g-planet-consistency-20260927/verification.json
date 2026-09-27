@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "status": "verified",
+  "aggregate_products_checked": [
+    "results.json",
+    "results.csv",
+    "results.md"
+  ],
+  "analysis_receipts_checked": 60,
+  "per_task_products_checked": [
+    "results.json",
+    "annular_verification.json"
+  ],
+  "maximum_production_annular_oracle_error": 1.9073486328125e-06,
+  "primary_arm_exchangeable_ranks": {
+    "gaussian_fwhm3p6_minus_exact_identity": {
+      "aperture_maximum_snr": {
+        "planet": 1.4121179580688477,
+        "injections_below_or_equal": 10,
+        "injections_above_or_equal": 2,
+        "exchangeable_lower_tail_rank": 0.8461538461538461,
+        "exchangeable_upper_tail_rank": 0.23076923076923078
+      },
+      "nearest_pixel_snr": {
+        "planet": 1.468292236328125,
+        "injections_below_or_equal": 10,
+        "injections_above_or_equal": 2,
+        "exchangeable_lower_tail_rank": 0.8461538461538461,
+        "exchangeable_upper_tail_rank": 0.23076923076923078
+      }
+    },
+    "gaussian_fwhm3p6_minus_gaussian_fwhm2p4": {
+      "aperture_maximum_snr": {
+        "planet": 0.23098421096801758,
+        "injections_below_or_equal": 10,
+        "injections_above_or_equal": 2,
+        "exchangeable_lower_tail_rank": 0.8461538461538461,
+        "exchangeable_upper_tail_rank": 0.23076923076923078
+      },
+      "nearest_pixel_snr": {
+        "planet": 0.585442066192627,
+        "injections_below_or_equal": 12,
+        "injections_above_or_equal": 0,
+        "exchangeable_lower_tail_rank": 1.0,
+        "exchangeable_upper_tail_rank": 0.07692307692307693
+      }
+    },
+    "raw_rectangular_m0p3_minus_exact_identity": {
+      "aperture_maximum_snr": {
+        "planet": -0.543755054473877,
+        "injections_below_or_equal": 3,
+        "injections_above_or_equal": 9,
+        "exchangeable_lower_tail_rank": 0.3076923076923077,
+        "exchangeable_upper_tail_rank": 0.7692307692307693
+      },
+      "nearest_pixel_snr": {
+        "planet": -0.9521496295928955,
+        "injections_below_or_equal": 0,
+        "injections_above_or_equal": 12,
+        "exchangeable_lower_tail_rank": 0.07692307692307693,
+        "exchangeable_upper_tail_rank": 1.0
+      }
+    },
+    "radial_hann_m0p1_trunc0p75_minus_exact_identity": {
+      "aperture_maximum_snr": {
+        "planet": -0.591320276260376,
+        "injections_below_or_equal": 2,
+        "injections_above_or_equal": 10,
+        "exchangeable_lower_tail_rank": 0.23076923076923078,
+        "exchangeable_upper_tail_rank": 0.8461538461538461
+      },
+      "nearest_pixel_snr": {
+        "planet": -1.0039644241333008,
+        "injections_below_or_equal": 0,
+        "injections_above_or_equal": 12,
+        "exchangeable_lower_tail_rank": 0.07692307692307693,
+        "exchangeable_upper_tail_rank": 1.0
+      }
+    }
+  }
+}

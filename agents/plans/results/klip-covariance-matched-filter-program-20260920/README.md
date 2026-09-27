@@ -623,6 +623,18 @@ optimized subpixel phase and add fixed 0.25- and 0.5-$\lambda/D$ Gaussian PSF
 broadening controls. The paired covariance-minus-exact-identity difference at
 mode 200 is primary; PSF and phase effects are reported controls.
 
+
+Stage G is complete. The
+[matched-aperture result](../klip-stage-g-planet-consistency-20260927/README.md)
+finds that the planet's aperture-maximum covariance penalties are consistent
+with twelve exact-contrast injections. Covariance weighting still reduces SNR
+relative to exact identity. The discrepancy survives only at the secondary
+nearest-pixel endpoint. Phase controls show that the exact integer-grid
+response has substantially worse fidelity at the planet-like fractional phase;
+the three-pixel aperture search largely absorbs this centering error. The fixed
+Gaussian-broadening controls lower SNR and do not explain the planet by
+themselves.
+
 ## Required provenance and failure behavior
 
 - Every stage writes `protocol.json`, `manifest.json`, `state.json`, and a

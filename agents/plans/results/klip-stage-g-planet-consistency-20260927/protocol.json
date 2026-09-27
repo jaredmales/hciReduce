@@ -1,0 +1,5874 @@
+{
+  "schema": 1,
+  "stage": "KLIP Stage G planet-consistency injections",
+  "purpose": "direct optimized-contrast radius-12 injections using the Stage-F aperture, subpixel phases, and predeclared PSF broadening controls",
+  "parent_root": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925",
+  "stage_f_root": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_f_planet",
+  "primary_mode": 200,
+  "nominal_radius": 12.0,
+  "planet_contrast": 0.004574362496414845,
+  "site_count": 12,
+  "site_selection": "initial deterministic angular maximin from radius-12 calibration and held-out-null centers, retain all-mode-supported selections, then deterministic maximin fill from the all-mode-supported score-blind pool; no positive score used",
+  "sites": [
+    {
+      "row": 52,
+      "column": 62,
+      "source_index": 5428,
+      "nominal_radius": 12.0,
+      "separation": 11.597413504743201,
+      "position_angle": 97.4314079711725,
+      "angle_radians": -3.011890116433881,
+      "supported_training_widths": [
+        10,
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 0,
+      "name": "r12_cal00",
+      "training_half_width": 20
+    },
+    {
+      "row": 53,
+      "column": 58,
+      "source_index": 4981,
+      "nominal_radius": 12.0,
+      "separation": 11.853269591129697,
+      "position_angle": 117.64597536373869,
+      "angle_radians": -2.6590793585673165,
+      "supported_training_widths": [
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 1,
+      "name": "r12_cal01",
+      "training_half_width": 20
+    },
+    {
+      "row": 68,
+      "column": 52,
+      "source_index": 4283,
+      "nominal_radius": 12.0,
+      "separation": 12.349089035228468,
+      "position_angle": 201.3706222693432,
+      "angle_radians": -1.1978086049948355,
+      "supported_training_widths": [
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "heldout_null",
+      "role_index": 2,
+      "name": "r12_hold02",
+      "training_half_width": 20
+    },
+    {
+      "row": 56,
+      "column": 73,
+      "source_index": 6669,
+      "nominal_radius": 12.0,
+      "separation": 12.103718436910205,
+      "position_angle": 38.29016319224307,
+      "angle_radians": 2.2390857456254807,
+      "supported_training_widths": [
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 16,
+      "name": "r12_cal16",
+      "training_half_width": 20
+    },
+    {
+      "row": 67,
+      "column": 75,
+      "source_index": 6916,
+      "nominal_radius": 12.0,
+      "separation": 12.020815280171307,
+      "position_angle": 343.07248693585296,
+      "angle_radians": 1.2753554896511765,
+      "supported_training_widths": [
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 13,
+      "name": "r12_cal13",
+      "training_half_width": 20
+    },
+    {
+      "row": 71,
+      "column": 54,
+      "source_index": 4522,
+      "nominal_radius": 12.0,
+      "separation": 12.103718436910205,
+      "position_angle": 218.29016319224309,
+      "angle_radians": -0.9025069079643125,
+      "supported_training_widths": [
+        10,
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 9,
+      "name": "r12_cal09",
+      "training_half_width": 20
+    },
+    {
+      "row": 74,
+      "column": 70,
+      "source_index": 6330,
+      "nominal_radius": 12.0,
+      "separation": 12.349089035228468,
+      "position_angle": 301.75948008481276,
+      "angle_radians": 0.5543074962015512,
+      "supported_training_widths": [
+        10,
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 10,
+      "name": "r12_cal10",
+      "training_half_width": 20
+    },
+    {
+      "row": 69,
+      "column": 74,
+      "source_index": 6800,
+      "nominal_radius": 12.0,
+      "separation": 11.853269591129697,
+      "position_angle": 332.35402463626133,
+      "angle_radians": 1.0882830317724197,
+      "supported_training_widths": [
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 12,
+      "name": "r12_cal12",
+      "training_half_width": 20
+    },
+    {
+      "row": 54,
+      "column": 56,
+      "source_index": 4742,
+      "nominal_radius": 12.0,
+      "separation": 12.103718436910205,
+      "position_angle": 128.29016319224309,
+      "angle_radians": -2.473303234759209,
+      "supported_training_widths": [
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 2,
+      "name": "r12_cal02",
+      "training_half_width": 20
+    },
+    {
+      "row": 53,
+      "column": 69,
+      "source_index": 6193,
+      "nominal_radius": 12.0,
+      "separation": 11.853269591129697,
+      "position_angle": 62.35402463626132,
+      "angle_radians": 2.6590793585673165,
+      "supported_training_widths": [
+        10,
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 18,
+      "name": "r12_cal18",
+      "training_half_width": 20
+    },
+    {
+      "row": 54,
+      "column": 71,
+      "source_index": 6430,
+      "nominal_radius": 12.0,
+      "separation": 12.103718436910205,
+      "position_angle": 51.70983680775693,
+      "angle_radians": 2.473303234759209,
+      "supported_training_widths": [
+        10,
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 17,
+      "name": "r12_cal17",
+      "training_half_width": 20
+    },
+    {
+      "row": 52,
+      "column": 67,
+      "source_index": 5970,
+      "nominal_radius": 12.0,
+      "separation": 12.020815280171307,
+      "position_angle": 73.07248693585295,
+      "angle_radians": 2.8461518164460733,
+      "supported_training_widths": [
+        10,
+        20,
+        40,
+        60
+      ],
+      "minimum_radial_profile_pixels": 44,
+      "role": "calibration",
+      "role_index": 19,
+      "name": "r12_cal19",
+      "training_half_width": 20
+    }
+  ],
+  "phase_offsets_row_column": {
+    "integer": [
+      0.0,
+      0.0
+    ],
+    "analysis": [
+      0.16879332335545882,
+      -0.12935152033411157
+    ],
+    "optimized": [
+      -0.2770699293779586,
+      0.4859637006126931
+    ]
+  },
+  "arms": [
+    {
+      "name": "nominal_integer",
+      "psf": "nominal",
+      "phase": "integer"
+    },
+    {
+      "name": "nominal_analysis_phase",
+      "psf": "nominal",
+      "phase": "analysis"
+    },
+    {
+      "name": "nominal_optimized_phase",
+      "psf": "nominal",
+      "phase": "optimized"
+    },
+    {
+      "name": "blur0p9_optimized_phase",
+      "psf": "blur0p9",
+      "phase": "optimized"
+    },
+    {
+      "name": "blur1p8_optimized_phase",
+      "psf": "blur1p8",
+      "phase": "optimized"
+    }
+  ],
+  "primary_arm": "nominal_optimized_phase",
+  "psf_controls": [
+    {
+      "name": "nominal",
+      "additional_gaussian_fwhm_pixels": 0.0,
+      "sum": 31264.205111862277,
+      "peak": 1124.83984375,
+      "fingerprint": {
+        "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "bytes": 267840,
+        "sha256": "bc43daa82a433e32a756af0ba82cd0061c8d3f01adb73bc2fed97ed832880194"
+      }
+    },
+    {
+      "name": "blur0p9",
+      "additional_gaussian_fwhm_pixels": 0.9,
+      "sum": 31264.205216686485,
+      "peak": 1104.9527587890625,
+      "fingerprint": {
+        "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "bytes": 267840,
+        "sha256": "2945830772fd1867f30b67d17ca9c96fee8054c0bf8110d53c01b13a8c0e571e"
+      }
+    },
+    {
+      "name": "blur1p8",
+      "additional_gaussian_fwhm_pixels": 1.8,
+      "sum": 31264.205186317296,
+      "peak": 950.9307250976562,
+      "fingerprint": {
+        "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "bytes": 267840,
+        "sha256": "06840938899ecdb4bc1e9ab3a971239091a871fb3bc724c7775cc89a54cb4305"
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "name": "site00__nominal_integer",
+      "site_index": 0,
+      "base_site": "r12_cal00",
+      "base_row_column": [
+        52,
+        62
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 52.0,
+        "column": 62.0,
+        "separation": 11.597413504743201,
+        "position_angle": 97.4314079711725
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.597413504743201,
+        "position_angle": 97.4314079711725,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.597413504743201",
+        "--fake.PA",
+        "97.4314079711725",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site00__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site00__nominal_analysis_phase",
+      "site_index": 0,
+      "base_site": "r12_cal00",
+      "base_row_column": [
+        52,
+        62
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 52.16879332335546,
+        "column": 61.87064847966589,
+        "separation": 11.447752230269876,
+        "position_angle": 98.18266014750806
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.447752230269876,
+        "position_angle": 98.18266014750806,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.447752230269876",
+        "--fake.PA",
+        "98.18266014750806",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site00__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site00__nominal_optimized_phase",
+      "site_index": 0,
+      "base_site": "r12_cal00",
+      "base_row_column": [
+        52,
+        62
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 51.72293007062204,
+        "column": 62.48596370061269,
+        "separation": 11.820644895179521,
+        "position_angle": 94.9211780220603
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.820644895179521,
+        "position_angle": 94.9211780220603,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.820644895179521",
+        "--fake.PA",
+        "94.9211780220603",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site00__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site00__blur0p9_optimized_phase",
+      "site_index": 0,
+      "base_site": "r12_cal00",
+      "base_row_column": [
+        52,
+        62
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 51.72293007062204,
+        "column": 62.48596370061269,
+        "separation": 11.820644895179521,
+        "position_angle": 94.9211780220603
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.820644895179521,
+        "position_angle": 94.9211780220603,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "11.820644895179521",
+        "--fake.PA",
+        "94.9211780220603",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site00__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site00__blur1p8_optimized_phase",
+      "site_index": 0,
+      "base_site": "r12_cal00",
+      "base_row_column": [
+        52,
+        62
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 51.72293007062204,
+        "column": 62.48596370061269,
+        "separation": 11.820644895179521,
+        "position_angle": 94.9211780220603
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.820644895179521,
+        "position_angle": 94.9211780220603,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "11.820644895179521",
+        "--fake.PA",
+        "94.9211780220603",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site00__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site01__nominal_integer",
+      "site_index": 1,
+      "base_site": "r12_cal01",
+      "base_row_column": [
+        53,
+        58
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 53.0,
+        "column": 58.0,
+        "separation": 11.853269591129697,
+        "position_angle": 117.64597536373869
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.853269591129697,
+        "position_angle": 117.64597536373869,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.853269591129697",
+        "--fake.PA",
+        "117.64597536373869",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site01__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site01__nominal_analysis_phase",
+      "site_index": 1,
+      "base_site": "r12_cal01",
+      "base_row_column": [
+        53,
+        58
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 53.16879332335546,
+        "column": 57.87064847966589,
+        "separation": 11.76534869585397,
+        "position_angle": 118.58544043051346
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.76534869585397,
+        "position_angle": 118.58544043051346,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.76534869585397",
+        "--fake.PA",
+        "118.58544043051346",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site01__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site01__nominal_optimized_phase",
+      "site_index": 1,
+      "base_site": "r12_cal01",
+      "base_row_column": [
+        53,
+        58
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 52.72293007062204,
+        "column": 58.48596370061269,
+        "separation": 11.88637018918207,
+        "position_angle": 114.95022364182249
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.88637018918207,
+        "position_angle": 114.95022364182249,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.88637018918207",
+        "--fake.PA",
+        "114.95022364182249",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site01__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site01__blur0p9_optimized_phase",
+      "site_index": 1,
+      "base_site": "r12_cal01",
+      "base_row_column": [
+        53,
+        58
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 52.72293007062204,
+        "column": 58.48596370061269,
+        "separation": 11.88637018918207,
+        "position_angle": 114.95022364182249
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.88637018918207,
+        "position_angle": 114.95022364182249,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "11.88637018918207",
+        "--fake.PA",
+        "114.95022364182249",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site01__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site01__blur1p8_optimized_phase",
+      "site_index": 1,
+      "base_site": "r12_cal01",
+      "base_row_column": [
+        53,
+        58
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 52.72293007062204,
+        "column": 58.48596370061269,
+        "separation": 11.88637018918207,
+        "position_angle": 114.95022364182249
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.88637018918207,
+        "position_angle": 114.95022364182249,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "11.88637018918207",
+        "--fake.PA",
+        "114.95022364182249",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site01__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site02__nominal_integer",
+      "site_index": 2,
+      "base_site": "r12_hold02",
+      "base_row_column": [
+        68,
+        52
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 68.0,
+        "column": 52.0,
+        "separation": 12.349089035228468,
+        "position_angle": 201.3706222693432
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.349089035228468,
+        "position_angle": 201.3706222693432,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.349089035228468",
+        "--fake.PA",
+        "201.3706222693432",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site02__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site02__nominal_analysis_phase",
+      "site_index": 2,
+      "base_site": "r12_hold02",
+      "base_row_column": [
+        68,
+        52
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 68.16879332335546,
+        "column": 51.87064847966589,
+        "separation": 12.531538129044886,
+        "position_angle": 201.87380020915097
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.531538129044886,
+        "position_angle": 201.87380020915097,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.531538129044886",
+        "--fake.PA",
+        "201.87380020915097",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site02__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site02__nominal_optimized_phase",
+      "site_index": 2,
+      "base_site": "r12_hold02",
+      "base_row_column": [
+        68,
+        52
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 67.72293007062204,
+        "column": 52.48596370061269,
+        "separation": 11.795852406061426,
+        "position_angle": 200.97749743466966
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.795852406061426,
+        "position_angle": 200.97749743466966,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.795852406061426",
+        "--fake.PA",
+        "200.97749743466966",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site02__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site02__blur0p9_optimized_phase",
+      "site_index": 2,
+      "base_site": "r12_hold02",
+      "base_row_column": [
+        68,
+        52
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 67.72293007062204,
+        "column": 52.48596370061269,
+        "separation": 11.795852406061426,
+        "position_angle": 200.97749743466966
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.795852406061426,
+        "position_angle": 200.97749743466966,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "11.795852406061426",
+        "--fake.PA",
+        "200.97749743466966",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site02__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site02__blur1p8_optimized_phase",
+      "site_index": 2,
+      "base_site": "r12_hold02",
+      "base_row_column": [
+        68,
+        52
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 67.72293007062204,
+        "column": 52.48596370061269,
+        "separation": 11.795852406061426,
+        "position_angle": 200.97749743466966
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.795852406061426,
+        "position_angle": 200.97749743466966,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "11.795852406061426",
+        "--fake.PA",
+        "200.97749743466966",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site02__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site03__nominal_integer",
+      "site_index": 3,
+      "base_site": "r12_cal16",
+      "base_row_column": [
+        56,
+        73
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 56.0,
+        "column": 73.0,
+        "separation": 12.103718436910205,
+        "position_angle": 38.29016319224307
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.103718436910205,
+        "position_angle": 38.29016319224307,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.103718436910205",
+        "--fake.PA",
+        "38.29016319224307",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site03__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site03__nominal_analysis_phase",
+      "site_index": 3,
+      "base_site": "r12_cal16",
+      "base_row_column": [
+        56,
+        73
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 56.16879332335546,
+        "column": 72.87064847966589,
+        "separation": 11.897715926392852,
+        "position_angle": 38.038152016695506
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.897715926392852,
+        "position_angle": 38.038152016695506,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.897715926392852",
+        "--fake.PA",
+        "38.038152016695506",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site03__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site03__nominal_optimized_phase",
+      "site_index": 3,
+      "base_site": "r12_cal16",
+      "base_row_column": [
+        56,
+        73
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 55.72293007062204,
+        "column": 73.4859637006127,
+        "separation": 12.657104238979365,
+        "position_angle": 37.91146357889957
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.657104238979365,
+        "position_angle": 37.91146357889957,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.657104238979365",
+        "--fake.PA",
+        "37.91146357889957",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site03__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site03__blur0p9_optimized_phase",
+      "site_index": 3,
+      "base_site": "r12_cal16",
+      "base_row_column": [
+        56,
+        73
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 55.72293007062204,
+        "column": 73.4859637006127,
+        "separation": 12.657104238979365,
+        "position_angle": 37.91146357889957
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.657104238979365,
+        "position_angle": 37.91146357889957,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "12.657104238979365",
+        "--fake.PA",
+        "37.91146357889957",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site03__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site03__blur1p8_optimized_phase",
+      "site_index": 3,
+      "base_site": "r12_cal16",
+      "base_row_column": [
+        56,
+        73
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 55.72293007062204,
+        "column": 73.4859637006127,
+        "separation": 12.657104238979365,
+        "position_angle": 37.91146357889957
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.657104238979365,
+        "position_angle": 37.91146357889957,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "12.657104238979365",
+        "--fake.PA",
+        "37.91146357889957",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site03__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site04__nominal_integer",
+      "site_index": 4,
+      "base_site": "r12_cal13",
+      "base_row_column": [
+        67,
+        75
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 67.0,
+        "column": 75.0,
+        "separation": 12.020815280171307,
+        "position_angle": 343.07248693585296
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.020815280171307,
+        "position_angle": 343.07248693585296,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.020815280171307",
+        "--fake.PA",
+        "343.07248693585296",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site04__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site04__nominal_analysis_phase",
+      "site_index": 4,
+      "base_site": "r12_cal13",
+      "base_row_column": [
+        67,
+        75
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 67.16879332335546,
+        "column": 74.87064847966589,
+        "separation": 11.947873923741653,
+        "position_angle": 342.1174596845823
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.947873923741653,
+        "position_angle": 342.1174596845823,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.947873923741653",
+        "--fake.PA",
+        "342.1174596845823",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site04__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site04__nominal_optimized_phase",
+      "site_index": 4,
+      "base_site": "r12_cal13",
+      "base_row_column": [
+        67,
+        75
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 66.72293007062204,
+        "column": 75.4859637006127,
+        "separation": 12.411712374709829,
+        "position_angle": 344.9496101517141
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.411712374709829,
+        "position_angle": 344.9496101517141,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.411712374709829",
+        "--fake.PA",
+        "344.9496101517141",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site04__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site04__blur0p9_optimized_phase",
+      "site_index": 4,
+      "base_site": "r12_cal13",
+      "base_row_column": [
+        67,
+        75
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 66.72293007062204,
+        "column": 75.4859637006127,
+        "separation": 12.411712374709829,
+        "position_angle": 344.9496101517141
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.411712374709829,
+        "position_angle": 344.9496101517141,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "12.411712374709829",
+        "--fake.PA",
+        "344.9496101517141",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site04__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site04__blur1p8_optimized_phase",
+      "site_index": 4,
+      "base_site": "r12_cal13",
+      "base_row_column": [
+        67,
+        75
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 66.72293007062204,
+        "column": 75.4859637006127,
+        "separation": 12.411712374709829,
+        "position_angle": 344.9496101517141
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.411712374709829,
+        "position_angle": 344.9496101517141,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "12.411712374709829",
+        "--fake.PA",
+        "344.9496101517141",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site04__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site05__nominal_integer",
+      "site_index": 5,
+      "base_site": "r12_cal09",
+      "base_row_column": [
+        71,
+        54
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 71.0,
+        "column": 54.0,
+        "separation": 12.103718436910205,
+        "position_angle": 218.29016319224309
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.103718436910205,
+        "position_angle": 218.29016319224309,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.103718436910205",
+        "--fake.PA",
+        "218.29016319224309",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site05__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site05__nominal_analysis_phase",
+      "site_index": 5,
+      "base_site": "r12_cal09",
+      "base_row_column": [
+        71,
+        54
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 71.16879332335546,
+        "column": 53.87064847966589,
+        "separation": 12.309947267900952,
+        "position_angle": 218.53373505124642
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.309947267900952,
+        "position_angle": 218.53373505124642,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.309947267900952",
+        "--fake.PA",
+        "218.53373505124642",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site05__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site05__nominal_optimized_phase",
+      "site_index": 5,
+      "base_site": "r12_cal09",
+      "base_row_column": [
+        71,
+        54
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 70.72293007062204,
+        "column": 54.48596370061269,
+        "separation": 11.550912051079262,
+        "position_angle": 218.70513020652245
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.550912051079262,
+        "position_angle": 218.70513020652245,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.550912051079262",
+        "--fake.PA",
+        "218.70513020652245",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site05__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site05__blur0p9_optimized_phase",
+      "site_index": 5,
+      "base_site": "r12_cal09",
+      "base_row_column": [
+        71,
+        54
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 70.72293007062204,
+        "column": 54.48596370061269,
+        "separation": 11.550912051079262,
+        "position_angle": 218.70513020652245
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.550912051079262,
+        "position_angle": 218.70513020652245,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "11.550912051079262",
+        "--fake.PA",
+        "218.70513020652245",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site05__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site05__blur1p8_optimized_phase",
+      "site_index": 5,
+      "base_site": "r12_cal09",
+      "base_row_column": [
+        71,
+        54
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 70.72293007062204,
+        "column": 54.48596370061269,
+        "separation": 11.550912051079262,
+        "position_angle": 218.70513020652245
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.550912051079262,
+        "position_angle": 218.70513020652245,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "11.550912051079262",
+        "--fake.PA",
+        "218.70513020652245",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site05__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site06__nominal_integer",
+      "site_index": 6,
+      "base_site": "r12_cal10",
+      "base_row_column": [
+        74,
+        70
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 74.0,
+        "column": 69.99999999999999,
+        "separation": 12.349089035228468,
+        "position_angle": 301.75948008481276
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.349089035228468,
+        "position_angle": 301.75948008481276,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.349089035228468",
+        "--fake.PA",
+        "301.75948008481276",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site06__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site06__nominal_analysis_phase",
+      "site_index": 6,
+      "base_site": "r12_cal10",
+      "base_row_column": [
+        74,
+        70
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 74.16879332335546,
+        "column": 69.87064847966589,
+        "separation": 12.426114156402367,
+        "position_angle": 300.8426604995786
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.426114156402367,
+        "position_angle": 300.8426604995786,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.426114156402367",
+        "--fake.PA",
+        "300.8426604995786",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site06__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site06__nominal_optimized_phase",
+      "site_index": 6,
+      "base_site": "r12_cal10",
+      "base_row_column": [
+        74,
+        70
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 73.72293007062204,
+        "column": 70.4859637006127,
+        "separation": 12.38192182397816,
+        "position_angle": 304.34722377567977
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.38192182397816,
+        "position_angle": 304.34722377567977,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.38192182397816",
+        "--fake.PA",
+        "304.34722377567977",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site06__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site06__blur0p9_optimized_phase",
+      "site_index": 6,
+      "base_site": "r12_cal10",
+      "base_row_column": [
+        74,
+        70
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 73.72293007062204,
+        "column": 70.4859637006127,
+        "separation": 12.38192182397816,
+        "position_angle": 304.34722377567977
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.38192182397816,
+        "position_angle": 304.34722377567977,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "12.38192182397816",
+        "--fake.PA",
+        "304.34722377567977",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site06__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site06__blur1p8_optimized_phase",
+      "site_index": 6,
+      "base_site": "r12_cal10",
+      "base_row_column": [
+        74,
+        70
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 73.72293007062204,
+        "column": 70.4859637006127,
+        "separation": 12.38192182397816,
+        "position_angle": 304.34722377567977
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.38192182397816,
+        "position_angle": 304.34722377567977,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "12.38192182397816",
+        "--fake.PA",
+        "304.34722377567977",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site06__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site07__nominal_integer",
+      "site_index": 7,
+      "base_site": "r12_cal12",
+      "base_row_column": [
+        69,
+        74
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 69.0,
+        "column": 74.0,
+        "separation": 11.853269591129697,
+        "position_angle": 332.35402463626133
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.853269591129697,
+        "position_angle": 332.35402463626133,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.853269591129697",
+        "--fake.PA",
+        "332.35402463626133",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site07__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site07__nominal_analysis_phase",
+      "site_index": 7,
+      "base_site": "r12_cal12",
+      "base_row_column": [
+        69,
+        74
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 69.16879332335546,
+        "column": 73.87064847966589,
+        "separation": 11.818864904537822,
+        "position_angle": 331.3381464031998
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.818864904537822,
+        "position_angle": 331.3381464031998,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.818864904537822",
+        "--fake.PA",
+        "331.3381464031998",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site07__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site07__nominal_optimized_phase",
+      "site_index": 7,
+      "base_site": "r12_cal12",
+      "base_row_column": [
+        69,
+        74
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 68.72293007062204,
+        "column": 74.4859637006127,
+        "separation": 12.164308322045601,
+        "position_angle": 334.57272226836193
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.164308322045601,
+        "position_angle": 334.57272226836193,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.164308322045601",
+        "--fake.PA",
+        "334.57272226836193",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site07__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site07__blur0p9_optimized_phase",
+      "site_index": 7,
+      "base_site": "r12_cal12",
+      "base_row_column": [
+        69,
+        74
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 68.72293007062204,
+        "column": 74.4859637006127,
+        "separation": 12.164308322045601,
+        "position_angle": 334.57272226836193
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.164308322045601,
+        "position_angle": 334.57272226836193,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "12.164308322045601",
+        "--fake.PA",
+        "334.57272226836193",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site07__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site07__blur1p8_optimized_phase",
+      "site_index": 7,
+      "base_site": "r12_cal12",
+      "base_row_column": [
+        69,
+        74
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 68.72293007062204,
+        "column": 74.4859637006127,
+        "separation": 12.164308322045601,
+        "position_angle": 334.57272226836193
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.164308322045601,
+        "position_angle": 334.57272226836193,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "12.164308322045601",
+        "--fake.PA",
+        "334.57272226836193",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site07__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site08__nominal_integer",
+      "site_index": 8,
+      "base_site": "r12_cal02",
+      "base_row_column": [
+        54,
+        56
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 54.0,
+        "column": 55.99999999999999,
+        "separation": 12.103718436910205,
+        "position_angle": 128.29016319224309
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.103718436910205,
+        "position_angle": 128.29016319224309,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.103718436910205",
+        "--fake.PA",
+        "128.29016319224309",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site08__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site08__nominal_analysis_phase",
+      "site_index": 8,
+      "base_site": "r12_cal02",
+      "base_row_column": [
+        54,
+        56
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 54.16879332335546,
+        "column": 55.87064847966589,
+        "separation": 12.053149906272637,
+        "position_angle": 129.2700103024469
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.053149906272637,
+        "position_angle": 129.2700103024469,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.053149906272637",
+        "--fake.PA",
+        "129.2700103024469",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site08__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site08__nominal_optimized_phase",
+      "site_index": 8,
+      "base_site": "r12_cal02",
+      "base_row_column": [
+        54,
+        56
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 53.72293007062204,
+        "column": 56.48596370061269,
+        "separation": 12.032780294390383,
+        "position_angle": 125.65552677203902
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.032780294390383,
+        "position_angle": 125.65552677203902,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.032780294390383",
+        "--fake.PA",
+        "125.65552677203902",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site08__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site08__blur0p9_optimized_phase",
+      "site_index": 8,
+      "base_site": "r12_cal02",
+      "base_row_column": [
+        54,
+        56
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 53.72293007062204,
+        "column": 56.48596370061269,
+        "separation": 12.032780294390383,
+        "position_angle": 125.65552677203902
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.032780294390383,
+        "position_angle": 125.65552677203902,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "12.032780294390383",
+        "--fake.PA",
+        "125.65552677203902",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site08__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site08__blur1p8_optimized_phase",
+      "site_index": 8,
+      "base_site": "r12_cal02",
+      "base_row_column": [
+        54,
+        56
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 53.72293007062204,
+        "column": 56.48596370061269,
+        "separation": 12.032780294390383,
+        "position_angle": 125.65552677203902
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.032780294390383,
+        "position_angle": 125.65552677203902,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "12.032780294390383",
+        "--fake.PA",
+        "125.65552677203902",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site08__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site09__nominal_integer",
+      "site_index": 9,
+      "base_site": "r12_cal18",
+      "base_row_column": [
+        53,
+        69
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 53.0,
+        "column": 69.0,
+        "separation": 11.853269591129697,
+        "position_angle": 62.35402463626132
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.853269591129697,
+        "position_angle": 62.35402463626132,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.853269591129697",
+        "--fake.PA",
+        "62.35402463626132",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site09__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site09__nominal_analysis_phase",
+      "site_index": 9,
+      "base_site": "r12_cal18",
+      "base_row_column": [
+        53,
+        69
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 53.16879332335546,
+        "column": 68.87064847966589,
+        "separation": 11.6437835984564,
+        "position_angle": 62.53246184939438
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.6437835984564,
+        "position_angle": 62.53246184939438,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.6437835984564",
+        "--fake.PA",
+        "62.53246184939438",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site09__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site09__nominal_optimized_phase",
+      "site_index": 9,
+      "base_site": "r12_cal18",
+      "base_row_column": [
+        53,
+        69
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 52.72293007062204,
+        "column": 69.4859637006127,
+        "separation": 12.327895103696962,
+        "position_angle": 60.95066683462599
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.327895103696962,
+        "position_angle": 60.95066683462599,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.327895103696962",
+        "--fake.PA",
+        "60.95066683462599",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site09__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site09__blur0p9_optimized_phase",
+      "site_index": 9,
+      "base_site": "r12_cal18",
+      "base_row_column": [
+        53,
+        69
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 52.72293007062204,
+        "column": 69.4859637006127,
+        "separation": 12.327895103696962,
+        "position_angle": 60.95066683462599
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.327895103696962,
+        "position_angle": 60.95066683462599,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "12.327895103696962",
+        "--fake.PA",
+        "60.95066683462599",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site09__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site09__blur1p8_optimized_phase",
+      "site_index": 9,
+      "base_site": "r12_cal18",
+      "base_row_column": [
+        53,
+        69
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 52.72293007062204,
+        "column": 69.4859637006127,
+        "separation": 12.327895103696962,
+        "position_angle": 60.95066683462599
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.327895103696962,
+        "position_angle": 60.95066683462599,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "12.327895103696962",
+        "--fake.PA",
+        "60.95066683462599",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site09__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site10__nominal_integer",
+      "site_index": 10,
+      "base_site": "r12_cal17",
+      "base_row_column": [
+        54,
+        71
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 54.0,
+        "column": 71.0,
+        "separation": 12.103718436910205,
+        "position_angle": 51.70983680775693
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.103718436910205,
+        "position_angle": 51.70983680775693,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.103718436910205",
+        "--fake.PA",
+        "51.70983680775693",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site10__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site10__nominal_analysis_phase",
+      "site_index": 10,
+      "base_site": "r12_cal17",
+      "base_row_column": [
+        54,
+        71
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 54.16879332335546,
+        "column": 70.87064847966589,
+        "separation": 11.891083930956704,
+        "position_angle": 51.69506345815056
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.891083930956704,
+        "position_angle": 51.69506345815056,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.891083930956704",
+        "--fake.PA",
+        "51.69506345815056",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site10__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site10__nominal_optimized_phase",
+      "site_index": 10,
+      "base_site": "r12_cal17",
+      "base_row_column": [
+        54,
+        71
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 53.72293007062204,
+        "column": 71.4859637006127,
+        "separation": 12.624052939981297,
+        "position_angle": 50.75786405053605
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.624052939981297,
+        "position_angle": 50.75786405053605,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.624052939981297",
+        "--fake.PA",
+        "50.75786405053605",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site10__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site10__blur0p9_optimized_phase",
+      "site_index": 10,
+      "base_site": "r12_cal17",
+      "base_row_column": [
+        54,
+        71
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 53.72293007062204,
+        "column": 71.4859637006127,
+        "separation": 12.624052939981297,
+        "position_angle": 50.75786405053605
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.624052939981297,
+        "position_angle": 50.75786405053605,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "12.624052939981297",
+        "--fake.PA",
+        "50.75786405053605",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site10__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site10__blur1p8_optimized_phase",
+      "site_index": 10,
+      "base_site": "r12_cal17",
+      "base_row_column": [
+        54,
+        71
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 53.72293007062204,
+        "column": 71.4859637006127,
+        "separation": 12.624052939981297,
+        "position_angle": 50.75786405053605
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.624052939981297,
+        "position_angle": 50.75786405053605,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "12.624052939981297",
+        "--fake.PA",
+        "50.75786405053605",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site10__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site11__nominal_integer",
+      "site_index": 11,
+      "base_site": "r12_cal19",
+      "base_row_column": [
+        52,
+        67
+      ],
+      "arm": "nominal_integer",
+      "psf_control": "nominal",
+      "phase": "integer",
+      "phase_offset_row_column": [
+        0.0,
+        0.0
+      ],
+      "source": {
+        "row": 52.0,
+        "column": 67.0,
+        "separation": 12.020815280171307,
+        "position_angle": 73.07248693585295
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.020815280171307,
+        "position_angle": 73.07248693585295,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.020815280171307",
+        "--fake.PA",
+        "73.07248693585295",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site11__nominal_integer",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site11__nominal_analysis_phase",
+      "site_index": 11,
+      "base_site": "r12_cal19",
+      "base_row_column": [
+        52,
+        67
+      ],
+      "arm": "nominal_analysis_phase",
+      "psf_control": "nominal",
+      "phase": "analysis",
+      "phase_offset_row_column": [
+        0.16879332335545882,
+        -0.12935152033411157
+      ],
+      "source": {
+        "row": 52.16879332335546,
+        "column": 66.87064847966589,
+        "separation": 11.821908302905577,
+        "position_angle": 73.43404917498276
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.821908302905577,
+        "position_angle": 73.43404917498276,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "11.821908302905577",
+        "--fake.PA",
+        "73.43404917498276",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site11__nominal_analysis_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site11__nominal_optimized_phase",
+      "site_index": 11,
+      "base_site": "r12_cal19",
+      "base_row_column": [
+        52,
+        67
+      ],
+      "arm": "nominal_optimized_phase",
+      "psf_control": "nominal",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 51.72293007062204,
+        "column": 67.4859637006127,
+        "separation": 12.433313425795259,
+        "position_angle": 71.30154757124403
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.433313425795259,
+        "position_angle": 71.30154757124403,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/nominal.fits",
+        "--fake.sep",
+        "12.433313425795259",
+        "--fake.PA",
+        "71.30154757124403",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site11__nominal_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site11__blur0p9_optimized_phase",
+      "site_index": 11,
+      "base_site": "r12_cal19",
+      "base_row_column": [
+        52,
+        67
+      ],
+      "arm": "blur0p9_optimized_phase",
+      "psf_control": "blur0p9",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 51.72293007062204,
+        "column": 67.4859637006127,
+        "separation": 12.433313425795259,
+        "position_angle": 71.30154757124403
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.433313425795259,
+        "position_angle": 71.30154757124403,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur0p9.fits",
+        "--fake.sep",
+        "12.433313425795259",
+        "--fake.PA",
+        "71.30154757124403",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site11__blur0p9_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    },
+    {
+      "name": "site11__blur1p8_optimized_phase",
+      "site_index": 11,
+      "base_site": "r12_cal19",
+      "base_row_column": [
+        52,
+        67
+      ],
+      "arm": "blur1p8_optimized_phase",
+      "psf_control": "blur1p8",
+      "phase": "optimized",
+      "phase_offset_row_column": [
+        -0.2770699293779586,
+        0.4859637006126931
+      ],
+      "source": {
+        "row": 51.72293007062204,
+        "column": 67.4859637006127,
+        "separation": 12.433313425795259,
+        "position_angle": 71.30154757124403
+      },
+      "contrast": 0.004574362496414845,
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.433313425795259,
+        "position_angle": 71.30154757124403,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      },
+      "command": [
+        "/usr/local/bin/klipReduce",
+        "--config",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reduction.conf",
+        "--input.directory=",
+        "--input.fileList",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/inputs.txt",
+        "--klip.Nmodes",
+        "125,150,175,200,225,250,300,350",
+        "--psfResponse.file=",
+        "--psfResponse.outputModels=false",
+        "--psfResponse.filter=false",
+        "--planet.sep",
+        "12.387750470790344",
+        "--planet.PA",
+        "260.64315155951886",
+        "--planet.contrast",
+        "0.004574362496414845",
+        "--fake.method",
+        "single",
+        "--fake.fileName",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/psfs/blur1p8.fits",
+        "--fake.sep",
+        "12.433313425795259",
+        "--fake.PA",
+        "71.30154757124403",
+        "--fake.contrast",
+        "0.004574362496414845",
+        "--fake.subtractPlanet=true",
+        "--output.directory",
+        "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site11__blur1p8_optimized_phase",
+        "--output.fileName",
+        "finim.fits",
+        "--output.exactFName=true",
+        "--showTiming=true"
+      ]
+    }
+  ],
+  "methods": [
+    "native",
+    "gaussian_fwhm2p4",
+    "gaussian_fwhm3p6",
+    "exact_identity",
+    "sparse_identity",
+    "exact_identity_lpf1p8",
+    "exact_identity_lpf2p7",
+    "exact_isotropic_fitted_mean",
+    "raw_rectangular_m0p3",
+    "radial_hann_m0p1_trunc0p75"
+  ],
+  "primary_endpoint": "paired mode-200 aperture-maximum and nearest-pixel SNR differences: covariance minus exact identity",
+  "secondary_endpoints": [
+    "Gaussian 3.6 minus exact identity and Gaussian 2.4",
+    "integer versus configured and optimized subpixel phase",
+    "0.25 and 0.5 lambda/D additional Gaussian PSF broadening at optimized phase",
+    "finite positive-response fidelity to the nominal exact response"
+  ],
+  "analysis_contract": {
+    "aperture_radius_pixels": 3.0,
+    "source_exclusion_radius_pixels": 7.0,
+    "known_planet_and_trial_excluded_from_annular_profile": true,
+    "weights_fit_from_signal_free_baseline": true,
+    "entire_injection_aperture_excluded_from_training": true,
+    "no_parameter_selected_from_planet_snr": true,
+    "hcianalyze_reporting_aperture_radius_pixels": 60.0,
+    "hcianalyze_reporting_aperture_affects_annular_normalization": false,
+    "analysis_repair": "The reporting aperture is 60 pixels so the exclusion-only known-planet entry has valid pixels; source measurements retain the reviewed 3-pixel aperture.",
+    "all_mode_geometry_preflight": true,
+    "site_support_repair": "Five score-blind centers lacking complete mode-125 detector-half support were replaced before summary; seven fully supported original centers remain."
+  },
+  "resources": {
+    "cpu_affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27
+    ],
+    "openmp_threads": 16,
+    "blas_threads": 1
+  },
+  "paths": {
+    "klipreduce": "/usr/local/bin/klipReduce",
+    "hcianalyze": "/usr/local/bin/hciAnalyze",
+    "baseline": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_response_47_20260921/response/finim.fits",
+    "parent_response": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_response_47_20260921",
+    "sparse_manifest": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_cpp_response_20260913T222913Z/radial_ld_refit4_filter/finim_outputs/klipPSF_manifest.fits"
+  },
+  "initial_primary_mode_preflight_geometries": [
+    {
+      "source_row_column": [
+        52.0,
+        62.0
+      ],
+      "separation": 11.597413504743201,
+      "position_angle": 97.4314079711725,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        52.16879332335546,
+        61.87064847966589
+      ],
+      "separation": 11.447752230269876,
+      "position_angle": 98.18266014750806,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        51.72293007062204,
+        62.48596370061269
+      ],
+      "separation": 11.820644895179521,
+      "position_angle": 94.9211780220603,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        53.0,
+        58.0
+      ],
+      "separation": 11.853269591129697,
+      "position_angle": 117.64597536373869,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        53.16879332335546,
+        57.87064847966589
+      ],
+      "separation": 11.76534869585397,
+      "position_angle": 118.58544043051346,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        52.72293007062204,
+        58.48596370061269
+      ],
+      "separation": 11.88637018918207,
+      "position_angle": 114.95022364182249,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        56.0,
+        54.0
+      ],
+      "separation": 12.103718436910205,
+      "position_angle": 141.70983680775691,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        56.16879332335546,
+        53.87064847966589
+      ],
+      "separation": 12.102520482851428,
+      "position_angle": 142.71654522969888,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        55.72293007062204,
+        54.48596370061269
+      ],
+      "separation": 11.905278959062946,
+      "position_angle": 139.21325187920058,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        60.0,
+        52.0
+      ],
+      "separation": 12.020815280171307,
+      "position_angle": 163.07248693585296,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        60.16879332335546,
+        51.87064847966589
+      ],
+      "separation": 12.097055621349291,
+      "position_angle": 164.0157356565459,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        59.72293007062204,
+        52.48596370061269
+      ],
+      "separation": 11.643678665079712,
+      "position_angle": 161.07149718259234,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        66.0,
+        52.0
+      ],
+      "separation": 11.76860229593982,
+      "position_angle": 192.2647737278924,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        66.16879332335546,
+        51.87064847966589
+      ],
+      "separation": 11.931650120007877,
+      "position_angle": 192.92488439927772,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        65.72293007062204,
+        52.48596370061269
+      ],
+      "separation": 11.236120936653226,
+      "position_angle": 191.41055110956228,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        71.0,
+        54.0
+      ],
+      "separation": 12.103718436910205,
+      "position_angle": 218.29016319224309,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        71.16879332335546,
+        53.87064847966589
+      ],
+      "separation": 12.309947267900952,
+      "position_angle": 218.53373505124642,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        70.72293007062204,
+        54.48596370061269
+      ],
+      "separation": 11.550912051079262,
+      "position_angle": 218.70513020652245,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        74.0,
+        69.99999999999999
+      ],
+      "separation": 12.349089035228468,
+      "position_angle": 301.75948008481276,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        74.16879332335546,
+        69.87064847966589
+      ],
+      "separation": 12.426114156402367,
+      "position_angle": 300.8426604995786,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        73.72293007062204,
+        70.4859637006127
+      ],
+      "separation": 12.38192182397816,
+      "position_angle": 304.34722377567977,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        69.0,
+        74.0
+      ],
+      "separation": 11.853269591129697,
+      "position_angle": 332.35402463626133,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        69.16879332335546,
+        73.87064847966589
+      ],
+      "separation": 11.818864904537822,
+      "position_angle": 331.3381464031998,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        68.72293007062204,
+        74.4859637006127
+      ],
+      "separation": 12.164308322045601,
+      "position_angle": 334.57272226836193,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        62.0,
+        75.0
+      ],
+      "separation": 11.597413504743201,
+      "position_angle": 7.431407971172507,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        62.16879332335546,
+        74.87064847966589
+      ],
+      "separation": 11.448308087401875,
+      "position_angle": 6.677445950081316,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        61.72293007062204,
+        75.4859637006127
+      ],
+      "separation": 12.116984087069879,
+      "position_angle": 8.4333846951303,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        58.0,
+        74.0
+      ],
+      "separation": 11.853269591129697,
+      "position_angle": 27.64597536373868,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        58.16879332335546,
+        73.87064847966589
+      ],
+      "separation": 11.66070814821706,
+      "position_angle": 27.206193982089804,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        57.72293007062204,
+        74.4859637006127
+      ],
+      "separation": 12.412329974670467,
+      "position_angle": 27.73805023070897,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        54.0,
+        71.0
+      ],
+      "separation": 12.103718436910205,
+      "position_angle": 51.70983680775693,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        54.16879332335546,
+        70.87064847966589
+      ],
+      "separation": 11.891083930956704,
+      "position_angle": 51.69506345815056,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        53.72293007062204,
+        71.4859637006127
+      ],
+      "separation": 12.624052939981297,
+      "position_angle": 50.75786405053605,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        52.0,
+        67.0
+      ],
+      "separation": 12.020815280171307,
+      "position_angle": 73.07248693585295,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        52.16879332335546,
+        66.87064847966589
+      ],
+      "separation": 11.821908302905577,
+      "position_angle": 73.43404917498276,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    },
+    {
+      "source_row_column": [
+        51.72293007062204,
+        67.4859637006127
+      ],
+      "separation": 12.433313425795259,
+      "position_angle": 71.30154757124403,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "minimum_exact_support_pixels": 121,
+      "training_half_width": 20
+    }
+  ],
+  "replacement_all_mode_preflight_geometries": [
+    {
+      "base_site": "r12_hold02",
+      "phase": "integer",
+      "source_row_column": [
+        68.0,
+        52.0
+      ],
+      "separation": 12.349089035228468,
+      "position_angle": 201.3706222693432,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_hold02",
+      "phase": "analysis",
+      "source_row_column": [
+        68.16879332335546,
+        51.87064847966589
+      ],
+      "separation": 12.531538129044886,
+      "position_angle": 201.87380020915097,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_hold02",
+      "phase": "optimized",
+      "source_row_column": [
+        67.72293007062204,
+        52.48596370061269
+      ],
+      "separation": 11.795852406061426,
+      "position_angle": 200.97749743466966,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal16",
+      "phase": "integer",
+      "source_row_column": [
+        56.0,
+        73.0
+      ],
+      "separation": 12.103718436910205,
+      "position_angle": 38.29016319224307,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal16",
+      "phase": "analysis",
+      "source_row_column": [
+        56.16879332335546,
+        72.87064847966589
+      ],
+      "separation": 11.897715926392852,
+      "position_angle": 38.038152016695506,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal16",
+      "phase": "optimized",
+      "source_row_column": [
+        55.72293007062204,
+        73.4859637006127
+      ],
+      "separation": 12.657104238979365,
+      "position_angle": 37.91146357889957,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal13",
+      "phase": "integer",
+      "source_row_column": [
+        67.0,
+        75.0
+      ],
+      "separation": 12.020815280171307,
+      "position_angle": 343.07248693585296,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal13",
+      "phase": "analysis",
+      "source_row_column": [
+        67.16879332335546,
+        74.87064847966589
+      ],
+      "separation": 11.947873923741653,
+      "position_angle": 342.1174596845823,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal13",
+      "phase": "optimized",
+      "source_row_column": [
+        66.72293007062204,
+        75.4859637006127
+      ],
+      "separation": 12.411712374709829,
+      "position_angle": 344.9496101517141,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal02",
+      "phase": "integer",
+      "source_row_column": [
+        54.0,
+        55.99999999999999
+      ],
+      "separation": 12.103718436910205,
+      "position_angle": 128.29016319224309,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal02",
+      "phase": "analysis",
+      "source_row_column": [
+        54.16879332335546,
+        55.87064847966589
+      ],
+      "separation": 12.053149906272637,
+      "position_angle": 129.2700103024469,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal02",
+      "phase": "optimized",
+      "source_row_column": [
+        53.72293007062204,
+        56.48596370061269
+      ],
+      "separation": 12.032780294390383,
+      "position_angle": 125.65552677203902,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal18",
+      "phase": "integer",
+      "source_row_column": [
+        53.0,
+        69.0
+      ],
+      "separation": 11.853269591129697,
+      "position_angle": 62.35402463626132,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 33,
+      "minimum_radial_samples": 33,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal18",
+      "phase": "analysis",
+      "source_row_column": [
+        53.16879332335546,
+        68.87064847966589
+      ],
+      "separation": 11.6437835984564,
+      "position_angle": 62.53246184939438,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 33,
+      "minimum_radial_samples": 33,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal18",
+      "phase": "optimized",
+      "source_row_column": [
+        52.72293007062204,
+        69.4859637006127
+      ],
+      "separation": 12.327895103696962,
+      "position_angle": 60.95066683462599,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 33,
+      "minimum_radial_samples": 33,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4395 @@
+{
+  "schema": 1,
+  "purpose": "direct optimized-contrast planet/injection consistency and PSF-model controls",
+  "primary_mode": 200,
+  "site_count_per_arm": 12,
+  "primary_arm": "nominal_optimized_phase",
+  "planet_source": [
+    75.16879332335546,
+    61.87064847966589
+  ],
+  "planet_methods": {
+    "native": {
+      "label": "Native",
+      "nearest_pixel_row_column": [
+        75,
+        62
+      ],
+      "nearest_pixel_snr": 3.466177463531494,
+      "nearest_pixel_amplitude": 0.6226361393928528,
+      "nearest_pixel_response_to_exact": 160.53448486328125,
+      "nearest_pixel_contrast_estimate": 0.0038785195587298215,
+      "aperture_peak_row_column": [
+        76,
+        62
+      ],
+      "aperture_maximum_snr": 5.153568744659424,
+      "aperture_peak_amplitude": 0.8358889222145081,
+      "aperture_peak_response_to_exact": 147.77867126464844,
+      "aperture_peak_contrast_estimate": 0.005656357003762485,
+      "peak_offset_from_nominal_pixels": 0.8412112428583018,
+      "valid_aperture_pixels": 39,
+      "peak_support_pixels": 1,
+      "peak_policy_radius": 12.0,
+      "peak_training_half_width": 20
+    },
+    "gaussian_fwhm2p4": {
+      "label": "Gaussian 2.4",
+      "nearest_pixel_row_column": [
+        75,
+        62
+      ],
+      "nearest_pixel_snr": 5.064146041870117,
+      "nearest_pixel_amplitude": 0.4285309521229732,
+      "nearest_pixel_response_to_exact": 89.49396377356013,
+      "nearest_pixel_contrast_estimate": 0.004788378277749022,
+      "aperture_peak_row_column": [
+        76,
+        62
+      ],
+      "aperture_maximum_snr": 5.418603897094727,
+      "aperture_peak_amplitude": 0.4493734749804002,
+      "aperture_peak_response_to_exact": 84.39965189240291,
+      "aperture_peak_contrast_estimate": 0.005324352232557605,
+      "peak_offset_from_nominal_pixels": 0.8412112428583018,
+      "valid_aperture_pixels": 39,
+      "peak_support_pixels": null,
+      "peak_policy_radius": 12.0,
+      "peak_training_half_width": 20
+    },
+    "gaussian_fwhm3p6": {
+      "label": "Gaussian 3.6",
+      "nearest_pixel_row_column": [
+        75,
+        62
+      ],
+      "nearest_pixel_snr": 5.649588108062744,
+      "nearest_pixel_amplitude": 0.2810092762472425,
+      "nearest_pixel_response_to_exact": 49.099436176825236,
+      "nearest_pixel_contrast_estimate": 0.005723268903439626,
+      "aperture_peak_row_column": [
+        75,
+        62
+      ],
+      "aperture_maximum_snr": 5.649588108062744,
+      "aperture_peak_amplitude": 0.2810092762472425,
+      "aperture_peak_response_to_exact": 49.099436176825236,
+      "aperture_peak_contrast_estimate": 0.005723268903439626,
+      "peak_offset_from_nominal_pixels": 0.21265700510946392,
+      "valid_aperture_pixels": 39,
+      "peak_support_pixels": null,
+      "peak_policy_radius": 12.0,
+      "peak_training_half_width": 20
+    },
+    "exact_identity": {
+      "label": "Exact identity",
+      "nearest_pixel_row_column": [
+        75,
+        62
+      ],
+      "nearest_pixel_snr": 4.181295871734619,
+      "nearest_pixel_amplitude": 0.004054655845366104,
+      "nearest_pixel_response_to_exact": 0.9999999999999998,
+      "nearest_pixel_contrast_estimate": 0.004054655845366105,
+      "aperture_peak_row_column": [
+        76,
+        61
+      ],
+      "aperture_maximum_snr": 4.2374701499938965,
+      "aperture_peak_amplitude": 0.004283210332020169,
+      "aperture_peak_response_to_exact": 0.9999999999999998,
+      "aperture_peak_contrast_estimate": 0.00428321033202017,
+      "peak_offset_from_nominal_pixels": 1.203716459322122,
+      "valid_aperture_pixels": 39,
+      "peak_support_pixels": 121,
+      "peak_policy_radius": 12.0,
+      "peak_training_half_width": 20
+    },
+    "sparse_identity": {
+      "label": "Sparse identity",
+      "nearest_pixel_row_column": [
+        75,
+        62
+      ],
+      "nearest_pixel_snr": 4.246087551116943,
+      "nearest_pixel_amplitude": 0.004226549186887509,
+      "nearest_pixel_response_to_exact": 1.013269125175887,
+      "nearest_pixel_contrast_estimate": 0.004171200998701948,
+      "aperture_peak_row_column": [
+        75,
+        62
+      ],
+      "aperture_maximum_snr": 4.246087551116943,
+      "aperture_peak_amplitude": 0.004226549186887509,
+      "aperture_peak_response_to_exact": 1.013269125175887,
+      "aperture_peak_contrast_estimate": 0.004171200998701948,
+      "peak_offset_from_nominal_pixels": 0.21265700510946392,
+      "valid_aperture_pixels": 39,
+      "peak_support_pixels": 121,
+      "peak_policy_radius": 12.0,
+      "peak_training_half_width": 20
+    },
+    "exact_identity_lpf1p8": {
+      "label": "Exact response LPF 1.8",
+      "nearest_pixel_row_column": [
+        75,
+        62
+      ],
+      "nearest_pixel_snr": 4.5357747077941895,
+      "nearest_pixel_amplitude": 0.005862630446071982,
+      "nearest_pixel_response_to_exact": 1.3499586419010128,
+      "nearest_pixel_contrast_estimate": 0.004342822264403761,
+      "aperture_peak_row_column": [
+        75,
+        62
+      ],
+      "aperture_maximum_snr": 4.5357747077941895,
+      "aperture_peak_amplitude": 0.005862630446071982,
+      "aperture_peak_response_to_exact": 1.3499586419010128,
+      "aperture_peak_contrast_estimate": 0.004342822264403761,
+      "peak_offset_from_nominal_pixels": 0.21265700510946392,
+      "valid_aperture_pixels": 39,
+      "peak_support_pixels": 121,
+      "peak_policy_radius": 12.0,
+      "peak_training_half_width": 20
+    },
+    "exact_identity_lpf2p7": {
+      "label": "Exact response LPF 2.7",
+      "nearest_pixel_row_column": [
+        75,
+        62
+      ],
+      "nearest_pixel_snr": 4.866249084472656,
+      "nearest_pixel_amplitude": 0.008460583324663908,
+      "nearest_pixel_response_to_exact": 1.812513550544847,
+      "nearest_pixel_contrast_estimate": 0.004667873143414917,
+      "aperture_peak_row_column": [
+        75,
+        62
+      ],
+      "aperture_maximum_snr": 4.866249084472656,
+      "aperture_peak_amplitude": 0.008460583324663908,
+      "aperture_peak_response_to_exact": 1.812513550544847,
+      "aperture_peak_contrast_estimate": 0.004667873143414917,
+      "peak_offset_from_nominal_pixels": 0.21265700510946392,
+      "valid_aperture_pixels": 39,
+      "peak_support_pixels": 121,
+      "peak_policy_radius": 12.0,
+      "peak_training_half_width": 20
+    },
+    "exact_isotropic_fitted_mean": {
+      "label": "Exact identity, fitted mean",
+      "nearest_pixel_row_column": [
+        75,
+        62
+      ],
+      "nearest_pixel_snr": 4.192998886108398,
+      "nearest_pixel_amplitude": 0.00403276757139155,
+      "nearest_pixel_response_to_exact": 0.9999999999999998,
+      "nearest_pixel_contrast_estimate": 0.004032767571391551,
+      "aperture_peak_row_column": [
+        76,
+        61
+      ],
+      "aperture_maximum_snr": 4.279425144195557,
+      "aperture_peak_amplitude": 0.004329776614619332,
+      "aperture_peak_response_to_exact": 0.9999999999999998,
+      "aperture_peak_contrast_estimate": 0.0043297766146193324,
+      "peak_offset_from_nominal_pixels": 1.203716459322122,
+      "valid_aperture_pixels": 39,
+      "peak_support_pixels": 121,
+      "peak_policy_radius": 12.0,
+      "peak_training_half_width": 20
+    },
+    "raw_rectangular_m0p3": {
+      "label": "Raw rectangular PSD",
+      "nearest_pixel_row_column": [
+        75,
+        62
+      ],
+      "nearest_pixel_snr": 3.2291462421417236,
+      "nearest_pixel_amplitude": 0.003263304524810735,
+      "nearest_pixel_response_to_exact": 1.0,
+      "nearest_pixel_contrast_estimate": 0.003263304524810735,
+      "aperture_peak_row_column": [
+        76,
+        61
+      ],
+      "aperture_maximum_snr": 3.6937150955200195,
+      "aperture_peak_amplitude": 0.003803132487277692,
+      "aperture_peak_response_to_exact": 0.9999999999999994,
+      "aperture_peak_contrast_estimate": 0.003803132487277694,
+      "peak_offset_from_nominal_pixels": 1.203716459322122,
+      "valid_aperture_pixels": 39,
+      "peak_support_pixels": 121,
+      "peak_policy_radius": 12.0,
+      "peak_training_half_width": 20
+    },
+    "radial_hann_m0p1_trunc0p75": {
+      "label": "Radial Hann, truncation 0.75",
+      "nearest_pixel_row_column": [
+        75,
+        62
+      ],
+      "nearest_pixel_snr": 3.1773314476013184,
+      "nearest_pixel_amplitude": 0.003206708035118746,
+      "nearest_pixel_response_to_exact": 0.9999999999999999,
+      "nearest_pixel_contrast_estimate": 0.0032067080351187464,
+      "aperture_peak_row_column": [
+        76,
+        61
+      ],
+      "aperture_maximum_snr": 3.6461498737335205,
+      "aperture_peak_amplitude": 0.003780833479872194,
+      "aperture_peak_response_to_exact": 0.9999999999999999,
+      "aperture_peak_contrast_estimate": 0.0037808334798721944,
+      "peak_offset_from_nominal_pixels": 1.203716459322122,
+      "valid_aperture_pixels": 39,
+      "peak_support_pixels": 121,
+      "peak_policy_radius": 12.0,
+      "peak_training_half_width": 20
+    }
+  },
+  "arms": {
+    "blur0p9_optimized_phase": {
+      "methods": {
+        "native": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.811888794104258,
+            "sample_standard_deviation": 0.9493748947045823,
+            "minimum": 2.5678460597991943,
+            "maximum": 5.792155742645264,
+            "planet_comparison": {
+              "observed": 3.466177463531494,
+              "standardized_deviation": -0.3641462740389182,
+              "predictive_t": -0.34986042346111984,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7330500980299063
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.26403162876765,
+            "sample_standard_deviation": 0.8428577885659809,
+            "minimum": 3.1257896423339844,
+            "maximum": 5.792155742645264,
+            "planet_comparison": {
+              "observed": 5.153568744659424,
+              "standardized_deviation": 1.0553822103313686,
+              "predictive_t": 1.0139784293945653,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.332377271403428
+            }
+          }
+        },
+        "gaussian_fwhm2p4": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.742002944151561,
+            "sample_standard_deviation": 1.1528879512014427,
+            "minimum": 3.309779405593872,
+            "maximum": 6.743432521820068,
+            "planet_comparison": {
+              "observed": 5.064146041870117,
+              "standardized_deviation": 0.27942272914106353,
+              "predictive_t": 0.26846067449122457,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7933127501639243
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.910620629787445,
+            "sample_standard_deviation": 1.259754339832369,
+            "minimum": 3.309779405593872,
+            "maximum": 7.286584377288818,
+            "planet_comparison": {
+              "observed": 5.418603897094727,
+              "standardized_deviation": 0.4032399423008751,
+              "predictive_t": 0.387420405006654,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7058361890541858
+            }
+          }
+        },
+        "gaussian_fwhm3p6": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.5028169353803,
+            "sample_standard_deviation": 1.3320904119567942,
+            "minimum": 3.002469539642334,
+            "maximum": 6.780364036560059,
+            "planet_comparison": {
+              "observed": 5.649588108062744,
+              "standardized_deviation": 0.8608808849527547,
+              "predictive_t": 0.8271076005214454,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.425754873728615
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.745352864265442,
+            "sample_standard_deviation": 1.5307429243834179,
+            "minimum": 3.002469539642334,
+            "maximum": 8.046012878417969,
+            "planet_comparison": {
+              "observed": 5.649588108062744,
+              "standardized_deviation": 0.5907165921812296,
+              "predictive_t": 0.5675421439680772,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5817439085324376
+            }
+          }
+        },
+        "exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.439887960751851,
+            "sample_standard_deviation": 1.0721216062653247,
+            "minimum": 2.897648572921753,
+            "maximum": 6.953822135925293,
+            "planet_comparison": {
+              "observed": 4.181295871734619,
+              "standardized_deviation": -0.24119660261117482,
+              "predictive_t": -0.2317342000811201,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.8209989269154987
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.721176167329152,
+            "sample_standard_deviation": 1.0472187415167589,
+            "minimum": 2.897648572921753,
+            "maximum": 6.953822135925293,
+            "planet_comparison": {
+              "observed": 4.2374701499938965,
+              "standardized_deviation": -0.4618958753876683,
+              "predictive_t": -0.4437752026560715,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6658078112170867
+            }
+          }
+        },
+        "sparse_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.597527384757996,
+            "sample_standard_deviation": 1.0250474427822696,
+            "minimum": 3.1489830017089844,
+            "maximum": 6.472114086151123,
+            "planet_comparison": {
+              "observed": 4.246087551116943,
+              "standardized_deviation": -0.3428522612447526,
+              "predictive_t": -0.32940179772613,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7480390092833311
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.740691761175792,
+            "sample_standard_deviation": 0.9745202884122833,
+            "minimum": 3.1489830017089844,
+            "maximum": 6.472114086151123,
+            "planet_comparison": {
+              "observed": 4.246087551116943,
+              "standardized_deviation": -0.5075360830759839,
+              "predictive_t": -0.4876248958345358,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6353886607237303
+            }
+          }
+        },
+        "exact_identity_lpf1p8": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.495841085910797,
+            "sample_standard_deviation": 1.0851775916806865,
+            "minimum": 2.9274497032165527,
+            "maximum": 6.993373394012451,
+            "planet_comparison": {
+              "observed": 4.5357747077941895,
+              "standardized_deviation": 0.036799158211094724,
+              "predictive_t": 0.03535548759554347,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.9724297099204164
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.776262243588765,
+            "sample_standard_deviation": 1.0776383014061173,
+            "minimum": 2.9274497032165527,
+            "maximum": 6.993373394012451,
+            "planet_comparison": {
+              "observed": 4.5357747077941895,
+              "standardized_deviation": -0.22316164475667233,
+              "predictive_t": -0.21440677304995587,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.834152710180838
+            }
+          }
+        },
+        "exact_identity_lpf2p7": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.483280579249064,
+            "sample_standard_deviation": 1.0639823260412393,
+            "minimum": 2.9145359992980957,
+            "maximum": 6.828266143798828,
+            "planet_comparison": {
+              "observed": 4.866249084472656,
+              "standardized_deviation": 0.359938784555288,
+              "predictive_t": 0.3458179983221117,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.736002801438558
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.771155456701915,
+            "sample_standard_deviation": 1.0895601152742198,
+            "minimum": 2.9145359992980957,
+            "maximum": 6.828266143798828,
+            "planet_comparison": {
+              "observed": 4.866249084472656,
+              "standardized_deviation": 0.08727708222580118,
+              "predictive_t": 0.08385310827787397,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.9346797950544596
+            }
+          }
+        },
+        "exact_isotropic_fitted_mean": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.437802871068318,
+            "sample_standard_deviation": 1.0611979140148606,
+            "minimum": 2.9256575107574463,
+            "maximum": 6.9075398445129395,
+            "planet_comparison": {
+              "observed": 4.192998886108398,
+              "standardized_deviation": -0.23068645511537617,
+              "predictive_t": -0.2216363769927917,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.8286577960923225
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.712880313396454,
+            "sample_standard_deviation": 1.0346699152017476,
+            "minimum": 2.9256575107574463,
+            "maximum": 6.9075398445129395,
+            "planet_comparison": {
+              "observed": 4.279425144195557,
+              "standardized_deviation": -0.4189308714135937,
+              "predictive_t": -0.4024957620684907,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6950304564091705
+            }
+          }
+        },
+        "raw_rectangular_m0p3": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.21897433201472,
+            "sample_standard_deviation": 0.9246456367803653,
+            "minimum": 2.9544031620025635,
+            "maximum": 6.28563117980957,
+            "planet_comparison": {
+              "observed": 3.2291462421417236,
+              "standardized_deviation": -1.0704945229824452,
+              "predictive_t": -1.0284978697418183,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.325800729510365
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.4265027443567915,
+            "sample_standard_deviation": 0.8905861270481137,
+            "minimum": 2.9969682693481445,
+            "maximum": 6.28563117980957,
+            "planet_comparison": {
+              "observed": 3.6937150955200195,
+              "standardized_deviation": -0.8228150277454112,
+              "predictive_t": -0.7905351078957255,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.4459243918519811
+            }
+          }
+        },
+        "radial_hann_m0p1_trunc0p75": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.233892261981964,
+            "sample_standard_deviation": 0.8981272843236282,
+            "minimum": 2.9814915657043457,
+            "maximum": 6.192191123962402,
+            "planet_comparison": {
+              "observed": 3.1773314476013184,
+              "standardized_deviation": -1.176404316874008,
+              "predictive_t": -1.1302527083362177,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.28241232787212694
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.4917347232500715,
+            "sample_standard_deviation": 0.8635112242379267,
+            "minimum": 2.9814915657043457,
+            "maximum": 6.192191123962402,
+            "planet_comparison": {
+              "observed": 3.6461498737335205,
+              "standardized_deviation": -0.9792401369916225,
+              "predictive_t": -0.9408234916098548,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3669974132385425
+            }
+          }
+        }
+      },
+      "paired_differences": {
+        "gaussian_fwhm3p6_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 0.06292897462844849,
+            "sample_standard_deviation": 1.176942212133749,
+            "minimum": -1.5440294742584229,
+            "maximum": 2.1784963607788086,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -1.5440294742584229,
+              "r12_cal01": -0.2119147777557373,
+              "r12_hold02": -0.2041459083557129,
+              "r12_cal16": 1.7646446228027344,
+              "r12_cal13": 2.1784963607788086,
+              "r12_cal09": 0.30312681198120117,
+              "r12_cal10": -0.5720760822296143,
+              "r12_cal12": 1.2074151039123535,
+              "r12_cal02": -1.5176849365234375,
+              "r12_cal18": 0.10482096672058105,
+              "r12_cal17": 0.11261844635009766,
+              "r12_cal19": -0.8661234378814697
+            },
+            "planet_comparison": {
+              "observed": 1.468292236328125,
+              "standardized_deviation": 1.194080089243982,
+              "predictive_t": 1.1472350411163152,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.27562498727685664
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 0.02417669693628947,
+            "sample_standard_deviation": 1.3124680657508152,
+            "minimum": -1.534749984741211,
+            "maximum": 2.5137648582458496,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -1.534749984741211,
+              "r12_cal01": -0.2119147777557373,
+              "r12_hold02": -0.5614728927612305,
+              "r12_cal16": 2.5137648582458496,
+              "r12_cal13": 2.0523738861083984,
+              "r12_cal09": -0.6375813484191895,
+              "r12_cal10": -0.8404586315155029,
+              "r12_cal12": 0.9639959335327148,
+              "r12_cal02": -1.5176849365234375,
+              "r12_cal18": 0.10482096672058105,
+              "r12_cal17": 0.8014254570007324,
+              "r12_cal19": -0.8423981666564941
+            },
+            "planet_comparison": {
+              "observed": 1.4121179580688477,
+              "standardized_deviation": 1.0575047860982183,
+              "predictive_t": 1.0160177342277077,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3314477062944582
+            }
+          }
+        },
+        "gaussian_fwhm3p6_minus_sparse_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.09471044937769572,
+            "sample_standard_deviation": 0.8402268086465836,
+            "minimum": -1.1197617053985596,
+            "maximum": 1.6465115547180176,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "sparse_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -1.1197617053985596,
+              "r12_cal01": 0.0732882022857666,
+              "r12_hold02": 0.0841987133026123,
+              "r12_cal16": 0.864811897277832,
+              "r12_cal13": 1.6465115547180176,
+              "r12_cal09": -0.15551996231079102,
+              "r12_cal10": -0.7142064571380615,
+              "r12_cal12": 0.6503558158874512,
+              "r12_cal02": -1.0359768867492676,
+              "r12_cal18": -0.2737386226654053,
+              "r12_cal17": -0.14577841758728027,
+              "r12_cal19": -1.010709524154663
+            },
+            "planet_comparison": {
+              "observed": 1.4035005569458008,
+              "standardized_deviation": 1.7831030751527406,
+              "predictive_t": 1.7131500208102914,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.11469054626995216
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 0.004661103089650472,
+            "sample_standard_deviation": 1.106041339794716,
+            "minimum": -1.3752002716064453,
+            "maximum": 2.126516819000244,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "sparse_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -1.3752002716064453,
+              "r12_cal01": 0.0732882022857666,
+              "r12_hold02": -0.13547992706298828,
+              "r12_cal16": 2.126516819000244,
+              "r12_cal13": 1.6465115547180176,
+              "r12_cal09": -0.3626217842102051,
+              "r12_cal10": -1.009390115737915,
+              "r12_cal12": 0.8836240768432617,
+              "r12_cal02": -1.0359768867492676,
+              "r12_cal18": -0.2737386226654053,
+              "r12_cal17": 0.5053844451904297,
+              "r12_cal19": -0.9869842529296875
+            },
+            "planet_comparison": {
+              "observed": 1.4035005569458008,
+              "standardized_deviation": 1.2647261937928815,
+              "predictive_t": 1.215109622885934,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.24976201701414166
+            }
+          }
+        },
+        "gaussian_fwhm3p6_minus_gaussian_fwhm2p4": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.2391860087712606,
+            "sample_standard_deviation": 0.2616112424943599,
+            "minimum": -0.6469380855560303,
+            "maximum": 0.14272117614746094,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "gaussian_fwhm2p4",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.6469380855560303,
+              "r12_cal01": -0.37400269508361816,
+              "r12_hold02": -0.04057621955871582,
+              "r12_cal16": 0.036931514739990234,
+              "r12_cal13": 0.14272117614746094,
+              "r12_cal09": -0.2531318664550781,
+              "r12_cal10": -0.5388929843902588,
+              "r12_cal12": 0.13080883026123047,
+              "r12_cal02": -0.2743210792541504,
+              "r12_cal18": -0.3073098659515381,
+              "r12_cal17": -0.2342085838317871,
+              "r12_cal19": -0.5113122463226318
+            },
+            "planet_comparison": {
+              "observed": 0.585442066192627,
+              "standardized_deviation": 3.152112528121439,
+              "predictive_t": 3.028451758283831,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.011481025777695974
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.16526776552200317,
+            "sample_standard_deviation": 0.43319243506142524,
+            "minimum": -0.6376585960388184,
+            "maximum": 0.7594285011291504,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "gaussian_fwhm2p4",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.6376585960388184,
+              "r12_cal01": -0.37400269508361816,
+              "r12_hold02": -0.08689308166503906,
+              "r12_cal16": 0.7594285011291504,
+              "r12_cal13": 0.14272117614746094,
+              "r12_cal09": -0.2531318664550781,
+              "r12_cal10": -0.5705749988555908,
+              "r12_cal12": -0.23960018157958984,
+              "r12_cal02": -0.2743210792541504,
+              "r12_cal18": -0.3073098659515381,
+              "r12_cal17": 0.48315906524658203,
+              "r12_cal19": -0.6250295639038086
+            },
+            "planet_comparison": {
+              "observed": 0.23098421096801758,
+              "standardized_deviation": 0.9147250607777432,
+              "predictive_t": 0.8788394113295168,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3982794977469182
+            }
+          }
+        },
+        "raw_rectangular_m0p3_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.22091362873713175,
+            "sample_standard_deviation": 0.20727505651254413,
+            "minimum": -0.6681909561157227,
+            "maximum": 0.05675458908081055,
+            "first_method": "raw_rectangular_m0p3",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.1842937469482422,
+              "r12_cal01": -0.14615702629089355,
+              "r12_hold02": -0.1158761978149414,
+              "r12_cal16": -0.32170581817626953,
+              "r12_cal13": -0.4659154415130615,
+              "r12_cal09": -0.1501772403717041,
+              "r12_cal10": -0.35569286346435547,
+              "r12_cal12": -0.0458683967590332,
+              "r12_cal02": -0.6681909561157227,
+              "r12_cal18": 0.05675458908081055,
+              "r12_cal17": 0.0068874359130859375,
+              "r12_cal19": -0.2607278823852539
+            },
+            "planet_comparison": {
+              "observed": -0.9521496295928955,
+              "standardized_deviation": -3.527853342119388,
+              "predictive_t": -3.3894518554121045,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.006040726789448532
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.29467342297236127,
+            "sample_standard_deviation": 0.2779093783574916,
+            "minimum": -0.8382344245910645,
+            "maximum": 0.0993196964263916,
+            "first_method": "raw_rectangular_m0p3",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.1842937469482422,
+              "r12_cal01": -0.14615702629089355,
+              "r12_hold02": -0.2546424865722656,
+              "r12_cal16": -0.8382344245910645,
+              "r12_cal13": -0.35976171493530273,
+              "r12_cal09": -0.5975370407104492,
+              "r12_cal10": -0.2651486396789551,
+              "r12_cal12": 0.00356292724609375,
+              "r12_cal02": -0.6681909561157227,
+              "r12_cal18": 0.0993196964263916,
+              "r12_cal17": -0.12506651878356934,
+              "r12_cal19": -0.19993114471435547
+            },
+            "planet_comparison": {
+              "observed": -0.543755054473877,
+              "standardized_deviation": -0.8962692550127149,
+              "predictive_t": -0.8611076467046813,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.40755727527354024
+            }
+          }
+        },
+        "radial_hann_m0p1_trunc0p75_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.2059956987698873,
+            "sample_standard_deviation": 0.24040958878906266,
+            "minimum": -0.7616310119628906,
+            "maximum": 0.08384299278259277,
+            "first_method": "radial_hann_m0p1_trunc0p75",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.06981897354125977,
+              "r12_cal01": -0.045659780502319336,
+              "r12_hold02": 0.03860282897949219,
+              "r12_cal16": -0.3983650207519531,
+              "r12_cal13": -0.4313035011291504,
+              "r12_cal09": -0.1630253791809082,
+              "r12_cal10": -0.32183218002319336,
+              "r12_cal12": -0.13143396377563477,
+              "r12_cal02": -0.7616310119628906,
+              "r12_cal18": 0.08384299278259277,
+              "r12_cal17": -0.03451848030090332,
+              "r12_cal19": -0.23680591583251953
+            },
+            "planet_comparison": {
+              "observed": -1.0039644241333008,
+              "standardized_deviation": -3.3192050674133373,
+              "predictive_t": -3.1889890772723253,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.008622039878108417
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.2294414440790812,
+            "sample_standard_deviation": 0.30074444179643506,
+            "minimum": -0.7616310119628906,
+            "maximum": 0.08384299278259277,
+            "first_method": "radial_hann_m0p1_trunc0p75",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.06981897354125977,
+              "r12_cal01": 0.03329062461853027,
+              "r12_hold02": 0.003509521484375,
+              "r12_cal16": -0.7313570976257324,
+              "r12_cal13": -0.22559261322021484,
+              "r12_cal09": -0.5866727828979492,
+              "r12_cal10": -0.18192148208618164,
+              "r12_cal12": 0.03472709655761719,
+              "r12_cal02": -0.7616310119628906,
+              "r12_cal18": 0.08384299278259277,
+              "r12_cal17": -0.1148676872253418,
+              "r12_cal19": -0.23680591583251953
+            },
+            "planet_comparison": {
+              "observed": -0.591320276260376,
+              "standardized_deviation": -1.2032768752755199,
+              "predictive_t": -1.1560710273253385,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.2721440384702289
+            }
+          }
+        }
+      },
+      "response_fidelity": {
+        "unweighted": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9255798425796732,
+            "sample_standard_deviation": 0.034181483342628875,
+            "minimum": 0.8793123201680885,
+            "maximum": 0.9724674154783404
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.8906952663594158,
+            "sample_standard_deviation": 0.028165398940158494,
+            "minimum": 0.8500421983631615,
+            "maximum": 0.9343623392573119
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.367794434515979,
+            "sample_standard_deviation": 0.08712498626715495,
+            "minimum": 0.23303889339094763,
+            "maximum": 0.476245570688708
+          }
+        },
+        "raw_rectangular_m0p3": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9200465826235398,
+            "sample_standard_deviation": 0.034857762529676824,
+            "minimum": 0.8722534588122055,
+            "maximum": 0.9689121870663746
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.8817416219228011,
+            "sample_standard_deviation": 0.02865758805447448,
+            "minimum": 0.8457204302335626,
+            "maximum": 0.9325157135831545
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.3819421076362664,
+            "sample_standard_deviation": 0.0843415388389923,
+            "minimum": 0.2474048781941343,
+            "maximum": 0.48905409065883976
+          }
+        },
+        "radial_hann_m0p1": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9190570918344321,
+            "sample_standard_deviation": 0.03356150560894678,
+            "minimum": 0.8748788562198826,
+            "maximum": 0.967491216347543
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.8814310036233636,
+            "sample_standard_deviation": 0.028383772480462893,
+            "minimum": 0.8500481766247081,
+            "maximum": 0.9304658781179036
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.3851473953102132,
+            "sample_standard_deviation": 0.08065438542379993,
+            "minimum": 0.2529046189581189,
+            "maximum": 0.4843418079614738
+          }
+        }
+      }
+    },
+    "blur1p8_optimized_phase": {
+      "methods": {
+        "native": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 2.935029536485672,
+            "sample_standard_deviation": 0.9454292611670971,
+            "minimum": 1.7446919679641724,
+            "maximum": 4.8477044105529785,
+            "planet_comparison": {
+              "observed": 3.466177463531494,
+              "standardized_deviation": 0.5618061010615854,
+              "predictive_t": 0.5397658425565552,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6001146997364744
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 3.499266187349955,
+            "sample_standard_deviation": 0.7324547090699826,
+            "minimum": 2.4638612270355225,
+            "maximum": 4.8477044105529785,
+            "planet_comparison": {
+              "observed": 5.153568744659424,
+              "standardized_deviation": 2.2585731743195168,
+              "predictive_t": 2.169966915824877,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.052780145700900026
+            }
+          }
+        },
+        "gaussian_fwhm2p4": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.8092631300290427,
+            "sample_standard_deviation": 1.122222618953688,
+            "minimum": 2.3919103145599365,
+            "maximum": 5.69666862487793,
+            "planet_comparison": {
+              "observed": 5.064146041870117,
+              "standardized_deviation": 1.1182121003861722,
+              "predictive_t": 1.0743434351840793,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3056702606810062
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.074748992919922,
+            "sample_standard_deviation": 1.2294786870687082,
+            "minimum": 2.539621353149414,
+            "maximum": 6.5398383140563965,
+            "planet_comparison": {
+              "observed": 5.418603897094727,
+              "standardized_deviation": 1.0930282227004595,
+              "predictive_t": 1.0501475481472813,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3161746393936115
+            }
+          }
+        },
+        "gaussian_fwhm3p6": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.748616178830465,
+            "sample_standard_deviation": 1.2946353315975234,
+            "minimum": 2.255066394805908,
+            "maximum": 5.920024394989014,
+            "planet_comparison": {
+              "observed": 5.649588108062744,
+              "standardized_deviation": 1.4683454736914703,
+              "predictive_t": 1.4107406991016278,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.18597013243673702
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.042563537756602,
+            "sample_standard_deviation": 1.507357091376642,
+            "minimum": 2.255066394805908,
+            "maximum": 7.262340545654297,
+            "planet_comparison": {
+              "observed": 5.649588108062744,
+              "standardized_deviation": 1.066120682019995,
+              "predictive_t": 1.024295619271693,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.32769413826732485
+            }
+          }
+        },
+        "exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.5077066322167716,
+            "sample_standard_deviation": 1.0951217283466887,
+            "minimum": 1.9561609029769897,
+            "maximum": 5.989409446716309,
+            "planet_comparison": {
+              "observed": 4.181295871734619,
+              "standardized_deviation": 0.6150816133789702,
+              "predictive_t": 0.5909512991389733,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5664974611218827
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 3.848844846089681,
+            "sample_standard_deviation": 1.0141556024465355,
+            "minimum": 2.0832037925720215,
+            "maximum": 5.989409446716309,
+            "planet_comparison": {
+              "observed": 4.2374701499938965,
+              "standardized_deviation": 0.38320086480486903,
+              "predictive_t": 0.36816748210629885,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7197351013112898
+            }
+          }
+        },
+        "sparse_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.6414923469225564,
+            "sample_standard_deviation": 1.040051747565261,
+            "minimum": 2.1120662689208984,
+            "maximum": 5.578864574432373,
+            "planet_comparison": {
+              "observed": 4.246087551116943,
+              "standardized_deviation": 0.5813126179632229,
+              "predictive_t": 0.5585070977883169,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5876865782110559
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 3.8246061205863953,
+            "sample_standard_deviation": 0.9648517703071032,
+            "minimum": 2.3809282779693604,
+            "maximum": 5.578864574432373,
+            "planet_comparison": {
+              "observed": 4.246087551116943,
+              "standardized_deviation": 0.43683542229123395,
+              "predictive_t": 0.4196978981289654,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6827862324485907
+            }
+          }
+        },
+        "exact_identity_lpf1p8": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.599796235561371,
+            "sample_standard_deviation": 1.1023333425155086,
+            "minimum": 2.0213725566864014,
+            "maximum": 6.044464588165283,
+            "planet_comparison": {
+              "observed": 4.5357747077941895,
+              "standardized_deviation": 0.849088416482921,
+              "predictive_t": 0.8157777632921703,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.43193749935972825
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 3.946202516555786,
+            "sample_standard_deviation": 1.0370447236795899,
+            "minimum": 2.1676018238067627,
+            "maximum": 6.044464588165283,
+            "planet_comparison": {
+              "observed": 4.5357747077941895,
+              "standardized_deviation": 0.5685118276736542,
+              "predictive_t": 0.5462084962904286,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5958270013242812
+            }
+          }
+        },
+        "exact_identity_lpf2p7": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.6418768564860025,
+            "sample_standard_deviation": 1.0768728596668247,
+            "minimum": 2.0571858882904053,
+            "maximum": 5.925319194793701,
+            "planet_comparison": {
+              "observed": 4.866249084472656,
+              "standardized_deviation": 1.1369700861116179,
+              "predictive_t": 1.0923655249239859,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.2980192267183622
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 3.993026614189148,
+            "sample_standard_deviation": 1.043797883837189,
+            "minimum": 2.2280123233795166,
+            "maximum": 5.925319194793701,
+            "planet_comparison": {
+              "observed": 4.866249084472656,
+              "standardized_deviation": 0.8365819511660487,
+              "predictive_t": 0.8037619400812617,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.4385589937760527
+            }
+          }
+        },
+        "exact_isotropic_fitted_mean": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.5081485410531363,
+            "sample_standard_deviation": 1.0848500347749424,
+            "minimum": 1.9870120286941528,
+            "maximum": 5.946774482727051,
+            "planet_comparison": {
+              "observed": 4.192998886108398,
+              "standardized_deviation": 0.6312857289969463,
+              "predictive_t": 0.6065197098466775,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5564799754351658
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 3.843371490637461,
+            "sample_standard_deviation": 1.0001645707652076,
+            "minimum": 2.1180779933929443,
+            "maximum": 5.946774482727051,
+            "planet_comparison": {
+              "observed": 4.279425144195557,
+              "standardized_deviation": 0.4359819036825897,
+              "predictive_t": 0.4188778639747225,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6833677983952675
+            }
+          }
+        },
+        "raw_rectangular_m0p3": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.2430393596490226,
+            "sample_standard_deviation": 0.9599988807740656,
+            "minimum": 1.988057255744934,
+            "maximum": 5.336446762084961,
+            "planet_comparison": {
+              "observed": 3.2291462421417236,
+              "standardized_deviation": -0.014472014275783996,
+              "predictive_t": -0.01390426156693294,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.9891553420148573
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 3.5119884610176086,
+            "sample_standard_deviation": 0.8675337079413432,
+            "minimum": 2.177081346511841,
+            "maximum": 5.336446762084961,
+            "planet_comparison": {
+              "observed": 3.6937150955200195,
+              "standardized_deviation": 0.20947501271581487,
+              "predictive_t": 0.20125708232688352,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.8441707648163732
+            }
+          }
+        },
+        "radial_hann_m0p1_trunc0p75": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.256643990675608,
+            "sample_standard_deviation": 0.9335896459448286,
+            "minimum": 2.011082410812378,
+            "maximum": 5.2541375160217285,
+            "planet_comparison": {
+              "observed": 3.1773314476013184,
+              "standardized_deviation": -0.08495439449097839,
+              "predictive_t": -0.0816215420848166,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.936413885593872
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 3.571323116620382,
+            "sample_standard_deviation": 0.8597114589288983,
+            "minimum": 2.094979763031006,
+            "maximum": 5.2541375160217285,
+            "planet_comparison": {
+              "observed": 3.6461498737335205,
+              "standardized_deviation": 0.0870370591621103,
+              "predictive_t": 0.0836225015775172,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.9348589771384788
+            }
+          }
+        }
+      },
+      "paired_differences": {
+        "gaussian_fwhm3p6_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 0.24090954661369324,
+            "sample_standard_deviation": 1.1040930716370805,
+            "minimum": -1.2849092483520508,
+            "maximum": 2.1913416385650635,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -1.229085922241211,
+              "r12_cal01": 0.25344109535217285,
+              "r12_hold02": 0.040693044662475586,
+              "r12_cal16": 1.846900463104248,
+              "r12_cal13": 2.1913416385650635,
+              "r12_cal09": 0.4185163974761963,
+              "r12_cal10": -0.5759437084197998,
+              "r12_cal12": 1.2728357315063477,
+              "r12_cal02": -1.2849092483520508,
+              "r12_cal18": 0.29890549182891846,
+              "r12_cal17": 0.27092671394348145,
+              "r12_cal19": -0.6127071380615234
+            },
+            "planet_comparison": {
+              "observed": 1.468292236328125,
+              "standardized_deviation": 1.111665964803624,
+              "predictive_t": 1.0680541115517317,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.308375023270631
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 0.193718691666921,
+            "sample_standard_deviation": 1.258367627131322,
+            "minimum": -1.2849092483520508,
+            "maximum": 2.562838554382324,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -1.229085922241211,
+              "r12_cal01": -0.08405041694641113,
+              "r12_hold02": -0.3622853755950928,
+              "r12_cal16": 2.562838554382324,
+              "r12_cal13": 1.9965450763702393,
+              "r12_cal09": -0.2215745449066162,
+              "r12_cal10": -0.9402725696563721,
+              "r12_cal12": 1.071321964263916,
+              "r12_cal02": -1.2849092483520508,
+              "r12_cal18": 0.17186260223388672,
+              "r12_cal17": 1.2430992126464844,
+              "r12_cal19": -0.5988650321960449
+            },
+            "planet_comparison": {
+              "observed": 1.4121179580688477,
+              "standardized_deviation": 0.9682379299438032,
+              "predictive_t": 0.9302529129957631,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3722055883114348
+            }
+          }
+        },
+        "gaussian_fwhm3p6_minus_sparse_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 0.10712383190790813,
+            "sample_standard_deviation": 0.8484450329835831,
+            "minimum": -0.9124126434326172,
+            "maximum": 1.7844305038452148,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "sparse_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.9124126434326172,
+              "r12_cal01": 0.42992138862609863,
+              "r12_hold02": 0.2868025302886963,
+              "r12_cal16": 1.1031556129455566,
+              "r12_cal13": 1.7844305038452148,
+              "r12_cal09": 0.02406764030456543,
+              "r12_cal10": -0.6852216720581055,
+              "r12_cal12": 0.8390011787414551,
+              "r12_cal02": -0.8743643760681152,
+              "r12_cal18": -0.0550379753112793,
+              "r12_cal17": 0.11946892738342285,
+              "r12_cal19": -0.7743251323699951
+            },
+            "planet_comparison": {
+              "observed": 1.4035005569458008,
+              "standardized_deviation": 1.527944268209272,
+              "predictive_t": 1.4680013687124938,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.1701083520113491
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 0.2179574171702067,
+            "sample_standard_deviation": 1.083229192866951,
+            "minimum": -1.0914697647094727,
+            "maximum": 2.2032365798950195,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "sparse_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -1.0914697647094727,
+              "r12_cal01": 0.16105937957763672,
+              "r12_hold02": 0.019109725952148438,
+              "r12_cal16": 2.2032365798950195,
+              "r12_cal13": 1.7844305038452148,
+              "r12_cal09": 0.02406764030456543,
+              "r12_cal10": -0.8626153469085693,
+              "r12_cal12": 1.0937023162841797,
+              "r12_cal02": -0.8743643760681152,
+              "r12_cal18": -0.1288163661956787,
+              "r12_cal17": 0.9974031448364258,
+              "r12_cal19": -0.710254430770874
+            },
+            "planet_comparison": {
+              "observed": 1.4035005569458008,
+              "standardized_deviation": 1.0944527230085552,
+              "predictive_t": 1.0515161637738621,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3155733354946291
+            }
+          }
+        },
+        "gaussian_fwhm3p6_minus_gaussian_fwhm2p4": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.06064695119857788,
+            "sample_standard_deviation": 0.2748846085265467,
+            "minimum": -0.5144217014312744,
+            "maximum": 0.340456485748291,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "gaussian_fwhm2p4",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.5144217014312744,
+              "r12_cal01": -0.1734156608581543,
+              "r12_hold02": 0.1887505054473877,
+              "r12_cal16": 0.22335577011108398,
+              "r12_cal13": 0.340456485748291,
+              "r12_cal09": -0.051605939865112305,
+              "r12_cal10": -0.37406373023986816,
+              "r12_cal12": 0.29848670959472656,
+              "r12_cal02": -0.14011001586914062,
+              "r12_cal18": -0.13684391975402832,
+              "r12_cal17": -0.06429338455200195,
+              "r12_cal19": -0.32405853271484375
+            },
+            "planet_comparison": {
+              "observed": 0.585442066192627,
+              "standardized_deviation": 2.35040084948521,
+              "predictive_t": 2.258192092379851,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.045235317083719334
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.03218545516331991,
+            "sample_standard_deviation": 0.4074359660776684,
+            "minimum": -0.5144217014312744,
+            "maximum": 0.7225022315979004,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "gaussian_fwhm2p4",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.5144217014312744,
+              "r12_cal01": -0.2221529483795166,
+              "r12_hold02": 0.04726600646972656,
+              "r12_cal16": 0.7225022315979004,
+              "r12_cal13": 0.340456485748291,
+              "r12_cal09": -0.051605939865112305,
+              "r12_cal10": -0.4678630828857422,
+              "r12_cal12": -0.027481555938720703,
+              "r12_cal02": -0.14011001586914062,
+              "r12_cal18": -0.28455495834350586,
+              "r12_cal17": 0.625006914138794,
+              "r12_cal19": -0.4132668972015381
+            },
+            "planet_comparison": {
+              "observed": 0.23098421096801758,
+              "standardized_deviation": 0.6459166299549759,
+              "predictive_t": 0.6205766248001636,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5475203736826304
+            }
+          }
+        },
+        "raw_rectangular_m0p3_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.264667272567749,
+            "sample_standard_deviation": 0.19421067587126253,
+            "minimum": -0.6529626846313477,
+            "maximum": 0.031896352767944336,
+            "first_method": "raw_rectangular_m0p3",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.24496841430664062,
+              "r12_cal01": -0.19458365440368652,
+              "r12_hold02": -0.23967266082763672,
+              "r12_cal16": -0.3751077651977539,
+              "r12_cal13": -0.5144085884094238,
+              "r12_cal09": -0.23299908638000488,
+              "r12_cal10": -0.3653743267059326,
+              "r12_cal12": -0.1182708740234375,
+              "r12_cal02": -0.6529626846313477,
+              "r12_cal18": 0.031896352767944336,
+              "r12_cal17": -0.013615131378173828,
+              "r12_cal19": -0.25594043731689453
+            },
+            "planet_comparison": {
+              "observed": -0.9521496295928955,
+              "standardized_deviation": -3.539879329192292,
+              "predictive_t": -3.401006050058112,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.005918575032969592
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.33685638507207233,
+            "sample_standard_deviation": 0.28604896731690205,
+            "minimum": -0.9016966819763184,
+            "maximum": 0.09387755393981934,
+            "first_method": "raw_rectangular_m0p3",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.24496841430664062,
+              "r12_cal01": -0.1790180206298828,
+              "r12_hold02": -0.2704346179962158,
+              "r12_cal16": -0.9016966819763184,
+              "r12_cal13": -0.42946720123291016,
+              "r12_cal09": -0.6660940647125244,
+              "r12_cal10": -0.20427155494689941,
+              "r12_cal12": -0.0796670913696289,
+              "r12_cal02": -0.6529626846313477,
+              "r12_cal18": 0.09387755393981934,
+              "r12_cal17": -0.10665416717529297,
+              "r12_cal19": -0.40091967582702637
+            },
+            "planet_comparison": {
+              "observed": -0.543755054473877,
+              "standardized_deviation": -0.7232980819419983,
+              "predictive_t": -0.694922319072797,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5015193100492448
+            }
+          }
+        },
+        "radial_hann_m0p1_trunc0p75_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.25106264154116315,
+            "sample_standard_deviation": 0.22012875805616217,
+            "minimum": -0.7352719306945801,
+            "maximum": 0.054921507835388184,
+            "first_method": "radial_hann_m0p1_trunc0p75",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.15577459335327148,
+              "r12_cal01": -0.11084556579589844,
+              "r12_hold02": -0.08481645584106445,
+              "r12_cal16": -0.4369645118713379,
+              "r12_cal13": -0.49908447265625,
+              "r12_cal09": -0.22533226013183594,
+              "r12_cal10": -0.3372018337249756,
+              "r12_cal12": -0.2007436752319336,
+              "r12_cal02": -0.7352719306945801,
+              "r12_cal18": 0.054921507835388184,
+              "r12_cal17": -0.04710578918457031,
+              "r12_cal19": -0.23453211784362793
+            },
+            "planet_comparison": {
+              "observed": -1.0039644241333008,
+              "standardized_deviation": -3.4202790641286738,
+              "predictive_t": -3.2860978322226946,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.007254805463117058
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.2775217294692993,
+            "sample_standard_deviation": 0.2709636280947513,
+            "minimum": -0.7352719306945801,
+            "maximum": 0.011775970458984375,
+            "first_method": "radial_hann_m0p1_trunc0p75",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.15577459335327148,
+              "r12_cal01": -0.015375375747680664,
+              "r12_hold02": -0.17084646224975586,
+              "r12_cal16": -0.6722207069396973,
+              "r12_cal13": -0.3533318042755127,
+              "r12_cal09": -0.6287045478820801,
+              "r12_cal10": -0.10882425308227539,
+              "r12_cal12": -0.04749727249145508,
+              "r12_cal02": -0.7352719306945801,
+              "r12_cal18": 0.011775970458984375,
+              "r12_cal17": -0.07191205024719238,
+              "r12_cal19": -0.3822777271270752
+            },
+            "planet_comparison": {
+              "observed": -0.591320276260376,
+              "standardized_deviation": -1.1580836476006542,
+              "predictive_t": -1.1126507786529234,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.28958296642829945
+            }
+          }
+        }
+      },
+      "response_fidelity": {
+        "unweighted": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9170536579557553,
+            "sample_standard_deviation": 0.033810644990946895,
+            "minimum": 0.85808806334048,
+            "maximum": 0.9653606608733393
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.6800691709687324,
+            "sample_standard_deviation": 0.02357614892104385,
+            "minimum": 0.6499313054701514,
+            "maximum": 0.7186379805340475
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.39031689731472174,
+            "sample_standard_deviation": 0.07828208917706446,
+            "minimum": 0.2609191339058703,
+            "maximum": 0.5135025565200083
+          }
+        },
+        "raw_rectangular_m0p3": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9101490089132546,
+            "sample_standard_deviation": 0.037322465252450865,
+            "minimum": 0.837342799970036,
+            "maximum": 0.956269432140048
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.6550131579151727,
+            "sample_standard_deviation": 0.024727070281495244,
+            "minimum": 0.6153265325197408,
+            "maximum": 0.6928393355390802
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.40555480275516054,
+            "sample_standard_deviation": 0.08007177002232779,
+            "minimum": 0.29248721878836104,
+            "maximum": 0.5466781826068612
+          }
+        },
+        "radial_hann_m0p1": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9082054368311558,
+            "sample_standard_deviation": 0.03628711291606203,
+            "minimum": 0.83485592123324,
+            "maximum": 0.953055196517868
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.6545192707720516,
+            "sample_standard_deviation": 0.025364865192294302,
+            "minimum": 0.6129109394270097,
+            "maximum": 0.6915959056060369
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.4105802480695407,
+            "sample_standard_deviation": 0.07660799428032188,
+            "minimum": 0.302796618855443,
+            "maximum": 0.5504685193376627
+          }
+        }
+      }
+    },
+    "nominal_analysis_phase": {
+      "methods": {
+        "native": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.2617983023325605,
+            "sample_standard_deviation": 0.9953056480321097,
+            "minimum": 2.9358081817626953,
+            "maximum": 6.299432277679443,
+            "planet_comparison": {
+              "observed": 3.466177463531494,
+              "standardized_deviation": -0.7993733787948912,
+              "predictive_t": -0.7680131000841631,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.4586495671030565
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.510648449261983,
+            "sample_standard_deviation": 0.8372850289984476,
+            "minimum": 3.4105758666992188,
+            "maximum": 6.299432277679443,
+            "planet_comparison": {
+              "observed": 5.153568744659424,
+              "standardized_deviation": 0.7678631208377105,
+              "predictive_t": 0.7377390234885307,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.47611665133027614
+            }
+          }
+        },
+        "gaussian_fwhm2p4": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 5.194007436434428,
+            "sample_standard_deviation": 1.202228214045126,
+            "minimum": 3.7868480682373047,
+            "maximum": 7.344040393829346,
+            "planet_comparison": {
+              "observed": 5.064146041870117,
+              "standardized_deviation": -0.10801725749503716,
+              "predictive_t": -0.10377962413061408,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.9192122039292864
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.423195004463196,
+            "sample_standard_deviation": 1.4148571146192408,
+            "minimum": 3.7868480682373047,
+            "maximum": 8.829056739807129,
+            "planet_comparison": {
+              "observed": 5.418603897094727,
+              "standardized_deviation": -0.0032449265166290477,
+              "predictive_t": -0.003117624554045891,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.9975683210124024
+            }
+          }
+        },
+        "gaussian_fwhm3p6": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.838605602582295,
+            "sample_standard_deviation": 1.4022358561434543,
+            "minimum": 3.2869040966033936,
+            "maximum": 7.274880886077881,
+            "planet_comparison": {
+              "observed": 5.649588108062744,
+              "standardized_deviation": 0.5783495707425998,
+              "predictive_t": 0.5556602941018629,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5895656451488555
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.17199029525121,
+            "sample_standard_deviation": 1.7453846663147425,
+            "minimum": 3.2869040966033936,
+            "maximum": 9.445526123046875,
+            "planet_comparison": {
+              "observed": 5.649588108062744,
+              "standardized_deviation": 0.27363470186772537,
+              "predictive_t": 0.26289971776250576,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7974868671648525
+            }
+          }
+        },
+        "exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.872963984807332,
+            "sample_standard_deviation": 1.089302592584504,
+            "minimum": 3.292356014251709,
+            "maximum": 7.393306255340576,
+            "planet_comparison": {
+              "observed": 4.181295871734619,
+              "standardized_deviation": -0.6349641667809176,
+              "predictive_t": -0.6100538385540827,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5542197288718411
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.28572956720988,
+            "sample_standard_deviation": 1.00708157351632,
+            "minimum": 3.702119827270508,
+            "maximum": 7.393306255340576,
+            "planet_comparison": {
+              "observed": 4.2374701499938965,
+              "standardized_deviation": -1.0408882902661867,
+              "predictive_t": -1.0000531214259487,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.33877611460341406
+            }
+          }
+        },
+        "sparse_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 5.021626532077789,
+            "sample_standard_deviation": 0.9972526420259222,
+            "minimum": 3.694812059402466,
+            "maximum": 6.870845794677734,
+            "planet_comparison": {
+              "observed": 4.246087551116943,
+              "standardized_deviation": -0.7776755340405374,
+              "predictive_t": -0.7471664851517786,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.47063308923813485
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.289410928885142,
+            "sample_standard_deviation": 0.9855180752113295,
+            "minimum": 3.694812059402466,
+            "maximum": 7.014627933502197,
+            "planet_comparison": {
+              "observed": 4.246087551116943,
+              "standardized_deviation": -1.0586547360325929,
+              "predictive_t": -1.0171225703874658,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3309448963588222
+            }
+          }
+        },
+        "exact_identity_lpf1p8": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.9068804780642195,
+            "sample_standard_deviation": 1.092708901987926,
+            "minimum": 3.3038365840911865,
+            "maximum": 7.367079734802246,
+            "planet_comparison": {
+              "observed": 4.5357747077941895,
+              "standardized_deviation": -0.33961997526961724,
+              "predictive_t": -0.32629631781151897,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7503239422058356
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.326159278551738,
+            "sample_standard_deviation": 1.027582239838707,
+            "minimum": 3.7319531440734863,
+            "maximum": 7.367079734802246,
+            "planet_comparison": {
+              "observed": 4.5357747077941895,
+              "standardized_deviation": -0.7691691624425214,
+              "predictive_t": -0.7389938276743567,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.475384484782864
+            }
+          }
+        },
+        "exact_identity_lpf2p7": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.861267705758412,
+            "sample_standard_deviation": 1.0620416542567863,
+            "minimum": 3.2582762241363525,
+            "maximum": 7.139861106872559,
+            "planet_comparison": {
+              "observed": 4.866249084472656,
+              "standardized_deviation": 0.004690379792805605,
+              "predictive_t": 0.0045063711411998915,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.996485135804631
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.27704119682312,
+            "sample_standard_deviation": 1.02876565795713,
+            "minimum": 3.712944507598877,
+            "maximum": 7.145904541015625,
+            "planet_comparison": {
+              "observed": 4.866249084472656,
+              "standardized_deviation": -0.3993058177760266,
+              "predictive_t": -0.3836406204246341,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7085562349576822
+            }
+          }
+        },
+        "exact_isotropic_fitted_mean": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.868047714233398,
+            "sample_standard_deviation": 1.0767167812847565,
+            "minimum": 3.320651054382324,
+            "maximum": 7.333399295806885,
+            "planet_comparison": {
+              "observed": 4.192998886108398,
+              "standardized_deviation": -0.6269511535981824,
+              "predictive_t": -0.6023551845098795,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5591499613988758
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.262021521727244,
+            "sample_standard_deviation": 1.0029382885965001,
+            "minimum": 3.665677785873413,
+            "maximum": 7.333399295806885,
+            "planet_comparison": {
+              "observed": 4.279425144195557,
+              "standardized_deviation": -0.9797176842323184,
+              "predictive_t": -0.9412823041578989,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.36677253253314124
+            }
+          }
+        },
+        "raw_rectangular_m0p3": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.678066770235698,
+            "sample_standard_deviation": 0.9297921223861354,
+            "minimum": 3.4892771244049072,
+            "maximum": 6.8126301765441895,
+            "planet_comparison": {
+              "observed": 3.2291462421417236,
+              "standardized_deviation": -1.558327386529791,
+              "predictive_t": -1.4971925245735311,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.16247628768257313
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.987288316090901,
+            "sample_standard_deviation": 0.852049147956112,
+            "minimum": 3.647139310836792,
+            "maximum": 6.8126301765441895,
+            "planet_comparison": {
+              "observed": 3.6937150955200195,
+              "standardized_deviation": -1.5181908504619646,
+              "predictive_t": -1.4586305880494972,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.17262248483784465
+            }
+          }
+        },
+        "radial_hann_m0p1_trunc0p75": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.684553881486257,
+            "sample_standard_deviation": 0.9170072330379384,
+            "minimum": 3.5066885948181152,
+            "maximum": 6.697245121002197,
+            "planet_comparison": {
+              "observed": 3.1773314476013184,
+              "standardized_deviation": -1.6436320015619565,
+              "predictive_t": -1.5791505476704573,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.14260670256804586
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.063068588574727,
+            "sample_standard_deviation": 0.864003956326734,
+            "minimum": 3.685854434967041,
+            "maximum": 6.697245121002197,
+            "planet_comparison": {
+              "observed": 3.6461498737335205,
+              "standardized_deviation": -1.639944706810325,
+              "predictive_t": -1.5756079094637736,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.14341963957085152
+            }
+          }
+        }
+      },
+      "paired_differences": {
+        "gaussian_fwhm3p6_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.03435838222503662,
+            "sample_standard_deviation": 1.2876756305997297,
+            "minimum": -1.756749153137207,
+            "maximum": 2.21854829788208,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -1.756749153137207,
+              "r12_cal01": -0.48515939712524414,
+              "r12_hold02": -0.3663797378540039,
+              "r12_cal16": 1.9206371307373047,
+              "r12_cal13": 2.21854829788208,
+              "r12_cal09": 0.05113697052001953,
+              "r12_cal10": -0.6790618896484375,
+              "r12_cal12": 1.352334976196289,
+              "r12_cal02": -1.6608366966247559,
+              "r12_cal18": -0.00545191764831543,
+              "r12_cal17": 0.06258845329284668,
+              "r12_cal19": -1.0639076232910156
+            },
+            "planet_comparison": {
+              "observed": 1.468292236328125,
+              "standardized_deviation": 1.166948090687488,
+              "predictive_t": 1.1211674600889532,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.2860961542687254
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.11373927195866902,
+            "sample_standard_deviation": 1.431884015749683,
+            "minimum": -1.6608366966247559,
+            "maximum": 2.9226956367492676,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -1.6555790901184082,
+              "r12_cal01": -1.076097011566162,
+              "r12_hold02": -0.3858308792114258,
+              "r12_cal16": 2.9226956367492676,
+              "r12_cal13": 1.4706768989562988,
+              "r12_cal09": -0.20113754272460938,
+              "r12_cal10": -1.277599811553955,
+              "r12_cal12": 1.352334976196289,
+              "r12_cal02": -1.6608366966247559,
+              "r12_cal18": -0.41521573066711426,
+              "r12_cal17": 0.6256256103515625,
+              "r12_cal19": -1.0639076232910156
+            },
+            "planet_comparison": {
+              "observed": 1.4121179580688477,
+              "standardized_deviation": 1.0656290685866987,
+              "predictive_t": 1.0238232923629358,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.327907463060209
+            }
+          }
+        },
+        "gaussian_fwhm3p6_minus_sparse_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.18302092949549356,
+            "sample_standard_deviation": 0.9641049577470346,
+            "minimum": -1.2924284934997559,
+            "maximum": 1.718745231628418,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "sparse_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -1.2924284934997559,
+              "r12_cal01": -0.13727927207946777,
+              "r12_hold02": -0.08165740966796875,
+              "r12_cal16": 1.083395004272461,
+              "r12_cal13": 1.718745231628418,
+              "r12_cal09": -0.44550132751464844,
+              "r12_cal10": -0.9872446060180664,
+              "r12_cal12": 0.831446647644043,
+              "r12_cal02": -1.138376235961914,
+              "r12_cal18": -0.40790796279907227,
+              "r12_cal17": -0.13168907165527344,
+              "r12_cal19": -1.2077536582946777
+            },
+            "planet_comparison": {
+              "observed": 1.4035005569458008,
+              "standardized_deviation": 1.6455900093582672,
+              "predictive_t": 1.5810317407118124,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.1421766619219976
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.11742063363393147,
+            "sample_standard_deviation": 1.2426646996290651,
+            "minimum": -1.6755657196044922,
+            "maximum": 2.4308981895446777,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "sparse_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -1.6755657196044922,
+              "r12_cal01": -0.7078089714050293,
+              "r12_hold02": -0.20862674713134766,
+              "r12_cal16": 2.4308981895446777,
+              "r12_cal13": 1.718745231628418,
+              "r12_cal09": -0.44550132751464844,
+              "r12_cal10": -0.9872446060180664,
+              "r12_cal12": 0.831446647644043,
+              "r12_cal02": -1.138376235961914,
+              "r12_cal18": -0.40790796279907227,
+              "r12_cal17": 0.38864755630493164,
+              "r12_cal19": -1.2077536582946777
+            },
+            "planet_comparison": {
+              "observed": 1.4035005569458008,
+              "standardized_deviation": 1.2239192044593579,
+              "predictive_t": 1.1759035357000078,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.2644561031598223
+            }
+          }
+        },
+        "gaussian_fwhm3p6_minus_gaussian_fwhm2p4": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.35540183385213214,
+            "sample_standard_deviation": 0.320550734464263,
+            "minimum": -0.7627644538879395,
+            "maximum": 0.1910109519958496,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "gaussian_fwhm2p4",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.7627644538879395,
+              "r12_cal01": -0.5126533508300781,
+              "r12_hold02": -0.030399799346923828,
+              "r12_cal16": -0.06915950775146484,
+              "r12_cal13": 0.030759334564208984,
+              "r12_cal09": -0.3400001525878906,
+              "r12_cal10": -0.7368259429931641,
+              "r12_cal12": 0.1910109519958496,
+              "r12_cal02": -0.4179096221923828,
+              "r12_cal18": -0.49994397163391113,
+              "r12_cal17": -0.3982069492340088,
+              "r12_cal19": -0.7187285423278809
+            },
+            "planet_comparison": {
+              "observed": 0.585442066192627,
+              "standardized_deviation": 2.935085772357356,
+              "predictive_t": 2.81993919592297,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.016669484498477112
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.2512047092119853,
+            "sample_standard_deviation": 0.43005349431341344,
+            "minimum": -0.7368259429931641,
+            "maximum": 0.6164693832397461,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "gaussian_fwhm2p4",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.6615943908691406,
+              "r12_cal01": -0.5367903709411621,
+              "r12_hold02": -0.12360668182373047,
+              "r12_cal16": 0.6164693832397461,
+              "r12_cal13": 0.030759334564208984,
+              "r12_cal09": -0.3400001525878906,
+              "r12_cal10": -0.7368259429931641,
+              "r12_cal12": 0.1910109519958496,
+              "r12_cal02": -0.4179096221923828,
+              "r12_cal18": -0.49994397163391113,
+              "r12_cal17": 0.18270349502563477,
+              "r12_cal19": -0.7187285423278809
+            },
+            "planet_comparison": {
+              "observed": 0.23098421096801758,
+              "standardized_deviation": 1.1212300947579192,
+              "predictive_t": 1.0772430303857312,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3044293307329691
+            }
+          }
+        },
+        "raw_rectangular_m0p3_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.19489721457163492,
+            "sample_standard_deviation": 0.2307657778630344,
+            "minimum": -0.5806760787963867,
+            "maximum": 0.19692111015319824,
+            "first_method": "raw_rectangular_m0p3",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.2629814147949219,
+              "r12_cal01": -0.20511388778686523,
+              "r12_hold02": -0.15250301361083984,
+              "r12_cal16": -0.24148082733154297,
+              "r12_cal13": -0.5441751480102539,
+              "r12_cal09": -0.14230132102966309,
+              "r12_cal10": -0.2633500099182129,
+              "r12_cal12": -0.06067037582397461,
+              "r12_cal02": -0.5806760787963867,
+              "r12_cal18": 0.19692111015319824,
+              "r12_cal17": 0.15881776809692383,
+              "r12_cal19": -0.24125337600708008
+            },
+            "planet_comparison": {
+              "observed": -0.9521496295928955,
+              "standardized_deviation": -3.2814762311537806,
+              "predictive_t": -3.1527403838995816,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.009197153401216171
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.29844125111897785,
+            "sample_standard_deviation": 0.2506715353600386,
+            "minimum": -0.7908782958984375,
+            "maximum": 0.0027227401733398438,
+            "first_method": "raw_rectangular_m0p3",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.2629814147949219,
+              "r12_cal01": -0.3516659736633301,
+              "r12_hold02": -0.037735939025878906,
+              "r12_cal16": -0.7908782958984375,
+              "r12_cal13": -0.5558681488037109,
+              "r12_cal09": -0.394575834274292,
+              "r12_cal10": -0.33165884017944336,
+              "r12_cal12": 0.0027227401733398438,
+              "r12_cal02": -0.5806760787963867,
+              "r12_cal18": -0.05498051643371582,
+              "r12_cal17": -0.09555959701538086,
+              "r12_cal19": -0.12743711471557617
+            },
+            "planet_comparison": {
+              "observed": -0.543755054473877,
+              "standardized_deviation": -0.9786264842657775,
+              "predictive_t": -0.9402339131414527,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3672865309978376
+            }
+          }
+        },
+        "radial_hann_m0p1_trunc0p75_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.18841010332107544,
+            "sample_standard_deviation": 0.24846639315431968,
+            "minimum": -0.6960611343383789,
+            "maximum": 0.21433258056640625,
+            "first_method": "radial_hann_m0p1_trunc0p75",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.1285381317138672,
+              "r12_cal01": -0.23641610145568848,
+              "r12_hold02": 0.012735366821289062,
+              "r12_cal16": -0.30303287506103516,
+              "r12_cal13": -0.5108251571655273,
+              "r12_cal09": -0.1771564483642578,
+              "r12_cal10": -0.2241349220275879,
+              "r12_cal12": -0.12854814529418945,
+              "r12_cal02": -0.6960611343383789,
+              "r12_cal18": 0.21433258056640625,
+              "r12_cal17": 0.11274909973144531,
+              "r12_cal19": -0.19602537155151367
+            },
+            "planet_comparison": {
+              "observed": -1.0039644241333008,
+              "standardized_deviation": -3.282352637145957,
+              "predictive_t": -3.153582407540647,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.00918336221576094
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.2226609786351522,
+            "sample_standard_deviation": 0.255960738142111,
+            "minimum": -0.6960611343383789,
+            "maximum": 0.04456520080566406,
+            "first_method": "radial_hann_m0p1_trunc0p75",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.010703563690185547,
+              "r12_cal01": -0.18502330780029297,
+              "r12_hold02": 0.04456520080566406,
+              "r12_cal16": -0.5346860885620117,
+              "r12_cal13": -0.5151796340942383,
+              "r12_cal09": -0.4294309616088867,
+              "r12_cal10": -0.22156000137329102,
+              "r12_cal12": 0.020779132843017578,
+              "r12_cal02": -0.6960611343383789,
+              "r12_cal18": -0.016265392303466797,
+              "r12_cal17": -0.04137754440307617,
+              "r12_cal19": -0.08698844909667969
+            },
+            "planet_comparison": {
+              "observed": -0.591320276260376,
+              "standardized_deviation": -1.4402962747378147,
+              "predictive_t": -1.383791900436665,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.19385692065953924
+            }
+          }
+        }
+      },
+      "response_fidelity": {
+        "unweighted": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9898862670997977,
+            "sample_standard_deviation": 0.004977378732069968,
+            "minimum": 0.9830358299294054,
+            "maximum": 0.996136418476392
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.9903880065266181,
+            "sample_standard_deviation": 0.009592161154054334,
+            "minimum": 0.9774242971798222,
+            "maximum": 1.004390218829164
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.1374490743128462,
+            "sample_standard_deviation": 0.036335113049812635,
+            "minimum": 0.08781933605434629,
+            "maximum": 0.18341362292644547
+          }
+        },
+        "raw_rectangular_m0p3": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.989062630387194,
+            "sample_standard_deviation": 0.0045520765704205515,
+            "minimum": 0.9822457147050171,
+            "maximum": 0.9950127386395451
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.9894629121716482,
+            "sample_standard_deviation": 0.010714016875110938,
+            "minimum": 0.974058784579882,
+            "maximum": 1.0071340294418503
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.14423454004247824,
+            "sample_standard_deviation": 0.03189498699776068,
+            "minimum": 0.0997479320338594,
+            "maximum": 0.18759892308760795
+          }
+        },
+        "radial_hann_m0p1": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9887159471039886,
+            "sample_standard_deviation": 0.004305305128727679,
+            "minimum": 0.9825551551478361,
+            "maximum": 0.9945939425028869
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.9894521730212645,
+            "sample_standard_deviation": 0.010973413555300232,
+            "minimum": 0.9745070897234952,
+            "maximum": 1.0073802548226625
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.1469817922484392,
+            "sample_standard_deviation": 0.02991146344802009,
+            "minimum": 0.1038406930666605,
+            "maximum": 0.18597141471852832
+          }
+        }
+      }
+    },
+    "nominal_integer": {
+      "methods": {
+        "native": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.302443643411,
+            "sample_standard_deviation": 0.9849596755858799,
+            "minimum": 3.043612003326416,
+            "maximum": 6.280209064483643,
+            "planet_comparison": {
+              "observed": 3.466177463531494,
+              "standardized_deviation": -0.8490359560984799,
+              "predictive_t": -0.8157273609851197,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.43196513568163153
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.551156520843506,
+            "sample_standard_deviation": 0.8290004149419388,
+            "minimum": 3.541995048522949,
+            "maximum": 6.280209064483643,
+            "planet_comparison": {
+              "observed": 5.153568744659424,
+              "standardized_deviation": 0.726673006379749,
+              "predictive_t": 0.6981648415894891,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.49956723285403903
+            }
+          }
+        },
+        "gaussian_fwhm2p4": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 5.237880567709605,
+            "sample_standard_deviation": 1.2019689291827975,
+            "minimum": 3.7982728481292725,
+            "maximum": 7.30357551574707,
+            "planet_comparison": {
+              "observed": 5.064146041870117,
+              "standardized_deviation": -0.14454161136894592,
+              "predictive_t": -0.13887108825913022,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.8920618033209147
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.383179525534312,
+            "sample_standard_deviation": 1.3719519400309186,
+            "minimum": 3.7982728481292725,
+            "maximum": 8.450780868530273,
+            "planet_comparison": {
+              "observed": 5.418603897094727,
+              "standardized_deviation": 0.02582041726594009,
+              "predictive_t": 0.024807454483631895,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.98065285849707
+            }
+          }
+        },
+        "gaussian_fwhm3p6": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.883902867635091,
+            "sample_standard_deviation": 1.4063400710290235,
+            "minimum": 3.313311815261841,
+            "maximum": 7.243158340454102,
+            "planet_comparison": {
+              "observed": 5.649588108062744,
+              "standardized_deviation": 0.5444524096276365,
+              "predictive_t": 0.523092955130427,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6112841993777759
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.140691737333934,
+            "sample_standard_deviation": 1.7061993503205863,
+            "minimum": 3.313311815261841,
+            "maximum": 9.13767147064209,
+            "planet_comparison": {
+              "observed": 5.649588108062744,
+              "standardized_deviation": 0.2982631370907457,
+              "predictive_t": 0.2865619529427283,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.779773117660647
+            }
+          }
+        },
+        "exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.91864142815272,
+            "sample_standard_deviation": 1.1013461207532447,
+            "minimum": 3.327225685119629,
+            "maximum": 7.51106595993042,
+            "planet_comparison": {
+              "observed": 4.181295871734619,
+              "standardized_deviation": -0.6694948504597337,
+              "predictive_t": -0.6432298463167803,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5332546171073135
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.210336168607076,
+            "sample_standard_deviation": 1.0454686150125283,
+            "minimum": 3.5097413063049316,
+            "maximum": 7.51106595993042,
+            "planet_comparison": {
+              "observed": 4.2374701499938965,
+              "standardized_deviation": -0.9305549728066403,
+              "predictive_t": -0.8940482988580223,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3904382370582342
+            }
+          }
+        },
+        "sparse_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 5.079711278279622,
+            "sample_standard_deviation": 1.007329013006528,
+            "minimum": 3.7433502674102783,
+            "maximum": 6.992734432220459,
+            "planet_comparison": {
+              "observed": 4.246087551116943,
+              "standardized_deviation": -0.8275585398603788,
+              "predictive_t": -0.7950925269208564,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.44337753845727124
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.244443754355113,
+            "sample_standard_deviation": 0.9891196058468019,
+            "minimum": 3.7433502674102783,
+            "maximum": 6.992734432220459,
+            "planet_comparison": {
+              "observed": 4.246087551116943,
+              "standardized_deviation": -1.0093382006956177,
+              "predictive_t": -0.9697407758540267,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3530155051215993
+            }
+          }
+        },
+        "exact_identity_lpf1p8": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.952451944351196,
+            "sample_standard_deviation": 1.106596244720383,
+            "minimum": 3.340193033218384,
+            "maximum": 7.507559299468994,
+            "planet_comparison": {
+              "observed": 4.5357747077941895,
+              "standardized_deviation": -0.3765395360276988,
+              "predictive_t": -0.361767484432437,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7243791642497731
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.263678232828776,
+            "sample_standard_deviation": 1.066257091264115,
+            "minimum": 3.5500526428222656,
+            "maximum": 7.507559299468994,
+            "planet_comparison": {
+              "observed": 4.5357747077941895,
+              "standardized_deviation": -0.6826716849044459,
+              "predictive_t": -0.6558897393525426,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5253763376790586
+            }
+          }
+        },
+        "exact_identity_lpf2p7": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.905871232350667,
+            "sample_standard_deviation": 1.0762775032800558,
+            "minimum": 3.295213460922241,
+            "maximum": 7.295802116394043,
+            "planet_comparison": {
+              "observed": 4.866249084472656,
+              "standardized_deviation": -0.036814063062043566,
+              "predictive_t": -0.035369807713134534,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.9724185481376731
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.223863244056702,
+            "sample_standard_deviation": 1.0653956319020266,
+            "minimum": 3.5453219413757324,
+            "maximum": 7.295802116394043,
+            "planet_comparison": {
+              "observed": 4.866249084472656,
+              "standardized_deviation": -0.33566324929041147,
+              "predictive_t": -0.32249481845454187,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7531243936992799
+            }
+          }
+        },
+        "exact_isotropic_fitted_mean": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.915377557277679,
+            "sample_standard_deviation": 1.0895849658362737,
+            "minimum": 3.3556222915649414,
+            "maximum": 7.459442615509033,
+            "planet_comparison": {
+              "observed": 4.192998886108398,
+              "standardized_deviation": -0.6629851675815331,
+              "predictive_t": -0.6369755453099233,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5371717217908242
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.196071783701579,
+            "sample_standard_deviation": 1.0434608530836484,
+            "minimum": 3.4734463691711426,
+            "maximum": 7.459442615509033,
+            "planet_comparison": {
+              "observed": 4.279425144195557,
+              "standardized_deviation": -0.8784676845299342,
+              "predictive_t": -0.8440044510072484,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.41664441554177745
+            }
+          }
+        },
+        "raw_rectangular_m0p3": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.7222301959991455,
+            "sample_standard_deviation": 0.933416200045174,
+            "minimum": 3.504239797592163,
+            "maximum": 6.8716020584106445,
+            "planet_comparison": {
+              "observed": 3.2291462421417236,
+              "standardized_deviation": -1.599590786816387,
+              "predictive_t": -1.5368371172192086,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.15258418609490929
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.91432938973109,
+            "sample_standard_deviation": 0.8767340752144587,
+            "minimum": 3.5539915561676025,
+            "maximum": 6.8716020584106445,
+            "planet_comparison": {
+              "observed": 3.6937150955200195,
+              "standardized_deviation": -1.3922286457412922,
+              "predictive_t": -1.337610016302659,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.2080221377076982
+            }
+          }
+        },
+        "radial_hann_m0p1_trunc0p75": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.738620599110921,
+            "sample_standard_deviation": 0.910881666633736,
+            "minimum": 3.52593731880188,
+            "maximum": 6.753202438354492,
+            "planet_comparison": {
+              "observed": 3.1773314476013184,
+              "standardized_deviation": -1.714041690266442,
+              "predictive_t": -1.6467979884438981,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.12784091028322442
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.9806074897448225,
+            "sample_standard_deviation": 0.8729110866309296,
+            "minimum": 3.52593731880188,
+            "maximum": 6.753202438354492,
+            "planet_comparison": {
+              "observed": 3.6461498737335205,
+              "standardized_deviation": -1.52874403412809,
+              "predictive_t": -1.468769758952833,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.1699035911063954
+            }
+          }
+        }
+      },
+      "paired_differences": {
+        "gaussian_fwhm3p6_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.03473856051762899,
+            "sample_standard_deviation": 1.2984447712313452,
+            "minimum": -1.7825660705566406,
+            "maximum": 2.266613483428955,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -1.7825660705566406,
+              "r12_cal01": -0.564889669418335,
+              "r12_hold02": -0.32999324798583984,
+              "r12_cal16": 1.8920464515686035,
+              "r12_cal13": 2.266613483428955,
+              "r12_cal09": 0.1264338493347168,
+              "r12_cal10": -0.6806282997131348,
+              "r12_cal12": 1.3404850959777832,
+              "r12_cal02": -1.6943540573120117,
+              "r12_cal18": -0.013913869857788086,
+              "r12_cal17": 0.06582999229431152,
+              "r12_cal19": -1.041926383972168
+            },
+            "planet_comparison": {
+              "observed": 1.468292236328125,
+              "standardized_deviation": 1.1575623624102203,
+              "predictive_t": 1.1121499440420226,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.28978902531425144
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.0696444312731425,
+            "sample_standard_deviation": 1.4252171188324734,
+            "minimum": -1.7825660705566406,
+            "maximum": 2.824791431427002,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -1.7825660705566406,
+              "r12_cal01": -1.050300121307373,
+              "r12_hold02": -0.35312938690185547,
+              "r12_cal16": 2.824791431427002,
+              "r12_cal13": 1.6923017501831055,
+              "r12_cal09": -0.3981137275695801,
+              "r12_cal10": -0.8586945533752441,
+              "r12_cal12": 1.3404850959777832,
+              "r12_cal02": -1.6943540573120117,
+              "r12_cal18": -0.19642949104309082,
+              "r12_cal17": 0.6822023391723633,
+              "r12_cal19": -1.041926383972168
+            },
+            "planet_comparison": {
+              "observed": 1.4121179580688477,
+              "standardized_deviation": 1.0396748465636156,
+              "predictive_t": 0.9988872824269142,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.33931589915564364
+            }
+          }
+        },
+        "gaussian_fwhm3p6_minus_sparse_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.19580841064453125,
+            "sample_standard_deviation": 0.9554952598281832,
+            "minimum": -1.3163161277770996,
+            "maximum": 1.732461929321289,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "sparse_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -1.3163161277770996,
+              "r12_cal01": -0.2139596939086914,
+              "r12_hold02": -0.05748558044433594,
+              "r12_cal16": 1.0197744369506836,
+              "r12_cal13": 1.732461929321289,
+              "r12_cal09": -0.3740835189819336,
+              "r12_cal10": -0.9397072792053223,
+              "r12_cal12": 0.7776837348937988,
+              "r12_cal02": -1.1760225296020508,
+              "r12_cal18": -0.4300384521484375,
+              "r12_cal17": -0.16509437561035156,
+              "r12_cal19": -1.2069134712219238
+            },
+            "planet_comparison": {
+              "observed": 1.4035005569458008,
+              "standardized_deviation": 1.6738010483462986,
+              "predictive_t": 1.6081360302522731,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.13610558970175818
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.1037520170211792,
+            "sample_standard_deviation": 1.2202867352961075,
+            "minimum": -1.608731746673584,
+            "maximum": 2.3765597343444824,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "sparse_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -1.608731746673584,
+              "r12_cal01": -0.6979236602783203,
+              "r12_hold02": -0.05748558044433594,
+              "r12_cal16": 2.3765597343444824,
+              "r12_cal13": 1.732461929321289,
+              "r12_cal09": -0.3740835189819336,
+              "r12_cal10": -0.9397072792053223,
+              "r12_cal12": 0.7776837348937988,
+              "r12_cal02": -1.1760225296020508,
+              "r12_cal18": -0.4300384521484375,
+              "r12_cal17": 0.3591766357421875,
+              "r12_cal19": -1.2069134712219238
+            },
+            "planet_comparison": {
+              "observed": 1.4035005569458008,
+              "standardized_deviation": 1.2351626305281758,
+              "predictive_t": 1.1867058700530706,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.2603410273713124
+            }
+          }
+        },
+        "gaussian_fwhm3p6_minus_gaussian_fwhm2p4": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.35397770007451373,
+            "sample_standard_deviation": 0.3143939058877167,
+            "minimum": -0.7678723335266113,
+            "maximum": 0.17690515518188477,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "gaussian_fwhm2p4",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.7678723335266113,
+              "r12_cal01": -0.5215051174163818,
+              "r12_hold02": -0.06564903259277344,
+              "r12_cal16": -0.06041717529296875,
+              "r12_cal13": 0.03986644744873047,
+              "r12_cal09": -0.34806203842163086,
+              "r12_cal10": -0.7321257591247559,
+              "r12_cal12": 0.17690515518188477,
+              "r12_cal02": -0.4030618667602539,
+              "r12_cal18": -0.48496103286743164,
+              "r12_cal17": -0.3830690383911133,
+              "r12_cal19": -0.6977806091308594
+            },
+            "planet_comparison": {
+              "observed": 0.585442066192627,
+              "standardized_deviation": 2.9880342738025174,
+              "predictive_t": 2.870810470621928,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.015219440548300009
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.24248778820037842,
+            "sample_standard_deviation": 0.44877686747685985,
+            "minimum": -0.7678723335266113,
+            "maximum": 0.6868906021118164,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "gaussian_fwhm2p4",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.7678723335266113,
+              "r12_cal01": -0.4971280097961426,
+              "r12_hold02": -0.06564903259277344,
+              "r12_cal16": 0.6868906021118164,
+              "r12_cal13": 0.03986644744873047,
+              "r12_cal09": -0.34806203842163086,
+              "r12_cal10": -0.7321257591247559,
+              "r12_cal12": 0.17690515518188477,
+              "r12_cal02": -0.4030618667602539,
+              "r12_cal18": -0.48496103286743164,
+              "r12_cal17": 0.18312501907348633,
+              "r12_cal19": -0.6977806091308594
+            },
+            "planet_comparison": {
+              "observed": 0.23098421096801758,
+              "standardized_deviation": 1.055027639526918,
+              "predictive_t": 1.0136377687847062,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.33253273995510024
+            }
+          }
+        },
+        "raw_rectangular_m0p3_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.19641123215357462,
+            "sample_standard_deviation": 0.2341890602976593,
+            "minimum": -0.6394639015197754,
+            "maximum": 0.17701411247253418,
+            "first_method": "raw_rectangular_m0p3",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.22139453887939453,
+              "r12_cal01": -0.20727968215942383,
+              "r12_hold02": -0.11344432830810547,
+              "r12_cal16": -0.2514071464538574,
+              "r12_cal13": -0.5404324531555176,
+              "r12_cal09": -0.12711143493652344,
+              "r12_cal10": -0.2780179977416992,
+              "r12_cal12": -0.06287813186645508,
+              "r12_cal02": -0.6394639015197754,
+              "r12_cal18": 0.17701411247253418,
+              "r12_cal17": 0.13285255432128906,
+              "r12_cal19": -0.2253718376159668
+            },
+            "planet_comparison": {
+              "observed": -0.9521496295928955,
+              "standardized_deviation": -3.227043980956076,
+              "predictive_t": -3.1004435695098915,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.01009614500342865
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.29600677887598675,
+            "sample_standard_deviation": 0.28986352351441375,
+            "minimum": -0.8352847099304199,
+            "maximum": 0.0442502498626709,
+            "first_method": "raw_rectangular_m0p3",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.22139453887939453,
+              "r12_cal01": -0.25923871994018555,
+              "r12_hold02": -0.03575897216796875,
+              "r12_cal16": -0.8352847099304199,
+              "r12_cal13": -0.5109615325927734,
+              "r12_cal09": -0.6450648307800293,
+              "r12_cal10": -0.1929917335510254,
+              "r12_cal12": -0.06287813186645508,
+              "r12_cal02": -0.6394639015197754,
+              "r12_cal18": 0.0442502498626709,
+              "r12_cal17": -0.017505645751953125,
+              "r12_cal19": -0.17578887939453125
+            },
+            "planet_comparison": {
+              "observed": -0.543755054473877,
+              "standardized_deviation": -0.8547066308795859,
+              "predictive_t": -0.821175569086285,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.42898457213747077
+            }
+          }
+        },
+        "radial_hann_m0p1_trunc0p75_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.18002082904179892,
+            "sample_standard_deviation": 0.26028135941938746,
+            "minimum": -0.7578635215759277,
+            "maximum": 0.19871163368225098,
+            "first_method": "radial_hann_m0p1_trunc0p75",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.08414983749389648,
+              "r12_cal01": -0.11668539047241211,
+              "r12_hold02": 0.05005979537963867,
+              "r12_cal16": -0.31741762161254883,
+              "r12_cal13": -0.5033469200134277,
+              "r12_cal09": -0.15326976776123047,
+              "r12_cal10": -0.2417740821838379,
+              "r12_cal12": -0.1391162872314453,
+              "r12_cal02": -0.7578635215759277,
+              "r12_cal18": 0.19871163368225098,
+              "r12_cal17": 0.0884847640991211,
+              "r12_cal19": -0.1838827133178711
+            },
+            "planet_comparison": {
+              "observed": -1.0039644241333008,
+              "standardized_deviation": -3.1655881809188413,
+              "predictive_t": -3.0413987467064296,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.01121853114256099
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.22972867886225382,
+            "sample_standard_deviation": 0.3000492947947905,
+            "minimum": -0.7578635215759277,
+            "maximum": 0.07404565811157227,
+            "first_method": "radial_hann_m0p1_trunc0p75",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.08414983749389648,
+              "r12_cal01": -0.07310628890991211,
+              "r12_hold02": 0.07404565811157227,
+              "r12_cal16": -0.5955915451049805,
+              "r12_cal13": -0.44011974334716797,
+              "r12_cal09": -0.6638894081115723,
+              "r12_cal10": 0.02295827865600586,
+              "r12_cal12": -0.1391162872314453,
+              "r12_cal02": -0.7578635215759277,
+              "r12_cal18": 0.016196012496948242,
+              "r12_cal17": 0.02939891815185547,
+              "r12_cal19": -0.1455063819885254
+            },
+            "planet_comparison": {
+              "observed": -0.591320276260376,
+              "standardized_deviation": -1.205107306269197,
+              "predictive_t": -1.1578296485394495,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.2714553382017017
+            }
+          }
+        }
+      },
+      "response_fidelity": {
+        "unweighted": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9998526570024019,
+            "sample_standard_deviation": 5.940871507440654e-05,
+            "minimum": 0.9997442340727275,
+            "maximum": 0.9999448596139324
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.9989248197015796,
+            "sample_standard_deviation": 0.006786986046870399,
+            "minimum": 0.9900927529492167,
+            "maximum": 1.008630701696932
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.01683238466874658,
+            "sample_standard_deviation": 0.0035159702638055627,
+            "minimum": 0.0105013204727926,
+            "maximum": 0.022615623766205756
+          }
+        },
+        "raw_rectangular_m0p3": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9995923704503578,
+            "sample_standard_deviation": 0.00024300775612863778,
+            "minimum": 0.9990525660052663,
+            "maximum": 0.999887477351315
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.9993848743039112,
+            "sample_standard_deviation": 0.00653306017945334,
+            "minimum": 0.990093428665078,
+            "maximum": 1.0089673032458313
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.02754114644677062,
+            "sample_standard_deviation": 0.007852554289250982,
+            "minimum": 0.01500108782800837,
+            "maximum": 0.04351976974080021
+          }
+        },
+        "radial_hann_m0p1": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9992891969754512,
+            "sample_standard_deviation": 0.00046428634429104365,
+            "minimum": 0.99826517244684,
+            "maximum": 0.999838168388983
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.9992687190260399,
+            "sample_standard_deviation": 0.006909779370659387,
+            "minimum": 0.9896970738868375,
+            "maximum": 1.0092632203463698
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.03604696362131588,
+            "sample_standard_deviation": 0.011513768367383086,
+            "minimum": 0.017989914745860237,
+            "maximum": 0.05887822585371473
+          }
+        }
+      }
+    },
+    "nominal_optimized_phase": {
+      "methods": {
+        "native": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 3.9261090755462646,
+            "sample_standard_deviation": 0.9513856112955141,
+            "minimum": 2.6771161556243896,
+            "maximum": 5.914970397949219,
+            "planet_comparison": {
+              "observed": 3.466177463531494,
+              "standardized_deviation": -0.4834334328311689,
+              "predictive_t": -0.46446781852146407,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6513703044051711
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.375395774841309,
+            "sample_standard_deviation": 0.8486636439567518,
+            "minimum": 3.231125831604004,
+            "maximum": 5.914970397949219,
+            "planet_comparison": {
+              "observed": 5.153568744659424,
+              "standardized_deviation": 0.9169392083181677,
+              "predictive_t": 0.8809666954769183,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.39717625812727286
+            }
+          }
+        },
+        "gaussian_fwhm2p4": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.862077335516612,
+            "sample_standard_deviation": 1.1576015075688117,
+            "minimum": 3.4301559925079346,
+            "maximum": 6.877328395843506,
+            "planet_comparison": {
+              "observed": 5.064146041870117,
+              "standardized_deviation": 0.1745580884547125,
+              "predictive_t": 0.16770998661598924,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.8698550270776573
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 5.022765298684438,
+            "sample_standard_deviation": 1.2608319878292735,
+            "minimum": 3.4301559925079346,
+            "maximum": 7.3809332847595215,
+            "planet_comparison": {
+              "observed": 5.418603897094727,
+              "standardized_deviation": 0.31395031394451617,
+              "predictive_t": 0.3016337049507773,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7685572252274842
+            }
+          }
+        },
+        "gaussian_fwhm3p6": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.598979036013286,
+            "sample_standard_deviation": 1.3375349365555678,
+            "minimum": 3.099255323410034,
+            "maximum": 6.889129638671875,
+            "planet_comparison": {
+              "observed": 5.649588108062744,
+              "standardized_deviation": 0.7854815925444135,
+              "predictive_t": 0.7546663035720999,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.46629928497442563
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.835073212782542,
+            "sample_standard_deviation": 1.5345097828079857,
+            "minimum": 3.099255323410034,
+            "maximum": 8.145485877990723,
+            "planet_comparison": {
+              "observed": 5.649588108062744,
+              "standardized_deviation": 0.5307981118176571,
+              "predictive_t": 0.5099743301315258,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6201459653607926
+            }
+          }
+        },
+        "exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.55995128552119,
+            "sample_standard_deviation": 1.068427815139147,
+            "minimum": 3.0215954780578613,
+            "maximum": 7.075280666351318,
+            "planet_comparison": {
+              "observed": 4.181295871734619,
+              "standardized_deviation": -0.3544043017424216,
+              "predictive_t": -0.34050063923157,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7398935346586532
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.84219354391098,
+            "sample_standard_deviation": 1.0441846857187445,
+            "minimum": 3.0215954780578613,
+            "maximum": 7.075280666351318,
+            "planet_comparison": {
+              "observed": 4.2374701499938965,
+              "standardized_deviation": -0.5791345172820975,
+              "predictive_t": -0.5564144463430957,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.589067550139294
+            }
+          }
+        },
+        "sparse_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.720237493515015,
+            "sample_standard_deviation": 1.0227864294550604,
+            "minimum": 3.284862995147705,
+            "maximum": 6.584133148193359,
+            "planet_comparison": {
+              "observed": 4.246087551116943,
+              "standardized_deviation": -0.46358646218125704,
+              "predictive_t": -0.4453994659086992,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6646693125753652
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.865170220534007,
+            "sample_standard_deviation": 0.9730125375765227,
+            "minimum": 3.284862995147705,
+            "maximum": 6.584133148193359,
+            "planet_comparison": {
+              "observed": 4.246087551116943,
+              "standardized_deviation": -0.6362535378619166,
+              "predictive_t": -0.611292626218703,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.5534286790327629
+            }
+          }
+        },
+        "exact_identity_lpf1p8": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.610748728116353,
+            "sample_standard_deviation": 1.082437338681093,
+            "minimum": 3.0460400581359863,
+            "maximum": 7.1130051612854,
+            "planet_comparison": {
+              "observed": 4.5357747077941895,
+              "standardized_deviation": -0.06926407436528055,
+              "predictive_t": -0.06654677011878382,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.9481366400692517
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.891085088253021,
+            "sample_standard_deviation": 1.0752626995431882,
+            "minimum": 3.0460400581359863,
+            "maximum": 7.1130051612854,
+            "planet_comparison": {
+              "observed": 4.5357747077941895,
+              "standardized_deviation": -0.3304405338432933,
+              "predictive_t": -0.31747699576016386,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7568265528596718
+            }
+          }
+        },
+        "exact_identity_lpf2p7": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.590692122777303,
+            "sample_standard_deviation": 1.0620493998948504,
+            "minimum": 3.026113748550415,
+            "maximum": 6.942357540130615,
+            "planet_comparison": {
+              "observed": 4.866249084472656,
+              "standardized_deviation": 0.25945776319127467,
+              "predictive_t": 0.24927895566129785,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.8077384723170811
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.874773422876994,
+            "sample_standard_deviation": 1.0891892831354604,
+            "minimum": 3.026113748550415,
+            "maximum": 6.942357540130615,
+            "planet_comparison": {
+              "observed": 4.866249084472656,
+              "standardized_deviation": -0.007826314981541831,
+              "predictive_t": -0.0075192802145483285,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.9941351757616832
+            }
+          }
+        },
+        "exact_isotropic_fitted_mean": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.557552019755046,
+            "sample_standard_deviation": 1.0574308840007607,
+            "minimum": 3.049253463745117,
+            "maximum": 7.0285468101501465,
+            "planet_comparison": {
+              "observed": 4.192998886108398,
+              "standardized_deviation": -0.3447536280266098,
+              "predictive_t": -0.33122857184104065,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.7466960930049702
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.833579281965892,
+            "sample_standard_deviation": 1.0319591127200012,
+            "minimum": 3.049253463745117,
+            "maximum": 7.0285468101501465,
+            "planet_comparison": {
+              "observed": 4.279425144195557,
+              "standardized_deviation": -0.5369923390760273,
+              "predictive_t": -0.5159255511823176,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.6161179306168552
+            }
+          }
+        },
+        "raw_rectangular_m0p3": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.3456971645355225,
+            "sample_standard_deviation": 0.9194506324419629,
+            "minimum": 3.082892417907715,
+            "maximum": 6.406007766723633,
+            "planet_comparison": {
+              "observed": 3.2291462421417236,
+              "standardized_deviation": -1.2143674526911343,
+              "predictive_t": -1.166726509442507,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.26799206099866074
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.551990310351054,
+            "sample_standard_deviation": 0.88870412523738,
+            "minimum": 3.1050865650177,
+            "maximum": 6.406007766723633,
+            "planet_comparison": {
+              "observed": 3.6937150955200195,
+              "standardized_deviation": -0.9657603587715793,
+              "predictive_t": -0.9278725396093895,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.373385589939356
+            }
+          }
+        },
+        "radial_hann_m0p1_trunc0p75": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 4.360798637072246,
+            "sample_standard_deviation": 0.8930133475735601,
+            "minimum": 3.110429286956787,
+            "maximum": 6.311123371124268,
+            "planet_comparison": {
+              "observed": 3.1773314476013184,
+              "standardized_deviation": -1.3252514004259512,
+              "predictive_t": -1.273260360466883,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.22917512530919087
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": 4.611647129058838,
+            "sample_standard_deviation": 0.8635225034590088,
+            "minimum": 3.110429286956787,
+            "maximum": 6.311123371124268,
+            "planet_comparison": {
+              "observed": 3.6461498737335205,
+              "standardized_deviation": -1.1180915974486232,
+              "predictive_t": -1.0742276597065723,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.30571988805794903
+            }
+          }
+        }
+      },
+      "paired_differences": {
+        "gaussian_fwhm3p6_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": 0.03902775049209595,
+            "sample_standard_deviation": 1.1863332070961714,
+            "minimum": -1.5843279361724854,
+            "maximum": 2.176588535308838,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -1.5843279361724854,
+              "r12_cal01": -0.27492570877075195,
+              "r12_hold02": -0.23727703094482422,
+              "r12_cal16": 1.7518963813781738,
+              "r12_cal13": 2.176588535308838,
+              "r12_cal09": 0.2889256477355957,
+              "r12_cal10": -0.5731432437896729,
+              "r12_cal12": 1.1978464126586914,
+              "r12_cal02": -1.5458149909973145,
+              "r12_cal18": 0.07765984535217285,
+              "r12_cal17": 0.08594799041748047,
+              "r12_cal19": -0.895042896270752
+            },
+            "planet_comparison": {
+              "observed": 1.468292236328125,
+              "standardized_deviation": 1.2047749125513303,
+              "predictive_t": 1.157510294985179,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.2715803001884652
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.0071203311284383135,
+            "sample_standard_deviation": 1.3235723173893381,
+            "minimum": -1.5711617469787598,
+            "maximum": 2.5066280364990234,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -1.5711617469787598,
+              "r12_cal01": -0.27492570877075195,
+              "r12_hold02": -0.5857634544372559,
+              "r12_cal16": 2.5066280364990234,
+              "r12_cal13": 2.0594539642333984,
+              "r12_cal09": -0.6913290023803711,
+              "r12_cal10": -0.8606398105621338,
+              "r12_cal12": 0.9512777328491211,
+              "r12_cal02": -1.5458149909973145,
+              "r12_cal18": 0.07765984535217285,
+              "r12_cal17": 0.7396273612976074,
+              "r12_cal19": -0.8904561996459961
+            },
+            "planet_comparison": {
+              "observed": 1.4121179580688477,
+              "standardized_deviation": 1.0722786133791637,
+              "predictive_t": 1.0302119683505058,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3250307416988254
+            }
+          }
+        },
+        "gaussian_fwhm3p6_minus_sparse_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.12125845750172932,
+            "sample_standard_deviation": 0.8388357859988301,
+            "minimum": -1.1460635662078857,
+            "maximum": 1.6283531188964844,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "sparse_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -1.1460635662078857,
+              "r12_cal01": 0.025029897689819336,
+              "r12_hold02": 0.056765079498291016,
+              "r12_cal16": 0.8328232765197754,
+              "r12_cal13": 1.6283531188964844,
+              "r12_cal09": -0.17815876007080078,
+              "r12_cal10": -0.7191002368927002,
+              "r12_cal12": 0.6250929832458496,
+              "r12_cal02": -1.0546674728393555,
+              "r12_cal18": -0.30362987518310547,
+              "r12_cal17": -0.18420767784118652,
+              "r12_cal19": -1.0373382568359375
+            },
+            "planet_comparison": {
+              "observed": 1.4035005569458008,
+              "standardized_deviation": 1.8177085907606432,
+              "predictive_t": 1.7463979247648909,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.10856793020212133
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.030097007751464844,
+            "sample_standard_deviation": 1.105305615744923,
+            "minimum": -1.4074959754943848,
+            "maximum": 2.089179515838623,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "sparse_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -1.4074959754943848,
+              "r12_cal01": 0.025029897689819336,
+              "r12_hold02": -0.1550154685974121,
+              "r12_cal16": 2.089179515838623,
+              "r12_cal13": 1.6283531188964844,
+              "r12_cal09": -0.4137153625488281,
+              "r12_cal10": -1.0300805568695068,
+              "r12_cal12": 0.8561158180236816,
+              "r12_cal02": -1.0546674728393555,
+              "r12_cal18": -0.30362987518310547,
+              "r12_cal17": 0.4375138282775879,
+              "r12_cal19": -1.0327515602111816
+            },
+            "planet_comparison": {
+              "observed": 1.4035005569458008,
+              "standardized_deviation": 1.29701463945887,
+              "predictive_t": 1.2461313580483175,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.2386023506292359
+            }
+          }
+        },
+        "gaussian_fwhm3p6_minus_gaussian_fwhm2p4": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.2630982995033264,
+            "sample_standard_deviation": 0.2599007434266655,
+            "minimum": -0.6646254062652588,
+            "maximum": 0.11625909805297852,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "gaussian_fwhm2p4",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.6646254062652588,
+              "r12_cal01": -0.40097594261169434,
+              "r12_hold02": -0.07171964645385742,
+              "r12_cal16": 0.01180124282836914,
+              "r12_cal13": 0.11625909805297852,
+              "r12_cal09": -0.27992820739746094,
+              "r12_cal10": -0.561138391494751,
+              "r12_cal12": 0.10842418670654297,
+              "r12_cal02": -0.29156923294067383,
+              "r12_cal18": -0.3309006690979004,
+              "r12_cal17": -0.2574748992919922,
+              "r12_cal19": -0.5353317260742188
+            },
+            "planet_comparison": {
+              "observed": 0.585442066192627,
+              "standardized_deviation": 3.2648631724109722,
+              "predictive_t": 3.136779073346333,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.00946258509179784
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.18769208590189615,
+            "sample_standard_deviation": 0.43406786880207365,
+            "minimum": -0.6531310081481934,
+            "maximum": 0.7645525932312012,
+            "first_method": "gaussian_fwhm3p6",
+            "second_method": "gaussian_fwhm2p4",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.6514592170715332,
+              "r12_cal01": -0.40097594261169434,
+              "r12_hold02": -0.10467243194580078,
+              "r12_cal16": 0.7645525932312012,
+              "r12_cal13": 0.11625909805297852,
+              "r12_cal09": -0.27992820739746094,
+              "r12_cal10": -0.5852124691009521,
+              "r12_cal12": -0.26807641983032227,
+              "r12_cal02": -0.29156923294067383,
+              "r12_cal18": -0.3309006690979004,
+              "r12_cal17": 0.43280887603759766,
+              "r12_cal19": -0.6531310081481934
+            },
+            "planet_comparison": {
+              "observed": 0.23098421096801758,
+              "standardized_deviation": 0.9645410935975586,
+              "predictive_t": 0.9267011075215009,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.3739672628809758
+            }
+          }
+        },
+        "raw_rectangular_m0p3_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.2142541209856669,
+            "sample_standard_deviation": 0.20957963866297485,
+            "minimum": -0.6692728996276855,
+            "maximum": 0.061296939849853516,
+            "first_method": "raw_rectangular_m0p3",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.17491626739501953,
+              "r12_cal01": -0.13890719413757324,
+              "r12_hold02": -0.09852409362792969,
+              "r12_cal16": -0.3129997253417969,
+              "r12_cal13": -0.4589824676513672,
+              "r12_cal09": -0.1382284164428711,
+              "r12_cal10": -0.3539254665374756,
+              "r12_cal12": -0.035260677337646484,
+              "r12_cal02": -0.6692728996276855,
+              "r12_cal18": 0.061296939849853516,
+              "r12_cal17": 0.010176897048950195,
+              "r12_cal19": -0.2615060806274414
+            },
+            "planet_comparison": {
+              "observed": -0.9521496295928955,
+              "standardized_deviation": -3.52083586609212,
+              "predictive_t": -3.382709682528397,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.006113193804706881
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.29020323355992633,
+            "sample_standard_deviation": 0.2735146381051159,
+            "minimum": -0.8146243095397949,
+            "maximum": 0.08349108695983887,
+            "first_method": "raw_rectangular_m0p3",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.17491626739501953,
+              "r12_cal01": -0.13890719413757324,
+              "r12_hold02": -0.23168468475341797,
+              "r12_cal16": -0.8146243095397949,
+              "r12_cal13": -0.35051870346069336,
+              "r12_cal09": -0.5868215560913086,
+              "r12_cal10": -0.30565404891967773,
+              "r12_cal12": 0.015216350555419922,
+              "r12_cal02": -0.6692728996276855,
+              "r12_cal18": 0.08349108695983887,
+              "r12_cal17": -0.11623978614807129,
+              "r12_cal19": -0.1925067901611328
+            },
+            "planet_comparison": {
+              "observed": -0.543755054473877,
+              "standardized_deviation": -0.9270137155017888,
+              "predictive_t": -0.8906459688917744,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.39218303257960696
+            }
+          }
+        },
+        "radial_hann_m0p1_trunc0p75_minus_exact_identity": {
+          "nearest_pixel_snr": {
+            "count": 12,
+            "mean": -0.1991526484489441,
+            "sample_standard_deviation": 0.24350259206136227,
+            "minimum": -0.7641572952270508,
+            "maximum": 0.08883380889892578,
+            "first_method": "radial_hann_m0p1_trunc0p75",
+            "second_method": "exact_identity",
+            "field": "nearest_pixel_snr",
+            "values_by_site": {
+              "r12_cal00": -0.056972503662109375,
+              "r12_cal01": -0.03607940673828125,
+              "r12_hold02": 0.05548667907714844,
+              "r12_cal16": -0.3917121887207031,
+              "r12_cal13": -0.4216761589050293,
+              "r12_cal09": -0.15391755104064941,
+              "r12_cal10": -0.31936073303222656,
+              "r12_cal12": -0.12139606475830078,
+              "r12_cal02": -0.7641572952270508,
+              "r12_cal18": 0.08883380889892578,
+              "r12_cal17": -0.032216548919677734,
+              "r12_cal19": -0.236663818359375
+            },
+            "planet_comparison": {
+              "observed": -1.0039644241333008,
+              "standardized_deviation": -3.3051466469874184,
+              "predictive_t": -3.1754821838230165,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.008831945910281113
+            }
+          },
+          "aperture_maximum_snr": {
+            "count": 12,
+            "mean": -0.23054641485214233,
+            "sample_standard_deviation": 0.30209101953048173,
+            "minimum": -0.7641572952270508,
+            "maximum": 0.08883380889892578,
+            "first_method": "radial_hann_m0p1_trunc0p75",
+            "second_method": "exact_identity",
+            "field": "aperture_maximum_snr",
+            "values_by_site": {
+              "r12_cal00": -0.056972503662109375,
+              "r12_cal01": -0.005493879318237305,
+              "r12_hold02": 0.029038429260253906,
+              "r12_cal16": -0.7382206916809082,
+              "r12_cal13": -0.20853281021118164,
+              "r12_cal09": -0.5797767639160156,
+              "r12_cal10": -0.22430038452148438,
+              "r12_cal12": 0.0462188720703125,
+              "r12_cal02": -0.7641572952270508,
+              "r12_cal18": 0.08883380889892578,
+              "r12_cal17": -0.12045001983642578,
+              "r12_cal19": -0.2327437400817871
+            },
+            "planet_comparison": {
+              "observed": -0.591320276260376,
+              "standardized_deviation": -1.1942554994483399,
+              "predictive_t": -1.1474035697894096,
+              "degrees_of_freedom": 11,
+              "two_sided_p": 0.27555827238957814
+            }
+          }
+        }
+      },
+      "response_fidelity": {
+        "unweighted": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9253651136890658,
+            "sample_standard_deviation": 0.034302718339933196,
+            "minimum": 0.8785222991047453,
+            "maximum": 0.9730348234308399
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.9179344979539223,
+            "sample_standard_deviation": 0.029218059526359096,
+            "minimum": 0.8753767184159196,
+            "maximum": 0.9624943676964655
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.368264145778428,
+            "sample_standard_deviation": 0.08740067727795035,
+            "minimum": 0.2306582588829496,
+            "maximum": 0.4777013397256837
+          }
+        },
+        "raw_rectangular_m0p3": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9197881300410279,
+            "sample_standard_deviation": 0.03484111667239132,
+            "minimum": 0.8714865251582549,
+            "maximum": 0.969345468932834
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.9112718700752606,
+            "sample_standard_deviation": 0.029641433200613816,
+            "minimum": 0.8737196714778397,
+            "maximum": 0.9640235573720621
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.38257093105883294,
+            "sample_standard_deviation": 0.08431456523158937,
+            "minimum": 0.2457017742292144,
+            "maximum": 0.4904194495200923
+          }
+        },
+        "radial_hann_m0p1": {
+          "cosine": {
+            "count": 12,
+            "mean": 0.9188228414024606,
+            "sample_standard_deviation": 0.03355676137450524,
+            "minimum": 0.8741175588997135,
+            "maximum": 0.9679917709872341
+          },
+          "projection_scale": {
+            "count": 12,
+            "mean": 0.9109750815803427,
+            "sample_standard_deviation": 0.029185913703612707,
+            "minimum": 0.8779644239524267,
+            "maximum": 0.9618062380254782
+          },
+          "best_scaled_relative_residual": {
+            "count": 12,
+            "mean": 0.3856983056629588,
+            "sample_standard_deviation": 0.0806959607734077,
+            "minimum": 0.2509819342124019,
+            "maximum": 0.48571441529277853
+          }
+        }
+      }
+    }
+  },
+  "paired_arm_effects": {
+    "nominal_integer_minus_nominal_optimized_phase": {
+      "native": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.3763345678647359,
+          "sample_standard_deviation": 0.1415999833741554,
+          "minimum": 0.09556031227111816,
+          "maximum": 0.5354771614074707
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.17576074600219727,
+          "sample_standard_deviation": 0.4556914581617487,
+          "minimum": -0.5139052867889404,
+          "maximum": 1.161850929260254
+        }
+      },
+      "gaussian_fwhm2p4": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.37580323219299316,
+          "sample_standard_deviation": 0.14663865215714425,
+          "minimum": 0.033286094665527344,
+          "maximum": 0.5390801429748535
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.36041422684987384,
+          "sample_standard_deviation": 0.32238059662126073,
+          "minimum": -0.22464847564697266,
+          "maximum": 1.069847583770752
+        }
+      },
+      "gaussian_fwhm3p6": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.28492383162180585,
+          "sample_standard_deviation": 0.13553531320972487,
+          "minimum": -0.03484773635864258,
+          "maximum": 0.46268749237060547
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.3056185245513916,
+          "sample_standard_deviation": 0.26843801730021155,
+          "minimum": -0.03484773635864258,
+          "maximum": 0.9921855926513672
+        }
+      },
+      "exact_identity": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.35869014263153076,
+          "sample_standard_deviation": 0.1469057346526511,
+          "minimum": 0.12764406204223633,
+          "maximum": 0.6690361499786377
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.36814262469609577,
+          "sample_standard_deviation": 0.4632934782402709,
+          "minimum": -0.3280630111694336,
+          "maximum": 1.3325645923614502
+        }
+      },
+      "sparse_identity": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.35947378476460773,
+          "sample_standard_deviation": 0.14490343166403627,
+          "minimum": 0.16107702255249023,
+          "maximum": 0.6180617809295654
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.37927353382110596,
+          "sample_standard_deviation": 0.35806424596897224,
+          "minimum": -0.07447957992553711,
+          "maximum": 1.2801437377929688
+        }
+      },
+      "exact_identity_lpf1p8": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.34170321623484295,
+          "sample_standard_deviation": 0.1468539676620461,
+          "minimum": 0.09754037857055664,
+          "maximum": 0.6581652164459229
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.3725931445757548,
+          "sample_standard_deviation": 0.4236503175978437,
+          "minimum": -0.34111690521240234,
+          "maximum": 1.2429096698760986
+        }
+      },
+      "exact_identity_lpf2p7": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.31517910957336426,
+          "sample_standard_deviation": 0.14269254599522502,
+          "minimum": 0.06053018569946289,
+          "maximum": 0.6223037242889404
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.3490898211797078,
+          "sample_standard_deviation": 0.3772387450411915,
+          "minimum": -0.35640525817871094,
+          "maximum": 1.081695318222046
+        }
+      },
+      "exact_isotropic_fitted_mean": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.35782553752263385,
+          "sample_standard_deviation": 0.1462550331594496,
+          "minimum": 0.12793445587158203,
+          "maximum": 0.6666841506958008
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.36249250173568726,
+          "sample_standard_deviation": 0.4548388190455029,
+          "minimum": -0.32778072357177734,
+          "maximum": 1.316366195678711
+        }
+      },
+      "raw_rectangular_m0p3": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.37653303146362305,
+          "sample_standard_deviation": 0.13392938765138065,
+          "minimum": 0.13876104354858398,
+          "maximum": 0.6006636619567871
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.3623390793800354,
+          "sample_standard_deviation": 0.42219052840433713,
+          "minimum": -0.3863062858581543,
+          "maximum": 1.212233066558838
+        }
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.37782196203867596,
+          "sample_standard_deviation": 0.13268395555832752,
+          "minimum": 0.12829184532165527,
+          "maximum": 0.5884301662445068
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.3689603606859843,
+          "sample_standard_deviation": 0.46840278551104175,
+          "minimum": -0.41217565536499023,
+          "maximum": 1.2649521827697754
+        }
+      }
+    },
+    "nominal_analysis_phase_minus_nominal_optimized_phase": {
+      "native": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.3356892267862956,
+          "sample_standard_deviation": 0.17280513263074107,
+          "minimum": -0.012243509292602539,
+          "maximum": 0.5028548240661621
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.13525267442067465,
+          "sample_standard_deviation": 0.5986768017426916,
+          "minimum": -0.8327498435974121,
+          "maximum": 1.5331039428710938
+        }
+      },
+      "gaussian_fwhm2p4": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.33193010091781616,
+          "sample_standard_deviation": 0.17245895791005905,
+          "minimum": -0.08148860931396484,
+          "maximum": 0.4928441047668457
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.40042970577875775,
+          "sample_standard_deviation": 0.4569370818613002,
+          "minimum": -0.30280637741088867,
+          "maximum": 1.4481234550476074
+        }
+      },
+      "gaussian_fwhm3p6": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.2396265665690104,
+          "sample_standard_deviation": 0.15073896176837553,
+          "minimum": -0.14156055450439453,
+          "maximum": 0.38730382919311523
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.33691708246866864,
+          "sample_standard_deviation": 0.3862604027850594,
+          "minimum": -0.14156055450439453,
+          "maximum": 1.3000402450561523
+        }
+      },
+      "exact_identity": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.313012699286143,
+          "sample_standard_deviation": 0.1320679048831865,
+          "minimum": 0.09622812271118164,
+          "maximum": 0.5633032321929932
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.44353602329889935,
+          "sample_standard_deviation": 0.5950966233615739,
+          "minimum": -0.6317520141601562,
+          "maximum": 1.6596496105194092
+        }
+      },
+      "sparse_identity": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.30138903856277466,
+          "sample_standard_deviation": 0.14023750955491157,
+          "minimum": 0.12578201293945312,
+          "maximum": 0.5153787136077881
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.42424070835113525,
+          "sample_standard_deviation": 0.4636164460155346,
+          "minimum": -0.10977458953857422,
+          "maximum": 1.5913171768188477
+        }
+      },
+      "exact_identity_lpf1p8": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.2961317499478658,
+          "sample_standard_deviation": 0.13958922658375306,
+          "minimum": 0.05876779556274414,
+          "maximum": 0.5663444995880127
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.43507419029871625,
+          "sample_standard_deviation": 0.5535969172977135,
+          "minimum": -0.6409430503845215,
+          "maximum": 1.5145504474639893
+        }
+      },
+      "exact_identity_lpf2p7": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.2705755829811096,
+          "sample_standard_deviation": 0.144467381475947,
+          "minimum": 0.012538909912109375,
+          "maximum": 0.5508182048797607
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.4022677739461263,
+          "sample_standard_deviation": 0.508189648740913,
+          "minimum": -0.6488356590270996,
+          "maximum": 1.3335273265838623
+        }
+      },
+      "exact_isotropic_fitted_mean": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.31049569447835285,
+          "sample_standard_deviation": 0.12932701196416865,
+          "minimum": 0.0968179702758789,
+          "maximum": 0.5487146377563477
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.42844223976135254,
+          "sample_standard_deviation": 0.5769881319690057,
+          "minimum": -0.630927562713623,
+          "maximum": 1.5895543098449707
+        }
+      },
+      "raw_rectangular_m0p3": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.332369605700175,
+          "sample_standard_deviation": 0.1302387075900076,
+          "minimum": 0.09215521812438965,
+          "maximum": 0.4985647201538086
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.43529800573984784,
+          "sample_standard_deviation": 0.4961025659944351,
+          "minimum": -0.43950629234313965,
+          "maximum": 1.4468908309936523
+        }
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": 0.32375524441401166,
+          "sample_standard_deviation": 0.12302249093724228,
+          "minimum": 0.07298922538757324,
+          "maximum": 0.5189504623413086
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": 0.45142145951588947,
+          "sample_standard_deviation": 0.5388537739425718,
+          "minimum": -0.48140621185302734,
+          "maximum": 1.4801201820373535
+        }
+      }
+    },
+    "blur0p9_optimized_phase_minus_nominal_optimized_phase": {
+      "native": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.11422028144200642,
+          "sample_standard_deviation": 0.015872406841730437,
+          "minimum": -0.13983678817749023,
+          "maximum": -0.0843050479888916
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.11136414607365926,
+          "sample_standard_deviation": 0.01671572458056505,
+          "minimum": -0.1361408233642578,
+          "maximum": -0.0846090316772461
+        }
+      },
+      "gaussian_fwhm2p4": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.12007439136505127,
+          "sample_standard_deviation": 0.01645093614128925,
+          "minimum": -0.1445326805114746,
+          "maximum": -0.08644914627075195
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.112144668896993,
+          "sample_standard_deviation": 0.020690127292453613,
+          "minimum": -0.1420125961303711,
+          "maximum": -0.08250188827514648
+        }
+      },
+      "gaussian_fwhm3p6": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.09616210063298543,
+          "sample_standard_deviation": 0.01532952641299555,
+          "minimum": -0.12228727340698242,
+          "maximum": -0.06876182556152344
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.08972034851710002,
+          "sample_standard_deviation": 0.024556814929566646,
+          "minimum": -0.12566280364990234,
+          "maximum": -0.03215169906616211
+        }
+      },
+      "exact_identity": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.12006332476933797,
+          "sample_standard_deviation": 0.011731169040296665,
+          "minimum": -0.15063261985778809,
+          "maximum": -0.1087956428527832
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.1210173765818278,
+          "sample_standard_deviation": 0.022753734844488442,
+          "minimum": -0.16896390914916992,
+          "maximum": -0.09394979476928711
+        }
+      },
+      "sparse_identity": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.12271010875701904,
+          "sample_standard_deviation": 0.01326808110246418,
+          "minimum": -0.14075422286987305,
+          "maximum": -0.09506368637084961
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.12447845935821533,
+          "sample_standard_deviation": 0.01983700318880464,
+          "minimum": -0.16630983352661133,
+          "maximum": -0.1000223159790039
+        }
+      },
+      "exact_identity_lpf1p8": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.11490764220555623,
+          "sample_standard_deviation": 0.011321761760134713,
+          "minimum": -0.1419665813446045,
+          "maximum": -0.10189342498779297
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.11482284466425578,
+          "sample_standard_deviation": 0.021777720116804136,
+          "minimum": -0.16083526611328125,
+          "maximum": -0.09223079681396484
+        }
+      },
+      "exact_identity_lpf2p7": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.10741154352823894,
+          "sample_standard_deviation": 0.010658520489789495,
+          "minimum": -0.12796354293823242,
+          "maximum": -0.09346675872802734
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.10361796617507935,
+          "sample_standard_deviation": 0.01919258709535041,
+          "minimum": -0.14909934997558594,
+          "maximum": -0.08573627471923828
+        }
+      },
+      "exact_isotropic_fitted_mean": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.11974914868672688,
+          "sample_standard_deviation": 0.011649285380261928,
+          "minimum": -0.15021657943725586,
+          "maximum": -0.10875940322875977
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.12069896856943767,
+          "sample_standard_deviation": 0.022831008933656093,
+          "minimum": -0.16860055923461914,
+          "maximum": -0.0935208797454834
+        }
+      },
+      "raw_rectangular_m0p3": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.12672283252080283,
+          "sample_standard_deviation": 0.012600788273064979,
+          "minimum": -0.1578824520111084,
+          "maximum": -0.11510658264160156
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.1254875659942627,
+          "sample_standard_deviation": 0.022533762008496647,
+          "minimum": -0.17967939376831055,
+          "maximum": -0.10277652740478516
+        }
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.12690637509028116,
+          "sample_standard_deviation": 0.01259269205946904,
+          "minimum": -0.16021299362182617,
+          "maximum": -0.11501073837280273
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.11991240580876668,
+          "sample_standard_deviation": 0.021504206635705292,
+          "minimum": -0.17585992813110352,
+          "maximum": -0.08836746215820312
+        }
+      }
+    },
+    "blur1p8_optimized_phase_minus_nominal_optimized_phase": {
+      "native": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.9910795390605927,
+          "sample_standard_deviation": 0.13378480560149747,
+          "minimum": -1.2005150318145752,
+          "maximum": -0.7235960960388184
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.8761295874913534,
+          "sample_standard_deviation": 0.1900950840103484,
+          "minimum": -1.0908632278442383,
+          "maximum": -0.5241138935089111
+        }
+      },
+      "gaussian_fwhm2p4": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -1.052814205487569,
+          "sample_standard_deviation": 0.14166578357386606,
+          "minimum": -1.266340970993042,
+          "maximum": -0.7544333934783936
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.9480163057645162,
+          "sample_standard_deviation": 0.20243205467901224,
+          "minimum": -1.227315902709961,
+          "maximum": -0.5534961223602295
+        }
+      },
+      "gaussian_fwhm3p6": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.8503628571828207,
+          "sample_standard_deviation": 0.1335855828412162,
+          "minimum": -1.0792663097381592,
+          "maximum": -0.6042296886444092
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.7925096750259399,
+          "sample_standard_deviation": 0.1997725552067852,
+          "minimum": -1.0995373725891113,
+          "maximum": -0.3612980842590332
+        }
+      },
+      "exact_identity": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -1.0522446533044179,
+          "sample_standard_deviation": 0.09520055850773404,
+          "minimum": -1.2962720394134521,
+          "maximum": -0.9554600715637207
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.9933486978212992,
+          "sample_standard_deviation": 0.16141677971437096,
+          "minimum": -1.4687480926513672,
+          "maximum": -0.8647699356079102
+        }
+      },
+      "sparse_identity": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -1.078745146592458,
+          "sample_standard_deviation": 0.11287473869422915,
+          "minimum": -1.2394375801086426,
+          "maximum": -0.8378806114196777
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -1.0405640999476116,
+          "sample_standard_deviation": 0.1656221960610331,
+          "minimum": -1.4367766380310059,
+          "maximum": -0.8858702182769775
+        }
+      },
+      "exact_identity_lpf1p8": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -1.0109524925549824,
+          "sample_standard_deviation": 0.09381085779553666,
+          "minimum": -1.2269394397735596,
+          "maximum": -0.9000325202941895
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.9448825716972351,
+          "sample_standard_deviation": 0.1557236403458635,
+          "minimum": -1.3985021114349365,
+          "maximum": -0.8299655914306641
+        }
+      },
+      "exact_identity_lpf2p7": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -0.9488152662913004,
+          "sample_standard_deviation": 0.08971005462005087,
+          "minimum": -1.1122305393218994,
+          "maximum": -0.8242311477661133
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.8817468086878458,
+          "sample_standard_deviation": 0.15002151914161888,
+          "minimum": -1.2960152626037598,
+          "maximum": -0.7382581233978271
+        }
+      },
+      "exact_isotropic_fitted_mean": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -1.0494034787019093,
+          "sample_standard_deviation": 0.09449123834942602,
+          "minimum": -1.292776107788086,
+          "maximum": -0.9565348625183105
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -0.9902077913284302,
+          "sample_standard_deviation": 0.16161103001037488,
+          "minimum": -1.4653384685516357,
+          "maximum": -0.861156702041626
+        }
+      },
+      "raw_rectangular_m0p3": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -1.1026578048865001,
+          "sample_standard_deviation": 0.09838226458458887,
+          "minimum": -1.3519484996795654,
+          "maximum": -1.0175464153289795
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -1.0400018493334453,
+          "sample_standard_deviation": 0.174995073638556,
+          "minimum": -1.548020601272583,
+          "maximum": -0.8551843166351318
+        }
+      },
+      "radial_hann_m0p1_trunc0p75": {
+        "nearest_pixel_snr": {
+          "count": 12,
+          "mean": -1.104154646396637,
+          "sample_standard_deviation": 0.09825030474952491,
+          "minimum": -1.3710381984710693,
+          "maximum": -1.0222022533416748
+        },
+        "aperture_maximum_snr": {
+          "count": 12,
+          "mean": -1.0403240124384563,
+          "sample_standard_deviation": 0.17601861920773043,
+          "minimum": -1.5176758766174316,
+          "maximum": -0.8162319660186768
+        }
+      }
+    }
+  },
+  "limits": [
+    "All injections share one observing sequence and correlated residual field.",
+    "Gaussian broadening is a controlled PSF perturbation, not a unique physical model.",
+    "Normal predictive probabilities are diagnostic; paired values and ranks are primary."
+  ]
+}

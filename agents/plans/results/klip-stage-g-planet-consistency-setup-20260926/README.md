@@ -195,3 +195,11 @@ taskset -c 12-27 env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
   run "$root" --workers 4 \
   > "$root/stage_g_planet_consistency/driver.log" 2>&1
 ```
+
+
+## Completed result
+
+The repaired campaign completed all 60 reductions and analyses. The
+[compact verified result](../klip-stage-g-planet-consistency-20260927/README.md)
+preserves the aggregate tables, all per-task measurements, annular-oracle
+checks, repair record, and final interpretation.

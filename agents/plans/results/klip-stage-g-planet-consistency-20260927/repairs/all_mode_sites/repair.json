@@ -1,0 +1,942 @@
+{
+  "schema": 1,
+  "name": "all_mode_sites",
+  "reason": "The initial preflight covered mode 200 only; five centers lack complete detector-half training support in mode 125 for at least one phase.",
+  "selection_used_positive_scores": false,
+  "all_mode_supported_pool": [
+    "r12_cal00",
+    "r12_cal01",
+    "r12_cal02",
+    "r12_cal08",
+    "r12_cal09",
+    "r12_cal10",
+    "r12_cal11",
+    "r12_cal12",
+    "r12_cal13",
+    "r12_cal16",
+    "r12_cal17",
+    "r12_cal18",
+    "r12_cal19",
+    "r12_hold00",
+    "r12_hold02",
+    "r12_hold03",
+    "r12_hold05"
+  ],
+  "initial_sites": [
+    "r12_cal00",
+    "r12_cal01",
+    "r12_cal03",
+    "r12_cal05",
+    "r12_cal07",
+    "r12_cal09",
+    "r12_cal10",
+    "r12_cal12",
+    "r12_cal14",
+    "r12_cal15",
+    "r12_cal17",
+    "r12_cal19"
+  ],
+  "revised_sites": [
+    "r12_cal00",
+    "r12_cal01",
+    "r12_hold02",
+    "r12_cal16",
+    "r12_cal13",
+    "r12_cal09",
+    "r12_cal10",
+    "r12_cal12",
+    "r12_cal02",
+    "r12_cal18",
+    "r12_cal17",
+    "r12_cal19"
+  ],
+  "changed_site_indices": [
+    2,
+    3,
+    4,
+    8,
+    9
+  ],
+  "replacement_preflight_geometries": [
+    {
+      "base_site": "r12_hold02",
+      "phase": "integer",
+      "source_row_column": [
+        68.0,
+        52.0
+      ],
+      "separation": 12.349089035228468,
+      "position_angle": 201.3706222693432,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_hold02",
+      "phase": "analysis",
+      "source_row_column": [
+        68.16879332335546,
+        51.87064847966589
+      ],
+      "separation": 12.531538129044886,
+      "position_angle": 201.87380020915097,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_hold02",
+      "phase": "optimized",
+      "source_row_column": [
+        67.72293007062204,
+        52.48596370061269
+      ],
+      "separation": 11.795852406061426,
+      "position_angle": 200.97749743466966,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal16",
+      "phase": "integer",
+      "source_row_column": [
+        56.0,
+        73.0
+      ],
+      "separation": 12.103718436910205,
+      "position_angle": 38.29016319224307,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal16",
+      "phase": "analysis",
+      "source_row_column": [
+        56.16879332335546,
+        72.87064847966589
+      ],
+      "separation": 11.897715926392852,
+      "position_angle": 38.038152016695506,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal16",
+      "phase": "optimized",
+      "source_row_column": [
+        55.72293007062204,
+        73.4859637006127
+      ],
+      "separation": 12.657104238979365,
+      "position_angle": 37.91146357889957,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal13",
+      "phase": "integer",
+      "source_row_column": [
+        67.0,
+        75.0
+      ],
+      "separation": 12.020815280171307,
+      "position_angle": 343.07248693585296,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal13",
+      "phase": "analysis",
+      "source_row_column": [
+        67.16879332335546,
+        74.87064847966589
+      ],
+      "separation": 11.947873923741653,
+      "position_angle": 342.1174596845823,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal13",
+      "phase": "optimized",
+      "source_row_column": [
+        66.72293007062204,
+        75.4859637006127
+      ],
+      "separation": 12.411712374709829,
+      "position_angle": 344.9496101517141,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 31,
+      "minimum_radial_samples": 31,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal02",
+      "phase": "integer",
+      "source_row_column": [
+        54.0,
+        55.99999999999999
+      ],
+      "separation": 12.103718436910205,
+      "position_angle": 128.29016319224309,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal02",
+      "phase": "analysis",
+      "source_row_column": [
+        54.16879332335546,
+        55.87064847966589
+      ],
+      "separation": 12.053149906272637,
+      "position_angle": 129.2700103024469,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal02",
+      "phase": "optimized",
+      "source_row_column": [
+        53.72293007062204,
+        56.48596370061269
+      ],
+      "separation": 12.032780294390383,
+      "position_angle": 125.65552677203902,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 35,
+      "minimum_radial_samples": 35,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal18",
+      "phase": "integer",
+      "source_row_column": [
+        53.0,
+        69.0
+      ],
+      "separation": 11.853269591129697,
+      "position_angle": 62.35402463626132,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 33,
+      "minimum_radial_samples": 33,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal18",
+      "phase": "analysis",
+      "source_row_column": [
+        53.16879332335546,
+        68.87064847966589
+      ],
+      "separation": 11.6437835984564,
+      "position_angle": 62.53246184939438,
+      "aperture_pixels": 39,
+      "queries": 39,
+      "radial_bins": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 33,
+      "minimum_radial_samples": 33,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    },
+    {
+      "base_site": "r12_cal18",
+      "phase": "optimized",
+      "source_row_column": [
+        52.72293007062204,
+        69.4859637006127
+      ],
+      "separation": 12.327895103696962,
+      "position_angle": 60.95066683462599,
+      "aperture_pixels": 37,
+      "queries": 37,
+      "radial_bins": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "modes": [
+        125,
+        150,
+        175,
+        200,
+        225,
+        250,
+        300,
+        350
+      ],
+      "minimum_exact_support_pixels": 121,
+      "minimum_sparse_support_pixels": 121,
+      "minimum_raw_samples": 33,
+      "minimum_radial_samples": 33,
+      "training_half_widths": [
+        10,
+        20
+      ]
+    }
+  ],
+  "retained_reductions": 35,
+  "retained_analyses": 35,
+  "archived": {
+    "reductions": [
+      {
+        "task": "site02__blur0p9_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site02__blur0p9_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site02__blur1p8_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site02__blur1p8_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site02__nominal_analysis_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site02__nominal_analysis_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site02__nominal_integer",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site02__nominal_integer/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site02__nominal_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site02__nominal_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site03__blur0p9_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site03__blur0p9_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site03__blur1p8_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site03__blur1p8_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site03__nominal_analysis_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site03__nominal_analysis_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site03__nominal_integer",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site03__nominal_integer/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site03__nominal_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site03__nominal_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site04__blur0p9_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site04__blur0p9_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site04__blur1p8_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site04__blur1p8_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site04__nominal_analysis_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site04__nominal_analysis_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site04__nominal_integer",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site04__nominal_integer/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site04__nominal_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site04__nominal_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site08__blur0p9_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site08__blur0p9_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site08__blur1p8_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site08__blur1p8_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site08__nominal_analysis_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site08__nominal_analysis_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site08__nominal_integer",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site08__nominal_integer/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site08__nominal_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site08__nominal_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site09__blur0p9_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site09__blur0p9_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site09__blur1p8_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site09__blur1p8_optimized_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site09__nominal_analysis_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site09__nominal_analysis_phase/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site09__nominal_integer",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site09__nominal_integer/attempt_0001",
+        "files": 4
+      },
+      {
+        "task": "site09__nominal_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_reductions/site09__nominal_optimized_phase/attempt_0001",
+        "files": 4
+      }
+    ],
+    "analysis": [
+      {
+        "task": "site02__blur0p9_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site02__blur0p9_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site02__blur1p8_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site02__blur1p8_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site02__nominal_analysis_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site02__nominal_analysis_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site02__nominal_integer",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site02__nominal_integer/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site02__nominal_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site02__nominal_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site03__blur0p9_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site03__blur0p9_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site03__blur1p8_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site03__blur1p8_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site03__nominal_analysis_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site03__nominal_analysis_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site03__nominal_integer",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site03__nominal_integer/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site03__nominal_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site03__nominal_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site04__blur0p9_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site04__blur0p9_optimized_phase/attempt_0001",
+        "files": 10
+      },
+      {
+        "task": "site04__blur1p8_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site04__blur1p8_optimized_phase/attempt_0001",
+        "files": 10
+      },
+      {
+        "task": "site04__nominal_analysis_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site04__nominal_analysis_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site04__nominal_integer",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site04__nominal_integer/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site04__nominal_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site04__nominal_optimized_phase/attempt_0001",
+        "files": 10
+      },
+      {
+        "task": "site08__blur0p9_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site08__blur0p9_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site08__blur1p8_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site08__blur1p8_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site08__nominal_analysis_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site08__nominal_analysis_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site08__nominal_integer",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site08__nominal_integer/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site08__nominal_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site08__nominal_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site09__blur0p9_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site09__blur0p9_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site09__blur1p8_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site09__blur1p8_optimized_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site09__nominal_analysis_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site09__nominal_analysis_phase/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site09__nominal_integer",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site09__nominal_integer/attempt_0001",
+        "files": 0
+      },
+      {
+        "task": "site09__nominal_optimized_phase",
+        "destination": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/interrupted/replaced_analysis/site09__nominal_optimized_phase/attempt_0001",
+        "files": 0
+      }
+    ]
+  },
+  "before": {
+    "protocol.json": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/repairs/all_mode_sites/protocol.json.before",
+      "bytes": 165939,
+      "sha256": "b5870c5fb56b2beb127fbac84776b004952cc65fc19b51af3ff38f6a7b65e6eb"
+    },
+    "manifest.json": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/repairs/all_mode_sites/manifest.json.before",
+      "bytes": 18332,
+      "sha256": "65f078cab846350cc656c7a93dae085154848fb8bcf7f1e667fcc24602fe9453"
+    },
+    "run_klip_stage_g_planet_consistency.py": {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/repairs/all_mode_sites/run_klip_stage_g_planet_consistency.py.before",
+      "bytes": 57925,
+      "sha256": "120728246aec6edc656b2baf5260510db2b58bf752ab699b9e2c903553c57b9b"
+    }
+  }
+}

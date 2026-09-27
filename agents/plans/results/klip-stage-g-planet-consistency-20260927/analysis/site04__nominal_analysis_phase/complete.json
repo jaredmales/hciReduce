@@ -1,0 +1,51 @@
+{
+  "status": "complete",
+  "task": "site04__nominal_analysis_phase",
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_analysis_phase/amplitudes.fits",
+      "bytes": 5258880,
+      "sha256": "2713c4152fdff2d52bb164cb7784f1dd0a88e74bdae57615417a769fcf5c3917"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_analysis_phase/amplitudes_snr.fits",
+      "bytes": 5261760,
+      "sha256": "19ab9d9d409d79df730f00ad3ceaf317582002de516868e2e7791339bc7de237"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_analysis_phase/responses.fits",
+      "bytes": 5256000,
+      "sha256": "3f239631433377d27eb36b99863bf3fbf7dccf0a98ef374ac9060b5a3afea3c1"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_analysis_phase/policy_radius.fits",
+      "bytes": 538560,
+      "sha256": "ed51a3bd01ddffd9ea6892318078fafb526e12fe4730b85b0cdb0b5366503661"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_analysis_phase/diagnostics.json",
+      "bytes": 189811,
+      "sha256": "89cfa54c7397b69b56019bc052a645a72c74500164cea1c3b5bf77922f721509"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_analysis_phase/annular_verification.json",
+      "bytes": 9850,
+      "sha256": "63da6a476842406e29e648c208e24630d8908a8a52535e64202f802e133da22e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_analysis_phase/analysis.log",
+      "bytes": 5935,
+      "sha256": "ea412ad913419fec536b571ea6d22c70ac80773804deb9daee8570ecf87a0482"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_analysis_phase/command.json",
+      "bytes": 599,
+      "sha256": "d488d74a5aacc2f2dee09499e0b60592a1c16cf8786eb196907c28850e862b6f"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_analysis_phase/results.json",
+      "bytes": 74760,
+      "sha256": "14c7aef9dc5a216987cda1b6b891311387b0294bdfe6725cb10ed40a549eccb0"
+    }
+  ]
+}

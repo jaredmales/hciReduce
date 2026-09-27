@@ -3401,6 +3401,45 @@ arms at one rejected center are also discarded so every arm retains the same
 twelve paired sites. Neither the support audit nor replacement selection uses
 a positive-injection score.
 
+### Step 6 result: Stage-G matched-aperture planet consistency (2026-09-27)
+
+The [completed Stage-G result](results/klip-stage-g-planet-consistency-20260927/README.md)
+contains all 60 reductions and analyses and verifies every compact per-task
+result against the ROC receipts. At the predeclared mode-200, three-pixel
+aperture-maximum endpoint, the planet is consistent with the twelve
+exact-contrast injections. Raw covariance minus exact identity is
+$-0.290\pm0.274$ SNR for injections and $-0.544$ for the planet, a
+$-0.93$-sample-standard-deviation difference. Radial covariance minus exact
+identity is $-0.231\pm0.302$ for injections and $-0.591$ for the planet, a
+$-1.19$-standard-deviation difference. Both planet values lie inside the
+injection range. All absolute planet method SNRs lie within 1.12 injection
+standard deviations.
+
+Covariance weighting remains unfavorable: it lowers injection SNR relative to
+exact identity by 0.29 for raw rectangular PSD and 0.23 for radial Hann on
+average. Gaussian 3.6 minus exact identity is also statistically compatible
+with injections at the aperture endpoint: $-0.007\pm1.324$ for injections
+versus $+1.412$ for the planet, or $+1.07$ standard deviations.
+
+The fixed nearest-pixel secondary endpoint retains the earlier discrepancy.
+The planet's raw and radial covariance penalties are 3.52 and 3.31 injection
+standard deviations below their means and below all twelve injection values.
+Gaussian 3.6 minus Gaussian 2.4 is 3.26 standard deviations above its injection
+mean and above all twelve values. Because a one-pixel peak displacement is
+acceptable and the aperture maximum was primary, this is interpreted as
+localization and response-centering sensitivity rather than a failed
+matched-aperture closure.
+
+The response controls identify the likely mechanism. Nominal integer-phase
+injections have template cosine $0.99985$ and best-scaled residual $0.0168$;
+the planet-like optimized phase gives $0.92537$ and $0.3683$. Thus the current
+integer-grid exact response does not model the finite response accurately near
+the planet's almost half-pixel column phase. The same limitation occurs in the
+injections and is largely absorbed by the aperture search. Additional Gaussian
+broadening of 0.9 and 1.8 pixels consistently lowers SNR and does not reproduce
+a selective Gaussian-3.6 benefit. A subpixel-aware response is the direct next
+modeling test if fixed-pixel localization or photometry is pursued.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

@@ -1,0 +1,94 @@
+Stage-G reduction 1/60: site00__nominal_integer
+Stage-G reduction 2/60: site00__nominal_analysis_phase
+Stage-G reduction 3/60: site00__nominal_optimized_phase
+Stage-G reduction 4/60: site00__blur0p9_optimized_phase
+Stage-G reduction 5/60: site00__blur1p8_optimized_phase
+Stage-G reduction 6/60: site01__nominal_integer
+Stage-G reduction 7/60: site01__nominal_analysis_phase
+Stage-G reduction 8/60: site01__nominal_optimized_phase
+Stage-G reduction 9/60: site01__blur0p9_optimized_phase
+Stage-G reduction 10/60: site01__blur1p8_optimized_phase
+Stage-G reduction 11/60: site02__nominal_integer
+Stage-G reduction 12/60: site02__nominal_analysis_phase
+Stage-G reduction 13/60: site02__nominal_optimized_phase
+Stage-G reduction 14/60: site02__blur0p9_optimized_phase
+Stage-G reduction 15/60: site02__blur1p8_optimized_phase
+Stage-G reduction 16/60: site03__nominal_integer
+Stage-G reduction 17/60: site03__nominal_analysis_phase
+Stage-G reduction 18/60: site03__nominal_optimized_phase
+Stage-G reduction 19/60: site03__blur0p9_optimized_phase
+Stage-G reduction 20/60: site03__blur1p8_optimized_phase
+Stage-G reduction 21/60: site04__nominal_integer
+Stage-G reduction 22/60: site04__nominal_analysis_phase
+Stage-G reduction 23/60: site04__nominal_optimized_phase
+Stage-G reduction 24/60: site04__blur0p9_optimized_phase
+Stage-G reduction 25/60: site04__blur1p8_optimized_phase
+Stage-G reduction 26/60: site05__nominal_integer
+Stage-G reduction 27/60: site05__nominal_analysis_phase
+Stage-G reduction 28/60: site05__nominal_optimized_phase
+Stage-G reduction 29/60: site05__blur0p9_optimized_phase
+Stage-G reduction 30/60: site05__blur1p8_optimized_phase
+Stage-G reduction 31/60: site06__nominal_integer
+Stage-G reduction 32/60: site06__nominal_analysis_phase
+Stage-G reduction 33/60: site06__nominal_optimized_phase
+Stage-G reduction 34/60: site06__blur0p9_optimized_phase
+Stage-G reduction 35/60: site06__blur1p8_optimized_phase
+Stage-G reduction 36/60: site07__nominal_integer
+Stage-G reduction 37/60: site07__nominal_analysis_phase
+Stage-G reduction 38/60: site07__nominal_optimized_phase
+Stage-G reduction 39/60: site07__blur0p9_optimized_phase
+Stage-G reduction 40/60: site07__blur1p8_optimized_phase
+Stage-G reduction 41/60: site08__nominal_integer
+Stage-G reduction 42/60: site08__nominal_analysis_phase
+Stage-G reduction 43/60: site08__nominal_optimized_phase
+Stage-G reduction 44/60: site08__blur0p9_optimized_phase
+Stage-G reduction 45/60: site08__blur1p8_optimized_phase
+Stage-G reduction 46/60: site09__nominal_integer
+Stage-G reduction 47/60: site09__nominal_analysis_phase
+Stage-G reduction 48/60: site09__nominal_optimized_phase
+Stage-G reduction 49/60: site09__blur0p9_optimized_phase
+Stage-G reduction 50/60: site09__blur1p8_optimized_phase
+Stage-G reduction 51/60: site10__nominal_integer
+Stage-G reduction 52/60: site10__nominal_analysis_phase
+Stage-G reduction 53/60: site10__nominal_optimized_phase
+Stage-G reduction 54/60: site10__blur0p9_optimized_phase
+Stage-G reduction 55/60: site10__blur1p8_optimized_phase
+Stage-G reduction 56/60: site11__nominal_integer
+Stage-G reduction 57/60: site11__nominal_analysis_phase
+Stage-G reduction 58/60: site11__nominal_optimized_phase
+Stage-G reduction 59/60: site11__blur0p9_optimized_phase
+Stage-G reduction 60/60: site11__blur1p8_optimized_phase
+WARNING: VerifyWarning: Keyword name 'HCI RADIAL BINS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+WARNING: VerifyWarning: Keyword name 'HCI FILTER LABELS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+WARNING: VerifyWarning: Keyword name 'HCI RADIAL BINS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+WARNING: VerifyWarning: Keyword name 'HCI FILTER LABELS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+WARNING: VerifyWarning: Keyword name 'HCI RADIAL BINS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+WARNING: VerifyWarning: Keyword name 'HCI FILTER LABELS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+Stage-G analysis 36/60: site02__nominal_integer
+Stage-G analysis 37/60: site02__blur0p9_optimized_phase
+WARNING: VerifyWarning: Keyword name 'HCI RADIAL BINS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+WARNING: VerifyWarning: Keyword name 'HCI FILTER LABELS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+Stage-G analysis 38/60: site02__nominal_optimized_phase
+Stage-G analysis 39/60: site02__nominal_analysis_phase
+Stage-G analysis 40/60: site03__nominal_integer
+Stage-G analysis 41/60: site03__nominal_optimized_phase
+Stage-G analysis 42/60: site02__blur1p8_optimized_phase
+Stage-G analysis 43/60: site03__nominal_analysis_phase
+Stage-G analysis 44/60: site03__blur0p9_optimized_phase
+Stage-G analysis 45/60: site03__blur1p8_optimized_phase
+Stage-G analysis 46/60: site04__nominal_integer
+Stage-G analysis 47/60: site04__nominal_analysis_phase
+Stage-G analysis 48/60: site04__nominal_optimized_phase
+Stage-G analysis 49/60: site04__blur0p9_optimized_phase
+Stage-G analysis 50/60: site04__blur1p8_optimized_phase
+Stage-G analysis 51/60: site08__nominal_integer
+Stage-G analysis 52/60: site08__nominal_analysis_phase
+Stage-G analysis 53/60: site08__nominal_optimized_phase
+Stage-G analysis 54/60: site08__blur0p9_optimized_phase
+Stage-G analysis 55/60: site08__blur1p8_optimized_phase
+Stage-G analysis 56/60: site09__nominal_integer
+Stage-G analysis 57/60: site09__nominal_optimized_phase
+Stage-G analysis 58/60: site09__nominal_analysis_phase
+Stage-G analysis 59/60: site09__blur0p9_optimized_phase
+Stage-G analysis 60/60: site09__blur1p8_optimized_phase
+/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/results.md
