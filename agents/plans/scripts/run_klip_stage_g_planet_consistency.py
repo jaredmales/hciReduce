@@ -40,6 +40,7 @@ STAGE_DIRECTORY = "stage_g_planet_consistency"
 SITE_COUNT = 12
 NOMINAL_RADIUS = 12.0
 PRIMARY_MODE = 200
+ANALYZER_REPORTING_APERTURE_RADIUS = 60.0
 PSF_BLUR_FWHM = {"nominal": 0.0, "blur0p9": 0.9, "blur1p8": 1.8}
 ARM_DEFINITIONS = (
     {"name": "nominal_integer", "psf": "nominal", "phase": "integer"},
@@ -383,6 +384,9 @@ def prepare(root: Path, config: Path) -> None:
         ],
         "analysis_contract": {
             "aperture_radius_pixels": settings["aperture_radius"],
+            "hcianalyze_reporting_aperture_radius_pixels":
+                ANALYZER_REPORTING_APERTURE_RADIUS,
+            "hcianalyze_reporting_aperture_affects_annular_normalization": False,
             "source_exclusion_radius_pixels": settings["source_radius"],
             "known_planet_and_trial_excluded_from_annular_profile": True,
             "weights_fit_from_signal_free_baseline": True,
@@ -443,16 +447,103 @@ def prepare(root: Path, config: Path) -> None:
           flush=True)
 
 
+def replace_fingerprint(records: list[dict[str, object]], path: Path) -> None:
+    """Replace the unique manifest fingerprint for one repaired file."""
+    matches = [index for index, record in enumerate(records)
+               if Path(str(record["path"])) == path]
+    stage.require(len(matches) == 1, f"manifest has no unique record for {path}")
+    records[matches[0]] = stage.fingerprint(path)
+
+
+def repair_analysis_aperture(root: Path) -> None:
+    """Upgrade a failed initial Stage-G analysis while retaining its reductions."""
+    root = root.resolve()
+    output = stage_g_root(root)
+    protocol_path = output / "protocol.json"
+    manifest_path = output / "manifest.json"
+    frozen_runner = output / "software" / SCRIPT_PATH.name
+    stage.require(output.is_dir() and protocol_path.is_file() and manifest_path.is_file(),
+                  "prepared Stage-G output is missing")
+    stage.require(not (output / "complete.json").exists(),
+                  "completed Stage-G output must not be repaired")
+    manifest = read(manifest_path)
+    protocol = read(protocol_path)
+    stage.verify(manifest["input_records"] + manifest["software_records"] +
+                 manifest["model_receipts"])
+    stage.require(len(protocol["tasks"]) == SITE_COUNT * len(ARM_DEFINITIONS),
+                  "Stage-G repair task count changed")
+    receipts = [output / "reductions" / str(task["name"]) / "complete.json"
+                for task in protocol["tasks"]]
+    stage.require(all(path.is_file() for path in receipts),
+                  "Stage-G repair requires all reductions to be complete")
+    for path in receipts:
+        verify_task_receipt(path)
+
+    repair_directory = output / "repairs" / "analysis_aperture"
+    stage.require(not repair_directory.exists(),
+                  f"Stage-G analysis-aperture repair already exists: {repair_directory}")
+    repair_directory.mkdir(parents=True)
+    for path in (protocol_path, manifest_path, frozen_runner):
+        shutil.copy2(path, repair_directory / (path.name + ".before"))
+    before = {path.name: stage.fingerprint(repair_directory / (path.name + ".before"))
+              for path in (protocol_path, manifest_path, frozen_runner)}
+
+    contract = protocol["analysis_contract"]
+    stage.require(float(contract["aperture_radius_pixels"]) ==
+                  stage_f.EXPECTED_SETTINGS["aperture_radius"],
+                  "Stage-G scientific aperture changed before repair")
+    contract["hcianalyze_reporting_aperture_radius_pixels"] = (
+        ANALYZER_REPORTING_APERTURE_RADIUS)
+    contract["hcianalyze_reporting_aperture_affects_annular_normalization"] = False
+    contract["analysis_repair"] = (
+        "The reporting aperture is 60 pixels so the exclusion-only known-planet "
+        "entry has valid pixels; source measurements retain the reviewed 3-pixel aperture."
+    )
+    stage.write_json(protocol_path, protocol)
+    shutil.copy2(SCRIPT_PATH, frozen_runner)
+    replace_fingerprint(manifest["input_records"], protocol_path)
+    replace_fingerprint(manifest["software_records"], frozen_runner)
+    manifest["repairs"] = [{
+        "name": "analysis_aperture",
+        "reason": (
+            "hciAnalyze also scores exclusion entries and rejected the masked "
+            "known-planet aperture"
+        ),
+        "reductions_reused": len(receipts),
+        "scientific_aperture_radius_pixels": contract["aperture_radius_pixels"],
+        "hcianalyze_reporting_aperture_radius_pixels":
+            ANALYZER_REPORTING_APERTURE_RADIUS,
+        "before": before,
+    }]
+    stage.write_json(manifest_path, manifest)
+    stage.verify(manifest["input_records"] + manifest["software_records"] +
+                 manifest["model_receipts"])
+    stage.write_json(output / "state.json", {
+        "status": "analysis_repair_prepared", "completed_reductions": len(receipts),
+        "completed_analyses": 0, "task_count": len(protocol["tasks"]),
+        "stage_f_policy_changed": False, "method_selection_performed": False,
+    })
+    print(f"repaired Stage-G analysis aperture; retained {len(receipts)} reductions",
+          flush=True)
+    print(f"taskset -c 12-27 env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 "
+          f"MKL_NUM_THREADS=1 python3 {frozen_runner} run {root} --workers 4",
+          flush=True)
+
+
 def enable(root: Path) -> tuple[dict[str, object], dict[str, object], Path]:
     """Verify the Stage-G manifest and return its protocol and analyzer."""
     root = root.resolve()
     output = stage_g_root(root)
     protocol = read(output / "protocol.json")
     manifest = read(output / "manifest.json")
+    contract = protocol["analysis_contract"]
     stage.require(protocol["primary_mode"] == PRIMARY_MODE and
                   protocol["primary_arm"] == PRIMARY_ARM and
                   tuple(protocol["methods"]) == stage_f.PLANET_METHODS and
                   len(protocol["tasks"]) == SITE_COUNT * len(ARM_DEFINITIONS) and
+                  float(contract["hcianalyze_reporting_aperture_radius_pixels"]) ==
+                  ANALYZER_REPORTING_APERTURE_RADIUS and
+                  not contract["hcianalyze_reporting_aperture_affects_annular_normalization"] and
                   not manifest["stage_f_policy_changed"] and
                   not manifest["method_selection_performed"],
                   "Stage-G frozen contract changed")
@@ -538,7 +629,7 @@ def production_snr(protocol: dict[str, object], parent: dict[str, object], analy
         f"--planet.sep={known['separation']},{source['separation']}",
         f"--planet.PA={known['position_angle']},{source['position_angle']}",
         f"--planet.R={known['exclusion_radius']},{settings['source_radius']}",
-        f"--snr.apertureR={settings['aperture_radius']}",
+        f"--snr.apertureR={ANALYZER_REPORTING_APERTURE_RADIUS}",
         f"--snr.minRad={settings['minimum_radius']}",
         f"--snr.maxRad={settings['maximum_radius']}",
         "--filter.psfResponse=", "--filter.lpfGaussFW=0", "--filter.hpfGaussFW=0",
@@ -549,7 +640,8 @@ def production_snr(protocol: dict[str, object], parent: dict[str, object], analy
                        stdout=log, stderr=subprocess.STDOUT, check=True)
     snr, snr_header = fits.getdata(output / "amplitudes_snr.fits", header=True)
     snr = np.asarray(snr, dtype=np.float64).reshape(maps.shape)
-    stage.require(int(snr_header["SNRAPER"]) == int(settings["aperture_radius"]) and
+    stage.require(int(snr_header["SNRAPER"]) ==
+                  int(ANALYZER_REPORTING_APERTURE_RADIUS) and
                   int(snr_header["SNRMINR"]) == int(settings["minimum_radius"]) and
                   int(snr_header["SNRMAXR"]) == int(settings["maximum_radius"]) and
                   int(snr_header["SNRMEAN"]) == 1 and int(snr_header["SNRSMALL"]) == 1,
@@ -992,6 +1084,8 @@ def parser() -> argparse.ArgumentParser:
     prepare_parser = subparsers.add_parser("prepare")
     prepare_parser.add_argument("root", type=Path)
     prepare_parser.add_argument("--config", type=Path, default=Path("working/analyze.conf"))
+    repair_parser = subparsers.add_parser("repair-analysis-aperture")
+    repair_parser.add_argument("root", type=Path)
     run_parser = subparsers.add_parser("run")
     run_parser.add_argument("root", type=Path)
     run_parser.add_argument("--workers", type=int, default=4)
@@ -1005,6 +1099,8 @@ def main() -> None:
         check(arguments.config)
     elif arguments.action == "prepare":
         prepare(arguments.root, arguments.config)
+    elif arguments.action == "repair-analysis-aperture":
+        repair_analysis_aperture(arguments.root)
     else:
         run(arguments.root, arguments.workers)
 

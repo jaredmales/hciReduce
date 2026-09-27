@@ -3360,6 +3360,26 @@ use their broadened PSF for optimized-planet subtraction under the current
 single-PSF `klipReduce` interface; the planet region is excluded from training
 and noise, and this coupling is recorded as an interpretation limit.
 
+### Step 6 checkpoint: Stage-G initial analysis repair (2026-09-27)
+
+The first ROC launch completed and verified all 60 injection reductions, then
+failed before producing any analysis receipt. `hciAnalyze` treats every
+`planet.*` entry both as an annular exclusion and as a signal to score. The
+known-planet entry is required to exclude the real companion from the noise
+profile, but the Stage-G amplitude maps intentionally contain no valid pixels
+inside its three-pixel aperture. The analyzer therefore rejected signal zero
+with `aperture contains no valid pixels`.
+
+The [documented repair](results/klip-stage-g-planet-consistency-setup-20260926/README.md#initial-analysis-repair-2026-09-27)
+uses a 60-pixel analyzer reporting aperture, matching the validated Stage-E
+pattern, while retaining the predeclared three-pixel aperture for every
+scientific injection endpoint. The reporting aperture does not enter annular
+normalization. A direct ROC replay of one failed command completed with the
+expected `SNRAPER=60`, `SNRMINR=6`, `SNRMAXR=60`, mean centering, and
+small-sample correction. The resumable upgrade preserves the original
+protocol, manifest, and runner, refreshes their fingerprints, and requires all
+60 reduction receipts; only the incomplete analyses need to run again.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

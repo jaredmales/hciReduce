@@ -113,3 +113,37 @@ tail -f working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency
 
 The primary report will be
 `working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/results.md`.
+
+## Initial analysis repair (2026-09-27)
+
+The first ROC run completed all 60 reductions, then failed during analysis.
+`hciAnalyze` uses every `planet.*` entry both as an annular exclusion and as a
+signal to score. The real-planet entry is needed as an exclusion, but the
+Stage-G maps intentionally have no valid pixels in its three-pixel aperture.
+The program therefore reported `signal 0 aperture contains no valid pixels`.
+
+The repaired runner gives `hciAnalyze` a 60-pixel reporting aperture, as in the
+validated Stage-E workflow. This setting only controls the program's summary
+rows; it does not change the annular SNR map. Stage G continues to calculate
+all injection endpoints over the reviewed three-pixel aperture. The repair
+archives the original protocol, manifest, and runner, updates their
+fingerprints, and requires all 60 reduction receipts before proceeding.
+
+After pulling the repair commit on ROC, upgrade the prepared directory once:
+
+```bash
+root=working/roc/klip_stage_c_development_20260925
+python3 agents/plans/scripts/run_klip_stage_g_planet_consistency.py \
+  repair-analysis-aperture "$root"
+```
+
+Then rerun the frozen command. The runner reuses all completed reductions and
+archives the incomplete analysis directories before rebuilding them:
+
+```bash
+taskset -c 12-27 env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+  MKL_NUM_THREADS=1 python3 \
+  "$root/stage_g_planet_consistency/software/run_klip_stage_g_planet_consistency.py" \
+  run "$root" --workers 4 \
+  > "$root/stage_g_planet_consistency/driver.log" 2>&1
+```
