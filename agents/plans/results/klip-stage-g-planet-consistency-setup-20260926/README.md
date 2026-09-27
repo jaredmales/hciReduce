@@ -147,3 +147,51 @@ taskset -c 12-27 env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
   run "$root" --workers 4 \
   > "$root/stage_g_planet_consistency/driver.log" 2>&1
 ```
+
+
+## All-mode site repair (2026-09-27)
+
+The repaired analysis completed 38 task receipts before exposing a second
+preflight gap. The initial setup preflight exercised the complete aperture only
+at mode 200. Five of the original twelve centers lose the required eight
+training patches in one detector half at mode 125 for at least one phase:
+`r12_cal03`, `r12_cal05`, `r12_cal07`, `r12_cal14`, and
+`r12_cal15`. This is a geometry/support failure, not an injection-score
+result.
+
+A score-blind audit tested all 26 eligible radius-12 calibration and held-out
+null centers at every phase, KL mode, and aperture pixel. Seventeen centers
+have complete detector-half support. The repair retains the seven fully
+supported original sites and fills the five open slots by the original
+deterministic angular maximin rule, conditioned on those retained sites. The
+replacements are `r12_hold02`, `r12_cal16`, `r12_cal13`,
+`r12_cal02`, and `r12_cal18`. Each replacement then passed the
+complete Stage-F amplitude-map construction for all three phases and all eight
+KL modes.
+
+The repair preserves 35 completed reductions and analyses from the seven valid
+sites. It archives all products from the five replaced slots, including the
+three completed optimized-phase analyses at `r12_cal07`, and queues 25
+replacement reductions and analyses. No recovered SNR was used for support
+screening or replacement selection.
+
+After pulling the all-mode repair commit on ROC, upgrade the prepared directory
+once:
+
+```bash
+root=working/roc/klip_stage_c_development_20260925
+taskset -c 12-27 env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+  MKL_NUM_THREADS=1 python3 \
+  agents/plans/scripts/run_klip_stage_g_planet_consistency.py \
+  repair-all-mode-sites "$root"
+```
+
+Then resume with the frozen runner:
+
+```bash
+taskset -c 12-27 env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+  MKL_NUM_THREADS=1 python3 \
+  "$root/stage_g_planet_consistency/software/run_klip_stage_g_planet_consistency.py" \
+  run "$root" --workers 4 \
+  > "$root/stage_g_planet_consistency/driver.log" 2>&1
+```

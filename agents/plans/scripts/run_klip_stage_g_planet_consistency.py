@@ -41,6 +41,22 @@ SITE_COUNT = 12
 NOMINAL_RADIUS = 12.0
 PRIMARY_MODE = 200
 ANALYZER_REPORTING_APERTURE_RADIUS = 60.0
+ALL_MODE_SUPPORTED_SITE_NAMES = frozenset({
+    "r12_cal00", "r12_cal01", "r12_cal02", "r12_cal08", "r12_cal09",
+    "r12_cal10", "r12_cal11", "r12_cal12", "r12_cal13", "r12_cal16",
+    "r12_cal17", "r12_cal18", "r12_cal19", "r12_hold00", "r12_hold02",
+    "r12_hold03", "r12_hold05",
+})
+INITIAL_SITE_NAMES = (
+    "r12_cal00", "r12_cal01", "r12_cal03", "r12_cal05", "r12_cal07",
+    "r12_cal09", "r12_cal10", "r12_cal12", "r12_cal14", "r12_cal15",
+    "r12_cal17", "r12_cal19",
+)
+REVISED_SITE_NAMES = (
+    "r12_cal00", "r12_cal01", "r12_hold02", "r12_cal16", "r12_cal13",
+    "r12_cal09", "r12_cal10", "r12_cal12", "r12_cal02", "r12_cal18",
+    "r12_cal17", "r12_cal19",
+)
 PSF_BLUR_FWHM = {"nominal": 0.0, "blur0p9": 0.9, "blur1p8": 1.8}
 ARM_DEFINITIONS = (
     {"name": "nominal_integer", "psf": "nominal", "phase": "integer"},
@@ -168,17 +184,49 @@ def make_psf_controls(source: Path, destination: Path) -> list[dict[str, object]
 
 
 def select_sites(protocol: dict[str, object]) -> list[dict[str, object]]:
-    """Select twelve score-blind radius-12 sites unused for positive injections."""
+    """Select twelve score-blind, all-mode-supported radius-12 sites."""
     candidates = [dict(site) for site in protocol["sites"]
                   if float(site["nominal_radius"]) == NOMINAL_RADIUS and
                   site["role"] in {"calibration", "heldout_null"}]
     stage.require(len(candidates) >= SITE_COUNT,
                   "insufficient non-positive radius-12 sites")
-    chosen = preparation.maximin(candidates, SITE_COUNT)
-    stage.require(len(chosen) == SITE_COUNT and
-                  len({(int(site["row"]), int(site["column"])) for site in chosen}) == SITE_COUNT,
-                  "Stage-G site selection is incomplete")
-    return chosen
+    initial = preparation.maximin(candidates, SITE_COUNT)
+    stage.require(tuple(str(site["name"]) for site in initial) == INITIAL_SITE_NAMES,
+                  "initial Stage-G maximin selection changed")
+    retained = [site for site in initial
+                if str(site["name"]) in ALL_MODE_SUPPORTED_SITE_NAMES]
+    available = sorted(
+        [site for site in candidates
+         if str(site["name"]) in ALL_MODE_SUPPORTED_SITE_NAMES and
+         str(site["name"]) not in {str(value["name"]) for value in retained}],
+        key=lambda site: (float(site["angle_radians"]), int(site["row"]),
+                          int(site["column"])))
+    additions = []
+    while len(retained) + len(additions) < SITE_COUNT:
+        chosen = retained + additions
+        stage.require(available and chosen,
+                      "insufficient all-mode-supported Stage-G replacements")
+        choice = max(
+            available,
+            key=lambda site: (
+                min(preparation.angular_distance(site, other) for other in chosen),
+                -float(site["angle_radians"]), -int(site["row"]),
+                -int(site["column"]),
+            ),
+        )
+        additions.append(choice)
+        available.remove(choice)
+    revised = list(initial)
+    for index, replacement in zip(
+            [index for index, site in enumerate(initial)
+             if str(site["name"]) not in ALL_MODE_SUPPORTED_SITE_NAMES],
+            additions):
+        revised[index] = replacement
+    stage.require(tuple(str(site["name"]) for site in revised) == REVISED_SITE_NAMES and
+                  len({(int(site["row"]), int(site["column"])) for site in revised}) ==
+                  SITE_COUNT,
+                  "revised Stage-G site selection changed")
+    return revised
 
 
 def task_command(output: Path, parent: dict[str, object], task: dict[str, object],
@@ -227,24 +275,11 @@ def verify_stage_f_boundary(root: Path) \
     return protocol, analyzer, manifest
 
 
-def preflight_geometries(parent: dict[str, object],
+def preflight_geometries(root: Path, parent: dict[str, object],
                          tasks: list[dict[str, object]]) -> list[dict[str, object]]:
-    """Require exact response and baseline-fit support for every unique aperture."""
+    """Require complete Stage-F support for every mode of every unique aperture."""
     baseline = np.asarray(fits.getdata(parent["paths"]["baseline"], memmap=True),
                           dtype=np.float64)
-    parent_response = Path(str(parent["parent_response"]))
-    paths = development.response47.product_paths(parent_response)
-    coordinates = np.asarray(fits.getdata(paths["coordinates"], memmap=True),
-                             dtype=np.float64).T
-    lookup = {(int(row), int(column)): index
-              for index, (row, column, _, _) in enumerate(coordinates)}
-    mode_index = stage.MODES.index(PRIMARY_MODE)
-    responses = np.asarray(fits.getdata(paths["responses"][mode_index], memmap=True),
-                           dtype=np.float64)
-    validities = np.asarray(fits.getdata(paths["validities"][mode_index], memmap=True),
-                            dtype=np.float64) > 0.5
-    optimized = source_from_polar((128, 128), float(parent["known_planet"]["separation"]),
-                                  float(parent["known_planet"]["position_angle"]))
     unique: dict[tuple[float, float], dict[str, object]] = {}
     for task in tasks:
         source = task["source"]
@@ -252,36 +287,41 @@ def preflight_geometries(parent: dict[str, object],
     result = []
     for index, task in enumerate(unique.values(), start=1):
         settings = dict(task["settings"])
-        source, aperture, searches, bins = stage_f.analysis_geometry((128, 128), settings)
+        _, _, _, diagnostics, aperture, bins = stage_f.build_amplitude_maps(
+            root, parent, baseline, settings)
+        source = tuple(float(value) for value in diagnostics["source_row_column"])
         expected = task["source"]
         stage.require(np.allclose(source, [expected["row"], expected["column"]],
                                   rtol=0, atol=2e-12),
                       "Stage-G source geometry does not round trip")
-        stage.require(all(query in lookup for query in searches),
-                      "Stage-G aperture leaves exact-response coordinates")
-        minimum_support = development.SUPPORT * development.SUPPORT
-        width = int(parent["training"]["candidate_specific_half_width_by_radius"][
-            str(stage_f.policy_radius(float(expected["separation"])))])
-        for query in searches:
-            source_index = lookup[query]
-            template = development.raw.crop(responses[source_index].T, development.SUPPORT)
-            validity = development.raw.crop(validities[source_index].T, development.SUPPORT)
-            fitted = stage_f.fit_planet_query(
-                baseline[mode_index], query, searches, template, validity, optimized, width)
-            minimum_support = min(minimum_support,
-                                  int(np.count_nonzero(fitted["support"])))
+        details = [detail for mode in stage.MODES
+                   for detail in diagnostics["modes"][str(mode)].values()]
+        stage.require(details and len(diagnostics["modes"]) == len(stage.MODES),
+                      "Stage-G all-mode preflight is incomplete")
         result.append({
+            "base_site": task["base_site"],
+            "phase": task["phase"],
             "source_row_column": list(source),
             "separation": float(expected["separation"]),
             "position_angle": float(expected["position_angle"]),
             "aperture_pixels": int(np.count_nonzero(aperture)),
-            "queries": len(searches),
+            "queries": len(diagnostics["aperture_queries"]),
             "radial_bins": bins,
-            "minimum_exact_support_pixels": minimum_support,
-            "training_half_width": width,
+            "modes": list(stage.MODES),
+            "minimum_exact_support_pixels": min(
+                int(detail["exact_support_pixels"]) for detail in details),
+            "minimum_sparse_support_pixels": min(
+                int(detail["reference_support_pixels"]["sparse_identity"])
+                for detail in details),
+            "minimum_raw_samples": min(int(detail["raw_samples"]) for detail in details),
+            "minimum_radial_samples": min(
+                int(detail["radial_samples"]) for detail in details),
+            "training_half_widths": sorted({
+                int(detail["training_half_width"]) for detail in details
+            }),
         })
         print(f"preflight geometry {index}/{len(unique)}: "
-              f"{task['base_site']} {task['phase']}", flush=True)
+              f"{task['base_site']} {task['phase']} all modes", flush=True)
     return result
 
 
@@ -355,7 +395,7 @@ def prepare(root: Path, config: Path) -> None:
                   "Stage-G task count changed")
     for task in tasks:
         task["command"] = task_command(output, parent, task, psf_paths)
-    geometry = preflight_geometries(parent, tasks)
+    geometry = preflight_geometries(root, parent, tasks)
 
     protocol = {
         "schema": 1,
@@ -367,7 +407,12 @@ def prepare(root: Path, config: Path) -> None:
         "nominal_radius": NOMINAL_RADIUS,
         "planet_contrast": stage.PLANET_CONTRAST,
         "site_count": SITE_COUNT,
-        "site_selection": "deterministic angular maximin from radius-12 calibration and held-out-null centers; no positive score used",
+        "site_selection": (
+            "initial deterministic angular maximin from radius-12 calibration and "
+            "held-out-null centers, retain all-mode-supported selections, then "
+            "deterministic maximin fill from the all-mode-supported score-blind pool; "
+            "no positive score used"
+        ),
         "sites": sites,
         "phase_offsets_row_column": {name: list(value) for name, value in phases.items()},
         "arms": list(ARM_DEFINITIONS),
@@ -387,6 +432,7 @@ def prepare(root: Path, config: Path) -> None:
             "hcianalyze_reporting_aperture_radius_pixels":
                 ANALYZER_REPORTING_APERTURE_RADIUS,
             "hcianalyze_reporting_aperture_affects_annular_normalization": False,
+            "all_mode_geometry_preflight": True,
             "source_exclusion_radius_pixels": settings["source_radius"],
             "known_planet_and_trial_excluded_from_annular_profile": True,
             "weights_fit_from_signal_free_baseline": True,
@@ -530,6 +576,191 @@ def repair_analysis_aperture(root: Path) -> None:
           flush=True)
 
 
+def repair_all_mode_sites(root: Path) -> None:
+    """Replace unsupported initial sites while retaining valid completed tasks."""
+    root = root.resolve()
+    output = stage_g_root(root)
+    protocol_path = output / "protocol.json"
+    manifest_path = output / "manifest.json"
+    frozen_runner = output / "software" / SCRIPT_PATH.name
+    stage.require(output.is_dir() and protocol_path.is_file() and manifest_path.is_file(),
+                  "prepared Stage-G output is missing")
+    stage.require(not (output / "complete.json").exists(),
+                  "completed Stage-G output must not be repaired")
+    manifest = read(manifest_path)
+    protocol = read(protocol_path)
+    stage.verify(manifest["input_records"] + manifest["software_records"] +
+                 manifest["model_receipts"] + manifest.get("repair_records", []))
+    stage.require(tuple(str(site["name"]) for site in protocol["sites"]) ==
+                  INITIAL_SITE_NAMES,
+                  "Stage-G initial sites changed before all-mode repair")
+    stage.require(any(record["name"] == "analysis_aperture"
+                      for record in manifest.get("repairs", [])),
+                  "Stage-G reporting-aperture repair is missing")
+    parent, _, _ = verify_stage_f_boundary(root)
+    revised_sites = select_sites(parent)
+    changed_indices = [
+        index for index, (before, after) in enumerate(zip(protocol["sites"], revised_sites))
+        if str(before["name"]) != str(after["name"])
+    ]
+    stage.require(changed_indices == [2, 3, 4, 8, 9],
+                  "Stage-G all-mode replacement indices changed")
+
+    old_tasks = list(protocol["tasks"])
+    stage.require(len(old_tasks) == SITE_COUNT * len(ARM_DEFINITIONS),
+                  "Stage-G repair task count changed")
+    for task in old_tasks:
+        verify_task_receipt(
+            output / "reductions" / str(task["name"]) / "complete.json")
+    unchanged_tasks = [
+        task for task in old_tasks if int(task["site_index"]) not in changed_indices
+    ]
+    for task in unchanged_tasks:
+        verify_task_receipt(
+            output / "analysis" / str(task["name"]) / "complete.json")
+
+    arm_lookup = {str(arm["name"]): arm for arm in ARM_DEFINITIONS}
+    phases = {name: tuple(value)
+              for name, value in protocol["phase_offsets_row_column"].items()}
+    psf_paths = {
+        str(record["name"]): Path(str(record["fingerprint"]["path"]))
+        for record in protocol["psf_controls"]
+    }
+    replacement_tasks = []
+    tasks = []
+    for old_task in old_tasks:
+        site_index = int(old_task["site_index"])
+        if site_index not in changed_indices:
+            tasks.append(old_task)
+            continue
+        site = revised_sites[site_index]
+        arm = arm_lookup[str(old_task["arm"])]
+        phase = phases[str(arm["phase"])]
+        row = float(site["row"]) + phase[0]
+        column = float(site["column"]) + phase[1]
+        separation, position_angle = polar_from_source((128, 128), row, column)
+        source = source_from_polar((128, 128), separation, position_angle)
+        stage.require(np.allclose(source, [row, column], rtol=0, atol=2e-12),
+                      "replacement source polar conversion is not reversible")
+        settings = dict(old_task["settings"])
+        settings.update(separation=separation, position_angle=position_angle)
+        task = {
+            "name": old_task["name"],
+            "site_index": site_index,
+            "base_site": site["name"],
+            "base_row_column": [int(site["row"]), int(site["column"])],
+            "arm": arm["name"],
+            "psf_control": arm["psf"],
+            "phase": arm["phase"],
+            "phase_offset_row_column": list(phase),
+            "source": {"row": source[0], "column": source[1],
+                       "separation": separation, "position_angle": position_angle},
+            "contrast": old_task["contrast"],
+            "settings": settings,
+        }
+        task["command"] = task_command(output, parent, task, psf_paths)
+        replacement_tasks.append(task)
+        tasks.append(task)
+    stage.require(len(replacement_tasks) == len(changed_indices) * len(ARM_DEFINITIONS),
+                  "Stage-G replacement task count changed")
+    replacement_preflight = preflight_geometries(
+        root, parent, replacement_tasks)
+
+    repair_directory = output / "repairs" / "all_mode_sites"
+    stage.require(not repair_directory.exists(),
+                  f"Stage-G all-mode site repair already exists: {repair_directory}")
+    repair_directory.mkdir(parents=True)
+    for value in (protocol_path, manifest_path, frozen_runner):
+        shutil.copy2(value, repair_directory / (value.name + ".before"))
+    before = {
+        value.name: stage.fingerprint(repair_directory / (value.name + ".before"))
+        for value in (protocol_path, manifest_path, frozen_runner)
+    }
+
+    archived = {"reductions": [], "analysis": []}
+    changed_names = {
+        str(task["name"]) for task in old_tasks
+        if int(task["site_index"]) in changed_indices
+    }
+    for group in ("reductions", "analysis"):
+        for name in sorted(changed_names):
+            directory = output / group / name
+            if directory.exists():
+                destination = development.archive_incomplete(
+                    output, directory, "replaced_" + group)
+                archived[group].append({
+                    "task": name,
+                    "destination": str(destination),
+                    "files": len(list(destination.rglob("*"))),
+                })
+
+    protocol["sites"] = revised_sites
+    protocol["tasks"] = tasks
+    protocol["site_selection"] = (
+        "initial deterministic angular maximin from radius-12 calibration and "
+        "held-out-null centers, retain all-mode-supported selections, then "
+        "deterministic maximin fill from the all-mode-supported score-blind pool; "
+        "no positive score used"
+    )
+    protocol["initial_primary_mode_preflight_geometries"] = protocol.pop(
+        "preflight_geometries")
+    protocol["replacement_all_mode_preflight_geometries"] = replacement_preflight
+    protocol["analysis_contract"]["all_mode_geometry_preflight"] = True
+    protocol["analysis_contract"]["site_support_repair"] = (
+        "Five score-blind centers lacking complete mode-125 detector-half support "
+        "were replaced before summary; seven fully supported original centers remain."
+    )
+    stage.write_json(protocol_path, protocol)
+    shutil.copy2(SCRIPT_PATH, frozen_runner)
+    replace_fingerprint(manifest["input_records"], protocol_path)
+    replace_fingerprint(manifest["software_records"], frozen_runner)
+
+    repair_record = {
+        "schema": 1,
+        "name": "all_mode_sites",
+        "reason": (
+            "The initial preflight covered mode 200 only; five centers lack complete "
+            "detector-half training support in mode 125 for at least one phase."
+        ),
+        "selection_used_positive_scores": False,
+        "all_mode_supported_pool": sorted(ALL_MODE_SUPPORTED_SITE_NAMES),
+        "initial_sites": list(INITIAL_SITE_NAMES),
+        "revised_sites": list(REVISED_SITE_NAMES),
+        "changed_site_indices": changed_indices,
+        "replacement_preflight_geometries": replacement_preflight,
+        "retained_reductions": len(unchanged_tasks),
+        "retained_analyses": len(unchanged_tasks),
+        "archived": archived,
+        "before": before,
+    }
+    repair_record_path = repair_directory / "repair.json"
+    stage.write_json(repair_record_path, repair_record)
+    repair_fingerprint = stage.fingerprint(repair_record_path)
+    manifest.setdefault("repairs", []).append({
+        "name": "all_mode_sites",
+        "record": repair_fingerprint,
+        "retained_reductions": len(unchanged_tasks),
+        "retained_analyses": len(unchanged_tasks),
+        "replacement_tasks": len(replacement_tasks),
+    })
+    manifest.setdefault("repair_records", []).append(repair_fingerprint)
+    stage.write_json(manifest_path, manifest)
+    stage.verify(manifest["input_records"] + manifest["software_records"] +
+                 manifest["model_receipts"] + manifest["repair_records"])
+    stage.write_json(output / "state.json", {
+        "status": "all_mode_site_repair_prepared",
+        "completed_reductions": len(unchanged_tasks),
+        "completed_analyses": len(unchanged_tasks),
+        "task_count": len(tasks), "stage_f_policy_changed": False,
+        "method_selection_performed": False,
+    })
+    print(f"repaired Stage-G sites; retained {len(unchanged_tasks)} reductions "
+          f"and analyses, queued {len(replacement_tasks)} replacements", flush=True)
+    print(f"taskset -c 12-27 env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 "
+          f"MKL_NUM_THREADS=1 python3 {frozen_runner} run {root} --workers 4",
+          flush=True)
+
+
 def enable(root: Path) -> tuple[dict[str, object], dict[str, object], Path]:
     """Verify the Stage-G manifest and return its protocol and analyzer."""
     root = root.resolve()
@@ -544,11 +775,14 @@ def enable(root: Path) -> tuple[dict[str, object], dict[str, object], Path]:
                   float(contract["hcianalyze_reporting_aperture_radius_pixels"]) ==
                   ANALYZER_REPORTING_APERTURE_RADIUS and
                   not contract["hcianalyze_reporting_aperture_affects_annular_normalization"] and
+                  contract["all_mode_geometry_preflight"] and
+                  tuple(str(site["name"]) for site in protocol["sites"]) ==
+                  REVISED_SITE_NAMES and
                   not manifest["stage_f_policy_changed"] and
                   not manifest["method_selection_performed"],
                   "Stage-G frozen contract changed")
     stage.verify(manifest["input_records"] + manifest["software_records"] +
-                 manifest["model_receipts"])
+                 manifest["model_receipts"] + manifest.get("repair_records", []))
     stage.require(stage_f.model_receipts(root) == manifest["model_receipts"],
                   "Stage-G calibration model products changed")
     stage.require(stage.fingerprint(SCRIPT_PATH) in manifest["software_records"],
@@ -1062,8 +1296,10 @@ def check(config: Path) -> None:
                   PRIMARY_ARM in {arm["name"] for arm in ARM_DEFINITIONS} and
                   set(PSF_BLUR_FWHM) == {arm["psf"] for arm in ARM_DEFINITIONS} and
                   all(first in stage_f.PLANET_METHODS and second in stage_f.PLANET_METHODS
-                      for _, first, second in PAIR_DEFINITIONS),
-                  "Stage-G arm or method contract changed")
+                      for _, first, second in PAIR_DEFINITIONS) and
+                  len(ALL_MODE_SUPPORTED_SITE_NAMES) == 17 and
+                  len(set(REVISED_SITE_NAMES)) == SITE_COUNT,
+                  "Stage-G arm, method, or site contract changed")
     synthetic = np.zeros((31, 31), dtype=np.float64)
     synthetic[15, 15] = 1.0
     for fwhm in (0.9, 1.8):
@@ -1086,6 +1322,8 @@ def parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("--config", type=Path, default=Path("working/analyze.conf"))
     repair_parser = subparsers.add_parser("repair-analysis-aperture")
     repair_parser.add_argument("root", type=Path)
+    site_repair_parser = subparsers.add_parser("repair-all-mode-sites")
+    site_repair_parser.add_argument("root", type=Path)
     run_parser = subparsers.add_parser("run")
     run_parser.add_argument("root", type=Path)
     run_parser.add_argument("--workers", type=int, default=4)
@@ -1101,6 +1339,8 @@ def main() -> None:
         prepare(arguments.root, arguments.config)
     elif arguments.action == "repair-analysis-aperture":
         repair_analysis_aperture(arguments.root)
+    elif arguments.action == "repair-all-mode-sites":
+        repair_all_mode_sites(arguments.root)
     else:
         run(arguments.root, arguments.workers)
 

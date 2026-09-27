@@ -3380,6 +3380,27 @@ small-sample correction. The resumable upgrade preserves the original
 protocol, manifest, and runner, refreshes their fingerprints, and requires all
 60 reduction receipts; only the incomplete analyses need to run again.
 
+### Step 6 checkpoint: Stage-G all-mode site repair (2026-09-27)
+
+After the reporting-aperture correction, ROC produced 38 analysis receipts
+before a task failed the detector-half training-support requirement. The setup
+preflight had exercised full apertures only at mode 200. A score-blind audit of
+all 26 eligible radius-12 calibration and held-out-null centers found that five
+of the twelve selected centers lose support at mode 125 for at least one phase.
+Seventeen eligible centers pass every phase, all eight KL modes, and every
+aperture pixel.
+
+The [all-mode repair](results/klip-stage-g-planet-consistency-setup-20260926/README.md#all-mode-site-repair-2026-09-27)
+retains the seven fully supported original centers and chooses five
+replacements by deterministic angular maximin from the supported pool. The
+replacement centers each passed the complete Stage-F amplitude-map
+construction for all three phases and all modes. The repair preserves 35
+complete reduction-analysis pairs, archives the 25 tasks at replaced centers,
+and queues 25 replacement tasks. The three otherwise complete optimized-phase
+arms at one rejected center are also discarded so every arm retains the same
+twelve paired sites. Neither the support audit nor replacement selection uses
+a positive-injection score.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
