@@ -3440,6 +3440,30 @@ broadening of 0.9 and 1.8 pixels consistently lowers SNR and does not reproduce
 a selective Gaussian-3.6 benefit. A subpixel-aware response is the direct next
 modeling test if fixed-pixel localization or photometry is pursued.
 
+### Step 6 checkpoint: Stage-H subpixel-response closure prepared (2026-09-28)
+
+The [Stage-H setup](results/klip-stage-h-subpixel-response-setup-20260928/README.md)
+tests whether the Stage-G phase mismatch can be repaired by registering the
+existing integer response or requires a response measured at fractional pixel
+phase. It reuses the twelve nominal optimized-phase positive injections and
+adds twelve matching negative reductions. Their central differences are full
+KLIP `refitDifference` responses at the planet-like
+`(-0.27707,+0.48596)`-pixel phase.
+
+At every site and KL mode, the current nearest-pixel response, a cubic-shifted
+version of its full 47-pixel stamp, and the regenerated paired response are
+compared on common 11-by-11 support. Mode 200 is primary. Template cosine,
+projection scale, and best-scaled residual are evaluated under identity, raw
+rectangular, and radial-Hann covariance. The one-sided positive and negative
+responses are retained as finite-amplitude controls.
+
+Cosine is the retained optimal matched-filter SNR fraction in the stated
+covariance metric, while projection scale measures noiseless contrast gain.
+This isolates response-model fidelity without changing the annular detection
+statistic. If cubic shifting approaches the paired-response ceiling, it is the
+next inexpensive planet-template model. A remaining shape residual will
+instead motivate a response library sampled over fractional phase.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
