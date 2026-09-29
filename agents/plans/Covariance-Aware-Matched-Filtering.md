@@ -3492,6 +3492,35 @@ filters' poorer injection SNR. The next application should reanalyze the
 planet and comparable optimized-phase injections with cubic-shifted responses
 while retaining the established annular-noise and aperture rules.
 
+### Step 6 checkpoint: Stage-I shifted-template planet closure prepared (2026-09-28)
+
+The [Stage-I setup](results/klip-stage-i-shifted-planet-setup-20260928/README.md)
+applies the promoted cubic registration to the planet and twelve matched
+optimized-phase injections without new KLIP reductions. The planet is now
+evaluated at the independently optimized negative-companion coordinate rather
+than the earlier configured analysis coordinate. Its nearest-pixel phase is
+therefore exactly the injection phase `(-0.27707,+0.48596)`; the two planet
+coordinates differ by `0.675` pixel.
+
+Mode 200 and the optimized nearest pixel are predeclared. The runner compares
+Gaussian 2.4 and 3.6, integer and shifted identity, integer and shifted raw
+rectangular covariance, and integer and shifted radial-Hann truncation 0.75.
+The completed Stage-G aperture endpoint is not reopened.
+
+The SNR denominator is phase aware as well. Stage I rebuilds shifted filters
+at all 245 positions in the radius-12 calibration unit and applies them across
+the two one-pixel annuli that normalize each optimized source pixel.
+Candidate-specific weights retain the complete radius-three training
+exclusion. Production `hciAnalyze` must match an independent annular oracle,
+and all unchanged injection methods must replay their Stage-G nearest-pixel
+SNRs.
+
+The primary comparisons are shifted covariance minus shifted identity and
+Gaussian 3.6 minus shifted identity for the planet versus the twelve
+injections. This directly tests whether response registration removes the
+fixed-pixel planet discrepancy while preserving the established noise and
+small-sample conventions.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
