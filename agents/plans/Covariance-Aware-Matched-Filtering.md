@@ -3513,7 +3513,11 @@ the two one-pixel annuli that normalize each optimized source pixel.
 Candidate-specific weights retain the complete radius-three training
 exclusion. Production `hciAnalyze` must match an independent annular oracle,
 and all unchanged injection methods must replay their Stage-G nearest-pixel
-SNRs.
+SNRs. The first calibration attempt stopped at this replay guard before any
+science analysis: generic stamps overlapping the known-planet exclusion use
+partially masked support. The corrected reconstruction applies that frozen
+mask to both integer and shifted weights; a real partial-support ROC site then
+replayed successfully.
 
 The primary comparisons are shifted covariance minus shifted identity and
 Gaussian 3.6 minus shifted identity for the planet versus the twelve

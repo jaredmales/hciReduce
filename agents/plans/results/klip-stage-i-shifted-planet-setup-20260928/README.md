@@ -61,6 +61,14 @@ normalization. An independent oracle must reproduce every finite SNR pixel.
 The unchanged Gaussian and integer-template injection SNRs must also reproduce
 their completed Stage-G nearest-pixel values.
 
+The first calibration attempt stopped at this replay guard before analyzing a
+science image. Generic sites whose 11-pixel stamps overlap the known-planet
+exclusion have partially masked support; the initial shifted reconstruction
+had used the complete support. The corrected runner applies the same frozen
+candidate mask to integer and shifted identity and covariance weights. It was
+checked against a real partial-support ROC site before the replacement setup
+was committed.
+
 ## Interpretation
 
 The primary question is whether the planet's shifted raw- and radial-covariance
@@ -76,7 +84,16 @@ another planet-specific effect.
 
 ## ROC commands
 
-After pulling the setup commit, run from the repository root:
+After pulling the setup commit, run from the repository root. If the
+pre-correction attempt exists, preserve it before preparing the replacement:
+
+```bash
+root=working/roc/klip_stage_c_development_20260925
+mv "$root/stage_i_shifted_planet" \
+  "$root/stage_i_shifted_planet_failed_support_mask_20260928"
+```
+
+Then prepare the corrected frozen run:
 
 ```bash
 root=working/roc/klip_stage_c_development_20260925

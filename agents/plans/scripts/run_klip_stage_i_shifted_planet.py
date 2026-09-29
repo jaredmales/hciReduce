@@ -462,11 +462,16 @@ def calibrate(root: Path, protocol: dict[str, object],
             full_template, full_validity, phase)
         stage.require(np.array_equal(support, shifted_support) and np.all(support),
                       "Stage-I generic shifted support changed")
-        weights[local - 1, 0] = development.normalized_weight(shifted, support)
+        generic_support = support & development.candidate_mask(query, planet)
+        stage.require(generic_support[stage_f.HALF, stage_f.HALF],
+                      "Stage-I generic source anchor is excluded")
+        weights[local - 1, 0] = development.normalized_weight(
+            shifted, generic_support)
         stored_identity = unit["reference_weights"][
             local - 1,
             development.REFERENCE_WEIGHT_METHODS.index("exact_identity")]
-        current_identity = development.normalized_weight(template, support)
+        current_identity = development.normalized_weight(
+            template, generic_support)
         replay_errors.append(float(np.max(np.abs(current_identity -
                                                    stored_identity))))
         stored_raw = unit["covariance_weights"][
@@ -482,7 +487,10 @@ def calibrate(root: Path, protocol: dict[str, object],
                         in development.footprint.SEARCH_OFFSETS]
             fitted = development.fit_query(
                 baseline, query, searches, template, support, planet, width)
-            calculated = shifted_weights(template, shifted, support, fitted)
+            stage.require(np.array_equal(fitted["support"], generic_support),
+                          "Stage-I fitted generic support changed")
+            calculated = shifted_weights(
+                template, shifted, generic_support, fitted)
             weights[local - 1] = calculated
             replay_errors.extend([
                 float(np.max(np.abs(
@@ -1101,7 +1109,15 @@ def check() -> None:
     identity = development.normalized_weight(template, support)
     precision = precision_weight(
         covariance, template, support, np.ones(template.shape), "full", 0)
+    partial_support = support.copy()
+    partial_support[0, :3] = False
+    partial_identity = development.normalized_weight(template, partial_support)
+    partial_precision = precision_weight(
+        covariance, template, partial_support, np.ones(template.shape),
+        "full", 0)
     stage.require(np.allclose(identity, precision,
+                              rtol=2e-14, atol=2e-14) and
+                  np.allclose(partial_identity, partial_precision,
                               rtol=2e-14, atol=2e-14) and
                   len(METHODS) == len(set(METHODS)) and
                   all(first in METHODS and second in METHODS
