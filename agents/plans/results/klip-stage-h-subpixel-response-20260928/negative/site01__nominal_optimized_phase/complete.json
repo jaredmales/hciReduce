@@ -1,0 +1,22 @@
+{
+  "status": "complete",
+  "task": "site01__nominal_optimized_phase",
+  "elapsed_seconds": 5.233835905997694,
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_h_subpixel_response/negative/site01__nominal_optimized_phase/finim.fits",
+      "bytes": 538560,
+      "sha256": "c0e1232351bf73a0e98914bb31801637a37b8ad108646c7f5c5e448e1ae90142"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_h_subpixel_response/negative/site01__nominal_optimized_phase/run.log",
+      "bytes": 5266,
+      "sha256": "1ad4930e69358fa1bed510bca4438266004f3303a2675765daca0e0f4937fe61"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_h_subpixel_response/negative/site01__nominal_optimized_phase/run.command.json",
+      "bytes": 1251,
+      "sha256": "ff40b1207219e5597b251d6ed4c2bc1b9a59749685feff48c64d6c53fef4fd86"
+    }
+  ]
+}

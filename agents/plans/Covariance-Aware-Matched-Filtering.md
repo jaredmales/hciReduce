@@ -3464,6 +3464,34 @@ statistic. If cubic shifting approaches the paired-response ceiling, it is the
 next inexpensive planet-template model. A remaining shape residual will
 instead motivate a response library sampled over fractional phase.
 
+### Step 6 result: Stage-H registration explains most subpixel mismatch (2026-09-28)
+
+The [completed Stage-H result](results/klip-stage-h-subpixel-response-20260928/README.md)
+contains all twelve paired responses and passes the frozen ROC completion
+verifier. Cubic shifting the full integer response before its 11-pixel crop
+improves every site under identity, raw rectangular, and radial-Hann metrics.
+At mode 200 the identity cosine rises from `0.92575` to `0.99355`, the
+projection scale rises from `0.9185` to `0.9904`, and the best-scaled
+residual falls from `0.3670` to `0.1072`. Raw and radial covariance give
+shifted cosines `0.99079` and `0.98933` and residuals `0.1269` and
+`0.1368`. The improvement is nearly unchanged from modes 125 through 350.
+
+The paired-exact template closes against the actual positive response:
+mode-200 cosines are `0.99982`, `0.99948`, and `0.99908` under identity,
+raw, and radial metrics, with projection scale consistent with one. Thus
+finite-amplitude asymmetry is small. The residual left after cubic shifting is
+a genuine but smaller phase-dependent response-shape difference.
+
+Cubic registration is promoted as the first subpixel-aware response model. It
+reduces theoretical template-mismatch SNR loss from roughly 7-8% to
+0.6-1.1% and noiseless contrast bias from roughly 8-9% to 1-1.3%. A measured
+fractional-phase grid could recover the remaining shape error, but its likely
+detection gain over cubic shifting is small. Because registration improves
+identity and covariance metrics similarly, it does not explain the covariance
+filters' poorer injection SNR. The next application should reanalyze the
+planet and comparable optimized-phase injections with cubic-shifted responses
+while retaining the established annular-noise and aperture rules.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

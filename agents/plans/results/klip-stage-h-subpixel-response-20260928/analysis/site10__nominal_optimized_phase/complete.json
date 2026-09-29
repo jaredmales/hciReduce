@@ -1,0 +1,16 @@
+{
+  "status": "complete",
+  "task": "site10__nominal_optimized_phase",
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_h_subpixel_response/analysis/site10__nominal_optimized_phase/results.json",
+      "bytes": 49750,
+      "sha256": "2a27352083cc2b415512c7d37f867888976744c89be73cb0c92e34f7d5dfff79"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_h_subpixel_response/analysis/site10__nominal_optimized_phase/mode200_responses.fits",
+      "bytes": 14400,
+      "sha256": "ca86b04e0793ed4b3494b5f590955b8d6052e4544763a3439c0bf28eb2872517"
+    }
+  ]
+}

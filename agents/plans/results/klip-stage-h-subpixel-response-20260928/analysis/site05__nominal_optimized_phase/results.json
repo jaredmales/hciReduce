@@ -1,0 +1,1349 @@
+{
+  "schema": 1,
+  "task": "site05__nominal_optimized_phase",
+  "site_index": 5,
+  "base_site": "r12_cal09",
+  "source_row_column": [
+    70.72293007062204,
+    54.48596370061269
+  ],
+  "query_row_column": [
+    71,
+    54
+  ],
+  "phase_offset_row_column": [
+    -0.2770699293779586,
+    0.4859637006126931
+  ],
+  "contrast": 0.004574362496414845,
+  "modes": {
+    "125": {
+      "support_pixels": 121,
+      "policy_radius": 12.0,
+      "training_half_width": 20,
+      "metrics": {
+        "central": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9749743907871514,
+              "projection_scale": 0.9579896731034723,
+              "best_scaled_relative_residual": 0.22231719976021383
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9726344438528358,
+              "projection_scale": 0.9627808084366485,
+              "best_scaled_relative_residual": 0.23234078124833094
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9721225460669053,
+              "projection_scale": 0.9682275855308741,
+              "best_scaled_relative_residual": 0.23447335760891427
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9886123161457527,
+              "projection_scale": 0.9737383533797179,
+              "best_scaled_relative_residual": 0.1504848443031048
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9796385474337825,
+              "projection_scale": 0.9782349120425848,
+              "best_scaled_relative_residual": 0.2007693113546696
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9745654426588124,
+              "projection_scale": 0.9772150189459484,
+              "best_scaled_relative_residual": 0.22410309675511658
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "radial_hann_m0p1": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            }
+          }
+        },
+        "positive": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9723350006117925,
+              "projection_scale": 0.9570620611705786,
+              "best_scaled_relative_residual": 0.23359076733737819
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9679874450771508,
+              "projection_scale": 0.9602850855608467,
+              "best_scaled_relative_residual": 0.2509986178707163
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9658363697989674,
+              "projection_scale": 0.9654166982468969,
+              "best_scaled_relative_residual": 0.2591526707822113
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9893878854196239,
+              "projection_scale": 0.9762013648476209,
+              "best_scaled_relative_residual": 0.14529835575423672
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9803219069084179,
+              "projection_scale": 0.981067027989872,
+              "best_scaled_relative_residual": 0.1974055694134396
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.974381454821283,
+              "projection_scale": 0.9805346602825749,
+              "best_scaled_relative_residual": 0.22490171297782613
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9994234531939449,
+              "projection_scale": 1.00116601585888,
+              "best_scaled_relative_residual": 0.033952337266967746
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9978941198594122,
+              "projection_scale": 1.000085529213144,
+              "best_scaled_relative_residual": 0.06486390020658327
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9962002185843892,
+              "projection_scale": 0.9997731002401226,
+              "best_scaled_relative_residual": 0.08709262019491255
+            }
+          }
+        },
+        "negative": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9764917629313206,
+              "projection_scale": 0.9589172850363659,
+              "best_scaled_relative_residual": 0.21555471910232413
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9731846835663136,
+              "projection_scale": 0.9652765313124503,
+              "best_scaled_relative_residual": 0.23002515443301844
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9710231807117377,
+              "projection_scale": 0.9710384728148514,
+              "best_scaled_relative_residual": 0.23898531862953395
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9866909841053011,
+              "projection_scale": 0.971275341911815,
+              "best_scaled_relative_residual": 0.1626065862298088
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9748280137047897,
+              "projection_scale": 0.9754027960952988,
+              "best_scaled_relative_residual": 0.22295816579882277
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9673480840360915,
+              "projection_scale": 0.9738953776093222,
+              "best_scaled_relative_residual": 0.2534515423344332
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9994207602025461,
+              "projection_scale": 0.9988339841411196,
+              "best_scaled_relative_residual": 0.034031515925165096
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9978934015544317,
+              "projection_scale": 0.9999144707868561,
+              "best_scaled_relative_residual": 0.06487494997397313
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9962036460930339,
+              "projection_scale": 1.0002268997598776,
+              "best_scaled_relative_residual": 0.0870534060846863
+            }
+          }
+        }
+      }
+    },
+    "150": {
+      "support_pixels": 121,
+      "policy_radius": 12.0,
+      "training_half_width": 20,
+      "metrics": {
+        "central": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9749543341141197,
+              "projection_scale": 0.9549657909586959,
+              "best_scaled_relative_residual": 0.22240514021059185
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9722500195148847,
+              "projection_scale": 0.9608386621171848,
+              "best_scaled_relative_residual": 0.2339442231672048
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9715626919795461,
+              "projection_scale": 0.965917702118906,
+              "best_scaled_relative_residual": 0.2367824646240889
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9887696405028731,
+              "projection_scale": 0.9711132255918163,
+              "best_scaled_relative_residual": 0.14944764307214295
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9796236773116033,
+              "projection_scale": 0.9763275553334719,
+              "best_scaled_relative_residual": 0.20084185532525764
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9744209496245609,
+              "projection_scale": 0.975308055307545,
+              "best_scaled_relative_residual": 0.22473053404637403
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "radial_hann_m0p1": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            }
+          }
+        },
+        "positive": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9735170224045571,
+              "projection_scale": 0.9487246035345923,
+              "best_scaled_relative_residual": 0.22861453822660843
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9691758189084126,
+              "projection_scale": 0.9559864703605644,
+              "best_scaled_relative_residual": 0.2463701119113444
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9672715884440403,
+              "projection_scale": 0.9600290859412,
+              "best_scaled_relative_residual": 0.2537433234371759
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9881658211424439,
+              "projection_scale": 0.9656008677811783,
+              "best_scaled_relative_residual": 0.15338940617226599
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9782228869562769,
+              "projection_scale": 0.973084958990784,
+              "best_scaled_relative_residual": 0.20755718112107543
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9724752494404013,
+              "projection_scale": 0.9717183840264679,
+              "best_scaled_relative_residual": 0.2330061999729398
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9994238200293212,
+              "projection_scale": 0.9943579940229121,
+              "best_scaled_relative_residual": 0.033941537354672126
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9980235479372686,
+              "projection_scale": 0.9961332923800901,
+              "best_scaled_relative_residual": 0.06284105157225224
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9967103712633757,
+              "projection_scale": 0.9950287770571179,
+              "best_scaled_relative_residual": 0.08104588710121852
+            }
+          }
+        },
+        "negative": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9752708593296425,
+              "projection_scale": 0.9612069783828,
+              "best_scaled_relative_residual": 0.2210130107989594
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9715015710923585,
+              "projection_scale": 0.9656908538738053,
+              "best_scaled_relative_residual": 0.23703311449052755
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9695134935982351,
+              "projection_scale": 0.9718063182966121,
+              "best_scaled_relative_residual": 0.24503792712750647
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9882463616417966,
+              "projection_scale": 0.9766255834024553,
+              "best_scaled_relative_residual": 0.15286964610985274
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.97718584713651,
+              "projection_scale": 0.9795701516761602,
+              "best_scaled_relative_residual": 0.2123860168563399
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.970030872852331,
+              "projection_scale": 0.9788977265886235,
+              "best_scaled_relative_residual": 0.24298169830945254
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9994366669136845,
+              "projection_scale": 1.0056420059770876,
+              "best_scaled_relative_residual": 0.03356112078678279
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9980537938465479,
+              "projection_scale": 1.0038667076199095,
+              "best_scaled_relative_residual": 0.062358837292815814
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9967748266247416,
+              "projection_scale": 1.004971222942882,
+              "best_scaled_relative_residual": 0.08024926795439573
+            }
+          }
+        }
+      }
+    },
+    "175": {
+      "support_pixels": 121,
+      "policy_radius": 12.0,
+      "training_half_width": 20,
+      "metrics": {
+        "central": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9744894437618838,
+              "projection_scale": 0.9541743680105976,
+              "best_scaled_relative_residual": 0.2244333397618408
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9715938119471302,
+              "projection_scale": 0.9590064428142534,
+              "best_scaled_relative_residual": 0.23665473708769105
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9707250202063559,
+              "projection_scale": 0.9640673938075621,
+              "best_scaled_relative_residual": 0.24019353685178568
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9893269319952827,
+              "projection_scale": 0.9710740858582692,
+              "best_scaled_relative_residual": 0.1457128053013924
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9818751517697314,
+              "projection_scale": 0.9765385036388202,
+              "best_scaled_relative_residual": 0.1895288535742434
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9781254494714278,
+              "projection_scale": 0.9771525068524931,
+              "best_scaled_relative_residual": 0.2080158770294167
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "radial_hann_m0p1": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            }
+          }
+        },
+        "positive": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9734339149595206,
+              "projection_scale": 0.9484990937551746,
+              "best_scaled_relative_residual": 0.22896814889102204
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9702163613736712,
+              "projection_scale": 0.9550112415794051,
+              "best_scaled_relative_residual": 0.24223998869475333
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9688856635683428,
+              "projection_scale": 0.9608115979046411,
+              "best_scaled_relative_residual": 0.24750872900108267
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9895808223468023,
+              "projection_scale": 0.9665929943993734,
+              "best_scaled_relative_residual": 0.1439784568726361
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9815964168919514,
+              "projection_scale": 0.9735744577601658,
+              "best_scaled_relative_residual": 0.19096720751187055
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9767083200753848,
+              "projection_scale": 0.9742876892163173,
+              "best_scaled_relative_residual": 0.21457133428190975
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9998656608589216,
+              "projection_scale": 0.9949963633049521,
+              "best_scaled_relative_residual": 0.016390858279882858
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9995418644548818,
+              "projection_scale": 0.996790966633067,
+              "best_scaled_relative_residual": 0.03026650297042333
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9991046527194034,
+              "projection_scale": 0.9976208504954039,
+              "best_scaled_relative_residual": 0.042307126047984964
+            }
+          }
+        },
+        "negative": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.975276537634911,
+              "projection_scale": 0.9598496422660212,
+              "best_scaled_relative_residual": 0.2209879524744735
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.972080733297605,
+              "projection_scale": 0.9630016440491022,
+              "best_scaled_relative_residual": 0.23464664487605907
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9708297284261826,
+              "projection_scale": 0.9673231897104831,
+              "best_scaled_relative_residual": 0.23976996977091292
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9888137145609844,
+              "projection_scale": 0.9755551773171645,
+              "best_scaled_relative_residual": 0.14915575046275484
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.981261049767807,
+              "projection_scale": 0.979502549517474,
+              "best_scaled_relative_residual": 0.19268303560142888
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9777967733653472,
+              "projection_scale": 0.9800173244886685,
+              "best_scaled_relative_residual": 0.20955541032460984
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9998683223638574,
+              "projection_scale": 1.0050036366950477,
+              "best_scaled_relative_residual": 0.01622769032504576
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9995477036184965,
+              "projection_scale": 1.0032090333669326,
+              "best_scaled_relative_residual": 0.030073047584019325
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9991131217018557,
+              "projection_scale": 1.0023791495045962,
+              "best_scaled_relative_residual": 0.04210665081875931
+            }
+          }
+        }
+      }
+    },
+    "200": {
+      "support_pixels": 121,
+      "policy_radius": 12.0,
+      "training_half_width": 20,
+      "metrics": {
+        "central": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9744267440086319,
+              "projection_scale": 0.954653550236944,
+              "best_scaled_relative_residual": 0.22470540839226802
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.971581769135878,
+              "projection_scale": 0.9598051028989073,
+              "best_scaled_relative_residual": 0.23670417377561806
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9709147847918548,
+              "projection_scale": 0.9644333500210958,
+              "best_scaled_relative_residual": 0.23942531334966735
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9894899090886522,
+              "projection_scale": 0.9719032316593637,
+              "best_scaled_relative_residual": 0.14460193571225208
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9818146119698853,
+              "projection_scale": 0.9773050407451519,
+              "best_scaled_relative_residual": 0.18984221796645628
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9778536047748769,
+              "projection_scale": 0.9783767458710135,
+              "best_scaled_relative_residual": 0.2092900562109408
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "radial_hann_m0p1": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            }
+          }
+        },
+        "positive": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9730348234308399,
+              "projection_scale": 0.9515547731569531,
+              "best_scaled_relative_residual": 0.2306582588829496
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.969345468932834,
+              "projection_scale": 0.9568363082146754,
+              "best_scaled_relative_residual": 0.2457017742292144
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9679917709872341,
+              "projection_scale": 0.960571289007184,
+              "best_scaled_relative_residual": 0.2509819342124019
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9896627931808917,
+              "projection_scale": 0.9703037538531961,
+              "best_scaled_relative_residual": 0.14341393165726907
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9819351304997899,
+              "projection_scale": 0.9766496755786422,
+              "best_scaled_relative_residual": 0.18921786250341288
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9779933317291994,
+              "projection_scale": 0.97754105327605,
+              "best_scaled_relative_residual": 0.20863615001533384
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9997646794478391,
+              "projection_scale": 0.997944988212305,
+              "best_scaled_relative_residual": 0.021692988004398898
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9990339805790709,
+              "projection_scale": 0.9982415093874961,
+              "best_scaled_relative_residual": 0.0439443471715889
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9982469826847118,
+              "projection_scale": 0.997251818887326,
+              "best_scaled_relative_residual": 0.05918582229612803
+            }
+          }
+        },
+        "negative": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9753571694484611,
+              "projection_scale": 0.9577523273169344,
+              "best_scaled_relative_residual": 0.22063180189058307
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9719429575066746,
+              "projection_scale": 0.9627738975831386,
+              "best_scaled_relative_residual": 0.23521668170684326
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9704456275851299,
+              "projection_scale": 0.9682954110350074,
+              "best_scaled_relative_residual": 0.24131987879348826
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9888548992464972,
+              "projection_scale": 0.9735027094655315,
+              "best_scaled_relative_residual": 0.14888246450203466
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9798075736262135,
+              "projection_scale": 0.9779604059116617,
+              "best_scaled_relative_residual": 0.19994278847888486
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9743143076153707,
+              "projection_scale": 0.9792124384659772,
+              "best_scaled_relative_residual": 0.2251924287714424
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9997666051937336,
+              "projection_scale": 1.0020550117876945,
+              "best_scaled_relative_residual": 0.02160405377232219
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9990407419488645,
+              "projection_scale": 1.0017584906125045,
+              "best_scaled_relative_residual": 0.04379036339495857
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9982660978224777,
+              "projection_scale": 1.002748181112674,
+              "best_scaled_relative_residual": 0.058862534249583015
+            }
+          }
+        }
+      }
+    },
+    "225": {
+      "support_pixels": 121,
+      "policy_radius": 12.0,
+      "training_half_width": 20,
+      "metrics": {
+        "central": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9747251193389251,
+              "projection_scale": 0.9552868078966471,
+              "best_scaled_relative_residual": 0.22340756864913536
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9719746509201168,
+              "projection_scale": 0.9601993285944682,
+              "best_scaled_relative_residual": 0.2350856821857018
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.971407876690961,
+              "projection_scale": 0.9650028675299934,
+              "best_scaled_relative_residual": 0.23741680038017193
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9892183085231918,
+              "projection_scale": 0.9719283777072579,
+              "best_scaled_relative_residual": 0.14644841440765188
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9817156135127961,
+              "projection_scale": 0.9768928342580977,
+              "best_scaled_relative_residual": 0.19035349795891368
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9781080271930321,
+              "projection_scale": 0.9777954663214838,
+              "best_scaled_relative_residual": 0.20809778264208922
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "radial_hann_m0p1": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            }
+          }
+        },
+        "positive": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9744348367649912,
+              "projection_scale": 0.9512061716968755,
+              "best_scaled_relative_residual": 0.2246703115651559
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9713883992408625,
+              "projection_scale": 0.9562908383394069,
+              "best_scaled_relative_residual": 0.23749647959553835
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9704582965012364,
+              "projection_scale": 0.960177043867767,
+              "best_scaled_relative_residual": 0.24126892620459528
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9891899117600076,
+              "projection_scale": 0.9680371643846054,
+              "best_scaled_relative_residual": 0.14664009844591863
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9818811708376676,
+              "projection_scale": 0.9736677393992762,
+              "best_scaled_relative_residual": 0.1894976684670579
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9786062658115362,
+              "projection_scale": 0.9743537173616761,
+              "best_scaled_relative_residual": 0.20574201446083232
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9998936300639995,
+              "projection_scale": 0.9959190441482672,
+              "best_scaled_relative_residual": 0.014585217085733777
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9995953001336239,
+              "projection_scale": 0.9961272680807639,
+              "best_scaled_relative_residual": 0.028447072797925993
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9992662495943135,
+              "projection_scale": 0.9952419590023731,
+              "best_scaled_relative_residual": 0.03830094544152726
+            }
+          }
+        },
+        "negative": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9748082009870989,
+              "projection_scale": 0.9593674440964187,
+              "best_scaled_relative_residual": 0.22304477417840593
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9717787424227121,
+              "projection_scale": 0.9641078188495297,
+              "best_scaled_relative_residual": 0.23589420462430358
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9709430983421496,
+              "projection_scale": 0.9698286911922197,
+              "best_scaled_relative_residual": 0.23931046734680564
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9890385869217113,
+              "projection_scale": 0.9758195910299108,
+              "best_scaled_relative_residual": 0.14765728420875188
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9807658986370251,
+              "projection_scale": 0.9801179291169193,
+              "best_scaled_relative_residual": 0.19518773545156076
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9761994291243722,
+              "projection_scale": 0.9812372152812922,
+              "best_scaled_relative_residual": 0.21687479009154143
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9998953520719442,
+              "projection_scale": 1.004080955851733,
+              "best_scaled_relative_residual": 0.014466682581805534
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9996015173150499,
+              "projection_scale": 1.0038727319192364,
+              "best_scaled_relative_residual": 0.028227762600865635
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9992800675695747,
+              "projection_scale": 1.0047580409976262,
+              "best_scaled_relative_residual": 0.03793872109264324
+            }
+          }
+        }
+      }
+    },
+    "250": {
+      "support_pixels": 121,
+      "policy_radius": 12.0,
+      "training_half_width": 20,
+      "metrics": {
+        "central": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9744998295713636,
+              "projection_scale": 0.9537421347305473,
+              "best_scaled_relative_residual": 0.2243882398107871
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9715522155886195,
+              "projection_scale": 0.9577700924673627,
+              "best_scaled_relative_residual": 0.2368254470804268
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9706866921661175,
+              "projection_scale": 0.9625813792944222,
+              "best_scaled_relative_residual": 0.24034838391718436
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9895074600906256,
+              "projection_scale": 0.9708707461245222,
+              "best_scaled_relative_residual": 0.1444817857897626
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9825299153805025,
+              "projection_scale": 0.9752757531928711,
+              "best_scaled_relative_residual": 0.18610471617447383
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9795358857460632,
+              "projection_scale": 0.976030273065565,
+              "best_scaled_relative_residual": 0.2012695916815939
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "radial_hann_m0p1": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            }
+          }
+        },
+        "positive": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9739444749419164,
+              "projection_scale": 0.9518824914152778,
+              "best_scaled_relative_residual": 0.22678659512880273
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9707957353954976,
+              "projection_scale": 0.9566352803028337,
+              "best_scaled_relative_residual": 0.2399075658204944
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9698327742186633,
+              "projection_scale": 0.9613785477031243,
+              "best_scaled_relative_residual": 0.24377118380016036
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9898028034374823,
+              "projection_scale": 0.9698196079386697,
+              "best_scaled_relative_residual": 0.1424444112884059
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9830473034547185,
+              "projection_scale": 0.9753926295565023,
+              "best_scaled_relative_residual": 0.18335211798724135
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9802001277933381,
+              "projection_scale": 0.9763305565257688,
+              "best_scaled_relative_residual": 0.19800936713681902
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9999576205314842,
+              "projection_scale": 0.9985769403319289,
+              "best_scaled_relative_residual": 0.009206364158098421
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9999118617999774,
+              "projection_scale": 0.9995053634028997,
+              "best_scaled_relative_residual": 0.013276619739325844
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9998716751138195,
+              "projection_scale": 0.9995015124494043,
+              "best_scaled_relative_residual": 0.016019778559158343
+            }
+          }
+        },
+        "negative": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9749713601692875,
+              "projection_scale": 0.9556017780458168,
+              "best_scaled_relative_residual": 0.22233049014844922
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9721369400811386,
+              "projection_scale": 0.9589049046318917,
+              "best_scaled_relative_residual": 0.23441367223282977
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.971291005072897,
+              "projection_scale": 0.9637842108857196,
+              "best_scaled_relative_residual": 0.2378944796847584
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9891294436420394,
+              "projection_scale": 0.9719218843103741,
+              "best_scaled_relative_residual": 0.14704741997189108
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.981840098724026,
+              "projection_scale": 0.9751588768292412,
+              "best_scaled_relative_residual": 0.18971035959481836
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9786212833333997,
+              "projection_scale": 0.9757299896053611,
+              "best_scaled_relative_residual": 0.20567057107639342
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9999578610652116,
+              "projection_scale": 1.0014230596680702,
+              "best_scaled_relative_residual": 0.009180201189900867
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9999120359901216,
+              "projection_scale": 1.0004946365970997,
+              "best_scaled_relative_residual": 0.013263494339327492
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9998719306832403,
+              "projection_scale": 1.0004984875505956,
+              "best_scaled_relative_residual": 0.01600381928695661
+            }
+          }
+        }
+      }
+    },
+    "300": {
+      "support_pixels": 121,
+      "policy_radius": 12.0,
+      "training_half_width": 20,
+      "metrics": {
+        "central": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9746038602127356,
+              "projection_scale": 0.9528539620432214,
+              "best_scaled_relative_residual": 0.2239359632985168
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9720573203794833,
+              "projection_scale": 0.9563735956740619,
+              "best_scaled_relative_residual": 0.23474361737150373
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.971370572874592,
+              "projection_scale": 0.9621545000415216,
+              "best_scaled_relative_residual": 0.23756937966262837
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9897738553202399,
+              "projection_scale": 0.9702330109040896,
+              "best_scaled_relative_residual": 0.14264541816865003
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9830141431755385,
+              "projection_scale": 0.973940443419397,
+              "best_scaled_relative_residual": 0.1835298186041213
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9798140545345181,
+              "projection_scale": 0.9740624617070673,
+              "best_scaled_relative_residual": 0.1999110265508853
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "radial_hann_m0p1": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            }
+          }
+        },
+        "positive": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9737923934472789,
+              "projection_scale": 0.9525216075858208,
+              "best_scaled_relative_residual": 0.22743872683476707
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9705760658050551,
+              "projection_scale": 0.9556504967612446,
+              "best_scaled_relative_residual": 0.24079472686581335
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9693806180597381,
+              "projection_scale": 0.960775789213251,
+              "best_scaled_relative_residual": 0.24556306181940218
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9896471823180362,
+              "projection_scale": 0.9705785811035723,
+              "best_scaled_relative_residual": 0.14352161694313673
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9829452432675533,
+              "projection_scale": 0.9746210113920293,
+              "best_scaled_relative_residual": 0.18389847399500267
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.98008702127904,
+              "projection_scale": 0.974934919781355,
+              "best_scaled_relative_residual": 0.19856845348740215
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9998297220646648,
+              "projection_scale": 1.0003138557251954,
+              "best_scaled_relative_residual": 0.0184533703180541
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9993849799266554,
+              "projection_scale": 1.0001534291851801,
+              "best_scaled_relative_residual": 0.03506653528648337
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9989647640548036,
+              "projection_scale": 0.9995810532343271,
+              "best_scaled_relative_residual": 0.04549066032638144
+            }
+          }
+        },
+        "negative": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9750836166777307,
+              "projection_scale": 0.9531863165006219,
+              "best_scaled_relative_residual": 0.2218376444309587
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9723428095426803,
+              "projection_scale": 0.9570966945868787,
+              "best_scaled_relative_residual": 0.2335582598210709
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9713501906332914,
+              "projection_scale": 0.9635332108697926,
+              "best_scaled_relative_residual": 0.23765270281793294
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9895632170842941,
+              "projection_scale": 0.9698874407046073,
+              "best_scaled_relative_residual": 0.14409940802717647
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9818733612155984,
+              "projection_scale": 0.9732598754467653,
+              "best_scaled_relative_residual": 0.1895381295021756
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9775151820374381,
+              "projection_scale": 0.9731900036327795,
+              "best_scaled_relative_residual": 0.21086504899180186
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.999829508214296,
+              "projection_scale": 0.9996861442748043,
+              "best_scaled_relative_residual": 0.01846495339714585
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9993846027111474,
+              "projection_scale": 0.9998465708148198,
+              "best_scaled_relative_residual": 0.035077284157734166
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9989664947508504,
+              "projection_scale": 1.0004189467656726,
+              "best_scaled_relative_residual": 0.0454526387044699
+            }
+          }
+        }
+      }
+    },
+    "350": {
+      "support_pixels": 121,
+      "policy_radius": 12.0,
+      "training_half_width": 20,
+      "metrics": {
+        "central": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9744360742354482,
+              "projection_scale": 0.9514589572203801,
+              "best_scaled_relative_residual": 0.22466494436962817
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9719081773475294,
+              "projection_scale": 0.9553537795443389,
+              "best_scaled_relative_residual": 0.23536035096209998
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.971176530173234,
+              "projection_scale": 0.9613589964000506,
+              "best_scaled_relative_residual": 0.2383613795074128
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9897323515371579,
+              "projection_scale": 0.968967393506593,
+              "best_scaled_relative_residual": 0.1429331043555961
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9826972870922975,
+              "projection_scale": 0.9728708415767442,
+              "best_scaled_relative_residual": 0.18521890276491074
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9790684503495043,
+              "projection_scale": 0.9727645971354782,
+              "best_scaled_relative_residual": 0.20353124951765916
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            },
+            "radial_hann_m0p1": {
+              "cosine": 1.0,
+              "projection_scale": 1.0,
+              "best_scaled_relative_residual": 0.0
+            }
+          }
+        },
+        "positive": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9730489408988302,
+              "projection_scale": 0.9480979763215052,
+              "best_scaled_relative_residual": 0.23059869604068492
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9700026990468827,
+              "projection_scale": 0.953941308021061,
+              "best_scaled_relative_residual": 0.24309414604585275
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9687066026134953,
+              "projection_scale": 0.961158555613504,
+              "best_scaled_relative_residual": 0.24820861800714958
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9896524302910649,
+              "projection_scale": 0.9668429211632579,
+              "best_scaled_relative_residual": 0.14348542510997436
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9816000441586927,
+              "projection_scale": 0.9722539625946647,
+              "best_scaled_relative_residual": 0.19094856194183085
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9766383392007272,
+              "projection_scale": 0.9726214193919277,
+              "best_scaled_relative_residual": 0.21488963307532113
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9997560098453463,
+              "projection_scale": 0.9976445932630637,
+              "best_scaled_relative_residual": 0.02208892885841209
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9991357834969044,
+              "projection_scale": 0.9996183868113121,
+              "best_scaled_relative_residual": 0.041565444013356725
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9984990245101727,
+              "projection_scale": 1.0008361991158257,
+              "best_scaled_relative_residual": 0.054769499287774165
+            }
+          }
+        },
+        "negative": {
+          "integer": {
+            "unweighted": {
+              "cosine": 0.9753445314732819,
+              "projection_scale": 0.9548199381192546,
+              "best_scaled_relative_residual": 0.22068766373579765
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9721342454325113,
+              "projection_scale": 0.9567662510676169,
+              "best_scaled_relative_residual": 0.23442484692831062
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9707278496580527,
+              "projection_scale": 0.9615594371865973,
+              "best_scaled_relative_residual": 0.24018210153600744
+            }
+          },
+          "shifted": {
+            "unweighted": {
+              "cosine": 0.9893323255042974,
+              "projection_scale": 0.9710918658499287,
+              "best_scaled_relative_residual": 0.1456761810051973
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.982097108428964,
+              "projection_scale": 0.9734877205588247,
+              "best_scaled_relative_residual": 0.18837534237650852
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.9785561364563816,
+              "projection_scale": 0.9729077748790296,
+              "best_scaled_relative_residual": 0.20598030926173333
+            }
+          },
+          "paired_exact": {
+            "unweighted": {
+              "cosine": 0.9997582970091043,
+              "projection_scale": 1.002355406736936,
+              "best_scaled_relative_residual": 0.021985166850754988
+            },
+            "raw_rectangular_m0p3": {
+              "cosine": 0.9991370999706101,
+              "projection_scale": 1.0003816131886878,
+              "best_scaled_relative_residual": 0.04153378699707824
+            },
+            "radial_hann_m0p1": {
+              "cosine": 0.998494007000374,
+              "projection_scale": 0.9991638008841746,
+              "best_scaled_relative_residual": 0.05486089667821297
+            }
+          }
+        }
+      }
+    }
+  }
+}
