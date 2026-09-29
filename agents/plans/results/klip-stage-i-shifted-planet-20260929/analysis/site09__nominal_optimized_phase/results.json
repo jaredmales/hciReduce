@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "task": "site09__nominal_optimized_phase",
+  "kind": "injection",
+  "base_site": "r12_cal18",
+  "source_row_column": [
+    52.72293007062204,
+    69.4859637006127
+  ],
+  "query_row_column": [
+    53,
+    69
+  ],
+  "query_radius": 11.853269591129697,
+  "phase_offset_row_column": [
+    -0.2770699293779586,
+    0.4859637006127002
+  ],
+  "generic_positions_replaced": 189,
+  "noise_bracket_lower_bins": [
+    11,
+    12
+  ],
+  "methods": {
+    "gaussian_fwhm2p4": {
+      "amplitude": 0.27937281131744385,
+      "snr": 3.4301559925079346
+    },
+    "gaussian_fwhm3p6": {
+      "amplitude": 0.1443009227514267,
+      "snr": 3.099255323410034
+    },
+    "integer_exact_identity": {
+      "amplitude": 0.0030816978481541055,
+      "snr": 3.0215954780578613
+    },
+    "shifted_exact_identity": {
+      "amplitude": 0.003314666336754904,
+      "snr": 3.193929672241211
+    },
+    "integer_raw_rectangular_m0p3": {
+      "amplitude": 0.0031930784119844685,
+      "snr": 3.082892417907715
+    },
+    "shifted_raw_rectangular_m0p3": {
+      "amplitude": 0.0035748254161332145,
+      "snr": 3.388333559036255
+    },
+    "integer_radial_hann_m0p1_trunc0p75": {
+      "amplitude": 0.003227838334783251,
+      "snr": 3.110429286956787
+    },
+    "shifted_radial_hann_m0p1_trunc0p75": {
+      "amplitude": 0.003597978719920638,
+      "snr": 3.43508243560791
+    }
+  },
+  "current_parent_replay": {
+    "gaussian_fwhm2p4": {
+      "parent": 3.4301559925079346,
+      "observed": 3.4301559925079346,
+      "absolute_error": 0.0
+    },
+    "gaussian_fwhm3p6": {
+      "parent": 3.099255323410034,
+      "observed": 3.099255323410034,
+      "absolute_error": 0.0
+    },
+    "integer_exact_identity": {
+      "parent": 3.0215954780578613,
+      "observed": 3.0215954780578613,
+      "absolute_error": 0.0
+    },
+    "integer_raw_rectangular_m0p3": {
+      "parent": 3.082892417907715,
+      "observed": 3.082892417907715,
+      "absolute_error": 0.0
+    },
+    "integer_radial_hann_m0p1_trunc0p75": {
+      "parent": 3.110429286956787,
+      "observed": 3.110429286956787,
+      "absolute_error": 0.0
+    }
+  },
+  "annular_oracle_maximum_error": 4.76837158203125e-07
+}

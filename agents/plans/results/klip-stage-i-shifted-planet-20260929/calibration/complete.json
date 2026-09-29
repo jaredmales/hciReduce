@@ -1,0 +1,15 @@
+{
+  "status": "complete",
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_i_shifted_planet/calibration/weights.npz",
+      "bytes": 668130,
+      "sha256": "9f9092110bc9c5a253540424d49c4c3aafe3edf2d689bc7252a7fc147d2a93e3"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_i_shifted_planet/calibration/results.json",
+      "bytes": 230,
+      "sha256": "437f0213395e2bfb56872532a103c9bb388181773a3fe712bf591240f7ab9565"
+    }
+  ]
+}

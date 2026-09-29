@@ -1,0 +1,35 @@
+{
+  "status": "complete",
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_i_shifted_planet/analysis/planet/amplitudes.fits",
+      "bytes": 538560,
+      "sha256": "af07592fe8c489a958bc4ff77c42fdc2bc66ca50fef0567b01140cfdd14c2e3a"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_i_shifted_planet/analysis/planet/amplitudes_snr.fits",
+      "bytes": 541440,
+      "sha256": "daafa96fcaa4298a1e883cacea8cab49b1c7f26f76e94fcb461a2b83deaeb2dc"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_i_shifted_planet/analysis/planet/analysis.log",
+      "bytes": 344,
+      "sha256": "52645ea2f8541d0a8746ed50897f752cea3c0bc01c6a34b3cb51140260deec85"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_i_shifted_planet/analysis/planet/command.json",
+      "bytes": 554,
+      "sha256": "1b092df3c19f2a96747a567dde8c89c1e8647da2020a08df877dc1a8e40d382b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_i_shifted_planet/analysis/planet/annular_verification.json",
+      "bytes": 175,
+      "sha256": "41dcf2705a83e1e1e03d3e92651eb7e91129f14a161d95c7516d146fb460c949"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_i_shifted_planet/analysis/planet/results.json",
+      "bytes": 1442,
+      "sha256": "6acbc4fa55701b7b5c405bac8fd82ebccc2b8077b2035157701b0f81b9554b54"
+    }
+  ]
+}

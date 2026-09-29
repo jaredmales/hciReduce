@@ -1,0 +1,25 @@
+Stage-I shifted calibration 25/245
+Stage-I shifted calibration 50/245
+Stage-I shifted calibration 75/245
+Stage-I shifted calibration 100/245
+Stage-I shifted calibration 125/245
+Stage-I shifted calibration 150/245
+Stage-I shifted calibration 175/245
+Stage-I shifted calibration 200/245
+Stage-I shifted calibration 225/245
+Stage-I shifted calibration 245/245
+WARNING: VerifyWarning: Keyword name 'HCI FILTER LABELS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+Stage-I analysis 1/13: planet
+Stage-I analysis 2/13: site00__nominal_optimized_phase
+Stage-I analysis 3/13: site01__nominal_optimized_phase
+Stage-I analysis 4/13: site02__nominal_optimized_phase
+Stage-I analysis 5/13: site03__nominal_optimized_phase
+Stage-I analysis 6/13: site04__nominal_optimized_phase
+Stage-I analysis 7/13: site05__nominal_optimized_phase
+Stage-I analysis 8/13: site06__nominal_optimized_phase
+Stage-I analysis 9/13: site07__nominal_optimized_phase
+Stage-I analysis 10/13: site08__nominal_optimized_phase
+Stage-I analysis 11/13: site09__nominal_optimized_phase
+Stage-I analysis 12/13: site10__nominal_optimized_phase
+Stage-I analysis 13/13: site11__nominal_optimized_phase
+/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_i_shifted_planet/results.md

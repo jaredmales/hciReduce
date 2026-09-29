@@ -1,0 +1,11 @@
+{
+  "mode": 200,
+  "nominal_radius": 12.0,
+  "phase_offset_row_column": [
+    -0.2770699293779586,
+    0.4859637006126931
+  ],
+  "positions": 245,
+  "valid_covariance_positions": 245,
+  "maximum_parent_weight_replay_error": 0.0
+}

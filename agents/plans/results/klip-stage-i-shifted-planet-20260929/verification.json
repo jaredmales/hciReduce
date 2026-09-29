@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "status": "verified",
+  "frozen_roc_completion_verifier_reran": true,
+  "aggregate_products_checked": 3,
+  "calibration_receipt_checked": true,
+  "calibration_products_checked": 2,
+  "analysis_receipts_checked": 13,
+  "analysis_metadata_products_checked": 52,
+  "analysis_fits_products_verified_on_roc_by_frozen_runner": 26,
+  "primary_mode": 200,
+  "injection_count": 12,
+  "calibration_positions": 245,
+  "valid_covariance_positions": 245,
+  "generic_map_positions_replaced_per_image": 189,
+  "maximum_parent_weight_replay_error": 0.0,
+  "maximum_annular_oracle_error": 9.5367431640625e-07,
+  "primary_paired_comparisons": {
+    "shifted_raw_minus_shifted_identity": {
+      "injection_mean": -0.223359485467275,
+      "injection_sample_standard_deviation": 0.21961482249870423,
+      "injection_minimum": -0.5226249694824219,
+      "injection_maximum": 0.19440388679504395,
+      "planet": -0.6920783519744873,
+      "planet_standardized_deviation": -2.1342770090574272,
+      "predictive_two_sided_p": 0.0649144724565414,
+      "exchangeable_lower_tail_rank": 0.07692307692307693,
+      "exchangeable_upper_tail_rank": 1.0
+    },
+    "shifted_radial_minus_shifted_identity": {
+      "injection_mean": -0.1714624563852946,
+      "injection_sample_standard_deviation": 0.2648327090805333,
+      "injection_minimum": -0.5765628814697266,
+      "injection_maximum": 0.24115276336669922,
+      "planet": -0.700425386428833,
+      "planet_standardized_deviation": -1.9973474269097382,
+      "predictive_two_sided_p": 0.0812920515259378,
+      "exchangeable_lower_tail_rank": 0.07692307692307693,
+      "exchangeable_upper_tail_rank": 1.0
+    },
+    "gaussian_fwhm3p6_minus_shifted_identity": {
+      "injection_mean": -0.02808837095896403,
+      "injection_sample_standard_deviation": 1.2056265005273359,
+      "injection_minimum": -1.5063855648040771,
+      "injection_maximum": 2.0769553184509277,
+      "planet": 0.5675821304321289,
+      "planet_standardized_deviation": 0.4940754878318859,
+      "predictive_two_sided_p": 0.6442907201191062,
+      "exchangeable_lower_tail_rank": 0.7692307692307693,
+      "exchangeable_upper_tail_rank": 0.3076923076923077
+    }
+  }
+}

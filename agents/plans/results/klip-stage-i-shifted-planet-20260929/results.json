@@ -1,0 +1,847 @@
+{
+  "schema": 1,
+  "purpose": "optimized-nearest-pixel cubic-shifted KLIP response closure",
+  "primary_mode": 200,
+  "phase_offset_row_column": [
+    -0.2770699293779586,
+    0.4859637006126931
+  ],
+  "planet": {
+    "schema": 1,
+    "task": "planet",
+    "kind": "planet",
+    "base_site": "optimized_planet",
+    "source_row_column": [
+      75.72293007062204,
+      61.48596370061269
+    ],
+    "query_row_column": [
+      76,
+      61
+    ],
+    "query_radius": 12.747548783981962,
+    "phase_offset_row_column": [
+      -0.2770699293779586,
+      0.4859637006126931
+    ],
+    "generic_positions_replaced": 189,
+    "noise_bracket_lower_bins": [
+      12,
+      13
+    ],
+    "methods": {
+      "gaussian_fwhm2p4": {
+        "amplitude": 0.43730682134628296,
+        "snr": 5.269626140594482
+      },
+      "gaussian_fwhm3p6": {
+        "amplitude": 0.26353177428245544,
+        "snr": 5.086931228637695
+      },
+      "integer_exact_identity": {
+        "amplitude": 0.004283210332020169,
+        "snr": 4.2513909339904785
+      },
+      "shifted_exact_identity": {
+        "amplitude": 0.004576927587328056,
+        "snr": 4.519349098205566
+      },
+      "integer_raw_rectangular_m0p3": {
+        "amplitude": 0.0038000646656880044,
+        "snr": 3.697943925857544
+      },
+      "shifted_raw_rectangular_m0p3": {
+        "amplitude": 0.004015005587092984,
+        "snr": 3.827270746231079
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.003782200527821693,
+        "snr": 3.653480052947998
+      },
+      "shifted_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.003982757913775132,
+        "snr": 3.8189237117767334
+      }
+    },
+    "current_parent_replay": {},
+    "annular_oracle_maximum_error": 4.76837158203125e-07
+  },
+  "injection_count": 12,
+  "methods": {
+    "gaussian_fwhm2p4": {
+      "snr": {
+        "count": 12,
+        "mean": 4.862077335516612,
+        "sample_standard_deviation": 1.1576015075688117,
+        "minimum": 3.4301559925079346,
+        "maximum": 6.877328395843506,
+        "values": [
+          4.532400608062744,
+          3.7108688354492188,
+          4.109062194824219,
+          6.877328395843506,
+          6.547811508178711,
+          4.581727504730225,
+          4.320999622344971,
+          6.032870292663574,
+          5.821034908294678,
+          3.4301559925079346,
+          3.857224464416504,
+          4.523443698883057
+        ],
+        "planet_comparison": {
+          "planet": 5.269626140594482,
+          "standardized_deviation": 0.35206312570705106,
+          "predictive_t": 0.3382513100539104,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.741541674904435,
+          "injections_below_or_equal": 8,
+          "injections_above_or_equal": 4,
+          "exchangeable_lower_tail_rank": 0.6923076923076923,
+          "exchangeable_upper_tail_rank": 0.38461538461538464
+        }
+      },
+      "amplitude": {
+        "count": 12,
+        "mean": 0.39968715359767276,
+        "sample_standard_deviation": 0.08607158477619717,
+        "minimum": 0.27937281131744385,
+        "maximum": 0.5354255437850952,
+        "values": [
+          0.4106956720352173,
+          0.2908884584903717,
+          0.36228978633880615,
+          0.5354255437850952,
+          0.510333776473999,
+          0.38942795991897583,
+          0.3430410325527191,
+          0.5009382367134094,
+          0.4633443355560303,
+          0.27937281131744385,
+          0.32856976985931396,
+          0.38191846013069153
+        ],
+        "planet_comparison": {
+          "planet": 0.43730682134628296,
+          "standardized_deviation": 0.4370741847780384,
+          "predictive_t": 0.41992729370622484,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.6826235841887368,
+          "injections_below_or_equal": 8,
+          "injections_above_or_equal": 4,
+          "exchangeable_lower_tail_rank": 0.6923076923076923,
+          "exchangeable_upper_tail_rank": 0.38461538461538464
+        }
+      }
+    },
+    "gaussian_fwhm3p6": {
+      "snr": {
+        "count": 12,
+        "mean": 4.598979036013286,
+        "sample_standard_deviation": 1.3375349365555678,
+        "minimum": 3.099255323410034,
+        "maximum": 6.889129638671875,
+        "values": [
+          3.8677752017974854,
+          3.3098928928375244,
+          4.037342548370361,
+          6.889129638671875,
+          6.6640706062316895,
+          4.301799297332764,
+          3.7598612308502197,
+          6.141294479370117,
+          5.529465675354004,
+          3.099255323410034,
+          3.5997495651245117,
+          3.988111972808838
+        ],
+        "planet_comparison": {
+          "planet": 5.086931228637695,
+          "standardized_deviation": 0.36481454000819497,
+          "predictive_t": 0.3505024726365862,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.7325815400460671,
+          "injections_below_or_equal": 8,
+          "injections_above_or_equal": 4,
+          "exchangeable_lower_tail_rank": 0.6923076923076923,
+          "exchangeable_upper_tail_rank": 0.38461538461538464
+        }
+      },
+      "amplitude": {
+        "count": 12,
+        "mean": 0.2249459264179071,
+        "sample_standard_deviation": 0.059325260373365246,
+        "minimum": 0.1443009227514267,
+        "maximum": 0.3146316111087799,
+        "values": [
+          0.21124395728111267,
+          0.16033580899238586,
+          0.2224518060684204,
+          0.3146316111087799,
+          0.30989062786102295,
+          0.21737180650234222,
+          0.17246921360492706,
+          0.2988886833190918,
+          0.2661263644695282,
+          0.1443009227514267,
+          0.17899835109710693,
+          0.20264196395874023
+        ],
+        "planet_comparison": {
+          "planet": 0.26353177428245544,
+          "standardized_deviation": 0.6504117743724546,
+          "predictive_t": 0.6248954198601122,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.544784080081517,
+          "injections_below_or_equal": 8,
+          "injections_above_or_equal": 4,
+          "exchangeable_lower_tail_rank": 0.6923076923076923,
+          "exchangeable_upper_tail_rank": 0.38461538461538464
+        }
+      }
+    },
+    "integer_exact_identity": {
+      "snr": {
+        "count": 12,
+        "mean": 4.55995128552119,
+        "sample_standard_deviation": 1.068427815139147,
+        "minimum": 3.0215954780578613,
+        "maximum": 7.075280666351318,
+        "values": [
+          5.452103137969971,
+          3.5848186016082764,
+          4.2746195793151855,
+          5.137233257293701,
+          4.487482070922852,
+          4.012873649597168,
+          4.333004474639893,
+          4.943448066711426,
+          7.075280666351318,
+          3.0215954780578613,
+          3.5138015747070312,
+          4.88315486907959
+        ],
+        "planet_comparison": {
+          "planet": 4.2513909339904785,
+          "standardized_deviation": -0.2887985010859397,
+          "predictive_t": -0.27746862480340784,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.7865656555424604,
+          "injections_below_or_equal": 4,
+          "injections_above_or_equal": 8,
+          "exchangeable_lower_tail_rank": 0.38461538461538464,
+          "exchangeable_upper_tail_rank": 0.6923076923076923
+        }
+      },
+      "amplitude": {
+        "count": 12,
+        "mean": 0.004584631316112014,
+        "sample_standard_deviation": 0.0009494485092734085,
+        "minimum": 0.0029527896037515426,
+        "maximum": 0.006179227579460581,
+        "values": [
+          0.005256580283752298,
+          0.0029527896037515426,
+          0.004788926793396501,
+          0.005209498425032953,
+          0.004691180623527281,
+          0.004272833787376743,
+          0.004702950342808822,
+          0.005106838116878117,
+          0.006179227579460581,
+          0.0030816978481541055,
+          0.0036469142913035527,
+          0.005126138097901673
+        ],
+        "planet_comparison": {
+          "planet": 0.004283210332020169,
+          "standardized_deviation": -0.3174695427375154,
+          "predictive_t": -0.3050148706074213,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.7660485463571527,
+          "injections_below_or_equal": 4,
+          "injections_above_or_equal": 8,
+          "exchangeable_lower_tail_rank": 0.38461538461538464,
+          "exchangeable_upper_tail_rank": 0.6923076923076923
+        }
+      }
+    },
+    "shifted_exact_identity": {
+      "snr": {
+        "count": 12,
+        "mean": 4.627067406972249,
+        "sample_standard_deviation": 1.087218784810821,
+        "minimum": 3.193929672241211,
+        "maximum": 7.015500068664551,
+        "values": [
+          5.3741607666015625,
+          3.260211944580078,
+          4.416900157928467,
+          4.870215892791748,
+          4.587115287780762,
+          3.737616539001465,
+          4.5264506340026855,
+          5.504610061645508,
+          7.015500068664551,
+          3.193929672241211,
+          3.7713847160339355,
+          5.2667131423950195
+        ],
+        "planet_comparison": {
+          "planet": 4.519349098205566,
+          "standardized_deviation": -0.09907693858088179,
+          "predictive_t": -0.09519004355769967,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.9258758241414073,
+          "injections_below_or_equal": 5,
+          "injections_above_or_equal": 7,
+          "exchangeable_lower_tail_rank": 0.46153846153846156,
+          "exchangeable_upper_tail_rank": 0.6153846153846154
+        }
+      },
+      "amplitude": {
+        "count": 12,
+        "mean": 0.004733494299279057,
+        "sample_standard_deviation": 0.0010390239167984035,
+        "minimum": 0.002764520544709259,
+        "maximum": 0.006446749617066573,
+        "values": [
+          0.005326419233702325,
+          0.002764520544709259,
+          0.004940373820672308,
+          0.005047703666726319,
+          0.00476037270218136,
+          0.004082381275754876,
+          0.0049186472029538264,
+          0.005632636339947555,
+          0.006446749617066573,
+          0.003314666336754904,
+          0.00398230641888385,
+          0.005585154431995533
+        ],
+        "planet_comparison": {
+          "planet": 0.004576927587328056,
+          "standardized_deviation": -0.15068634072778417,
+          "predictive_t": -0.14477475326630634,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.8875072700143674,
+          "injections_below_or_equal": 4,
+          "injections_above_or_equal": 8,
+          "exchangeable_lower_tail_rank": 0.38461538461538464,
+          "exchangeable_upper_tail_rank": 0.6923076923076923
+        }
+      }
+    },
+    "integer_raw_rectangular_m0p3": {
+      "snr": {
+        "count": 12,
+        "mean": 4.3456971645355225,
+        "sample_standard_deviation": 0.9194506324419629,
+        "minimum": 3.082892417907715,
+        "maximum": 6.406007766723633,
+        "values": [
+          5.277186870574951,
+          3.445911407470703,
+          4.176095485687256,
+          4.824233531951904,
+          4.028499603271484,
+          3.874645233154297,
+          3.979079008102417,
+          4.908187389373779,
+          6.406007766723633,
+          3.082892417907715,
+          3.5239784717559814,
+          4.621648788452148
+        ],
+        "planet_comparison": {
+          "planet": 3.697943925857544,
+          "standardized_deviation": -0.7045002916117583,
+          "predictive_t": -0.6768619863056182,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.5124760191962072,
+          "injections_below_or_equal": 3,
+          "injections_above_or_equal": 9,
+          "exchangeable_lower_tail_rank": 0.3076923076923077,
+          "exchangeable_upper_tail_rank": 0.7692307692307693
+        }
+      },
+      "amplitude": {
+        "count": 12,
+        "mean": 0.004502522878179565,
+        "sample_standard_deviation": 0.0008788264694166119,
+        "minimum": 0.002990686243979046,
+        "maximum": 0.006025189812771715,
+        "values": [
+          0.005287730121077716,
+          0.002990686243979046,
+          0.004593102524744792,
+          0.005028200212056077,
+          0.004402878027615046,
+          0.004143599836860111,
+          0.004506570999102776,
+          0.005147812999673592,
+          0.006025189812771715,
+          0.0031930784119844685,
+          0.003773682867131139,
+          0.004937742481158303
+        ],
+        "planet_comparison": {
+          "planet": 0.0038000646656880044,
+          "standardized_deviation": -0.7993138997712149,
+          "predictive_t": -0.7679559544866547,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.45868214825107767,
+          "injections_below_or_equal": 3,
+          "injections_above_or_equal": 9,
+          "exchangeable_lower_tail_rank": 0.3076923076923077,
+          "exchangeable_upper_tail_rank": 0.7692307692307693
+        }
+      }
+    },
+    "shifted_raw_rectangular_m0p3": {
+      "snr": {
+        "count": 12,
+        "mean": 4.403707921504974,
+        "sample_standard_deviation": 0.9675481330583234,
+        "minimum": 3.2585906982421875,
+        "maximum": 6.492875099182129,
+        "values": [
+          5.135441780090332,
+          3.2585906982421875,
+          4.299127578735352,
+          4.500328540802002,
+          4.103053092956543,
+          3.450737714767456,
+          4.0683441162109375,
+          5.451157093048096,
+          6.492875099182129,
+          3.388333559036255,
+          3.707658052444458,
+          4.988847732543945
+        ],
+        "planet_comparison": {
+          "planet": 3.827270746231079,
+          "standardized_deviation": -0.595771058388418,
+          "predictive_t": -0.5723983180214409,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.578563119727891,
+          "injections_below_or_equal": 4,
+          "injections_above_or_equal": 8,
+          "exchangeable_lower_tail_rank": 0.38461538461538464,
+          "exchangeable_upper_tail_rank": 0.6923076923076923
+        }
+      },
+      "amplitude": {
+        "count": 12,
+        "mean": 0.004654611727426267,
+        "sample_standard_deviation": 0.0009635257168047903,
+        "minimum": 0.0029361584423371286,
+        "maximum": 0.006367268692861183,
+        "values": [
+          0.005225155842599769,
+          0.0029361584423371286,
+          0.004778301170210843,
+          0.004823313934484883,
+          0.004482923017656236,
+          0.0037982988186441567,
+          0.004666877216512829,
+          0.005673533066543149,
+          0.006367268692861183,
+          0.0035748254161332145,
+          0.004069531766165728,
+          0.005459153344966086
+        ],
+        "planet_comparison": {
+          "planet": 0.004015005587092984,
+          "standardized_deviation": -0.6638184421836942,
+          "predictive_t": -0.6377761296518636,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.5366693912971983,
+          "injections_below_or_equal": 3,
+          "injections_above_or_equal": 9,
+          "exchangeable_lower_tail_rank": 0.3076923076923077,
+          "exchangeable_upper_tail_rank": 0.7692307692307693
+        }
+      }
+    },
+    "integer_radial_hann_m0p1_trunc0p75": {
+      "snr": {
+        "count": 12,
+        "mean": 4.360798637072246,
+        "sample_standard_deviation": 0.8930133475735601,
+        "minimum": 3.110429286956787,
+        "maximum": 6.311123371124268,
+        "values": [
+          5.395130634307861,
+          3.548739194869995,
+          4.330106258392334,
+          4.745521068572998,
+          4.065805912017822,
+          3.8589560985565186,
+          4.013643741607666,
+          4.822052001953125,
+          6.311123371124268,
+          3.110429286956787,
+          3.4815850257873535,
+          4.646491050720215
+        ],
+        "planet_comparison": {
+          "planet": 3.653480052947998,
+          "standardized_deviation": -0.7920582441977259,
+          "predictive_t": -0.7609849460968843,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.4626677140708454,
+          "injections_below_or_equal": 3,
+          "injections_above_or_equal": 9,
+          "exchangeable_lower_tail_rank": 0.3076923076923077,
+          "exchangeable_upper_tail_rank": 0.7692307692307693
+        }
+      },
+      "amplitude": {
+        "count": 12,
+        "mean": 0.0045212987845892815,
+        "sample_standard_deviation": 0.0008619256525063438,
+        "minimum": 0.0030620628958144577,
+        "maximum": 0.005983794276215096,
+        "values": [
+          0.005361536448714364,
+          0.0030620628958144577,
+          0.004755525390943063,
+          0.004950919990346339,
+          0.004442016219286792,
+          0.004123054966130452,
+          0.004551229483023024,
+          0.005076144288930407,
+          0.005983794276215096,
+          0.003227838334783251,
+          0.0037442337784535447,
+          0.004977229342430588
+        ],
+        "planet_comparison": {
+          "planet": 0.003782200527821693,
+          "standardized_deviation": -0.8574965307255997,
+          "predictive_t": -0.8238560181561448,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.4275231908330599,
+          "injections_below_or_equal": 3,
+          "injections_above_or_equal": 9,
+          "exchangeable_lower_tail_rank": 0.3076923076923077,
+          "exchangeable_upper_tail_rank": 0.7692307692307693
+        }
+      }
+    },
+    "shifted_radial_hann_m0p1_trunc0p75": {
+      "snr": {
+        "count": 12,
+        "mean": 4.455604950586955,
+        "sample_standard_deviation": 0.9404915626664705,
+        "minimum": 3.4303102493286133,
+        "maximum": 6.438937187194824,
+        "values": [
+          5.302452087402344,
+          3.4303102493286133,
+          4.503227233886719,
+          4.429993629455566,
+          4.092650890350342,
+          3.481456756591797,
+          4.152944564819336,
+          5.396378993988037,
+          6.438937187194824,
+          3.43508243560791,
+          3.723581314086914,
+          5.080244064331055
+        ],
+        "planet_comparison": {
+          "planet": 3.8189237117767334,
+          "standardized_deviation": -0.6769664546538946,
+          "predictive_t": -0.6504083314302203,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.5287790730403348,
+          "injections_below_or_equal": 4,
+          "injections_above_or_equal": 8,
+          "exchangeable_lower_tail_rank": 0.38461538461538464,
+          "exchangeable_upper_tail_rank": 0.6923076923076923
+        }
+      },
+      "amplitude": {
+        "count": 12,
+        "mean": 0.0046738539081091525,
+        "sample_standard_deviation": 0.0009395205365987218,
+        "minimum": 0.003048133302011313,
+        "maximum": 0.0062995270902331925,
+        "values": [
+          0.005351953885307448,
+          0.003048133302011313,
+          0.004923488222940712,
+          0.00473854858400709,
+          0.00444497038094262,
+          0.003789129993375505,
+          0.004717788456955674,
+          0.0056052783366510265,
+          0.0062995270902331925,
+          0.003597978719920638,
+          0.0040737797525010775,
+          0.005495670172463533
+        ],
+        "planet_comparison": {
+          "planet": 0.003982757913775132,
+          "standardized_deviation": -0.7355837019124088,
+          "predictive_t": -0.7067259609380735,
+          "degrees_of_freedom": 11,
+          "two_sided_p": 0.49443541209308217,
+          "injections_below_or_equal": 3,
+          "injections_above_or_equal": 9,
+          "exchangeable_lower_tail_rank": 0.3076923076923077,
+          "exchangeable_upper_tail_rank": 0.7692307692307693
+        }
+      }
+    }
+  },
+  "paired_differences": {
+    "shifted_identity_minus_integer_identity": {
+      "count": 12,
+      "mean": 0.06711612145105998,
+      "sample_standard_deviation": 0.2752994931093271,
+      "minimum": -0.32460665702819824,
+      "maximum": 0.561161994934082,
+      "values": [
+        -0.0779423713684082,
+        -0.32460665702819824,
+        0.14228057861328125,
+        -0.2670173645019531,
+        0.09963321685791016,
+        -0.2752571105957031,
+        0.19344615936279297,
+        0.561161994934082,
+        -0.05978059768676758,
+        0.1723341941833496,
+        0.2575831413269043,
+        0.3835582733154297
+      ],
+      "first_method": "shifted_exact_identity",
+      "second_method": "integer_exact_identity",
+      "planet_comparison": {
+        "planet": 0.2679581642150879,
+        "standardized_deviation": 0.7295401836583454,
+        "predictive_t": 0.7009195364150103,
+        "degrees_of_freedom": 11,
+        "two_sided_p": 0.4979124619279047,
+        "injections_below_or_equal": 10,
+        "injections_above_or_equal": 2,
+        "exchangeable_lower_tail_rank": 0.8461538461538461,
+        "exchangeable_upper_tail_rank": 0.23076923076923078
+      }
+    },
+    "shifted_raw_minus_integer_raw": {
+      "count": 12,
+      "mean": 0.058010756969451904,
+      "sample_standard_deviation": 0.28481297301167663,
+      "minimum": -0.4239075183868408,
+      "maximum": 0.5429697036743164,
+      "values": [
+        -0.14174509048461914,
+        -0.18732070922851562,
+        0.1230320930480957,
+        -0.32390499114990234,
+        0.0745534896850586,
+        -0.4239075183868408,
+        0.08926510810852051,
+        0.5429697036743164,
+        0.0868673324584961,
+        0.30544114112854004,
+        0.18367958068847656,
+        0.3671989440917969
+      ],
+      "first_method": "shifted_raw_rectangular_m0p3",
+      "second_method": "integer_raw_rectangular_m0p3",
+      "planet_comparison": {
+        "planet": 0.12932682037353516,
+        "standardized_deviation": 0.2503961201274335,
+        "predictive_t": 0.24057281061577648,
+        "degrees_of_freedom": 11,
+        "two_sided_p": 0.8143110500870879,
+        "injections_below_or_equal": 8,
+        "injections_above_or_equal": 4,
+        "exchangeable_lower_tail_rank": 0.6923076923076923,
+        "exchangeable_upper_tail_rank": 0.38461538461538464
+      }
+    },
+    "shifted_radial_minus_integer_radial": {
+      "count": 12,
+      "mean": 0.09480631351470947,
+      "sample_standard_deviation": 0.28686500757029304,
+      "minimum": -0.3774993419647217,
+      "maximum": 0.5743269920349121,
+      "values": [
+        -0.09267854690551758,
+        -0.11842894554138184,
+        0.17312097549438477,
+        -0.31552743911743164,
+        0.02684497833251953,
+        -0.3774993419647217,
+        0.13930082321166992,
+        0.5743269920349121,
+        0.12781381607055664,
+        0.32465314865112305,
+        0.24199628829956055,
+        0.43375301361083984
+      ],
+      "first_method": "shifted_radial_hann_m0p1_trunc0p75",
+      "second_method": "integer_radial_hann_m0p1_trunc0p75",
+      "planet_comparison": {
+        "planet": 0.16544365882873535,
+        "standardized_deviation": 0.2462389746045167,
+        "predictive_t": 0.236578754389674,
+        "degrees_of_freedom": 11,
+        "two_sided_p": 0.8173313395172903,
+        "injections_below_or_equal": 7,
+        "injections_above_or_equal": 5,
+        "exchangeable_lower_tail_rank": 0.6153846153846154,
+        "exchangeable_upper_tail_rank": 0.46153846153846156
+      }
+    },
+    "shifted_raw_minus_shifted_identity": {
+      "count": 12,
+      "mean": -0.223359485467275,
+      "sample_standard_deviation": 0.21961482249870423,
+      "minimum": -0.5226249694824219,
+      "maximum": 0.19440388679504395,
+      "values": [
+        -0.23871898651123047,
+        -0.001621246337890625,
+        -0.11777257919311523,
+        -0.3698873519897461,
+        -0.48406219482421875,
+        -0.2868788242340088,
+        -0.45810651779174805,
+        -0.05345296859741211,
+        -0.5226249694824219,
+        0.19440388679504395,
+        -0.06372666358947754,
+        -0.2778654098510742
+      ],
+      "first_method": "shifted_raw_rectangular_m0p3",
+      "second_method": "shifted_exact_identity",
+      "planet_comparison": {
+        "planet": -0.6920783519744873,
+        "standardized_deviation": -2.1342770090574272,
+        "predictive_t": -2.0505470230140546,
+        "degrees_of_freedom": 11,
+        "two_sided_p": 0.0649144724565414,
+        "injections_below_or_equal": 0,
+        "injections_above_or_equal": 12,
+        "exchangeable_lower_tail_rank": 0.07692307692307693,
+        "exchangeable_upper_tail_rank": 1.0
+      }
+    },
+    "shifted_radial_minus_shifted_identity": {
+      "count": 12,
+      "mean": -0.1714624563852946,
+      "sample_standard_deviation": 0.2648327090805333,
+      "minimum": -0.5765628814697266,
+      "maximum": 0.24115276336669922,
+      "values": [
+        -0.07170867919921875,
+        0.17009830474853516,
+        0.08632707595825195,
+        -0.44022226333618164,
+        -0.4944643974304199,
+        -0.25615978240966797,
+        -0.3735060691833496,
+        -0.1082310676574707,
+        -0.5765628814697266,
+        0.24115276336669922,
+        -0.047803401947021484,
+        -0.18646907806396484
+      ],
+      "first_method": "shifted_radial_hann_m0p1_trunc0p75",
+      "second_method": "shifted_exact_identity",
+      "planet_comparison": {
+        "planet": -0.700425386428833,
+        "standardized_deviation": -1.9973474269097382,
+        "predictive_t": -1.9189893358703856,
+        "degrees_of_freedom": 11,
+        "two_sided_p": 0.0812920515259378,
+        "injections_below_or_equal": 0,
+        "injections_above_or_equal": 12,
+        "exchangeable_lower_tail_rank": 0.07692307692307693,
+        "exchangeable_upper_tail_rank": 1.0
+      }
+    },
+    "gaussian_fwhm3p6_minus_shifted_identity": {
+      "count": 12,
+      "mean": -0.02808837095896403,
+      "sample_standard_deviation": 1.2056265005273359,
+      "minimum": -1.5063855648040771,
+      "maximum": 2.0769553184509277,
+      "values": [
+        -1.5063855648040771,
+        0.04968094825744629,
+        -0.37955760955810547,
+        2.018913745880127,
+        2.0769553184509277,
+        0.5641827583312988,
+        -0.7665894031524658,
+        0.6366844177246094,
+        -1.4860343933105469,
+        -0.09467434883117676,
+        -0.17163515090942383,
+        -1.2786011695861816
+      ],
+      "first_method": "gaussian_fwhm3p6",
+      "second_method": "shifted_exact_identity",
+      "planet_comparison": {
+        "planet": 0.5675821304321289,
+        "standardized_deviation": 0.4940754878318859,
+        "predictive_t": 0.4746923742412061,
+        "degrees_of_freedom": 11,
+        "two_sided_p": 0.6442907201191062,
+        "injections_below_or_equal": 9,
+        "injections_above_or_equal": 3,
+        "exchangeable_lower_tail_rank": 0.7692307692307693,
+        "exchangeable_upper_tail_rank": 0.3076923076923077
+      }
+    },
+    "gaussian_fwhm3p6_minus_gaussian_fwhm2p4": {
+      "count": 12,
+      "mean": -0.2630982995033264,
+      "sample_standard_deviation": 0.2599007434266655,
+      "minimum": -0.6646254062652588,
+      "maximum": 0.11625909805297852,
+      "values": [
+        -0.6646254062652588,
+        -0.40097594261169434,
+        -0.07171964645385742,
+        0.01180124282836914,
+        0.11625909805297852,
+        -0.27992820739746094,
+        -0.561138391494751,
+        0.10842418670654297,
+        -0.29156923294067383,
+        -0.3309006690979004,
+        -0.2574748992919922,
+        -0.5353317260742188
+      ],
+      "first_method": "gaussian_fwhm3p6",
+      "second_method": "gaussian_fwhm2p4",
+      "planet_comparison": {
+        "planet": -0.1826949119567871,
+        "standardized_deviation": 0.30936189903291367,
+        "predictive_t": 0.2972252984986574,
+        "degrees_of_freedom": 11,
+        "two_sided_p": 0.7718322280256044,
+        "injections_below_or_equal": 8,
+        "injections_above_or_equal": 4,
+        "exchangeable_lower_tail_rank": 0.6923076923076923,
+        "exchangeable_upper_tail_rank": 0.38461538461538464
+      }
+    }
+  },
+  "maximum_annular_oracle_error": 9.5367431640625e-07,
+  "maximum_parent_replay_error": 0.0,
+  "limits": [
+    "The planet position is the independently optimized negative-companion position.",
+    "The statistic is the nearest native pixel at the common optimized phase.",
+    "Aperture-maximum closure remains the completed Stage-G endpoint and is not retested."
+  ]
+}

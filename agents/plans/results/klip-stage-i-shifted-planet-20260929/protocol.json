@@ -1,0 +1,429 @@
+{
+  "schema": 1,
+  "stage": "KLIP Stage I shifted-template planet closure",
+  "purpose": "apply the promoted cubic phase shift to the optimized planet and twelve matched injections with production annular SNR",
+  "parent_root": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925",
+  "primary_mode": 200,
+  "nominal_radius": 12.0,
+  "phase_offset_row_column": [
+    -0.2770699293779586,
+    0.4859637006126931
+  ],
+  "methods": [
+    "gaussian_fwhm2p4",
+    "gaussian_fwhm3p6",
+    "integer_exact_identity",
+    "shifted_exact_identity",
+    "integer_raw_rectangular_m0p3",
+    "shifted_raw_rectangular_m0p3",
+    "integer_radial_hann_m0p1_trunc0p75",
+    "shifted_radial_hann_m0p1_trunc0p75"
+  ],
+  "pairs": [
+    [
+      "shifted_identity_minus_integer_identity",
+      "shifted_exact_identity",
+      "integer_exact_identity"
+    ],
+    [
+      "shifted_raw_minus_integer_raw",
+      "shifted_raw_rectangular_m0p3",
+      "integer_raw_rectangular_m0p3"
+    ],
+    [
+      "shifted_radial_minus_integer_radial",
+      "shifted_radial_hann_m0p1_trunc0p75",
+      "integer_radial_hann_m0p1_trunc0p75"
+    ],
+    [
+      "shifted_raw_minus_shifted_identity",
+      "shifted_raw_rectangular_m0p3",
+      "shifted_exact_identity"
+    ],
+    [
+      "shifted_radial_minus_shifted_identity",
+      "shifted_radial_hann_m0p1_trunc0p75",
+      "shifted_exact_identity"
+    ],
+    [
+      "gaussian_fwhm3p6_minus_shifted_identity",
+      "gaussian_fwhm3p6",
+      "shifted_exact_identity"
+    ],
+    [
+      "gaussian_fwhm3p6_minus_gaussian_fwhm2p4",
+      "gaussian_fwhm3p6",
+      "gaussian_fwhm2p4"
+    ]
+  ],
+  "tasks": [
+    {
+      "name": "planet",
+      "kind": "planet",
+      "base_site": "optimized_planet",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_cpp_response_20260913T222913Z/science_only/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_f_planet/planet/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_f_planet/planet/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_f_planet/planet/results.json",
+      "source": {
+        "row": 75.72293007062204,
+        "column": 61.48596370061269,
+        "separation": 12.387750470790344,
+        "position_angle": 260.64315155951886
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.387750470790344,
+        "position_angle": 260.64315155951886,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site00__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal00",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site00__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site00__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site00__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site00__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 51.72293007062204,
+        "column": 62.48596370061269,
+        "separation": 11.820644895179521,
+        "position_angle": 94.9211780220603
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.820644895179521,
+        "position_angle": 94.9211780220603,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site01__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal01",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site01__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site01__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site01__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site01__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 52.72293007062204,
+        "column": 58.48596370061269,
+        "separation": 11.88637018918207,
+        "position_angle": 114.95022364182249
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.88637018918207,
+        "position_angle": 114.95022364182249,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site02__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_hold02",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site02__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site02__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site02__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site02__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 67.72293007062204,
+        "column": 52.48596370061269,
+        "separation": 11.795852406061426,
+        "position_angle": 200.97749743466966
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.795852406061426,
+        "position_angle": 200.97749743466966,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site03__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal16",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site03__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site03__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site03__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site03__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 55.72293007062204,
+        "column": 73.4859637006127,
+        "separation": 12.657104238979365,
+        "position_angle": 37.91146357889957
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.657104238979365,
+        "position_angle": 37.91146357889957,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site04__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal13",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site04__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site04__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 66.72293007062204,
+        "column": 75.4859637006127,
+        "separation": 12.411712374709829,
+        "position_angle": 344.9496101517141
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.411712374709829,
+        "position_angle": 344.9496101517141,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site05__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal09",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site05__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site05__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site05__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site05__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 70.72293007062204,
+        "column": 54.48596370061269,
+        "separation": 11.550912051079262,
+        "position_angle": 218.70513020652245
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 11.550912051079262,
+        "position_angle": 218.70513020652245,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site06__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal10",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site06__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site06__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site06__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site06__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 73.72293007062204,
+        "column": 70.4859637006127,
+        "separation": 12.38192182397816,
+        "position_angle": 304.34722377567977
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.38192182397816,
+        "position_angle": 304.34722377567977,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site07__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal12",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site07__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site07__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site07__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site07__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 68.72293007062204,
+        "column": 74.4859637006127,
+        "separation": 12.164308322045601,
+        "position_angle": 334.57272226836193
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.164308322045601,
+        "position_angle": 334.57272226836193,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site08__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal02",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site08__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site08__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site08__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site08__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 53.72293007062204,
+        "column": 56.48596370061269,
+        "separation": 12.032780294390383,
+        "position_angle": 125.65552677203902
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.032780294390383,
+        "position_angle": 125.65552677203902,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site09__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal18",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site09__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site09__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site09__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site09__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 52.72293007062204,
+        "column": 69.4859637006127,
+        "separation": 12.327895103696962,
+        "position_angle": 60.95066683462599
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.327895103696962,
+        "position_angle": 60.95066683462599,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site10__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal17",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site10__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site10__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site10__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site10__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 53.72293007062204,
+        "column": 71.4859637006127,
+        "separation": 12.624052939981297,
+        "position_angle": 50.75786405053605
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.624052939981297,
+        "position_angle": 50.75786405053605,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    },
+    {
+      "name": "site11__nominal_optimized_phase",
+      "kind": "injection",
+      "base_site": "r12_cal19",
+      "science": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/reductions/site11__nominal_optimized_phase/finim.fits",
+      "parent_amplitudes": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site11__nominal_optimized_phase/amplitudes.fits",
+      "parent_policy": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site11__nominal_optimized_phase/policy_radius.fits",
+      "parent_results": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_g_planet_consistency/analysis/site11__nominal_optimized_phase/results.json",
+      "source": {
+        "row": 51.72293007062204,
+        "column": 67.4859637006127,
+        "separation": 12.433313425795259,
+        "position_angle": 71.30154757124403
+      },
+      "settings": {
+        "lambda_d": 3.6,
+        "separation": 12.433313425795259,
+        "position_angle": 71.30154757124403,
+        "source_radius": 7.0,
+        "minimum_radius": 6.0,
+        "maximum_radius": 60.0,
+        "aperture_radius": 3.0
+      }
+    }
+  ],
+  "primary_endpoints": [
+    "optimized-nearest-pixel shifted covariance minus shifted identity SNR",
+    "optimized-nearest-pixel Gaussian 3.6 minus shifted identity SNR",
+    "planet comparison with the twelve injection paired-difference distributions"
+  ],
+  "secondary_endpoints": [
+    "shifted-minus-integer SNR for each response filter",
+    "nearest-pixel amplitude for integer and shifted response filters",
+    "Gaussian 3.6 minus Gaussian 2.4 fixed-pixel SNR"
+  ],
+  "analysis_contract": {
+    "source_position": "optimized negative-companion position",
+    "source_phase_identical_for_planet_and_injections": true,
+    "candidate_statistic": "nearest native pixel to optimized source",
+    "generic_noise_weights": "radius-12 mode-200 signal-free baseline",
+    "generic_calibration_positions": 245,
+    "generic_calibration_bins": [
+      10,
+      11,
+      12,
+      13
+    ],
+    "candidate_weights": "full source-aperture exclusion on signal-free baseline",
+    "annular_normalization": "production hciAnalyze with independent oracle",
+    "known_planet_and_trial_excluded_from_noise": true,
+    "aperture_maximum_retested": false,
+    "new_klip_reductions": 0
+  },
+  "resources": {
+    "cpu_affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27
+    ],
+    "openmp_threads": 16,
+    "blas_threads": 1
+  },
+  "paths": {
+    "baseline": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_response_47_20260921/response/finim.fits",
+    "parent_response": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_response_47_20260921",
+    "analyzer": "/usr/local/bin/hciAnalyze",
+    "unit_directory": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/calibration/units/r12_mode200"
+  }
+}

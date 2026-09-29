@@ -3525,6 +3525,39 @@ injections. This directly tests whether response registration removes the
 fixed-pixel planet discrepancy while preserving the established noise and
 small-sample conventions.
 
+### Step 6 checkpoint: Stage-I shifted-template planet closure completed (2026-09-29)
+
+The [Stage-I result](results/klip-stage-i-shifted-planet-20260929/README.md)
+completed the mode-200 reanalysis of the planet and twelve matching
+optimized-phase injections. Cubic registration increases the planet SNR by
+`0.268` for identity, `0.129` for raw covariance, and `0.165` for radial
+covariance. These gains are only `0.73`, `0.25`, and `0.25` injection sample
+standard deviations from the corresponding injection means. The planet's
+registration response is therefore consistent with the injections.
+
+Registration does not close the covariance discrepancy. Shifted raw
+covariance is `0.692` SNR below shifted identity for the planet, compared with
+`0.223 +/- 0.220` across injections. Shifted radial covariance is `0.700` SNR
+below identity, compared with `0.171 +/- 0.265` across injections. The planet
+is `2.13` and `2.00` sample standard deviations below the respective means and
+is below all twelve individual injection differences in both comparisons.
+The minimum one-sided exchangeable rank is `1/13 = 0.0769`, so this is a
+persistent and suggestive discrepancy rather than a 5% rejection.
+
+Gaussian 2.4 gives the highest absolute fixed-pixel SNR for both the injection
+mean (`4.862`) and planet (`5.270`). Shifted identity gives `4.627` and `4.519`;
+shifted raw and radial covariance give injection means of `4.404` and `4.456`
+and planet SNRs of `3.827` and `3.819`. Gaussian 3.6 minus shifted identity is
+consistent between the planet and injections (`+0.49` sample SD).
+
+The frozen ROC verifier passed. All 245 calibration positions reproduced the
+parent weights exactly, 189 radius-12 policy positions were replaced per
+image, all unchanged injection SNRs replayed Stage G with zero error, and the
+maximum independent annular-oracle error was `9.54e-7`. The centering issue is
+closed as an explanation for covariance underperformance. A larger
+optimized-phase injection sample is the direct way to resolve the remaining
+planet-specific rank below the present `1/13` limit.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
