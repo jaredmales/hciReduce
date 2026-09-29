@@ -3583,6 +3583,38 @@ the location-dependent fluctuation directly. All unchanged injection methods
 must replay Stage G at every mode, and production SNR maps must pass the
 independent annular oracle.
 
+### Step 6 checkpoint: Stage-J KLIP mode dependence completed (2026-09-29)
+
+The [Stage-J result](results/klip-stage-j-mode-dependence-20260929/README.md)
+confirms location-dependent SNR fluctuations across mode fractions `0.125` to
+`0.350`, but they do not explain the covariance result. The mean within-site
+injection range is `0.293` SNR for shifted identity, `0.298` for shifted raw
+covariance, and `0.304` for shifted radial covariance. The planet ranges are
+`0.271`, `0.227`, and `0.225`, so its mode variation is typical or smaller.
+
+The planet's covariance-minus-identity difference is below all twelve
+injections at every one of the eight fractions. Its standardized deviation
+ranges from `-2.06` to `-2.44` for raw covariance and from `-1.96` to `-2.46`
+for radial covariance. An identical independent maximum over modes leaves raw
+at `-2.19` sample SD and radial at `-2.01` sample SD; injection-only mode
+selection leaves them at `-2.21` and `-2.08` sample SD. All four scan-level
+comparisons retain the minimum lower-tail rank of `1/13`.
+
+Individual maximizing modes vary by site. The injection ensemble is stable:
+leave-one-site-out selection chooses fraction `0.225` for all sites for
+Gaussian 2.4, shifted identity, and both covariance methods, and fraction
+`0.200` for Gaussian 3.6. At those fractions Gaussian 2.4 remains highest for
+the injection mean (`4.876`) and planet (`5.408`). Shifted identity gives
+`4.675` and `4.736`; shifted raw covariance gives `4.483` and `4.054`; shifted
+radial covariance gives `4.534` and `4.044`.
+
+The frozen verifier passed all 1,960 calibration fits with zero parent
+replay error. All unchanged injection SNRs replayed Stage G exactly,
+and the maximum annular-oracle error was `9.54e-7`. KLIP mode fraction does not explain covariance underperformance within
+the tested grid. A larger
+optimized-phase injection sample is still required to improve the current
+`1/13` exchangeable-rank resolution.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed

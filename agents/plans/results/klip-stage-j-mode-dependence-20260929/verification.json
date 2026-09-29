@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "status": "verified",
+  "frozen_roc_completion_verifier_reran": true,
+  "aggregate_products_checked": 4,
+  "calibration_receipt_checked": true,
+  "calibration_products_checked": 2,
+  "analysis_receipts_checked": 13,
+  "analysis_metadata_products_checked": 52,
+  "analysis_fits_products_verified_on_roc_by_frozen_runner": 26,
+  "modes": [
+    125,
+    150,
+    175,
+    200,
+    225,
+    250,
+    300,
+    350
+  ],
+  "injection_count": 12,
+  "calibration_positions_per_mode": 245,
+  "valid_covariance_positions_per_mode": 245,
+  "generic_map_positions_replaced_per_mode_and_image": 189,
+  "maximum_parent_weight_replay_error": 0.0,
+  "maximum_annular_oracle_error": 9.5367431640625e-07,
+  "modewise_covariance_extremes": {
+    "shifted_raw_minus_shifted_identity": {
+      "planet_standardized_deviation_range": [
+        -2.440761211414857,
+        -2.063535835766679
+      ],
+      "modes_with_planet_below_all_injections": 8
+    },
+    "shifted_radial_minus_shifted_identity": {
+      "planet_standardized_deviation_range": [
+        -2.460438909418983,
+        -1.9600781538878949
+      ],
+      "modes_with_planet_below_all_injections": 8
+    }
+  },
+  "mode_selection_comparisons": {
+    "independent_mode_scan": {
+      "shifted_raw_minus_shifted_identity": {
+        "injection_mean": -0.2226565678914388,
+        "injection_sample_standard_deviation": 0.23459341209017287,
+        "injection_minimum": -0.5021305084228516,
+        "injection_maximum": 0.20751714706420898,
+        "planet": -0.7361955642700195,
+        "planet_standardized_deviation": -2.189059751521014,
+        "predictive_two_sided_p": 0.059272978501574036,
+        "exchangeable_lower_tail_rank": 0.07692307692307693
+      },
+      "shifted_radial_minus_shifted_identity": {
+        "injection_mean": -0.16421558459599814,
+        "injection_sample_standard_deviation": 0.28961087477965,
+        "injection_minimum": -0.5462803840637207,
+        "injection_maximum": 0.31518006324768066,
+        "planet": -0.7463698387145996,
+        "planet_standardized_deviation": -2.0101256714256075,
+        "predictive_two_sided_p": 0.07961499785548488,
+        "exchangeable_lower_tail_rank": 0.07692307692307693
+      },
+      "gaussian_fwhm3p6_minus_shifted_identity": {
+        "injection_mean": 0.0349241296450297,
+        "injection_sample_standard_deviation": 1.3385904690619779,
+        "injection_minimum": -1.5117082595825195,
+        "injection_maximum": 2.77896785736084,
+        "planet": 0.45097780227661133,
+        "planet_standardized_deviation": 0.3108147579469416,
+        "predictive_two_sided_p": 0.7707947374264481,
+        "exchangeable_lower_tail_rank": 0.6923076923076923
+      }
+    },
+    "injection_selected_mode": {
+      "shifted_raw_minus_shifted_identity": {
+        "injection_mean": -0.19132858514785767,
+        "injection_sample_standard_deviation": 0.2216986829384708,
+        "injection_minimum": -0.48416566848754883,
+        "injection_maximum": 0.20751714706420898,
+        "planet": -0.6812586784362793,
+        "planet_standardized_deviation": -2.209891762976303,
+        "predictive_two_sided_p": 0.057251765378168624,
+        "exchangeable_lower_tail_rank": 0.07692307692307693
+      },
+      "shifted_radial_minus_shifted_identity": {
+        "injection_mean": -0.14035862684249878,
+        "injection_sample_standard_deviation": 0.2652966110250484,
+        "injection_minimum": -0.5295734405517578,
+        "injection_maximum": 0.25601863861083984,
+        "planet": -0.6914329528808594,
+        "planet_standardized_deviation": -2.077200775046199,
+        "predictive_two_sided_p": 0.07132616467883936,
+        "exchangeable_lower_tail_rank": 0.07692307692307693
+      },
+      "gaussian_fwhm3p6_minus_shifted_identity": {
+        "injection_mean": -0.07554103930791219,
+        "injection_sample_standard_deviation": 1.1675351781903394,
+        "injection_minimum": -1.511284589767456,
+        "injection_maximum": 1.914992332458496,
+        "planet": 0.3513517379760742,
+        "planet_standardized_deviation": 0.36563590139156515,
+        "predictive_two_sided_p": 0.7320057942934084,
+        "exchangeable_lower_tail_rank": 0.6923076923076923
+      }
+    }
+  }
+}

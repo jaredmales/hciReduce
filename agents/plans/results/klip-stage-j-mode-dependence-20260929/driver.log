@@ -1,0 +1,55 @@
+Stage-J shifted calibration mode 125: 50/245
+Stage-J shifted calibration mode 125: 100/245
+Stage-J shifted calibration mode 125: 150/245
+Stage-J shifted calibration mode 125: 200/245
+Stage-J shifted calibration mode 125: 245/245
+Stage-J shifted calibration mode 150: 50/245
+Stage-J shifted calibration mode 150: 100/245
+Stage-J shifted calibration mode 150: 150/245
+Stage-J shifted calibration mode 150: 200/245
+Stage-J shifted calibration mode 150: 245/245
+Stage-J shifted calibration mode 175: 50/245
+Stage-J shifted calibration mode 175: 100/245
+Stage-J shifted calibration mode 175: 150/245
+Stage-J shifted calibration mode 175: 200/245
+Stage-J shifted calibration mode 175: 245/245
+Stage-J shifted calibration mode 200: 50/245
+Stage-J shifted calibration mode 200: 100/245
+Stage-J shifted calibration mode 200: 150/245
+Stage-J shifted calibration mode 200: 200/245
+Stage-J shifted calibration mode 200: 245/245
+Stage-J shifted calibration mode 225: 50/245
+Stage-J shifted calibration mode 225: 100/245
+Stage-J shifted calibration mode 225: 150/245
+Stage-J shifted calibration mode 225: 200/245
+Stage-J shifted calibration mode 225: 245/245
+Stage-J shifted calibration mode 250: 50/245
+Stage-J shifted calibration mode 250: 100/245
+Stage-J shifted calibration mode 250: 150/245
+Stage-J shifted calibration mode 250: 200/245
+Stage-J shifted calibration mode 250: 245/245
+Stage-J shifted calibration mode 300: 50/245
+Stage-J shifted calibration mode 300: 100/245
+Stage-J shifted calibration mode 300: 150/245
+Stage-J shifted calibration mode 300: 200/245
+Stage-J shifted calibration mode 300: 245/245
+Stage-J shifted calibration mode 350: 50/245
+Stage-J shifted calibration mode 350: 100/245
+Stage-J shifted calibration mode 350: 150/245
+Stage-J shifted calibration mode 350: 200/245
+Stage-J shifted calibration mode 350: 245/245
+WARNING: VerifyWarning: Keyword name 'HCI FILTER LABELS' is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+Stage-J analysis 1/13: planet
+Stage-J analysis 2/13: site00__nominal_optimized_phase
+Stage-J analysis 3/13: site01__nominal_optimized_phase
+Stage-J analysis 4/13: site02__nominal_optimized_phase
+Stage-J analysis 5/13: site03__nominal_optimized_phase
+Stage-J analysis 6/13: site04__nominal_optimized_phase
+Stage-J analysis 7/13: site05__nominal_optimized_phase
+Stage-J analysis 8/13: site06__nominal_optimized_phase
+Stage-J analysis 9/13: site07__nominal_optimized_phase
+Stage-J analysis 10/13: site08__nominal_optimized_phase
+Stage-J analysis 11/13: site09__nominal_optimized_phase
+Stage-J analysis 12/13: site10__nominal_optimized_phase
+Stage-J analysis 13/13: site11__nominal_optimized_phase
+/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/results.md

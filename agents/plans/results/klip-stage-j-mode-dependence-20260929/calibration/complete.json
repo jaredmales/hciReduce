@@ -1,0 +1,15 @@
+{
+  "status": "complete",
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/calibration/weights.npz",
+      "bytes": 5334335,
+      "sha256": "a09f5f449b6405c16ea423583b3c0808c7972de3ab83473c55a821faf2f18a15"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/calibration/results.json",
+      "bytes": 632,
+      "sha256": "a25e87ca1b469632e6d4c2812366c73d7dcb8a8f08f494e0d507b15e12ad7949"
+    }
+  ]
+}

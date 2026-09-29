@@ -1,0 +1,521 @@
+{
+  "schema": 1,
+  "task": "site02__nominal_optimized_phase",
+  "kind": "injection",
+  "base_site": "r12_hold02",
+  "source_row_column": [
+    67.72293007062204,
+    52.48596370061269
+  ],
+  "query_row_column": [
+    68,
+    52
+  ],
+  "phase_offset_row_column": [
+    -0.2770699293779586,
+    0.4859637006126931
+  ],
+  "generic_positions_replaced_by_mode": {
+    "125": 189,
+    "150": 189,
+    "175": 189,
+    "200": 189,
+    "225": 189,
+    "250": 189,
+    "300": 189,
+    "350": 189
+  },
+  "methods_by_mode": {
+    "125": {
+      "gaussian_fwhm2p4": {
+        "amplitude": 0.39635056257247925,
+        "snr": 3.926696538925171
+      },
+      "gaussian_fwhm3p6": {
+        "amplitude": 0.24635428190231323,
+        "snr": 3.9444737434387207
+      },
+      "integer_exact_identity": {
+        "amplitude": 0.004696550065945171,
+        "snr": 4.339367389678955
+      },
+      "shifted_exact_identity": {
+        "amplitude": 0.004884804502490811,
+        "snr": 4.439755916595459
+      },
+      "integer_raw_rectangular_m0p3": {
+        "amplitude": 0.004443285244961762,
+        "snr": 4.16627836227417
+      },
+      "shifted_raw_rectangular_m0p3": {
+        "amplitude": 0.004686079546669885,
+        "snr": 4.226069450378418
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004617789778855745,
+        "snr": 4.323678016662598
+      },
+      "shifted_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004852748060637005,
+        "snr": 4.448675155639648
+      }
+    },
+    "150": {
+      "gaussian_fwhm2p4": {
+        "amplitude": 0.373707115650177,
+        "snr": 3.960078477859497
+      },
+      "gaussian_fwhm3p6": {
+        "amplitude": 0.22920022904872894,
+        "snr": 3.9717373847961426
+      },
+      "integer_exact_identity": {
+        "amplitude": 0.004674514305152576,
+        "snr": 4.232045650482178
+      },
+      "shifted_exact_identity": {
+        "amplitude": 0.004843043883012996,
+        "snr": 4.322083950042725
+      },
+      "integer_raw_rectangular_m0p3": {
+        "amplitude": 0.004478970760367444,
+        "snr": 4.09849739074707
+      },
+      "shifted_raw_rectangular_m0p3": {
+        "amplitude": 0.004683142623097174,
+        "snr": 4.155170917510986
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004647705157130094,
+        "snr": 4.265122890472412
+      },
+      "shifted_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004865700027102414,
+        "snr": 4.40878963470459
+      }
+    },
+    "175": {
+      "gaussian_fwhm2p4": {
+        "amplitude": 0.36183932423591614,
+        "snr": 3.9403574466705322
+      },
+      "gaussian_fwhm3p6": {
+        "amplitude": 0.22380609810352325,
+        "snr": 3.94150447845459
+      },
+      "integer_exact_identity": {
+        "amplitude": 0.004655257558225078,
+        "snr": 4.114221096038818
+      },
+      "shifted_exact_identity": {
+        "amplitude": 0.004807190653601865,
+        "snr": 4.252832889556885
+      },
+      "integer_raw_rectangular_m0p3": {
+        "amplitude": 0.00445715900447585,
+        "snr": 4.023301601409912
+      },
+      "shifted_raw_rectangular_m0p3": {
+        "amplitude": 0.004626665328228444,
+        "snr": 4.115316390991211
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004601594788083771,
+        "snr": 4.158988952636719
+      },
+      "shifted_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.0047726102872794,
+        "snr": 4.30862283706665
+      }
+    },
+    "200": {
+      "gaussian_fwhm2p4": {
+        "amplitude": 0.36228978633880615,
+        "snr": 4.109062194824219
+      },
+      "gaussian_fwhm3p6": {
+        "amplitude": 0.2224518060684204,
+        "snr": 4.037342548370361
+      },
+      "integer_exact_identity": {
+        "amplitude": 0.004788926793396501,
+        "snr": 4.2746195793151855
+      },
+      "shifted_exact_identity": {
+        "amplitude": 0.004940373820672308,
+        "snr": 4.416900157928467
+      },
+      "integer_raw_rectangular_m0p3": {
+        "amplitude": 0.004593102524744792,
+        "snr": 4.176095485687256
+      },
+      "shifted_raw_rectangular_m0p3": {
+        "amplitude": 0.004778301170210843,
+        "snr": 4.299127578735352
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004755525390943063,
+        "snr": 4.330106258392334
+      },
+      "shifted_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004923488222940712,
+        "snr": 4.503227233886719
+      }
+    },
+    "225": {
+      "gaussian_fwhm2p4": {
+        "amplitude": 0.356509804725647,
+        "snr": 4.130990028381348
+      },
+      "gaussian_fwhm3p6": {
+        "amplitude": 0.21988952159881592,
+        "snr": 4.0276198387146
+      },
+      "integer_exact_identity": {
+        "amplitude": 0.004804755000325145,
+        "snr": 4.3272271156311035
+      },
+      "shifted_exact_identity": {
+        "amplitude": 0.004967362078083145,
+        "snr": 4.489915370941162
+      },
+      "integer_raw_rectangular_m0p3": {
+        "amplitude": 0.004635207114744425,
+        "snr": 4.279264450073242
+      },
+      "shifted_raw_rectangular_m0p3": {
+        "amplitude": 0.004829836665208141,
+        "snr": 4.415821075439453
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004795215805229381,
+        "snr": 4.439669132232666
+      },
+      "shifted_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.0049769852756929075,
+        "snr": 4.6305108070373535
+      }
+    },
+    "250": {
+      "gaussian_fwhm2p4": {
+        "amplitude": 0.35625794529914856,
+        "snr": 4.204728126525879
+      },
+      "gaussian_fwhm3p6": {
+        "amplitude": 0.21911729872226715,
+        "snr": 4.113316059112549
+      },
+      "integer_exact_identity": {
+        "amplitude": 0.004848163323341582,
+        "snr": 4.3294196128845215
+      },
+      "shifted_exact_identity": {
+        "amplitude": 0.0050000050681050885,
+        "snr": 4.48713493347168
+      },
+      "integer_raw_rectangular_m0p3": {
+        "amplitude": 0.004674367545102815,
+        "snr": 4.287288188934326
+      },
+      "shifted_raw_rectangular_m0p3": {
+        "amplitude": 0.004856272961978618,
+        "snr": 4.421703815460205
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004843184021863282,
+        "snr": 4.453381061553955
+      },
+      "shifted_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.005001656331375436,
+        "snr": 4.644679546356201
+      }
+    },
+    "300": {
+      "gaussian_fwhm2p4": {
+        "amplitude": 0.3482227027416229,
+        "snr": 4.160552024841309
+      },
+      "gaussian_fwhm3p6": {
+        "amplitude": 0.2127380073070526,
+        "snr": 4.0492844581604
+      },
+      "integer_exact_identity": {
+        "amplitude": 0.004872153993990763,
+        "snr": 4.326890468597412
+      },
+      "shifted_exact_identity": {
+        "amplitude": 0.005008564448309366,
+        "snr": 4.4555983543396
+      },
+      "integer_raw_rectangular_m0p3": {
+        "amplitude": 0.004659407618624853,
+        "snr": 4.261560440063477
+      },
+      "shifted_raw_rectangular_m0p3": {
+        "amplitude": 0.004819550805460931,
+        "snr": 4.35767126083374
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004854983160835183,
+        "snr": 4.4476141929626465
+      },
+      "shifted_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004987929407695552,
+        "snr": 4.583963394165039
+      }
+    },
+    "350": {
+      "gaussian_fwhm2p4": {
+        "amplitude": 0.3479038178920746,
+        "snr": 4.184181213378906
+      },
+      "gaussian_fwhm3p6": {
+        "amplitude": 0.211894690990448,
+        "snr": 4.0651936531066895
+      },
+      "integer_exact_identity": {
+        "amplitude": 0.004922574078975183,
+        "snr": 4.299342155456543
+      },
+      "shifted_exact_identity": {
+        "amplitude": 0.005079198040534255,
+        "snr": 4.438900470733643
+      },
+      "integer_raw_rectangular_m0p3": {
+        "amplitude": 0.004714421998986424,
+        "snr": 4.2375054359436035
+      },
+      "shifted_raw_rectangular_m0p3": {
+        "amplitude": 0.004909677022684887,
+        "snr": 4.360236167907715
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.004926893730981118,
+        "snr": 4.428136825561523
+      },
+      "shifted_radial_hann_m0p1_trunc0p75": {
+        "amplitude": 0.005084795998743937,
+        "snr": 4.576630115509033
+      }
+    }
+  },
+  "current_parent_replay_by_mode": {
+    "125": {
+      "gaussian_fwhm2p4": {
+        "parent": 3.926696538925171,
+        "observed": 3.926696538925171,
+        "absolute_error": 0.0
+      },
+      "gaussian_fwhm3p6": {
+        "parent": 3.9444737434387207,
+        "observed": 3.9444737434387207,
+        "absolute_error": 0.0
+      },
+      "integer_exact_identity": {
+        "parent": 4.339367389678955,
+        "observed": 4.339367389678955,
+        "absolute_error": 0.0
+      },
+      "integer_raw_rectangular_m0p3": {
+        "parent": 4.16627836227417,
+        "observed": 4.16627836227417,
+        "absolute_error": 0.0
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "parent": 4.323678016662598,
+        "observed": 4.323678016662598,
+        "absolute_error": 0.0
+      }
+    },
+    "150": {
+      "gaussian_fwhm2p4": {
+        "parent": 3.960078477859497,
+        "observed": 3.960078477859497,
+        "absolute_error": 0.0
+      },
+      "gaussian_fwhm3p6": {
+        "parent": 3.9717373847961426,
+        "observed": 3.9717373847961426,
+        "absolute_error": 0.0
+      },
+      "integer_exact_identity": {
+        "parent": 4.232045650482178,
+        "observed": 4.232045650482178,
+        "absolute_error": 0.0
+      },
+      "integer_raw_rectangular_m0p3": {
+        "parent": 4.09849739074707,
+        "observed": 4.09849739074707,
+        "absolute_error": 0.0
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "parent": 4.265122890472412,
+        "observed": 4.265122890472412,
+        "absolute_error": 0.0
+      }
+    },
+    "175": {
+      "gaussian_fwhm2p4": {
+        "parent": 3.9403574466705322,
+        "observed": 3.9403574466705322,
+        "absolute_error": 0.0
+      },
+      "gaussian_fwhm3p6": {
+        "parent": 3.94150447845459,
+        "observed": 3.94150447845459,
+        "absolute_error": 0.0
+      },
+      "integer_exact_identity": {
+        "parent": 4.114221096038818,
+        "observed": 4.114221096038818,
+        "absolute_error": 0.0
+      },
+      "integer_raw_rectangular_m0p3": {
+        "parent": 4.023301601409912,
+        "observed": 4.023301601409912,
+        "absolute_error": 0.0
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "parent": 4.158988952636719,
+        "observed": 4.158988952636719,
+        "absolute_error": 0.0
+      }
+    },
+    "200": {
+      "gaussian_fwhm2p4": {
+        "parent": 4.109062194824219,
+        "observed": 4.109062194824219,
+        "absolute_error": 0.0
+      },
+      "gaussian_fwhm3p6": {
+        "parent": 4.037342548370361,
+        "observed": 4.037342548370361,
+        "absolute_error": 0.0
+      },
+      "integer_exact_identity": {
+        "parent": 4.2746195793151855,
+        "observed": 4.2746195793151855,
+        "absolute_error": 0.0
+      },
+      "integer_raw_rectangular_m0p3": {
+        "parent": 4.176095485687256,
+        "observed": 4.176095485687256,
+        "absolute_error": 0.0
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "parent": 4.330106258392334,
+        "observed": 4.330106258392334,
+        "absolute_error": 0.0
+      }
+    },
+    "225": {
+      "gaussian_fwhm2p4": {
+        "parent": 4.130990028381348,
+        "observed": 4.130990028381348,
+        "absolute_error": 0.0
+      },
+      "gaussian_fwhm3p6": {
+        "parent": 4.0276198387146,
+        "observed": 4.0276198387146,
+        "absolute_error": 0.0
+      },
+      "integer_exact_identity": {
+        "parent": 4.3272271156311035,
+        "observed": 4.3272271156311035,
+        "absolute_error": 0.0
+      },
+      "integer_raw_rectangular_m0p3": {
+        "parent": 4.279264450073242,
+        "observed": 4.279264450073242,
+        "absolute_error": 0.0
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "parent": 4.439669132232666,
+        "observed": 4.439669132232666,
+        "absolute_error": 0.0
+      }
+    },
+    "250": {
+      "gaussian_fwhm2p4": {
+        "parent": 4.204728126525879,
+        "observed": 4.204728126525879,
+        "absolute_error": 0.0
+      },
+      "gaussian_fwhm3p6": {
+        "parent": 4.113316059112549,
+        "observed": 4.113316059112549,
+        "absolute_error": 0.0
+      },
+      "integer_exact_identity": {
+        "parent": 4.3294196128845215,
+        "observed": 4.3294196128845215,
+        "absolute_error": 0.0
+      },
+      "integer_raw_rectangular_m0p3": {
+        "parent": 4.287288188934326,
+        "observed": 4.287288188934326,
+        "absolute_error": 0.0
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "parent": 4.453381061553955,
+        "observed": 4.453381061553955,
+        "absolute_error": 0.0
+      }
+    },
+    "300": {
+      "gaussian_fwhm2p4": {
+        "parent": 4.160552024841309,
+        "observed": 4.160552024841309,
+        "absolute_error": 0.0
+      },
+      "gaussian_fwhm3p6": {
+        "parent": 4.0492844581604,
+        "observed": 4.0492844581604,
+        "absolute_error": 0.0
+      },
+      "integer_exact_identity": {
+        "parent": 4.326890468597412,
+        "observed": 4.326890468597412,
+        "absolute_error": 0.0
+      },
+      "integer_raw_rectangular_m0p3": {
+        "parent": 4.261560440063477,
+        "observed": 4.261560440063477,
+        "absolute_error": 0.0
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "parent": 4.4476141929626465,
+        "observed": 4.4476141929626465,
+        "absolute_error": 0.0
+      }
+    },
+    "350": {
+      "gaussian_fwhm2p4": {
+        "parent": 4.184181213378906,
+        "observed": 4.184181213378906,
+        "absolute_error": 0.0
+      },
+      "gaussian_fwhm3p6": {
+        "parent": 4.0651936531066895,
+        "observed": 4.0651936531066895,
+        "absolute_error": 0.0
+      },
+      "integer_exact_identity": {
+        "parent": 4.299342155456543,
+        "observed": 4.299342155456543,
+        "absolute_error": 0.0
+      },
+      "integer_raw_rectangular_m0p3": {
+        "parent": 4.2375054359436035,
+        "observed": 4.2375054359436035,
+        "absolute_error": 0.0
+      },
+      "integer_radial_hann_m0p1_trunc0p75": {
+        "parent": 4.428136825561523,
+        "observed": 4.428136825561523,
+        "absolute_error": 0.0
+      }
+    }
+  },
+  "annular_oracle_maximum_error": 9.5367431640625e-07
+}

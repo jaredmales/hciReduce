@@ -1,0 +1,35 @@
+{
+  "status": "complete",
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/site02__nominal_optimized_phase/amplitudes.fits",
+      "bytes": 4210560,
+      "sha256": "7d1641a7c9cb36869a13e0b1f5d5ff9fb970b53b3db713461174070e88106fbd"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/site02__nominal_optimized_phase/amplitudes_snr.fits",
+      "bytes": 4213440,
+      "sha256": "7e1fe028585b5871e86b14ebc9f40710678c61188f567642f17485919a18ab67"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/site02__nominal_optimized_phase/analysis.log",
+      "bytes": 4745,
+      "sha256": "06f2f06ed5223e425b8f6b39cf5c38f6ffa6c888f55e24270127355a5275eced"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/site02__nominal_optimized_phase/command.json",
+      "bytes": 597,
+      "sha256": "1c61d5664f60b65abb59f24187af693e50295ed798604df06e23ef1f5c8e084b"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/site02__nominal_optimized_phase/annular_verification.json",
+      "bytes": 275,
+      "sha256": "8e1bf974e2c87c1021c191b577c03e8c136fd29a92191f642ad3adc4becd3f71"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/site02__nominal_optimized_phase/results.json",
+      "bytes": 14709,
+      "sha256": "114ed85d27880875eace346a261afe2ca223ae50a160cf2e69251dc18e778971"
+    }
+  ]
+}

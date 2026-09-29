@@ -1,0 +1,35 @@
+{
+  "status": "complete",
+  "products": [
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/planet/amplitudes.fits",
+      "bytes": 4210560,
+      "sha256": "0c413fe15ecf3ef843d454fb7355a9e2f9c08addf3a05dea4c5241beb0f2b7ba"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/planet/amplitudes_snr.fits",
+      "bytes": 4213440,
+      "sha256": "f1f38154b70627e50bff1e2024dc6c0200d15cf983427d4ecba1ab3c2757e7c2"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/planet/analysis.log",
+      "bytes": 2411,
+      "sha256": "331ec359475a0f3c404ce1477077973e601b89e4b16b053bff0f905123ac21f9"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/planet/command.json",
+      "bytes": 555,
+      "sha256": "332744136c469e378719a210e40d52513278117568a93e40356fdedd7d237678"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/planet/annular_verification.json",
+      "bytes": 204,
+      "sha256": "a514016fbbfd5d69aea7fb16d99d5a784de83cbcc16b77fa933024fb9bd9dc8e"
+    },
+    {
+      "path": "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analysis/planet/results.json",
+      "bytes": 8541,
+      "sha256": "f4bd2470d79998ed1e5a3eb0e1dad6f577dd55a7f58e7bccd1adc76c37022442"
+    }
+  ]
+}

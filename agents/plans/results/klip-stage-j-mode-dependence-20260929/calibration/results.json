@@ -1,0 +1,39 @@
+{
+  "modes": [
+    125,
+    150,
+    175,
+    200,
+    225,
+    250,
+    300,
+    350
+  ],
+  "nominal_radius": 12.0,
+  "phase_offset_row_column": [
+    -0.2770699293779586,
+    0.4859637006126931
+  ],
+  "positions_per_mode": 245,
+  "valid_covariance_positions_by_mode": {
+    "125": 245,
+    "150": 245,
+    "175": 245,
+    "200": 245,
+    "225": 245,
+    "250": 245,
+    "300": 245,
+    "350": 245
+  },
+  "maximum_parent_weight_replay_error_by_mode": {
+    "125": 0.0,
+    "150": 0.0,
+    "175": 0.0,
+    "200": 0.0,
+    "225": 0.0,
+    "250": 0.0,
+    "300": 0.0,
+    "350": 0.0
+  },
+  "maximum_parent_weight_replay_error": 0.0
+}

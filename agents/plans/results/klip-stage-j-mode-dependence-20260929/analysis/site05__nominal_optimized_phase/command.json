@@ -1,0 +1,19 @@
+[
+  "/usr/local/bin/hciAnalyze",
+  "--config",
+  "/home/jrmales/Source/mxApps/hciReduce/working/roc/klip_stage_c_development_20260925/stage_j_mode_dependence/analyze.conf",
+  "--file=amplitudes.fits",
+  "--lambdaD=3.6",
+  "--planet.sep=12.387750470790344,11.550912051079262",
+  "--planet.PA=260.64315155951886,218.70513020652245",
+  "--planet.R=7.0,7.0",
+  "--snr.apertureR=60.0",
+  "--snr.minRad=6.0",
+  "--snr.maxRad=60.0",
+  "--filter.psfResponse=",
+  "--filter.lpfGaussFW=0",
+  "--filter.hpfGaussFW=0",
+  "--noise.model=identity",
+  "--noise.only=false",
+  "--noise.outputDiagnostics=false"
+]
