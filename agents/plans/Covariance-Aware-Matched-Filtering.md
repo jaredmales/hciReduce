@@ -3558,6 +3558,31 @@ closed as an explanation for covariance underperformance. A larger
 optimized-phase injection sample is the direct way to resolve the remaining
 planet-specific rank below the present `1/13` limit.
 
+### Step 6 checkpoint: Stage-J KLIP mode-dependence test prepared (2026-09-29)
+
+The [Stage-J setup](results/klip-stage-j-mode-dependence-setup-20260929/README.md)
+extends the shifted-template planet closure across all eight frozen KLIP mode
+fractions from `0.125` through `0.350`. It reuses the existing planet and
+twelve optimized-phase injection cubes, so no new KLIP reductions are needed.
+Mode-specific shifted weights, source statistics, and annular noise maps are
+reconstructed from the corresponding signal-free calibration products.
+
+Every per-site SNR curve is retained. Fixed-mode planet/injection comparisons
+show where method differences cross or fluctuate. A second endpoint maximizes
+each planet and injection curve independently, applying the same mode-scan
+look-elsewhere effect at every location. A third endpoint selects the planet
+mode from the mean of all twelve injections and scores each injection at the
+mode selected by the other eleven sites. The planet never selects a mode used
+to judge its consistency.
+
+The primary comparisons remain shifted raw and radial covariance minus shifted
+identity. They are reported at every mode, after identical independent scans,
+and after injection-only mode selection. Within-site SNR ranges, mode standard
+deviations, best-mode histograms, and shifted-minus-integer effects quantify
+the location-dependent fluctuation directly. All unchanged injection methods
+must replay Stage G at every mode, and production SNR maps must pass the
+independent annular oracle.
+
 ## 8. Notation
 
 Dimensions refer to one local regression or one vectorized stamp, as indicated. Reused symbols are listed
