@@ -151,9 +151,10 @@ struct HCIobservation
      */
     int m_imSize{ 0 };
 
-    /// Reject non-finite target pixels before the legacy input cleanup can replace them with zero.
+    /// Reject unmasked non-finite target pixels before the legacy input cleanup can replace them with zero.
     /** This is a protected algorithm policy rather than a user-facing configuration option. The default preserves the
      * historical HCI and KLIP input behavior; algorithms requiring pristine finite input set it during construction.
+     * Pixels with a zero value in the configured input mask are exempt, independently of preprocessing settings.
      */
     bool m_rejectNonFiniteTargetInput{ false };
 
@@ -2256,6 +2257,20 @@ void HCIobservation<realT, verboseT>::readFiles()
 
     std::cerr << "loading complete\n";
 
+    const bool maskReadForValidation = m_rejectNonFiniteTargetInput && !m_maskFile.empty();
+    if( maskReadForValidation )
+    {
+        // Validate against the detector mask; constructing a rotated mask cube requires postReadFiles() first.
+        try
+        {
+            readMaskFile( m_mask, m_maskFile, "input" );
+        }
+        catch( const std::exception &e )
+        {
+            std::throw_with_nested( mx::exception<verboseT>( mx::error_t::std_exception, "from readMask" ) );
+        }
+    }
+
     if( m_rejectNonFiniteTargetInput )
     {
         for( int plane = 0; plane < m_tgtIms.planes(); ++plane )
@@ -2264,14 +2279,16 @@ void HCIobservation<realT, verboseT>::readFiles()
             {
                 for( int column = 0; column < m_tgtIms.cols(); ++column )
                 {
-                    if( !math::isFinite( m_tgtIms.image( plane )( row, column ) ) )
+                    if( ( !maskReadForValidation || m_mask( row, column ) != 0 ) &&
+                        !math::isFinite( m_tgtIms.image( plane )( row, column ) ) )
                     {
                         throw mx::exception<verboseT>(
                             mx::error_t::invalidarg,
-                            std::format( "Non-finite target input at image {}, row {}, column {}",
+                            std::format( "Non-finite target input at image {}, row {}, column {} (file: {})",
                                          plane,
                                          row,
-                                         column ) );
+                                         column,
+                                         m_fileList[plane] ) );
                     }
                 }
             }
@@ -2295,7 +2312,14 @@ void HCIobservation<realT, verboseT>::readFiles()
     /*** Read in the mask if present ***/
     try
     {
-        readMask();
+        if( maskReadForValidation )
+        {
+            makeMaskCube();
+        }
+        else
+        {
+            readMask();
+        }
     }
     catch( const std::exception &e )
     {

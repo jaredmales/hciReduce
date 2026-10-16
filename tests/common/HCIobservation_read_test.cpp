@@ -137,27 +137,109 @@ TEST_CASE( "HCIobservation target FITS ingestion", "[HCIobservation][readFiles][
     // clang-format on
 }
 
-/// Verify HCIobservation::readFiles can reject pristine non-finite target data before cleanup and extension hooks.
-/** \ingroup HCIobservation_unit_tests */
+/** Verify HCIobservation::readFiles reports the source file and cropped coordinates for unmasked non-finite input
+ * before cleanup and extension hooks.
+ * \ingroup HCIobservation_unit_tests
+ */
 TEST_CASE( "HCIobservation pristine non-finite rejection", "[HCIobservation][readFiles][FITS][validation]" )
 {
     TestDirectory directory;
     HCIobservationTestHarness observation;
-    auto image = indexedImage( 3, 3 );
-    image( 1, 2 ) = std::numeric_limits<float>::quiet_NaN();
+    auto image = indexedImage( 5, 6 );
+    const auto firstPath = directory.file( "finite.fits" );
+    writeFitsImage( firstPath, image );
+    image( 2, 3 ) = GENERATE( std::numeric_limits<float>::quiet_NaN(),
+                              std::numeric_limits<float>::infinity(),
+                              -std::numeric_limits<float>::infinity() );
 
     const auto path = directory.file( "non-finite.fits" );
     writeFitsImage( path, image );
 
-    observation.m_fileList = { path.string() };
+    observation.m_fileList = { firstPath.string(), path.string() };
+    observation.m_imSize = 3;
     observation.m_dateKeyword.clear();
     observation.m_skipPreProcess = true;
     observation.m_rejectNonFiniteTargetInput = true;
 
-    REQUIRE_THROWS( observation.readFiles() );
+    SECTION( "without a mask" )
+    {
+    }
+
+    SECTION( "nonzero mask pixels remain subject to validation" )
+    {
+        auto mask = HCIobservationTestHarness::imageT::Ones( 5, 6 ).eval();
+        mask( 2, 2 ) = 0;
+        mask( 2, 3 ) = 0.5;
+        observation.m_maskFile = directory.file( "mask.fits" ).string();
+        writeFitsImage( observation.m_maskFile, mask );
+    }
+
+    SECTION( "stale mask data without a configured mask file is ignored" )
+    {
+        observation.m_mask = HCIobservationTestHarness::imageT::Zero( 3, 3 );
+    }
+
+    REQUIRE_THROWS_WITH( observation.readFiles(),
+                         Catch::Matchers::Contains( "Non-finite target input at image 1, row 1, column 2" ) &&
+                             Catch::Matchers::Contains( "file: " + path.string() ) );
     REQUIRE_FALSE( observation.m_filesRead );
     REQUIRE( observation.m_hookEvents.empty() );
-    REQUIRE_FALSE( mx::math::isFinite( observation.m_tgtIms.image( 0 )( 1, 2 ) ) );
+    REQUIRE_FALSE( mx::math::isFinite( observation.m_tgtIms.image( 1 )( 1, 2 ) ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::HCIobservation<float, mx::verbose::vv>::readFiles();
+#endif
+    // clang-format on
+}
+
+/** Verify HCIobservation::readFiles accepts and cleans non-finite input only at zero pixels in the cropped input mask,
+ * including when preprocessing is skipped or mask application is disabled.
+ * \ingroup HCIobservation_unit_tests
+ */
+TEST_CASE( "HCIobservation masked non-finite input", "[HCIobservation][readFiles][FITS][validation][mask]" )
+{
+    TestDirectory directory;
+    HCIobservationTestHarness observation;
+    auto image = indexedImage( 5, 6 );
+    image( 2, 3 ) = std::numeric_limits<float>::quiet_NaN();
+    image( 1, 1 ) = std::numeric_limits<float>::infinity();
+    image( 3, 3 ) = -std::numeric_limits<float>::infinity();
+    const auto path = directory.file( "masked-non-finite.fits" );
+    writeFitsImage( path, image );
+
+    auto mask = HCIobservationTestHarness::imageT::Ones( 5, 6 ).eval();
+    mask( 2, 3 ) = 0;
+    mask( 1, 1 ) = 0;
+    mask( 3, 3 ) = 0;
+    observation.m_maskFile = directory.file( "mask.fits" ).string();
+    writeFitsImage( observation.m_maskFile, mask );
+
+    observation.m_fileList = { path.string(), path.string() };
+    observation.m_imSize = 3;
+    observation.m_dateKeyword.clear();
+    observation.m_skipPreProcess = GENERATE( true, false );
+    observation.m_preProcess_mask = false;
+    observation.m_rejectNonFiniteTargetInput = true;
+    observation.readFiles();
+
+    REQUIRE( observation.m_filesRead );
+    REQUIRE( observation.m_hookEvents == std::vector<std::string>{ "target-read" } );
+    REQUIRE( observation.m_mask.rows() == 3 );
+    REQUIRE( observation.m_mask.cols() == 3 );
+    REQUIRE( observation.m_maskCube.planes() == 2 );
+    for( int plane = 0; plane < observation.m_Nims; ++plane )
+    {
+        REQUIRE( observation.m_tgtIms.image( plane ).isFinite().all() );
+        REQUIRE( observation.m_tgtIms.image( plane )( 1, 2 ) == 0 );
+        REQUIRE( observation.m_tgtIms.image( plane )( 0, 0 ) == 0 );
+        REQUIRE( observation.m_tgtIms.image( plane )( 2, 2 ) == 0 );
+        REQUIRE( observation.m_tgtIms.image( plane )( 1, 1 ) == Approx( 22 ) );
+    }
+
+    // A later read without a mask must not reuse the earlier mask to exempt invalid input.
+    observation.m_maskFile.clear();
+    REQUIRE_THROWS_WITH( observation.readFiles(), Catch::Matchers::Contains( "file: " + path.string() ) );
 
     // clang-format off
 #ifdef __DOXY_ONLY__

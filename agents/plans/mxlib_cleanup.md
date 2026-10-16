@@ -282,6 +282,18 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [ ] Restore the current mxlib LCOV report and audit masked target-input validation (2026-10-16).
+      `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` is absent; no replacement LCOV trace was found
+      under the mxlib source tree. Consequently, 100% executable-line coverage could not be verified for the mxlib
+      APIs called by the edited `HCIobservation::readFiles()`: `exception<verbose::vv>`, FITS file construction,
+      destruction, image/list `read()` and `setReadSize()`, FITS header construction/copy/destruction, `append()`,
+      `count()` and `operator[]`, header-card `String()` and `value<double>()`, `get_curr_time()`,
+      `ISO8601date2mjd()`, float cube `resize()`, `data()`, `planes()`, `rows()`, `cols()` and mutable `image()`,
+      `isFinite<float>()`, and `zeroNaNCube<eigenCube<float>>()`. The regression tests also use float cube
+      construction/destruction and FITS image/header writes through the shared fixture. Regenerate mxlib's own
+      aggregate LCOV report, check each exact called overload/instantiation, and add upstream tests for any missing
+      executable lines. Prior coverage percentages above/below are historical and do not establish the current gate.
+
 - [ ] Complete the exact configuration/cube APIs exercised by Step-5 annular noise integration (2026-09-17).
       The current `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` has zero calls for
       `appConfigurator::operator()<unsigned long>()`, used for the `size_t` noise sample/mode settings;

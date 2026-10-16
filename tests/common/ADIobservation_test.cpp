@@ -37,6 +37,9 @@ struct observationHarness : public observationT
     using observationT::m_imSize;
     using observationT::m_mask;
     using observationT::m_maskCube;
+
+    using observationT::m_maskFile;
+
     using observationT::m_Ncols;
     using observationT::m_Nims;
     using observationT::m_Nrows;
@@ -50,6 +53,9 @@ struct observationHarness : public observationT
     using observationT::m_RDIfilesDeleted;
     using observationT::m_RDIheads;
     using observationT::m_refIms;
+
+    using observationT::m_rejectNonFiniteTargetInput;
+
     using observationT::m_skipPreProcess;
     using observationT::m_subtractPlanet;
     using observationT::m_tgtIms;
@@ -126,6 +132,55 @@ TEST_CASE( "ADIobservation configuration errors", "[ADIobservation][config]" )
     mx::improc::ADIobservation<float,
                                 mx::improc::ADIDerotator<float, mx::verbose::vv>,
                                 mx::verbose::vv>::loadConfig( configured );
+#endif
+    // clang-format on
+}
+
+/** Verify ADIobservation::readFiles validates pristine input with the detector mask before constructing rotated masks
+ * with the angles loaded by ADIobservation::postReadFiles.
+ * \ingroup ADIobservation_unit_tests
+ */
+TEST_CASE( "ADIobservation masked non-finite ingestion", "[ADIobservation][readFiles][mask][validation]" )
+{
+    TestDirectory directory;
+    observationHarness observation;
+    configureDerotator( observation.m_derotF );
+    observation.m_dateKeyword.clear();
+    observation.m_skipPreProcess = true;
+    observation.m_rejectNonFiniteTargetInput = true;
+    observation.m_auxDataDir = directory.file( "aux" ).string() + "/";
+
+    auto image = observationHarness::imageT::Ones( 15, 15 ).eval();
+    image( 7, 9 ) = std::numeric_limits<float>::quiet_NaN();
+    auto header = angleHeader( 90 );
+    const auto target = directory.file( "target.fits" );
+    writeFitsImage( target, image, &header );
+    observation.m_fileList = { target.string() };
+
+    auto mask = observationHarness::imageT::Ones( 15, 15 ).eval();
+    mask( 7, 9 ) = 0;
+    observation.m_maskFile = directory.file( "mask.fits" ).string();
+    writeFitsImage( observation.m_maskFile, mask );
+    observation.readFiles();
+
+    REQUIRE( observation.m_tgtIms.image( 0 ).isFinite().all() );
+    REQUIRE( observation.m_tgtIms.image( 0 )( 7, 9 ) == 0 );
+    REQUIRE( observation.m_derotF.m_angles == std::vector<float>{ 90 } );
+    REQUIRE( observation.m_mask( 7, 9 ) == 0 );
+    REQUIRE( observation.m_maskCube.planes() == 1 );
+    REQUIRE( observation.m_maskCube.image( 0 )( 7, 9 ) == 1 );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::ADIobservation<float,
+                                mx::improc::ADIDerotator<float, mx::verbose::vv>,
+                                mx::verbose::vv>::readFiles();
+    mx::improc::ADIobservation<float,
+                                mx::improc::ADIDerotator<float, mx::verbose::vv>,
+                                mx::verbose::vv>::postReadFiles();
+    mx::improc::ADIobservation<float,
+                                mx::improc::ADIDerotator<float, mx::verbose::vv>,
+                                mx::verbose::vv>::makeMaskCube();
 #endif
     // clang-format on
 }
