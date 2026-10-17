@@ -83,7 +83,15 @@ def contrasts(args: argparse.Namespace, radii: list[float]) -> list[float]:
     """Evaluate a constant contrast or linearly interpolate a separation/contrast CSV."""
     if args.contrast_table:
         with args.contrast_table.open(newline="") as stream:
-            points = [(float(row["separation"]), float(row["contrast"])) for row in csv.DictReader(stream)]
+            reader = csv.DictReader(stream)
+            missing = [name for name in ("separation", "contrast") if name not in (reader.fieldnames or [])]
+            if missing:
+                raise ValueError(
+                    f"contrast table {args.contrast_table}: missing column(s) {', '.join(missing)}; "
+                    f"include the comma-separated header 'separation,contrast' before the data rows "
+                    f"(found {reader.fieldnames or []!r})"
+                )
+            points = [(float(row["separation"]), float(row["contrast"])) for row in reader]
         if not points or any(not math.isfinite(r) or not math.isfinite(c) or r < 0 or c <= 0 for r, c in points):
             raise ValueError("contrast table needs finite nonnegative separations and positive contrasts")
         points.sort()

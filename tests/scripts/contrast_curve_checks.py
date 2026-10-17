@@ -113,6 +113,15 @@ def grid_and_parser() -> None:
         assert not (root / "output with spaces").exists()
         run(command + ["--reduce-arg=output.fileName=wrong.fits"], 1)
         run(command + ["--radius-max=25"], 1)
+        for content in ("10,0.0001\n20,0.0003\n", "radius,contrast\n10,0.0001\n", ""):
+            table.write_text(content)
+            for extra in ([], ["--dry-run"]):
+                failure = run(command + extra, 1)
+                assert str(table) in failure.stderr
+                assert "header 'separation,contrast' before the data rows" in failure.stderr
+                assert "Traceback" not in failure.stderr
+                assert not (root / "calls.jsonl").exists()
+                assert not (root / "output with spaces").exists()
     trial = {"separation": 10, "pa": 0, "contrast": 0.0001}
     parsed = CURVE.parse_snr(CURVE.SNR_HEADER + "\n0 0.1 0 10 0 0.0001 nan\n", trial)
     assert parsed[0]["snr"] is None

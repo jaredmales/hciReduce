@@ -36,7 +36,8 @@
  *
  * \section contrast_curve_brightness Radius-dependent injection contrast
  *
- * `--contrast` injects the same contrast everywhere. Alternatively, `--contrast-table=contrasts.csv` accepts:
+ * `--contrast` injects the same contrast everywhere. Alternatively, `--contrast-table=contrasts.csv` accepts a
+ * comma-separated file with the required header `separation,contrast` before the numeric data rows:
  *
  * \code
  * separation,contrast
