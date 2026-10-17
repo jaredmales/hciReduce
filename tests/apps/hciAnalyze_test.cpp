@@ -39,6 +39,7 @@ struct appHarness : public hciAnalyze
     using hciAnalyze::m_highPassFwhm;
     using hciAnalyze::m_lambdaD;
     using hciAnalyze::m_lambdaDSpecified;
+    using hciAnalyze::m_lowPassFwhm;
     using hciAnalyze::m_noiseConfig;
     using hciAnalyze::m_noiseDiagnostics;
     using hciAnalyze::m_noiseExcludeColumns;
@@ -723,6 +724,120 @@ TEST_CASE( "hciAnalyze cube SNR measurement", "[hciAnalyze][snr][nan]" )
 #ifdef __DOXY_ONLY__
     hciAnalyze doxygenApplication;
     doxygenApplication.signalCoordinates( 0, 0, 1, 1 );
+#endif
+    // clang-format on
+}
+
+/** \brief Verify hciAnalyze::analyzeCube excludes invalid samples from radial statistics and preserves output holes.
+ * Also verifies that signal exclusions affect noise estimation without blanking valid signal pixels.
+ * \ingroup hciAnalyze_unit_tests
+ */
+TEST_CASE( "hciAnalyze preserves the SNR validity mask", "[hciAnalyze][snr][mask]" )
+{
+    TestDirectory directory;
+    appHarness application;
+    application.m_file = directory.file( "masked.fits" ).string();
+    application.m_snrMinRadius = 1;
+    application.m_snrMaxRadius = 8;
+    application.m_planetSeparation = { 5 };
+    application.m_planetPositionAngle = { 0 };
+    application.m_planetRadius = { 1 };
+    application.m_planetSpecified = true;
+
+    SECTION( "Unfiltered input" )
+    {
+    }
+    SECTION( "Gaussian-filtered input" )
+    {
+        application.m_highPassFwhm = 3;
+        application.m_lowPassFwhm = 2;
+    }
+
+    hciAnalyze::cubeT cube( 21, 21, 2 );
+    hciAnalyze::cubeT invalidMask( 21, 21, 2 );
+    for( int plane = 0; plane < cube.planes(); ++plane )
+    {
+        for( int column = 0; column < cube.cols(); ++column )
+        {
+            for( int row = 0; row < cube.rows(); ++row )
+            {
+                const bool invalid = ( plane == 0 ? row < 10 && column >= 10 : row > 10 && column <= 10 );
+                invalidMask.image( plane )( row, column ) = invalid;
+                const float invalidValue = ( row + column ) % 3 == 0   ? std::numeric_limits<float>::quiet_NaN()
+                                           : ( row + column ) % 3 == 1 ? std::numeric_limits<float>::infinity()
+                                                                       : -std::numeric_limits<float>::infinity();
+                cube.image( plane )( row, column ) =
+                    invalid ? invalidValue : static_cast<float>( 5 + ( row + 2 * column + plane ) % 7 );
+            }
+        }
+        // A finite zero remains a valid measurement, even inside the signal's noise-exclusion aperture.
+        cube.image( plane )( 10, 14 ) = 0;
+    }
+
+    hciAnalyze::fitsHeaderT header;
+    application.resolveSignals( header, cube.rows(), cube.cols() );
+    application.analyzeCube( cube, header );
+    hciAnalyze::cubeT snrCube;
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+    REQUIRE( reader.read( snrCube, directory.file( "masked_snr.fits" ).string() ) == mx::error_t::noerror );
+
+    for( int plane = 0; plane < cube.planes(); ++plane )
+    {
+        // Independently estimate the profiles at radius 5 using only the valid background samples in (4,5]
+        // and (5,6]. The source exclusion has mxlib's half-pixel boundary buffer, giving radius 1.5 here.
+        double meanAtFive = 0;
+        double deviationAtFive = 0;
+        for( int lowerRadius = 4; lowerRadius <= 5; ++lowerRadius )
+        {
+            std::vector<double> samples;
+            double sum = 0;
+            for( int column = 0; column < cube.cols(); ++column )
+            {
+                for( int row = 0; row < cube.rows(); ++row )
+                {
+                    const double radius = std::hypot( row - 10, column - 10 );
+                    if( invalidMask.image( plane )( row, column ) != 0 || radius <= lowerRadius ||
+                        radius > lowerRadius + 1 || std::hypot( row - 10, column - 15 ) <= 1.5 )
+                    {
+                        continue;
+                    }
+                    const double value = cube.image( plane )( row, column );
+                    samples.push_back( value );
+                    sum += value;
+                }
+            }
+            REQUIRE( samples.size() > 1 );
+            const double mean = sum / samples.size();
+            double squaredDeviations = 0;
+            for( double value : samples )
+            {
+                squaredDeviations += ( value - mean ) * ( value - mean );
+            }
+            meanAtFive += 0.5 * mean;
+            deviationAtFive += 0.5 * std::sqrt( squaredDeviations / ( samples.size() - 1 ) );
+        }
+        const double comparisonSamples = 2 * std::numbers::pi * 5 / application.m_lambdaD - 1;
+        const double expected =
+            ( cube.image( plane )( 10, 15 ) - meanAtFive ) / deviationAtFive / std::sqrt( 1 + 1 / comparisonSamples );
+        REQUIRE( snrCube.image( plane )( 10, 15 ) == Approx( expected ).margin( 1e-5 ) );
+        REQUIRE( std::isfinite( snrCube.image( plane )( 10, 14 ) ) );
+        for( int column = 0; column < cube.cols(); ++column )
+        {
+            for( int row = 0; row < cube.rows(); ++row )
+            {
+                if( invalidMask.image( plane )( row, column ) != 0 )
+                {
+                    REQUIRE( std::isnan( snrCube.image( plane )( row, column ) ) );
+                }
+            }
+        }
+    }
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    hciAnalyze doxygenApplication;
+    doxygenApplication.resolveSignals( header, cube.rows(), cube.cols() );
+    doxygenApplication.analyzeCube( cube, header );
 #endif
     // clang-format on
 }

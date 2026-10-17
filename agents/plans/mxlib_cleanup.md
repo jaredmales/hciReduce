@@ -376,13 +376,21 @@ Known non-blocking ownership follow-ups:
       double-array instantiations are recorded. Add float annular-sector/mask geometry and float-view extraction
       tests in mxlib and regenerate coverage; aggregate double coverage does not establish exact float coverage.
 
-- [ ] Add a direct float-cube behavioral and coverage test for `mx::improc::stddevImageCube()`. The 2026-09-13
-      `hciAnalyze` sparse-response extension rechecked
-      `/home/jrmales/Source/mxlib/_build/coverage_filtered.info`: the called float `zeroNaNCube`, `maskCircle`, and
-      delegated `stddevImage` paths have counters on every executable line, but the trace has no instantiated
-      function or executable-line records for the `stddevImageCube` wrapper at `imageFilters.hpp:1557`. Exercise
-      multi-plane allocation, mask forwarding, annulus bounds, and both raw-standard-deviation and divided-SNR modes
-      in mxlib before treating this exact API as covered.
+- [ ] Add a direct float-cube behavioral and coverage test for `mx::improc::stddevImageCube()`. The 2026-10-17
+      `hciAnalyze::analyzeCube()` output-mask fix rechecked
+      `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` (SHA-256
+      `30f9edc082b9d2db1bee77c6725b791a120e5725ca2c8d9a6f7e24175c79e86d`); installed headers match mxlib source.
+      The called float `zeroNaNCube` worker and wrapper are 12/12 and 2/2 executable lines, `maskCircle` is 9/9,
+      and float cube construction/destruction, dimensions, and mutable image access, FITS header `count()`, and
+      the `verbose::vv` exception constructor all have executed exact aliases and 100% executable-line coverage.
+      The float FITS cube read used by the new regression also has an executed alias and full line coverage.
+      However, the trace still has no function or executable-line records for `stddevImageCube` at
+      `imageFilters.hpp:1557`, and its delegated `stddevImage` range is 45/45 only through double-array aliases;
+      the exact float instance is absent. Exercise float multi-plane allocation, distinct per-plane masks, annulus
+      bounds, and both raw-standard-deviation and divided-SNR modes in mxlib's
+      `tests/include/improc/imageFilters_test.cpp`, then regenerate LCOV before treating these exact APIs as covered.
+      Downstream regression verifies valid-only radial statistics independently and NaN output holes with and without
+      Gaussian filtering; this does not replace the missing upstream coverage evidence.
 
 - [x] Complete mxlib coverage for `ompLoopWatcher` and the float FITS image/cube reads used by P4/KLIP response
       processing. The 2026-09-14 audit of `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` records

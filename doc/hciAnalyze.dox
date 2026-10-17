@@ -67,6 +67,9 @@
  * excluding invalid pixels and every signal mask. Each SNR-map pixel is its value minus the interpolated radial mean,
  * divided by the interpolated radial standard deviation. The reported SNR is the maximum value inside
  * `snr.apertureR` centered on the signal.
+ * Invalid input pixels (NaN or infinity), including unsupported PSF-filter outputs, are excluded from the noise
+ * profiles and aperture measurements and written as NaN in the SNR map. Signal-exclusion circles affect only the
+ * noise profiles; valid pixels inside them retain their SNR values. Finite zero-valued inputs remain valid pixels.
  *
  * hciAnalyze corrects the raw radial-noise SNR for the small number of independent resolution elements at close
  * separations following Mawet et al. (2014) \cite mawet_2014. For pixel radius \f$r_{\rm pix}\f$ and configured

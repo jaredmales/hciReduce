@@ -1912,6 +1912,13 @@ void hciAnalyze::analyzeCube( cubeT &cube, fitsHeaderT &header )
     mx::improc::stddevImageCube( snrCube, cube, noiseMask, minRadius, maxRadius, true );
     correctSmallSampleSNR( snrCube );
     mx::improc::zeroNaNCube( snrCube );
+    // The radial estimator excludes invalid samples from its statistics but evaluates the map everywhere.
+    // Restore those holes without blanking valid signals excluded only from the noise estimate.
+    for( int plane = 0; plane < snrCube.planes(); ++plane )
+    {
+        snrCube.image( plane ) = ( invalidMask.image( plane ) == 0 )
+                                     .select( snrCube.image( plane ), std::numeric_limits<realT>::quiet_NaN() );
+    }
     const std::filesystem::path snrMapPath = writeSNRMap( snrCube, header, minRadius, maxRadius );
 
     const std::vector<realT> modes = header.count( "NMODES" )              ? headerVector( header, "NMODES" )
