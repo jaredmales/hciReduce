@@ -1,0 +1,102 @@
+/** \file contrast_curve.dox
+ * \brief Running injection-recovery contrast curves with KLIP or P4.
+ */
+
+/** \page contrast_curve_script Injection-recovery contrast curves
+ *
+ * `scripts/contrast_curve.py` runs one full reduction per injected separation/PA pair, then measures that injection
+ * with `hciAnalyze`. It accepts either a `klipReduce` or `p4Reduce` config and preserves its reduction settings except
+ * for the injected coordinates/contrast, normal execution mode, preprocessing-only flag, and final output location.
+ * The config must specify `fake.fileName`, or supply it with `--reduce-arg=fake.fileName=/path/to/psf.fits`.
+ * The off-axis PSF and any configured per-frame scale factors define the physical meaning of injected contrast.
+ *
+ * \section contrast_curve_running Running a grid
+ *
+ * Python 3.10 or later and matplotlib are required; `--no-plot` needs only Python's standard library.
+ * Run from the repository root, with the reduction and analysis executables on PATH:
+ *
+ * \code{.sh}
+ * python3 scripts/contrast_curve.py /home/jrmales/Source/mxWork/MagAO-X/Tel/2025B/tauCet/kr.conf \
+ *   --radius-min 10 --radius-max 90 --radius-step 10 \
+ *   --pa-min 0 --pa-max 330 --pa-step 30 \
+ *   --contrast 5e-5 --output-dir /path/to/klip-contrast --dry-run
+ * \endcode
+ *
+ * Remove `--dry-run` to execute. Use `p4.conf` instead to select P4 automatically, or set
+ * `--reducer=klipReduce` / `--reducer=p4Reduce` explicitly. `--reducer-bin` and `--analyzer-bin` select executable paths.
+ * Radius units are pixels and PA is degrees east of north. Bounds are inclusive when the step lands on the maximum;
+ * `--radius-delta` and `--pa-delta` are aliases for the step options. Equivalent PAs such as 0 and 360 are counted once.
+ * Reductions run sequentially and inherit the caller's OpenMP/BLAS environment.
+ *
+ * The Tau Ceti P4 example extends its existing non-overlapping two-pixel annuli through radius 94, retaining the
+ * original 32-pixel outward OR extent. Extending the search beyond radius 94 would cross the 256-by-256 detector
+ * edge and cause a geometry error with this OR. The KLIP example extends to radius 100; choose common interior
+ * radius samples when comparing the two. Masks and final combination can still leave some PAs unsupported.
+ * Sample inside the final image's supported region and inspect the recorded PA coverage.
+ *
+ * \section contrast_curve_brightness Radius-dependent injection contrast
+ *
+ * `--contrast` injects the same contrast everywhere. Alternatively, `--contrast-table=contrasts.csv` accepts:
+ *
+ * \code
+ * separation,contrast
+ * 10,0.0001
+ * 30,0.00005
+ * 90,0.00001
+ * \endcode
+ *
+ * These are illustrative injection values. The script linearly interpolates contrast at each sampled separation,
+ * uses the same contrast at every PA of that separation, and refuses extrapolation outside the table.
+ *
+ * \section contrast_curve_analysis Analysis settings
+ *
+ * Pass `--analyze-config=/path/to/hciAnalyze.conf` for noise annulus, aperture, exclusion radius, and filter settings.
+ * Repeat `--reduce-arg=KEY=VALUE` or `--analyze-arg=KEY=VALUE` to override the respective config on the command line.
+ * The default analysis settings are `lambdaD=4.8` and Gaussian low-pass FWHM 2 for KLIP or 4.8 for P4. Explicit config
+ * or CLI values take precedence. For example, `--analyze-arg=filter.lpfGaussFW=0` disables the default smoothing.
+ *
+ * Analysis always targets the injected source, overriding existing signal coordinates and contrast. A config with
+ * a `fake` group retains that group and its exclusion radius; otherwise the script uses `planet`. Do not mix both
+ * signal groups or supply a vector of exclusion radii for this single-source analysis. Known-planet metadata in
+ * the reduction is preserved, but the analysis measures and excludes the injected source only. Choose PA samples
+ * away from known companions or other unwanted sources.
+ *
+ * Application arguments are passed directly without a shell. Script-controlled injection, output, and analysis
+ * target options cannot be overridden. Relative reduction paths are resolved from the reduction config's directory
+ * unless `--work-dir` is supplied. Relative analysis paths are resolved from the analysis config's directory, or
+ * the reduction working directory when no analysis config is supplied. The script freezes copies of both configs.
+ *
+ * \section contrast_curve_results Results and interpretation
+ *
+ * Each run writes `manifest.json`, frozen configs, and one `rNNNN_paNNNN` directory per injection. Trial directories
+ * retain `finim.fits`, `finim_snr.fits`, exact commands, separate stdout/stderr logs, and a completion record.
+ * `measurements.csv` contains every recovered mode/PA SNR and explicit failed trials.
+ *
+ * For each separation and output mode independently, the script takes the arithmetic mean of finite, signed
+ * recovered SNRs, then estimates `contrast = injected_contrast * target_SNR / mean_SNR`. Negative finite SNRs remain
+ * in the average. It never averages the per-PA inverse-SNR contrasts or selects the best mode separately at each PA.
+ * `--target-snr` defaults to 5. This is a linear response estimate using hciAnalyze's aperture-maximum SNR statistic,
+ * not a completeness calculation or an iterative solution for the injection brightness. Check brightness linearity
+ * with additional contrasts when needed; the script does not subtract an uninjected baseline.
+ *
+ * `contrast_by_mode.csv` retains all mode/radius results, PA counts, SNR means/scatter, and validity status.
+ * `contrast_best.csv` selects the lowest valid contrast across modes at each radius; it omits radii without a valid
+ * mode. `contrast_curve.png` and `.pdf` show every mode and this explicitly labeled envelope, with gaps for invalid
+ * radii. Modes must remain consistent across all injections.
+ *
+ * By default every requested PA must have a finite SNR for a mode's contrast to be valid. `--min-pa-fraction` allows
+ * an explicitly chosen lower fraction; the output still records actual and requested counts. Nonpositive mean SNRs
+ * and insufficient PA coverage yield NaN contrast, not zero or an extrapolated value.
+ *
+ * \section contrast_curve_resume Failure handling and resumption
+ *
+ * Existing output directories require `--resume` and an identical config, trial plan, script, and executable identity.
+ * Completed trials are reused. If reduction succeeded but analysis failed, resume reuses the reduction and retries
+ * analysis. Input images, templates, shared libraries, and other files referenced by the configs must remain unchanged;
+ * the manifest does not hash the entire science dataset. Concurrent writers to one output directory are rejected.
+ *
+ * A failed application stops the grid after recording its error and partial CSVs. `--keep-going` continues other
+ * injections, produces the available curves, and still exits nonzero if any trial failed. Masked apertures can cause
+ * analysis failures; these are recorded instead of being silently counted as zero-SNR measurements. The default
+ * all-PA coverage rule prevents failed PAs from silently producing an optimistic contrast curve.
+ */

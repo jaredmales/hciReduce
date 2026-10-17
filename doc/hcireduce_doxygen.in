@@ -62,6 +62,7 @@ INPUT                   = @CMAKE_SOURCE_DIR@/doc/main.dox \
                           @CMAKE_SOURCE_DIR@/doc/p4_rotated.dox \
                           @CMAKE_SOURCE_DIR@/doc/hciAnalyze.dox \
                           @CMAKE_SOURCE_DIR@/doc/hciAnalyze_config.dox \
+                          @CMAKE_SOURCE_DIR@/doc/contrast_curve.dox \
                           @CMAKE_SOURCE_DIR@/doc/programming.dox \
                           @CMAKE_SOURCE_DIR@/doc/klip_algorithm.dox \
                           @CMAKE_SOURCE_DIR@/doc/p4_algorithm.dox \
@@ -69,6 +70,7 @@ INPUT                   = @CMAKE_SOURCE_DIR@/doc/main.dox \
                           @CMAKE_SOURCE_DIR@/doc/building_tests.dox \
                           @CMAKE_SOURCE_DIR@/doc/coverage_report.dox \
                           @CMAKE_SOURCE_DIR@/src \
+                          @CMAKE_SOURCE_DIR@/scripts/contrast_curve.py \
                           @CMAKE_SOURCE_DIR@/tests
 INPUT_ENCODING          = UTF-8
 IMAGE_PATH              = @HCIREDUCE_DOC_FIGURE_IMAGE_PATH@

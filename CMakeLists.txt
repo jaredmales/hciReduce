@@ -173,6 +173,8 @@ if(Doxygen_FOUND)
                 ${CMAKE_SOURCE_DIR}/doc/p4_config.dox
                 ${CMAKE_SOURCE_DIR}/doc/hciAnalyze.dox
                 ${CMAKE_SOURCE_DIR}/doc/hciAnalyze_config.dox
+                ${CMAKE_SOURCE_DIR}/doc/contrast_curve.dox
+                ${CMAKE_SOURCE_DIR}/scripts/contrast_curve.py
                 ${CMAKE_SOURCE_DIR}/doc/programming.dox
                 ${CMAKE_SOURCE_DIR}/doc/klip_algorithm.dox
                 ${CMAKE_SOURCE_DIR}/doc/p4_algorithm.dox

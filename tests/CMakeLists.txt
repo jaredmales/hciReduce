@@ -11,6 +11,7 @@ target_link_libraries(hcireduceTestSupport PUBLIC hcireduce-shared)
 # Keep one production test source per executable. This bounds compile time and
 # makes a failing subsystem immediately visible in CTest output.
 set(HCIREDUCE_TEST_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/apps/contrast_curve_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/apps/hciAnalyze_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/apps/klipReduce_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/apps/p4Reduce_test.cpp
