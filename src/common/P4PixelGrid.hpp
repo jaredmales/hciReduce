@@ -40,10 +40,10 @@ enum class P4ExclusionPolicy : std::uint8_t
  */
 enum class P4PixelInvalidReason : std::uint8_t
 {
-    none,                    ///< The target and every predictor footprint are valid.
+    none,                    ///< The target is unmasked and at least one predictor footprint is usable.
     targetMasked,            ///< The target pixel is masked.
-    predictorMasked,         ///< At least one predictor footprint touches a masked pixel.
-    targetAndPredictorMasked ///< Both the target and at least one predictor footprint are masked.
+    predictorMasked,         ///< Every predictor footprint touches a masked pixel.
+    targetAndPredictorMasked ///< The target is masked and no predictor footprint is usable.
 };
 
 /// Complete, explicit geometry configuration for one P4 search annulus.
@@ -127,7 +127,7 @@ class P4SearchPixelRecord
     /// Report whether the target pixel is masked.
     bool targetMasked() const noexcept;
 
-    /// Report whether any mapped predictor footprint touches the common mask.
+    /// Report whether the common mask removes every mapped predictor footprint.
     bool predictorMasked() const noexcept;
 
   private:
@@ -243,8 +243,9 @@ class P4PixelGrid
                  double yCenter /**< [in] center column coordinate */ );
 
     /// Build one search-annulus geometry and all interpolation kernels.
-    /** A zero-valued common-mask element is invalid. Masked targets and predictor-footprint intersections mark the
-     * complete local search-pixel fit invalid without changing the shared predictor count. Pass `nullptr` explicitly
+    /** A zero-valued common-mask element is invalid. Each target retains only predictors whose complete nominal
+     * footprint is unmasked, in canonical order. A masked target or an empty local predictor set invalidates the fit.
+     * The annulus-wide predictor count remains unchanged for mode-fraction normalization. Pass `nullptr` explicitly
      * when no common mask applies.
      */
     void region( const P4PixelGridRegion &configuration, /**< [in] complete region and exclusion configuration */
@@ -290,6 +291,9 @@ class P4PixelGrid
     /// Return the annulus-wide number of predictor columns.
     std::size_t predictorCount() const noexcept;
 
+    /// Return the number of usable predictor columns for one search pixel.
+    std::size_t predictorCount( std::size_t searchIndex /**< [in] zero-based search-pixel index */ ) const;
+
     /// Return the number of canonical wedge candidates before central exclusion is applied.
     std::size_t candidatePredictorCount() const noexcept;
 
@@ -312,14 +316,14 @@ class P4PixelGrid
     /// Return one immutable mapped interpolation record.
     const interpolationRecordT &
     interpolation( std::size_t searchIndex, /**< [in] zero-based search-pixel index */
-                   std::size_t predictorIndex /**< [in] zero-based annulus-wide predictor index */ ) const;
+                   std::size_t predictorIndex /**< [in] zero-based index in this target's usable predictors */ ) const;
 
     /// Sample one mapped predictor from an image.
     /** Sampling an invalid local fit is rejected so a masked detector value cannot be consumed accidentally.
      */
     realT sample( const Eigen::Ref<const imageT> &image, /**< [in] image view matching the configured grid dimensions */
                   std::size_t searchIndex,               /**< [in] zero-based valid search-pixel index */
-                  std::size_t predictorIndex /**< [in] zero-based predictor index */ ) const;
+                  std::size_t predictorIndex /**< [in] zero-based index in this target's usable predictors */ ) const;
 
   private:
     /** \cond P4PixelGrid_test_harness */
@@ -363,7 +367,9 @@ class P4PixelGrid
 
     std::vector<P4PixelCoordinate> m_predictorOffsets;  ///< Shared canonical predictor offsets.
 
-    std::vector<interpolationRecordT> m_interpolations; ///< Search-major mapped interpolation records.
+    std::vector<std::size_t> m_interpolationOffsets; ///< Start of each target's usable records, plus an end sentinel.
+
+    std::vector<interpolationRecordT> m_interpolations; ///< Search-major usable mapped interpolation records.
 };
 
 /// Supported production P4 pixel-grid specialization.

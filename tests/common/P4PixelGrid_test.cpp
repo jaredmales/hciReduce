@@ -616,12 +616,12 @@ TEST_CASE( "P4PixelGrid applies explicit center and whole-kernel exclusion", "[P
     REQUIRE( prototypeRadiusGrid.effectiveExclusionRadius() == 2.0 );
 }
 
-/** \brief Verifies P4PixelGrid preserves annulus-wide K while reporting all common-mask invalidity reasons.
+/** \brief Verifies P4PixelGrid filters local predictor footprints while preserving annulus-wide K and mask invalidity.
  *
  * Exercises the real `P4PixelGrid::region()` and `P4SearchPixelRecord` validity APIs.
  * \ingroup P4PixelGrid_unit_tests
  */
-TEST_CASE( "P4PixelGrid reports target and predictor mask invalidation", "[P4PixelGrid][mask]" )
+TEST_CASE( "P4PixelGrid filters masked predictors and reports unusable targets", "[P4PixelGrid][mask]" )
 {
     mx::improc::P4PixelGridf reference;
     reference.resize( 41, 43, 20.0, 21.0 );
@@ -650,20 +650,63 @@ TEST_CASE( "P4PixelGrid reports target and predictor mask invalidation", "[P4Pix
     predictorMaskedGrid.resize( 41, 43, 20.0, 21.0 );
     predictorMaskedGrid.region( safeRegion( policyT::kernelSupport, 0.5, 0.0 ), &predictorMask );
     REQUIRE( predictorMaskedGrid.predictorCount() == reference.predictorCount() );
-    REQUIRE( predictorMaskedGrid.searchPixel( searchIndex ).invalidReason() == reasonT::predictorMasked );
+    REQUIRE( predictorMaskedGrid.searchPixel( searchIndex ).valid() );
+    REQUIRE( predictorMaskedGrid.predictorCount( searchIndex ) < reference.predictorCount() );
     REQUIRE_FALSE( predictorMaskedGrid.searchPixel( searchIndex ).targetMasked() );
-    REQUIRE( predictorMaskedGrid.searchPixel( searchIndex ).predictorMasked() );
+    REQUIRE_FALSE( predictorMaskedGrid.searchPixel( searchIndex ).predictorMasked() );
+
+    // Compare the compact records with an independently filtered canonical grid, including nominal zero weights.
+    gridT::imageT payload = gridT::imageT::Random( 41, 43 );
+    const gridT::imageT pristine = payload;
+    payload( predictorMaskRow, predictorMaskColumn ) = std::numeric_limits<float>::quiet_NaN();
+    for( std::size_t search = 0; search < reference.searchPixelCount(); ++search )
+    {
+        std::size_t local{ 0 };
+        for( std::size_t predictor = 0; predictor < reference.predictorCount(); ++predictor )
+        {
+            const auto &record = reference.interpolation( search, predictor );
+            if( predictorMask.block( record.footprintRow(), record.footprintColumn(), gridT::width, gridT::width )
+                    .minCoeff() == 0 )
+            {
+                continue;
+            }
+            const auto &compact = predictorMaskedGrid.interpolation( search, local );
+            REQUIRE( compact.row() == record.row() );
+            REQUIRE( compact.column() == record.column() );
+            REQUIRE( ( compact.kernel() == record.kernel() ).all() );
+            if( predictorMaskedGrid.searchPixel( search ).valid() )
+            {
+                REQUIRE( predictorMaskedGrid.sample( payload, search, local ) ==
+                         reference.sample( pristine, search, predictor ) );
+            }
+            ++local;
+        }
+        REQUIRE( predictorMaskedGrid.predictorCount( search ) == local );
+        REQUIRE_THROWS_AS( predictorMaskedGrid.interpolation( search, local ), std::out_of_range );
+    }
+    REQUIRE_THROWS_AS( predictorMaskedGrid.predictorCount( reference.searchPixelCount() ), std::out_of_range );
 
     predictorMask( target.row(), target.column() ) = 0;
     mx::improc::P4PixelGridf combinedMaskedGrid;
     combinedMaskedGrid.resize( 41, 43, 20.0, 21.0 );
     combinedMaskedGrid.region( safeRegion( policyT::kernelSupport, 0.5, 0.0 ), &predictorMask );
     REQUIRE( combinedMaskedGrid.predictorCount() == reference.predictorCount() );
-    REQUIRE( combinedMaskedGrid.searchPixel( searchIndex ).invalidReason() == reasonT::targetAndPredictorMasked );
+    REQUIRE( combinedMaskedGrid.searchPixel( searchIndex ).invalidReason() == reasonT::targetMasked );
     REQUIRE( combinedMaskedGrid.searchPixel( searchIndex ).targetMasked() );
-    REQUIRE( combinedMaskedGrid.searchPixel( searchIndex ).predictorMasked() );
+    REQUIRE_FALSE( combinedMaskedGrid.searchPixel( searchIndex ).predictorMasked() );
 
     gridT::imageT image = gridT::imageT::Ones( 41, 43 );
+    REQUIRE_THROWS_AS( combinedMaskedGrid.sample( image, searchIndex, 0 ), std::logic_error );
+
+    gridT::imageT emptyMask = gridT::imageT::Zero( 41, 43 );
+    combinedMaskedGrid.region( safeRegion( policyT::kernelSupport, 0.5, 0.0 ), &emptyMask );
+    REQUIRE( combinedMaskedGrid.predictorCount( searchIndex ) == 0 );
+    REQUIRE( combinedMaskedGrid.searchPixel( searchIndex ).invalidReason() == reasonT::targetAndPredictorMasked );
+    emptyMask( target.row(), target.column() ) = 1;
+    combinedMaskedGrid.region( safeRegion( policyT::kernelSupport, 0.5, 0.0 ), &emptyMask );
+    REQUIRE( combinedMaskedGrid.predictorCount( searchIndex ) == 0 );
+    REQUIRE( combinedMaskedGrid.searchPixel( searchIndex ).invalidReason() == reasonT::predictorMasked );
+    REQUIRE_FALSE( combinedMaskedGrid.searchPixel( searchIndex ).valid() );
     REQUIRE_THROWS_AS( combinedMaskedGrid.sample( image, searchIndex, 0 ), std::logic_error );
 
     gridT::imageT wrongMask( 40, 43 );

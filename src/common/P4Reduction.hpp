@@ -584,7 +584,7 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, pu
     /// Validate configuration that is independent of loaded image dimensions.
     void validateConfiguration() const;
 
-    /// Report whether the complete target cube contains only finite values under fast-math.
+    /// Report whether all unmasked target samples are finite under fast-math, after mask dimensions are validated.
     bool targetCubeFinite() const;
 
     /// Promote one sampled predictor only when float interpolation remained finite.

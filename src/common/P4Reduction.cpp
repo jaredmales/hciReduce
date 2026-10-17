@@ -2109,6 +2109,10 @@ bool P4Reduction<realT, derotFunctObj, verboseT>::targetCubeFinite() const
         {
             for( int row = 0; row < this->m_tgtIms.rows(); ++row )
             {
+                if( this->m_mask.size() != 0 && this->m_mask( row, column ) == 0 )
+                {
+                    continue;
+                }
                 if( !mx::math::isFinite( this->m_tgtIms.image( image )( row, column ) ) )
                 {
                     return false;
@@ -2462,7 +2466,7 @@ bool P4Reduction<realT, derotFunctObj, verboseT>::fitDetectorSearch(
     {
         throw std::invalid_argument( "P4 detector fit requires valid geometry, temporal rows, and modes" );
     }
-    const std::size_t basePredictorCount = grid.predictorCount();
+    const std::size_t basePredictorCount = grid.predictorCount( search );
     const std::size_t temporalImageCount = selections.front().size() - 1;
     const bool usesNeighborSummary =
         m_temporalPredictor == P4TemporalPredictor::neighborSummary && temporalImageCount != 0;
@@ -3766,14 +3770,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             activeFrames.push_back( image );
         }
     }
-    if( !targetCubeFinite() )
-    {
-        throw mx::exception<verboseT>( mx::error_t::invalidarg,
-                                       "P4 target data must remain finite after preprocessing" );
-    }
     if( this->m_mask.size() != 0 && ( this->m_mask.rows() != this->m_Nrows || this->m_mask.cols() != this->m_Ncols ) )
     {
         throw mx::exception<verboseT>( mx::error_t::sizeerr, "P4 common-mask dimensions must match target images" );
+    }
+    if( !targetCubeFinite() )
+    {
+        throw mx::exception<verboseT>( mx::error_t::invalidarg,
+                                       "P4 unmasked target data must remain finite after preprocessing" );
     }
 
     if( this->m_preProcess_only && !this->m_skipPreProcess )
@@ -4929,7 +4933,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                             grid,
                                             search,
                                             coefficients.col( static_cast<Eigen::Index>( output ) )
-                                                .head( static_cast<Eigen::Index>( grid.predictorCount() ) ) );
+                                                .head( static_cast<Eigen::Index>( grid.predictorCount( search ) ) ) );
                                         for( int stampColumn = 0; stampColumn < m_localPSFColumns; ++stampColumn )
                                         {
                                             for( int stampRow = 0; stampRow < m_localPSFRows; ++stampRow )
@@ -4941,7 +4945,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                             }
                                         }
                                         const Eigen::Index temporalCoefficient =
-                                            static_cast<Eigen::Index>( grid.predictorCount() );
+                                            static_cast<Eigen::Index>( grid.predictorCount( search ) );
                                         if( temporalCoefficient < coefficients.rows() )
                                         {
                                             const std::size_t temporalImageCount =
@@ -5758,13 +5762,13 @@ std::size_t P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticDetect
     const auto &coordinate = grid.searchPixel( search ).coordinate();
     const auto &predictors = basis.predictors();
     const auto &target = basis.target();
-    P4PCA::matrixT source( this->m_Nims, grid.predictorCount() );
+    P4PCA::matrixT source( this->m_Nims, grid.predictorCount( search ) );
     P4PCA::vectorT targetSource( this->m_Nims );
     for( int frame = 0; frame < this->m_Nims; ++frame )
     {
         targetSource( frame ) =
             checkedPredictorPromotion( unitSource( coordinate.row() + coordinate.column() * this->m_Nrows, frame ) );
-        for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+        for( std::size_t predictor = 0; predictor < grid.predictorCount( search ); ++predictor )
         {
             const auto &record = grid.interpolation( search, predictor );
             realT value{ 0 };
@@ -6025,12 +6029,12 @@ void P4Reduction<realT, derotFunctObj, verboseT>::calculateAnalyticSamples(
                     if( !grid.searchPixel( search ).valid() )
                         continue;
                     const auto &coordinate = grid.searchPixel( search ).coordinate();
-                    predictors.resize( this->m_Nims, grid.predictorCount() );
+                    predictors.resize( this->m_Nims, grid.predictorCount( search ) );
                     for( int frame = 0; frame < this->m_Nims; ++frame )
                     {
                         const auto image = this->m_tgtIms.image( frame );
                         target( frame ) = checkedPredictorPromotion( image( coordinate.row(), coordinate.column() ) );
-                        for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+                        for( std::size_t predictor = 0; predictor < grid.predictorCount( search ); ++predictor )
                             predictors( frame, predictor ) =
                                 checkedPredictorPromotion( grid.sample( image, search, predictor ) );
                     }

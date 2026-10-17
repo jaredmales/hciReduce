@@ -85,8 +85,8 @@ class P4PSFModel
 
     /// Calculate one compact local residual PSF stamp from a frozen coefficient vector.
     /** The grid must contain a complete valid detector-frame region, \p searchIndex must select a valid local fit,
-     * and the coefficient count must equal the grid predictor count. On success, \p output is completely replaced;
-     * on exception its contents are unspecified.
+     * and the coefficient count must equal the target's usable predictor count. On success, \p output is completely
+     * replaced; on exception its contents are unspecified.
      */
     void calculateLocalResponse( imageT &output,          /**< [out] configured float residual PSF stamp */
                                  const gridT &grid,       /**< [in] complete detector-frame P4 geometry */

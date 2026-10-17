@@ -37,8 +37,9 @@ bool p4PixelGridValidPolicy( P4ExclusionPolicy policy /**< [in] policy to valida
 }
 
 /// Combine independently detected target- and predictor-mask states.
-P4PixelInvalidReason p4PixelGridInvalidReason( bool targetMasked, /**< [in] whether the target is masked */
-                                               bool predictorMasked /**< [in] whether a predictor touches the mask */ )
+P4PixelInvalidReason
+p4PixelGridInvalidReason( bool targetMasked, /**< [in] whether the target is masked */
+                          bool predictorMasked /**< [in] whether every predictor touches the mask */ )
 {
     if( targetMasked && predictorMasked )
     {
@@ -275,6 +276,7 @@ void P4PixelGrid<transformT>::resize( int rows, int columns, double xCenter, dou
     m_searchPixels.clear();
     m_candidateOffsets.clear();
     m_predictorOffsets.clear();
+    m_interpolationOffsets.clear();
     m_interpolations.clear();
 }
 
@@ -479,6 +481,7 @@ void P4PixelGrid<transformT>::regionImpl( const P4PixelGridRegion &configuration
         m_searchPixels = std::move( candidateSearchRecords );
         m_candidateOffsets = std::move( candidateOffsets );
         m_predictorOffsets.clear();
+        m_interpolationOffsets.clear();
         m_interpolations.clear();
         return;
     }
@@ -530,12 +533,13 @@ void P4PixelGrid<transformT>::regionImpl( const P4PixelGridRegion &configuration
     searchRecords.reserve( searchPixels.size() );
     std::vector<interpolationRecordT> interpolations;
     interpolations.reserve( checkedInterpolationCount( searchPixels.size(), predictorOffsets.size() ) );
+    std::vector<std::size_t> interpolationOffsets;
+    interpolationOffsets.reserve( searchPixels.size() + 1 );
+    interpolationOffsets.push_back( 0 );
 
     for( const P4PixelCoordinate &searchPixel : searchPixels )
     {
         const bool targetMasked = commonMask && ( *commonMask )( searchPixel.row(), searchPixel.column() ) == 0;
-        bool predictorMasked{ false };
-
         for( const P4PixelCoordinate &offset : predictorOffsets )
         {
             const auto mapped = p4PixelGridMap<P4PixelGrid<transformT>>( searchPixel, offset, m_xCenter, m_yCenter );
@@ -548,6 +552,7 @@ void P4PixelGrid<transformT>::regionImpl( const P4PixelGridRegion &configuration
                 throw std::invalid_argument( "P4PixelGrid mapped interpolation footprint crosses an image edge" );
             }
 
+            bool predictorMasked{ false };
             if( commonMask )
             {
                 for( int rowOffset = 0; rowOffset < width; ++rowOffset )
@@ -562,6 +567,11 @@ void P4PixelGrid<transformT>::regionImpl( const P4PixelGridRegion &configuration
                 }
             }
 
+            if( predictorMasked )
+            {
+                continue;
+            }
+
             kernelT kernel;
             transform( kernel,
                        static_cast<realT>( mapped.first - std::floor( mapped.first ) ),
@@ -570,7 +580,9 @@ void P4PixelGrid<transformT>::regionImpl( const P4PixelGridRegion &configuration
                 interpolationRecordT( mapped.first, mapped.second, footprintRow, footprintColumn, kernel ) );
         }
 
-        searchRecords.emplace_back( searchPixel, p4PixelGridInvalidReason( targetMasked, predictorMasked ) );
+        const bool noPredictors = interpolations.size() == interpolationOffsets.back();
+        searchRecords.emplace_back( searchPixel, p4PixelGridInvalidReason( targetMasked, noPredictors ) );
+        interpolationOffsets.push_back( interpolations.size() );
     }
 
     m_region = configuration;
@@ -578,6 +590,7 @@ void P4PixelGrid<transformT>::regionImpl( const P4PixelGridRegion &configuration
     m_searchPixels = std::move( searchRecords );
     m_candidateOffsets = std::move( candidateOffsets );
     m_predictorOffsets = std::move( predictorOffsets );
+    m_interpolationOffsets = std::move( interpolationOffsets );
     m_interpolations = std::move( interpolations );
 }
 
@@ -653,6 +666,16 @@ std::size_t P4PixelGrid<transformT>::predictorCount() const noexcept
 }
 
 template <typename transformT>
+std::size_t P4PixelGrid<transformT>::predictorCount( std::size_t searchIndex ) const
+{
+    if( !m_regionComplete || searchIndex >= m_searchPixels.size() )
+    {
+        throw std::out_of_range( "P4PixelGrid local predictor count requires a configured search pixel" );
+    }
+    return m_interpolationOffsets[searchIndex + 1] - m_interpolationOffsets[searchIndex];
+}
+
+template <typename transformT>
 std::size_t P4PixelGrid<transformT>::candidatePredictorCount() const noexcept
 {
     return m_candidateOffsets.size();
@@ -701,11 +724,11 @@ template <typename transformT>
 const typename P4PixelGrid<transformT>::interpolationRecordT &
 P4PixelGrid<transformT>::interpolation( std::size_t searchIndex, std::size_t predictorIndex ) const
 {
-    if( searchIndex >= m_searchPixels.size() || predictorIndex >= m_predictorOffsets.size() )
+    if( predictorIndex >= predictorCount( searchIndex ) )
     {
         throw std::out_of_range( "P4PixelGrid interpolation index is out of range" );
     }
-    return m_interpolations[searchIndex * m_predictorOffsets.size() + predictorIndex];
+    return m_interpolations[m_interpolationOffsets[searchIndex] + predictorIndex];
 }
 
 template <typename transformT>

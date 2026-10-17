@@ -1355,6 +1355,7 @@ TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][re
 TEST_CASE( "P4 pixel-local finite-amplitude refit matches full reduction",
            "[P4Reduction][local][integration][phase][equivalence]" )
 {
+    const bool masked = GENERATE( false, true );
     OpenMPThreadGuard threads( 1 );
     TestDirectory directory;
     constexpr int imageCount = 7;
@@ -1385,6 +1386,11 @@ TEST_CASE( "P4 pixel-local finite-amplitude refit matches full reduction",
     const auto prepare = [&]( reductionHarness &reduction )
     {
         prepareReduction( reduction, imageCount, rows, columns );
+        if( masked )
+        {
+            reduction.m_mask = reductionT::imageT::Ones( reduction.m_Nrows, reduction.m_Ncols );
+            reduction.m_mask( 15, 20 ) = 0;
+        }
         reduction.m_minRadius = { 2 };
         reduction.m_maxRadius = { 11 };
         reduction.m_modeFractions = { 0.25F, 0.5F };
@@ -2601,6 +2607,7 @@ TEST_CASE( "P4 detector-local PSF sampling avoids known planets",
 TEST_CASE( "P4 analytic products preserve science and record boundary fallback",
            "[P4Reduction][PSF][analytic][integration]" )
 {
+    const bool masked = GENERATE( false, true );
     OpenMPThreadGuard threads( 2 );
     const double gap = GENERATE( 0.0, 0.1, 1.0 );
     const float contrast = GENERATE( 0.0F, 0.001F );
@@ -2619,6 +2626,11 @@ TEST_CASE( "P4 analytic products preserve science and record boundary fallback",
     REQUIRE( fits.write( psfPath.string(), psf ) == mx::error_t::noerror );
     reductionHarness reduction;
     preparePrecisionReduction( reduction );
+    if( masked )
+    {
+        reduction.m_mask = reductionT::imageT::Ones( reduction.m_Nrows, reduction.m_Ncols );
+        reduction.m_mask( 15, 20 ) = 0;
+    }
     reduction.m_memoryFraction = 0.8;
     reduction.m_maxRadius = { 8 };
     reduction.m_numberImages = 0;
@@ -3055,6 +3067,7 @@ TEST_CASE( "P4 refit-difference PSF sampling avoids known planets and matches pa
 TEST_CASE( "P4 target-held-out PSF products agree between exact solvers",
            "[P4Reduction][PSF][held-out][filter][integration][equivalence]" )
 {
+    const bool masked = GENERATE( false, true );
     OpenMPThreadGuard threads( 1 );
     TestDirectory directory;
     constexpr int imageCount = 5;
@@ -3082,6 +3095,11 @@ TEST_CASE( "P4 target-held-out PSF products agree between exact solvers",
                                           const std::string &productPrefix )
     {
         prepareReduction( reduction, imageCount, rows, columns );
+        if( masked )
+        {
+            reduction.m_mask = reductionT::imageT::Ones( reduction.m_Nrows, reduction.m_Ncols );
+            reduction.m_mask( 15, 20 ) = 0;
+        }
         reduction.m_minRadius = { 5 };
         reduction.m_maxRadius = { 10 };
         reduction.m_modeFractions = { 0.25F, 0.5F };
@@ -3547,7 +3565,8 @@ TEST_CASE( "P4 detector multi-image temporal selection", "[P4Reduction][reduce][
 TEST_CASE( "P4 detector PCAT temporal augmentation", "[P4Reduction][reduce][detector][pcat]" )
 {
     OpenMPThreadGuard threads( 1 );
-    const auto preparePCAT = []( reductionHarness &reduction )
+    const bool masked = GENERATE( false, true );
+    const auto preparePCAT = [masked]( reductionHarness &reduction )
     {
         prepareReduction( reduction, 9 );
         reduction.m_modeFractions = { 0.2F };
@@ -3555,6 +3574,11 @@ TEST_CASE( "P4 detector PCAT temporal augmentation", "[P4Reduction][reduce][dete
         reduction.m_pcatGapImages = 1;
         reduction.m_pcatModeFraction = 0.25;
         reduction.m_pcatCentering = mx::improc::P4TemporalPCACentering::pixelMean;
+        if( masked )
+        {
+            reduction.m_mask = reductionT::imageT::Ones( 31, 31 );
+            reduction.m_mask( 15, 20 ) = 0;
+        }
         for( int image = 0; image < reduction.m_Nims; ++image )
         {
             const double time = static_cast<double>( image ) - 4.0;
@@ -3567,6 +3591,13 @@ TEST_CASE( "P4 detector PCAT temporal augmentation", "[P4Reduction][reduce][dete
                         std::sin( 0.13 * time * static_cast<double>( column + 2 ) ) +
                         std::cos( 0.07 * ( time + 1.0 ) * static_cast<double>( row + column + 1 ) ) );
                 }
+            }
+        }
+        if( masked )
+        {
+            for( int image = 0; image < reduction.m_Nims; ++image )
+            {
+                reduction.m_tgtIms.image( image )( 15, 20 ) = std::numeric_limits<float>::quiet_NaN();
             }
         }
     };
@@ -3872,7 +3903,7 @@ TEST_CASE( "P4 reduction central exclusion and common mask", "[P4Reduction][excl
         }
     }
 
-    SECTION( "common mask rejects entire target and predictor-touched local fits" )
+    SECTION( "common mask removes predictors without discarding unmasked targets" )
     {
         reductionHarness reduction;
         prepareReduction( reduction );
@@ -3883,10 +3914,31 @@ TEST_CASE( "P4 reduction central exclusion and common mask", "[P4Reduction][excl
         REQUIRE( reduction.reduce() == 0 );
         const auto &statistics = reduction.m_regionStatistics.front();
         REQUIRE( statistics.validLocalFitCount + statistics.maskedLocalFitCount == statistics.searchPixelCount );
-        REQUIRE( statistics.maskedLocalFitCount > 1 );
+        REQUIRE( statistics.maskedLocalFitCount == 1 );
         for( int image = 0; image < reduction.m_Nims; ++image )
         {
             REQUIRE( reduction.m_psfsubValidity[0].image( image )( 15, 20 ) == 0 );
+            REQUIRE( mx::math::isNan( reduction.m_psfsub[0].image( image )( 15, 20 ) ) );
+        }
+    }
+
+    SECTION( "an empty usable OR leaves every mode invalid" )
+    {
+        reductionHarness reduction;
+        prepareReduction( reduction );
+        reduction.m_mask = reductionT::imageT::Zero( 31, 31 );
+        const bool unmaskedTarget = GENERATE( false, true );
+        if( unmaskedTarget )
+        {
+            reduction.m_mask( 15, 20 ) = 1;
+        }
+        REQUIRE( reduction.reduce() == 0 );
+        const auto &statistics = reduction.m_regionStatistics.front();
+        REQUIRE( statistics.validLocalFitCount == 0 );
+        REQUIRE( statistics.maskedLocalFitCount == statistics.searchPixelCount );
+        for( int image = 0; image < reduction.m_Nims; ++image )
+        {
+            REQUIRE( reduction.m_psfsubValidity[0].image( image ).isZero() );
             REQUIRE( mx::math::isNan( reduction.m_psfsub[0].image( image )( 15, 20 ) ) );
         }
     }
@@ -5606,6 +5658,135 @@ TEST_CASE( "P4 experimental FP32 eigensolve rejects excluded paths before mutati
 }
 
 #endif // HCIREDUCE_ENABLE_EXPERIMENTAL_P4_PRECISION
+
+/** Verify P4Reduction::reduce() uses compact unmasked OR columns with fixed annular modes.
+ * Compare direct and held-out residuals with an independently assembled predictor matrix. Arbitrary masked
+ * payloads must not affect fits, and a mode above the local structural limit must remain invalid.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 masked fits preserve annular modes and match compact predictors", "[P4Reduction][mask][modes][oracle]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    using pcaT = mx::improc::P4PCA;
+    using gridT = mx::improc::P4PixelGridf;
+    const mx::improc::P4PixelGridRegion region( 5, 6, 2, 2, 4, 60, 0.5, policyT::kernelSupport, 0 );
+    gridT nominal;
+    nominal.resize( 31, 31 );
+    nominal.region( region, nullptr );
+    std::size_t search{ 0 };
+    while( search < nominal.searchPixelCount() && ( nominal.searchPixel( search ).coordinate().row() != 15 ||
+                                                    nominal.searchPixel( search ).coordinate().column() != 20 ) )
+    {
+        ++search;
+    }
+    REQUIRE( search < nominal.searchPixelCount() );
+    gridT::imageT mask = gridT::imageT::Zero( 31, 31 );
+    const auto &first = nominal.interpolation( search, 0 );
+    mask.block( first.footprintRow(), first.footprintColumn(), gridT::width, gridT::width ).setOnes();
+    mask( 15, 20 ) = 1;
+    std::vector<std::size_t> retained;
+    for( std::size_t predictor = 0; predictor < nominal.predictorCount(); ++predictor )
+    {
+        const auto &record = nominal.interpolation( search, predictor );
+        if( mask.block( record.footprintRow(), record.footprintColumn(), gridT::width, gridT::width ).minCoeff() != 0 )
+        {
+            retained.push_back( predictor );
+        }
+    }
+    REQUIRE_FALSE( retained.empty() );
+    const int imageCount = static_cast<int>( retained.size() ) + 3;
+    REQUIRE( nominal.predictorCount() >= static_cast<std::size_t>( imageCount ) );
+    const std::vector<int> modes{ 1, static_cast<int>( retained.size() ) + 1 };
+    bool heldOut{ false };
+    auto solver = mx::improc::P4ExclusionSolver::explicitRefit;
+    auto backend = mx::math::svdDeletionBackend::leadingCovariance;
+    SECTION( "direct" )
+    {
+    }
+    SECTION( "explicit held-out" )
+    {
+        heldOut = true;
+    }
+    SECTION( "dense downdated held-out" )
+    {
+        heldOut = true;
+        solver = mx::improc::P4ExclusionSolver::factorDowndateExact;
+    }
+    SECTION( "secular downdated held-out" )
+    {
+        heldOut = true;
+        solver = mx::improc::P4ExclusionSolver::factorDowndateExact;
+        backend = mx::math::svdDeletionBackend::rankOneSecular;
+    }
+    for( const float maskedPayload : { 0.0f, 1e20f, std::numeric_limits<float>::quiet_NaN() } )
+    {
+        reductionHarness reduction;
+        prepareReduction( reduction, imageCount );
+        reduction.m_mask = mask;
+        reduction.m_modeFractions = { 1.5f / imageCount, ( modes.back() + 0.5f ) / imageCount };
+        reduction.m_exclusionSolver = solver;
+        reduction.m_deletionBackend = backend;
+        if( heldOut )
+        {
+            reduction.m_excludeMethod = mx::improc::HCI::exclude::imno;
+            reduction.m_minDPx = 0;
+        }
+        pcaT::matrixT predictors( imageCount, retained.size() );
+        pcaT::vectorT target( imageCount );
+        for( int frame = 0; frame < imageCount; ++frame )
+        {
+            auto image = reduction.m_tgtIms.image( frame );
+            for( int column = 0; column < 31; ++column )
+            {
+                for( int row = 0; row < 31; ++row )
+                {
+                    image( row, column ) =
+                        mask( row, column ) == 0
+                            ? maskedPayload
+                            : static_cast<float>( std::sin( ( row + 3 * column + 1 ) * ( frame + 1 ) * 0.17 ) );
+                }
+            }
+            target( frame ) = image( 15, 20 );
+            for( std::size_t local = 0; local < retained.size(); ++local )
+            {
+                predictors( frame, local ) = nominal.sample( image, search, retained[local] );
+            }
+        }
+        pcaT::workspaceT workspace;
+        mx::improc::P4PCAResult oracle;
+        if( heldOut )
+        {
+            std::vector<mx::improc::P4ExclusionSpan> spans;
+            for( int frame = 0; frame < imageCount; ++frame )
+            {
+                spans.push_back( { frame, frame + 1 } );
+            }
+            const auto exclusions = mx::improc::P4TargetExclusions::fromSpans( imageCount, spans );
+            pcaT::calculateHeldOut( oracle, predictors, target, exclusions, modes, 1e-6, workspace );
+        }
+        else
+        {
+            pcaT::calculate( oracle, predictors, target, modes, 1e-6, workspace );
+        }
+        REQUIRE( reduction.reduce() == 0 );
+        REQUIRE( reduction.m_realizedModes == std::vector<std::vector<int>>{ modes } );
+        for( int frame = 0; frame < imageCount; ++frame )
+        {
+            REQUIRE( oracle.sampleSupported( frame, 0 ) );
+            REQUIRE( reduction.m_psfsubValidity[0].image( frame )( 15, 20 ) == 1 );
+            REQUIRE( reduction.m_psfsub[0].image( frame )( 15, 20 ) ==
+                     Approx( oracle.residuals( frame, 0 ) ).margin( 2e-4 ) );
+            REQUIRE( reduction.m_psfsubValidity[1].image( frame )( 15, 20 ) == 0 );
+            REQUIRE( mx::math::isNan( reduction.m_psfsub[1].image( frame )( 15, 20 ) ) );
+        }
+    }
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4Reduction<float, mx::improc::ADIDerotator<float, mx::verbose::vv>, mx::verbose::vv> doxygenReduction;
+    doxygenReduction.reduce();
+#endif
+    // clang-format on
+}
 
 } // namespace P4Reduction_test
 } // namespace unitTest

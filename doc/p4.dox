@@ -170,6 +170,12 @@
  * `sampleCenter` reproduces the prototype's center-only signal exclusion. `kernelSupport` rejects a predictor when
  * its nominal cubic footprint intersects the exclusion disk.
  *
+ * In the detector frame, the input mask removes individual OR columns whose nominal interpolation footprint
+ * touches a masked pixel. Unmasked targets keep their remaining predictors. Mode fractions still use the nominal
+ * annulus-wide predictor count after central exclusion, so an output plane has one requested mode count throughout
+ * each SR annulus. A masked target, an empty OR, or an unsupported requested count produces an invalid sample, with
+ * supported lower-mode outputs retained. See \ref p4_validity_dictionary for details.
+ *
  * The rank test is the literal strict comparison `lambda > p4.rankTolerance * lambdaMax`. A zero tolerance therefore
  * accepts every eigenvalue returned as positive, including roundoff-positive numerical nulls. Use a nonzero relative
  * tolerance when reliable classification of rank deficiencies matters.

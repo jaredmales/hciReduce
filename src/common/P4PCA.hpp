@@ -336,10 +336,10 @@ struct P4PCA
 
     /// Calculate truncated-PCA residual time series for ordered retained-mode counts.
     /** On success, \p output is completely replaced. On exception it remains destructible, but its values are
-     * unspecified. Requested counts above numerical rank produce complete quiet-NaN columns and do not invalidate
-     * lower-count columns. When requested, \p coefficients receives one predictor-space coefficient vector per mode
-     * count; rank-insufficient columns are quiet NaNs. The output objects must not own storage aliased by either input
-     * array.
+     * unspecified. Requested counts above structural or numerical rank produce complete quiet-NaN columns and do not
+     * invalidate lower-count columns. When requested, \p coefficients receives one predictor-space coefficient vector
+     * per mode count; rank-insufficient columns are quiet NaNs. The output objects must not own storage aliased by
+     * either input array.
      */
     static void calculate( P4PCAResult &output,           /**< [out] residuals, mode states, and numerical rank */
                            const matrixT &predictors,     /**< [in] finite T-by-K local predictor matrix */
@@ -475,7 +475,7 @@ struct P4PCA
      * coefficient vector. That vector is then applied to the original uncentered predictor matrix and subtracted from
      * the original uncentered target. The predictor means therefore affect the residual mean even though they do not
      * affect the fitted coefficients. Centering limits the structural degrees of freedom to min(K,T-1); requested
-     * counts above that limit are rejected even when roundoff would make the centering null eigenvalue positive. T
+     * counts above that limit remain invalid even when roundoff would make the centering null eigenvalue positive. T
      * must be at least two. The centered objective does not establish whether the applied predictor mean is a
      * physically valid baseline; that interpretation remains the caller's responsibility. On success, \p output is
      * completely replaced. On exception it remains destructible, but its values are unspecified. The output object

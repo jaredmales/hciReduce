@@ -121,12 +121,20 @@
  *
  * \section p4_validity_dictionary Masks, rank, and invalid local fits
  *
- * Common input masks are authoritative. A local detector fit becomes invalid when its target or predictor support
- * touches a masked pixel.
+ * Common input masks are authoritative. In the detector frame, a masked target is invalid. At each unmasked target,
+ * P4 removes individual OR predictor columns whose complete nominal interpolation footprint touches the mask, keeping
+ * the remaining columns in canonical order. Masked values are never sampled or filled. A target with no usable OR
+ * columns is invalid. The experimental rotated-frame path retains its all-frame support requirement.
+ *
+ * Mode fractions use the annulus-wide nominal `K` after central exclusion and before common-mask filtering (including
+ * the configured temporal-summary or PCAT column). Each output plane therefore requests the same integer mode count
+ * everywhere in that SR annulus. The denominator is not recomputed from a target's usable columns, held-out reference
+ * rows, or numerical rank. If a target cannot support a requested count, only that output is invalid; supported lower
+ * counts still run. Mask filtering is shared by ordinary fits, PCAT OR references, trial refits, and PSF responses.
  *
  * Numerical-rank failure invalidates only the unsupported output planes. P4 carries all invalidity in a separate
  * validity cube through the applicable final-processing operations; invalid values become NaN only after final
- * arithmetic. Nonfinite target input remains a hard reduction error.
+ * arithmetic. Nonfinite unmasked target input remains a hard reduction error, reported with the input filename.
  *
  * \section p4_diagnostics_dictionary Diagnostics and progress
  *

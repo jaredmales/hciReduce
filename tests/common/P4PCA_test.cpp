@@ -1094,8 +1094,9 @@ TEST_CASE( "P4PCA rejects invalid shapes and mode counts", "[P4PCA][validation]"
                        std::invalid_argument );
     REQUIRE_THROWS_AS( mx::improc::P4PCA::calculate( result, predictors, target, { 2, 1 }, 0, workspace ),
                        std::invalid_argument );
-    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculate( result, predictors, target, { 3 }, 0, workspace ),
-                       std::invalid_argument );
+    mx::improc::P4PCA::calculate( result, predictors, target, { 3 }, 0, workspace );
+    REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankInsufficient } );
+    REQUIRE( allNan( result.residuals ) );
 }
 
 /// Verify P4PCA rejects nonfinite inputs and normal-equation overflow under inherited fast-math flags.
@@ -2788,7 +2789,7 @@ TEST_CASE( "P4PCA centered regression reports only supported numerical rank", "[
     }
 }
 
-/// Verify centered P4PCA rejects invalid sample counts, structural mode counts, and numeric inputs.
+/// Verify centered P4PCA rejects invalid inputs and marks structurally unsupported counts invalid.
 /** This exercises validation performed by mx::improc::P4PCA::calculateCentered(). */
 TEST_CASE( "P4PCA centered regression rejects invalid requests", "[P4PCA][centered][validation]" )
 {
@@ -2806,16 +2807,17 @@ TEST_CASE( "P4PCA centered regression rejects invalid requests", "[P4PCA][center
     sampleLimited.setRandom();
     pcaT::vectorT target( 3 );
     target << 1, 2, 3;
-    REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateCentered( result, sampleLimited, target, { 3 }, 0, workspace ),
-                       std::invalid_argument );
+    mx::improc::P4PCA::calculateCentered( result, sampleLimited, target, { 3 }, 0, workspace );
+    REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankInsufficient } );
+    REQUIRE( allNan( result.residuals ) );
 
     pcaT::matrixT predictorLimited( 4, 2 );
     predictorLimited.setRandom();
     pcaT::vectorT tallTarget( 4 );
     tallTarget << 1, 2, 3, 4;
-    REQUIRE_THROWS_AS(
-        mx::improc::P4PCA::calculateCentered( result, predictorLimited, tallTarget, { 3 }, 0, workspace ),
-        std::invalid_argument );
+    mx::improc::P4PCA::calculateCentered( result, predictorLimited, tallTarget, { 3 }, 0, workspace );
+    REQUIRE( result.modeStatus == std::vector<statusT>{ statusT::rankInsufficient } );
+    REQUIRE( allNan( result.residuals ) );
 
     pcaT::vectorT wrongTarget( 4 );
     wrongTarget.setZero();

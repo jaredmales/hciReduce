@@ -589,7 +589,7 @@ TEST_CASE( "Analytic P4 response validates source directions and controls", "[P4
                                                              workspace ),
                        std::invalid_argument );
     fixture.m_targetSource.setZero();
-    for( const auto &modes : { std::vector<int>{}, { 0 }, { 2, 1 }, { 1, 1 }, { 7 } } )
+    for( const auto &modes : { std::vector<int>{}, { 0 }, { 2, 1 }, { 1, 1 } } )
     {
         REQUIRE_THROWS_AS( mx::improc::P4PCA::calculateResponse( response,
                                                                  fixture.m_predictors,
@@ -681,6 +681,32 @@ TEST_CASE( "P4 sparse source directions preserve the complete derivative", "[P4P
     for( std::size_t mode = 0; mode < 3; ++mode )
     {
         REQUIRE( ( result.responses.col( mode ) - fixture.derivative( 2 * mode + 1 ) ).matrix().norm() < 2e-12 );
+    }
+}
+
+/** Verify P4PCA::prepareResponse() and calculateResponse() leave structurally unsupported modes invalid.
+ * A larger annular mode request must not change the supported response or index beyond the local eigensystem.
+ */
+TEST_CASE( "Analytic P4 response preserves modes above local predictor count", "[P4PCA][response][rank]" )
+{
+    ResponseFixture fixture( 6, 2, { 9, 1 } );
+    pcaT::workspaceT workspace;
+    mx::improc::P4PCAResponseBasis basis;
+    mx::improc::P4PCAResponseResult expected;
+    mx::improc::P4PCAResponseResult actual;
+    mx::improc::P4PCA::prepareResponse( basis, fixture.m_predictors, fixture.m_target, { 1 }, 1e-12, workspace );
+    mx::improc::P4PCA::calculateResponse( expected, basis, fixture.m_predictorSource, fixture.m_targetSource );
+    mx::improc::P4PCA::prepareResponse( basis, fixture.m_predictors, fixture.m_target, { 1, 3, 7 }, 1e-12, workspace );
+    mx::improc::P4PCA::calculateResponse( actual, basis, fixture.m_predictorSource, fixture.m_targetSource );
+    REQUIRE( actual.modeStatus[0] == mx::improc::P4PCAResponseStatus::differentiable );
+    REQUIRE( ( actual.responses.col( 0 ) == expected.responses.col( 0 ) ).all() );
+    for( std::size_t output = 1; output < 3; ++output )
+    {
+        REQUIRE( actual.modeStatus[output] == mx::improc::P4PCAResponseStatus::rankInsufficient );
+        for( int frame = 0; frame < 6; ++frame )
+        {
+            REQUIRE( mx::math::isNan( actual.responses( frame, output ) ) );
+        }
     }
 }
 

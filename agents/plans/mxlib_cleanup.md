@@ -282,17 +282,55 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
-- [ ] Restore the current mxlib LCOV report and audit masked target-input validation (2026-10-16).
-      `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` is absent; no replacement LCOV trace was found
-      under the mxlib source tree. Consequently, 100% executable-line coverage could not be verified for the mxlib
-      APIs called by the edited `HCIobservation::readFiles()`: `exception<verbose::vv>`, FITS file construction,
-      destruction, image/list `read()` and `setReadSize()`, FITS header construction/copy/destruction, `append()`,
-      `count()` and `operator[]`, header-card `String()` and `value<double>()`, `get_curr_time()`,
-      `ISO8601date2mjd()`, float cube `resize()`, `data()`, `planes()`, `rows()`, `cols()` and mutable `image()`,
-      `isFinite<float>()`, and `zeroNaNCube<eigenCube<float>>()`. The regression tests also use float cube
-      construction/destruction and FITS image/header writes through the shared fixture. Regenerate mxlib's own
-      aggregate LCOV report, check each exact called overload/instantiation, and add upstream tests for any missing
-      executable lines. Prior coverage percentages above/below are historical and do not establish the current gate.
+- [x] Restore current mxlib LCOV and audit P4 per-target mask filtering (2026-10-17).
+      Audited `/home/jrmales/Source/mxlib/_build/coverage_filtered.info`, generated 2026-10-17 09:17:25 MST,
+      against clean mxlib `0b191ab`; the relevant installed headers match the source headers byte-for-byte.
+      Trace SHA-256: `30f9edc082b9d2db1bee77c6725b791a120e5725ca2c8d9a6f7e24175c79e86d`.
+      mxlib's coverage-record verifier passes all 54 expected files. The audit covers upstream calls in the edited
+      `P4PixelGrid::resize()` / `regionImpl()`, P4PCA validation/direct/centered/response/downdate functions,
+      `P4PSFModel::responseInputs()` / `calculateLocalResponseComponents()`, and
+      `P4Reduction::targetCubeFinite()` / `fitDetectorSearch()` / `regions()` /
+      `calculateAnalyticDetectorResponse()` / `calculateAnalyticSamples()`, plus the changed regression tests.
+      All audited shared executable-line ranges are covered: double degree-based `radAngImage` is 9/9,
+      `annulusCoords` is 2/2 (worker 39/39), `angleDiff` is 7/7, `dtor<double>` is 2/2,
+      `isFinite<float,double>` is 7/7, and `isNan<float,double>` is 11/11. The FP64 `eigenSYEVR` path is 60/60,
+      with workspace construction/destruction 3/3 each and cleanup 13/13. FP64 factor validation is 6/6,
+      `svdRemoveRows<double>` is 10/10, deletion result/workspace preparation is 2/2 and 3/3, and the called result
+      accessors/status helpers are fully covered; `svdDowndate.cpp` is 1044/1044. The relevant FITS file/header/card,
+      error, time, and common float cube APIs also have covered ranges and executed function aliases.
+      This completes the report audit, not the exact-instantiation gate: the missing aliases below remain open.
+
+- [ ] Cover the exact template instances missing from the 2026-10-17 P4 audit.
+      LCOV aggregates executable lines across template aliases, so a fully covered shared range does not prove
+      that the particular downstream instance was exercised. These are missing function records, not measured
+      zero-percent line coverage:
+      - `eigenCube<float>::image(Index) const` has no alias; only the double instance covers lines 540--543 (2/2).
+        Float copy/move constructors and copy/move assignment are also absent, although their shared ranges at
+        356--359, 362--370, 391--406, and 409--431 are 3/3, 8/8, 8/8, and 15/15 respectively. The const view is used
+        by detector fitting; move assignment is used by `regions()` final-cube transfer; the regression fixtures
+        also exercise float ownership. Add direct float const-view and ownership cases in mxlib's
+        `tests/include/improc/eigenCube_test.cpp`, then regenerate LCOV. This confirms the older const-view/float
+        ownership follow-up below remains open.
+      - `cubicConvolTransform<float>::operator()<Eigen::Array<float,4,4>,float>` used by `P4PixelGrid::regionImpl()`
+        has no alias. Its shared body at 138--172 is 26/26 through dynamic-array tests; the float default constructor
+        and scalar cubic kernel are executed and covered (3/3 and 6/6). Add a fixed 4-by-4 float kernel case to
+        mxlib's `tests/include/improc/imageTransforms_test.cpp` and regenerate LCOV.
+      - `ompLoopWatcher<P4ProgressOutput,true,true,true,true,true>` construction and
+        `incrementAndOutputStatus()` have no aliases. The shared ranges are 7/7 and 5/5, with executed
+        `std::ostream` instances using the same boolean options (`ompLoopWatcher.hpp` is 69/69 overall).
+        Because `P4ProgressOutput` is private to hciReduce, capture its exact instance in an instrumented downstream
+        P4 reduction test and retain that evidence alongside the upstream report; the upstream watcher tests alone
+        cannot establish execution of this local adapter specialization.
+
+- [x] Verify mxlib coverage for masked target-input validation (2026-10-16; checked 2026-10-17).
+      The restored report above verifies the upstream calls in `HCIobservation::readFiles()`, including executed
+      float/`verbose::vv` aliases: FITS image reads are 19/19, pointer/list/header reads 16/16, read-size configuration
+      and reset 6/6 each; header construction/copy/destruction, append/count/lookup, and card String/value access
+      are fully covered. The called exception constructor is 4/4, `get_curr_time()` is 2/2,
+      `ISO8601date2mjd()` is 5/5, float cube resize/data/dimension/mutable-image access is fully covered,
+      `isFinite<float>()` is 7/7, and `zeroNaNCube<eigenCube<float>>()` is 2/2 (worker 12/12).
+      Float cube construction/destruction and the FITS image/header writes used by those regression fixtures also
+      have executed aliases and fully covered ranges. The earlier missing-report limitation is resolved.
 
 - [ ] Complete the exact configuration/cube APIs exercised by Step-5 annular noise integration (2026-09-17).
       The current `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` has zero calls for

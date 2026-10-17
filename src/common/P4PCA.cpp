@@ -281,13 +281,12 @@ bool p4PCARecoverableStructuredFailure(
     return false;
 }
 
-/// Validate one P4PCA request against its path-specific structural degree-of-freedom limit.
+/// Validate P4PCA inputs, allowing unsupported positive mode counts to produce invalid outputs.
 template <typename matrixT, typename vectorT>
 void p4PCAValidateInputs( const matrixT &predictors,     /**< [in] predictor matrix to validate */
                           const vectorT &target,         /**< [in] target vector to validate */
                           const std::vector<int> &modes, /**< [in] requested retained-mode counts */
-                          double rankTolerance,          /**< [in] relative numerical-rank threshold */
-                          int maxDOF /**< [in] path-specific structural degree-of-freedom limit */ )
+                          double rankTolerance /**< [in] relative numerical-rank threshold */ )
 {
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
@@ -318,11 +317,6 @@ void p4PCAValidateInputs( const matrixT &predictors,     /**< [in] predictor mat
         if( mode <= previousMode )
         {
             throw std::invalid_argument( "P4PCA mode counts must be strictly increasing" );
-        }
-
-        if( mode > maxDOF )
-        {
-            throw std::invalid_argument( "P4PCA mode count exceeds maxDOF" );
         }
 
         previousMode = mode;
@@ -712,7 +706,7 @@ void P4PCAKernel<CalculationT, EigensolverT>::calculate( P4PCAResult &output,
     const Eigen::Index sampleCount = predictors.rows();
     const Eigen::Index predictorCount = predictors.cols();
     const int maxDOF = static_cast<int>( std::min( sampleCount, predictorCount ) );
-    p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
+    p4PCAValidateInputs( predictors, target, modes, rankTolerance );
     calculateValidated( output,
                         predictors,
                         target,
@@ -766,7 +760,7 @@ void P4PCAKernel<CalculationT, EigensolverT>::calculateCenteredInPlace( P4PCARes
     }
 
     const int maxDOF = static_cast<int>( std::min( predictorCount, sampleCount - 1 ) );
-    p4PCAValidateInputs( predictors, target, modes, rankTolerance, maxDOF );
+    p4PCAValidateInputs( predictors, target, modes, rankTolerance );
 
     vectorT centeredTarget = target;
     matrixT predictorMeans;
@@ -1264,7 +1258,7 @@ void P4PCA::prepareResponse( P4PCAResponseBasis &basis,
     {
         throw std::length_error( "P4PCA response Gram dimension exceeds the eigensolver integer limit" );
     }
-    p4PCAValidateInputs( predictors, target, modes, rankTolerance, static_cast<int>( dimension ) );
+    p4PCAValidateInputs( predictors, target, modes, rankTolerance );
     if( !mx::math::isFinite( relativeGapTolerance ) || relativeGapTolerance < 0 )
     {
         throw std::invalid_argument( "P4PCA response requires a finite nonnegative gap tolerance" );
@@ -1331,6 +1325,10 @@ void P4PCA::prepareResponse( P4PCAResponseBasis &basis,
         for( std::size_t mode = 0; mode < modes.size(); ++mode )
         {
             const Eigen::Index count = modes[mode];
+            if( count > dimension )
+            {
+                continue;
+            }
             const Eigen::Index first = dimension - count;
             const double retainedValue = eigenvalues( first );
             const bool allTemporalModes = count == predictors.rows();
@@ -2237,7 +2235,7 @@ void P4PCA::calculateHeldOutDowndatedImpl( P4PCAResult &output,
     {
         throw std::invalid_argument( "P4PCA downdate base rank exceeds the supported integer range" );
     }
-    p4PCAValidateInputs( predictors, target, modes, rankTolerance, static_cast<int>( structuralBaseRank ) );
+    p4PCAValidateInputs( predictors, target, modes, rankTolerance );
     if( exclusions.sampleCount() != sampleCount || exclusions.targetCount() != sampleCount )
     {
         throw std::invalid_argument( "P4PCA downdate exclusions must match the predictor row count" );

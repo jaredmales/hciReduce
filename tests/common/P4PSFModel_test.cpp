@@ -150,7 +150,7 @@ imageT bruteForceResponse( const imageT &psfTemplate,        /**< [in] centered 
                                                            static_cast<double>( target.row() ) - deltaRow,
                                                            static_cast<double>( target.column() ) - deltaColumn );
             double residual = detector( target.row(), target.column() );
-            for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+            for( std::size_t predictor = 0; predictor < grid.predictorCount( searchIndex ); ++predictor )
             {
                 residual -= coefficients( predictor ) * grid.sample( detector, searchIndex, predictor );
             }
@@ -268,8 +268,18 @@ TEST_CASE( "P4 local PSF response matches brute-force detector sampling", "[P4PS
     grid.resize( 41, 43, 20.0, 21.0 );
     grid.region( testRegion(), nullptr );
     const std::size_t searchIndex = findSearch( grid, 23, 25 );
+    const bool masked = GENERATE( false, true );
+    if( masked )
+    {
+        imageT mask = imageT::Ones( 41, 43 );
+        const auto &footprint = grid.interpolation( searchIndex, 0 );
+        mask( footprint.footprintRow(), footprint.footprintColumn() ) = 0;
+        grid.region( testRegion(), &mask );
+        REQUIRE( grid.searchPixel( searchIndex ).valid() );
+        REQUIRE( grid.predictorCount( searchIndex ) < grid.predictorCount() );
+    }
 
-    coefficientT coefficients( static_cast<Eigen::Index>( grid.predictorCount() ) );
+    coefficientT coefficients( static_cast<Eigen::Index>( grid.predictorCount( searchIndex ) ) );
     for( Eigen::Index predictor = 0; predictor < coefficients.rows(); ++predictor )
     {
         coefficients( predictor ) = ( predictor % 2 == 0 ? 1.0 : -1.0 ) * 0.02 / static_cast<double>( predictor + 1 );
@@ -318,8 +328,18 @@ TEST_CASE( "P4 PSF probe inputs reproduce local response", "[P4PSFModel][probe][
     grid.resize( 41, 43, 20.0, 21.0 );
     grid.region( testRegion(), nullptr );
     const std::size_t searchIndex = findSearch( grid, 23, 25 );
+    const bool masked = GENERATE( false, true );
+    if( masked )
+    {
+        imageT mask = imageT::Ones( 41, 43 );
+        const auto &footprint = grid.interpolation( searchIndex, 0 );
+        mask( footprint.footprintRow(), footprint.footprintColumn() ) = 0;
+        grid.region( testRegion(), &mask );
+        REQUIRE( grid.searchPixel( searchIndex ).valid() );
+        REQUIRE( grid.predictorCount( searchIndex ) < grid.predictorCount() );
+    }
 
-    coefficientT coefficients( static_cast<Eigen::Index>( grid.predictorCount() ) );
+    coefficientT coefficients( static_cast<Eigen::Index>( grid.predictorCount( searchIndex ) ) );
     for( Eigen::Index predictor = 0; predictor < coefficients.rows(); ++predictor )
     {
         coefficients( predictor ) = 0.013 * std::sin( 0.17 * static_cast<double>( predictor + 1 ) ) -

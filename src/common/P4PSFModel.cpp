@@ -213,7 +213,7 @@ void P4PSFModel::responseInputs( probeVectorT &probeTarget,
     {
         throw std::invalid_argument( "P4 PSF probe calculation requires a valid local fit" );
     }
-    if( grid.predictorCount() > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) )
+    if( grid.predictorCount( searchIndex ) > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) )
     {
         throw std::length_error( "P4 PSF probe predictor count exceeds Eigen range" );
     }
@@ -222,7 +222,7 @@ void P4PSFModel::responseInputs( probeVectorT &probeTarget,
     const Eigen::Index stampPixels =
         static_cast<Eigen::Index>( m_stampRows ) * static_cast<Eigen::Index>( m_stampColumns );
     probeTarget.resize( stampPixels );
-    probePredictors.resize( stampPixels, static_cast<Eigen::Index>( grid.predictorCount() ) );
+    probePredictors.resize( stampPixels, static_cast<Eigen::Index>( grid.predictorCount( searchIndex ) ) );
     for( int stampColumn = 0; stampColumn < m_stampColumns; ++stampColumn )
     {
         for( int stampRow = 0; stampRow < m_stampRows; ++stampRow )
@@ -230,7 +230,7 @@ void P4PSFModel::responseInputs( probeVectorT &probeTarget,
             const Eigen::Index stampPixel =
                 static_cast<Eigen::Index>( stampRow ) + static_cast<Eigen::Index>( m_stampRows ) * stampColumn;
             probeTarget( stampPixel ) = static_cast<double>( shiftedTemplateValue( stampRow, stampColumn ) );
-            for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+            for( std::size_t predictor = 0; predictor < grid.predictorCount( searchIndex ); ++predictor )
             {
                 const gridT::interpolationRecordT &record = grid.interpolation( searchIndex, predictor );
                 float predictorSample{ 0 };
@@ -302,11 +302,11 @@ void P4PSFModel::calculateLocalResponseComponents( imageT &output,
         throw std::length_error( "P4 temporal PSF predictor count overflows size_t" );
     }
     const std::size_t temporalPredictorCount = temporalImageCount * temporalOffsets.size();
-    if( grid.predictorCount() > std::numeric_limits<std::size_t>::max() - temporalPredictorCount )
+    if( grid.predictorCount( searchIndex ) > std::numeric_limits<std::size_t>::max() - temporalPredictorCount )
     {
         throw std::length_error( "P4 PSF predictor count overflows size_t" );
     }
-    const std::size_t predictorCount = grid.predictorCount() + temporalPredictorCount;
+    const std::size_t predictorCount = grid.predictorCount( searchIndex ) + temporalPredictorCount;
     if( predictorCount > static_cast<std::size_t>( std::numeric_limits<Eigen::Index>::max() ) ||
         coefficients.rows() != static_cast<Eigen::Index>( predictorCount ) )
     {
@@ -332,7 +332,7 @@ void P4PSFModel::calculateLocalResponseComponents( imageT &output,
         {
             double residual = shiftedTemplateValue( stampRow, stampColumn );
 
-            for( std::size_t predictor = 0; predictor < grid.predictorCount(); ++predictor )
+            for( std::size_t predictor = 0; predictor < grid.predictorCount( searchIndex ); ++predictor )
             {
                 const gridT::interpolationRecordT &record = grid.interpolation( searchIndex, predictor );
                 float predictorSample{ 0 };
@@ -372,7 +372,7 @@ void P4PSFModel::calculateLocalResponseComponents( imageT &output,
                 {
                     const P4PixelCoordinate &offset = temporalOffsets[predictor];
                     const std::size_t coefficientIndex =
-                        grid.predictorCount() + temporalImage * temporalOffsets.size() + predictor;
+                        grid.predictorCount( searchIndex ) + temporalImage * temporalOffsets.size() + predictor;
                     temporalResponse -= coefficients( static_cast<Eigen::Index>( coefficientIndex ) ) *
                                         static_cast<double>( shiftedTemplateValue( stampRow + offset.row(),
                                                                                    stampColumn + offset.column() ) );
