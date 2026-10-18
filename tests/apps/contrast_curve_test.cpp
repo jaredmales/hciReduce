@@ -99,5 +99,20 @@ TEST_CASE( "Contrast curve P4 baseline reuse and batch recovery", "[contrast_cur
     // clang-format on
 }
 
+/** \brief Verify contrast_curve.py run_batch() and run_command() report injection counts before reduction completes,
+ * keep detailed output in separate logs, and distinguish the subsequent analysis pass.
+ */
+TEST_CASE( "Contrast curve live P4 batch progress", "[contrast_curve][batch][progress]" )
+{
+    REQUIRE( runCheck( "progress" ) == 0 );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    contrast_curve::run_batch( plan, root, trials, resume, keep_going );
+    contrast_curve::run_command( command, cwd, log, progress );
+#endif
+    // clang-format on
+}
+
 } // namespace contrast_curve_test
 } // namespace unitTest

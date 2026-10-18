@@ -12,6 +12,30 @@
 #include <mx/improc/imageTransforms.hpp>
 #include <mx/math/geo.hpp>
 
+/// \cond P4LocalProcessing_test_harness
+namespace mx::improc
+{
+/// Inspect retained stamp storage without exposing cache internals in the production API.
+class P4LocalProcessingTestAccess
+{
+  public:
+    /// Count cached detector samples across all sources and frames.
+    static std::size_t cachedPixels( const P4TrialSource &source /**< [in] configured trial source */ )
+    {
+        std::size_t count = 0;
+        for( const auto &shifts : source.m_sourceShifts )
+        {
+            for( const auto &shift : shifts )
+            {
+                count += shift.pixels.size();
+            }
+        }
+        return count;
+    }
+};
+} // namespace mx::improc
+/// \endcond
+
 namespace unitTest
 {
 namespace P4LocalProcessing_test
@@ -212,6 +236,99 @@ TEST_CASE( "P4 local trial source matches full image shift", "[P4LocalProcessing
             REQUIRE( oddSource.value( 0, row, column ) == Approx( oddExpected( row, column ) ).margin( 3e-7 ) );
         }
     }
+}
+
+/** \brief Verify P4TrialSource::configure(), addSource(), value(), sample(), and supportMask() retain clipped,
+ * signed multi-source shifts and predictor interpolation while bounding cached storage by the small source crop.
+ * \ingroup P4LocalProcessing_unit_tests
+ */
+TEST_CASE( "P4 cached source stamps preserve detector and OR samples", "[P4LocalProcessing][source][cache]" )
+{
+    const int size = GENERATE( 24, 25 );
+    const double separation = GENERATE( 0.0, 7.3, 20.8 );
+    imageT sourceTemplate( size + 4, size + 4 );
+    for( int column = 0; column < sourceTemplate.cols(); ++column )
+    {
+        for( int row = 0; row < sourceTemplate.rows(); ++row )
+        {
+            sourceTemplate( row, column ) = std::sin( 0.17F * row + 0.07F * column );
+        }
+    }
+    const std::vector<double> angles{ 0, -0.31, 0.17 };
+    const std::vector<float> scales{ 1, 0, -0.7F };
+    mx::improc::P4TrialSource source;
+    source.configure( sourceTemplate, size, size, 5, angles, separation, 0, -0.3, scales );
+    imageT prepared = imageT::Zero( size, size );
+    const int crop = source.cropRows();
+    prepared.block( ( size - crop ) / 2, ( size - crop ) / 2, crop, crop ) =
+        sourceTemplate.block( ( sourceTemplate.rows() - crop ) / 2, ( sourceTemplate.cols() - crop ) / 2, crop, crop );
+    mx::improc::P4PixelGridf grid;
+    grid.resize( size, size );
+    grid.region( { 2, 7, 1, 2, 3, 60, 1, mx::improc::P4ExclusionPolicy::sampleCenter, 0 }, nullptr );
+    std::vector<imageT> expected( angles.size(), imageT::Zero( size, size ) );
+    for( int pass = 0; pass < 3; ++pass )
+    {
+        const double contrast = pass == 0 ? -0.3 : 0.2;
+        const float pa = pass == 1 ? 127 : 0;
+        if( pass == 1 )
+        {
+            source.addSource( angles, separation, pa, contrast, scales );
+        }
+        else if( pass == 2 )
+        {
+            source.configure( sourceTemplate, size, size, 5, angles, separation, pa, contrast, scales );
+            for( auto &frame : expected )
+            {
+                frame.setZero();
+            }
+        }
+        const std::size_t sources = pass == 1 ? 2 : 1;
+        const auto cached = mx::improc::P4LocalProcessingTestAccess::cachedPixels( source );
+        REQUIRE( cached <= sources * angles.size() * ( crop + 9 ) * ( crop + 9 ) );
+        REQUIRE( cached < sources * angles.size() * size * size );
+        imageT expectedSupport = imageT::Zero( size, size );
+        for( std::size_t frame = 0; frame < angles.size(); ++frame )
+        {
+            const float angle = mx::math::dtor( -pa ) + static_cast<float>( angles[frame] );
+            imageT shifted = imageT::Zero( size, size );
+            mx::improc::imageShift( shifted,
+                                    prepared,
+                                    static_cast<float>( separation ) * std::sin( angle ),
+                                    static_cast<float>( separation ) * std::cos( angle ),
+                                    mx::improc::cubicConvolTransform<float>() );
+            expected[frame] += shifted * static_cast<float>( contrast * static_cast<double>( scales[frame] ) );
+            for( int column = 0; column < size; ++column )
+            {
+                for( int row = 0; row < size; ++row )
+                {
+                    REQUIRE( source.value( frame, row, column ) ==
+                             Approx( expected[frame]( row, column ) ).margin( 3e-7 ) );
+                    if( expected[frame]( row, column ) != 0 )
+                    {
+                        expectedSupport( row, column ) = 1;
+                    }
+                }
+            }
+            for( std::size_t search = 0; search < grid.searchPixelCount(); ++search )
+            {
+                if( !grid.searchPixel( search ).valid() )
+                {
+                    continue;
+                }
+                for( std::size_t predictor = 0; predictor < grid.predictorCount( search ); ++predictor )
+                {
+                    const auto &record = grid.interpolation( search, predictor );
+                    REQUIRE( source.sample( frame, record ) ==
+                             Approx( grid.sample( expected[frame], search, predictor ) ).margin( 3e-7 ) );
+                }
+            }
+        }
+        REQUIRE( ( source.supportMask() == expectedSupport ).all() );
+    }
+    const auto &record = grid.interpolation( 0, 0 );
+    REQUIRE_THROWS_AS( source.sample( angles.size(), record ), std::out_of_range );
+    mx::improc::P4TrialSource unconfigured;
+    REQUIRE_THROWS_AS( unconfigured.sample( 0, record ), std::logic_error );
 }
 
 /// Verify sparse local derotation exactly reconstructs the matching crop of production full-image rotation.

@@ -61,6 +61,8 @@
  * this union. Complete temporal fits retain the original full-annulus mode counts. Unaffected residual time series
  * and validity are copied from the immutable baseline, and refitted validity is cleared before replacing supported
  * samples. Geometry and the pristine loaded input cube are reused; source flux never accumulates between trials.
+ * Each frame's shifted source crop and interpolation halo are cached once. OR samples outside the cached stamps
+ * return zero immediately; overlapping samples reuse the cached values with the original scaling and arithmetic.
  *
  * Each trial still produces a full-field final image using the ordinary derotation and combination, including sigma
  * clipping. `hciAnalyze` then filters and measures that full image normally, so OR-induced changes in the noise
@@ -76,6 +78,10 @@
  * preprocessing may change the source beyond the crop and requires the ordinary full-reduction path.
  *
  * Batch products include `baseline.fits`, `batch_trials.txt`, `batch_commands.json`, and `batch.stdout`/`.stderr`.
+ * After the baseline, the script prints `[number/total] r=... PA=... contrast=...` as each injection starts, using
+ * its original grid position even on resume. The subsequent analysis pass labels its progress with `Analysis`.
+ * Detailed reducer output stays in the batch logs; use `tail -f OUTPUT_DIR/batch.stderr` for annulus-level progress,
+ * including during the baseline or for a job already running with an older script.
  * Each successful injection has a `finim.fits.complete` marker. Resume retains completed products and runs only the
  * missing stages; if any reductions remain, a new process computes a fresh baseline once. The baseline cache is not
  * persisted between processes. Memory budgeting includes the baseline and working residual arrays. Use a new output

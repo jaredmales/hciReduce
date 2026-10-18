@@ -197,11 +197,12 @@ class P4LocalGeometry
     std::vector<P4LocalOutputSample> m_outputSamples;   ///< Column-major stamp/frame dependency records.
 };
 
-/// Prepared centered trial source sampled without materializing shifted full-frame images.
+/// Prepared centered trial source with compact cached detector stamps for each physical frame.
 /** The configured template is center-cropped and zero-padded to the detector dimensions. When the requested odd
  * stamp and detector/template sampling phases differ, the internal crop grows by one pixel to preserve the geometric
  * center. `value()` reproduces the ordinary `imageShift` whole-pixel or cubic-convolution value at one detector
- * pixel, then applies the configured per-frame scale and contrast.
+ * pixel, then applies the configured per-frame scale and contrast. Shifted values are cached only within the crop's
+ * interpolation support; predictor samples outside every cached stamp return zero without interpolating the source.
  *
  * \ingroup programming_library
  */
@@ -259,7 +260,7 @@ class P4TrialSource
     friend class P4LocalProcessingTestAccess;
     /** \endcond */
 
-    /// One precomputed physical-frame source shift and cubic kernel.
+    /// One physical-frame source shift, cubic kernel, and compact unscaled detector stamp.
     struct FrameShift
     {
         float rowShift{ 0 };          ///< Detector-row translation in production float arithmetic.
@@ -271,7 +272,25 @@ class P4TrialSource
         bool integral{ false };       ///< Whether both translations are exact integers.
 
         P4PixelGridf::kernelT kernel; ///< Cubic shift kernel when translation is fractional.
+
+        int firstRow{ 0 };            ///< Detector row at the beginning of the cached stamp.
+
+        int firstColumn{ 0 };         ///< Detector column at the beginning of the cached stamp.
+
+        imageT pixels;                ///< Shifted values before scaling, including the interpolation halo.
     };
+
+    /// Evaluate the original unscaled shift arithmetic once while preparing a cached detector stamp.
+    static float shiftedValue( const imageT &prepared,  /**< [in] centered and zero-padded source template */
+                               const FrameShift &shift, /**< [in] prepared physical-frame shift and kernel */
+                               int row,                 /**< [in] integer detector row */
+                               int column /**< [in] integer detector column */ );
+
+    /// Cache a shifted crop and its interpolation halo without allocating a full detector image per frame.
+    static void cacheShift( FrameShift &shift,      /**< [in,out] prepared shift receiving its detector stamp */
+                            const imageT &prepared, /**< [in] centered and zero-padded source template */
+                            int cropRows,           /**< [in] centered crop row count */
+                            int cropColumns /**< [in] centered crop column count */ );
 
     imageT m_template;                ///< Center-cropped template zero-padded to detector dimensions.
 

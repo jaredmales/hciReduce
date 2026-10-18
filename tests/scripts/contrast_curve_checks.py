@@ -8,10 +8,13 @@ import csv
 import importlib.util
 import json
 import math
+import os
 from pathlib import Path
+import select
 import subprocess
 import sys
 import tempfile
+import time
 
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts/contrast_curve.py"
@@ -25,6 +28,7 @@ import json
 from pathlib import Path
 import shlex
 import sys
+import time
 options = dict(argument[2:].split("=", 1) for argument in sys.argv[1:])
 base = Path(__file__).parent
 role = Path(__file__).name
@@ -50,9 +54,20 @@ else:
     output = Path(options["output.directory"]) / options["output.fileName"]
     output.write_text(json.dumps(options))
     if "p4Batch.file" in options:
+        print("P4 output remains in batch.stdout")
+        print("P4 injection batch: computing uninjected baseline", file=sys.stderr, flush=True)
         failed = False
-        for line in Path(options["p4Batch.file"]).read_text().splitlines():
+        lines = Path(options["p4Batch.file"]).read_text().splitlines()
+        for index, line in enumerate(lines, 1):
             sep, pa, contrast, path = shlex.split(line)
+            sys.stderr.write("P4 annulus 1 / 1: 1 / 10 (10%)\\r")
+            print(f'P4 injection trial {index} / {len(lines)}: "{path}"', file=sys.stderr, flush=True)
+            if index == 1 and (base / "progress_gate").exists():
+                deadline = time.monotonic() + 10
+                while not (base / "progress_release").exists():
+                    if time.monotonic() > deadline:
+                        raise RuntimeError("progress was not reported before the injection completed")
+                    time.sleep(0.01)
             if (base / "batch_fail").exists() and float(pa) == 180:
                 failed = True
                 if options["p4Batch.keepGoing"] == "false":
@@ -231,7 +246,9 @@ def batch_workflow() -> None:
         assert dry.stdout.count("# batch trial:") == 6
         assert not (root / "output with spaces").exists()
         (root / "batch_fail").touch()
-        run(command + ["--keep-going"], 1)
+        failed = run(command + ["--keep-going"], 1)
+        assert "[6/6] r=20 PA=180 contrast=0.0001\n" in failed.stdout
+        assert "p4Reduce exited 9" in failed.stderr
         output = root / "output with spaces"
         calls = [json.loads(line) for line in (root / "calls.jsonl").read_text().splitlines()]
         assert sum(call["role"] == "p4Reduce" for call in calls) == 1
@@ -239,10 +256,13 @@ def batch_workflow() -> None:
         assert all(row["status"] == "insufficient_pa" for row in read_csv(output / "contrast_by_mode.csv"))
         (root / "batch_fail").unlink()
         (root / "fail").touch()
-        run(command + ["--resume", "--keep-going"], 1)
+        resumed = run(command + ["--resume", "--keep-going"], 1)
+        assert [line.split("]")[0] for line in resumed.stdout.splitlines() if line.startswith("[")] == [
+            "[2/6", "[4/6", "[6/6"]
         assert len((output / "batch_trials.txt").read_text().splitlines()) == 3
         (root / "fail").unlink()
-        run(command + ["--resume"])
+        analyzed = run(command + ["--resume"])
+        assert not any(line.startswith("[") for line in analyzed.stdout.splitlines())
         calls = [json.loads(line) for line in (root / "calls.jsonl").read_text().splitlines()]
         assert sum(call["role"] == "p4Reduce" for call in calls) == 2
         assert sum(call["role"] == "hciAnalyze" for call in calls) == 9
@@ -254,6 +274,53 @@ def batch_workflow() -> None:
         run(command + ["--reducer=klipReduce", "--dry-run"], 1)
 
 
+def live_batch_progress() -> None:
+    """Require live injection counts while a reducer is blocked, without echoing detailed logs."""
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        command = fixture(root) + ["--p4-batch"]
+        (root / "progress_gate").touch()
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        captured = b""
+        first_trial = b"[1/6] r=10 PA=0 contrast=0.0001\n"
+        try:
+            deadline = time.monotonic() + 10
+            while first_trial not in captured:
+                remaining = deadline - time.monotonic()
+                assert remaining > 0, captured
+                ready, _, _ = select.select([process.stdout], [], [], remaining)
+                assert ready, captured
+                chunk = os.read(process.stdout.fileno(), 65536)
+                assert chunk, captured
+                captured += chunk
+            assert process.poll() is None
+            output = root / "output with spaces"
+            logged = (output / "batch.stderr").read_bytes()
+            assert b"P4 annulus 1 / 1: 1 / 10 (10%)\rP4 injection trial 1 / 6:" in logged
+            assert len((root / "calls.jsonl").read_text().splitlines()) == 1
+            (root / "progress_release").touch()
+            rest, errors = process.communicate(timeout=10)
+            captured += rest
+            assert process.returncode == 0, captured + errors
+            assert not errors
+            lines = captured.decode().splitlines()
+            assert len([line for line in lines if line.startswith("[")]) == 6
+            assert len([line for line in lines if line.startswith("Analysis [")]) == 6
+            assert "[6/6] r=20 PA=180 contrast=0.0001" in lines
+            assert b"P4 annulus" not in captured and b"P4 injection trial" not in captured
+            assert b"P4 output remains" not in captured
+            assert (output / "batch.stdout").read_text() == "P4 output remains in batch.stdout\n"
+            assert (output / "batch.stderr").read_bytes().count(b"\rP4 injection trial") == 6
+        finally:
+            (root / "progress_release").touch()
+            if process.poll() is None:
+                try:
+                    process.communicate(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.communicate()
+
+
 if __name__ == "__main__":
     {"grid": grid_and_parser, "workflow": reduction_workflow, "failure": failure_and_coverage,
-     "batch": batch_workflow}[sys.argv[1]]()
+     "batch": batch_workflow, "progress": live_batch_progress}[sys.argv[1]]()

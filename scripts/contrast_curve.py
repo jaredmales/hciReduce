@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import bisect
+from collections.abc import Callable
 import configparser
 import csv
 from decimal import Decimal
@@ -246,10 +247,22 @@ def run_batch(plan: dict, root: Path, trials: list[dict], resume: bool, keep_goi
     (root / "batch_trials.txt").write_text("\n".join(rows) + "\n")
     command = batch_command(plan, root, keep_going)
     write_json(root / "batch_commands.json", {"reduction": command, "trials": [trial["name"] for trial in pending]})
-    print(f"P4 batch: one baseline plus {len(pending)} injections; progress: {root / 'batch.stderr'}", flush=True)
+    print(f"P4 batch: computing baseline, then {len(pending)} injections; log: {root / 'batch.stderr'}", flush=True)
+    trial_numbers = {trial["name"]: index for index, trial in enumerate(trials, 1)}
+
+    def progress(line: str) -> None:
+        """Report the original grid position when P4 starts a pending injection."""
+        match = re.match(r"P4 injection trial (\d+) / (\d+):", line)
+        if match:
+            index, total = map(int, match.groups())
+            if 1 <= index <= len(pending) and total == len(pending):
+                trial = pending[index - 1]
+                print(f"[{trial_numbers[trial['name']]}/{len(trials)}] r={trial['separation']:g} "
+                      f"PA={trial['pa']:g} contrast={trial['contrast']:g}", flush=True)
+
     error = None
     try:
-        run_command(command, plan["reduction_cwd"], root / "batch.stdout")
+        run_command(command, plan["reduction_cwd"], root / "batch.stdout", progress)
     except (OSError, RuntimeError) as exception:
         error = str(exception)
     for trial in pending:
@@ -297,12 +310,34 @@ def write_json(path: Path, value: dict) -> None:
     temporary.replace(path)
 
 
-def run_command(command: list[str], cwd: str, log: Path) -> None:
-    """Run one application and retain separate stdout and stderr logs."""
-    with log.open("w") as stdout, log.with_suffix(".stderr").open("w") as stderr:
-        result = subprocess.run(command, cwd=cwd, stdout=stdout, stderr=stderr, check=False)
-    if result.returncode:
-        raise RuntimeError(f"{Path(command[0]).name} exited {result.returncode}; see {log.with_suffix('.stderr')}")
+## \ingroup programming_library
+def run_command(command: list[str], cwd: str, log: Path,
+                progress: Callable[[str], None] | None = None) -> None:
+    """Retain exact application logs, optionally reporting stderr lines while the child runs."""
+    with log.open("wb") as stdout, log.with_suffix(".stderr").open("wb") as stderr:
+        if progress is None:
+            returncode = subprocess.run(command, cwd=cwd, stdout=stdout, stderr=stderr, check=False).returncode
+        else:
+            with subprocess.Popen(command, cwd=cwd, stdout=stdout, stderr=subprocess.PIPE) as process:
+                try:
+                    pending = b""
+                    while chunk := process.stderr.read1(65536):
+                        stderr.write(chunk)
+                        stderr.flush()
+                        # P4 annulus updates use carriage returns; retain those bytes in the log.
+                        lines = re.split(b"[\r\n]", pending + chunk)
+                        pending = lines.pop()
+                        for line in lines:
+                            progress(line.decode("utf-8", errors="replace"))
+                    if pending:
+                        progress(pending.decode("utf-8", errors="replace"))
+                    returncode = process.wait()
+                except BaseException:
+                    process.kill()
+                    process.wait()
+                    raise
+    if returncode:
+        raise RuntimeError(f"{Path(command[0]).name} exited {returncode}; see {log.with_suffix('.stderr')}")
 
 
 def run_trial(plan: dict, root: Path, trial: dict, resume: bool, batch_error: str | None = None) -> dict:
@@ -487,7 +522,9 @@ def main(argv: list[str] | None = None) -> int:
             batch_error = run_batch(plan, root, trials, args.resume, args.keep_going) if plan["p4_batch"] else None
             results = []
             for index, trial in enumerate(trials, 1):
-                print(f"[{index}/{len(trials)}] r={trial['separation']:g} PA={trial['pa']:g} contrast={trial['contrast']:g}", flush=True)
+                stage = "Analysis " if plan["p4_batch"] else ""
+                print(f"{stage}[{index}/{len(trials)}] r={trial['separation']:g} "
+                      f"PA={trial['pa']:g} contrast={trial['contrast']:g}", flush=True)
                 result = run_trial(plan, root, trial, args.resume, batch_error)
                 results.append(result)
                 write_outputs(plan, root, results, plot=False)

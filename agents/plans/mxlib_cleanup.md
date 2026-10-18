@@ -282,6 +282,28 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [x] Audit upstream calls in compact P4 source-cache preparation and its regression tests (2026-10-18).
+      Rechecked the current `coverage_filtered.info` (SHA-256
+      `30f9edc082b9d2db1bee77c6725b791a120e5725ca2c8d9a6f7e24175c79e86d`) for
+      `P4TrialSource::configure()` / `addSource()` and the cached-source tests. Called shared executable ranges
+      are fully covered: `isFinite<float,double>` 7/7, `dtor<float>` 2/2, cubic default construction 3/3,
+      scalar cubic kernel 6/6, cubic kernel construction 26/26, and `imageShift` 29/29. Cache lookup and preparation
+      helpers add no upstream calls. The exact fixed-size float kernel alias remains absent, as recorded below.
+- [ ] Add exact-instance coverage for the source-cache regression oracle in mxlib.
+      The new downstream test calls `imageShift` with float images, float shifts, and a float cubic transform;
+      the current upstream report records only its double-image instance. Add that float case alongside the
+      already-requested fixed 4-by-4 float cubic kernel case in `tests/include/improc/imageTransforms_test.cpp`
+      and regenerate LCOV. This is missing specialization evidence, not an uncovered shared executable line.
+- [ ] Cover the wrapping branches in `imageShiftWP`, a dependency of the source-cache test oracle's `imageShift`.
+      Its shared range is 33/35 executable lines (94.3%); lines 336 and 345, which subtract the input dimension
+      after positive overflow during wrapped shifts, are uncovered. Add negative whole-pixel shifts with wrapping
+      in mxlib's `tests/include/improc/imageTransforms_test.cpp` and regenerate LCOV. The source-cache oracle uses
+      the nonwrapping branch, and production cache sampling does not call `imageShiftWP`.
+- [ ] Make `imageShift` allocate its output for exact whole-pixel shifts as its API documentation promises.
+      It currently delegates to `imageShiftWP` before resizing, so an empty output remains empty. Add empty-output
+      integral-shift cases in mxlib, resize before delegating, and regenerate coverage. The new source-cache test
+      preallocates its independent oracle image, as required by `imageShiftWP`; production cache sampling is unaffected.
+
 - [x] Audit upstream calls in P4 injection-batch work (2026-10-17).
       Rechecked the current `coverage_filtered.info` (SHA-256
       `30f9edc082b9d2db1bee77c6725b791a120e5725ca2c8d9a6f7e24175c79e86d`) for the edited

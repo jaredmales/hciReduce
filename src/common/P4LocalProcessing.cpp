@@ -535,6 +535,7 @@ void P4TrialSource::configure( const imageT &sourceTemplate,
             const float columnPhase = 1.0F - ( shift.columnShift - std::floor( shift.columnShift ) );
             transform( shift.kernel, rowPhase, columnPhase );
         }
+        cacheShift( shift, prepared, cropRows, cropColumns );
         shifts.push_back( std::move( shift ) );
     }
 
@@ -583,6 +584,7 @@ void P4TrialSource::addSource( const std::vector<double> &angles,
             const float columnPhase = 1.0F - ( shift.columnShift - std::floor( shift.columnShift ) );
             transform( shift.kernel, rowPhase, columnPhase );
         }
+        cacheShift( shift, m_template, m_cropRows, m_cropColumns );
         shifts.push_back( std::move( shift ) );
     }
     m_sourceShifts.push_back( std::move( shifts ) );
@@ -610,9 +612,6 @@ P4TrialSource::imageT P4TrialSource::supportMask() const
         throw std::logic_error( "P4 source support requires a configured source" );
     }
     imageT support = imageT::Zero( m_template.rows(), m_template.cols() );
-    const double firstRow = ( m_template.rows() - m_cropRows ) / 2;
-    const double firstColumn = ( m_template.cols() - m_cropColumns ) / 2;
-    // A conservative four-pixel halo also covers truncation toward zero in the production shift sampler.
     for( const auto &shifts : m_sourceShifts )
     {
         for( std::size_t frame = 0; frame < shifts.size(); ++frame )
@@ -622,16 +621,9 @@ P4TrialSource::imageT P4TrialSource::supportMask() const
             {
                 continue;
             }
-            const auto bound = []( double value, int size )
-            { return static_cast<int>( std::clamp( value, 0.0, static_cast<double>( size ) ) ); };
-            const int beginRow = bound( std::floor( firstRow + shift.rowShift ) - 4, support.rows() );
-            const int endRow = bound( std::ceil( firstRow + m_cropRows + shift.rowShift ) + 4, support.rows() );
-            const int beginColumn = bound( std::floor( firstColumn + shift.columnShift ) - 4, support.cols() );
-            const int endColumn =
-                bound( std::ceil( firstColumn + m_cropColumns + shift.columnShift ) + 4, support.cols() );
-            for( int column = beginColumn; column < endColumn; ++column )
+            for( int column = shift.firstColumn; column < shift.firstColumn + shift.pixels.cols(); ++column )
             {
-                for( int row = beginRow; row < endRow; ++row )
+                for( int row = shift.firstRow; row < shift.firstRow + shift.pixels.rows(); ++row )
                 {
                     if( value( frame, row, column ) != 0 )
                     {
@@ -695,60 +687,128 @@ float P4TrialSource::value( std::size_t frame, int row, int column ) const
     for( const std::vector<FrameShift> &sourceShifts : m_sourceShifts )
     {
         const FrameShift &shift = sourceShifts[frame];
-        if( std::abs( static_cast<double>( shift.rowShift ) ) > static_cast<double>( m_template.rows() ) + 4 ||
-            std::abs( static_cast<double>( shift.columnShift ) ) > static_cast<double>( m_template.cols() ) + 4 )
+        const int stampRow = row - shift.firstRow;
+        const int stampColumn = column - shift.firstColumn;
+        if( stampRow >= 0 && stampRow < shift.pixels.rows() && stampColumn >= 0 && stampColumn < shift.pixels.cols() )
         {
-            // A finite but distant source cannot contribute; avoid converting its displacement to int.
-            continue;
+            result += shift.scale * shift.pixels( stampRow, stampColumn );
         }
-        if( shift.integral )
-        {
-            const int sourceRow = row - static_cast<int>( shift.rowShift );
-            const int sourceColumn = column - static_cast<int>( shift.columnShift );
-            if( sourceRow >= 0 && sourceRow < m_template.rows() && sourceColumn >= 0 &&
-                sourceColumn < m_template.cols() )
-            {
-                result += shift.scale * m_template( sourceRow, sourceColumn );
-            }
-            continue;
-        }
-
-        const int anchorRow = static_cast<int>( static_cast<float>( row ) - shift.rowShift );
-        const int anchorColumn = static_cast<int>( static_cast<float>( column ) - shift.columnShift );
-        const int leftBuffer = P4PixelGridf::leftBuffer;
-        const int upperRow = m_template.rows() - P4PixelGridf::width + leftBuffer;
-        const int upperColumn = m_template.cols() - P4PixelGridf::width + leftBuffer;
-        if( anchorRow <= leftBuffer || anchorRow >= upperRow || anchorColumn <= leftBuffer ||
-            anchorColumn >= upperColumn )
-        {
-            continue;
-        }
-
-        float value{ 0 };
-        const int footprintRow = anchorRow - leftBuffer;
-        const int footprintColumn = anchorColumn - leftBuffer;
-        for( int columnOffset = 0; columnOffset < P4PixelGridf::width; ++columnOffset )
-        {
-            for( int rowOffset = 0; rowOffset < P4PixelGridf::width; ++rowOffset )
-            {
-                value += m_template( footprintRow + rowOffset, footprintColumn + columnOffset ) *
-                         shift.kernel( rowOffset, columnOffset );
-            }
-        }
-        result += shift.scale * value;
     }
     return result;
 }
 
+float P4TrialSource::shiftedValue( const imageT &prepared, const FrameShift &shift, int row, int column )
+{
+    if( std::abs( static_cast<double>( shift.rowShift ) ) > static_cast<double>( prepared.rows() ) + 4 ||
+        std::abs( static_cast<double>( shift.columnShift ) ) > static_cast<double>( prepared.cols() ) + 4 )
+    {
+        // A finite but distant source cannot contribute; avoid converting its displacement to int.
+        return 0;
+    }
+    if( shift.integral )
+    {
+        const int sourceRow = row - static_cast<int>( shift.rowShift );
+        const int sourceColumn = column - static_cast<int>( shift.columnShift );
+        if( sourceRow >= 0 && sourceRow < prepared.rows() && sourceColumn >= 0 && sourceColumn < prepared.cols() )
+        {
+            return prepared( sourceRow, sourceColumn );
+        }
+        return 0;
+    }
+
+    const int anchorRow = static_cast<int>( static_cast<float>( row ) - shift.rowShift );
+    const int anchorColumn = static_cast<int>( static_cast<float>( column ) - shift.columnShift );
+    const int leftBuffer = P4PixelGridf::leftBuffer;
+    const int upperRow = prepared.rows() - P4PixelGridf::width + leftBuffer;
+    const int upperColumn = prepared.cols() - P4PixelGridf::width + leftBuffer;
+    if( anchorRow <= leftBuffer || anchorRow >= upperRow || anchorColumn <= leftBuffer || anchorColumn >= upperColumn )
+    {
+        return 0;
+    }
+
+    float value{ 0 };
+    const int footprintRow = anchorRow - leftBuffer;
+    const int footprintColumn = anchorColumn - leftBuffer;
+    for( int columnOffset = 0; columnOffset < P4PixelGridf::width; ++columnOffset )
+    {
+        for( int rowOffset = 0; rowOffset < P4PixelGridf::width; ++rowOffset )
+        {
+            value += prepared( footprintRow + rowOffset, footprintColumn + columnOffset ) *
+                     shift.kernel( rowOffset, columnOffset );
+        }
+    }
+    return value;
+}
+
+void P4TrialSource::cacheShift( FrameShift &shift, const imageT &prepared, int cropRows, int cropColumns )
+{
+    const double firstRow = ( prepared.rows() - cropRows ) / 2;
+    const double firstColumn = ( prepared.cols() - cropColumns ) / 2;
+    // A conservative four-pixel halo also covers truncation toward zero in the production shift sampler.
+    const auto bound = []( double value, int size )
+    { return static_cast<int>( std::clamp( value, 0.0, static_cast<double>( size ) ) ); };
+    shift.firstRow = bound( std::floor( firstRow + shift.rowShift ) - 4, prepared.rows() );
+    shift.firstColumn = bound( std::floor( firstColumn + shift.columnShift ) - 4, prepared.cols() );
+    const int endRow = bound( std::ceil( firstRow + cropRows + shift.rowShift ) + 4, prepared.rows() );
+    const int endColumn = bound( std::ceil( firstColumn + cropColumns + shift.columnShift ) + 4, prepared.cols() );
+    shift.pixels.resize( endRow - shift.firstRow, endColumn - shift.firstColumn );
+    for( int column = shift.firstColumn; column < endColumn; ++column )
+    {
+        for( int row = shift.firstRow; row < endRow; ++row )
+        {
+            shift.pixels( row - shift.firstRow, column - shift.firstColumn ) =
+                shiftedValue( prepared, shift, row, column );
+        }
+    }
+}
+
 float P4TrialSource::sample( std::size_t frame, const P4PixelGridf::interpolationRecordT &record ) const
 {
+    if( !configured() )
+    {
+        throw std::logic_error( "P4 local trial source is not configured" );
+    }
+    const int footprintRow = record.footprintRow();
+    const int footprintColumn = record.footprintColumn();
+    if( frame >= m_sourceShifts.front().size() || footprintRow < 0 || footprintColumn < 0 ||
+        footprintRow > m_template.rows() - P4PixelGridf::width ||
+        footprintColumn > m_template.cols() - P4PixelGridf::width )
+    {
+        throw std::out_of_range( "P4 local trial-source sample index is out of range" );
+    }
+    bool overlaps = false;
+    for( const auto &shifts : m_sourceShifts )
+    {
+        const auto &shift = shifts[frame];
+        overlaps = overlaps || ( shift.pixels.size() != 0 && footprintRow < shift.firstRow + shift.pixels.rows() &&
+                                 footprintRow + P4PixelGridf::width > shift.firstRow &&
+                                 footprintColumn < shift.firstColumn + shift.pixels.cols() &&
+                                 footprintColumn + P4PixelGridf::width > shift.firstColumn );
+    }
+    if( !overlaps )
+    {
+        return 0;
+    }
+    const auto &kernel = record.kernel();
     float result{ 0 };
     for( int columnOffset = 0; columnOffset < P4PixelGridf::width; ++columnOffset )
     {
         for( int rowOffset = 0; rowOffset < P4PixelGridf::width; ++rowOffset )
         {
-            result += value( frame, record.footprintRow() + rowOffset, record.footprintColumn() + columnOffset ) *
-                      record.kernel()( rowOffset, columnOffset );
+            // Keep value()'s per-pixel scaling and source order without repeating validation or accessor calls.
+            float pixel{ 0 };
+            for( const auto &shifts : m_sourceShifts )
+            {
+                const auto &shift = shifts[frame];
+                const int stampRow = footprintRow + rowOffset - shift.firstRow;
+                const int stampColumn = footprintColumn + columnOffset - shift.firstColumn;
+                if( stampRow >= 0 && stampRow < shift.pixels.rows() && stampColumn >= 0 &&
+                    stampColumn < shift.pixels.cols() )
+                {
+                    pixel += shift.scale * shift.pixels( stampRow, stampColumn );
+                }
+            }
+            result += pixel * kernel( rowOffset, columnOffset );
         }
     }
     return result;
