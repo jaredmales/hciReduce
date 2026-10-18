@@ -28,7 +28,9 @@ struct appHarness : public appT
     using appT::checkConfig;
     using appT::config;
     using appT::execute;
+    using appT::executeBatch;
     using appT::loadConfig;
+    using appT::m_batchFile;
     using appT::m_mode;
     using appT::m_obs;
     using appT::m_optimizeApertureRadius;
@@ -785,6 +787,61 @@ TEST_CASE( "p4Reduce automatic output crop preserves OR input", "[p4Reduce][geom
                           ( outputDirectory / "p4-final_outputs_000_00000.fits" ).string() ) == mx::error_t::noerror );
     REQUIRE( derotatedResidual.rows() == 21 );
     REQUIRE( derotatedResidual.cols() == 21 );
+}
+
+/** \brief Verify p4Reduce::executeBatch() reads quoted output paths, writes a pristine baseline and complete full-field
+ * products through P4Reduction::reduceInjectionBatch(), and rejects malformed lists and conflicting dispatch.
+ * \ingroup p4Reduce_unit_tests
+ */
+TEST_CASE( "p4Reduce injection batch FITS dispatch", "[p4Reduce][batch][FITS]" )
+{
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    writeTarget( directory.file( "target_000.fits" ), 1, -5 );
+    writeTarget( directory.file( "target_001.fits" ), 2, 0 );
+    writeTarget( directory.file( "target_002.fits" ), 3, 6 );
+    HCIobservationTestHarness::imageT source = HCIobservationTestHarness::imageT::Zero( 31, 31 );
+    source( 15, 15 ) = 1;
+    const auto sourcePath = directory.file( "source.fits" );
+    writeFitsImage( sourcePath, source );
+    const auto listPath = directory.file( "trials.txt" );
+    const auto trialPath = directory.file( "with spaces/injected.fits" );
+    std::ostringstream rows;
+    rows << "5.4 35 0.1 " << std::quoted( trialPath.string() ) << '\n';
+    writeTextFile( listPath, rows.str() );
+    const auto configuration = directory.file( "batch.conf" );
+    writeTextFile( configuration,
+                   p4Configuration( directory.path(), directory.file( "out" ), "normal", false ) +
+                       "[fake]\nmethod=single\nfileName=" + sourcePath.string() +
+                       "\nsep=5.4\nPA=35\ncontrast=0.1\n[p4Batch]\nfile=" + listPath.string() + "\nsourceSize=10\n" );
+    appHarness application;
+    std::string invoked = "p4Reduce-test", option = "--config", configPath = configuration.string();
+    char *arguments[]{ invoked.data(), option.data(), configPath.data() };
+    REQUIRE( application.main( 3, arguments ) == 0 );
+    REQUIRE( std::filesystem::exists( directory.file( "out/p4-final.fits" ) ) );
+    REQUIRE( std::filesystem::exists( trialPath.string() + ".complete" ) );
+    mx::improc::eigenCube<float> output;
+    mx::fits::fitsHeader<mx::verbose::vv> header;
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+    REQUIRE( reader.read( output, header, trialPath.string() ) == mx::error_t::noerror );
+    REQUIRE( output.rows() == 20 );
+    REQUIRE( output.cols() == 20 );
+    REQUIRE( header["P4 BATCH ROLE"].value<std::string>() == "INJECTION" );
+    REQUIRE( header["P4 BATCH CROP ROWS"].value<int>() == 11 );
+    REQUIRE( application.m_obs.m_fakeContrast == std::vector<float>{ 0.1F } );
+    writeTextFile( listPath, "separation PA contrast path\n" );
+    REQUIRE_THROWS_WITH( application.executeBatch(), Catch::Contains( "at line 1" ) );
+    application.m_optimizeEnabled = true;
+    REQUIRE_THROWS( application.checkConfig() );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    p4Reduce app;
+    app.executeBatch();
+    mx::improc::P4Reductionf reduction;
+    reduction.reduceInjectionBatch( outputs, sourceSize, fullRefit, keepGoing );
+#endif
+    // clang-format on
 }
 
 /// Verify p4Reduce runs an opt-in contrast search in memory and writes only named final optimizer products.

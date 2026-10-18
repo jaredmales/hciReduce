@@ -70,6 +70,9 @@
  * Invalid input pixels (NaN or infinity), including unsupported PSF-filter outputs, are excluded from the noise
  * profiles and aperture measurements and written as NaN in the SNR map. Signal-exclusion circles affect only the
  * noise profiles; valid pixels inside them retain their SNR values. Finite zero-valued inputs remain valid pixels.
+ * An aperture with no valid pixels reports `nan` SNR for that signal and plane, with a warning naming the input,
+ * plane, and signal. Other signals and planes are still measured, and this missing measurement is not a fatal
+ * configuration error. An aperture or exclusion mask entirely outside the image remains a configuration error.
  *
  * hciAnalyze corrects the raw radial-noise SNR for the small number of independent resolution elements at close
  * separations following Mawet et al. (2014) \cite mawet_2014. For pixel radius \f$r_{\rm pix}\f$ and configured

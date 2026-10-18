@@ -241,6 +241,9 @@ class P4TrialSource
     /// Return the actual phase-preserving internal crop column count.
     int cropColumns() const noexcept;
 
+    /// Return the union of nonzero detector perturbations over every source and physical frame.
+    imageT supportMask() const;
+
     /// Return the prepared trial perturbation at one integer detector pixel.
     float value( std::size_t frame, /**< [in] zero-based target frame */
                  int row,           /**< [in] integer detector row */
@@ -278,6 +281,12 @@ class P4TrialSource
 
     std::vector<std::vector<FrameShift>> m_sourceShifts; ///< Per-source prepared shifts and scales for each frame.
 };
+
+/// Select valid detector fits whose target or retained OR stencil touches the supplied source-support union.
+/** \ingroup programming_library */
+std::vector<std::uint8_t>
+p4AffectedSearches( const P4PixelGridf &grid, /**< [in] complete masked annular geometry */
+                    const P4TrialSource::imageT &support /**< [in] detector-sized nonzero source-support union */ );
 
 } // namespace improc
 } // namespace mx

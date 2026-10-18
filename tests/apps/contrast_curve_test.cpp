@@ -67,7 +67,8 @@ TEST_CASE( "Contrast curve reduction workflow", "[contrast_curve]" )
     // clang-format on
 }
 
-/** \brief Verify contrast_curve.py records failures, reuses completed reductions, and reports incomplete PA coverage.
+/** \brief Verify contrast_curve.py records failures, reuses completed reductions, and counts NaN aperture SNRs
+ * separately by mode when reporting incomplete PA coverage.
  */
 TEST_CASE( "Contrast curve failed and incomplete measurements", "[contrast_curve]" )
 {
@@ -77,6 +78,23 @@ TEST_CASE( "Contrast curve failed and incomplete measurements", "[contrast_curve
 #ifdef __DOXY_ONLY__
     contrast_curve::run_trial( plan, root, trial, resume );
     contrast_curve::summarize( plan, results );
+#endif
+    // clang-format on
+}
+
+/** \brief Verify contrast_curve.py run_batch() uses one P4 process, preserves completed products after failure,
+ * and resumes missing reductions and analyses independently.
+ */
+TEST_CASE( "Contrast curve P4 baseline reuse and batch recovery", "[contrast_curve][batch]" )
+{
+    REQUIRE( runCheck( "batch" ) == 0 );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    contrast_curve::batch_command( plan, root, keep_going );
+    contrast_curve::batch_row( root, trial );
+    contrast_curve::run_batch( plan, root, trials, resume, keep_going );
+    contrast_curve::run_trial( plan, root, trial, resume, batch_error );
 #endif
     // clang-format on
 }

@@ -13,6 +13,7 @@
 #include <iostream>
 #include <limits>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -35,6 +36,14 @@ class p4Reduce : public mx::app::application
     bool m_showTiming{ false };     ///< Whether to print the completed reduction timing report.
 
     mx::improc::P4Reductionf m_obs; ///< Configured P4 observation and reduction state.
+
+    std::string m_batchFile;        ///< Ordered injection list; empty preserves ordinary single-reduction dispatch.
+
+    int m_batchSourceSize{ 10 };    ///< Nominal centered source crop, independent of the full output field.
+
+    bool m_batchFullRefit{ false }; ///< Recompute every target for a reference run with the identical cropped source.
+
+    bool m_batchKeepGoing{ false }; ///< Attempt later injections after a trial failure, returning failure afterward.
 
     /** \name P4 Negative-Companion Optimization - Data
      * @{
@@ -925,6 +934,9 @@ class p4Reduce : public mx::app::application
                    : EXIT_FAILURE;
     }
 
+    /// Read the ordered injection list and execute one shared-baseline batch.
+    int executeBatch();
+
   public:
     /// Construct the application with its standard configuration paths.
     p4Reduce()
@@ -938,6 +950,42 @@ class p4Reduce : public mx::app::application
     /// Register application dispatch and P4 reduction configuration targets.
     void setupConfig() override
     {
+        config.add( "p4Batch.file",
+                    "",
+                    "p4Batch.file",
+                    mx::app::argType::Required,
+                    "p4Batch",
+                    "file",
+                    false,
+                    "string",
+                    "injection list: separation PA contrast quoted-output-path, one trial per line" );
+        config.add( "p4Batch.sourceSize",
+                    "",
+                    "p4Batch.sourceSize",
+                    mx::app::argType::Required,
+                    "p4Batch",
+                    "sourceSize",
+                    false,
+                    "int",
+                    "nominal centered source crop width; default 10" );
+        config.add( "p4Batch.fullRefit",
+                    "",
+                    "p4Batch.fullRefit",
+                    mx::app::argType::Optional,
+                    "p4Batch",
+                    "fullRefit",
+                    false,
+                    "bool",
+                    "refit all targets to validate sparse injection results" );
+        config.add( "p4Batch.keepGoing",
+                    "",
+                    "p4Batch.keepGoing",
+                    mx::app::argType::Optional,
+                    "p4Batch",
+                    "keepGoing",
+                    false,
+                    "bool",
+                    "continue after failed injections, then return failure" );
         config.add( "mode",
                     "",
                     "mode",
@@ -1092,6 +1140,10 @@ class p4Reduce : public mx::app::application
     void loadConfig() override
     {
         m_obs.loadConfig( config );
+        config( m_batchFile, "p4Batch.file" );
+        config( m_batchSourceSize, "p4Batch.sourceSize" );
+        mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_batchFullRefit, "p4Batch.fullRefit" );
+        mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_batchKeepGoing, "p4Batch.keepGoing" );
         config( m_mode, "mode" );
         mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_showTiming, "showTiming" );
         mx::improc::loadBoolConfig<mx::verbose::vv>( config, m_optimizeEnabled, "p4Optimize.enabled" );
@@ -1179,6 +1231,10 @@ class p4Reduce : public mx::app::application
                                                   "invalid p4Reduce mode: " + m_mode +
                                                       "; supported modes are basic and normal" );
         }
+        if( !m_batchFile.empty() && ( m_optimizeEnabled || m_batchSourceSize <= 0 ) )
+        {
+            throw std::invalid_argument( "P4 injection batches require a positive source size and disabled optimizer" );
+        }
         if( !m_optimizeEnabled )
         {
             return;
@@ -1252,6 +1308,10 @@ class p4Reduce : public mx::app::application
      */
     int execute() override
     {
+        if( !m_batchFile.empty() )
+        {
+            return executeBatch();
+        }
         if( m_optimizeEnabled )
         {
             return executeOptimizer();
@@ -1264,6 +1324,46 @@ class p4Reduce : public mx::app::application
         return result;
     }
 };
+
+int p4Reduce::executeBatch()
+{
+    std::ifstream input( m_batchFile );
+    if( !input )
+    {
+        throw std::invalid_argument( "could not open P4 injection list " + m_batchFile );
+    }
+    std::vector<mx::improc::P4InjectionOutput> outputs;
+    std::string line;
+    std::size_t number = 0;
+    while( std::getline( input, line ) )
+    {
+        ++number;
+        if( line.find_first_not_of( " \t\r" ) == std::string::npos )
+        {
+            continue;
+        }
+        std::istringstream fields( line );
+        mx::improc::P4InjectionOutput output;
+        if( !( fields >> output.trial.separation >> output.trial.positionAngle >> output.trial.contrast >>
+               std::quoted( output.fileName ) ) ||
+            !( fields >> std::ws ).eof() )
+        {
+            throw std::invalid_argument( "invalid P4 injection list " + m_batchFile + " at line " +
+                                         std::to_string( number ) + "; expected separation PA contrast quoted-path" );
+        }
+        outputs.push_back( std::move( output ) );
+    }
+    if( input.bad() )
+    {
+        throw std::runtime_error( "could not finish reading P4 injection list " + m_batchFile );
+    }
+    m_obs.reduceInjectionBatch( outputs, m_batchSourceSize, m_batchFullRefit, m_batchKeepGoing );
+    if( m_showTiming )
+    {
+        m_obs.dump_times();
+    }
+    return 0;
+}
 
 /// Run p4Reduce with command-line exception reporting.
 /** The application framework's help status is normalized to `EXIT_SUCCESS`; any reduction status is otherwise

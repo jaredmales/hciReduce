@@ -1428,7 +1428,7 @@ void P4Reduction<realT, derotFunctObj, verboseT>::loadConfig( mx::app::appConfig
 template <typename realT, class derotFunctObj, class verboseT>
 bool P4Reduction<realT, derotFunctObj, verboseT>::deferTargetFakeInjection() const
 {
-    return m_localStampSize > 0;
+    return m_localStampSize > 0 || m_injectionBatch.has_value();
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
@@ -3522,6 +3522,152 @@ void P4Reduction<realT, derotFunctObj, verboseT>::writeLocalValidity( const std:
 }
 
 template <typename realT, class derotFunctObj, class verboseT>
+void P4Reduction<realT, derotFunctObj, verboseT>::reduceInjectionBatch( const std::vector<P4InjectionOutput> &outputs,
+                                                                        int sourceSize,
+                                                                        bool fullRefit,
+                                                                        bool keepGoing )
+{
+    if( m_injectionBatch || outputs.empty() || sourceSize <= 0 )
+    {
+        throw std::invalid_argument( "P4 injection batch requires nonempty trials and a positive source size" );
+    }
+    if( m_regressionFrame != P4RegressionFrame::detector || m_localStampSize != 0 ||
+        m_temporalPredictor == P4TemporalPredictor::pcat || this->m_combineMethod == HCI::combine::none ||
+        this->m_doOutputPSFSub || this->m_preProcess_only || this->m_subtractPlanet || !m_psfFile.empty() ||
+        m_outputPSFModels || m_psfFilter || this->m_fakeMethod != HCI::fake::single || this->m_fakeFileName.empty() )
+    {
+        throw std::invalid_argument(
+            "P4 injection batch requires detector regression, full-field combined output and fake.method=single; "
+            "PCAT, local stamps, fixed planet subtraction, preprocessing-only, per-frame output and PSF products "
+            "are unsupported" );
+    }
+    if( !this->m_skipPreProcess &&
+        ( this->m_coaddMethod != HCI::coadd::none || this->m_preProcess_subradprof ||
+          this->m_preProcess_medianUSM_fwhm != 0 || this->m_preProcess_gaussUSM_fwhm != 0 ||
+          this->m_preProcess_azUSM_azHalfWidth != 0 || this->m_preProcess_azUSM_radHalfWidth != 0 ||
+          this->m_preProcess_meanSubMethod != HCI::meanSub::none ||
+          this->m_preProcess_pixelTSNormMethod != HCI::pixelTSNorm::none ) )
+    {
+        throw std::invalid_argument(
+            "P4 injection batch requires mask-only preprocessing without coadding, or preProcess.skip=true "
+            "with a template calibrated for the prepared input stage" );
+    }
+
+    namespace fs = std::filesystem;
+    std::vector<fs::path> paths{ fs::absolute( this->finalImageOutputPath() ).lexically_normal() };
+    for( const auto &output : outputs )
+    {
+        if( output.fileName.empty() || !mx::math::isFinite( output.trial.separation ) || output.trial.separation < 0 ||
+            !mx::math::isFinite( output.trial.positionAngle ) || !mx::math::isFinite( output.trial.contrast ) ||
+            !mx::math::isFinite( static_cast<realT>( output.trial.separation ) ) ||
+            !mx::math::isFinite( static_cast<realT>( output.trial.positionAngle ) ) ||
+            !mx::math::isFinite( static_cast<realT>( output.trial.contrast ) ) )
+        {
+            throw std::invalid_argument( "P4 injection trial needs finite float-representable parameters and a path" );
+        }
+        const fs::path path = fs::absolute( output.fileName ).lexically_normal();
+        if( std::find( paths.begin(), paths.end(), path ) != paths.end() )
+        {
+            throw std::invalid_argument( "P4 injection paths must be unique and distinct from the baseline" );
+        }
+        paths.push_back( path );
+    }
+
+    const auto configuredSeparation = this->m_fakeSep;
+    const auto configuredPA = this->m_fakePA;
+    const auto configuredContrast = this->m_fakeContrast;
+    const auto configuredDirectory = this->m_outputDir;
+    const auto configuredName = this->m_finimName;
+    const auto configuredExact = this->m_exactFinimName;
+    const auto configuredWrite = this->m_doWriteFinim;
+    const auto restore = [&]()
+    {
+        this->m_fakeSep = configuredSeparation;
+        this->m_fakePA = configuredPA;
+        this->m_fakeContrast = configuredContrast;
+        this->m_outputDir = configuredDirectory;
+        this->m_finimName = configuredName;
+        this->m_exactFinimName = configuredExact;
+        this->m_doWriteFinim = configuredWrite;
+        m_injectionBatch.reset();
+    };
+    try
+    {
+        m_injectionBatch.emplace();
+        m_injectionBatch->sourceSize = sourceSize;
+        m_injectionBatch->fullRefit = fullRefit;
+        m_injectionBatch->automaticOutput = this->m_imSize == 0;
+        mx::fits::fitsFile<realT, verboseT> reader;
+        const auto readResult = reader.read( m_injectionBatch->sourceTemplate, this->m_fakeFileName );
+        if( readResult != mx::error_t::noerror )
+        {
+            throw mx::exception<verboseT>( readResult, "could not read P4 batch source template" );
+        }
+        this->m_fakeSep = { static_cast<realT>( outputs.front().trial.separation ) };
+        this->m_fakePA = { static_cast<realT>( outputs.front().trial.positionAngle ) };
+        this->m_fakeContrast = { 0 };
+        this->m_doWriteFinim = true;
+        std::cerr << "P4 injection batch: computing uninjected baseline\n";
+        if( reduce() != 0 )
+        {
+            throw std::runtime_error( "P4 injection baseline reduction failed" );
+        }
+        m_injectionBatch->ready = true;
+        std::size_t failures = 0;
+        for( std::size_t index = 0; index < outputs.size(); ++index )
+        {
+            const auto &output = outputs[index];
+            const fs::path &path = paths[index + 1];
+            const fs::path marker = path.string() + ".complete";
+            std::cerr << "P4 injection trial " << index + 1 << " / " << outputs.size() << ": " << path << '\n';
+            try
+            {
+                fs::create_directories( path.parent_path() );
+                fs::remove( marker );
+                this->m_outputDir = path.parent_path().string();
+                this->m_finimName = path.filename().string();
+                this->m_exactFinimName = true;
+                this->m_fakeSep = { static_cast<realT>( output.trial.separation ) };
+                this->m_fakePA = { static_cast<realT>( output.trial.positionAngle ) };
+                this->m_fakeContrast = { static_cast<realT>( output.trial.contrast ) };
+                if( reduce() != 0 )
+                {
+                    throw std::runtime_error( "P4 injection trial reduction failed" );
+                }
+                const fs::path temporary = marker.string() + ".tmp";
+                std::ofstream completed( temporary );
+                completed << "complete\n";
+                completed.close();
+                if( !completed )
+                {
+                    throw std::runtime_error( "could not write P4 injection completion marker" );
+                }
+                fs::rename( temporary, marker );
+            }
+            catch( const std::exception &error )
+            {
+                ++failures;
+                std::cerr << "P4 injection failed for " << path << ": " << error.what() << '\n';
+                if( !keepGoing )
+                {
+                    throw;
+                }
+            }
+        }
+        if( failures != 0 )
+        {
+            throw std::runtime_error( std::to_string( failures ) + " P4 injection trials failed" );
+        }
+        restore();
+    }
+    catch( ... )
+    {
+        restore();
+        throw;
+    }
+}
+
+template <typename realT, class derotFunctObj, class verboseT>
 int P4Reduction<realT, derotFunctObj, verboseT>::reduce()
 {
     if( !( this->m_preProcess_only && !this->m_skipPreProcess ) )
@@ -3671,7 +3817,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
 
     m_automaticOutputSize = 0;
     m_automaticDerotationSize = 0;
-    if( !( this->m_preProcess_only && !this->m_skipPreProcess ) && this->m_imSize == 0 )
+    if( !( this->m_preProcess_only && !this->m_skipPreProcess ) &&
+        ( this->m_imSize == 0 || ( m_injectionBatch && m_injectionBatch->automaticOutput ) ) )
     {
         m_automaticOutputSize =
             2 * ( *std::max_element( m_maxRadius.begin(), m_maxRadius.end() ) + p4AutomaticCropPadding );
@@ -3819,7 +3966,9 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     }
 
     const double geometryBegin = omp_get_wtime();
-    std::vector<pixelGridT> grids( m_minRadius.size() );
+    std::vector<pixelGridT> temporaryGrids;
+    auto &grids = m_injectionBatch ? m_injectionBatch->grids : temporaryGrids;
+    grids.resize( m_minRadius.size() );
     std::vector<rotatedGridT> rotatedGrids( m_minRadius.size() );
     m_realizedModes.resize( m_minRadius.size() );
     m_regionStatistics.resize( m_minRadius.size() );
@@ -3833,8 +3982,8 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
     const bool usesPCAT = m_temporalPredictor == P4TemporalPredictor::pcat;
     const std::vector<P4PixelCoordinate> temporalPredictorOffsets = p4TemporalPredictorOffsets( m_psfRadius );
     std::vector<double> derotationAngles;
-    if( m_regressionFrame == P4RegressionFrame::rotated || usesNeighborSummary || m_localStampSize > 0 ||
-        m_excludeMethod == HCI::exclude::pixel || m_excludeMethod == HCI::exclude::angle ||
+    if( m_injectionBatch || m_regressionFrame == P4RegressionFrame::rotated || usesNeighborSummary ||
+        m_localStampSize > 0 || m_excludeMethod == HCI::exclude::pixel || m_excludeMethod == HCI::exclude::angle ||
         m_psfSamplingMode == P4PSFSamplingMode::detectorLocal ||
         m_psfSamplingMode == P4PSFSamplingMode::refitDifference || m_psfSamplingMode == P4PSFSamplingMode::analytic )
     {
@@ -3870,13 +4019,18 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                m_exclusionRadiusBuffer );
         try
         {
-            grids[region].resize( this->m_Nrows, this->m_Ncols );
-            if( m_regressionFrame == P4RegressionFrame::detector )
+            if( m_injectionBatch && m_injectionBatch->ready )
             {
+                // The batch owns immutable full-annulus geometry, including mask-filtered predictors.
+            }
+            else if( m_regressionFrame == P4RegressionFrame::detector )
+            {
+                grids[region].resize( this->m_Nrows, this->m_Ncols );
                 grids[region].region( configuration, mask );
             }
             else
             {
+                grids[region].resize( this->m_Nrows, this->m_Ncols );
                 grids[region].candidateRegion( configuration );
                 rotatedGrids[region].configure( grids[region], derotationAngles, mask );
                 grids[region] = pixelGridT();
@@ -4229,6 +4383,67 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
         }
     }
 
+    std::vector<std::vector<std::uint8_t>> batchAffected;
+    const P4TrialSource *batchSource = nullptr;
+    if( m_injectionBatch )
+    {
+        auto &batch = *m_injectionBatch;
+        if( !batch.ready )
+        {
+            if( !this->m_skipPreProcess && this->m_preProcess_mask &&
+                !( ( this->m_mask == 0 ) || ( this->m_mask == 1 ) ).all() )
+            {
+                throw std::invalid_argument( "P4 injection batch mask preprocessing requires a binary input mask" );
+            }
+            batch.scales = localTrialScales();
+        }
+        P4TrialSource source;
+        source.configure( batch.sourceTemplate,
+                          this->m_Nrows,
+                          this->m_Ncols,
+                          batch.sourceSize,
+                          derotationAngles,
+                          this->m_fakeSep.at( 0 ),
+                          this->m_fakePA.at( 0 ),
+                          this->m_fakeContrast.at( 0 ),
+                          batch.scales );
+        batch.cropRows = source.cropRows();
+        batch.cropColumns = source.cropColumns();
+        batch.refitCount = 0;
+        if( batch.ready )
+        {
+            batch.source = std::move( source );
+            batchSource = &*batch.source;
+            const imageT support = batchSource->supportMask();
+            batchAffected.reserve( grids.size() );
+            for( const auto &grid : grids )
+            {
+                auto affected = p4AffectedSearches( grid, support );
+                for( std::size_t search = 0; search < affected.size(); ++search )
+                {
+                    if( batch.fullRefit && grid.searchPixel( search ).valid() )
+                    {
+                        affected[search] = 1;
+                    }
+                    batch.refitCount += affected[search];
+                }
+                batchAffected.push_back( std::move( affected ) );
+            }
+            std::cerr << "P4 injection: refitting " << batch.refitCount << " / " << totalSearchPixels
+                      << " detector targets (direct source and retained OR dependencies)\n";
+        }
+        else
+        {
+            for( const auto &grid : grids )
+            {
+                for( std::size_t search = 0; search < grid.searchPixelCount(); ++search )
+                {
+                    batch.refitCount += grid.searchPixel( search ).valid();
+                }
+            }
+        }
+    }
+
     const bool compactFinalization = this->m_combineMethod != HCI::combine::none && !this->m_doOutputPSFSub;
     using compactResidualT = Eigen::Array<realT, Eigen::Dynamic, Eigen::Dynamic>;
     using compactValidityT = Eigen::Array<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>;
@@ -4354,6 +4569,14 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
             m_compactResidualBytes += residualBytes + validityBytes;
         }
 
+        if( m_injectionBatch )
+        {
+            if( m_compactResidualBytes > std::numeric_limits<std::size_t>::max() / 2 )
+            {
+                throw std::overflow_error( "P4 baseline and trial residual storage exceeds size_t" );
+            }
+            m_compactResidualBytes *= 2; // Include the immutable baseline as well as the active trial.
+        }
         const long double materializationBytes = 2.0L * static_cast<long double>( this->m_Nrows ) *
                                                  static_cast<long double>( this->m_Ncols ) *
                                                  static_cast<long double>( this->m_Nims ) * sizeof( realT );
@@ -4396,7 +4619,23 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                              static_cast<Eigen::Index>( compactColumnCount ) );
             compactValidity[region].resize( static_cast<Eigen::Index>( statistics.targetImageCount ),
                                             static_cast<Eigen::Index>( compactColumnCount ) );
+            compactResiduals[region].setZero();
             compactValidity[region].setZero();
+            if( m_injectionBatch && m_injectionBatch->ready )
+            {
+                compactResiduals[region] = m_injectionBatch->residuals.at( region );
+                compactValidity[region] = m_injectionBatch->validity.at( region );
+                for( std::size_t search = 0; search < statistics.searchPixelCount; ++search )
+                {
+                    if( batchAffected[region][search] )
+                    {
+                        // A refit may lose support; never retain a formerly valid baseline sample.
+                        compactValidity[region]
+                            .middleCols( search * m_modeFractions.size(), m_modeFractions.size() )
+                            .setZero();
+                    }
+                }
+            }
         }
     }
     else
@@ -4725,6 +4964,11 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                 {
                     try
                     {
+                        if( batchSource && !batchAffected[region][search] )
+                        {
+                            progressWatcher.incrementAndOutputStatus();
+                            continue;
+                        }
                         const bool searchValid =
                             rotated ? rotatedGrid.searchPixel( search ).valid() : grid.searchPixel( search ).valid();
                         const P4PixelCoordinate &coordinate = rotated ? rotatedGrid.searchPixel( search ).coordinate()
@@ -4798,7 +5042,7 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                                               exclusions,
                                                               nullptr,
                                                               nullptr,
-                                                              nullptr,
+                                                              batchSource,
                                                               &temporalPCA,
                                                               &temporalPCAWorkspace );
                             }
@@ -5263,6 +5507,12 @@ int P4Reduction<realT, derotFunctObj, verboseT>::regions( const std::vector<real
                                       firstOutput,
                                       outputCount );
         }
+    }
+
+    if( m_injectionBatch && !m_injectionBatch->ready )
+    {
+        m_injectionBatch->residuals = compactResiduals;
+        m_injectionBatch->validity = compactValidity;
     }
 
     fitsHeaderT finalHeader;
@@ -7861,6 +8111,23 @@ void P4Reduction<realT, derotFunctObj, verboseT>::appendReductionHeader( fitsHea
         head.template append<std::string>( "P4 PCAT CENTERING",
                                            pcatCenteringString( m_pcatCentering ),
                                            "reference-series centering policy" );
+    }
+    if( m_injectionBatch )
+    {
+        const auto &batch = *m_injectionBatch;
+        head.template append<std::string>( "P4 BATCH ROLE", batch.ready ? "INJECTION" : "BASELINE", "batch product" );
+        head.template append<int>( "P4 BATCH SOURCE SIZE", batch.sourceSize, "nominal centered source crop width" );
+        head.template append<int>( "P4 BATCH FULL REFIT",
+                                   batch.fullRefit,
+                                   "reference run refits every detector target" );
+        head.template append<std::string>( "P4 BATCH REFIT COUNT",
+                                           std::to_string( batch.refitCount ),
+                                           "direct and OR-affected detector fits" );
+        head.template append<int>( "P4 BATCH CROP ROWS", batch.cropRows, "actual phase-preserving crop" );
+        head.template append<int>( "P4 BATCH CROP COLS", batch.cropColumns, "actual phase-preserving crop" );
+        head.template append<std::string>( "P4 BATCH INJECTION STAGE",
+                                           "POST_PREPROCESS_P4_INPUT",
+                                           "template calibration stage" );
     }
     head.template append<int>( "P4 LOCAL STAMP SIZE", m_localStampSize, "pixel-local sky result width; zero disables" );
     if( m_localStampSize > 0 )

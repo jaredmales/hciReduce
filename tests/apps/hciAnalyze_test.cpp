@@ -842,6 +842,109 @@ TEST_CASE( "hciAnalyze preserves the SNR validity mask", "[hciAnalyze][snr][mask
     // clang-format on
 }
 
+/** \brief Verify hciAnalyze::execute() and analyzeCube() retain all signal/mode rows with NaN for unsupported
+ * apertures, including an entirely invalid plane, while measuring other signals and preserving the SNR mask.
+ * \ingroup hciAnalyze_unit_tests
+ */
+TEST_CASE( "hciAnalyze reports missing aperture support without aborting", "[hciAnalyze][snr][mask][missing]" )
+{
+    const bool filtered = GENERATE( false, true );
+    TestDirectory directory;
+    appHarness application;
+    application.m_file = directory.file( "partial.fits" ).string();
+    application.m_snrMinRadius = 1;
+    application.m_snrMaxRadius = 8;
+    application.m_snrApertureRadius = 1;
+    application.m_planetSeparation = { 5, 5 };
+    application.m_planetPositionAngle = { 0, 180 };
+    application.m_planetRadius = { 1, 1 };
+    application.m_planetSpecified = true;
+    application.m_lowPassFwhm = filtered ? 2 : 0;
+    hciAnalyze::cubeT cube( 21, 21, 3 );
+    for( int plane = 0; plane < cube.planes(); ++plane )
+    {
+        for( int column = 0; column < cube.cols(); ++column )
+        {
+            for( int row = 0; row < cube.rows(); ++row )
+            {
+                cube.image( plane )( row, column ) = static_cast<float>( 5 + ( row + 2 * column + plane ) % 7 );
+            }
+        }
+    }
+    cube.image( 0 ).block( 7, 12, 7, 7 ).setConstant( std::numeric_limits<float>::quiet_NaN() );
+    cube.image( 2 ).setConstant( std::numeric_limits<float>::quiet_NaN() );
+    hciAnalyze::fitsHeaderT header;
+    REQUIRE( header.append<std::string>( "P4 MODE FRACTIONS", "0.1,0.5,0.9", "modes" ) == mx::error_t::noerror );
+    writeFitsCube( directory.file( "partial.fits" ), cube, &header );
+    std::string warnings;
+    {
+        ErrorCapture errors;
+        REQUIRE( application.execute() == EXIT_SUCCESS );
+        warnings = errors.str();
+    }
+    REQUIRE( application.m_results.size() == 6 );
+    for( int plane = 0; plane < 3; ++plane )
+    {
+        for( int signal = 0; signal < 2; ++signal )
+        {
+            const auto &result = application.m_results[2 * plane + signal];
+            REQUIRE( result.m_plane == plane );
+            REQUIRE( result.m_signal == signal );
+            REQUIRE( result.m_mode == Approx( 0.1 + 0.4 * plane ) );
+            const bool missing = plane == 2 || ( plane == 0 && signal == 0 );
+            REQUIRE( std::isnan( result.m_snr ) == missing );
+            if( !missing )
+            {
+                REQUIRE( std::isfinite( result.m_snr ) );
+            }
+        }
+    }
+    REQUIRE( warnings.find( application.m_file + ": plane 0, signal 0" ) != std::string::npos );
+    REQUIRE( warnings.find( "plane 2, signal 1" ) != std::string::npos );
+    REQUIRE( warnings.find( "reporting NaN SNR" ) != std::string::npos );
+    hciAnalyze::cubeT snrCube;
+    mx::fits::fitsFile<float, mx::verbose::vv> reader;
+    REQUIRE( reader.read( snrCube, directory.file( "partial_snr.fits" ).string() ) == mx::error_t::noerror );
+    REQUIRE( std::isnan( snrCube.image( 0 )( 10, 15 ) ) );
+    REQUIRE( std::isfinite( snrCube.image( 1 )( 10, 15 ) ) );
+    REQUIRE( snrCube.image( 2 ).isNaN().all() );
+
+    // Removing the unsupported plane must leave every supported measurement bit-for-bit unchanged.
+    const auto mixedResults = application.m_results;
+    hciAnalyze::cubeT supportedCube( 21, 21, 2 );
+    supportedCube.image( 0 ) = cube.image( 0 );
+    supportedCube.image( 1 ) = cube.image( 1 );
+    application.m_file = directory.file( "supported.fits" ).string();
+    REQUIRE_NOTHROW( application.analyzeCube( supportedCube, header ) );
+    REQUIRE( application.m_results.size() == 4 );
+    for( size_t index = 0; index < application.m_results.size(); ++index )
+    {
+        if( std::isnan( mixedResults[index].m_snr ) )
+        {
+            REQUIRE( std::isnan( application.m_results[index].m_snr ) );
+        }
+        else
+        {
+            REQUIRE( application.m_results[index].m_snr == mixedResults[index].m_snr );
+        }
+    }
+    hciAnalyze::cubeT emptyCube( 21, 21, 1 );
+    emptyCube.cube().setConstant( std::numeric_limits<float>::quiet_NaN() );
+    application.m_file = directory.file( "unsupported.fits" ).string();
+    REQUIRE_NOTHROW( application.analyzeCube( emptyCube, header ) );
+    REQUIRE( application.m_results.size() == 2 );
+    REQUIRE( std::isnan( application.m_results[0].m_snr ) );
+    REQUIRE( std::isnan( application.m_results[1].m_snr ) );
+
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    hciAnalyze doxygenApplication;
+    doxygenApplication.execute();
+    doxygenApplication.analyzeCube( cube, header );
+#endif
+    // clang-format on
+}
+
 /** \brief Verify hciAnalyze validates and loads covariance geometry and regularization options.
  * \ingroup hciAnalyze_unit_tests
  */

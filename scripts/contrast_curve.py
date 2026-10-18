@@ -36,6 +36,7 @@ SNR_HEADER = "plane mode signal separation position_angle contrast snr"
 REDUCTION_OWNED = {
     "config", "mode", "preProcess.only", "fake.sep", "fake.PA", "fake.contrast",
     "output.directory", "output.fileName", "output.exactFName",
+    "p4Batch.file", "p4Batch.sourceSize", "p4Batch.keepGoing",
 }
 ## Analysis options controlled by the script to measure the requested injection.
 ANALYSIS_OWNED = {
@@ -136,8 +137,14 @@ def make_plan(args: argparse.Namespace) -> dict:
     reducer = args.reducer or (selected[0] if len(selected) == 1 else None)
     if reducer is None:
         raise ValueError("cannot infer reducer from config; specify --reducer")
+    if args.p4_batch and reducer != "p4Reduce":
+        raise ValueError("--p4-batch requires p4Reduce")
+    if args.p4_source_size <= 0 or (not args.p4_batch and args.p4_source_size != 10):
+        raise ValueError("--p4-source-size must be positive and requires --p4-batch")
     reduce_args = overrides(args.reduce_arg, REDUCTION_OWNED)
     reduction.update(reduce_args)
+    if reduction.get("p4Batch.file"):
+        raise ValueError("the script owns the injection list; use --p4-batch instead of p4Batch.file")
     if not reduction.get("fake.fileName"):
         raise ValueError("fake.fileName must specify the injection PSF in the config or --reduce-arg")
     analysis_text, analysis = read_config(args.analyze_config.resolve()) if args.analyze_config else ("", {})
@@ -175,6 +182,7 @@ def make_plan(args: argparse.Namespace) -> dict:
         "signal_group": "fake" if has_fake else "planet", "radii": radii, "pas": pas,
         "contrasts": contrasts(args, radii), "target_snr": args.target_snr,
         "min_pa_fraction": args.min_pa_fraction,
+        "p4_batch": args.p4_batch, "p4_source_size": args.p4_source_size if args.p4_batch else None,
     }
 
 
@@ -193,6 +201,62 @@ def commands(plan: dict, root: Path, trial: dict) -> tuple[list[str], list[str]]
                             f"{group}.sep": trial["separation"], f"{group}.PA": trial["pa"],
                             f"{group}.contrast": trial["contrast"]})
     return reduce_command, analyze_command
+
+
+## \ingroup programming_library
+def batch_command(plan: dict, root: Path, keep_going: bool = False) -> list[str]:
+    """Build the persistent P4 command, whose configured output is the uninjected baseline."""
+    return [plan["reducer_binary"]["path"], f"--config={root / 'reduction.conf'}"] + cli(plan["reduce_args"]) + cli({
+        "mode": "normal", "preProcess.only": "false", "p4Optimize.enabled": "false",
+        "fake.sep": plan["radii"][0], "fake.PA": plan["pas"][0], "fake.contrast": 0,
+        "output.directory": root, "output.fileName": "baseline.fits", "output.exactFName": "true",
+        "p4Batch.file": root / "batch_trials.txt", "p4Batch.sourceSize": plan["p4_source_size"],
+        "p4Batch.keepGoing": str(keep_going).lower(),
+    })
+
+
+## \ingroup programming_library
+def batch_row(root: Path, trial: dict) -> str:
+    """Serialize a single injection using the C++ batch reader's quoted-path convention."""
+    path = str(root / trial["name"] / "finim.fits")
+    if "\n" in path or "\r" in path:
+        raise ValueError("P4 batch output paths cannot contain newline characters")
+    quoted = '"' + path.replace('\\', '\\\\').replace('"', '\\"') + '"'
+    return f"{trial['separation']!r} {trial['pa']!r} {trial['contrast']!r} {quoted}"
+
+
+## \ingroup programming_library
+def run_batch(plan: dict, root: Path, trials: list[dict], resume: bool, keep_going: bool) -> str | None:
+    """Reduce pending injections in one process and recover individually published products after failure."""
+    pending = []
+    for trial in trials:
+        directory = root / trial["name"]
+        directory.mkdir(exist_ok=True)
+        completed = directory / "result.json"
+        if resume and completed.exists() and json.loads(completed.read_text())["status"] == "ok":
+            continue
+        if resume and (directory / "finim.fits").is_file() and (
+                (directory / "reduction.complete").exists() or (directory / "finim.fits.complete").exists()):
+            (directory / "reduction.complete").touch()
+            continue
+        pending.append(trial)
+    if not pending:
+        return None
+    rows = [batch_row(root, trial) for trial in pending]
+    (root / "batch_trials.txt").write_text("\n".join(rows) + "\n")
+    command = batch_command(plan, root, keep_going)
+    write_json(root / "batch_commands.json", {"reduction": command, "trials": [trial["name"] for trial in pending]})
+    print(f"P4 batch: one baseline plus {len(pending)} injections; progress: {root / 'batch.stderr'}", flush=True)
+    error = None
+    try:
+        run_command(command, plan["reduction_cwd"], root / "batch.stdout")
+    except (OSError, RuntimeError) as exception:
+        error = str(exception)
+    for trial in pending:
+        directory = root / trial["name"]
+        if (directory / "finim.fits").is_file() and (directory / "finim.fits.complete").is_file():
+            (directory / "reduction.complete").touch()
+    return error
 
 
 def parse_snr(text: str, trial: dict) -> list[dict]:
@@ -241,7 +305,7 @@ def run_command(command: list[str], cwd: str, log: Path) -> None:
         raise RuntimeError(f"{Path(command[0]).name} exited {result.returncode}; see {log.with_suffix('.stderr')}")
 
 
-def run_trial(plan: dict, root: Path, trial: dict, resume: bool) -> dict:
+def run_trial(plan: dict, root: Path, trial: dict, resume: bool, batch_error: str | None = None) -> dict:
     """Resume completed analysis, or run the missing stages of one trial."""
     directory = root / trial["name"]
     directory.mkdir(exist_ok=True)
@@ -251,11 +315,18 @@ def run_trial(plan: dict, root: Path, trial: dict, resume: bool) -> dict:
         if result["status"] == "ok":
             return result
     reduce_command, analyze_command = commands(plan, root, trial)
-    write_json(directory / "commands.json", {"reduction": reduce_command, "analysis": analyze_command})
+    write_json(directory / "commands.json", {
+        "reduction": str(root / "batch_commands.json") if plan.get("p4_batch") else reduce_command,
+        "analysis": analyze_command,
+        **({"batch_entry": batch_row(root, trial)} if plan.get("p4_batch") else {}),
+    })
     result = {**trial, "status": "failed", "measurements": []}
     try:
         marker = directory / "reduction.complete"
-        if not (resume and marker.exists() and (directory / "finim.fits").is_file()):
+        if plan.get("p4_batch"):
+            if not (marker.exists() and (directory / "finim.fits").is_file()):
+                raise RuntimeError(batch_error or f"P4 batch did not complete {trial['name']}; see {root / 'batch.stderr'}")
+        elif not (resume and marker.exists() and (directory / "finim.fits").is_file()):
             marker.unlink(missing_ok=True)
             run_command(reduce_command, plan["reduction_cwd"], directory / "reduction.stdout")
             if not (directory / "finim.fits").is_file():
@@ -350,6 +421,8 @@ def argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("config", type=Path, help="klipReduce or p4Reduce configuration")
     parser.add_argument("--reducer", choices=("klipReduce", "p4Reduce"), help="default: infer from configuration")
     parser.add_argument("--reducer-bin", help="path/name of the selected reduction executable")
+    parser.add_argument("--p4-batch", action="store_true", help="reuse one P4 baseline and refit direct/OR-affected targets")
+    parser.add_argument("--p4-source-size", type=int, default=10, help="batch source crop width; default 10, parity preserved")
     parser.add_argument("--analyzer-bin", default="hciAnalyze")
     parser.add_argument("--analyze-config", type=Path)
     parser.add_argument("--reduce-arg", action="append", default=[], metavar="KEY=VALUE")
@@ -385,8 +458,12 @@ def main(argv: list[str] | None = None) -> int:
                   for pi, pa in enumerate(plan["pas"])]
         if args.dry_run:
             print(f"{plan['reducer']}: {len(trials)} reductions and analyses; output: {root}")
+            if plan["p4_batch"]:
+                print(shlex.join(batch_command(plan, root, args.keep_going)))
             for trial in trials:
-                for command in commands(plan, root, trial):
+                if plan["p4_batch"]:
+                    print("# batch trial: " + batch_row(root, trial))
+                for command in commands(plan, root, trial)[1 if plan["p4_batch"] else 0:]:
                     print(shlex.join(command))
             return 0
         if not args.no_plot:
@@ -407,10 +484,11 @@ def main(argv: list[str] | None = None) -> int:
                 write_json(manifest, plan)
                 (root / "reduction.conf").write_text(plan["reduction_config"]["text"])
                 (root / "analysis.conf").write_text(plan["analysis_config"]["text"])
+            batch_error = run_batch(plan, root, trials, args.resume, args.keep_going) if plan["p4_batch"] else None
             results = []
             for index, trial in enumerate(trials, 1):
                 print(f"[{index}/{len(trials)}] r={trial['separation']:g} PA={trial['pa']:g} contrast={trial['contrast']:g}", flush=True)
-                result = run_trial(plan, root, trial, args.resume)
+                result = run_trial(plan, root, trial, args.resume, batch_error)
                 results.append(result)
                 write_outputs(plan, root, results, plot=False)
                 if result["status"] != "ok":

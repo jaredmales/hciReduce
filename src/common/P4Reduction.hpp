@@ -163,6 +163,14 @@ struct P4LocalTrial
     double contrast{ 0 };      ///< Signed source contrast, including zero for the unperturbed baseline.
 };
 
+/// One full-field injection product requested from a shared baseline reduction.
+struct P4InjectionOutput
+{
+    P4LocalTrial trial;   ///< Source parameters, including signed finite contrast.
+
+    std::string fileName; ///< Exact FITS output path; a sibling .complete file records successful publication.
+};
+
 /// P4-facing name for the shared resolved PSF-response sampling grid.
 using P4PSFSamplingGrid = PSFResponseSamplingGrid;
 
@@ -462,6 +470,18 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, pu
      */
     int reduce();
 
+    /// Reduce a pristine baseline once, then refit direct and OR-affected targets for each cropped-source injection.
+    /** Writes the baseline to the configured final-image path and each trial to its exact requested path.
+     * Configuration is fixed for the duration of this call; input pixels never accumulate trial flux.
+     * Non-skipped preprocessing must be binary-mask-only with no coadding. PCAT and frozen-PSF products are
+     * unsupported.
+     */
+    void reduceInjectionBatch(
+        const std::vector<P4InjectionOutput> &outputs, /**< [in] ordered independent source trials and output paths */
+        int sourceSize,         /**< [in] nominal source crop width; grows by one if needed to preserve center parity */
+        bool fullRefit = false, /**< [in] refit all targets for validation against the sparse path */
+        bool keepGoing = false /**< [in] attempt subsequent trials after a failed trial, then report failure */ );
+
     /// Evaluate one local trial without writing intermediate products or changing the configured trial tuple.
     /** The returned cubes own their storage and remain valid after later evaluations. The pristine loaded target cube,
      * file selection, headers, angles, configured fake tuple, and output controls are preserved.
@@ -511,6 +531,38 @@ struct P4Reduction : public ADIobservation<_realT, _derotFunctObj, verboseT>, pu
     int finalProcess( bool reportProgress = true /**< [in] whether to report final-processing stages to stderr */ );
 
   private:
+    /// State owned exclusively by one synchronous injection batch.
+    struct InjectionBatchState
+    {
+        int sourceSize{ 10 };                ///< Nominal source crop, independent of full-field output dimensions.
+
+        int cropRows{ 0 };                   ///< Actual source crop height after preserving center parity.
+
+        int cropColumns{ 0 };                ///< Actual source crop width after preserving center parity.
+
+        bool fullRefit{ false };             ///< Whether to bypass dependency selection for reference runs.
+
+        bool automaticOutput{ false };       ///< Preserve automatic output cropping after input loading sets imSize.
+
+        bool ready{ false };                 ///< Whether an immutable uninjected residual baseline has been saved.
+
+        imageT sourceTemplate;               ///< Input template read once per batch.
+
+        std::vector<realT> scales;           ///< Physical-frame flux scales shared by every trial.
+
+        std::vector<pixelGridT> grids;       ///< Complete annular geometry reused without changing mode normalization.
+
+        std::vector<imageT> residuals;       ///< Baseline time series in search-major/mode-minor compact columns.
+
+        std::vector<psfValidityT> validity;  ///< Immutable per-sample baseline mode support.
+
+        std::optional<P4TrialSource> source; ///< Current perturbation, absent during the baseline fit.
+
+        std::size_t refitCount{ 0 };         ///< Valid detector targets selected for the current trial.
+    };
+
+    std::optional<InjectionBatchState> m_injectionBatch; ///< Cache lifetime is bounded by reduceInjectionBatch().
+
     /** \cond P4Reduction_test_harness */
     friend class P4ReductionTestAccess;
     /** \endcond */

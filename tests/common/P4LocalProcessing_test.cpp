@@ -23,6 +23,72 @@ using geometryT = mx::improc::P4LocalGeometry;
 /// Trial-source image type under test.
 using imageT = mx::improc::P4TrialSource::imageT;
 
+/** \brief Verify P4TrialSource::supportMask() contains every nonzero sample and p4AffectedSearches() includes OR-only
+ * effects while excluding masked targets and retaining unaffected targets.
+ * \ingroup P4LocalProcessing_unit_tests
+ */
+TEST_CASE( "P4 injection support includes retained OR dependencies", "[P4LocalProcessing][batch][mask]" )
+{
+    constexpr int size = 48;
+    imageT sourceTemplate = imageT::Ones( size, size );
+    mx::improc::P4TrialSource source;
+    const std::vector<double> angles{ -0.3, 0.0, 0.45 };
+    source.configure( sourceTemplate, size, size, 4, angles, 9.2, 36, 0.1, { 1, 0, 2 } );
+    const imageT support = source.supportMask();
+    for( int column = 0; column < size; ++column )
+    {
+        for( int row = 0; row < size; ++row )
+        {
+            bool nonzero = false;
+            for( std::size_t frame = 0; frame < angles.size(); ++frame )
+            {
+                nonzero = nonzero || source.value( frame, row, column ) != 0;
+            }
+            REQUIRE( ( support( row, column ) != 0 ) == nonzero );
+        }
+    }
+    imageT mask = imageT::Ones( size, size );
+    mask.block( 16, 20, 3, 3 ).setZero();
+    mx::improc::P4PixelGridf grid;
+    grid.resize( size, size );
+    grid.region( { 2, 16, 2, 3, 4, 60, 1.5, mx::improc::P4ExclusionPolicy::sampleCenter, 0 }, &mask );
+    const auto affected = mx::improc::p4AffectedSearches( grid, support );
+    std::size_t orOnly = 0, untouched = 0;
+    for( std::size_t search = 0; search < grid.searchPixelCount(); ++search )
+    {
+        const auto &pixel = grid.searchPixel( search );
+        const auto &coordinate = pixel.coordinate();
+        if( !pixel.valid() )
+        {
+            REQUIRE( affected[search] == 0 );
+            continue;
+        }
+        bool changed = false;
+        for( std::size_t frame = 0; frame < angles.size(); ++frame )
+        {
+            changed = changed || source.value( frame, coordinate.row(), coordinate.column() ) != 0;
+            for( std::size_t predictor = 0; predictor < grid.predictorCount( search ); ++predictor )
+            {
+                changed = changed || source.sample( frame, grid.interpolation( search, predictor ) ) != 0;
+            }
+        }
+        if( changed )
+        {
+            REQUIRE( affected[search] != 0 );
+            orOnly += support( coordinate.row(), coordinate.column() ) == 0;
+        }
+        untouched += affected[search] == 0;
+    }
+    REQUIRE( orOnly > 0 );
+    REQUIRE( untouched > 0 );
+    source.configure( sourceTemplate, size, size, 4, angles, 9.2, 36, 0, { 1, 1, 1 } );
+    REQUIRE( source.supportMask().sum() == 0 );
+    source.configure( sourceTemplate, size, size, 4, angles, 1e20, 36, 1, { 1, 1, 1 } );
+    REQUIRE( source.supportMask().sum() == 0 );
+    REQUIRE( source.value( 0, 20, 20 ) == 0 );
+    REQUIRE_THROWS( mx::improc::p4AffectedSearches( grid, imageT::Zero( 2, 2 ) ) );
+}
+
 /// Verify the sparse trial-source sampler preserves geometric-center phase and matches production image shifting.
 /** This exercises mx::improc::P4TrialSource::configure() and mx::improc::P4TrialSource::value() against
  * mx::improc::imageShift().

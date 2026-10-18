@@ -23,6 +23,7 @@ SPEC.loader.exec_module(CURVE)
 MOCK_APP = '''#!/usr/bin/env python3
 import json
 from pathlib import Path
+import shlex
 import sys
 options = dict(argument[2:].split("=", 1) for argument in sys.argv[1:])
 base = Path(__file__).parent
@@ -39,6 +40,8 @@ if role == "hciAnalyze":
     pa = float(options["planet.PA"])
     for plane, mode in enumerate((0.1, 0.5)):
         snr = ((-2, 6), (4, 8))[plane][int(pa == 180)]
+        if (base / "missing").exists() and plane == 0 and pa == 180:
+            snr = float("nan")
         print(plane, mode, 0, options["planet.sep"], options["planet.PA"], options["planet.contrast"], snr)
 else:
     assert options["output.exactFName"] == "true"
@@ -46,6 +49,20 @@ else:
     assert options["mode"] == "normal"
     output = Path(options["output.directory"]) / options["output.fileName"]
     output.write_text(json.dumps(options))
+    if "p4Batch.file" in options:
+        failed = False
+        for line in Path(options["p4Batch.file"]).read_text().splitlines():
+            sep, pa, contrast, path = shlex.split(line)
+            if (base / "batch_fail").exists() and float(pa) == 180:
+                failed = True
+                if options["p4Batch.keepGoing"] == "false":
+                    break
+                continue
+            values = dict(options, **{"fake.sep": sep, "fake.PA": pa, "fake.contrast": contrast})
+            Path(path).write_text(json.dumps(values))
+            Path(path + ".complete").touch()
+        if failed:
+            sys.exit(9)
 '''
 
 
@@ -174,6 +191,24 @@ def failure_and_coverage() -> None:
         calls = [json.loads(line) for line in (root / "calls.jsonl").read_text().splitlines()]
         assert sum(call["role"] == "p4Reduce" for call in calls) == 6
         assert sum(call["role"] == "hciAnalyze" for call in calls) == 9
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        command = fixture(root)
+        (root / "missing").touch()
+        run(command)
+        output = root / "output with spaces"
+        measurements = read_csv(output / "measurements.csv")
+        assert len(measurements) == 12 and all(row["status"] == "ok" for row in measurements)
+        assert sum(row["snr"] == "" for row in measurements) == 3
+        curves = read_csv(output / "contrast_by_mode.csv")
+        assert all(row["status"] == "insufficient_pa" and row["pa_used"] == "1"
+                   for row in curves if row["plane"] == "0")
+        assert all(row["status"] == "ok" and row["pa_used"] == "2"
+                   for row in curves if row["plane"] == "1")
+        assert all(row["plane"] == "1" for row in read_csv(output / "contrast_best.csv"))
+        before = (root / "calls.jsonl").read_text()
+        run(command + ["--resume"])
+        assert (root / "calls.jsonl").read_text() == before
     plan = {"pas": [0, 180], "radii": [10], "contrasts": [0.0001], "target_snr": 5, "min_pa_fraction": 0.5}
     result = {"status": "ok", "separation": 10, "measurements": [{"plane": 0, "mode": 0.1, "snr": None}]}
     curves, best = CURVE.summarize(plan, [result])
@@ -186,5 +221,39 @@ def failure_and_coverage() -> None:
     assert curves[0]["pa_used"] == 1 and best
 
 
+def batch_workflow() -> None:
+    """Check one-process P4 dispatch, failed-batch recovery, and analysis-only resumption."""
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        command = fixture(root) + ["--p4-batch", "--p4-source-size=10"]
+        dry = run(command + ["--dry-run"])
+        assert dry.stdout.count("--p4Batch.file=") == 1
+        assert dry.stdout.count("# batch trial:") == 6
+        assert not (root / "output with spaces").exists()
+        (root / "batch_fail").touch()
+        run(command + ["--keep-going"], 1)
+        output = root / "output with spaces"
+        calls = [json.loads(line) for line in (root / "calls.jsonl").read_text().splitlines()]
+        assert sum(call["role"] == "p4Reduce" for call in calls) == 1
+        assert sum(call["role"] == "hciAnalyze" for call in calls) == 3
+        assert all(row["status"] == "insufficient_pa" for row in read_csv(output / "contrast_by_mode.csv"))
+        (root / "batch_fail").unlink()
+        (root / "fail").touch()
+        run(command + ["--resume", "--keep-going"], 1)
+        assert len((output / "batch_trials.txt").read_text().splitlines()) == 3
+        (root / "fail").unlink()
+        run(command + ["--resume"])
+        calls = [json.loads(line) for line in (root / "calls.jsonl").read_text().splitlines()]
+        assert sum(call["role"] == "p4Reduce" for call in calls) == 2
+        assert sum(call["role"] == "hciAnalyze" for call in calls) == 9
+        assert all(row["status"] == "ok" for row in read_csv(output / "contrast_by_mode.csv"))
+        previous_calls = (root / "calls.jsonl").read_text()
+        run(command + ["--resume"])
+        assert (root / "calls.jsonl").read_text() == previous_calls
+        run(command + ["--resume", "--p4-source-size=12"], 1)
+        run(command + ["--reducer=klipReduce", "--dry-run"], 1)
+
+
 if __name__ == "__main__":
-    {"grid": grid_and_parser, "workflow": reduction_workflow, "failure": failure_and_coverage}[sys.argv[1]]()
+    {"grid": grid_and_parser, "workflow": reduction_workflow, "failure": failure_and_coverage,
+     "batch": batch_workflow}[sys.argv[1]]()

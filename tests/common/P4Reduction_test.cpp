@@ -201,6 +201,7 @@ struct reductionHarness : public reductionT
     using reductionT::m_imSize;
     using reductionT::m_mask;
     using reductionT::m_maskFile;
+    using reductionT::m_minGoodFract;
     using reductionT::m_Ncols;
     using reductionT::m_Nims;
     using reductionT::m_Npix;
@@ -227,6 +228,7 @@ struct reductionHarness : public reductionT
     using reductionT::m_RDIprefix;
     using reductionT::m_refIms;
     using reductionT::m_rejectNonFiniteTargetInput;
+    using reductionT::m_sigmaThreshold;
     using reductionT::m_skipPreProcess;
     using reductionT::m_temporalPredictor;
     using reductionT::m_tgtIms;
@@ -1345,6 +1347,196 @@ TEST_CASE( "P4 reduction exact held-out synthetic prediction", "[P4Reduction][re
     unsupportedStructured.m_deletionBackend = mx::math::svdDeletionBackend::rankOneSecular;
     unsupportedStructured.m_minDPx = 1;
     REQUIRE_THROWS( unsupportedStructured.reduce() );
+}
+
+/** \brief Verify P4Reduction::reduceInjectionBatch() matches complete refits with sigma clipping, masks, changing
+ * support, repeated and zero trials, while preserving pristine inputs and original configuration.
+ * \ingroup P4Reduction_unit_tests
+ */
+TEST_CASE( "P4 injection batch matches full-field refits", "[P4Reduction][batch][equivalence][mask]" )
+{
+    // clang-format off
+#ifdef __DOXY_ONLY__
+    mx::improc::P4Reductionf batchReductionAPI;
+    batchReductionAPI.reduceInjectionBatch( outputs, sourceSize, fullRefit, keepGoing );
+#endif
+    // clang-format on
+
+    const int temporalPolicy = GENERATE( 0, 1, 2 );
+    OpenMPThreadGuard threads( 1 );
+    TestDirectory directory;
+    constexpr int rows = 40, images = 9;
+    reductionT::imageT sourceTemplate = reductionT::imageT::Ones( 12, 12 );
+    const auto sourcePath = directory.file( "source.fits" );
+    mx::fits::fitsFile<float, mx::verbose::vv> fits;
+    REQUIRE( fits.write( sourcePath.string(), sourceTemplate ) == mx::error_t::noerror );
+    const auto prepare = [&]( reductionHarness &reduction )
+    {
+        prepareReduction( reduction, images, rows, rows );
+        reduction.m_minRadius = { 2, 8 };
+        reduction.m_maxRadius = { 8, 13 };
+        reduction.m_modeFractions = { 0.25F, 0.5F, 0.9F };
+        reduction.m_skipPreProcess = true;
+        reduction.m_combineMethod = mx::improc::HCI::combine::sigmaMean;
+        reduction.m_sigmaThreshold = 2;
+        reduction.m_minGoodFract = 0.5;
+        reduction.m_doDerotate = true;
+        reduction.m_mask = reductionT::imageT::Ones( rows, rows );
+        reduction.m_mask.block( 18, 24, 3, 3 ).setZero();
+        reduction.m_fakeFileName = sourcePath.string();
+        reduction.m_fakeMethod = mx::improc::HCI::fake::single;
+        reduction.m_fakeSep = { 9 };
+        reduction.m_fakePA = { 30 };
+        reduction.m_fakeContrast = { 0.1 };
+        reduction.m_memoryFraction = 0;
+        reduction.m_exactFinimName = true;
+        if( temporalPolicy == 1 )
+        {
+            reduction.m_numberImages = 1;
+            reduction.m_temporalPredictor = mx::improc::P4TemporalPredictor::neighborSummary;
+        }
+        else if( temporalPolicy == 2 )
+        {
+            reduction.m_excludeMethod = mx::improc::HCI::exclude::imno;
+            reduction.m_minDPx = 0;
+        }
+        for( int frame = 0; frame < images; ++frame )
+        {
+            reduction.m_derotF.m_angles[frame] = -17.F + 5.3F * frame;
+            for( int column = 0; column < rows; ++column )
+            {
+                for( int row = 0; row < rows; ++row )
+                {
+                    reduction.m_tgtIms.image( frame )( row, column ) =
+                        std::sin( 0.13F * ( row + 1 ) * ( frame + 1 ) ) +
+                        std::cos( 0.17F * ( column + 1 ) * ( frame + 2 ) ) + 0.03F * frame;
+                }
+            }
+        }
+    };
+    reductionHarness sparse, reference;
+    prepare( sparse );
+    prepare( reference );
+    sparse.m_finimName = directory.file( "sparse-baseline.fits" ).string();
+    reference.m_finimName = directory.file( "reference-baseline.fits" ).string();
+    auto pristine = sparse.m_tgtIms;
+    const std::vector<mx::improc::P4LocalTrial> trials{ { 9.2, 36, 0.5 },
+                                                        { 7.3, 190, -0.3 },
+                                                        { 9.2, 36, 0.5 },
+                                                        { 9.2, 36, 0 } };
+    std::vector<mx::improc::P4InjectionOutput> sparseOutputs, referenceOutputs;
+    for( std::size_t index = 0; index < trials.size(); ++index )
+    {
+        sparseOutputs.push_back(
+            { trials[index], directory.file( "sparse-" + std::to_string( index ) + ".fits" ).string() } );
+        referenceOutputs.push_back(
+            { trials[index], directory.file( "reference-" + std::to_string( index ) + ".fits" ).string() } );
+    }
+    REQUIRE_NOTHROW( sparse.reduceInjectionBatch( sparseOutputs, 4 ) );
+    REQUIRE_NOTHROW( reference.reduceInjectionBatch( referenceOutputs, 4, true ) );
+    std::size_t validSamples = 0;
+    for( std::size_t index = 0; index < trials.size(); ++index )
+    {
+        mx::improc::eigenCube<float> a, b;
+        reductionT::fitsHeaderT header;
+        REQUIRE( fits.read( a, header, sparseOutputs[index].fileName ) == mx::error_t::noerror );
+        REQUIRE( fits.read( b, referenceOutputs[index].fileName ) == mx::error_t::noerror );
+        REQUIRE( std::filesystem::exists( sparseOutputs[index].fileName + ".complete" ) );
+        const auto refits = std::stoull( header["P4 BATCH REFIT COUNT"].value<std::string>() );
+        REQUIRE( refits < static_cast<long long>( sparse.m_regionStatistics[0].searchPixelCount +
+                                                  sparse.m_regionStatistics[1].searchPixelCount ) );
+        if( trials[index].contrast == 0 )
+        {
+            REQUIRE( refits == 0 );
+            REQUIRE( fits.read( b, directory.file( "sparse-baseline.fits" ).string() ) == mx::error_t::noerror );
+        }
+        for( Eigen::Index pixel = 0; pixel < a.cube().size(); ++pixel )
+        {
+            const float left = a.cube().data()[pixel], right = b.cube().data()[pixel];
+            REQUIRE( std::isnan( left ) == std::isnan( right ) );
+            if( std::isfinite( left ) )
+            {
+                ++validSamples;
+                REQUIRE( left == right );
+            }
+        }
+    }
+    REQUIRE( validSamples > 0 );
+    REQUIRE( sparse.m_tgtIms.cube().isApprox( pristine.cube(), 0 ) );
+    REQUIRE( sparse.m_fakeContrast == std::vector<float>{ 0.1F } );
+    REQUIRE_FALSE( sparse.deferTargetFakeInjection() );
+
+    // Cancelling a moving source changes predictor rank; cached support must not leak into the trial.
+    reductionHarness cancellation, cancelledReference;
+    prepare( cancellation );
+    prepare( cancelledReference );
+    cancellation.m_finimName = directory.file( "cancel-baseline.fits" ).string();
+    cancelledReference.m_finimName = directory.file( "cancel-reference-baseline.fits" ).string();
+    std::vector<double> angles;
+    for( int frame = 0; frame < images; ++frame )
+    {
+        angles.push_back( cancellation.m_derotF.derotAngle( frame ) );
+    }
+    mx::improc::P4TrialSource moving;
+    moving.configure( sourceTemplate, rows, rows, 4, angles, 9.2F, 36, 0.5, std::vector<float>( images, 1 ) );
+    for( int frame = 0; frame < images; ++frame )
+    {
+        for( int column = 0; column < rows; ++column )
+        {
+            for( int row = 0; row < rows; ++row )
+            {
+                cancellation.m_tgtIms.image( frame )( row, column ) = moving.value( frame, row, column );
+                cancelledReference.m_tgtIms.image( frame )( row, column ) = moving.value( frame, row, column );
+            }
+        }
+    }
+    const auto cancelledPath = directory.file( "cancelled.fits" ).string();
+    const auto cancelledReferencePath = directory.file( "cancelled-reference.fits" ).string();
+    REQUIRE_NOTHROW( cancellation.reduceInjectionBatch( { { { 9.2F, 36, -0.5 }, cancelledPath } }, 4 ) );
+    REQUIRE_NOTHROW(
+        cancelledReference.reduceInjectionBatch( { { { 9.2F, 36, -0.5 }, cancelledReferencePath } }, 4, true ) );
+    mx::improc::eigenCube<float> before, after, expected;
+    REQUIRE( fits.read( before, directory.file( "cancel-baseline.fits" ).string() ) == mx::error_t::noerror );
+    REQUIRE( fits.read( after, cancelledPath ) == mx::error_t::noerror );
+    REQUIRE( fits.read( expected, cancelledReferencePath ) == mx::error_t::noerror );
+    REQUIRE( before.cube().isFinite().count() > 0 );
+    REQUIRE( after.cube().isFinite().count() < before.cube().isFinite().count() );
+    for( Eigen::Index pixel = 0; pixel < after.cube().size(); ++pixel )
+    {
+        const float actual = after.cube().data()[pixel], referenceValue = expected.cube().data()[pixel];
+        REQUIRE( std::isnan( actual ) == std::isnan( referenceValue ) );
+        if( std::isfinite( actual ) )
+        {
+            REQUIRE( actual == referenceValue );
+        }
+    }
+    if( temporalPolicy == 0 )
+    {
+        const auto blocked = directory.file( "not-a-directory" );
+        std::ofstream( blocked ) << "occupied";
+        const auto recoveredPath = directory.file( "recovered.fits" ).string();
+        REQUIRE_THROWS_WITH( sparse.reduceInjectionBatch(
+                                 { { trials[0], ( blocked / "failed.fits" ).string() }, { trials[0], recoveredPath } },
+                                 4,
+                                 false,
+                                 true ),
+                             Catch::Contains( "1 P4 injection trials failed" ) );
+        REQUIRE( std::filesystem::exists( recoveredPath + ".complete" ) );
+        REQUIRE( sparse.m_fakeContrast == std::vector<float>{ 0.1F } );
+        REQUIRE_FALSE( sparse.deferTargetFakeInjection() );
+    }
+    REQUIRE_THROWS( sparse.reduceInjectionBatch( sparseOutputs, 0 ) );
+    REQUIRE_THROWS( sparse.reduceInjectionBatch(
+        { { { 9, 36, std::numeric_limits<double>::quiet_NaN() }, sparseOutputs[0].fileName } },
+        4 ) );
+    REQUIRE_THROWS(
+        sparse.reduceInjectionBatch( { { { 9, 36, std::numeric_limits<double>::max() }, sparseOutputs[0].fileName } },
+                                     4 ) );
+    sparse.m_skipPreProcess = false;
+    sparse.m_mask( 0, 0 ) = 0.5;
+    REQUIRE_THROWS_WITH( sparse.reduceInjectionBatch( sparseOutputs, 4 ), Catch::Contains( "binary input mask" ) );
+    sparse.m_temporalPredictor = mx::improc::P4TemporalPredictor::pcat;
+    REQUIRE_THROWS( sparse.reduceInjectionBatch( sparseOutputs, 4 ) );
 }
 
 /// Verify P4Reduction's finite-amplitude local path matches a crop from an independently materialized full rerun.

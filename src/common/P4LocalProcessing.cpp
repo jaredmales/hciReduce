@@ -603,6 +603,82 @@ int P4TrialSource::cropColumns() const noexcept
     return m_cropColumns;
 }
 
+P4TrialSource::imageT P4TrialSource::supportMask() const
+{
+    if( !configured() )
+    {
+        throw std::logic_error( "P4 source support requires a configured source" );
+    }
+    imageT support = imageT::Zero( m_template.rows(), m_template.cols() );
+    const double firstRow = ( m_template.rows() - m_cropRows ) / 2;
+    const double firstColumn = ( m_template.cols() - m_cropColumns ) / 2;
+    // A conservative four-pixel halo also covers truncation toward zero in the production shift sampler.
+    for( const auto &shifts : m_sourceShifts )
+    {
+        for( std::size_t frame = 0; frame < shifts.size(); ++frame )
+        {
+            const auto &shift = shifts[frame];
+            if( shift.scale == 0 )
+            {
+                continue;
+            }
+            const auto bound = []( double value, int size )
+            { return static_cast<int>( std::clamp( value, 0.0, static_cast<double>( size ) ) ); };
+            const int beginRow = bound( std::floor( firstRow + shift.rowShift ) - 4, support.rows() );
+            const int endRow = bound( std::ceil( firstRow + m_cropRows + shift.rowShift ) + 4, support.rows() );
+            const int beginColumn = bound( std::floor( firstColumn + shift.columnShift ) - 4, support.cols() );
+            const int endColumn =
+                bound( std::ceil( firstColumn + m_cropColumns + shift.columnShift ) + 4, support.cols() );
+            for( int column = beginColumn; column < endColumn; ++column )
+            {
+                for( int row = beginRow; row < endRow; ++row )
+                {
+                    if( value( frame, row, column ) != 0 )
+                    {
+                        support( row, column ) = 1;
+                    }
+                }
+            }
+        }
+    }
+    return support;
+}
+
+std::vector<std::uint8_t> p4AffectedSearches( const P4PixelGridf &grid, const P4TrialSource::imageT &support )
+{
+    if( support.rows() != grid.rows() || support.cols() != grid.columns() )
+    {
+        throw std::invalid_argument( "P4 source support must match detector geometry" );
+    }
+    std::vector<std::uint8_t> affected( grid.searchPixelCount(), 0 );
+    for( std::size_t search = 0; search < grid.searchPixelCount(); ++search )
+    {
+        const auto &pixel = grid.searchPixel( search );
+        if( !pixel.valid() )
+        {
+            continue;
+        }
+        const auto &coordinate = pixel.coordinate();
+        affected[search] = support( coordinate.row(), coordinate.column() ) != 0;
+        for( std::size_t predictor = 0; predictor < grid.predictorCount( search ) && !affected[search]; ++predictor )
+        {
+            const auto &record = grid.interpolation( search, predictor );
+            for( int column = 0; column < P4PixelGridf::width; ++column )
+            {
+                for( int row = 0; row < P4PixelGridf::width; ++row )
+                {
+                    if( record.kernel()( row, column ) != 0 &&
+                        support( record.footprintRow() + row, record.footprintColumn() + column ) != 0 )
+                    {
+                        affected[search] = 1;
+                    }
+                }
+            }
+        }
+    }
+    return affected;
+}
+
 float P4TrialSource::value( std::size_t frame, int row, int column ) const
 {
     if( !configured() )
@@ -619,6 +695,12 @@ float P4TrialSource::value( std::size_t frame, int row, int column ) const
     for( const std::vector<FrameShift> &sourceShifts : m_sourceShifts )
     {
         const FrameShift &shift = sourceShifts[frame];
+        if( std::abs( static_cast<double>( shift.rowShift ) ) > static_cast<double>( m_template.rows() ) + 4 ||
+            std::abs( static_cast<double>( shift.columnShift ) ) > static_cast<double>( m_template.cols() ) + 4 )
+        {
+            // A finite but distant source cannot contribute; avoid converting its displacement to int.
+            continue;
+        }
         if( shift.integral )
         {
             const int sourceRow = row - static_cast<int>( shift.rowShift );

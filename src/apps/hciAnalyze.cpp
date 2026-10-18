@@ -54,7 +54,7 @@ struct hciAnalyzeResult
     float m_separation{ 0 };                                     ///< Signal separation in pixels.
     float m_positionAngle{ 0 };                                  ///< Signal position angle in degrees east of north.
     float m_contrast{ std::numeric_limits<float>::quiet_NaN() }; ///< Optional fake-planet contrast.
-    float m_snr{ std::numeric_limits<float>::quiet_NaN() };      ///< Maximum SNR in the configured aperture.
+    float m_snr{ std::numeric_limits<float>::quiet_NaN() }; ///< Maximum aperture SNR; NaN if no valid pixels exist.
 };
 
 /// Command-line application for measuring signal-to-noise ratios in a PSF-subtracted image cube.
@@ -1909,7 +1909,40 @@ void hciAnalyze::analyzeCube( cubeT &cube, fitsHeaderT &header )
     }
 
     cubeT snrCube;
-    mx::improc::stddevImageCube( snrCube, cube, noiseMask, minRadius, maxRadius, true );
+    std::vector<int> supportedPlanes;
+    for( int plane = 0; plane < cube.planes(); ++plane )
+    {
+        if( ( invalidMask.image( plane ) == 0 ).any() )
+        {
+            supportedPlanes.push_back( plane );
+        }
+    }
+    if( supportedPlanes.size() == static_cast<size_t>( cube.planes() ) )
+    {
+        mx::improc::stddevImageCube( snrCube, cube, noiseMask, minRadius, maxRadius, true );
+    }
+    else
+    {
+        // An entirely masked plane has no radial profile to interpolate. Preserve its missing-data state.
+        snrCube.resize( cube.rows(), cube.cols(), cube.planes() );
+        snrCube.setZero();
+        if( !supportedPlanes.empty() )
+        {
+            cubeT supportedCube( cube.rows(), cube.cols(), supportedPlanes.size() );
+            cubeT supportedMask( cube.rows(), cube.cols(), supportedPlanes.size() );
+            cubeT supportedSNR;
+            for( size_t index = 0; index < supportedPlanes.size(); ++index )
+            {
+                supportedCube.image( index ) = cube.image( supportedPlanes[index] );
+                supportedMask.image( index ) = noiseMask.image( supportedPlanes[index] );
+            }
+            mx::improc::stddevImageCube( supportedSNR, supportedCube, supportedMask, minRadius, maxRadius, true );
+            for( size_t index = 0; index < supportedPlanes.size(); ++index )
+            {
+                snrCube.image( supportedPlanes[index] ) = supportedSNR.image( index );
+            }
+        }
+    }
     correctSmallSampleSNR( snrCube );
     mx::improc::zeroNaNCube( snrCube );
     // The radial estimator excludes invalid samples from its statistics but evaluates the map everywhere.
@@ -1948,9 +1981,9 @@ void hciAnalyze::analyzeCube( cubeT &cube, fitsHeaderT &header )
             }
             if( !hasValidAperturePixel )
             {
-                throw mx::exception<mx::verbose::vv>( mx::error_t::invalidconfig,
-                                                      "signal " + std::to_string( signalIndex ) +
-                                                          " aperture contains no valid pixels" );
+                apertureMaximum = std::numeric_limits<realT>::quiet_NaN();
+                std::cerr << "hciAnalyze: " << m_file << ": plane " << plane << ", signal " << signalIndex
+                          << " aperture contains no valid pixels; reporting NaN SNR\n";
             }
             hciAnalyzeResult result;
             result.m_plane = plane;

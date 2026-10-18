@@ -85,7 +85,15 @@
  *
  * \section p4_local_products Products and provenance
  *
- * The standard final-image product becomes a `localStampSize x localStampSize x modeCount` cube with
+ * Full-field injection grids can instead reuse an uninjected baseline through the
+ * \ref contrast_curve_p4_batch "contrast-curve batch path". `p4Batch.file` contains one
+ * `separation PA contrast "output-path.fits"` row per trial, without a header; `p4Batch.sourceSize` sets the nominal
+ * source crop (default 10), `p4Batch.fullRefit=true` enables an all-target reference run, and
+ * `p4Batch.keepGoing=true` attempts later trials after a failure while returning failure at the end. The normal
+ * configured output path receives the baseline. Unlike `p4.localStampSize`, this path recombines the complete field
+ * after including direct and OR-induced effects. The Python script prepares this list and manages analysis/resume.
+ *
+ * The pixel-local final-image product is a `localStampSize x localStampSize x modeCount` cube with
  * `HIERARCH P4 PRODUCT ROLE=LOCAL_RESIDUAL`. An exact zero/one validity cube inserts `local_validity` before the
  * normal sequence number and is stored in the residual's auxiliary directory. For example, `finim_0000.fits` uses
  * `finim_0000_outputs/finim_local_validity_0000.fits`. With an exact filename it becomes

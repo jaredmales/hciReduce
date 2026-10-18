@@ -282,6 +282,24 @@ white breadcrumb/heading artifacts are gone.
 
 Known non-blocking ownership follow-ups:
 
+- [x] Audit upstream calls in P4 injection-batch work (2026-10-17).
+      Rechecked the current `coverage_filtered.info` (SHA-256
+      `30f9edc082b9d2db1bee77c6725b791a120e5725ca2c8d9a6f7e24175c79e86d`) for the edited
+      `P4Reduction::regions()` / `appendReductionHeader()`, new `reduceInjectionBatch()`, and
+      `p4Reduce::setupConfig()` / `loadConfig()` / `checkConfig()`, plus the new FITS/cube regression fixtures.
+      Shared executable-line ranges are fully covered: `appConfigurator.hpp` 86/86, the called `add` overload
+      3/3 (delegate 8/8), exception helpers 42/42, `eigenCube.hpp` 185/185, `fitsFile.hpp` 491/491,
+      `fitsHeader.hpp` 259/259, `fitsHeaderCard.hpp` 563/563, `ompLoopWatcher.hpp` 69/69,
+      `floatUtils.hpp` 20/20, and the time header/source 30/30 and 140/140. Batch counts use the existing string
+      header convention, avoiding a new unverified long-long append specialization.
+- [ ] Complete the exact-instance gaps reused by the injection batch.
+      `appConfigurator::operator()<unsigned long>` in the edited application loader still has zero calls despite
+      its shared body being 2/2; add upstream unsigned-long retrieval cases. The float cube copy/move aliases
+      and the downstream `ompLoopWatcher<P4ProgressOutput,...>` aliases remain absent. Add float ownership tests
+      in mxlib and capture the local watcher specialization in a coverage-instrumented hciReduce batch regression,
+      then regenerate the reports. These are the same ownership gaps detailed below, not measured uncovered lines
+      introduced by the batch algorithm.
+
 - [x] Restore current mxlib LCOV and audit P4 per-target mask filtering (2026-10-17).
       Audited `/home/jrmales/Source/mxlib/_build/coverage_filtered.info`, generated 2026-10-17 09:17:25 MST,
       against clean mxlib `0b191ab`; the relevant installed headers match the source headers byte-for-byte.
@@ -391,6 +409,13 @@ Known non-blocking ownership follow-ups:
       `tests/include/improc/imageFilters_test.cpp`, then regenerate LCOV before treating these exact APIs as covered.
       Downstream regression verifies valid-only radial statistics independently and NaN output holes with and without
       Gaussian filtering; this does not replace the missing upstream coverage evidence.
+      Re-audited the same current trace for the empty-aperture handling change on 2026-10-17: the coverage counts
+      and missing float `stddevImageCube`/`stddevImage` instances are unchanged. Include a wholly masked plane in
+      the upstream float-cube follow-up. The new downstream FITS regression verifies that such a plane and a
+      partially masked signal produce NaN measurements while supported signal/mode rows remain available.
+      The fully masked-plane fixture exposed GSL's fatal insufficient-interpolation-points path in the upstream
+      estimator. hciAnalyze now excludes wholly invalid planes before calling it. Add a defined empty-profile
+      result/error path and its float regression to mxlib as part of the same follow-up.
 
 - [x] Complete mxlib coverage for `ompLoopWatcher` and the float FITS image/cube reads used by P4/KLIP response
       processing. The 2026-09-14 audit of `/home/jrmales/Source/mxlib/_build/coverage_filtered.info` records
